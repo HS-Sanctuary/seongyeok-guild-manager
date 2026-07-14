@@ -55,7 +55,7 @@ export default function RankingPage() {
 
   const sortedCharacters = [...characters].sort((a, b) => b[activeTab] - a[activeTab]);
   const top3 = sortedCharacters.slice(0, 3);
-  const formatNumber = (num: number) => num.toLocaleString();
+  const formatNumber = (num: any) => (num ?? 0).toLocaleString();
   const getUnit = (tabId: string) => tabId === "level" ? "LV" : tabId === "contribution" ? "Pt" : "CP";
 
   if (isLoading) return <div className="min-h-screen flex items-center justify-center text-zinc-500 font-bold bg-[#1c1c1e]">데이터 로딩 중...</div>;
