@@ -2,49 +2,36 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { supabase } from "../../lib/supabase"; // 👈 DB 연동 추가!
 
 // =====================================================================
-// 🎯 커스텀 타임 피커 컴포넌트 (모바일 UX 최적화)
+// 🎯 커스텀 타임 피커 컴포넌트
 // =====================================================================
 function CustomTimePicker({ value, onChange }: { value: string, onChange: (val: string) => void }) {
   const [isOpen, setIsOpen] = useState(false);
   const [h, m] = value.split(':');
   
-  // 24시간 단위 (00~23) & 15분 단위 (00, 15, 30, 45)
   const hours = Array.from({length: 24}, (_, i) => String(i).padStart(2, '0'));
   const minutes = ["00", "15", "30", "45"];
 
   return (
     <div className="relative flex-1">
-      {/* 바깥 영역 클릭 시 닫히도록 하는 투명 배경 */}
       {isOpen && <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)}></div>}
-      
-      <div
-        onClick={() => setIsOpen(!isOpen)}
-        className={`relative z-50 bg-[#121212] border ${isOpen ? 'border-[#e6c788]' : 'border-zinc-700'} hover:border-zinc-500 rounded p-2.5 text-sm font-bold text-white cursor-pointer text-center transition flex justify-center items-center gap-1`}
-      >
+      <div onClick={() => setIsOpen(!isOpen)} className={`relative z-50 bg-[#121212] border ${isOpen ? 'border-[#e6c788]' : 'border-zinc-700'} hover:border-zinc-500 rounded p-2.5 text-sm font-bold text-white cursor-pointer text-center transition flex justify-center items-center gap-1`}>
         <span>{h}:{m}</span>
         <span className={`text-[10px] text-zinc-500 transition-transform ${isOpen ? 'rotate-180 text-[#e6c788]' : ''}`}>▼</span>
       </div>
-
-      {/* 드롭다운 메뉴 */}
       {isOpen && (
         <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-[160px] bg-[#1c1c1e] border border-zinc-600 rounded-lg shadow-2xl z-50 p-2 flex gap-2">
-          {/* 시간 스크롤 */}
           <div className="flex-1 h-48 overflow-y-auto custom-scrollbar pr-1 space-y-1">
             {hours.map(hour => (
-              <button key={hour} onClick={() => onChange(`${hour}:${m}`)} className={`w-full text-center py-1.5 rounded text-xs font-bold transition ${h === hour ? 'bg-yellow-600 text-white' : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'}`}>
-                {hour}시
-              </button>
+              <button key={hour} onClick={() => onChange(`${hour}:${m}`)} className={`w-full text-center py-1.5 rounded text-xs font-bold transition ${h === hour ? 'bg-yellow-600 text-white' : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'}`}>{hour}시</button>
             ))}
           </div>
           <div className="w-px bg-zinc-700"></div>
-          {/* 분 스크롤 */}
           <div className="flex-1 h-48 overflow-y-auto custom-scrollbar pr-1 space-y-1">
             {minutes.map(minute => (
-              <button key={minute} onClick={() => { onChange(`${h}:${minute}`); setIsOpen(false); }} className={`w-full text-center py-1.5 rounded text-xs font-bold transition ${m === minute ? 'bg-yellow-600 text-white' : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'}`}>
-                {minute}분
-              </button>
+              <button key={minute} onClick={() => { onChange(`${h}:${minute}`); setIsOpen(false); }} className={`w-full text-center py-1.5 rounded text-xs font-bold transition ${m === minute ? 'bg-yellow-600 text-white' : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'}`}>{minute}분</button>
             ))}
           </div>
         </div>
@@ -54,7 +41,7 @@ function CustomTimePicker({ value, onChange }: { value: string, onChange: (val: 
 }
 
 // =====================================================================
-// 🎯 데이터베이스 (임시 데이터)
+// 🎯 기초 데이터베이스 세팅
 // =====================================================================
 const DIFFICULTY_COLORS: Record<string, string> = {
   "입문": "text-purple-400 bg-purple-400/10 border-purple-500/50",
@@ -76,21 +63,10 @@ const CONTENT_DB = [
   { id: "raid_eir", name: "레이드 - 에이렐", type: "레이드", size: 4, diffs: ["어려움"], subs: [] },
 ];
 
-const JOB_ICONS: { [key: string]: string } = { 전사: "⚔️", 마법사: "🪄", 힐러: "💖", 궁수: "🏹", 기사: "🛡️", 도적: "🥷" };
-const MY_ACCOUNT_CHARACTERS = ["한설", "영겁", "순월", "쌍월", "먀치", "탄월"];
-
+const JOB_ICONS: { [key: string]: string } = { 전사: "⚔️", 마법사: "🪄", 화염술사: "🔥", 빙결술사: "❄️", 힐러: "💖", 사제: "🕊️", 궁수: "🏹", 석궁사수: "🏹", 기사: "🛡️", 대검전사: "🗡️", 도적: "🥷", 암흑술사: "🌑" };
+const MY_ACCOUNT_CHARACTERS = ["한설", "영겁", "순월", "쌍월", "먀치", "탄월"]; // 임시 계정 캐릭터 목록
 const GUILD_MEMBERS = [
-  { name: "파랑", job: "전사", cp: 85000, done: false },
-  { name: "춘법", job: "마법사", cp: 82000, done: false },
-  { name: "꽃닝", job: "힐러", cp: 79000, done: true },
-  { name: "하채", job: "궁수", cp: 81000, done: false },
-  { name: "십쇼", job: "기사", cp: 86000, done: true },
-  { name: "별콩", job: "도적", cp: 80500, done: false }
-];
-
-const MOCK_REALTIME_QUEUE = [
-  { id: 1, content: "어비스 3종", difficulty: "매우어려움", time: "18:30 ~ 19:00", members: [{ name: "파랑", job: "전사" }, { name: "하채", job: "궁수" }], max: 4 },
-  { id: 2, content: "레이드 - 카브락", difficulty: "어려움", time: "20:00 ~ 21:00", members: [{ name: "춘법", job: "마법사" }, { name: "별콩", job: "도적" }, { name: "꽃닝", job: "힐러" }, { name: "십쇼", job: "기사" }], max: 8 }
+  { name: "파랑", job: "전사", cp: 85000, done: false }, { name: "춘법", job: "마법사", cp: 82000, done: false }, { name: "꽃닝", job: "힐러", cp: 79000, done: true }, { name: "하채", job: "궁수", cp: 81000, done: false }, { name: "십쇼", job: "기사", cp: 86000, done: true }, { name: "별콩", job: "도적", cp: 80500, done: false }
 ];
 
 export default function PartyPage() {
@@ -98,23 +74,40 @@ export default function PartyPage() {
   const [user, setUser] = useState<any>(null);
   const [mounted, setMounted] = useState(false);
   
-  // 예약 폼 상태
+  // 🟢 DB에서 불러올 실제 파티 목록 상태
+  const [activeParties, setActiveParties] = useState<any[]>([]);
+
+  // 폼 상태
   const [selectedChar, setSelectedChar] = useState(MY_ACCOUNT_CHARACTERS[0]);
   const [selectedContent, setSelectedContent] = useState(CONTENT_DB[0]);
   const [selectedSub, setSelectedSub] = useState("");
   const [selectedDiff, setSelectedDiff] = useState(CONTENT_DB[0].diffs[0]);
   const [timeStart, setTimeStart] = useState("18:00");
   const [timeEnd, setTimeEnd] = useState("20:00");
-  const [discordAlert, setDiscordAlert] = useState(true); // 디스코드 알림 스위치 상태
+  const [discordAlert, setDiscordAlert] = useState(true);
 
   const [alertStatus, setAlertStatus] = useState<"hidden" | "popup" | "balloon">("hidden");
   const [showGuildModal, setShowGuildModal] = useState(false);
+
+  // 🟢 DB에서 파티 목록 불러오기
+  const fetchParties = async () => {
+    const { data, error } = await supabase
+      .from('parties')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (!error && data) {
+      setActiveParties(data);
+    }
+  };
 
   useEffect(() => {
     setMounted(true);
     const savedUser = localStorage.getItem("nexus_user");
     if (!savedUser) { router.push("/login"); return; }
     setUser(JSON.parse(savedUser));
+    
+    fetchParties(); // 페이지 켜질 때 파티 목록 호출
   }, [router]);
 
   const handleContentChange = (contentId: string) => {
@@ -124,19 +117,38 @@ export default function PartyPage() {
     setSelectedSub(content.subs.length > 0 ? content.subs[0] : "");
   };
 
-  const handleReservation = () => {
-    alert(`[${selectedChar}] 캐릭터로 ${timeStart}~${timeEnd} 파티 예약을 등록했습니다.\n${discordAlert ? '(디스코드 알림이 활성화되었습니다.)' : ''}`);
+  // 🟢 진짜 파티 생성 (DB 저장 로직)
+  const handleReservation = async () => {
+    // 임시로 직업을 '기사'로 통일 (추후 characters DB 연동 시 고도화 예정)
+    const myJob = "기사"; 
+
+    const newParty = {
+      content_name: selectedContent.name,
+      sub_content: selectedSub,
+      difficulty: selectedDiff,
+      time_start: timeStart,
+      time_end: timeEnd,
+      max_members: selectedContent.size,
+      members: [{ name: selectedChar, job: myJob }], // 파티장 등록
+      status: "모집중"
+    };
+
+    const { error } = await supabase.from('parties').insert([newParty]);
+    
+    if (error) {
+      alert("파티 등록에 실패했습니다.");
+    } else {
+      alert(`[${selectedChar}] 캐릭터로 파티 예약이 등록되었습니다!`);
+      fetchParties(); // 성공 후 우측 리스트 새로고침
+    }
   };
 
   if (!mounted || !user) return null;
 
   return (
-    <main className="min-h-screen bg-[#1c1c1e] text-[#d4d4d8] font-sans pb-20 relative">
-      
-
+    <main className="min-h-screen bg-[#1c1c1e] text-[#d4d4d8] font-sans pb-20 relative select-none">
       <div className="max-w-[1400px] mx-auto p-4 md:p-8 space-y-6">
         
-        {/* 🟦 헤더 */}
         <div className="flex justify-between items-end">
           <div>
             <h1 className="text-3xl font-black text-white flex items-center gap-3">
@@ -148,30 +160,18 @@ export default function PartyPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          
-          {/* 🟦 1. 파티 예약 폼 (좌측 4칸) */}
+          {/* 좌측: 예약 폼 */}
           <div className="lg:col-span-4 bg-[#252528] rounded-2xl border border-zinc-700/80 p-6 shadow-xl h-fit">
             <h2 className="text-lg font-bold text-[#e6c788] mb-4 flex items-center gap-2">📅 내 일정 예약하기</h2>
-            
             <div className="space-y-6">
-              
-              {/* 캐릭터 선택 */}
               <div>
                 <label className="text-[11px] font-bold text-zinc-500 mb-2 block">참여할 캐릭터 선택</label>
                 <div className="flex flex-wrap gap-2">
                   {MY_ACCOUNT_CHARACTERS.map(char => (
-                    <button 
-                      key={char} 
-                      onClick={() => setSelectedChar(char)}
-                      className={`text-xs font-bold px-3 py-1.5 rounded transition ${selectedChar === char ? 'bg-yellow-600 text-white shadow-lg' : 'bg-[#121212] border border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-500'}`}
-                    >
-                      {char}
-                    </button>
+                    <button key={char} onClick={() => setSelectedChar(char)} className={`text-xs font-bold px-3 py-1.5 rounded transition ${selectedChar === char ? 'bg-yellow-600 text-white shadow-lg' : 'bg-[#121212] border border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-500'}`}>{char}</button>
                   ))}
                 </div>
               </div>
-
-              {/* 🟢 NEW: 커스텀 시간 설정 (24시간/15분) */}
               <div>
                 <label className="text-[11px] font-bold text-zinc-500 mb-2 block">접속 가능 시간 (24시간제)</label>
                 <div className="flex items-center gap-2">
@@ -180,138 +180,99 @@ export default function PartyPage() {
                   <CustomTimePicker value={timeEnd} onChange={setTimeEnd} />
                 </div>
               </div>
-
-              {/* 컨텐츠 선택 & 길드원 조회 버튼 */}
               <div>
                 <div className="flex justify-between items-end mb-2">
                   <label className="text-[11px] font-bold text-zinc-500 block">목표 컨텐츠 ({selectedContent.size}인)</label>
-                  <button onClick={() => setShowGuildModal(true)} className="text-[10px] bg-indigo-600/20 text-indigo-400 border border-indigo-500/50 hover:bg-indigo-600/40 px-2 py-0.5 rounded flex items-center gap-1 transition">
-                    🔍 미클리어 길드원 보기
-                  </button>
+                  <button onClick={() => setShowGuildModal(true)} className="text-[10px] bg-indigo-600/20 text-indigo-400 border border-indigo-500/50 hover:bg-indigo-600/40 px-2 py-0.5 rounded flex items-center gap-1 transition">🔍 미클리어 길드원 보기</button>
                 </div>
                 <select value={selectedContent.id} onChange={e => handleContentChange(e.target.value)} className="w-full bg-[#121212] border border-zinc-700 rounded p-2.5 text-sm text-white focus:border-[#e6c788] outline-none mb-2">
                   {CONTENT_DB.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
-
                 {selectedContent.subs.length > 0 && (
                   <select value={selectedSub} onChange={e => setSelectedSub(e.target.value)} className="w-full bg-[#1c1c1e] border border-zinc-700 rounded p-2.5 text-sm text-zinc-300 focus:border-[#e6c788] outline-none mb-2">
                     {selectedContent.subs.map(sub => <option key={sub} value={sub}>{sub}</option>)}
                   </select>
                 )}
               </div>
-
-              {/* 난이도 선택 */}
               <div>
                 <label className="text-[11px] font-bold text-zinc-500 mb-2 block">난이도 설정</label>
                 <div className="flex flex-wrap gap-2">
                   {selectedContent.diffs.map(diff => (
-                    <button 
-                      key={diff} 
-                      onClick={() => setSelectedDiff(diff)}
-                      className={`text-xs font-bold px-3 py-1.5 rounded border transition-colors ${selectedDiff === diff ? DIFFICULTY_COLORS[diff] : 'bg-[#121212] border-zinc-700 text-zinc-500 hover:border-zinc-500'}`}
-                    >
-                      {diff}
-                    </button>
+                    <button key={diff} onClick={() => setSelectedDiff(diff)} className={`text-xs font-bold px-3 py-1.5 rounded border transition-colors ${selectedDiff === diff ? DIFFICULTY_COLORS[diff] : 'bg-[#121212] border-zinc-700 text-zinc-500 hover:border-zinc-500'}`}>{diff}</button>
                   ))}
                 </div>
               </div>
-
-              {/* 🟢 NEW: 디스코드 알림 연동 토글 */}
               <div className="bg-[#1c1c1e] border border-indigo-500/30 rounded-xl p-3 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-[#5865F2]/20 rounded-full flex items-center justify-center">
-                    <span className="text-[#5865F2] text-sm">🎮</span>
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-white">디스코드 알림 연동</p>
-                    <p className="text-[10px] text-zinc-400">출발 15분 전 DM 발송</p>
-                  </div>
+                  <div className="w-8 h-8 bg-[#5865F2]/20 rounded-full flex items-center justify-center"><span className="text-[#5865F2] text-sm">🎮</span></div>
+                  <div><p className="text-xs font-bold text-white">디스코드 알림 연동</p><p className="text-[10px] text-zinc-400">출발 15분 전 DM 발송</p></div>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input type="checkbox" checked={discordAlert} onChange={() => setDiscordAlert(!discordAlert)} className="sr-only peer" />
                   <div className="w-9 h-5 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#5865F2]"></div>
                 </label>
               </div>
-
               <button onClick={handleReservation} className="w-full bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-3 rounded-xl shadow-lg mt-2 transition">
                 예약 대기열 등록
               </button>
             </div>
           </div>
 
-          {/* 🟦 2. 매칭 현황판 (우측 8칸) */}
+          {/* 우측: 매칭 현황 (DB 연동 완료!) */}
           <div className="lg:col-span-8 space-y-6 flex flex-col">
-            
-            {/* 상단: 나의 예약 대기열 */}
-            <div className="bg-[#252528] rounded-2xl border border-zinc-700/80 p-6 shadow-xl">
-              <h2 className="text-lg font-bold text-white mb-4">⏳ 나의 예약 대기열</h2>
-              <div className="bg-[#1c1c1e] border border-zinc-800 rounded-xl p-4 flex items-center justify-between">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="bg-yellow-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">{selectedChar}</span>
-                    <span className="text-white font-bold">{selectedContent.name} {selectedSub && `(${selectedSub})`}</span>
-                    <span className={`text-[10px] px-1.5 py-0.5 border rounded ${DIFFICULTY_COLORS[selectedDiff]}`}>{selectedDiff}</span>
-                  </div>
-                  <p className="text-xs text-zinc-400">희망 시간: {timeStart} ~ {timeEnd} (현재 멤버 탐색 중... 🔍)</p>
-                </div>
-                <button className="text-xs text-red-400 border border-red-900/50 bg-red-900/10 px-3 py-1.5 rounded hover:bg-red-900/30 transition">예약 취소</button>
-              </div>
-            </div>
-
-            {/* 하단: 실시간 매칭 현황 대기열 (하이브리드 큐) */}
             <div className="bg-[#252528] rounded-2xl border border-zinc-700/80 p-6 shadow-xl flex-1">
               <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
                 🔥 실시간 모집 현황 <span className="text-[10px] font-normal text-emerald-400 bg-emerald-900/30 px-2 py-0.5 rounded border border-emerald-800/50">즉시 참여 가능</span>
               </h2>
               
-              <div className="space-y-4 overflow-y-auto max-h-[400px] custom-scrollbar pr-2">
-                {MOCK_REALTIME_QUEUE.map(party => (
-                  <div key={party.id} className="bg-[#1c1c1e] border border-zinc-700 hover:border-emerald-500/50 rounded-xl p-4 transition group flex flex-col justify-between gap-4">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1.5">
-                          <span className="text-white font-black text-lg">{party.content}</span>
-                          <span className={`text-[10px] px-1.5 py-0.5 border rounded ${DIFFICULTY_COLORS[party.difficulty]}`}>{party.difficulty}</span>
+              <div className="space-y-4 overflow-y-auto max-h-[600px] custom-scrollbar pr-2">
+                {activeParties.length === 0 ? (
+                  <div className="text-center py-10 text-zinc-500 font-bold">현재 모집 중인 파티가 없습니다.<br/>직접 파티를 생성해보세요!</div>
+                ) : (
+                  activeParties.map(party => (
+                    <div key={party.id} className="bg-[#1c1c1e] border border-zinc-700 hover:border-emerald-500/50 rounded-xl p-4 transition group flex flex-col justify-between gap-4">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1.5">
+                            <span className="text-white font-black text-lg">{party.content_name} {party.sub_content && `(${party.sub_content})`}</span>
+                            <span className={`text-[10px] px-1.5 py-0.5 border rounded ${DIFFICULTY_COLORS[party.difficulty] || "text-zinc-400 bg-zinc-800 border-zinc-600"}`}>{party.difficulty}</span>
+                          </div>
+                          <p className="text-xs text-zinc-400 font-medium flex items-center gap-1">⏰ 희망 시간대: <span className="text-[#e6c788]">{party.time_start} ~ {party.time_end}</span></p>
                         </div>
-                        <p className="text-xs text-zinc-400 font-medium flex items-center gap-1">⏰ 희망 시간대: <span className="text-[#e6c788]">{party.time}</span></p>
+                        <div className="flex flex-col items-end gap-2">
+                          <span className="text-sm font-black text-white bg-zinc-800 px-3 py-1 rounded-full">{party.members.length} / {party.max_members} 명</span>
+                          <button className="text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-1.5 rounded shadow transition opacity-80 group-hover:opacity-100">
+                            즉시 참여
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex flex-col items-end gap-2">
-                        <span className="text-sm font-black text-white bg-zinc-800 px-3 py-1 rounded-full">{party.members.length} / {party.max} 명</span>
-                        <button className="text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-1.5 rounded shadow transition opacity-80 group-hover:opacity-100">
-                          즉시 참여
-                        </button>
-                      </div>
-                    </div>
 
-                    {/* 슬롯 시각화 */}
-                    <div className="flex gap-2 bg-[#121212] p-2 rounded-lg border border-zinc-800 overflow-x-auto custom-scrollbar">
-                      {Array.from({ length: party.max }).map((_, i) => {
-                        const m = party.members[i];
-                        return m ? (
-                          <div key={i} className="flex flex-col items-center justify-center bg-zinc-800 border border-zinc-600 rounded p-1.5 w-14 h-14 flex-shrink-0">
-                            <span className="text-lg leading-none mb-1">{JOB_ICONS[m.job]}</span>
-                            <span className="text-[9px] text-white truncate w-full text-center">{m.name}</span>
-                          </div>
-                        ) : (
-                          <div key={i} className="flex flex-col items-center justify-center bg-[#1c1c1e] border border-dashed border-zinc-700 rounded p-1.5 w-14 h-14 flex-shrink-0">
-                            <span className="text-xs text-zinc-600">빈자리</span>
-                          </div>
-                        )
-                      })}
+                      {/* 슬롯 시각화 */}
+                      <div className="flex gap-2 bg-[#121212] p-2 rounded-lg border border-zinc-800 overflow-x-auto custom-scrollbar">
+                        {Array.from({ length: party.max_members }).map((_, i) => {
+                          const m = party.members[i];
+                          return m ? (
+                            <div key={i} className="flex flex-col items-center justify-center bg-zinc-800 border border-zinc-600 rounded p-1.5 w-14 h-14 flex-shrink-0">
+                              <span className="text-lg leading-none mb-1">{JOB_ICONS[m.job] || "👤"}</span>
+                              <span className="text-[9px] text-white truncate w-full text-center">{m.name}</span>
+                            </div>
+                          ) : (
+                            <div key={i} className="flex flex-col items-center justify-center bg-[#1c1c1e] border border-dashed border-zinc-700 rounded p-1.5 w-14 h-14 flex-shrink-0">
+                              <span className="text-xs text-zinc-600">빈자리</span>
+                            </div>
+                          )
+                        })}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
-
           </div>
         </div>
       </div>
 
-      {/* =====================================================================
-          🔥 모달 레이어들
-          ===================================================================== */}
-      {/* 1. 길드원 조회 모달 */}
+      {/* 모달 등 하단 UI는 기존과 동일하게 유지 */}
       {showGuildModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-[#1c1c1e] border-2 border-indigo-500/50 rounded-2xl shadow-[0_0_50px_rgba(79,70,229,0.2)] w-full max-w-sm overflow-hidden flex flex-col relative">
@@ -324,7 +285,7 @@ export default function PartyPage() {
               {GUILD_MEMBERS.map((member, idx) => (
                 <div key={idx} className={`flex justify-between items-center p-3 rounded-lg border ${member.done ? 'bg-zinc-900/50 border-zinc-800 opacity-50' : 'bg-[#252528] border-zinc-700'}`}>
                   <div className="flex items-center gap-2">
-                    <span className="text-lg">{JOB_ICONS[member.job]}</span>
+                    <span className="text-lg">{JOB_ICONS[member.job] || "👤"}</span>
                     <div>
                       <span className={`text-sm font-bold block ${member.done ? 'text-zinc-500' : 'text-white'}`}>{member.name}</span>
                       <span className="text-[10px] text-zinc-400">전투력: {member.cp.toLocaleString()}</span>
@@ -333,9 +294,7 @@ export default function PartyPage() {
                   {member.done ? (
                     <span className="text-[10px] font-bold text-emerald-600 border border-emerald-900 bg-emerald-900/20 px-2 py-1 rounded">완료됨</span>
                   ) : (
-                    <button className="text-[10px] font-bold bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded transition">
-                      초대 알림
-                    </button>
+                    <button className="text-[10px] font-bold bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded transition">초대 알림</button>
                   )}
                 </div>
               ))}
@@ -344,7 +303,6 @@ export default function PartyPage() {
         </div>
       )}
 
-      {/* 2. 애드벌룬 알림 */}
       {alertStatus === "balloon" && (
         <div onClick={() => setAlertStatus("popup")} className="fixed bottom-8 right-8 z-50 bg-emerald-600 hover:bg-emerald-500 text-white p-4 rounded-full shadow-[0_0_20px_rgba(5,150,105,0.5)] cursor-pointer transition-transform hover:scale-110 flex items-center gap-3">
           <span className="text-xl animate-bounce">🎉</span>
@@ -355,7 +313,6 @@ export default function PartyPage() {
         </div>
       )}
 
-      {/* 3. 대형 매칭 팝업 */}
       {alertStatus === "popup" && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-[#1c1c1e] border-2 border-emerald-500/50 rounded-2xl shadow-[0_0_50px_rgba(5,150,105,0.2)] w-full max-w-lg overflow-hidden flex flex-col relative">
@@ -372,7 +329,6 @@ export default function PartyPage() {
         </div>
       )}
 
-      {/* 커스텀 CSS */}
       <style dangerouslySetInnerHTML={{__html: `
         .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
