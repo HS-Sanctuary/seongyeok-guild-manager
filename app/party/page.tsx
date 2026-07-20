@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "../../lib/supabase"; // 👈 DB 연동 추가!
+import { supabase } from "../../lib/supabase";
 
 // =====================================================================
 // 🎯 커스텀 타임 피커 컴포넌트
@@ -43,62 +43,64 @@ function CustomTimePicker({ value, onChange }: { value: string, onChange: (val: 
 // =====================================================================
 // 🎯 기초 데이터베이스 세팅
 // =====================================================================
+const ROLE_GROUPS: Record<string, string[]> = {
+  "탱커": ["빙결술사", "전사", "기사"],
+  "힐러": ["힐러", "사제", "수도사", "음유시인"],
+  "근딜": ["검술사", "대검전사", "댄서", "도적", "격투가", "듀얼블레이드"],
+  "원딜": ["마법사", "화염술사", "전격술사", "궁수", "장궁병", "석궁사수", "악사", "암흑술사"]
+};
+
+const ROLE_COLORS: Record<string, string> = {
+  "탱커": "text-blue-400 bg-blue-900/20 border-blue-800/50",
+  "힐러": "text-emerald-400 bg-emerald-900/20 border-emerald-800/50",
+  "근딜": "text-red-400 bg-red-900/20 border-red-800/50",
+  "원딜": "text-orange-400 bg-orange-900/20 border-orange-800/50"
+};
+
 const DIFFICULTY_COLORS: Record<string, string> = {
   "입문": "text-purple-400 bg-purple-400/10 border-purple-500/50",
   "어려움": "text-yellow-400 bg-yellow-400/10 border-yellow-500/50",
   "매우어려움": "text-red-500 bg-red-500/10 border-red-500/50",
   "지옥1": "text-rose-700 bg-rose-900/20 border-rose-800/50",
-  "지옥2": "text-rose-700 bg-rose-900/20 border-rose-800/50",
-  "지옥3": "text-rose-700 bg-rose-900/20 border-rose-800/50",
-  "지옥4": "text-rose-700 bg-rose-900/20 border-rose-800/50",
-  "지옥5": "text-rose-700 bg-rose-900/20 border-rose-800/50",
-  "지옥6": "text-rose-700 bg-rose-900/20 border-rose-800/50",
+  "지옥2": "text-rose-700 bg-rose-900/20 border-rose-800/50"
 };
 
 const CONTENT_DB = [
-  { id: "abyss3", name: "어비스 3종", type: "어비스", size: 4, diffs: ["입문", "어려움", "매우어려움", "지옥1", "지옥2", "지옥3", "지옥4", "지옥5", "지옥6"], subs: [] },
-  { id: "abyss1", name: "어비스 1종", type: "어비스", size: 4, diffs: ["입문", "어려움", "매우어려움", "지옥1", "지옥2", "지옥3", "지옥4", "지옥5", "지옥6"], subs: ["허상의 정박지", "광기의 동굴", "흩어진 물길"] },
+  { id: "abyss3", name: "어비스 3종", type: "어비스", size: 4, diffs: ["입문", "어려움", "매우어려움", "지옥1", "지옥2"], subs: [] },
   { id: "raid_cab", name: "레이드 - 카브락", type: "레이드", size: 8, diffs: ["입문", "어려움", "매우어려움"], subs: [] },
-  { id: "raid_suc", name: "레이드 - 화이트 서큐버스", type: "레이드", size: 4, diffs: ["어려움", "매우어려움"], subs: [] },
-  { id: "raid_eir", name: "레이드 - 에이렐", type: "레이드", size: 4, diffs: ["어려움"], subs: [] },
 ];
 
-const JOB_ICONS: { [key: string]: string } = { 전사: "⚔️", 마법사: "🪄", 화염술사: "🔥", 빙결술사: "❄️", 힐러: "💖", 사제: "🕊️", 궁수: "🏹", 석궁사수: "🏹", 기사: "🛡️", 대검전사: "🗡️", 도적: "🥷", 암흑술사: "🌑" };
-const MY_ACCOUNT_CHARACTERS = ["한설", "영겁", "순월", "쌍월", "먀치", "탄월"]; // 임시 계정 캐릭터 목록
-const GUILD_MEMBERS = [
-  { name: "파랑", job: "전사", cp: 85000, done: false }, { name: "춘법", job: "마법사", cp: 82000, done: false }, { name: "꽃닝", job: "힐러", cp: 79000, done: true }, { name: "하채", job: "궁수", cp: 81000, done: false }, { name: "십쇼", job: "기사", cp: 86000, done: true }, { name: "별콩", job: "도적", cp: 80500, done: false }
-];
+const JOB_ICONS: Record<string, string> = { 전사: "⚔️", 마법사: "🪄", 화염술사: "🔥", 빙결술사: "❄️", 힐러: "💖", 사제: "🕊️", 궁수: "🏹", 기사: "🛡️", 대검전사: "🗡️", 도적: "🥷" };
+const MY_ACCOUNT_CHARACTERS = ["한설", "영겁", "순월", "쌍월", "먀치", "탄월"];
 
 export default function PartyPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [mounted, setMounted] = useState(false);
-  
-  // 🟢 DB에서 불러올 실제 파티 목록 상태
   const [activeParties, setActiveParties] = useState<any[]>([]);
 
   // 폼 상태
   const [selectedChar, setSelectedChar] = useState(MY_ACCOUNT_CHARACTERS[0]);
   const [selectedContent, setSelectedContent] = useState(CONTENT_DB[0]);
-  const [selectedSub, setSelectedSub] = useState("");
   const [selectedDiff, setSelectedDiff] = useState(CONTENT_DB[0].diffs[0]);
   const [timeStart, setTimeStart] = useState("18:00");
   const [timeEnd, setTimeEnd] = useState("20:00");
-  const [discordAlert, setDiscordAlert] = useState(true);
+  
+  const [discordAlertCreate, setDiscordAlertCreate] = useState(true);
+  const [discordAlertDepart, setDiscordAlertDepart] = useState(true);
+
+  const [matchingMode, setMatchingMode] = useState<"모집우선" | "조합우선">("모집우선");
+  const [myRoles, setMyRoles] = useState<string[]>([]);
+  const [wantedRoles, setWantedRoles] = useState<string[]>([]);
 
   const [alertStatus, setAlertStatus] = useState<"hidden" | "popup" | "balloon">("hidden");
-  const [showGuildModal, setShowGuildModal] = useState(false);
 
-  // 🟢 DB에서 파티 목록 불러오기
+  // 🟢 하이브리드 동기화 로딩 상태
+  const [isSyncing, setIsSyncing] = useState(false);
+
   const fetchParties = async () => {
-    const { data, error } = await supabase
-      .from('parties')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    if (!error && data) {
-      setActiveParties(data);
-    }
+    const { data, error } = await supabase.from('parties').select('*').order('created_at', { ascending: false });
+    if (!error && data) setActiveParties(data);
   };
 
   useEffect(() => {
@@ -106,41 +108,71 @@ export default function PartyPage() {
     const savedUser = localStorage.getItem("nexus_user");
     if (!savedUser) { router.push("/login"); return; }
     setUser(JSON.parse(savedUser));
-    
-    fetchParties(); // 페이지 켜질 때 파티 목록 호출
+    fetchParties();
   }, [router]);
 
-  const handleContentChange = (contentId: string) => {
-    const content = CONTENT_DB.find(c => c.id === contentId) || CONTENT_DB[0];
-    setSelectedContent(content);
-    setSelectedDiff(content.diffs[0]);
-    setSelectedSub(content.subs.length > 0 ? content.subs[0] : "");
+  const toggleRole = (role: string, state: string[], setState: any) => {
+    if (state.includes(role)) setState(state.filter(r => r !== role));
+    else setState([...state, role]);
   };
 
-  // 🟢 진짜 파티 생성 (DB 저장 로직)
   const handleReservation = async () => {
-    // 임시로 직업을 '기사'로 통일 (추후 characters DB 연동 시 고도화 예정)
+    if (matchingMode === "조합우선" && myRoles.length === 0) {
+      return alert("조합 우선 매칭 시, 수행 가능한 포지션을 최소 1개 이상 선택해주세요!");
+    }
     const myJob = "기사"; 
 
     const newParty = {
       content_name: selectedContent.name,
-      sub_content: selectedSub,
       difficulty: selectedDiff,
       time_start: timeStart,
       time_end: timeEnd,
       max_members: selectedContent.size,
-      members: [{ name: selectedChar, job: myJob }], // 파티장 등록
+      matching_mode: matchingMode,
+      wanted_roles: matchingMode === "조합우선" ? wantedRoles : [],
+      members: [{ name: selectedChar, job: myJob, roles: myRoles }], 
       status: "모집중"
     };
 
     const { error } = await supabase.from('parties').insert([newParty]);
-    
-    if (error) {
-      alert("파티 등록에 실패했습니다.");
-    } else {
-      alert(`[${selectedChar}] 캐릭터로 파티 예약이 등록되었습니다!`);
-      fetchParties(); // 성공 후 우측 리스트 새로고침
+    if (!error) {
+      alert(`[${selectedChar}] 파티 예약이 등록되었습니다!`);
+      fetchParties();
     }
+  };
+
+  const handleDeleteParty = async (id: number) => {
+    if (confirm("정말로 이 파티 모집을 취소하시겠습니까?")) {
+      const { error } = await supabase.from('parties').delete().eq('id', id);
+      if (!error) {
+        alert("파티 예약이 정상적으로 취소되었습니다.");
+        fetchParties(); 
+      }
+    }
+  };
+
+  // 🟢 하이브리드 숙제 동기화 (넥슨 API 가상 연동) 로직
+  const handleSyncNexonAPI = async () => {
+    setIsSyncing(true);
+    
+    // API 통신을 흉내내는 1.5초 딜레이
+    setTimeout(async () => {
+      // activity_logs DB에 클리어 기록 저장
+      const { error } = await supabase.from('activity_logs').insert([{
+        character_name: selectedChar,
+        content_name: selectedContent.name,
+        difficulty: selectedDiff,
+        action: "클리어 (API 자동 동기화 완료)"
+      }]);
+
+      setIsSyncing(false);
+
+      if (!error) {
+        alert(`[API 동기화 완료] 📡\n\n'${selectedChar}' 캐릭터의 주간 숙제(${selectedContent.name}) 클리어 내역이 성역 넥서스에 완벽하게 동기화되었습니다! ✅\n(로그 DB 저장 완료)`);
+      } else {
+        alert("동기화 중 오류가 발생했습니다.");
+      }
+    }, 1500);
   };
 
   if (!mounted || !user) return null;
@@ -153,24 +185,52 @@ export default function PartyPage() {
           <div>
             <h1 className="text-3xl font-black text-white flex items-center gap-3">
               ⚔️ 스마트 파티 매칭
-              <button onClick={() => setAlertStatus("popup")} className="text-[10px] bg-red-600 hover:bg-red-500 px-2 py-1 rounded text-white shadow-lg transition">(테스트) 매칭 완료</button>
+              <button onClick={() => setAlertStatus("popup")} className="text-[10px] bg-emerald-600 hover:bg-emerald-500 px-2 py-1 rounded text-white shadow-lg transition">(테스트) 매칭 팝업</button>
             </h1>
-            <p className="text-sm text-zinc-400 mt-2">일정을 예약해두거나, 실시간으로 빈자리가 있는 파티에 즉시 합류하세요.</p>
+            <p className="text-sm text-zinc-400 mt-2">강제 매칭 없이, 원하는 조합과 멤버로 파티를 꾸려보세요.</p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* 좌측: 예약 폼 */}
-          <div className="lg:col-span-4 bg-[#252528] rounded-2xl border border-zinc-700/80 p-6 shadow-xl h-fit">
-            <h2 className="text-lg font-bold text-[#e6c788] mb-4 flex items-center gap-2">📅 내 일정 예약하기</h2>
-            <div className="space-y-6">
+          {/* 🟦 좌측: 예약 폼 */}
+          <div className="lg:col-span-4 bg-[#252528] rounded-2xl border border-zinc-700/80 p-6 shadow-xl h-fit space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-lg font-bold text-[#e6c788] flex items-center gap-2">📅 파티 생성 및 예약</h2>
+            </div>
+            
+            {/* 🟢 캐릭터 선택 및 API 동기화 버튼 (하이브리드) */}
+            <div className="bg-[#1c1c1e] border border-zinc-700 rounded-xl p-4">
+              <div className="flex justify-between items-center mb-3">
+                <label className="text-[11px] font-bold text-zinc-500">참여할 캐릭터 선택</label>
+                
+                {/* 🔄 즉시 갱신 버튼 */}
+                <button 
+                  onClick={handleSyncNexonAPI} 
+                  disabled={isSyncing}
+                  className={`text-[10px] font-bold px-2.5 py-1 rounded border transition flex items-center gap-1 ${isSyncing ? 'bg-zinc-800 text-zinc-500 border-zinc-700 cursor-not-allowed' : 'bg-emerald-900/30 text-emerald-400 border-emerald-800/50 hover:bg-emerald-900/50'}`}
+                >
+                  {isSyncing ? (
+                    <span className="animate-spin">⏳</span>
+                  ) : (
+                    <span>🔄</span>
+                  )}
+                  {isSyncing ? 'API 통신 중...' : '내 숙제 즉시 갱신'}
+                </button>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {MY_ACCOUNT_CHARACTERS.map(char => (
+                  <button key={char} onClick={() => setSelectedChar(char)} className={`text-xs font-bold px-3 py-1.5 rounded transition ${selectedChar === char ? 'bg-[#e6c788] text-[#121212] shadow-lg' : 'bg-[#121212] border border-zinc-700 text-zinc-400 hover:text-white'}`}>{char}</button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-4">
               <div>
-                <label className="text-[11px] font-bold text-zinc-500 mb-2 block">참여할 캐릭터 선택</label>
-                <div className="flex flex-wrap gap-2">
-                  {MY_ACCOUNT_CHARACTERS.map(char => (
-                    <button key={char} onClick={() => setSelectedChar(char)} className={`text-xs font-bold px-3 py-1.5 rounded transition ${selectedChar === char ? 'bg-yellow-600 text-white shadow-lg' : 'bg-[#121212] border border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-500'}`}>{char}</button>
-                  ))}
-                </div>
+                <label className="text-[11px] font-bold text-zinc-500 mb-2 block">목표 컨텐츠 ({selectedContent.size}인)</label>
+                <select value={selectedContent.id} onChange={e => setSelectedContent(CONTENT_DB.find(c => c.id === e.target.value) || CONTENT_DB[0])} className="w-full bg-[#121212] border border-zinc-700 rounded p-2.5 text-sm text-white focus:border-[#e6c788] outline-none">
+                  {CONTENT_DB.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
               </div>
               <div>
                 <label className="text-[11px] font-bold text-zinc-500 mb-2 block">접속 가능 시간 (24시간제)</label>
@@ -180,91 +240,151 @@ export default function PartyPage() {
                   <CustomTimePicker value={timeEnd} onChange={setTimeEnd} />
                 </div>
               </div>
-              <div>
-                <div className="flex justify-between items-end mb-2">
-                  <label className="text-[11px] font-bold text-zinc-500 block">목표 컨텐츠 ({selectedContent.size}인)</label>
-                  <button onClick={() => setShowGuildModal(true)} className="text-[10px] bg-indigo-600/20 text-indigo-400 border border-indigo-500/50 hover:bg-indigo-600/40 px-2 py-0.5 rounded flex items-center gap-1 transition">🔍 미클리어 길드원 보기</button>
-                </div>
-                <select value={selectedContent.id} onChange={e => handleContentChange(e.target.value)} className="w-full bg-[#121212] border border-zinc-700 rounded p-2.5 text-sm text-white focus:border-[#e6c788] outline-none mb-2">
-                  {CONTENT_DB.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-                {selectedContent.subs.length > 0 && (
-                  <select value={selectedSub} onChange={e => setSelectedSub(e.target.value)} className="w-full bg-[#1c1c1e] border border-zinc-700 rounded p-2.5 text-sm text-zinc-300 focus:border-[#e6c788] outline-none mb-2">
-                    {selectedContent.subs.map(sub => <option key={sub} value={sub}>{sub}</option>)}
-                  </select>
-                )}
+            </div>
+
+            <div className="pt-4 border-t border-zinc-800">
+              <label className="text-[11px] font-bold text-zinc-500 mb-2 block">매칭 방식 선택</label>
+              <div className="flex bg-[#121212] p-1 rounded-lg border border-zinc-700">
+                <button onClick={() => setMatchingMode("모집우선")} className={`flex-1 py-2 rounded text-xs font-bold transition ${matchingMode === "모집우선" ? 'bg-zinc-700 text-white shadow' : 'text-zinc-500 hover:text-zinc-300'}`}>
+                  ⚡ 모집 우선 (빠른 출발)
+                </button>
+                <button onClick={() => setMatchingMode("조합우선")} className={`flex-1 py-2 rounded text-xs font-bold transition ${matchingMode === "조합우선" ? 'bg-indigo-600 text-white shadow' : 'text-zinc-500 hover:text-zinc-300'}`}>
+                  🛡️ 조합 우선 (정석 팟)
+                </button>
               </div>
-              <div>
-                <label className="text-[11px] font-bold text-zinc-500 mb-2 block">난이도 설정</label>
-                <div className="flex flex-wrap gap-2">
-                  {selectedContent.diffs.map(diff => (
-                    <button key={diff} onClick={() => setSelectedDiff(diff)} className={`text-xs font-bold px-3 py-1.5 rounded border transition-colors ${selectedDiff === diff ? DIFFICULTY_COLORS[diff] : 'bg-[#121212] border-zinc-700 text-zinc-500 hover:border-zinc-500'}`}>{diff}</button>
-                  ))}
+            </div>
+
+            {matchingMode === "조합우선" && (
+              <div className="bg-[#1c1c1e] p-4 rounded-xl border border-indigo-900/50 space-y-4 animate-in fade-in zoom-in-95 duration-200">
+                <div>
+                  <label className="text-[11px] font-bold text-indigo-400 mb-2 block">🙋‍♂️ 내가 수행 가능한 포지션 (중복 선택 가능)</label>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.keys(ROLE_GROUPS).map(role => (
+                      <button key={role} onClick={() => toggleRole(role, myRoles, setMyRoles)} className={`text-xs font-bold px-3 py-1.5 rounded border transition-colors ${myRoles.includes(role) ? ROLE_COLORS[role] + ' shadow-[0_0_10px_rgba(255,255,255,0.1)]' : 'bg-[#121212] border-zinc-700 text-zinc-500 hover:border-zinc-500'}`}>
+                        {role}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-rose-400 mb-2 block">📢 파티에 꼭 필요한 포지션 구인 (Wanted)</label>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.keys(ROLE_GROUPS).map(role => (
+                      <button key={role} onClick={() => toggleRole(role, wantedRoles, setWantedRoles)} className={`text-xs font-bold px-3 py-1.5 rounded border transition-colors ${wantedRoles.includes(role) ? 'bg-rose-900/40 text-rose-300 border-rose-500' : 'bg-[#121212] border-zinc-700 text-zinc-500 hover:border-zinc-500'}`}>
+                        + {role}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
-              <div className="bg-[#1c1c1e] border border-indigo-500/30 rounded-xl p-3 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-[#5865F2]/20 rounded-full flex items-center justify-center"><span className="text-[#5865F2] text-sm">🎮</span></div>
-                  <div><p className="text-xs font-bold text-white">디스코드 알림 연동</p><p className="text-[10px] text-zinc-400">출발 15분 전 DM 발송</p></div>
-                </div>
+            )}
+
+            <div className="bg-[#1c1c1e] border border-indigo-500/30 rounded-xl p-3 space-y-3">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-[#5865F2] text-sm bg-[#5865F2]/20 p-1.5 rounded-full">🎮</span>
+                <span className="text-xs font-bold text-white">디스코드 봇 알림 설정</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] text-zinc-400 font-medium">📢 파티 생성 즉시 알림 (모집 채널)</span>
                 <label className="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" checked={discordAlert} onChange={() => setDiscordAlert(!discordAlert)} className="sr-only peer" />
-                  <div className="w-9 h-5 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#5865F2]"></div>
+                  <input type="checkbox" checked={discordAlertCreate} onChange={() => setDiscordAlertCreate(!discordAlertCreate)} className="sr-only peer" />
+                  <div className="w-8 h-4 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-[#5865F2]"></div>
                 </label>
               </div>
-              <button onClick={handleReservation} className="w-full bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-3 rounded-xl shadow-lg mt-2 transition">
-                예약 대기열 등록
-              </button>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] text-zinc-400 font-medium">⏰ 출발 15분 전 리마인드 DM</span>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" checked={discordAlertDepart} onChange={() => setDiscordAlertDepart(!discordAlertDepart)} className="sr-only peer" />
+                  <div className="w-8 h-4 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-[#5865F2]"></div>
+                </label>
+              </div>
             </div>
+
+            <button onClick={handleReservation} className="w-full bg-[#e6c788] hover:bg-yellow-500 text-[#121212] font-black py-3 rounded-xl shadow-[0_0_15px_rgba(230,199,136,0.3)] transition transform hover:scale-[1.02]">
+              예약 대기열 등록
+            </button>
           </div>
 
-          {/* 우측: 매칭 현황 (DB 연동 완료!) */}
+          {/* 🟦 우측: 실시간 모집 현황 */}
           <div className="lg:col-span-8 space-y-6 flex flex-col">
             <div className="bg-[#252528] rounded-2xl border border-zinc-700/80 p-6 shadow-xl flex-1">
               <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
                 🔥 실시간 모집 현황 <span className="text-[10px] font-normal text-emerald-400 bg-emerald-900/30 px-2 py-0.5 rounded border border-emerald-800/50">즉시 참여 가능</span>
               </h2>
               
-              <div className="space-y-4 overflow-y-auto max-h-[600px] custom-scrollbar pr-2">
+              <div className="space-y-4 overflow-y-auto max-h-[700px] custom-scrollbar pr-2">
                 {activeParties.length === 0 ? (
-                  <div className="text-center py-10 text-zinc-500 font-bold">현재 모집 중인 파티가 없습니다.<br/>직접 파티를 생성해보세요!</div>
+                  <div className="text-center py-16 text-zinc-500 font-bold flex flex-col items-center gap-3">
+                    <span className="text-4xl opacity-50">🏕️</span>
+                    현재 모집 중인 파티가 없습니다.
+                  </div>
                 ) : (
-                  activeParties.map(party => (
-                    <div key={party.id} className="bg-[#1c1c1e] border border-zinc-700 hover:border-emerald-500/50 rounded-xl p-4 transition group flex flex-col justify-between gap-4">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <div className="flex items-center gap-2 mb-1.5">
-                            <span className="text-white font-black text-lg">{party.content_name} {party.sub_content && `(${party.sub_content})`}</span>
-                            <span className={`text-[10px] px-1.5 py-0.5 border rounded ${DIFFICULTY_COLORS[party.difficulty] || "text-zinc-400 bg-zinc-800 border-zinc-600"}`}>{party.difficulty}</span>
-                          </div>
-                          <p className="text-xs text-zinc-400 font-medium flex items-center gap-1">⏰ 희망 시간대: <span className="text-[#e6c788]">{party.time_start} ~ {party.time_end}</span></p>
-                        </div>
-                        <div className="flex flex-col items-end gap-2">
-                          <span className="text-sm font-black text-white bg-zinc-800 px-3 py-1 rounded-full">{party.members.length} / {party.max_members} 명</span>
-                          <button className="text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-1.5 rounded shadow transition opacity-80 group-hover:opacity-100">
-                            즉시 참여
-                          </button>
-                        </div>
-                      </div>
+                  activeParties.map(party => {
+                    const isMyParty = party.members[0] && MY_ACCOUNT_CHARACTERS.includes(party.members[0].name);
 
-                      {/* 슬롯 시각화 */}
-                      <div className="flex gap-2 bg-[#121212] p-2 rounded-lg border border-zinc-800 overflow-x-auto custom-scrollbar">
-                        {Array.from({ length: party.max_members }).map((_, i) => {
-                          const m = party.members[i];
-                          return m ? (
-                            <div key={i} className="flex flex-col items-center justify-center bg-zinc-800 border border-zinc-600 rounded p-1.5 w-14 h-14 flex-shrink-0">
-                              <span className="text-lg leading-none mb-1">{JOB_ICONS[m.job] || "👤"}</span>
-                              <span className="text-[9px] text-white truncate w-full text-center">{m.name}</span>
+                    return (
+                      <div key={party.id} className="bg-[#1c1c1e] border border-zinc-700 hover:border-emerald-500/50 rounded-xl p-4 transition group flex flex-col gap-3 relative overflow-hidden">
+                        
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <div className="flex items-center gap-2 mb-1.5">
+                              <span className="text-white font-black text-lg">{party.content_name}</span>
+                              <span className={`text-[10px] px-1.5 py-0.5 border rounded ${DIFFICULTY_COLORS[party.difficulty] || "text-zinc-400 bg-zinc-800 border-zinc-600"}`}>{party.difficulty}</span>
+                              {party.matching_mode === "조합우선" ? (
+                                <span className="text-[10px] font-bold bg-indigo-900/40 text-indigo-300 px-2 py-0.5 rounded border border-indigo-700/50">🛡️ 조합우선</span>
+                              ) : (
+                                <span className="text-[10px] font-bold bg-zinc-800 text-zinc-300 px-2 py-0.5 rounded border border-zinc-700">⚡ 모집우선</span>
+                              )}
                             </div>
-                          ) : (
-                            <div key={i} className="flex flex-col items-center justify-center bg-[#1c1c1e] border border-dashed border-zinc-700 rounded p-1.5 w-14 h-14 flex-shrink-0">
-                              <span className="text-xs text-zinc-600">빈자리</span>
-                            </div>
-                          )
-                        })}
+                            <p className="text-xs text-zinc-400 font-medium">⏰ 시간: <span className="text-[#e6c788]">{party.time_start} ~ {party.time_end}</span></p>
+                          </div>
+                          
+                          <div className="flex flex-col items-end gap-2">
+                            <span className="text-sm font-black text-white bg-zinc-800 px-3 py-1 rounded-full">{party.members.length} / {party.max_members} 명</span>
+                            {isMyParty ? (
+                              <button onClick={() => handleDeleteParty(party.id)} className="text-xs font-bold bg-red-900/50 hover:bg-red-600 text-red-300 hover:text-white border border-red-800/50 hover:border-red-500 px-4 py-1.5 rounded shadow transition opacity-80 group-hover:opacity-100">
+                                예약 취소
+                              </button>
+                            ) : (
+                              <button onClick={() => setAlertStatus("popup")} className="text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-1.5 rounded shadow transition opacity-80 group-hover:opacity-100">
+                                참여 신청
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        {party.matching_mode === "조합우선" && party.wanted_roles && party.wanted_roles.length > 0 && (
+                          <div className="flex items-center gap-2 bg-rose-900/10 border border-rose-900/30 p-2 rounded-lg mt-1">
+                            <span className="text-[10px] font-black text-rose-500 mr-1 animate-pulse">WANTED</span>
+                            {party.wanted_roles.map((role: string) => (
+                              <span key={role} className="text-[10px] font-bold bg-rose-900/40 text-rose-300 px-2 py-0.5 rounded border border-rose-700/50">{role} 급구</span>
+                            ))}
+                          </div>
+                        )}
+
+                        <div className="flex gap-2 bg-[#121212] p-2 rounded-lg border border-zinc-800 overflow-x-auto custom-scrollbar mt-1">
+                          {Array.from({ length: party.max_members }).map((_, i) => {
+                            const m = party.members[i];
+                            return m ? (
+                              <div key={i} className="flex flex-col items-center justify-center bg-zinc-800 border border-zinc-600 rounded p-1.5 w-14 h-16 flex-shrink-0 relative group/slot">
+                                <span className="text-lg leading-none mb-1">{JOB_ICONS[m.job] || "👤"}</span>
+                                <span className="text-[9px] text-white truncate w-full text-center font-bold">{m.name}</span>
+                                {m.roles && m.roles.length > 0 && (
+                                  <div className="absolute -bottom-1 -right-1 bg-indigo-600 w-3 h-3 rounded-full border border-[#121212] flex items-center justify-center">
+                                    <span className="text-[7px] text-white">+</span>
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <div key={i} className="flex flex-col items-center justify-center bg-[#1c1c1e] border border-dashed border-zinc-700 rounded p-1.5 w-14 h-16 flex-shrink-0">
+                                <span className="text-xs text-zinc-600">빈자리</span>
+                              </div>
+                            )
+                          })}
+                        </div>
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </div>
@@ -272,58 +392,29 @@ export default function PartyPage() {
         </div>
       </div>
 
-      {/* 모달 등 하단 UI는 기존과 동일하게 유지 */}
-      {showGuildModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-[#1c1c1e] border-2 border-indigo-500/50 rounded-2xl shadow-[0_0_50px_rgba(79,70,229,0.2)] w-full max-w-sm overflow-hidden flex flex-col relative">
-            <div className="flex justify-between items-center bg-indigo-900/30 p-4 border-b border-indigo-900/50">
-              <h3 className="font-bold text-white flex items-center gap-2">🔍 {selectedContent.name} 미클리어 현황</h3>
-              <button onClick={() => setShowGuildModal(false)} className="text-zinc-500 hover:text-white">✕</button>
-            </div>
-            <div className="p-4 overflow-y-auto max-h-[300px] custom-scrollbar space-y-2">
-              <p className="text-[11px] text-zinc-400 mb-3">이번 주 아직 해당 컨텐츠를 완료하지 않은 길드원입니다. 파티에 초대해보세요!</p>
-              {GUILD_MEMBERS.map((member, idx) => (
-                <div key={idx} className={`flex justify-between items-center p-3 rounded-lg border ${member.done ? 'bg-zinc-900/50 border-zinc-800 opacity-50' : 'bg-[#252528] border-zinc-700'}`}>
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">{JOB_ICONS[member.job] || "👤"}</span>
-                    <div>
-                      <span className={`text-sm font-bold block ${member.done ? 'text-zinc-500' : 'text-white'}`}>{member.name}</span>
-                      <span className="text-[10px] text-zinc-400">전투력: {member.cp.toLocaleString()}</span>
-                    </div>
-                  </div>
-                  {member.done ? (
-                    <span className="text-[10px] font-bold text-emerald-600 border border-emerald-900 bg-emerald-900/20 px-2 py-1 rounded">완료됨</span>
-                  ) : (
-                    <button className="text-[10px] font-bold bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded transition">초대 알림</button>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {alertStatus === "balloon" && (
-        <div onClick={() => setAlertStatus("popup")} className="fixed bottom-8 right-8 z-50 bg-emerald-600 hover:bg-emerald-500 text-white p-4 rounded-full shadow-[0_0_20px_rgba(5,150,105,0.5)] cursor-pointer transition-transform hover:scale-110 flex items-center gap-3">
-          <span className="text-xl animate-bounce">🎉</span>
-          <div className="flex flex-col pr-2">
-            <span className="text-[10px] font-black tracking-widest opacity-80">MATCH FOUND</span>
-            <span className="text-xs font-bold">파티 매칭 성공! 확인하기</span>
-          </div>
-        </div>
-      )}
-
       {alertStatus === "popup" && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-[#1c1c1e] border-2 border-emerald-500/50 rounded-2xl shadow-[0_0_50px_rgba(5,150,105,0.2)] w-full max-w-lg overflow-hidden flex flex-col relative">
-            <button onClick={() => setAlertStatus("balloon")} className="absolute top-4 right-4 text-zinc-500 hover:text-white transition"><span className="text-2xl">➖</span></button>
-            <div className="bg-emerald-900/30 p-6 text-center border-b border-emerald-900/50">
-              <span className="text-4xl block mb-2 animate-bounce">🎉</span>
-              <h2 className="text-2xl font-black text-white">파티 매칭이 되었습니다!</h2>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="bg-[#1c1c1e] border-2 border-emerald-500/50 rounded-2xl shadow-[0_0_50px_rgba(5,150,105,0.2)] w-full max-w-sm overflow-hidden flex flex-col relative transform scale-100 transition-transform">
+            <div className="bg-emerald-900/30 p-6 text-center border-b border-emerald-900/50 relative">
+              <div className="absolute top-0 left-0 w-full h-1 bg-emerald-500 animate-pulse"></div>
+              <span className="text-4xl block mb-3">🔔</span>
+              <h2 className="text-xl font-black text-white">매칭 대기열이 성사되었습니다!</h2>
+              <p className="text-xs text-zinc-400 mt-2">파티에 합류하시겠습니까?</p>
             </div>
-            <div className="p-4 bg-[#252528] flex gap-3">
-              <button onClick={() => setAlertStatus("hidden")} className="flex-1 bg-[#121212] border border-zinc-700 text-zinc-400 font-bold py-3 rounded-xl transition">거절</button>
-              <button onClick={() => { alert("수락 완료!"); setAlertStatus("hidden"); }} className="flex-[2] bg-emerald-600 text-white font-bold py-3 rounded-xl shadow-lg transition">수락</button>
+            
+            <div className="p-5 bg-[#252528] space-y-3">
+              <div className="bg-[#121212] p-3 rounded-lg border border-zinc-700 flex justify-between items-center">
+                <span className="text-sm font-bold text-white">어비스 3종 (매우어려움)</span>
+                <span className="text-xs text-[#e6c788]">18:00 ~ 20:00</span>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button onClick={() => setAlertStatus("hidden")} className="flex-1 bg-[#121212] border border-zinc-700 hover:border-zinc-500 text-zinc-400 font-bold py-3 rounded-xl transition">
+                  거절 (미참여)
+                </button>
+                <button onClick={() => { alert("수락 완료! 파티에 합류했습니다."); setAlertStatus("hidden"); }} className="flex-[2] bg-emerald-600 hover:bg-emerald-500 text-white font-black py-3 rounded-xl shadow-lg transition transform hover:scale-105">
+                  수락 (참여)
+                </button>
+              </div>
             </div>
           </div>
         </div>
