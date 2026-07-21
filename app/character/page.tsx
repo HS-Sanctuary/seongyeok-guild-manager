@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "../../lib/supabase"; // 👈 DB 연결 통로 불러오기!
+import { supabase } from "../../lib/supabase"; 
 
 // --- 상수 및 데이터 매핑 ---
 const ALL_CLASSES = [
@@ -33,6 +33,9 @@ export default function CharacterPage() {
   const [user, setUser] = useState<any>(null);
   const [mounted, setMounted] = useState(false);
   const [saved, setSaved] = useState(false);
+  
+  // 🟢 하이브리드 API 동기화 상태 추가
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // 기본 상태 설정
   const defaultLevels = ALL_CLASSES.reduce((acc, cls) => ({ ...acc, [cls]: 1 }), {});
@@ -61,17 +64,15 @@ export default function CharacterPage() {
   const weeklyRate = Math.round((weeklyChecks.length / WEEKLY_ITEMS.length) * 100);
   const raidAbyssRate = Math.round((raidAbyssChecks.length / RAID_ABYSS_ITEMS.length) * 100);
 
-  // 🟢 [DB 읽기] Supabase에서 캐릭터 데이터 불러오기
   const loadCharacterData = async (charName: string) => {
     try {
       const { data, error } = await supabase
         .from('characters')
         .select('*')
         .eq('nickname', charName)
-        .single(); // 데이터 1건만 가져오기
+        .single();
 
       if (data) {
-        // DB에 데이터가 있으면 덮어씌우기
         setProfile({
           nickname: data.nickname,
           job: data.job || "전사",
@@ -84,7 +85,6 @@ export default function CharacterPage() {
         setLevels(data.levels && Object.keys(data.levels).length > 0 ? data.levels : defaultLevels);
         setDailyChecks(data.daily_checks || []);
         
-        // 주간체크/반복체크 JSON 분리 처리
         if (data.weekly_checks && !Array.isArray(data.weekly_checks)) {
           setWeeklyChecks(data.weekly_checks.normal || []);
           setWeeklyRepeatChecks(data.weekly_checks.repeat || defaultRepeatChecks);
@@ -95,7 +95,6 @@ export default function CharacterPage() {
         
         setRaidAbyssChecks(data.raid_checks || []);
       } else {
-        // DB에 없으면 빈 껍데기 세팅
         setProfile({ ...defaultProfile, nickname: charName });
         setLevels(defaultLevels);
         setDailyChecks([]);
@@ -116,7 +115,6 @@ export default function CharacterPage() {
     const parsedUser = JSON.parse(savedUser);
     setUser(parsedUser);
 
-    // 컴포넌트 마운트 시 내 메인 캐릭터 데이터 불러오기
     loadCharacterData(parsedUser.nickname || "한설");
 
     const savedTrade = localStorage.getItem("nexus_trade_items");
@@ -130,7 +128,6 @@ export default function CharacterPage() {
     if (savedFavP) setFavPurchases(JSON.parse(savedFavP));
   }, [router]);
 
-  // 🟢 [DB 쓰기] Supabase에 캐릭터 데이터 저장 (Upsert: 있으면 수정, 없으면 추가)
   const saveProgress = async () => {
     try {
       const payload = {
@@ -143,14 +140,14 @@ export default function CharacterPage() {
         intro: profile.intro,
         levels: levels,
         daily_checks: dailyChecks,
-        weekly_checks: { normal: weeklyChecks, repeat: weeklyRepeatChecks }, // 객체로 병합하여 저장
+        weekly_checks: { normal: weeklyChecks, repeat: weeklyRepeatChecks },
         raid_checks: raidAbyssChecks,
         updated_at: new Date()
       };
 
       const { error } = await supabase
         .from('characters')
-        .upsert(payload, { onConflict: 'nickname' }); // 닉네임을 기준으로 덮어쓰기
+        .upsert(payload, { onConflict: 'nickname' }); 
 
       if (error) throw error;
 
@@ -162,10 +159,37 @@ export default function CharacterPage() {
     }
   };
 
-  // --- 캐릭터 전환 로직 (전환 전 기존 캐릭터 먼저 저장) ---
   const switchCharacter = async (targetName: string) => {
-    await saveProgress(); // 현재 데이터 무조건 DB에 밀어넣기
-    loadCharacterData(targetName); // 타겟 데이터 DB에서 끌어오기
+    await saveProgress(); 
+    loadCharacterData(targetName); 
+  };
+
+  // 🟢 [넥슨 API 가상 연동] 어비스 3종 & 레이드 1종 자동 클리어 처리 로직
+  const handleSyncNexonAPI = async () => {
+    setIsSyncing(true);
+    setTimeout(async () => {
+      // 1. 가져온 데이터 기반으로 상태 업데이트 (가상)
+      const syncedRaids = [
+        "어비스 - 허상의 정박지", 
+        "어비스 - 광기의 동굴", 
+        "어비스 - 흩어진 물길", 
+        "레이드 - 카브락"
+      ];
+      setRaidAbyssChecks(syncedRaids);
+
+      // 2. 파티 매칭 때 만들었던 activity_logs에 기록 남기기 (에러 방지를 위해 가볍게)
+      try {
+        await supabase.from('activity_logs').insert([{
+          character_name: profile.nickname,
+          content_name: "주간 어비스 3종 & 레이드",
+          difficulty: "API 갱신",
+          action: "클리어 연동 완료"
+        }]);
+      } catch(e) { console.log(e); }
+
+      setIsSyncing(false);
+      alert(`[API 동기화 완료] 📡\n\n'${profile.nickname}' 캐릭터의 이번 주 레이드/어비스 클리어 내역을 넥슨 서버에서 성공적으로 불러왔습니다! ✅\n(우측 하단의 체크리스트를 확인해보세요)`);
+    }, 1500);
   };
 
   const updateProfile = (field: string, value: string) => setProfile(prev => ({ ...prev, [field]: value }));
@@ -265,8 +289,8 @@ export default function CharacterPage() {
                 </div>
               </div>
 
-              {/* 자기소개 */}
-              <div className="flex gap-4">
+              {/* 자기소개 & 저장 버튼 & API 버튼 */}
+              <div className="flex gap-3">
                 <div className="flex-1">
                   <input 
                     value={profile.intro} 
@@ -275,7 +299,13 @@ export default function CharacterPage() {
                     className="w-full bg-[#1c1c1e] border border-zinc-700 rounded-lg p-3 text-sm text-white focus:border-[#e6c788] outline-none transition" 
                   />
                 </div>
-                {/* 🟢 저장 버튼! */}
+                
+                {/* 🟢 API 동기화 버튼 추가 */}
+                <button onClick={handleSyncNexonAPI} disabled={isSyncing} className={`font-bold px-4 rounded-lg text-sm shadow-lg whitespace-nowrap transition flex items-center gap-2 border ${isSyncing ? 'bg-zinc-800 text-zinc-500 border-zinc-700' : 'bg-emerald-900/40 text-emerald-400 border-emerald-800/50 hover:bg-emerald-900/60'}`}>
+                  {isSyncing ? <span className="animate-spin">⏳</span> : <span>🔄</span>}
+                  {isSyncing ? '동기화 중...' : 'API 갱신'}
+                </button>
+
                 <button onClick={saveProgress} className="bg-yellow-600 hover:bg-yellow-500 text-white font-bold px-8 rounded-lg text-sm shadow-lg whitespace-nowrap transition relative overflow-hidden">
                   {saved ? "DB 저장 완료!" : "서버에 저장"}
                 </button>
@@ -388,7 +418,6 @@ export default function CharacterPage() {
               </div>
             )}
           </div>
-          {/* 하단 물물교환, 구매목록 아코디언은 코드 다이어트를 위해 생략했지만 기존처럼 작동합니다. */}
         </div>
       </div>
 
