@@ -9,6 +9,7 @@ import { supabase } from '../lib/supabase'; // DB 연결 추가
 const navItems = [
   { name: '공지사항', path: '/notice' },
   { name: '캐릭터 관리', path: '/character' },
+  { name: '길드원 목록', path: '/members' }, // 🟢 새로 추가된 길드원 목록 메뉴!
   { name: '파티 매칭', path: '/party' },
   { name: '직업 공략', path: '/guide' },
   { name: '성역 랭킹', path: '/ranking' },
