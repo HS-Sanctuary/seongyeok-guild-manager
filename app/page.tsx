@@ -15,7 +15,7 @@ const JOB_ICONS: { [key: string]: string } = {
 
 const ALL_CLASSES = Object.keys(JOB_ICONS);
 const DAILY_ITEMS = ["일일 미션", "일일 검은 구멍", "요일 던전", "일일 아르바이트", "심층 던전"];
-const WEEKLY_ITEMS = ["심층 던전 (매우 어려움)", "멤버십 주간 아르바이트", "필드 보스", "어비스 - 허상의 정박지", "어비스 - 광기의 동굴", "어비스 - 흩어진 물길", "레이드 - 카브락", "레이드 - 에이렐", "레이드 - 화이트 서큐버스"];
+const WEEKLY_ITEMS = ["심층 던전 (매우 어려움)", "멤버십 주간 아르바이트", "필드 보스"];
 
 const MY_ACCOUNT_CHARACTERS = ["한설", "영겁", "순월", "쌍월", "먀치", "탄월"];
 
@@ -116,7 +116,7 @@ export default function Home() {
 
       <div className="p-4 md:p-8 max-w-[1400px] mx-auto space-y-6">
         
-        {/* 대시보드 타이틀 (브랜딩 업그레이드) */}
+        {/* 대시보드 타이틀 */}
         <header className="flex items-center gap-6 mb-2">
           <div className="w-28 h-28 md:w-36 md:h-36 bg-[#121212] border border-yellow-600/30 rounded-lg flex items-center justify-center shadow-2xl relative overflow-hidden flex-shrink-0">
             <div className="absolute inset-0 bg-gradient-to-br from-yellow-900/20 to-transparent"></div>
@@ -164,15 +164,17 @@ export default function Home() {
               const dRate = Math.round(((char.daily_checks?.length || 0) / DAILY_ITEMS.length) * 100);
               const wRate = Math.round(((char.weekly_checks?.normal?.length || 0) / WEEKLY_ITEMS.length) * 100);
               
-              const isHeosang = char.weekly_checks?.normal?.includes("어비스 - 허상의 정박지");
-              const isDonggul = char.weekly_checks?.normal?.includes("어비스 - 광기의 동굴");
-              const isMulgil = char.weekly_checks?.normal?.includes("어비스 - 흩어진 물길");
-              const abyssCount = [isHeosang, isDonggul, isMulgil].filter(Boolean).length;
+              const isHeosang = char.raid_checks?.includes("어비스 - 허상의 정박지");
+              const isDonggul = char.raid_checks?.includes("어비스 - 광기의 동굴");
+              const isMulgil = char.raid_checks?.includes("어비스 - 흩어진 물길");
+              const isWkndAbyss = char.raid_checks?.includes("주말에는 어비스");
+              const abyssCount = [isHeosang, isDonggul, isMulgil, isWkndAbyss].filter(Boolean).length;
 
-              const isKab = char.weekly_checks?.normal?.includes("레이드 - 카브락");
-              const isArel = char.weekly_checks?.normal?.includes("레이드 - 에이렐");
-              const isWhite = char.weekly_checks?.normal?.includes("레이드 - 화이트 서큐버스");
-              const raidCount = [isKab, isArel, isWhite].filter(Boolean).length;
+              const isKab = char.raid_checks?.includes("레이드 - 카브락");
+              const isArel = char.raid_checks?.includes("레이드 - 에이렐");
+              const isWhite = char.raid_checks?.includes("레이드 - 화이트 서큐버스");
+              const isWkndRaid = char.raid_checks?.includes("주말에는 레이드");
+              const raidCount = [isKab, isArel, isWhite, isWkndRaid].filter(Boolean).length;
 
               return (
                 <div key={char.id} onClick={() => router.push('/character')} className="bg-[#1c1c1e] border border-zinc-700/50 rounded-xl p-4 cursor-pointer hover:border-[#e6c788]/60 transition shadow-md flex flex-col gap-3 group">
@@ -201,14 +203,15 @@ export default function Home() {
                     {/* 어비스 체크박스 라인 */}
                     <div className="flex items-center justify-between">
                       <span className="text-[9px] font-bold text-zinc-500">어비스</span>
-                      <div className="flex gap-1.5 text-[10px] font-black">
+                      <div className="flex gap-1.5 text-[9px] font-black">
                         <span className={isHeosang ? "text-emerald-400" : "text-zinc-600"}>허상</span>
                         <span className={isDonggul ? "text-emerald-400" : "text-zinc-600"}>동굴</span>
                         <span className={isMulgil ? "text-emerald-400" : "text-zinc-600"}>물길</span>
+                        <span className={isWkndAbyss ? "text-emerald-400" : "text-zinc-600"}>주말</span>
                       </div>
                     </div>
                     <div className="w-full text-center py-0.5 rounded text-[9px] font-black bg-zinc-900 border border-zinc-800">
-                      {abyssCount === 3 ? <span className="text-emerald-400">어비스 3종 완료</span> : <span className="text-zinc-500">미완료 ({abyssCount}/3)</span>}
+                      {abyssCount === 4 ? <span className="text-emerald-400">어비스 4종 완료</span> : <span className="text-zinc-500">미완료 ({abyssCount}/4)</span>}
                     </div>
 
                     <div className="border-t border-zinc-800/80 my-0.5"></div>
@@ -216,14 +219,15 @@ export default function Home() {
                     {/* 레이드 체크박스 라인 */}
                     <div className="flex items-center justify-between">
                       <span className="text-[9px] font-bold text-zinc-500">레이드</span>
-                      <div className="flex gap-1.5 text-[10px] font-black">
+                      <div className="flex gap-1.5 text-[9px] font-black">
                         <span className={isKab ? "text-indigo-400" : "text-zinc-600"}>카브</span>
                         <span className={isArel ? "text-indigo-400" : "text-zinc-600"}>에렐</span>
                         <span className={isWhite ? "text-indigo-400" : "text-zinc-600"}>화섴</span>
+                        <span className={isWkndRaid ? "text-indigo-400" : "text-zinc-600"}>주말</span>
                       </div>
                     </div>
                     <div className="w-full text-center py-0.5 rounded text-[9px] font-black bg-zinc-900 border border-zinc-800">
-                      {raidCount === 3 ? <span className="text-indigo-400">레이드 3종 완료</span> : <span className="text-zinc-500">미완료 ({raidCount}/3)</span>}
+                      {raidCount === 4 ? <span className="text-indigo-400">레이드 4종 완료</span> : <span className="text-zinc-500">미완료 ({raidCount}/4)</span>}
                     </div>
                   </div>
 
