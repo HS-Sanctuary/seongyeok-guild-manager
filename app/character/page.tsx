@@ -6,9 +6,6 @@ import { supabase } from "../../lib/supabase";
 
 const MY_ACCOUNT_CHARACTERS = ["한설", "영겁", "순월", "쌍월", "먀치", "탄월"];
 
-interface TradeItem { id: number; map: string; npc: string; receiveItem: string; receiveCount: number; giveItem: string; giveCount: number; limit: number; reset: string; scope: string; }
-interface PurchaseItem { id: number; map: string; npc: string; item: string; limit: number; currency: string; currencyCount: number; reset: string; scope: string; }
-
 export default function CharacterPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
@@ -19,6 +16,8 @@ export default function CharacterPage() {
   const [dbClasses, setDbClasses] = useState<any[]>([]);
   const [dbTasks, setDbTasks] = useState<any[]>([]);
   const [dbContents, setDbContents] = useState<any[]>([]);
+  // 🟢 물물교환 카탈로그 DB
+  const [dbTrades, setDbTrades] = useState<any[]>([]); 
 
   const defaultProfile = { nickname: "한설", job: "전사", combatPower: "", magicResistance: "", lifeEnergy: "", charm: "", intro: "" };
   
@@ -27,24 +26,22 @@ export default function CharacterPage() {
   
   const [dailyChecks, setDailyChecks] = useState<string[]>([]);
   const [weeklyChecks, setWeeklyChecks] = useState<string[]>([]);
-  // 🟢 변수명을 범용적인 repeatChecks로 변경 (일간, 주간 반복 모두 수용)
   const [repeatChecks, setRepeatChecks] = useState<Record<string, boolean[]>>({});
-  
   const [abyssChecks, setAbyssChecks] = useState<string[]>([]);
   const [raidChecks, setRaidChecks] = useState<string[]>([]);
   
-  const [isLevelOpen, setIsLevelOpen] = useState(true);
-  const [isTradeOpen, setIsTradeOpen] = useState(false);
-  const [isPurchaseOpen, setIsPurchaseOpen] = useState(false);
+  // 🟢 유저의 물물교환 진행도 상태 { trade_id: count }
+  const [tradeProgress, setTradeProgress] = useState<Record<number, number>>({});
 
-  // 🟢 데이터 필터링 로직 수정 (일간 반복은 일일에, 주간/주말 반복은 주간에!)
+  const [isLevelOpen, setIsLevelOpen] = useState(false);
+  const [isTradeOpen, setIsTradeOpen] = useState(true); // 🟢 방금 만들었으니 기본으로 열어둡시다!
+
   const abyssList = dbContents.filter(c => c.type === 'abyss');
   const raidList = dbContents.filter(c => c.type === 'raid');
 
   const blackHoleDaily = dbTasks.find(t => (t.type === 'daily' || t.type === 'repeat_daily') && t.name.includes("검은 구멍"));
   const blackHoleWeekly = dbTasks.find(t => (t.type === 'weekly' || t.type === 'repeat_weekly') && t.name.includes("검은 구멍"));
   
-  // 검은 구멍을 제외하고, 소속(일일/주간)에 맞게 정확히 분류
   const visibleDailyList = dbTasks.filter(t => (t.type === 'daily' || t.type === 'repeat_daily') && !t.name.includes("검은 구멍"));
   const visibleWeeklyList = dbTasks.filter(t => (t.type === 'weekly' || t.type === 'repeat_weekly' || t.type === 'repeat_weekend') && !t.name.includes("검은 구멍"));
 
@@ -59,14 +56,17 @@ export default function CharacterPage() {
     setUser(parsedUser);
 
     const fetchMasterData = async () => {
-      const [clsRes, taskRes, contRes] = await Promise.all([
+      const [clsRes, taskRes, contRes, tradeRes] = await Promise.all([
         supabase.from('nexus_classes').select('*').eq('is_active', true).order('id'),
         supabase.from('nexus_tasks').select('*').eq('is_active', true).order('id'),
-        supabase.from('nexus_contents').select('*').eq('is_active', true).order('id')
+        supabase.from('nexus_contents').select('*').eq('is_active', true).order('id'),
+        supabase.from('nexus_trades').select('*').order('id') // 🟢 교환 목록 가져오기
       ]);
       if (clsRes.data) setDbClasses(clsRes.data);
       if (taskRes.data) setDbTasks(taskRes.data);
       if (contRes.data) setDbContents(contRes.data);
+      if (tradeRes.data) setDbTrades(tradeRes.data);
+      
       loadCharacterData(parsedUser.nickname || "한설");
     };
     fetchMasterData();
@@ -95,10 +95,13 @@ export default function CharacterPage() {
         const combinedRaids = data.raid_checks || [];
         setAbyssChecks(combinedRaids.filter((item: string) => item.includes('어비스')));
         setRaidChecks(combinedRaids.filter((item: string) => item.includes('레이드')));
+        
+        // 🟢 물교 진행도 불러오기
+        setTradeProgress(data.trade_checks || {});
       } else {
         setProfile({ ...defaultProfile, nickname: charName });
         setLevels({}); setDailyChecks([]); setWeeklyChecks([]); setRepeatChecks({});
-        setAbyssChecks([]); setRaidChecks([]);
+        setAbyssChecks([]); setRaidChecks([]); setTradeProgress({});
       }
     } catch (e) {}
   };
@@ -110,9 +113,9 @@ export default function CharacterPage() {
         combat_power: profile.combatPower, magic_resistance: profile.magicResistance,
         life_energy: profile.lifeEnergy, charm: profile.charm, intro: profile.intro,
         levels: levels, daily_checks: dailyChecks,
-        // DB 스키마 유지를 위해 반복체크는 weekly_checks 내부의 repeat 객체에 통합 저장
         weekly_checks: { normal: weeklyChecks, repeat: repeatChecks },
         raid_checks: [...abyssChecks, ...raidChecks],
+        trade_checks: tradeProgress, // 🟢 물교 진행도 DB에 저장
         updated_at: new Date()
       };
       await supabase.from('characters').upsert(payload, { onConflict: 'nickname' }); 
@@ -142,35 +145,32 @@ export default function CharacterPage() {
     });
   };
 
-  // 🟢 전체 완료/해제 로직 완벽 수정 (일반 체크박스와 반복 카운터를 모두 제어)
+  // 🟢 물물교환 진행도 카운터 함수
+  const updateTradeProgress = (tradeId: number, delta: number, max: number) => {
+    setTradeProgress(prev => {
+      const current = prev[tradeId] || 0;
+      let next = current + delta;
+      if (next < 0) next = 0;
+      if (next > max) next = max;
+      return { ...prev, [tradeId]: next };
+    });
+  };
+
   const handleToggleAll = (type: string, isCheckAll: boolean) => {
     if (type === 'daily') {
       const normals = visibleDailyList.filter(t => !t.type.startsWith('repeat')).map(t => t.name);
       setDailyChecks(isCheckAll ? normals : []);
-      setRepeatChecks(prev => {
-        const next = { ...prev };
-        visibleDailyList.filter(t => t.type.startsWith('repeat')).forEach(t => {
-          next[t.name] = isCheckAll ? Array(t.max_count).fill(true) : [];
-        });
-        return next;
-      });
+      setRepeatChecks(prev => { const next = { ...prev }; visibleDailyList.filter(t => t.type.startsWith('repeat')).forEach(t => { next[t.name] = isCheckAll ? Array(t.max_count).fill(true) : []; }); return next; });
     }
     if (type === 'weekly') {
       const normals = visibleWeeklyList.filter(t => !t.type.startsWith('repeat')).map(t => t.name);
       setWeeklyChecks(isCheckAll ? normals : []);
-      setRepeatChecks(prev => {
-        const next = { ...prev };
-        visibleWeeklyList.filter(t => t.type.startsWith('repeat')).forEach(t => {
-          next[t.name] = isCheckAll ? Array(t.max_count).fill(true) : [];
-        });
-        return next;
-      });
+      setRepeatChecks(prev => { const next = { ...prev }; visibleWeeklyList.filter(t => t.type.startsWith('repeat')).forEach(t => { next[t.name] = isCheckAll ? Array(t.max_count).fill(true) : []; }); return next; });
     }
     if (type === 'abyss') setAbyssChecks(isCheckAll ? abyssList.map(t => t.name) : []);
     if (type === 'raid') setRaidChecks(isCheckAll ? raidList.map(t => t.name) : []);
   };
 
-  // 공통 반복 렌더링 컴포넌트
   const renderTask = (item: any, isDaily: boolean) => {
     if (item.type.startsWith('repeat')) {
       const currentCount = (repeatChecks[item.name] || []).filter(Boolean).length;
@@ -184,10 +184,7 @@ export default function CharacterPage() {
             <span className={`text-sm font-medium ${isMax ? "text-purple-300" : "text-zinc-300"}`}>{item.name}</span>
           </div>
           <div className="flex items-center gap-2 bg-[#121212] px-1.5 py-1 rounded border border-zinc-700">
-            {/* 🟢 width를 min-w-[32px]로 주고 줄바꿈 방지(whitespace-nowrap) 적용! */}
-            <span className={`text-xs font-bold min-w-[36px] text-center whitespace-nowrap ${isMax ? "text-purple-400" : "text-zinc-400"}`}>
-              {currentCount} <span className="text-zinc-600">/</span> {item.max_count}
-            </span>
+            <span className={`text-xs font-bold min-w-[36px] text-center whitespace-nowrap ${isMax ? "text-purple-400" : "text-zinc-400"}`}>{currentCount} <span className="text-zinc-600">/</span> {item.max_count}</span>
             <div className="flex gap-1 border-l border-zinc-700 pl-1.5">
               <button onClick={() => updateRepeatCount(item.name, -1, item.max_count)} className="w-6 h-6 flex justify-center items-center rounded bg-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-700">-</button>
               <button onClick={() => updateRepeatCount(item.name, 1, item.max_count)} className="w-6 h-6 flex justify-center items-center rounded bg-purple-900/40 text-purple-400 hover:text-white hover:bg-purple-700">+</button>
@@ -196,7 +193,6 @@ export default function CharacterPage() {
         </div>
       );
     } else {
-      // 일반 체크박스 렌더링
       const checks = isDaily ? dailyChecks : weeklyChecks;
       const setChecks = isDaily ? setDailyChecks : setWeeklyChecks;
       const isChecked = checks.includes(item.name);
@@ -216,7 +212,6 @@ export default function CharacterPage() {
 
   if (!mounted || !user) return null;
 
-  // 검은 구멍 총 진척도 계산
   const bhDailyDone = blackHoleDaily && dailyChecks.includes(blackHoleDaily.name);
   const bhWeeklyCount = blackHoleWeekly ? (repeatChecks[blackHoleWeekly.name] || []).filter(Boolean).length : 0;
   const bhTotalCount = (bhDailyDone ? 1 : 0) + bhWeeklyCount;
@@ -226,13 +221,12 @@ export default function CharacterPage() {
     <main className="min-h-screen bg-[#1c1c1e] text-[#d4d4d8] font-sans pb-20 pt-6">
       <div className="max-w-[1400px] mx-auto p-4 md:p-8 space-y-6">
         
-        {/* 1. 프로필 영역 */}
+        {/* 상단 프로필 및 검은구멍 영역은 그대로 */}
         <div className="bg-[#252528] rounded-2xl border border-zinc-700/80 p-6 shadow-xl relative overflow-hidden">
           <div className="flex flex-col md:flex-row gap-8 items-start relative z-10">
             <div className="w-32 h-32 bg-[#121212] rounded-xl border-2 border-zinc-700 flex items-center justify-center cursor-pointer hover:border-[#e6c788] transition-colors">
               <span className="text-5xl">{dbClasses.find(c => c.name === profile.job)?.icon || "👤"}</span>
             </div>
-
             <div className="flex-1 w-full space-y-5">
               <div className="flex justify-between items-end border-b border-zinc-700/50 pb-4">
                 <div className="flex gap-4 items-end flex-wrap">
@@ -259,28 +253,24 @@ export default function CharacterPage() {
                   <p className="text-3xl font-black text-white leading-none mt-1">{totalLevel} <span className="text-sm font-normal text-zinc-500">LV</span></p>
                 </div>
               </div>
-
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-[#1c1c1e] p-3 rounded-lg border border-zinc-700/50"><label className="text-[11px] font-bold text-red-400 mb-1 block">⚔️ 전투력</label><input type="number" value={profile.combatPower} onChange={e => updateProfile("combatPower", e.target.value)} placeholder="0" className="w-full bg-transparent text-lg font-bold text-white outline-none" /></div>
                 <div className="bg-[#1c1c1e] p-3 rounded-lg border border-zinc-700/50"><label className="text-[11px] font-bold text-purple-400 mb-1 block">🔮 마도저항</label><input type="number" value={profile.magicResistance} onChange={e => updateProfile("magicResistance", e.target.value)} placeholder="0" className="w-full bg-transparent text-lg font-bold text-white outline-none" /></div>
                 <div className="bg-[#1c1c1e] p-3 rounded-lg border border-zinc-700/50"><label className="text-[11px] font-bold text-emerald-400 mb-1 block">🌿 생활력</label><input type="number" value={profile.lifeEnergy} onChange={e => updateProfile("lifeEnergy", e.target.value)} placeholder="0" className="w-full bg-transparent text-lg font-bold text-white outline-none" /></div>
                 <div className="bg-[#1c1c1e] p-3 rounded-lg border border-zinc-700/50"><label className="text-[11px] font-bold text-pink-400 mb-1 block">✨ 매력</label><input type="number" value={profile.charm} onChange={e => updateProfile("charm", e.target.value)} placeholder="0" className="w-full bg-transparent text-lg font-bold text-white outline-none" /></div>
               </div>
-
               <div className="flex gap-3">
                 <input value={profile.intro} onChange={(e) => updateProfile("intro", e.target.value)} placeholder="길드원에게 보일 자기소개나 인삿말을 적어주세요!" className="flex-1 bg-[#1c1c1e] border border-zinc-700 rounded-lg p-3 text-sm text-white focus:border-[#e6c788] outline-none" />
                 <button onClick={handleSyncNexonAPI} className="bg-emerald-900/40 text-emerald-400 border border-emerald-800/50 font-bold px-4 rounded-lg text-sm flex items-center gap-2">🔄 API 갱신</button>
-                <button onClick={saveProgress} className="bg-yellow-600 text-white font-bold px-8 rounded-lg text-sm">{saved ? "저장 완료!" : "서버에 저장"}</button>
+                <button onClick={saveProgress} className="bg-yellow-600 hover:bg-yellow-500 text-white font-bold px-8 rounded-lg text-sm transition-colors">{saved ? "저장 완료!" : "서버에 저장"}</button>
               </div>
             </div>
           </div>
         </div>
 
-        {/* 🟢 1.5 검은 구멍 전용 관제탑 (총량 게이지 UI 추가) */}
         {blackHoleDaily && blackHoleWeekly && (
           <div className="bg-[#1f1a29] rounded-xl border border-purple-500/40 p-5 shadow-[0_0_20px_rgba(168,85,247,0.15)] flex flex-col gap-4 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-48 h-full bg-purple-600/10 blur-3xl pointer-events-none"></div>
-            
             <div className="flex justify-between items-end relative z-10">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-[#121212] rounded-full border border-purple-500 flex items-center justify-center text-xl shadow-[0_0_10px_rgba(168,85,247,0.3)]">🕳️</div>
@@ -294,23 +284,16 @@ export default function CharacterPage() {
                 <div className="text-white font-black text-2xl leading-none">{bhTotalCount} <span className="text-sm text-zinc-500 font-normal">/ {bhMaxCount}</span></div>
               </div>
             </div>
-
-            {/* 게이지 바 */}
             <div className="w-full bg-[#121212] h-2.5 rounded-full overflow-hidden border border-purple-900/50 relative z-10">
               <div className="h-full bg-gradient-to-r from-purple-600 to-fuchsia-500 transition-all duration-500" style={{ width: `${(bhTotalCount / bhMaxCount) * 100}%` }}></div>
             </div>
-
             <div className="flex flex-col md:flex-row gap-3 pt-2 relative z-10">
-              {/* 일일 컨트롤 */}
-              <div onClick={() => setDailyChecks(bhDailyDone ? dailyChecks.filter(i => i !== blackHoleDaily.name) : [...dailyChecks, blackHoleDaily.name])} 
-                   className={`flex-1 flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all ${bhDailyDone ? "bg-purple-900/40 border-purple-500/60" : "bg-[#121212] border-zinc-700 hover:border-purple-500/40"}`}>
+              <div onClick={() => setDailyChecks(bhDailyDone ? dailyChecks.filter(i => i !== blackHoleDaily.name) : [...dailyChecks, blackHoleDaily.name])} className={`flex-1 flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all ${bhDailyDone ? "bg-purple-900/40 border-purple-500/60" : "bg-[#121212] border-zinc-700 hover:border-purple-500/40"}`}>
                 <span className={`text-sm font-bold ${bhDailyDone ? "text-purple-300" : "text-zinc-400"}`}>오늘의 기본 탐험 (1회)</span>
                 <div className={`w-5 h-5 rounded flex items-center justify-center transition-all ${bhDailyDone ? "bg-purple-500 text-white" : "bg-zinc-800 border border-zinc-600"}`}>
                   {bhDailyDone && <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
                 </div>
               </div>
-
-              {/* 주간 컨트롤 */}
               <div className="flex-1 flex items-center justify-between p-3 rounded-lg bg-[#121212] border border-zinc-700">
                 <span className="text-sm font-bold text-zinc-400">이번주 초과 탐험 ({blackHoleWeekly.max_count}회)</span>
                 <div className="flex gap-1 bg-[#1c1c1e] p-1 rounded border border-zinc-800">
@@ -323,68 +306,96 @@ export default function CharacterPage() {
           </div>
         )}
 
-        {/* 2. 체크보드 영역 */}
         <div className="grid grid-cols-1 xl:grid-cols-4 lg:grid-cols-2 gap-6">
-          
-          {/* ☀️ 일일 (일간 반복 포함) */}
+          {/* 일일, 주간, 어비스, 레이드 렌더링 유지 */}
           <div className="bg-[#252528] rounded-xl border border-zinc-800 p-5 shadow-md flex flex-col">
-            <div className="flex justify-between items-center mb-4 border-b border-zinc-700 pb-3">
-              <h3 className="font-bold text-amber-500 text-base">☀️ 일일 컨텐츠</h3>
-              <div className="flex items-center gap-2">
-                <button onClick={() => handleToggleAll('daily', true)} className="text-[10px] text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 px-2 py-1 rounded transition">✓ 전체</button>
-                <button onClick={() => handleToggleAll('daily', false)} className="text-[10px] text-zinc-500 hover:text-red-400 bg-zinc-800/50 hover:bg-zinc-800 px-2 py-1 rounded transition">✗ 해제</button>
-              </div>
-            </div>
-            <div className="space-y-2 flex-1 overflow-y-auto custom-scrollbar pr-2">
-              {visibleDailyList.map(item => renderTask(item, true))}
-            </div>
+            <div className="flex justify-between items-center mb-4 border-b border-zinc-700 pb-3"><h3 className="font-bold text-amber-500 text-base">☀️ 일일 컨텐츠</h3><div className="flex items-center gap-2"><button onClick={() => handleToggleAll('daily', true)} className="text-[10px] text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 px-2 py-1 rounded transition">✓ 전체</button><button onClick={() => handleToggleAll('daily', false)} className="text-[10px] text-zinc-500 hover:text-red-400 bg-zinc-800/50 hover:bg-zinc-800 px-2 py-1 rounded transition">✗ 해제</button></div></div>
+            <div className="space-y-2 flex-1 overflow-y-auto custom-scrollbar pr-2">{visibleDailyList.map(item => renderTask(item, true))}</div>
           </div>
-
-          {/* 🌙 주간 (주간/주말 반복 포함) */}
           <div className="bg-[#252528] rounded-xl border border-zinc-800 p-5 shadow-md flex flex-col">
-            <div className="flex justify-between items-center mb-4 border-b border-zinc-700 pb-3">
-              <h3 className="font-bold text-blue-400 text-base">🌙 주간 컨텐츠</h3>
-              <div className="flex items-center gap-2">
-                <button onClick={() => handleToggleAll('weekly', true)} className="text-[10px] text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 px-2 py-1 rounded transition">✓ 전체</button>
-                <button onClick={() => handleToggleAll('weekly', false)} className="text-[10px] text-zinc-500 hover:text-red-400 bg-zinc-800/50 hover:bg-zinc-800 px-2 py-1 rounded transition">✗ 해제</button>
-              </div>
-            </div>
-            <div className="space-y-2 flex-1 overflow-y-auto custom-scrollbar pr-2">
-              {visibleWeeklyList.map(item => renderTask(item, false))}
-            </div>
+            <div className="flex justify-between items-center mb-4 border-b border-zinc-700 pb-3"><h3 className="font-bold text-blue-400 text-base">🌙 주간 컨텐츠</h3><div className="flex items-center gap-2"><button onClick={() => handleToggleAll('weekly', true)} className="text-[10px] text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 px-2 py-1 rounded transition">✓ 전체</button><button onClick={() => handleToggleAll('weekly', false)} className="text-[10px] text-zinc-500 hover:text-red-400 bg-zinc-800/50 hover:bg-zinc-800 px-2 py-1 rounded transition">✗ 해제</button></div></div>
+            <div className="space-y-2 flex-1 overflow-y-auto custom-scrollbar pr-2">{visibleWeeklyList.map(item => renderTask(item, false))}</div>
           </div>
-
-          {/* 🌌 어비스 */}
           <div className="bg-[#252528] rounded-xl border border-zinc-800 p-5 shadow-md flex flex-col">
-            <div className="flex justify-between items-center mb-4 border-b border-zinc-700 pb-3">
-              <h3 className="font-bold text-emerald-400 text-base">🌌 어비스 관리</h3>
-              <div className="flex items-center gap-2">
-                <button onClick={() => handleToggleAll('abyss', true)} className="text-[10px] text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 px-2 py-1 rounded transition">✓ 전체</button>
-                <button onClick={() => handleToggleAll('abyss', false)} className="text-[10px] text-zinc-500 hover:text-red-400 bg-zinc-800/50 hover:bg-zinc-800 px-2 py-1 rounded transition">✗ 해제</button>
-              </div>
-            </div>
-            <div className="space-y-2 flex-1 overflow-y-auto custom-scrollbar pr-2">
-              {abyssList.map(item => renderTask(item, true))}
-            </div>
+            <div className="flex justify-between items-center mb-4 border-b border-zinc-700 pb-3"><h3 className="font-bold text-emerald-400 text-base">🌌 어비스 관리</h3><div className="flex items-center gap-2"><button onClick={() => handleToggleAll('abyss', true)} className="text-[10px] text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 px-2 py-1 rounded transition">✓ 전체</button><button onClick={() => handleToggleAll('abyss', false)} className="text-[10px] text-zinc-500 hover:text-red-400 bg-zinc-800/50 hover:bg-zinc-800 px-2 py-1 rounded transition">✗ 해제</button></div></div>
+            <div className="space-y-2 flex-1 overflow-y-auto custom-scrollbar pr-2">{abyssList.map(item => renderTask(item, true))}</div>
           </div>
-
-          {/* 🐉 레이드 */}
           <div className="bg-[#252528] rounded-xl border border-zinc-800 p-5 shadow-md flex flex-col">
-            <div className="flex justify-between items-center mb-4 border-b border-zinc-700 pb-3">
-              <h3 className="font-bold text-indigo-400 text-base">🐉 레이드 관리</h3>
-              <div className="flex items-center gap-2">
-                <button onClick={() => handleToggleAll('raid', true)} className="text-[10px] text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 px-2 py-1 rounded transition">✓ 전체</button>
-                <button onClick={() => handleToggleAll('raid', false)} className="text-[10px] text-zinc-500 hover:text-red-400 bg-zinc-800/50 hover:bg-zinc-800 px-2 py-1 rounded transition">✗ 해제</button>
-              </div>
-            </div>
-            <div className="space-y-2 flex-1 overflow-y-auto custom-scrollbar pr-2">
-              {raidList.map(item => renderTask(item, true))}
-            </div>
+            <div className="flex justify-between items-center mb-4 border-b border-zinc-700 pb-3"><h3 className="font-bold text-indigo-400 text-base">🐉 레이드 관리</h3><div className="flex items-center gap-2"><button onClick={() => handleToggleAll('raid', true)} className="text-[10px] text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 px-2 py-1 rounded transition">✓ 전체</button><button onClick={() => handleToggleAll('raid', false)} className="text-[10px] text-zinc-500 hover:text-red-400 bg-zinc-800/50 hover:bg-zinc-800 px-2 py-1 rounded transition">✗ 해제</button></div></div>
+            <div className="space-y-2 flex-1 overflow-y-auto custom-scrollbar pr-2">{raidList.map(item => renderTask(item, true))}</div>
           </div>
         </div>
 
-        {/* 하단 아코디언 메뉴 유지 */}
+        {/* 🟦 3. 하단 통합 아코디언 메뉴 */}
         <div className="space-y-4">
+          
+          {/* 🟢 물물교환 통합 카탈로그 아코디언 구현 */}
+          <div className="bg-[#252528] rounded-xl border border-zinc-800 overflow-hidden shadow-lg">
+            <button onClick={() => setIsTradeOpen(!isTradeOpen)} className="w-full flex items-center justify-between p-5 hover:bg-[#2a2a2e] transition">
+              <h3 className="font-bold text-[#e6c788] text-lg flex items-center gap-2">⚖️ 캐릭터 교환/구매 진행도</h3>
+              <span className="text-zinc-500">{isTradeOpen ? "▲" : "▼"}</span>
+            </button>
+            {isTradeOpen && (
+              <div className="p-0 sm:p-5 border-t border-zinc-800 bg-[#1c1c1e]">
+                <div className="overflow-x-auto custom-scrollbar">
+                  <table className="w-full text-left text-sm whitespace-nowrap min-w-[800px]">
+                    <thead className="bg-[#252528] text-zinc-400 border-b border-zinc-700">
+                      <tr>
+                        <th className="p-3 font-bold text-xs w-[15%]">맵 / NPC</th>
+                        <th className="p-3 font-bold text-xs w-[25%]">획득 보상</th>
+                        <th className="p-3 font-bold text-xs w-[25%]">소모 재화</th>
+                        <th className="p-3 font-bold text-xs text-center w-[15%]">초기화/범위</th>
+                        <th className="p-3 font-bold text-xs text-center w-[20%]">목표 달성 진척도</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-800/50">
+                      {dbTrades.map((trade) => {
+                        const currentVal = tradeProgress[trade.id] || 0;
+                        const isMax = currentVal >= trade.limit;
+                        return (
+                          <tr key={trade.id} className={`transition-colors ${isMax ? 'bg-[#252528]/50' : 'hover:bg-[#202023]'}`}>
+                            <td className="p-3">
+                              <div className={`font-bold ${isMax ? 'text-zinc-500' : 'text-zinc-300'}`}>{trade.map || "-"}</div>
+                              <div className="text-[10px] text-zinc-500">{trade.npc || "-"}</div>
+                            </td>
+                            <td className="p-3">
+                              <div className={`font-bold ${isMax ? 'text-emerald-900' : 'text-emerald-400'}`}>{trade.reward}</div>
+                              <div className="text-[10px] text-zinc-500">{trade.reward_cnt}개 획득</div>
+                            </td>
+                            <td className="p-3">
+                              <div className={`font-bold ${isMax ? 'text-amber-900' : 'text-amber-400'}`}>{trade.cost}</div>
+                              <div className="text-[10px] text-zinc-500">{trade.cost_cnt}개 소모</div>
+                            </td>
+                            <td className="p-3 text-center">
+                              <div className="flex flex-col gap-1 items-center">
+                                <span className={`text-[9px] px-1.5 py-0.5 rounded ${isMax ? 'bg-zinc-800 text-zinc-600' : trade.reset_type === '일간' ? 'bg-amber-900/30 text-amber-400' : 'bg-blue-900/30 text-blue-400'}`}>{trade.reset_type}</span>
+                                <span className={`text-[9px] px-1.5 py-0.5 rounded ${isMax ? 'bg-zinc-800 text-zinc-600' : trade.scope === '캐릭당' ? 'bg-zinc-800 text-zinc-300' : 'bg-rose-900/30 text-rose-400'}`}>{trade.scope}</span>
+                              </div>
+                            </td>
+                            <td className="p-3 text-center">
+                              <div className="flex items-center justify-center gap-3 bg-[#121212] px-2 py-1.5 rounded-lg border border-zinc-700/50 mx-auto w-fit">
+                                <span className={`text-xs font-bold w-8 text-center tracking-wider ${isMax ? "text-emerald-500" : "text-zinc-300"}`}>{currentVal} <span className="text-zinc-600 font-normal">/</span> {trade.limit}</span>
+                                <div className="flex gap-1 border-l border-zinc-700 pl-2">
+                                  <button onClick={() => updateTradeProgress(trade.id, -1, trade.limit)} className="w-7 h-7 flex justify-center items-center rounded bg-zinc-800 text-zinc-400 hover:text-white transition-colors">-</button>
+                                  <button onClick={() => updateTradeProgress(trade.id, 1, trade.limit)} className={`w-7 h-7 flex justify-center items-center rounded transition-colors ${isMax ? 'bg-emerald-900/20 text-emerald-500/50 cursor-not-allowed' : 'bg-[#e6c788]/20 text-[#e6c788] hover:bg-[#e6c788] hover:text-black'}`}>+</button>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      {dbTrades.length === 0 && (
+                        <tr>
+                          <td colSpan={5} className="p-10 text-center text-zinc-500">관리자가 등록한 구매/교환 카탈로그가 없습니다.</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+
           <div className="bg-[#252528] rounded-xl border border-zinc-800 overflow-hidden">
             <button onClick={() => setIsLevelOpen(!isLevelOpen)} className="w-full flex items-center justify-between p-5 hover:bg-[#2a2a2e] transition">
               <h3 className="font-bold text-[#e6c788] text-lg flex items-center gap-2">⚡ 클래스 레벨관리</h3>

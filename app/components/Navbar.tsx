@@ -44,7 +44,7 @@ export default function Navbar() {
             <span className="text-white font-black text-[10px] tracking-tighter">NX</span>
           </div>
           <span className="text-[#e6c788] font-serif font-black text-xl tracking-tight group-hover:text-yellow-400 transition">
-            Sanctuary Nexus
+            SANCTUM
           </span>
         </a>
         

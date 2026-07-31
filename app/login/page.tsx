@@ -30,7 +30,7 @@ export default function LoginPage() {
           <div className="w-20 h-20 bg-[#121212] border border-yellow-600/30 rounded-xl mx-auto flex items-center justify-center shadow-lg mb-4">
             <span className="text-2xl">🏰</span>
           </div>
-          <h1 className="text-3xl font-black text-[#e6c788] tracking-tight">Sanctuary Nexus</h1>
+          <h1 className="text-3xl font-black text-[#e6c788] tracking-tight">SANCTUM</h1>
           <p className="text-zinc-400 text-sm mt-2">데이안 서버 성역 길드 전용망</p>
         </div>
 

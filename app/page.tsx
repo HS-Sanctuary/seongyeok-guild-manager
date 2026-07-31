@@ -14,9 +14,6 @@ const JOB_ICONS: { [key: string]: string } = {
 };
 
 const ALL_CLASSES = Object.keys(JOB_ICONS);
-const DAILY_ITEMS = ["일일 미션", "일일 검은 구멍", "요일 던전", "일일 아르바이트", "심층 던전"];
-const WEEKLY_ITEMS = ["심층 던전 (매우 어려움)", "멤버십 주간 아르바이트", "필드 보스"];
-
 const MY_ACCOUNT_CHARACTERS = ["한설", "영겁", "순월", "쌍월", "먀치", "탄월"];
 
 export default function Home() {
@@ -29,6 +26,12 @@ export default function Home() {
   const [stats, setStats] = useState({ daily: 0, weekly: 0, uniqueAccounts: 0 });
   const [allRounderLevel, setAllRounderLevel] = useState(0);
 
+  // 🟢 DB에서 불러올 동적 데이터 상태
+  const [dailyTasks, setDailyTasks] = useState<any[]>([]);
+  const [weeklyTasks, setWeeklyTasks] = useState<any[]>([]);
+  const [abyssList, setAbyssList] = useState<any[]>([]);
+  const [raidList, setRaidList] = useState<any[]>([]);
+
   const [partyMatches] = useState([
     { id: 1, title: "[4종] 어비스 매칭", desc: "초보자도 환영! 함께 공략해요.", leader: "파랑", members: 2, max: 4, role: "딜러/힐러" },
     { id: 2, title: "주말 카브락 레이드", desc: "클리어 목적 빡숙팟 구합니다.", leader: "춘법", members: 6, max: 8, role: "도적/기사" }
@@ -40,15 +43,34 @@ export default function Home() {
   ]);
 
   const fetchDashboardData = async () => {
-    const { data: allChars } = await supabase.from('characters').select('*');
-    if (!allChars) return;
+    // 🟢 하드코딩 탈피! DB에서 등록된 모든 숙제와 컨텐츠를 실시간으로 가져옵니다.
+    const [charRes, taskRes, contRes] = await Promise.all([
+      supabase.from('characters').select('*'),
+      supabase.from('nexus_tasks').select('*').eq('is_active', true),
+      supabase.from('nexus_contents').select('*').eq('is_active', true)
+    ]);
+    
+    if (!charRes.data) return;
+    const allChars = charRes.data;
+    
+    // DB에서 가져온 컨텐츠 분류
+    const dTasks = taskRes.data?.filter(t => t.type === 'daily') || [];
+    const wTasks = taskRes.data?.filter(t => t.type === 'weekly') || [];
+    setDailyTasks(dTasks);
+    setWeeklyTasks(wTasks);
+    
+    setAbyssList(contRes.data?.filter(c => c.type === 'abyss') || []);
+    setRaidList(contRes.data?.filter(c => c.type === 'raid') || []);
 
+    const dLen = dTasks.length || 1; // 0으로 나누기 방지
+    const wLen = wTasks.length || 1;
     const uniqueAccountCount = 1; 
 
     let totalDaily = 0; let totalWeekly = 0;
     allChars.forEach(char => {
-      totalDaily += ((char.daily_checks?.length || 0) / DAILY_ITEMS.length) * 100;
-      totalWeekly += ((char.weekly_checks?.normal?.length || 0) / WEEKLY_ITEMS.length) * 100;
+      // 🟢 DB에 등록된 진짜 갯수를 기반으로 % 계산
+      totalDaily += ((char.daily_checks?.length || 0) / dLen) * 100;
+      totalWeekly += ((char.weekly_checks?.normal?.length || 0) / wLen) * 100;
     });
     
     setStats({
@@ -102,7 +124,7 @@ export default function Home() {
       
       {/* GNB 미니 헤더 */}
       <div className="w-full bg-[#252528] border-b border-zinc-800 px-6 py-2.5 flex justify-between items-center">
-        <div className="flex items-center gap-2 text-white font-bold text-sm tracking-wide"><span>🏰 Sanctuary Nexus</span></div>
+        <div className="flex items-center gap-2 text-white font-bold text-sm tracking-wide"><span>🏰 SANCTUM</span></div>
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-[#121212] border border-zinc-600 flex items-center justify-center text-sm shadow-inner">
             {JOB_ICONS[user.job || "기사"] || "👦🏻"}
@@ -120,11 +142,11 @@ export default function Home() {
         <header className="flex items-center gap-6 mb-2">
           <div className="w-28 h-28 md:w-36 md:h-36 bg-[#121212] border border-yellow-600/30 rounded-lg flex items-center justify-center shadow-2xl relative overflow-hidden flex-shrink-0">
             <div className="absolute inset-0 bg-gradient-to-br from-yellow-900/20 to-transparent"></div>
-            <div className="z-10 text-white font-black border-2 border-white px-2 py-1 tracking-widest text-[10px] md:text-xs shadow-lg backdrop-blur-sm">Nexus</div>
+            <div className="z-10 text-white font-black border-2 border-white px-2 py-1 tracking-widest text-[10px] md:text-xs shadow-lg backdrop-blur-sm">SANCTUM</div>
           </div>
           <div>
-            <h1 className="text-4xl md:text-5xl font-serif font-black tracking-tight text-[#e6c788] drop-shadow-md">Sanctuary Nexus</h1>
-            <p className="text-zinc-400 text-xs md:text-sm mt-2 tracking-wide font-medium">데이안 성역 길드 전용 <span className="text-zinc-600 mx-1">|</span> 마비노기 모바일 커맨드 센터</p>
+            <h1 className="text-4xl md:text-5xl font-serif font-black tracking-tight text-[#e6c788] drop-shadow-md">SANCTUM</h1>
+            <p className="text-zinc-400 text-xs md:text-sm mt-2 tracking-wide font-medium">데이안 성역 길드<span className="text-zinc-600 mx-1">|</span>마비노기 모바일<span className="text-zinc-600 mx-1">|</span>생텀</p>
           </div>
         </header>
 
@@ -149,7 +171,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* 📋 2. 캐릭터 숙제 체크보드 (확장형 2단 그리드 적용) */}
+        {/* 📋 2. 캐릭터 숙제 체크보드 */}
         <section className="bg-[#252528] border border-zinc-700/50 rounded-xl p-5 shadow-xl">
           <div className="flex justify-between items-center mb-4 border-b border-zinc-700/50 pb-3">
             <div>
@@ -161,77 +183,67 @@ export default function Home() {
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
             {myCharacters.map((char) => {
-              const dRate = Math.round(((char.daily_checks?.length || 0) / DAILY_ITEMS.length) * 100);
-              const wRate = Math.round(((char.weekly_checks?.normal?.length || 0) / WEEKLY_ITEMS.length) * 100);
+              // 🟢 동적 퍼센트 계산
+              const dRate = Math.round(((char.daily_checks?.length || 0) / (dailyTasks.length || 1)) * 100);
+              const wRate = Math.round(((char.weekly_checks?.normal?.length || 0) / (weeklyTasks.length || 1)) * 100);
               
-              const isHeosang = char.raid_checks?.includes("어비스 - 허상의 정박지");
-              const isDonggul = char.raid_checks?.includes("어비스 - 광기의 동굴");
-              const isMulgil = char.raid_checks?.includes("어비스 - 흩어진 물길");
-              const isWkndAbyss = char.raid_checks?.includes("주말에는 어비스");
-              const abyssCount = [isHeosang, isDonggul, isMulgil, isWkndAbyss].filter(Boolean).length;
-
-              const isKab = char.raid_checks?.includes("레이드 - 카브락");
-              const isArel = char.raid_checks?.includes("레이드 - 에이렐");
-              const isWhite = char.raid_checks?.includes("레이드 - 화이트 서큐버스");
-              const isWkndRaid = char.raid_checks?.includes("주말에는 레이드");
-              const raidCount = [isKab, isArel, isWhite, isWkndRaid].filter(Boolean).length;
+              // 🟢 등록된 어비스/레이드 중 유저가 체크한 갯수 확인
+              const abyssCount = abyssList.filter(c => char.raid_checks?.includes(c.name)).length;
+              const raidCount = raidList.filter(c => char.raid_checks?.includes(c.name)).length;
 
               return (
                 <div key={char.id} onClick={() => router.push('/character')} className="bg-[#1c1c1e] border border-zinc-700/50 rounded-xl p-4 cursor-pointer hover:border-[#e6c788]/60 transition shadow-md flex flex-col gap-3 group">
-                  
-                  {/* 헤더 */}
                   <div className="flex items-center gap-2 border-b border-zinc-800 pb-2">
                     <span className="text-base bg-[#121212] p-1.5 rounded-lg border border-zinc-700 shadow-inner group-hover:border-[#e6c788]/50 transition">{JOB_ICONS[char.job] || "👤"}</span>
                     <span className="font-black text-white text-[15px] truncate">{char.nickname}</span>
                   </div>
 
-                  {/* 일일/주간 프로그레스 */}
                   <div className="space-y-2 text-[10px] font-bold">
                     <div>
-                      <div className="flex justify-between text-zinc-400 mb-1"><span>일일 숙제</span><span className="text-amber-400 font-mono">{dRate}%</span></div>
-                      <div className="w-full bg-zinc-800 h-1.5 rounded-full overflow-hidden"><div className="bg-amber-500 h-full transition-all" style={{ width: `${dRate}%` }}></div></div>
+                      <div className="flex justify-between text-zinc-400 mb-1"><span>일일 숙제</span><span className="text-amber-400 font-mono">{Math.min(dRate, 100)}%</span></div>
+                      <div className="w-full bg-zinc-800 h-1.5 rounded-full overflow-hidden"><div className="bg-amber-500 h-full transition-all" style={{ width: `${Math.min(dRate, 100)}%` }}></div></div>
                     </div>
                     <div>
-                      <div className="flex justify-between text-zinc-400 mb-1"><span>주간 숙제</span><span className="text-blue-400 font-mono">{wRate}%</span></div>
-                      <div className="w-full bg-zinc-800 h-1.5 rounded-full overflow-hidden"><div className="bg-blue-500 h-full transition-all" style={{ width: `${wRate}%` }}></div></div>
+                      <div className="flex justify-between text-zinc-400 mb-1"><span>주간 숙제</span><span className="text-blue-400 font-mono">{Math.min(wRate, 100)}%</span></div>
+                      <div className="w-full bg-zinc-800 h-1.5 rounded-full overflow-hidden"><div className="bg-blue-500 h-full transition-all" style={{ width: `${Math.min(wRate, 100)}%` }}></div></div>
                     </div>
                   </div>
 
-                  {/* 🟢 요청하신 2단 분할 뱃지 위젯 (확장성 완벽 대응) */}
+                  {/* 🟢 DB 기반 완벽 동적 뱃지 렌더링 */}
                   <div className="flex flex-col gap-1.5 bg-[#121212] p-2 rounded-lg border border-zinc-800">
                     
-                    {/* 어비스 체크박스 라인 */}
+                    {/* 어비스 */}
                     <div className="flex items-center justify-between">
-                      <span className="text-[9px] font-bold text-zinc-500">어비스</span>
-                      <div className="flex gap-1.5 text-[9px] font-black">
-                        <span className={isHeosang ? "text-emerald-400" : "text-zinc-600"}>허상</span>
-                        <span className={isDonggul ? "text-emerald-400" : "text-zinc-600"}>동굴</span>
-                        <span className={isMulgil ? "text-emerald-400" : "text-zinc-600"}>물길</span>
-                        <span className={isWkndAbyss ? "text-emerald-400" : "text-zinc-600"}>주말</span>
+                      <span className="text-[9px] font-bold text-zinc-500 min-w-[28px]">어비스</span>
+                      <div className="flex flex-wrap gap-1.5 text-[9px] font-black justify-end">
+                        {abyssList.length > 0 ? abyssList.map(a => {
+                          const isChecked = char.raid_checks?.includes(a.name);
+                          // DB 저장 시 생성된 short_name(두글자)을 활용
+                          return <span key={a.id} className={isChecked ? "text-emerald-400" : "text-zinc-600"}>{a.short_name || a.name.substring(0,2)}</span>
+                        }) : <span className="text-zinc-600 font-normal">등록된 컨텐츠 없음</span>}
                       </div>
                     </div>
-                    <div className="w-full text-center py-0.5 rounded text-[9px] font-black bg-zinc-900 border border-zinc-800">
-                      {abyssCount === 4 ? <span className="text-emerald-400">어비스 4종 완료</span> : <span className="text-zinc-500">미완료 ({abyssCount}/4)</span>}
+                    <div className="w-full text-center py-0.5 rounded text-[9px] font-black bg-zinc-900 border border-zinc-800 mt-0.5">
+                      {abyssList.length > 0 && abyssCount === abyssList.length ? <span className="text-emerald-400">어비스 전체 완료</span> : <span className="text-zinc-500">진행도 ({abyssCount}/{abyssList.length})</span>}
                     </div>
 
                     <div className="border-t border-zinc-800/80 my-0.5"></div>
 
-                    {/* 레이드 체크박스 라인 */}
+                    {/* 레이드 */}
                     <div className="flex items-center justify-between">
-                      <span className="text-[9px] font-bold text-zinc-500">레이드</span>
-                      <div className="flex gap-1.5 text-[9px] font-black">
-                        <span className={isKab ? "text-indigo-400" : "text-zinc-600"}>카브</span>
-                        <span className={isArel ? "text-indigo-400" : "text-zinc-600"}>에렐</span>
-                        <span className={isWhite ? "text-indigo-400" : "text-zinc-600"}>화섴</span>
-                        <span className={isWkndRaid ? "text-indigo-400" : "text-zinc-600"}>주말</span>
+                      <span className="text-[9px] font-bold text-zinc-500 min-w-[28px]">레이드</span>
+                      <div className="flex flex-wrap gap-1.5 text-[9px] font-black justify-end">
+                        {raidList.length > 0 ? raidList.map(r => {
+                          const isChecked = char.raid_checks?.includes(r.name);
+                          return <span key={r.id} className={isChecked ? "text-indigo-400" : "text-zinc-600"}>{r.short_name || r.name.substring(0,2)}</span>
+                        }) : <span className="text-zinc-600 font-normal">등록된 컨텐츠 없음</span>}
                       </div>
                     </div>
-                    <div className="w-full text-center py-0.5 rounded text-[9px] font-black bg-zinc-900 border border-zinc-800">
-                      {raidCount === 4 ? <span className="text-indigo-400">레이드 4종 완료</span> : <span className="text-zinc-500">미완료 ({raidCount}/4)</span>}
+                    <div className="w-full text-center py-0.5 rounded text-[9px] font-black bg-zinc-900 border border-zinc-800 mt-0.5">
+                      {raidList.length > 0 && raidCount === raidList.length ? <span className="text-indigo-400">레이드 전체 완료</span> : <span className="text-zinc-500">진행도 ({raidCount}/{raidList.length})</span>}
                     </div>
                   </div>
 
-                  {/* 풀네임 4대 스탯 */}
                   <div className="flex flex-col gap-1 text-[11px] mt-auto pt-1">
                     <div className="flex justify-between items-center"><span className="text-zinc-500 font-bold">전투력</span><span className="font-mono text-[#e6c788] font-bold">{Number(char.combat_power||0).toLocaleString()}</span></div>
                     <div className="flex justify-between items-center"><span className="text-zinc-500 font-bold">마도저항</span><span className="font-mono text-purple-300 font-bold">{Number(char.magic_resistance||0).toLocaleString()}</span></div>
@@ -244,7 +256,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ⚔️ 실시간 파티 매칭 현황 (가로 전체 확장) */}
+        {/* ⚔️ 실시간 파티 매칭 현황 */}
         <section className="bg-[#252528] border border-zinc-700/50 rounded-xl p-5 shadow-lg w-full flex flex-col">
           <div className="flex items-center justify-between mb-4 pb-3 border-b border-zinc-700/50">
             <div>
@@ -270,7 +282,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* 4단 분할: 랭킹 & 성역 넥서스 저널 */}
+        {/* 4단 분할: 랭킹 & SANCTUM 저널 */}
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
           
           {/* 🏆 성역 명예의 전당 */}
@@ -296,10 +308,10 @@ export default function Home() {
             </div>
           </section>
 
-          {/* 📒 성역 넥서스 저널 */}
+          {/* 📒 SANCTUM 저널 */}
           <section className="lg:col-span-3 bg-[#252528] border border-zinc-700/50 rounded-xl p-5 shadow-lg flex flex-col">
             <div className="flex justify-between items-center mb-4 border-b border-zinc-700/50 pb-3">
-              <h2 className="text-white font-bold text-sm">📒 성역 넥서스 저널</h2>
+              <h2 className="text-white font-bold text-sm">📒 SANCTUM 저널</h2>
               <span className="text-[10px] bg-indigo-900/30 text-indigo-400 border border-indigo-700/50 px-2 py-1 rounded font-bold">활동 포인트 1,250 획득</span>
             </div>
             
@@ -316,7 +328,6 @@ export default function Home() {
               
               <div className="flex-1 bg-[#1c1c1e] border border-zinc-700 rounded-xl p-4 flex flex-col">
                 <p className="text-[11px] font-bold text-zinc-400 mb-3">🏅 도전 중인 칭호</p>
-                
                 <div className="flex flex-col gap-3">
                   <div className="bg-[#252528] p-3 rounded-lg border border-dashed border-yellow-600/50 group cursor-help relative">
                     <div className="flex justify-between items-center mb-1">
@@ -325,7 +336,6 @@ export default function Home() {
                     </div>
                     <div className="w-full bg-zinc-800 h-1 rounded-full overflow-hidden"><div className="bg-yellow-600 h-full" style={{ width: '60%' }}></div></div>
                   </div>
-
                   <div className="bg-[#252528] p-3 rounded-lg border border-dashed border-purple-600/50 group cursor-help relative">
                     <div className="flex justify-between items-center mb-1">
                       <span className="text-xs font-black text-zinc-400 group-hover:text-purple-500 transition">❓ 그랜드 마스터</span>

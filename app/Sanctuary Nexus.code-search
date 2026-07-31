@@ -1,0 +1,28 @@
+# Query: Sanctuary Nexus
+# ContextLines: 1
+
+5 results - 4 files
+
+seongyeok-guild-manager\app\layout.tsx:
+  114                      <div className="bg-[#2a2a2d] px-2 py-1 rounded"><span className="font-black text-[#e6c788] text-sm tracking-tighter">NX</span></div>
+  115:                     <span className="font-bold text-lg text-[#e6c788] tracking-tight">Sanctuary Nexus</span>
+  116                    </Link>
+
+seongyeok-guild-manager\app\page.tsx:
+  104        <div className="w-full bg-[#252528] border-b border-zinc-800 px-6 py-2.5 flex justify-between items-center">
+  105:         <div className="flex items-center gap-2 text-white font-bold text-sm tracking-wide"><span>🏰 Sanctuary Nexus</span></div>
+  106          <div className="flex items-center gap-3">
+
+  125            <div>
+  126:             <h1 className="text-4xl md:text-5xl font-serif font-black tracking-tight text-[#e6c788] drop-shadow-md">Sanctuary Nexus</h1>
+  127              <p className="text-zinc-400 text-xs md:text-sm mt-2 tracking-wide font-medium">데이안 성역 길드 전용 <span className="text-zinc-600 mx-1">|</span> 마비노기 모바일 커맨드 센터</p>
+
+seongyeok-guild-manager\app\components\Navbar.tsx:
+  46            <span className="text-[#e6c788] font-serif font-black text-xl tracking-tight group-hover:text-yellow-400 transition">
+  47:             Sanctuary Nexus
+  48            </span>
+
+seongyeok-guild-manager\app\login\page.tsx:
+  32            </div>
+  33:           <h1 className="text-3xl font-black text-[#e6c788] tracking-tight">Sanctuary Nexus</h1>
+  34            <p className="text-zinc-400 text-sm mt-2">데이안 서버 성역 길드 전용망</p>

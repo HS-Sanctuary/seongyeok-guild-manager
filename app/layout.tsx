@@ -30,6 +30,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
   // 유저 정보 세팅 및 문의 알림 (10초 주기)
   useEffect(() => {
+    // 🟢 [주의] 로컬스토리지 키는 원래 이름(nexus_user) 유지!
     const savedUser = localStorage.getItem("nexus_user");
     if (savedUser) {
       const parsedUser = JSON.parse(savedUser);
@@ -48,10 +49,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     if (!error && count !== null) setPendingCount(count);
   };
 
-  // 🟢 긴급 배너 실시간 동기화 (5초 주기) - 꼼수 없이 원초적으로 다 긁어와서 찾습니다!
+  // 🟢 긴급 배너 실시간 동기화
   useEffect(() => {
     const fetchBanner = async () => {
       try {
+        // 🟢 [주의] DB 테이블 이름은 원래 이름(nexus_banners) 유지!
         const { data, error } = await supabase
           .from('nexus_banners')
           .select('*')
@@ -63,7 +65,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         }
 
         if (data && data.length > 0) {
-          // 배열에서 가장 마지막에 추가된(id가 제일 큰) 배너를 무조건 선택
           const activeBanner = data.sort((a, b) => b.id - a.id)[0];
           setBanner(activeBanner);
         } else {
@@ -74,8 +75,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       }
     };
 
-    fetchBanner(); // 마운트 되자마자 1번 실행
-    const bannerInterval = setInterval(fetchBanner, 5000); // 이후 5초마다 무한 갱신
+    fetchBanner();
+    const bannerInterval = setInterval(fetchBanner, 5000); 
     return () => clearInterval(bannerInterval);
   }, []);
 
@@ -92,10 +93,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="ko">
       <body className="bg-[#121212] text-zinc-200 overflow-x-hidden">
         
-        {/* 🟢 상단 네비게이션 자체를 통째로 관리하는 영역 */}
         <nav className="sticky top-0 z-[9999] flex flex-col shadow-lg">
           
-          {/* 🚨 긴급 배너: Nav 영역 안쪽 제일 꼭대기에 강제 이식 (절대 안 가려짐) */}
+          {/* 🚨 긴급 배너 */}
           {banner && (
             <div className="w-full py-2.5 bg-red-600 text-white text-center text-sm font-black animate-pulse flex items-center justify-center gap-2 border-b border-red-800">
               <span className="text-lg">🚨</span>
@@ -104,15 +104,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </div>
           )}
 
-          {/* 기존 메뉴 바 영역 */}
+          {/* 메인 헤더 바 */}
           <div className="border-b border-zinc-800 bg-[#1c1c1e] w-full">
             <div className="max-w-7xl mx-auto px-4">
               <div className="flex items-center justify-between h-16">
                 
                 <div className="flex items-center gap-8">
-                  <Link href="/" className="flex items-center gap-2">
-                    <div className="bg-[#2a2a2d] px-2 py-1 rounded"><span className="font-black text-[#e6c788] text-sm tracking-tighter">NX</span></div>
-                    <span className="font-bold text-lg text-[#e6c788] tracking-tight">Sanctuary Nexus</span>
+                  {/* 🟢 변경된 SANCTUM 프리미엄 로고 디자인 */}
+                  <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity mr-4">
+                    <div className="w-8 h-8 bg-gradient-to-br from-[#e6c788] to-yellow-600 rounded flex items-center justify-center shadow-lg shadow-yellow-900/20">
+                      <span className="text-black font-black text-sm tracking-tighter">SC</span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="font-black text-lg text-white leading-none tracking-wider drop-shadow-md">SANCTUM</span>
+                      <span className="text-[9px] text-[#e6c788] font-bold tracking-widest mt-0.5 opacity-90">데이안 성역 길드</span>
+                    </div>
                   </Link>
 
                   <div className="hidden lg:flex space-x-1">
@@ -129,7 +135,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     <>
                       <span className="text-sm font-bold text-zinc-300"><span className="text-[#e6c788] mr-1">👑</span>{user.nickname}</span>
                       {isAdmin && (
-                        <Link href="/admin" className="text-zinc-500 hover:text-[#e6c788] transition-colors p-1" title="넥서스 관리">
+                        <Link href="/admin" className="text-zinc-500 hover:text-[#e6c788] transition-colors p-1" title="SANCTUM 관리">
                           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                         </Link>
                       )}
@@ -180,7 +186,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 </div>
                 {isAdmin && (
                   <Link href="/admin" className="w-full text-sm text-[#e6c788] hover:text-white transition-colors bg-yellow-900/20 hover:bg-yellow-900/40 px-4 py-2.5 rounded-lg border border-yellow-700/50 font-bold flex items-center justify-center gap-2">
-                    <span>⚙️</span> 넥서스 관리
+                    <span>⚙️</span> SANCTUM 관리
                   </Link>
                 )}
                 <button onClick={handleLogout} className="w-full text-sm text-zinc-400 hover:text-white transition-colors bg-zinc-800 hover:bg-zinc-700 px-4 py-2.5 rounded-lg border border-zinc-700 font-bold">로그아웃</button>

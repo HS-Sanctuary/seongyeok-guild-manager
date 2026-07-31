@@ -11,13 +11,13 @@ const JOB_ICONS: Record<string, string> = {
 
 // 테스트용 길드원 목업 데이터 (인게임/넥서스 접속 분리)
 const MOCK_MEMBERS = [
-  { account_id: 1, role: "마스터", main_char: "한설", job: "기사", cp: 125000, is_ingame: true, is_nexus: true, last_login: 0, contribution: 99999, alt_count: 5, uncompleted: [] },
-  { account_id: 2, role: "부마스터", main_char: "파랑", job: "전사", cp: 118000, is_ingame: true, is_nexus: false, last_login: 0, contribution: 85000, alt_count: 3, uncompleted: ["어비스 3종", "레이드-카브락"] },
-  { account_id: 3, role: "부마스터", main_char: "춘법", job: "마법사", cp: 115000, is_ingame: false, is_nexus: true, last_login: 2, contribution: 82000, alt_count: 2, uncompleted: ["레이드-에이렐"] },
-  { account_id: 4, role: "부마스터", main_char: "꽃닝", job: "힐러", cp: 110000, is_ingame: true, is_nexus: true, last_login: 0, contribution: 79000, alt_count: 4, uncompleted: ["어비스 3종", "레이드-화이트서큐버스"] },
-  { account_id: 5, role: "길드원", main_char: "하채", job: "궁수", cp: 95000, is_ingame: false, is_nexus: false, last_login: 1, contribution: 45000, alt_count: 1, uncompleted: [] },
-  { account_id: 6, role: "길드원", main_char: "십쇼", job: "도적", cp: 92000, is_ingame: false, is_nexus: false, last_login: 1, contribution: 42000, alt_count: 0, uncompleted: ["어비스 3종"] },
-  { account_id: 7, role: "길드원", main_char: "별콩", job: "음유시인", cp: 88000, is_ingame: false, is_nexus: false, last_login: 8, contribution: 15000, alt_count: 2, uncompleted: ["어비스 3종", "레이드-카브락"] },
+  { account_id: 1, role: "마스터", main_char: "한설", job: "기사", cp: 125000, is_ingame: true, is_SANCTUM: true, last_login: 0, contribution: 99999, alt_count: 5, uncompleted: [] },
+  { account_id: 2, role: "부마스터", main_char: "파랑", job: "전사", cp: 118000, is_ingame: true, is_SANCTUM: false, last_login: 0, contribution: 85000, alt_count: 3, uncompleted: ["어비스 3종", "레이드-카브락"] },
+  { account_id: 3, role: "부마스터", main_char: "춘법", job: "마법사", cp: 115000, is_ingame: false, is_SANCTUM: true, last_login: 2, contribution: 82000, alt_count: 2, uncompleted: ["레이드-에이렐"] },
+  { account_id: 4, role: "부마스터", main_char: "꽃닝", job: "힐러", cp: 110000, is_ingame: true, is_SANCTUM: true, last_login: 0, contribution: 79000, alt_count: 4, uncompleted: ["어비스 3종", "레이드-화이트서큐버스"] },
+  { account_id: 5, role: "길드원", main_char: "하채", job: "궁수", cp: 95000, is_ingame: false, is_SANCTUM: false, last_login: 1, contribution: 45000, alt_count: 1, uncompleted: [] },
+  { account_id: 6, role: "길드원", main_char: "십쇼", job: "도적", cp: 92000, is_ingame: false, is_SANCTUM: false, last_login: 1, contribution: 42000, alt_count: 0, uncompleted: ["어비스 3종"] },
+  { account_id: 7, role: "길드원", main_char: "별콩", job: "음유시인", cp: 88000, is_ingame: false, is_SANCTUM: false, last_login: 8, contribution: 15000, alt_count: 2, uncompleted: ["어비스 3종", "레이드-카브락"] },
 ];
 
 export default function MembersPage() {
@@ -43,7 +43,7 @@ export default function MembersPage() {
   const filteredAndSortedMembers = [...members]
     .filter(m => {
       // 1. 탭 필터 적용
-      if (filter === "접속중") return m.is_ingame || m.is_nexus;
+      if (filter === "접속중") return m.is_ingame || m.is_SANCTUM;
       if (filter === "장기미접속" && isAdmin) return m.last_login >= 7;
       
       // 2. 숙제 레이더 필터 적용
@@ -156,12 +156,12 @@ export default function MembersPage() {
                             <div className={`w-1.5 h-1.5 rounded-full ${member.is_ingame ? 'bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.8)]' : 'bg-zinc-600'}`}></div>
                             인게임
                           </span>
-                          <span className={`text-[9px] px-1.5 py-0.5 rounded flex items-center gap-1 font-bold ${member.is_nexus ? 'bg-blue-900/40 text-blue-400 border border-blue-800/50' : 'bg-zinc-800/50 text-zinc-600'}`}>
-                            <div className={`w-1.5 h-1.5 rounded-full ${member.is_nexus ? 'bg-blue-500 shadow-[0_0_5px_rgba(59,130,246,0.8)]' : 'bg-zinc-600'}`}></div>
+                          <span className={`text-[9px] px-1.5 py-0.5 rounded flex items-center gap-1 font-bold ${member.is_SANCTUM ? 'bg-blue-900/40 text-blue-400 border border-blue-800/50' : 'bg-zinc-800/50 text-zinc-600'}`}>
+                            <div className={`w-1.5 h-1.5 rounded-full ${member.is_SANCTUM ? 'bg-blue-500 shadow-[0_0_5px_rgba(59,130,246,0.8)]' : 'bg-zinc-600'}`}></div>
                             넥서스
                           </span>
                         </div>
-                        {(!member.is_ingame && !member.is_nexus) && (
+                        {(!member.is_ingame && !member.is_SANCTUM) && (
                           <span className="text-[10px] text-zinc-500 font-medium">{member.last_login}일 전</span>
                         )}
                       </div>

@@ -13,12 +13,7 @@ const MAIN_TABS = [
 const CHAR_SUB_TABS = [
   { id: "tasks", label: "📝 숙제 목록 설정" },
   { id: "raids", label: "⚔️ 레이드/어비스 목록 설정" },
-  { id: "classes", label: "🪖 클래스 레벨 관리 목록 설정" },
-];
-
-const TRADE_SUB_TABS = [
-  { id: "trades", label: "⚖️ 물물교환 목록 설정" },
-  { id: "purchases", label: "🛒 상점구매 목록 설정" },
+  { id: "classes", label: "🪖 클래스 목록 설정" },
 ];
 
 export default function AdminPage() {
@@ -28,7 +23,6 @@ export default function AdminPage() {
   
   const [activeMainTab, setActiveMainTab] = useState("character"); 
   const [activeCharTab, setActiveCharTab] = useState("tasks"); 
-  const [activeTradeTab, setActiveTradeTab] = useState("trades"); 
 
   const [bannerInput, setBannerInput] = useState("");
   const [activeBanner, setActiveBanner] = useState<any>(null);
@@ -51,9 +45,13 @@ export default function AdminPage() {
   const [newRaid, setNewRaid] = useState("");
   const [newDaily, setNewDaily] = useState("");
   const [newWeekly, setNewWeekly] = useState("");
-  
-  // 🟢 반복 숙제에 '주기(cycle)' 상태 추가
   const [newRepeat, setNewRepeat] = useState({ name: "", max: 1, cycle: "repeat_weekly" });
+
+  // 🟢 물물교환 관련 상태
+  const [trades, setTrades] = useState<any[]>([]);
+  const [newTrade, setNewTrade] = useState({
+    map: "", npc: "", reward: "", reward_cnt: 1, cost: "", cost_cnt: 1, limit: 10, reset_type: "주간", scope: "캐릭당"
+  });
 
   useEffect(() => {
     setMounted(true);
@@ -69,100 +67,41 @@ export default function AdminPage() {
     fetchContents();
     fetchTasks();
     fetchClasses();
+    fetchTrades();
   }, [router]);
 
-  const fetchActiveBanner = async () => {
-    const { data } = await supabase.from('nexus_banners').select('*').eq('is_active', true).order('created_at', { ascending: false }).limit(1);
-    if (data && data.length > 0) setActiveBanner(data[0]);
-    else setActiveBanner(null);
-  };
+  // 배너 로직
+  const fetchActiveBanner = async () => { const { data } = await supabase.from('nexus_banners').select('*').eq('is_active', true).order('created_at', { ascending: false }).limit(1); if (data && data.length > 0) setActiveBanner(data[0]); else setActiveBanner(null); };
+  const handleBroadcastBanner = async () => { if (!bannerInput.trim()) return alert("입력해주세요."); setIsSubmitting(true); try { await supabase.from('nexus_banners').update({ is_active: false }).eq('is_active', true); await supabase.from('nexus_banners').insert([{ message: bannerInput, is_active: true }]); alert("송출 성공!"); setBannerInput(""); fetchActiveBanner(); window.location.reload(); } catch (e) {} finally { setIsSubmitting(false); } };
+  const handleTurnOffBanner = async () => { if (!activeBanner) return; await supabase.from('nexus_banners').update({ is_active: false }).eq('id', activeBanner.id); setActiveBanner(null); window.location.reload(); };
   
-  const handleBroadcastBanner = async () => {
-    if (!bannerInput.trim()) return alert("배너 메시지를 입력해주세요.");
-    setIsSubmitting(true);
-    try {
-      await supabase.from('nexus_banners').update({ is_active: false }).eq('is_active', true);
-      const { error } = await supabase.from('nexus_banners').insert([{ message: bannerInput, is_active: true }]);
-      if (error) throw error;
-      alert("긴급 배너가 송출되었습니다!"); setBannerInput(""); fetchActiveBanner(); window.location.reload(); 
-    } catch (e) { alert("배너 송출 실패"); } finally { setIsSubmitting(false); }
-  };
+  // 컨텐츠(어비스/레이드) 로직
+  const fetchContents = async () => { const { data } = await supabase.from('nexus_contents').select('*').order('type').order('id'); if (data) setContents(data); };
+  const handleAddContent = async (type: string, name: string) => { if (!name.trim()) return; const finalName = type === "abyss" ? `어비스 - ${name}` : `레이드 - ${name}`; await supabase.from('nexus_contents').insert([{ type, name: finalName, short_name: name.substring(0,2), is_weekend: false, is_active: true }]); if (type === 'abyss') setNewAbyss(""); else setNewRaid(""); fetchContents(); };
+  const saveEditingContent = async () => { await supabase.from('nexus_contents').update({ name: editForm.name, is_weekend: editForm.is_weekend, is_active: editForm.is_active }).eq('id', editingId); setEditingId(null); fetchContents(); };
+  const deleteContent = async (id: number) => { if (!confirm(`삭제하시겠습니까?`)) return; await supabase.from('nexus_contents').delete().eq('id', id); fetchContents(); };
   
-  const handleTurnOffBanner = async () => {
-    if (!activeBanner) return;
-    await supabase.from('nexus_banners').update({ is_active: false }).eq('id', activeBanner.id);
-    setActiveBanner(null); window.location.reload();
-  };
+  // 숙제(일일/주간/반복) 로직
+  const fetchTasks = async () => { const { data } = await supabase.from('nexus_tasks').select('*').order('type').order('id'); if (data) setTasks(data); };
+  const handleAddTask = async (type: string, name: string, max_count: number = 1) => { if (!name.trim()) return; await supabase.from('nexus_tasks').insert([{ type, name, max_count, is_active: true }]); if (type === 'daily') setNewDaily(""); else if (type === 'weekly') setNewWeekly(""); else setNewRepeat({ name: "", max: 1, cycle: "repeat_weekly" }); fetchTasks(); };
+  const saveEditingTask = async () => { await supabase.from('nexus_tasks').update({ name: editTaskForm.name, max_count: editTaskForm.max_count, is_active: editTaskForm.is_active }).eq('id', editingTaskId); setEditingTaskId(null); fetchTasks(); };
+  const deleteTask = async (id: number) => { if (!confirm(`삭제하시겠습니까?`)) return; await supabase.from('nexus_tasks').delete().eq('id', id); fetchTasks(); };
+  
+  // 클래스 로직
+  const fetchClasses = async () => { const { data } = await supabase.from('nexus_classes').select('*').order('id'); if (data) setClasses(data); };
+  const handleAddClass = async () => { if (!newClass.name.trim() || !newClass.icon.trim()) return; await supabase.from('nexus_classes').insert([{ name: newClass.name, icon: newClass.icon, is_active: true }]); setNewClass({ icon: "👤", name: "" }); fetchClasses(); };
+  const saveEditingClass = async () => { await supabase.from('nexus_classes').update({ name: editClassForm.name, icon: editClassForm.icon, is_active: editClassForm.is_active }).eq('id', editingClassId); setEditingClassId(null); fetchClasses(); };
+  const deleteClass = async (id: number) => { if (!confirm(`삭제하시겠습니까?`)) return; await supabase.from('nexus_classes').delete().eq('id', id); fetchClasses(); };
 
-  const fetchContents = async () => {
-    const { data } = await supabase.from('nexus_contents').select('*').order('type').order('id');
-    if (data) setContents(data);
+  // 🟢 물물교환 API 로직
+  const fetchTrades = async () => { const { data } = await supabase.from('nexus_trades').select('*').order('id'); if (data) setTrades(data); };
+  const handleAddTrade = async () => {
+    if (!newTrade.reward.trim() || !newTrade.cost.trim()) return alert("보상과 재화 이름은 필수입니다.");
+    await supabase.from('nexus_trades').insert([newTrade]);
+    setNewTrade({ map: "", npc: "", reward: "", reward_cnt: 1, cost: "", cost_cnt: 1, limit: 10, reset_type: "주간", scope: "캐릭당" });
+    fetchTrades();
   };
-  
-  const handleAddContent = async (type: string, name: string) => {
-    if (!name.trim()) return;
-    const finalName = type === "abyss" ? `어비스 - ${name}` : `레이드 - ${name}`;
-    const shortName = name.substring(0, 2); 
-    await supabase.from('nexus_contents').insert([{ type, name: finalName, short_name: shortName, is_weekend: false, is_active: true }]);
-    if (type === 'abyss') setNewAbyss(""); else setNewRaid("");
-    fetchContents();
-  };
-  
-  const saveEditingContent = async () => {
-    await supabase.from('nexus_contents').update({ name: editForm.name, is_weekend: editForm.is_weekend, is_active: editForm.is_active }).eq('id', editingId);
-    setEditingId(null); fetchContents();
-  };
-  
-  const deleteContent = async (id: number) => {
-    if (!confirm(`삭제하시겠습니까?`)) return;
-    await supabase.from('nexus_contents').delete().eq('id', id); fetchContents();
-  };
-
-  const fetchTasks = async () => {
-    const { data } = await supabase.from('nexus_tasks').select('*').order('type').order('id');
-    if (data) setTasks(data);
-  };
-  
-  // 🟢 type 매개변수 활용 (repeat_daily, repeat_weekly 등)
-  const handleAddTask = async (type: string, name: string, max_count: number = 1) => {
-    if (!name.trim()) return;
-    await supabase.from('nexus_tasks').insert([{ type, name, max_count, is_active: true }]);
-    if (type === 'daily') setNewDaily(""); 
-    else if (type === 'weekly') setNewWeekly(""); 
-    else setNewRepeat({ name: "", max: 1, cycle: "repeat_weekly" });
-    fetchTasks();
-  };
-  
-  const saveEditingTask = async () => {
-    await supabase.from('nexus_tasks').update({ name: editTaskForm.name, max_count: editTaskForm.max_count, is_active: editTaskForm.is_active }).eq('id', editingTaskId);
-    setEditingTaskId(null); fetchTasks();
-  };
-  
-  const deleteTask = async (id: number) => {
-    if (!confirm(`삭제하시겠습니까?`)) return;
-    await supabase.from('nexus_tasks').delete().eq('id', id); fetchTasks();
-  };
-
-  const fetchClasses = async () => {
-    const { data } = await supabase.from('nexus_classes').select('*').order('id');
-    if (data) setClasses(data);
-  };
-  
-  const handleAddClass = async () => {
-    if (!newClass.name.trim() || !newClass.icon.trim()) return;
-    await supabase.from('nexus_classes').insert([{ name: newClass.name, icon: newClass.icon, is_active: true }]);
-    setNewClass({ icon: "👤", name: "" }); fetchClasses();
-  };
-  
-  const saveEditingClass = async () => {
-    await supabase.from('nexus_classes').update({ name: editClassForm.name, icon: editClassForm.icon, is_active: editClassForm.is_active }).eq('id', editingClassId);
-    setEditingClassId(null); fetchClasses();
-  };
-  
-  const deleteClass = async (id: number) => {
-    if (!confirm(`삭제하시겠습니까?`)) return;
-    await supabase.from('nexus_classes').delete().eq('id', id); fetchClasses();
-  };
+  const deleteTrade = async (id: number) => { if (!confirm("이 교환 항목을 삭제하시겠습니까?")) return; await supabase.from('nexus_trades').delete().eq('id', id); fetchTrades(); };
 
   if (!mounted || !user) return null;
 
@@ -188,6 +127,7 @@ export default function AdminPage() {
 
         <div className="bg-[#1c1c1e] border border-zinc-800 rounded-xl p-6 shadow-xl min-h-[500px]">
           
+          {/* 배너 탭 */}
           {activeMainTab === "banner" && (
             <div className="space-y-6 max-w-3xl">
               <h2 className="text-xl font-bold text-white mb-4">🚨 긴급 공지 배너 제어</h2>
@@ -210,6 +150,7 @@ export default function AdminPage() {
             </div>
           )}
 
+          {/* 🟢 캐릭터 관리 설정 탭 (완벽 복원) */}
           {activeMainTab === "character" && (
             <div className="space-y-6">
               <div className="flex border-b border-zinc-800 mb-6">
@@ -222,12 +163,9 @@ export default function AdminPage() {
 
               {activeCharTab === "tasks" && (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  
-                  {/* 일일 컨텐츠 */}
+                  {/* 일일 콘텐츠 */}
                   <div className="bg-[#252528] rounded-xl border border-zinc-700 p-4">
-                    <div className="flex justify-between items-center mb-4 border-b border-zinc-700 pb-2">
-                      <h3 className="text-[#e6c788] font-bold">☀️ 일일 컨텐츠</h3>
-                    </div>
+                    <div className="flex justify-between items-center mb-4 border-b border-zinc-700 pb-2"><h3 className="text-[#e6c788] font-bold">☀️ 일일 콘텐츠</h3></div>
                     <div className="space-y-2">
                       {tasks.filter(t => t.type === 'daily').map(task => (
                         <div key={task.id} className="bg-[#1c1c1e] p-2.5 rounded-lg border border-zinc-700 flex justify-between items-center gap-2">
@@ -255,11 +193,9 @@ export default function AdminPage() {
                     </div>
                   </div>
 
-                  {/* 주간 컨텐츠 */}
+                  {/* 주간 콘텐츠 */}
                   <div className="bg-[#252528] rounded-xl border border-zinc-700 p-4">
-                    <div className="flex justify-between items-center mb-4 border-b border-zinc-700 pb-2">
-                      <h3 className="text-blue-400 font-bold">🌙 주간 컨텐츠</h3>
-                    </div>
+                    <div className="flex justify-between items-center mb-4 border-b border-zinc-700 pb-2"><h3 className="text-blue-400 font-bold">🌙 주간 콘텐츠</h3></div>
                     <div className="space-y-2">
                       {tasks.filter(t => t.type === 'weekly').map(task => (
                         <div key={task.id} className="bg-[#1c1c1e] p-2.5 rounded-lg border border-zinc-700 flex justify-between items-center gap-2">
@@ -273,8 +209,8 @@ export default function AdminPage() {
                             <>
                               <span className="text-sm font-bold truncate">{task.name}</span>
                               <div className="flex gap-1 flex-shrink-0">
-                                <button onClick={() => { setEditingTaskId(task.id); setEditTaskForm({...task}); }} className="text-[10px] bg-zinc-800 px-2 py-1 rounded">수정</button>
-                                <button onClick={() => deleteTask(task.id)} className="text-[10px] bg-red-900/40 text-red-400 px-2 py-1 rounded">삭제</button>
+                                <button onClick={() => { setEditingTaskId(task.id); setEditTaskForm({...task}); }} className="text-[10px] bg-zinc-800 hover:bg-zinc-700 px-2 py-1 rounded">수정</button>
+                                <button onClick={() => deleteTask(task.id)} className="text-[10px] bg-red-900/40 text-red-400 hover:bg-red-800/50 px-2 py-1 rounded">삭제</button>
                               </div>
                             </>
                           )}
@@ -287,14 +223,11 @@ export default function AdminPage() {
                     </div>
                   </div>
 
-                  {/* 🟢 반복 컨텐츠 (주기 설정 콤보박스 적용) */}
+                  {/* 반복 콘텐츠 */}
                   <div className="bg-[#252528] rounded-xl border border-zinc-700 p-4">
-                    <div className="flex justify-between items-center mb-4 border-b border-zinc-700 pb-2">
-                      <h3 className="text-purple-400 font-bold">🔄 반복 컨텐츠</h3>
-                    </div>
+                    <div className="flex justify-between items-center mb-4 border-b border-zinc-700 pb-2"><h3 className="text-purple-400 font-bold">🔄 반복 콘텐츠</h3></div>
                     <div className="space-y-2">
                       {tasks.filter(t => t.type.startsWith('repeat')).map(task => {
-                        // type에 따른 뱃지 텍스트
                         const badgeStr = task.type === 'repeat_daily' ? '일간' : task.type === 'repeat_weekend' ? '주말' : '주간';
                         return (
                           <div key={task.id} className="bg-[#1c1c1e] p-2.5 rounded-lg border border-zinc-700 flex justify-between items-center gap-2">
@@ -343,11 +276,9 @@ export default function AdminPage() {
 
               {activeCharTab === "raids" && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl">
-                  {/* 어비스/레이드 렌더링 코드 유지 (변경사항 없음) */}
+                  {/* 어비스 관리 */}
                   <div className="bg-[#252528] rounded-xl border border-zinc-700 p-4">
-                    <div className="flex justify-between items-center mb-4 border-b border-zinc-700 pb-2">
-                      <h3 className="text-emerald-400 font-bold text-lg">🌌 어비스 관리</h3>
-                    </div>
+                    <div className="flex justify-between items-center mb-4 border-b border-zinc-700 pb-2"><h3 className="text-emerald-400 font-bold text-lg">🌌 어비스 관리</h3></div>
                     <div className="space-y-2">
                       {contents.filter(c => c.type === 'abyss').map(item => (
                         <div key={item.id} className="bg-[#1c1c1e] p-3 rounded-lg border border-zinc-700 flex justify-between items-center gap-2">
@@ -379,10 +310,9 @@ export default function AdminPage() {
                     </div>
                   </div>
 
+                  {/* 레이드 관리 */}
                   <div className="bg-[#252528] rounded-xl border border-zinc-700 p-4">
-                    <div className="flex justify-between items-center mb-4 border-b border-zinc-700 pb-2">
-                      <h3 className="text-indigo-400 font-bold text-lg">🐉 레이드 관리</h3>
-                    </div>
+                    <div className="flex justify-between items-center mb-4 border-b border-zinc-700 pb-2"><h3 className="text-indigo-400 font-bold text-lg">🐉 레이드 관리</h3></div>
                     <div className="space-y-2">
                       {contents.filter(c => c.type === 'raid').map(item => (
                         <div key={item.id} className="bg-[#1c1c1e] p-3 rounded-lg border border-zinc-700 flex justify-between items-center gap-2">
@@ -416,7 +346,6 @@ export default function AdminPage() {
                 </div>
               )}
 
-              {/* 클래스 유지 */}
               {activeCharTab === "classes" && (
                 <div className="bg-[#252528] rounded-xl border border-zinc-700 p-6">
                   <h3 className="text-lg font-bold text-white mb-4">🪖 클래스 레벨 관리 목록 설정</h3>
@@ -446,7 +375,6 @@ export default function AdminPage() {
                         )}
                       </div>
                     ))}
-                    
                     <div className="flex flex-col gap-2 p-2 rounded-lg bg-yellow-900/10 border border-yellow-700/50 border-dashed justify-center">
                       <div className="flex gap-1">
                         <input type="text" placeholder="이모지" value={newClass.icon} onChange={e => setNewClass({...newClass, icon: e.target.value})} className="w-12 bg-[#121212] border border-yellow-700/50 rounded p-1 text-center text-sm outline-none" />
@@ -460,11 +388,97 @@ export default function AdminPage() {
             </div>
           )}
 
+          {/* 🟢 구매/교환 탭 로직 */}
           {activeMainTab === "trade" && (
             <div className="space-y-6">
-              <div className="flex flex-col items-center justify-center h-64 text-zinc-500 space-y-3 bg-[#252528] rounded-xl border border-zinc-700">
-                <span className="text-4xl">🛠️</span>
-                <p className="text-sm font-medium">물물교환 및 상점 기능은 현재 백엔드 연동 작업 중입니다.</p>
+              <div className="flex justify-between items-end border-b border-zinc-800 pb-4">
+                <div>
+                  <h2 className="text-xl font-bold text-[#e6c788]">⚖️ 통합 물물교환 카탈로그 설정</h2>
+                  <p className="text-sm text-zinc-400 mt-1">캐릭터별로 추적할 NPC 교환 및 상점 아이템을 등록합니다.</p>
+                </div>
+              </div>
+
+              {/* 입력 폼 */}
+              <div className="bg-[#252528] rounded-xl border border-zinc-700 p-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-9 gap-2">
+                  <input type="text" placeholder="맵 (예: 두갈드아일)" value={newTrade.map} onChange={e => setNewTrade({...newTrade, map: e.target.value})} className="bg-[#121212] border border-zinc-600 rounded p-2 text-xs text-white" />
+                  <input type="text" placeholder="NPC (예: 앨빈)" value={newTrade.npc} onChange={e => setNewTrade({...newTrade, npc: e.target.value})} className="bg-[#121212] border border-zinc-600 rounded p-2 text-xs text-white" />
+                  <input type="text" placeholder="보상 (예: 상급 목재)" value={newTrade.reward} onChange={e => setNewTrade({...newTrade, reward: e.target.value})} className="bg-[#121212] border border-zinc-600 rounded p-2 text-xs text-white lg:col-span-2" />
+                  <div className="flex items-center bg-[#121212] border border-zinc-600 rounded px-2">
+                    <span className="text-[10px] text-zinc-500 mr-1">수량</span>
+                    <input type="number" min="1" value={newTrade.reward_cnt} onChange={e => setNewTrade({...newTrade, reward_cnt: Number(e.target.value)})} className="bg-transparent w-full text-xs text-white outline-none" />
+                  </div>
+                  <input type="text" placeholder="소모 재화 (예: 야채볶음)" value={newTrade.cost} onChange={e => setNewTrade({...newTrade, cost: e.target.value})} className="bg-[#121212] border border-zinc-600 rounded p-2 text-xs text-white lg:col-span-2" />
+                  <div className="flex items-center bg-[#121212] border border-zinc-600 rounded px-2">
+                    <span className="text-[10px] text-zinc-500 mr-1">소모</span>
+                    <input type="number" min="1" value={newTrade.cost_cnt} onChange={e => setNewTrade({...newTrade, cost_cnt: Number(e.target.value)})} className="bg-transparent w-full text-xs text-white outline-none" />
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
+                  <div className="flex items-center bg-[#121212] border border-zinc-600 rounded px-2">
+                    <span className="text-[10px] text-zinc-500 mr-1 w-12">상한(Max)</span>
+                    <input type="number" min="1" value={newTrade.limit} onChange={e => setNewTrade({...newTrade, limit: Number(e.target.value)})} className="bg-transparent w-full p-2 text-xs text-white outline-none" />
+                  </div>
+                  <select value={newTrade.reset_type} onChange={e => setNewTrade({...newTrade, reset_type: e.target.value})} className="bg-[#121212] border border-zinc-600 rounded p-2 text-xs text-white outline-none">
+                    <option value="일간">일간 초기화</option>
+                    <option value="주간">주간 초기화</option>
+                  </select>
+                  <select value={newTrade.scope} onChange={e => setNewTrade({...newTrade, scope: e.target.value})} className="bg-[#121212] border border-zinc-600 rounded p-2 text-xs text-white outline-none">
+                    <option value="캐릭당">캐릭당</option>
+                    <option value="계정당">계정당</option>
+                  </select>
+                  <button onClick={handleAddTrade} className="bg-yellow-600 hover:bg-yellow-500 text-white font-bold text-sm rounded transition p-2">카탈로그에 추가</button>
+                </div>
+              </div>
+
+              {/* 목록 테이블 */}
+              <div className="bg-[#1c1c1e] border border-zinc-700 rounded-lg overflow-hidden overflow-x-auto custom-scrollbar">
+                <table className="w-full text-left text-sm whitespace-nowrap">
+                  <thead className="bg-[#252528] text-zinc-400 border-b border-zinc-700">
+                    <tr>
+                      <th className="p-3 font-bold text-xs">맵 / NPC</th>
+                      <th className="p-3 font-bold text-xs">획득 보상</th>
+                      <th className="p-3 font-bold text-xs">소모 재화</th>
+                      <th className="p-3 font-bold text-xs text-center">상한</th>
+                      <th className="p-3 font-bold text-xs text-center">조건</th>
+                      <th className="p-3 font-bold text-xs text-center">관리</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-800">
+                    {trades.map((trade) => (
+                      <tr key={trade.id} className="hover:bg-[#202023] transition">
+                        <td className="p-3">
+                          <div className="font-bold text-zinc-200">{trade.map || "-"}</div>
+                          <div className="text-[10px] text-zinc-500">{trade.npc || "-"}</div>
+                        </td>
+                        <td className="p-3">
+                          <div className="font-bold text-emerald-400">{trade.reward}</div>
+                          <div className="text-[10px] text-zinc-500">{trade.reward_cnt}개 획득</div>
+                        </td>
+                        <td className="p-3">
+                          <div className="font-bold text-amber-400">{trade.cost}</div>
+                          <div className="text-[10px] text-zinc-500">{trade.cost_cnt}개 필요</div>
+                        </td>
+                        <td className="p-3 text-center font-black text-purple-400">{trade.limit}회</td>
+                        <td className="p-3 text-center">
+                          <div className="flex flex-col gap-1 items-center">
+                            <span className={`text-[9px] px-1.5 py-0.5 rounded ${trade.reset_type === '일간' ? 'bg-amber-900/30 text-amber-400' : 'bg-blue-900/30 text-blue-400'}`}>{trade.reset_type}</span>
+                            <span className={`text-[9px] px-1.5 py-0.5 rounded ${trade.scope === '캐릭당' ? 'bg-zinc-800 text-zinc-300' : 'bg-rose-900/30 text-rose-400'}`}>{trade.scope}</span>
+                          </div>
+                        </td>
+                        <td className="p-3 text-center">
+                          <button onClick={() => deleteTrade(trade.id)} className="text-[10px] bg-red-900/40 text-red-400 hover:bg-red-800 hover:text-white px-2 py-1 rounded transition">삭제</button>
+                        </td>
+                      </tr>
+                    ))}
+                    {trades.length === 0 && (
+                      <tr>
+                        <td colSpan={6} className="p-8 text-center text-zinc-500">등록된 카탈로그가 없습니다.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
           )}
