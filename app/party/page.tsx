@@ -41,7 +41,7 @@ function CustomTimePicker({ value, onChange }: { value: string, onChange: (val: 
 }
 
 // =====================================================================
-// 🎯 기초 데이터베이스 세팅
+// 🎯 기초 데이터베이스 세팅 (난이도 & 던전 완벽 분리)
 // =====================================================================
 const ROLE_GROUPS: Record<string, string[]> = {
   "탱커": ["빙결술사", "전사", "기사"],
@@ -60,17 +60,22 @@ const ROLE_COLORS: Record<string, string> = {
 const DIFFICULTY_COLORS: Record<string, string> = {
   "입문": "text-purple-400 bg-purple-400/10 border-purple-500/50",
   "어려움": "text-yellow-400 bg-yellow-400/10 border-yellow-500/50",
-  "매우어려움": "text-red-500 bg-red-500/10 border-red-500/50",
-  "지옥1": "text-rose-700 bg-rose-900/20 border-rose-800/50",
-  "지옥2": "text-rose-700 bg-rose-900/20 border-rose-800/50"
+  "매우 어려움": "text-red-500 bg-red-500/10 border-red-500/50",
+  "지옥 1": "text-rose-400 bg-rose-900/40 border-rose-600/50"
 };
 
+// 🟢 던전별 맞춤 난이도 세팅
 const CONTENT_DB = [
-  { id: "abyss3", name: "어비스 3종", type: "어비스", size: 4, diffs: ["입문", "어려움", "매우어려움", "지옥1", "지옥2"], subs: [] },
-  { id: "raid_cab", name: "레이드 - 카브락", type: "레이드", size: 8, diffs: ["입문", "어려움", "매우어려움"], subs: [] },
+  { id: "abyss_all", name: "어비스 3종 (통합)", type: "어비스", size: 4, diffs: ["입문", "어려움", "매우 어려움", "지옥 1"] },
+  { id: "abyss_1", name: "어비스 - 허상의 정박지", type: "어비스", size: 4, diffs: ["입문", "어려움", "매우 어려움", "지옥 1"] },
+  { id: "abyss_2", name: "어비스 - 광기의 동굴", type: "어비스", size: 4, diffs: ["입문", "어려움", "매우 어려움", "지옥 1"] },
+  { id: "abyss_3", name: "어비스 - 흩어진 물길", type: "어비스", size: 4, diffs: ["입문", "어려움", "매우 어려움", "지옥 1"] },
+  { id: "raid_cav", name: "레이드 - 카브락", type: "레이드", size: 8, diffs: ["입문"] },
+  { id: "raid_white", name: "레이드 - 화이트 서큐버스", type: "레이드", size: 8, diffs: ["어려움", "매우 어려움"] },
+  { id: "raid_eirel", name: "레이드 - 에이렐", type: "레이드", size: 8, diffs: ["어려움"] }
 ];
 
-const JOB_ICONS: Record<string, string> = { 전사: "⚔️", 마법사: "🪄", 화염술사: "🔥", 빙결술사: "❄️", 힐러: "💖", 사제: "🕊️", 궁수: "🏹", 기사: "🛡️", 대검전사: "🗡️", 도적: "🥷" };
+const JOB_ICONS: Record<string, string> = { 전사: "⚔️", 마법사: "🪄", 화염술사: "🔥", 빙결술사: "❄️", 힐러: "💖", 사제: "🕊️", 궁수: "🏹", 기사: "🛡️", 대검전사: "🗡️", 도적: "🥷", 댄서: "💃", 검술사: "🤺", 격투가: "🥊", 듀얼블레이드: "⚔️", 음유시인: "🎵", 수도사: "🙏", 전격술사: "⚡", 장궁병: "🎯", 석궁사수: "🏹", 악사: "🎸", 암흑술사: "🌑" };
 const MY_ACCOUNT_CHARACTERS = ["한설", "영겁", "순월", "쌍월", "먀치", "탄월"];
 
 export default function PartyPage() {
@@ -83,6 +88,10 @@ export default function PartyPage() {
   const [selectedChar, setSelectedChar] = useState(MY_ACCOUNT_CHARACTERS[0]);
   const [selectedContent, setSelectedContent] = useState(CONTENT_DB[0]);
   const [selectedDiff, setSelectedDiff] = useState(CONTENT_DB[0].diffs[0]);
+  
+  // 🟢 파티 목적 분리 상태 (1회 클리어 vs 뺑이)
+  const [partyType, setPartyType] = useState<"1회 클리어" | "연속 뺑이">("1회 클리어");
+  
   const [timeStart, setTimeStart] = useState("18:00");
   const [timeEnd, setTimeEnd] = useState("20:00");
   
@@ -95,7 +104,6 @@ export default function PartyPage() {
 
   const [alertStatus, setAlertStatus] = useState<"hidden" | "popup" | "balloon">("hidden");
 
-  // 🟢 하이브리드 동기화 로딩 상태
   const [isSyncing, setIsSyncing] = useState(false);
 
   const fetchParties = async () => {
@@ -116,6 +124,13 @@ export default function PartyPage() {
     else setState([...state, role]);
   };
 
+  // 던전 변경 시 해당 던전의 첫 번째 난이도로 자동 리셋
+  const handleContentChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const content = CONTENT_DB.find(c => c.id === e.target.value) || CONTENT_DB[0];
+    setSelectedContent(content);
+    setSelectedDiff(content.diffs[0]);
+  };
+
   const handleReservation = async () => {
     if (matchingMode === "조합우선" && myRoles.length === 0) {
       return alert("조합 우선 매칭 시, 수행 가능한 포지션을 최소 1개 이상 선택해주세요!");
@@ -125,6 +140,7 @@ export default function PartyPage() {
     const newParty = {
       content_name: selectedContent.name,
       difficulty: selectedDiff,
+      party_type: partyType, // 🟢 뺑이 파티 데이터 추가
       time_start: timeStart,
       time_end: timeEnd,
       max_members: selectedContent.size,
@@ -138,6 +154,8 @@ export default function PartyPage() {
     if (!error) {
       alert(`[${selectedChar}] 파티 예약이 등록되었습니다!`);
       fetchParties();
+    } else {
+      alert("파티 등록 실패. parties 테이블에 'party_type' 컬럼이 있는지 확인해주세요.");
     }
   };
 
@@ -151,22 +169,16 @@ export default function PartyPage() {
     }
   };
 
-  // 🟢 하이브리드 숙제 동기화 (넥슨 API 가상 연동) 로직
   const handleSyncNexonAPI = async () => {
     setIsSyncing(true);
-    
-    // API 통신을 흉내내는 1.5초 딜레이
     setTimeout(async () => {
-      // activity_logs DB에 클리어 기록 저장
       const { error } = await supabase.from('activity_logs').insert([{
         character_name: selectedChar,
         content_name: selectedContent.name,
         difficulty: selectedDiff,
         action: "클리어 (API 자동 동기화 완료)"
       }]);
-
       setIsSyncing(false);
-
       if (!error) {
         alert(`[API 동기화 완료] 📡\n\n'${selectedChar}' 캐릭터의 주간 숙제(${selectedContent.name}) 클리어 내역이 성역 넥서스에 완벽하게 동기화되었습니다! ✅\n(로그 DB 저장 완료)`);
       } else {
@@ -193,27 +205,20 @@ export default function PartyPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* 🟦 좌측: 예약 폼 */}
-          <div className="lg:col-span-4 bg-[#252528] rounded-2xl border border-zinc-700/80 p-6 shadow-xl h-fit space-y-6">
+          <div className="lg:col-span-4 bg-[#252528] rounded-2xl border border-zinc-700/80 p-6 shadow-xl h-fit space-y-5">
             <div className="flex justify-between items-center">
               <h2 className="text-lg font-bold text-[#e6c788] flex items-center gap-2">📅 파티 생성 및 예약</h2>
             </div>
             
-            {/* 🟢 캐릭터 선택 및 API 동기화 버튼 (하이브리드) */}
             <div className="bg-[#1c1c1e] border border-zinc-700 rounded-xl p-4">
               <div className="flex justify-between items-center mb-3">
                 <label className="text-[11px] font-bold text-zinc-500">참여할 캐릭터 선택</label>
-                
-                {/* 🔄 즉시 갱신 버튼 */}
                 <button 
                   onClick={handleSyncNexonAPI} 
                   disabled={isSyncing}
                   className={`text-[10px] font-bold px-2.5 py-1 rounded border transition flex items-center gap-1 ${isSyncing ? 'bg-zinc-800 text-zinc-500 border-zinc-700 cursor-not-allowed' : 'bg-emerald-900/30 text-emerald-400 border-emerald-800/50 hover:bg-emerald-900/50'}`}
                 >
-                  {isSyncing ? (
-                    <span className="animate-spin">⏳</span>
-                  ) : (
-                    <span>🔄</span>
-                  )}
+                  {isSyncing ? <span className="animate-spin">⏳</span> : <span>🔄</span>}
                   {isSyncing ? 'API 통신 중...' : '내 숙제 즉시 갱신'}
                 </button>
               </div>
@@ -225,15 +230,49 @@ export default function PartyPage() {
               </div>
             </div>
 
-            <div className="space-y-4">
-              <div>
-                <label className="text-[11px] font-bold text-zinc-500 mb-2 block">목표 컨텐츠 ({selectedContent.size}인)</label>
-                <select value={selectedContent.id} onChange={e => setSelectedContent(CONTENT_DB.find(c => c.id === e.target.value) || CONTENT_DB[0])} className="w-full bg-[#121212] border border-zinc-700 rounded p-2.5 text-sm text-white focus:border-[#e6c788] outline-none">
-                  {CONTENT_DB.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
+            {/* 🟢 파티 목적 분리 (단판 vs 뺑이) */}
+            <div className="pt-2">
+              <label className="text-[11px] font-bold text-zinc-500 mb-2 block">파티 목적</label>
+              <div className="flex bg-[#121212] p-1.5 rounded-lg border border-zinc-700">
+                <button onClick={() => setPartyType("1회 클리어")} className={`flex-1 py-2 rounded text-xs font-bold transition ${partyType === "1회 클리어" ? 'bg-zinc-700 text-white shadow' : 'text-zinc-500 hover:text-zinc-300'}`}>
+                  🎯 1회 클리어
+                </button>
+                <button onClick={() => setPartyType("연속 뺑이")} className={`flex-1 py-2 rounded text-xs font-bold transition ${partyType === "연속 뺑이" ? 'bg-rose-900/30 text-rose-400 border border-rose-800/50 shadow' : 'text-zinc-500 hover:text-zinc-300'}`}>
+                  🔄 연속 뺑이 (시간제)
+                </button>
               </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="col-span-2">
+                  <label className="text-[11px] font-bold text-zinc-500 mb-2 block">목표 컨텐츠 ({selectedContent.size}인)</label>
+                  <select value={selectedContent.id} onChange={handleContentChange} className="w-full bg-[#121212] border border-zinc-700 rounded p-2.5 text-sm text-white focus:border-[#e6c788] outline-none">
+                    {CONTENT_DB.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
+                
+                {/* 🟢 던전에 따라 난이도가 동적으로 변경됨 */}
+                <div className="col-span-2 bg-[#121212] p-3 rounded-lg border border-zinc-700/50">
+                  <label className="text-[11px] font-bold text-zinc-500 mb-2 block">선택 가능한 난이도</label>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedContent.diffs.map(diff => (
+                      <button 
+                        key={diff} 
+                        onClick={() => setSelectedDiff(diff)}
+                        className={`text-xs font-bold px-3 py-1.5 rounded border transition-all ${selectedDiff === diff ? DIFFICULTY_COLORS[diff] + ' shadow-[0_0_10px_rgba(255,255,255,0.1)] scale-105' : 'bg-[#1c1c1e] text-zinc-500 border-zinc-700 hover:border-zinc-500'}`}
+                      >
+                        {diff}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
               <div>
-                <label className="text-[11px] font-bold text-zinc-500 mb-2 block">접속 가능 시간 (24시간제)</label>
+                <label className="text-[11px] font-bold text-zinc-500 mb-2 block">
+                  {partyType === "연속 뺑이" ? "뺑이 진행 시간 (24시간제)" : "예상 소요 시간 (24시간제)"}
+                </label>
                 <div className="flex items-center gap-2">
                   <CustomTimePicker value={timeStart} onChange={setTimeStart} />
                   <span className="text-zinc-500 font-bold">~</span>
@@ -323,20 +362,28 @@ export default function PartyPage() {
                     const isMyParty = party.members[0] && MY_ACCOUNT_CHARACTERS.includes(party.members[0].name);
 
                     return (
-                      <div key={party.id} className="bg-[#1c1c1e] border border-zinc-700 hover:border-emerald-500/50 rounded-xl p-4 transition group flex flex-col gap-3 relative overflow-hidden">
+                      <div key={party.id} className={`bg-[#1c1c1e] border ${party.party_type === '연속 뺑이' ? 'border-rose-900/40 hover:border-rose-500/50' : 'border-zinc-700 hover:border-emerald-500/50'} rounded-xl p-4 transition group flex flex-col gap-3 relative overflow-hidden`}>
                         
                         <div className="flex justify-between items-start">
                           <div>
-                            <div className="flex items-center gap-2 mb-1.5">
+                            <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                              {/* 🟢 뺑이 파티 뱃지 노출 */}
+                              {party.party_type === "연속 뺑이" ? (
+                                <span className="text-[9px] font-black bg-rose-900/80 text-white px-2 py-0.5 rounded border border-rose-500/50 shadow-[0_0_10px_rgba(225,29,72,0.3)] animate-pulse">🔄 뺑이팟</span>
+                              ) : (
+                                <span className="text-[9px] font-black bg-zinc-700 text-zinc-300 px-2 py-0.5 rounded border border-zinc-500">🎯 1회팟</span>
+                              )}
+                              
                               <span className="text-white font-black text-lg">{party.content_name}</span>
                               <span className={`text-[10px] px-1.5 py-0.5 border rounded ${DIFFICULTY_COLORS[party.difficulty] || "text-zinc-400 bg-zinc-800 border-zinc-600"}`}>{party.difficulty}</span>
+                              
                               {party.matching_mode === "조합우선" ? (
                                 <span className="text-[10px] font-bold bg-indigo-900/40 text-indigo-300 px-2 py-0.5 rounded border border-indigo-700/50">🛡️ 조합우선</span>
                               ) : (
                                 <span className="text-[10px] font-bold bg-zinc-800 text-zinc-300 px-2 py-0.5 rounded border border-zinc-700">⚡ 모집우선</span>
                               )}
                             </div>
-                            <p className="text-xs text-zinc-400 font-medium">⏰ 시간: <span className="text-[#e6c788]">{party.time_start} ~ {party.time_end}</span></p>
+                            <p className="text-xs text-zinc-400 font-medium">⏰ 진행 시간: <span className="text-[#e6c788]">{party.time_start} ~ {party.time_end}</span></p>
                           </div>
                           
                           <div className="flex flex-col items-end gap-2">
@@ -404,7 +451,7 @@ export default function PartyPage() {
             
             <div className="p-5 bg-[#252528] space-y-3">
               <div className="bg-[#121212] p-3 rounded-lg border border-zinc-700 flex justify-between items-center">
-                <span className="text-sm font-bold text-white">어비스 3종 (매우어려움)</span>
+                <span className="text-sm font-bold text-white">어비스 3종 (매우 어려움)</span>
                 <span className="text-xs text-[#e6c788]">18:00 ~ 20:00</span>
               </div>
               <div className="flex gap-3 pt-2">

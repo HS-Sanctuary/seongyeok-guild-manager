@@ -23,7 +23,7 @@ export default function CharacterPage() {
   const [profile, setProfile] = useState(defaultProfile);
   const [levels, setLevels] = useState<Record<string, number>>({});
   
-  // 🟢 이름(String)이 아닌 고유 ID(Number) 저장 방식으로 전면 개편
+  // 상태 관리 (ID 배열로 관리)
   const [dailyChecks, setDailyChecks] = useState<number[]>([]);
   const [weeklyChecks, setWeeklyChecks] = useState<number[]>([]);
   const [repeatChecks, setRepeatChecks] = useState<Record<number, boolean[]>>({});
@@ -81,7 +81,6 @@ export default function CharacterPage() {
         });
         setLevels(data.levels || {});
         
-        // 🟢 ID 기반 로드 (숫자 배열로 안전하게 파싱)
         const dChecks = Array.isArray(data.daily_checks) ? data.daily_checks : [];
         setDailyChecks(dChecks.map(Number).filter(n => !isNaN(n)));
         
@@ -94,7 +93,8 @@ export default function CharacterPage() {
         }
         
         const rChecks = Array.isArray(data.raid_checks) ? data.raid_checks.map(Number).filter(n => !isNaN(n)) : [];
-        // 컨텐츠 리스트와 대조해서 어비스/레이드 ID 분리
+        
+        // 🟢 여기서 어비스와 레이드의 ID를 정확하게 쪼개서 분류합니다.
         setAbyssChecks(rChecks.filter(id => dbContents.find(c => c.id === id)?.type === 'abyss'));
         setRaidChecks(rChecks.filter(id => dbContents.find(c => c.id === id)?.type === 'raid'));
         
@@ -156,6 +156,7 @@ export default function CharacterPage() {
     });
   };
 
+  // 🟢 전체 선택 / 해제 완벽 작동 매핑
   const handleToggleAll = (type: string, isCheckAll: boolean) => {
     if (type === 'daily') {
       const normals = visibleDailyList.filter(t => !t.type.startsWith('repeat')).map(t => t.id);
@@ -171,8 +172,10 @@ export default function CharacterPage() {
     if (type === 'raid') setRaidChecks(isCheckAll ? raidList.map(t => t.id) : []);
   };
 
-  const renderTask = (item: any, isDaily: boolean) => {
-    if (item.type.startsWith('repeat')) {
+  // 🟢 핵심! 컴포넌트 분리 렌더링 로직 (버그의 주범 해결)
+  const renderTask = (item: any, type: 'daily' | 'weekly' | 'abyss' | 'raid') => {
+    // 반복형 숙제 로직
+    if (item.type?.startsWith('repeat')) {
       const currentCount = (repeatChecks[item.id] || []).filter(Boolean).length;
       const isMax = currentCount === item.max_count;
       const badgeText = item.type === 'repeat_daily' ? '일간' : item.type === 'repeat_weekend' ? '주말' : '주간';
@@ -192,22 +195,40 @@ export default function CharacterPage() {
           </div>
         </div>
       );
-    } else {
-      const checks = isDaily ? dailyChecks : weeklyChecks;
-      const setChecks = isDaily ? setDailyChecks : setWeeklyChecks;
-      const isChecked = checks.includes(item.id);
-      const colorTheme = isDaily ? "amber" : "blue";
-      
-      return (
-        <div key={item.id} onClick={() => setChecks(isChecked ? checks.filter(i => i !== item.id) : [...checks, item.id])}
-             className={`flex items-center justify-between p-3 rounded-lg cursor-pointer border transition-all duration-300 ${isChecked ? `bg-${colorTheme}-900/20 border-${colorTheme}-500/50` : "bg-[#1c1c1e] border-zinc-800 hover:border-zinc-600"}`}>
-          <span className={`text-sm font-medium transition-colors ${isChecked ? `text-${colorTheme}-400` : "text-zinc-300"}`}>{item.name}</span>
-          <div className={`w-5 h-5 rounded flex items-center justify-center transition-all ${isChecked ? `bg-${colorTheme}-500 text-white scale-110` : "bg-zinc-800 border border-zinc-600"}`}>
-            {isChecked && <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
-          </div>
+    } 
+    
+    // 일반 체크박스 로직 (타입별로 참조하는 State를 4개로 확실히 나눔)
+    let checks: number[] = [];
+    let setChecks: any;
+    
+    if (type === 'daily') { checks = dailyChecks; setChecks = setDailyChecks; }
+    else if (type === 'weekly') { checks = weeklyChecks; setChecks = setWeeklyChecks; }
+    else if (type === 'abyss') { checks = abyssChecks; setChecks = setAbyssChecks; }
+    else if (type === 'raid') { checks = raidChecks; setChecks = setRaidChecks; }
+
+    const isChecked = checks.includes(item.id);
+    
+    // Tailwind 색상 적용 (컴파일러 누락 방지용 하드코딩)
+    const getColorTheme = () => {
+      if (!isChecked) return { wrapper: "bg-[#1c1c1e] border-zinc-800 hover:border-zinc-600", text: "text-zinc-300", box: "bg-zinc-800 border-zinc-600" };
+      if (type === 'daily') return { wrapper: "bg-amber-900/20 border-amber-500/50", text: "text-amber-400", box: "bg-amber-500 border-amber-500 text-white scale-110" };
+      if (type === 'weekly') return { wrapper: "bg-blue-900/20 border-blue-500/50", text: "text-blue-400", box: "bg-blue-500 border-blue-500 text-white scale-110" };
+      if (type === 'abyss') return { wrapper: "bg-emerald-900/20 border-emerald-500/50", text: "text-emerald-400", box: "bg-emerald-500 border-emerald-500 text-white scale-110" };
+      if (type === 'raid') return { wrapper: "bg-indigo-900/20 border-indigo-500/50", text: "text-indigo-400", box: "bg-indigo-500 border-indigo-500 text-white scale-110" };
+      return { wrapper: "", text: "", box: "" };
+    };
+
+    const theme = getColorTheme();
+
+    return (
+      <div key={item.id} onClick={() => setChecks(isChecked ? checks.filter(i => i !== item.id) : [...checks, item.id])}
+           className={`flex items-center justify-between p-3 rounded-lg cursor-pointer border transition-all duration-300 ${theme.wrapper}`}>
+        <span className={`text-sm font-medium transition-colors ${theme.text}`}>{item.name}</span>
+        <div className={`w-5 h-5 rounded flex items-center justify-center transition-all ${theme.box}`}>
+          {isChecked && <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
         </div>
-      );
-    }
+      </div>
+    );
   };
 
   if (!mounted || !user) return null;
@@ -307,22 +328,23 @@ export default function CharacterPage() {
           </div>
         )}
 
+        {/* 🟢 수정 영역: renderTask 호출 시 정확한 타입(type) 지정! */}
         <div className="grid grid-cols-1 xl:grid-cols-4 lg:grid-cols-2 gap-6">
           <div className="bg-[#252528] rounded-xl border border-zinc-800 p-5 shadow-md flex flex-col">
             <div className="flex justify-between items-center mb-4 border-b border-zinc-700 pb-3"><h3 className="font-bold text-amber-500 text-base">☀️ 일일 컨텐츠</h3><div className="flex items-center gap-2"><button onClick={() => handleToggleAll('daily', true)} className="text-[10px] text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 px-2 py-1 rounded transition">✓ 전체</button><button onClick={() => handleToggleAll('daily', false)} className="text-[10px] text-zinc-500 hover:text-red-400 bg-zinc-800/50 hover:bg-zinc-800 px-2 py-1 rounded transition">✗ 해제</button></div></div>
-            <div className="space-y-2 flex-1 overflow-y-auto custom-scrollbar pr-2">{visibleDailyList.map(item => renderTask(item, true))}</div>
+            <div className="space-y-2 flex-1 overflow-y-auto custom-scrollbar pr-2">{visibleDailyList.map(item => renderTask(item, 'daily'))}</div>
           </div>
           <div className="bg-[#252528] rounded-xl border border-zinc-800 p-5 shadow-md flex flex-col">
             <div className="flex justify-between items-center mb-4 border-b border-zinc-700 pb-3"><h3 className="font-bold text-blue-400 text-base">🌙 주간 컨텐츠</h3><div className="flex items-center gap-2"><button onClick={() => handleToggleAll('weekly', true)} className="text-[10px] text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 px-2 py-1 rounded transition">✓ 전체</button><button onClick={() => handleToggleAll('weekly', false)} className="text-[10px] text-zinc-500 hover:text-red-400 bg-zinc-800/50 hover:bg-zinc-800 px-2 py-1 rounded transition">✗ 해제</button></div></div>
-            <div className="space-y-2 flex-1 overflow-y-auto custom-scrollbar pr-2">{visibleWeeklyList.map(item => renderTask(item, false))}</div>
+            <div className="space-y-2 flex-1 overflow-y-auto custom-scrollbar pr-2">{visibleWeeklyList.map(item => renderTask(item, 'weekly'))}</div>
           </div>
           <div className="bg-[#252528] rounded-xl border border-zinc-800 p-5 shadow-md flex flex-col">
             <div className="flex justify-between items-center mb-4 border-b border-zinc-700 pb-3"><h3 className="font-bold text-emerald-400 text-base">🌌 어비스 관리</h3><div className="flex items-center gap-2"><button onClick={() => handleToggleAll('abyss', true)} className="text-[10px] text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 px-2 py-1 rounded transition">✓ 전체</button><button onClick={() => handleToggleAll('abyss', false)} className="text-[10px] text-zinc-500 hover:text-red-400 bg-zinc-800/50 hover:bg-zinc-800 px-2 py-1 rounded transition">✗ 해제</button></div></div>
-            <div className="space-y-2 flex-1 overflow-y-auto custom-scrollbar pr-2">{abyssList.map(item => renderTask(item, true))}</div>
+            <div className="space-y-2 flex-1 overflow-y-auto custom-scrollbar pr-2">{abyssList.map(item => renderTask(item, 'abyss'))}</div>
           </div>
           <div className="bg-[#252528] rounded-xl border border-zinc-800 p-5 shadow-md flex flex-col">
             <div className="flex justify-between items-center mb-4 border-b border-zinc-700 pb-3"><h3 className="font-bold text-indigo-400 text-base">🐉 레이드 관리</h3><div className="flex items-center gap-2"><button onClick={() => handleToggleAll('raid', true)} className="text-[10px] text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 px-2 py-1 rounded transition">✓ 전체</button><button onClick={() => handleToggleAll('raid', false)} className="text-[10px] text-zinc-500 hover:text-red-400 bg-zinc-800/50 hover:bg-zinc-800 px-2 py-1 rounded transition">✗ 해제</button></div></div>
-            <div className="space-y-2 flex-1 overflow-y-auto custom-scrollbar pr-2">{raidList.map(item => renderTask(item, true))}</div>
+            <div className="space-y-2 flex-1 overflow-y-auto custom-scrollbar pr-2">{raidList.map(item => renderTask(item, 'raid'))}</div>
           </div>
         </div>
 
