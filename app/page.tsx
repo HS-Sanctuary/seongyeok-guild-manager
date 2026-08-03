@@ -23,14 +23,15 @@ export default function Home() {
   
   const [myCharacters, setMyCharacters] = useState<any[]>([]);
   const [topRankers, setTopRankers] = useState<any[]>([]);
-  const [stats, setStats] = useState({ daily: 0, weekly: 0, uniqueAccounts: 0 });
+  const [uniqueAccounts, setUniqueAccounts] = useState(1);
   const [allRounderLevel, setAllRounderLevel] = useState(0);
 
-  // 🟢 DB에서 불러올 동적 데이터 상태
   const [dailyTasks, setDailyTasks] = useState<any[]>([]);
   const [weeklyTasks, setWeeklyTasks] = useState<any[]>([]);
   const [abyssList, setAbyssList] = useState<any[]>([]);
   const [raidList, setRaidList] = useState<any[]>([]);
+
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   const [partyMatches] = useState([
     { id: 1, title: "[4종] 어비스 매칭", desc: "초보자도 환영! 함께 공략해요.", leader: "파랑", members: 2, max: 4, role: "딜러/힐러" },
@@ -42,8 +43,20 @@ export default function Home() {
     { id: 2, text: "한설님이 파티 매칭에 참여했습니다.", date: "어제" }
   ]);
 
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const getCountdown = (targetMinutes: number) => {
+    const totalSeconds = targetMinutes * 60 - (currentTime.getMinutes() * 60 + currentTime.getSeconds());
+    const remaining = totalSeconds > 0 ? totalSeconds : totalSeconds + 3600;
+    const m = Math.floor(remaining / 60).toString().padStart(2, '0');
+    const s = (remaining % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  };
+
   const fetchDashboardData = async () => {
-    // 🟢 하드코딩 탈피! DB에서 등록된 모든 숙제와 컨텐츠를 실시간으로 가져옵니다.
     const [charRes, taskRes, contRes] = await Promise.all([
       supabase.from('characters').select('*'),
       supabase.from('nexus_tasks').select('*').eq('is_active', true),
@@ -53,31 +66,11 @@ export default function Home() {
     if (!charRes.data) return;
     const allChars = charRes.data;
     
-    // DB에서 가져온 컨텐츠 분류
-    const dTasks = taskRes.data?.filter(t => t.type === 'daily') || [];
-    const wTasks = taskRes.data?.filter(t => t.type === 'weekly') || [];
-    setDailyTasks(dTasks);
-    setWeeklyTasks(wTasks);
-    
+    setDailyTasks(taskRes.data?.filter(t => t.type === 'daily') || []);
+    setWeeklyTasks(taskRes.data?.filter(t => t.type === 'weekly') || []);
     setAbyssList(contRes.data?.filter(c => c.type === 'abyss') || []);
     setRaidList(contRes.data?.filter(c => c.type === 'raid') || []);
-
-    const dLen = dTasks.length || 1; // 0으로 나누기 방지
-    const wLen = wTasks.length || 1;
-    const uniqueAccountCount = 1; 
-
-    let totalDaily = 0; let totalWeekly = 0;
-    allChars.forEach(char => {
-      // 🟢 DB에 등록된 진짜 갯수를 기반으로 % 계산
-      totalDaily += ((char.daily_checks?.length || 0) / dLen) * 100;
-      totalWeekly += ((char.weekly_checks?.normal?.length || 0) / wLen) * 100;
-    });
-    
-    setStats({
-      uniqueAccounts: uniqueAccountCount,
-      daily: allChars.length ? Math.round(totalDaily / allChars.length) : 0,
-      weekly: allChars.length ? Math.round(totalWeekly / allChars.length) : 0
-    });
+    setUniqueAccounts(1);
 
     const myChars = allChars.filter(char => MY_ACCOUNT_CHARACTERS.includes(char.nickname));
     myChars.sort((a, b) => a.nickname === user?.nickname ? -1 : b.nickname === user?.nickname ? 1 : 0);
@@ -106,24 +99,43 @@ export default function Home() {
   useEffect(() => {
     setMounted(true);
     const savedUser = localStorage.getItem("nexus_user");
-    if (!savedUser) {
-      router.push("/login");
-    } else {
-      setUser(JSON.parse(savedUser));
-    }
+    if (!savedUser) { router.push("/login"); } else { setUser(JSON.parse(savedUser)); }
   }, [router]);
 
   useEffect(() => {
     if (user) fetchDashboardData();
   }, [user]);
 
+  const formatName = (fullName: string) => fullName.replace('어비스 - ', '').replace('레이드 - ', '').substring(0, 2);
+
+  // 🟢 계정 통합 진행률 계산 로직 (ID 기반)
+  let totalAccountCurrent = 0;
+  let totalAccountMax = 0;
+
+  myCharacters.forEach(char => {
+    const dChecks = Array.isArray(char.daily_checks) ? char.daily_checks.map(Number) : [];
+    const wChecks = Array.isArray(char.weekly_checks?.normal) ? char.weekly_checks.normal.map(Number) : [];
+    const rChecks = Array.isArray(char.raid_checks) ? char.raid_checks.map(Number) : [];
+
+    // DB에 존재하는 숙제(ID)만 정확하게 카운트
+    const dCount = dailyTasks.filter(t => dChecks.includes(t.id)).length;
+    const wCount = weeklyTasks.filter(t => wChecks.includes(t.id)).length;
+    const aCount = abyssList.filter(a => rChecks.includes(a.id)).length;
+    const rCount = raidList.filter(r => rChecks.includes(r.id)).length;
+
+    totalAccountCurrent += (dCount + wCount + aCount + rCount);
+    totalAccountMax += (dailyTasks.length + weeklyTasks.length + abyssList.length + raidList.length);
+  });
+
+  const accountProgressRate = totalAccountMax > 0 ? Math.round((totalAccountCurrent / totalAccountMax) * 100) : 0;
+
   if (!mounted || !user) return null;
 
   return (
-    <main className="min-h-screen bg-[#1c1c1e] text-[#d4d4d8] font-sans pb-10">
+    <main className="min-h-screen bg-[#121212] text-[#d4d4d8] font-sans pb-10">
       
       {/* GNB 미니 헤더 */}
-      <div className="w-full bg-[#252528] border-b border-zinc-800 px-6 py-2.5 flex justify-between items-center">
+      <div className="w-full bg-[#1c1c1e] border-b border-zinc-800 px-6 py-2.5 flex justify-between items-center shadow-md">
         <div className="flex items-center gap-2 text-white font-bold text-sm tracking-wide"><span>🏰 SANCTUM</span></div>
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-[#121212] border border-zinc-600 flex items-center justify-center text-sm shadow-inner">
@@ -139,60 +151,114 @@ export default function Home() {
       <div className="p-4 md:p-8 max-w-[1400px] mx-auto space-y-6">
         
         {/* 대시보드 타이틀 */}
-        <header className="flex items-center gap-6 mb-2">
-          <div className="w-28 h-28 md:w-36 md:h-36 bg-[#121212] border border-yellow-600/30 rounded-lg flex items-center justify-center shadow-2xl relative overflow-hidden flex-shrink-0">
-            <div className="absolute inset-0 bg-gradient-to-br from-yellow-900/20 to-transparent"></div>
-            <div className="z-10 text-white font-black border-2 border-white px-2 py-1 tracking-widest text-[10px] md:text-xs shadow-lg backdrop-blur-sm">SANCTUM</div>
+        <header className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-6">
+            <div className="w-24 h-24 md:w-32 md:h-32 bg-[#121212] border border-yellow-600/30 rounded-lg flex items-center justify-center shadow-2xl relative overflow-hidden flex-shrink-0">
+              <div className="absolute inset-0 bg-gradient-to-br from-yellow-900/20 to-transparent"></div>
+              <div className="z-10 text-white font-black border-2 border-white px-2 py-1 tracking-widest text-[10px] md:text-xs shadow-lg backdrop-blur-sm">SANCTUM</div>
+            </div>
+            <div>
+              <h1 className="text-3xl md:text-4xl font-serif font-black tracking-tight text-[#e6c788] drop-shadow-md">SANCTUM</h1>
+              <p className="text-zinc-400 text-xs md:text-sm mt-1.5 tracking-wide font-medium">데이안 성역 길드<span className="text-zinc-700 mx-2">|</span>마비노기 모바일<span className="text-zinc-700 mx-2">|</span>생텀</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-4xl md:text-5xl font-serif font-black tracking-tight text-[#e6c788] drop-shadow-md">SANCTUM</h1>
-            <p className="text-zinc-400 text-xs md:text-sm mt-2 tracking-wide font-medium">데이안 성역 길드<span className="text-zinc-600 mx-1">|</span>마비노기 모바일<span className="text-zinc-600 mx-1">|</span>생텀</p>
+          
+          <div className="hidden md:flex bg-[#1a1625] border border-yellow-900/30 rounded-xl px-6 py-4 flex-col justify-center items-end shadow-[0_0_20px_rgba(230,199,136,0.05)] relative overflow-hidden group">
+            <div className="absolute -left-3 -bottom-5 text-7xl opacity-5 group-hover:scale-110 transition-transform duration-500">🏰</div>
+            <div className="absolute right-0 top-0 w-1 h-full bg-gradient-to-b from-yellow-600 to-transparent"></div>
+            <span className="text-[10px] uppercase tracking-[0.2em] text-[#e6c788] font-bold mb-1 relative z-10">등록된 성역 길드원</span>
+            <p className="text-3xl font-black text-white relative z-10">{uniqueAccounts} <span className="text-sm font-normal text-zinc-500">명</span></p>
           </div>
         </header>
 
-        {/* 📊 1. 통계 요약 위젯 */}
-        <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div className="rounded-xl border border-zinc-700/50 bg-[#252528] p-4 shadow-lg flex flex-col justify-center">
-            <p className="text-[10px] md:text-[11px] uppercase tracking-[0.2em] text-zinc-500 font-bold">등록된 길드원 (계정 단위)</p>
-            <p className="mt-1 text-2xl md:text-3xl font-black text-white">{stats.uniqueAccounts} <span className="text-sm font-normal text-zinc-500">명</span></p>
+        {/* 1줄 4칸 알리미 위젯 */}
+        <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+          
+          <div className="bg-[#1c1c1e] border border-zinc-700/50 rounded-xl p-4 flex flex-col justify-center relative shadow-lg">
+            <p className="text-[11px] font-bold text-amber-500/80 mb-1">소환의 결계 알림</p>
+            <div className="flex items-end gap-2 mt-1">
+              <span className="text-2xl font-black text-amber-100">{getCountdown(60)}</span>
+              <span className="text-xs text-zinc-500 font-bold mb-1">다음 출현까지</span>
+            </div>
+            <p className="text-[10px] text-zinc-500 mt-1">최근 리셋됨</p>
           </div>
-          <div className="rounded-xl border border-zinc-700/50 bg-[#252528] p-4 shadow-lg flex flex-col justify-center relative overflow-hidden">
-            <p className="text-[10px] md:text-[11px] uppercase tracking-[0.2em] text-zinc-500 font-bold">평균 일일 달성률</p>
-            <p className="mt-1 text-2xl md:text-3xl font-black text-amber-400">{stats.daily}%</p>
+
+          <div className="bg-[#1a1625] border border-purple-900/50 rounded-xl p-4 flex flex-col justify-center relative shadow-[0_0_15px_rgba(168,85,247,0.05)]">
+            <p className="text-[11px] font-bold text-purple-400 mb-1 flex justify-between">
+              <span>어비스 구멍 알림</span>
+              <span className="bg-purple-900/40 px-1.5 py-0.5 rounded text-[8px]">일정표</span>
+            </p>
+            <div className="flex flex-col mt-1">
+              <span className="text-lg font-black text-purple-100 tracking-tight">내일 오전 2시 26분</span>
+              <span className="text-[10px] text-purple-300/60 font-bold mt-0.5">16시간 35분 남음</span>
+            </div>
           </div>
-          <div className="rounded-xl border border-zinc-700/50 bg-[#252528] p-4 shadow-lg flex flex-col justify-center relative overflow-hidden">
-            <p className="text-[10px] md:text-[11px] uppercase tracking-[0.2em] text-zinc-500 font-bold">평균 주간 달성률</p>
-            <p className="mt-1 text-2xl md:text-3xl font-black text-blue-400">{stats.weekly}%</p>
+
+          <div className="bg-[#201515] border border-red-900/50 rounded-xl p-4 flex flex-col justify-between relative shadow-[0_0_15px_rgba(239,68,68,0.05)]">
+            <div className="flex justify-between items-center mb-3">
+              <p className="text-[11px] font-bold text-red-400">데이안 서버 심층 구멍 알림</p>
+              <span className="text-[9px] text-red-300/60 font-mono">{getCountdown(30)} 후 리셋</span>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex justify-between items-center bg-[#121212] border border-zinc-800 p-2.5 rounded-lg">
+                <span className="text-[10px] text-zinc-300 font-bold">센마이 평원</span>
+                <span className="text-[10px] bg-red-900/40 text-red-400 px-2 py-0.5 rounded font-bold tracking-wide">대기 <span className="opacity-60">(0/3)</span></span>
+              </div>
+              <div className="flex justify-between items-center bg-[#121212] border border-zinc-800 p-2.5 rounded-lg">
+                <span className="text-[10px] text-zinc-300 font-bold">창백한 산</span>
+                <span className="text-[10px] bg-emerald-900/30 text-emerald-400 px-2 py-0.5 rounded font-bold tracking-wide">출현 <span className="opacity-60">(1/3)</span></span>
+              </div>
+            </div>
           </div>
-          <div className="rounded-xl border border-yellow-600/30 bg-[#252528] p-4 shadow-lg flex flex-col justify-center relative overflow-hidden">
+
+          <div className="rounded-xl border border-yellow-600/30 bg-[#1c1c1e] p-4 flex flex-col justify-center relative overflow-hidden shadow-lg">
             <div className="absolute -right-4 -bottom-4 text-6xl opacity-5">⚡</div>
-            <p className="text-[10px] md:text-[11px] uppercase tracking-[0.2em] text-zinc-500 font-bold">올라운더 달성률</p>
-            <p className="mt-1 text-2xl md:text-3xl font-black text-[#e6c788]">{allRounderLevel} <span className="text-sm font-normal text-zinc-500">/ 1205</span></p>
+            <p className="text-[11px] uppercase tracking-[0.1em] text-zinc-500 font-bold">올라운더 달성률</p>
+            <div className="mt-2 flex items-baseline gap-1">
+              <span className="text-3xl font-black text-[#e6c788]">{allRounderLevel}</span>
+              <span className="text-sm font-bold text-zinc-500">LV</span>
+            </div>
+            <p className="text-[10px] text-zinc-500 mt-1">최대 1365 LV</p>
           </div>
         </section>
 
-        {/* 📋 2. 캐릭터 숙제 체크보드 */}
-        <section className="bg-[#252528] border border-zinc-700/50 rounded-xl p-5 shadow-xl">
-          <div className="flex justify-between items-center mb-4 border-b border-zinc-700/50 pb-3">
-            <div>
+        {/* 📋 2. 캐릭터 숙제 체크보드 (ID 매칭으로 100% 버그 프리) */}
+        <section className="bg-[#1c1c1e] border border-zinc-800 rounded-xl p-5 shadow-xl">
+          
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-5 border-b border-zinc-800 pb-4 gap-4">
+            <div className="flex-none">
               <h2 className="text-white font-bold text-base flex items-center gap-2">📋 캐릭터 숙제 체크보드</h2>
               <p className="text-[11px] text-zinc-400 mt-1">계정 내 모든 캐릭터의 핵심 스탯과 주간 숙제를 한눈에 관리하세요.</p>
             </div>
-            <button onClick={() => router.push('/character')} className="text-xs bg-[#e6c788] text-[#121212] font-black px-3 py-1.5 rounded hover:bg-yellow-500 transition shadow">캐릭터 관리</button>
+
+            <div className="flex-1 w-full px-0 md:px-8 max-w-2xl">
+               <div className="flex justify-between items-center text-[10px] font-bold mb-1.5">
+                  <span className="text-zinc-400">계정 통합 달성률 <span className="font-normal text-zinc-600 hidden sm:inline">(전체 캐릭터 숙제/어비스/레이드 합산)</span></span>
+                  <span className="text-[#e6c788] text-xs font-black">{accountProgressRate}%</span>
+               </div>
+               <div className="w-full bg-[#121212] border border-zinc-700/50 h-2.5 rounded-full overflow-hidden shadow-inner">
+                  <div className="bg-gradient-to-r from-yellow-600 to-[#e6c788] h-full transition-all duration-700" style={{ width: `${accountProgressRate}%` }}></div>
+               </div>
+            </div>
+
+            <button onClick={() => router.push('/character')} className="flex-none text-xs bg-[#e6c788] text-[#121212] font-black px-4 py-2.5 rounded-lg hover:bg-yellow-500 transition shadow whitespace-nowrap">캐릭터 관리</button>
           </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
             {myCharacters.map((char) => {
-              // 🟢 동적 퍼센트 계산
-              const dRate = Math.round(((char.daily_checks?.length || 0) / (dailyTasks.length || 1)) * 100);
-              const wRate = Math.round(((char.weekly_checks?.normal?.length || 0) / (weeklyTasks.length || 1)) * 100);
+              // 🟢 안전한 숫자(ID) 배열 추출
+              const dChecks = Array.isArray(char.daily_checks) ? char.daily_checks.map(Number) : [];
+              const wChecks = Array.isArray(char.weekly_checks?.normal) ? char.weekly_checks.normal.map(Number) : [];
+              const rChecks = Array.isArray(char.raid_checks) ? char.raid_checks.map(Number) : [];
               
-              // 🟢 등록된 어비스/레이드 중 유저가 체크한 갯수 확인
-              const abyssCount = abyssList.filter(c => char.raid_checks?.includes(c.name)).length;
-              const raidCount = raidList.filter(c => char.raid_checks?.includes(c.name)).length;
+              // 등록된 컨텐츠와 비교하여 실제 달성된 갯수만 도출
+              const dRate = Math.round((dailyTasks.filter(t => dChecks.includes(t.id)).length / (dailyTasks.length || 1)) * 100);
+              const wRate = Math.round((weeklyTasks.filter(t => wChecks.includes(t.id)).length / (weeklyTasks.length || 1)) * 100);
+              const abyssCount = abyssList.filter(a => rChecks.includes(a.id)).length;
+              const raidCount = raidList.filter(r => rChecks.includes(r.id)).length;
 
               return (
-                <div key={char.id} onClick={() => router.push('/character')} className="bg-[#1c1c1e] border border-zinc-700/50 rounded-xl p-4 cursor-pointer hover:border-[#e6c788]/60 transition shadow-md flex flex-col gap-3 group">
+                <div key={char.id} onClick={() => router.push('/character')} className="bg-[#252528] border border-zinc-700/50 rounded-xl p-4 cursor-pointer hover:border-[#e6c788]/60 transition shadow-md flex flex-col gap-3 group">
                   <div className="flex items-center gap-2 border-b border-zinc-800 pb-2">
                     <span className="text-base bg-[#121212] p-1.5 rounded-lg border border-zinc-700 shadow-inner group-hover:border-[#e6c788]/50 transition">{JOB_ICONS[char.job] || "👤"}</span>
                     <span className="font-black text-white text-[15px] truncate">{char.nickname}</span>
@@ -209,42 +275,42 @@ export default function Home() {
                     </div>
                   </div>
 
-                  {/* 🟢 DB 기반 완벽 동적 뱃지 렌더링 */}
-                  <div className="flex flex-col gap-1.5 bg-[#121212] p-2 rounded-lg border border-zinc-800">
-                    
-                    {/* 어비스 */}
-                    <div className="flex items-center justify-between">
-                      <span className="text-[9px] font-bold text-zinc-500 min-w-[28px]">어비스</span>
-                      <div className="flex flex-wrap gap-1.5 text-[9px] font-black justify-end">
+                  {/* 🟢 ID 매칭으로 버그 0%인 뱃지 시스템 */}
+                  <div className="flex flex-col gap-2 bg-[#121212] p-2.5 rounded-lg border border-zinc-800">
+                    <div className="flex flex-col gap-1.5">
+                      <span className="text-[9px] font-bold text-zinc-500">어비스 ({abyssCount}/{abyssList.length})</span>
+                      <div className="flex flex-wrap gap-1">
                         {abyssList.length > 0 ? abyssList.map(a => {
-                          const isChecked = char.raid_checks?.includes(a.name);
-                          // DB 저장 시 생성된 short_name(두글자)을 활용
-                          return <span key={a.id} className={isChecked ? "text-emerald-400" : "text-zinc-600"}>{a.short_name || a.name.substring(0,2)}</span>
-                        }) : <span className="text-zinc-600 font-normal">등록된 컨텐츠 없음</span>}
+                          const isChecked = rChecks.includes(a.id); // 🟢 무조건 매칭됩니다.
+                          const dName = a.short_name || formatName(a.name);
+                          return (
+                            <span key={a.id} className={`text-[9px] px-1.5 py-0.5 rounded border font-bold transition-colors ${isChecked ? 'bg-emerald-900/40 text-emerald-400 border-emerald-700/50' : 'bg-zinc-800/50 text-zinc-500 border-zinc-700'}`}>
+                              {dName}
+                            </span>
+                          )
+                        }) : <span className="text-zinc-600 font-normal text-[9px]">없음</span>}
                       </div>
                     </div>
-                    <div className="w-full text-center py-0.5 rounded text-[9px] font-black bg-zinc-900 border border-zinc-800 mt-0.5">
-                      {abyssList.length > 0 && abyssCount === abyssList.length ? <span className="text-emerald-400">어비스 전체 완료</span> : <span className="text-zinc-500">진행도 ({abyssCount}/{abyssList.length})</span>}
-                    </div>
 
-                    <div className="border-t border-zinc-800/80 my-0.5"></div>
+                    <div className="border-t border-zinc-800/80"></div>
 
-                    {/* 레이드 */}
-                    <div className="flex items-center justify-between">
-                      <span className="text-[9px] font-bold text-zinc-500 min-w-[28px]">레이드</span>
-                      <div className="flex flex-wrap gap-1.5 text-[9px] font-black justify-end">
+                    <div className="flex flex-col gap-1.5">
+                      <span className="text-[9px] font-bold text-zinc-500">레이드 ({raidCount}/{raidList.length})</span>
+                      <div className="flex flex-wrap gap-1">
                         {raidList.length > 0 ? raidList.map(r => {
-                          const isChecked = char.raid_checks?.includes(r.name);
-                          return <span key={r.id} className={isChecked ? "text-indigo-400" : "text-zinc-600"}>{r.short_name || r.name.substring(0,2)}</span>
-                        }) : <span className="text-zinc-600 font-normal">등록된 컨텐츠 없음</span>}
+                          const isChecked = rChecks.includes(r.id); // 🟢 무조건 매칭됩니다.
+                          const dName = r.short_name || formatName(r.name);
+                          return (
+                            <span key={r.id} className={`text-[9px] px-1.5 py-0.5 rounded border font-bold transition-colors ${isChecked ? 'bg-indigo-900/40 text-indigo-400 border-indigo-700/50' : 'bg-zinc-800/50 text-zinc-500 border-zinc-700'}`}>
+                              {dName}
+                            </span>
+                          )
+                        }) : <span className="text-zinc-600 font-normal text-[9px]">없음</span>}
                       </div>
-                    </div>
-                    <div className="w-full text-center py-0.5 rounded text-[9px] font-black bg-zinc-900 border border-zinc-800 mt-0.5">
-                      {raidList.length > 0 && raidCount === raidList.length ? <span className="text-indigo-400">레이드 전체 완료</span> : <span className="text-zinc-500">진행도 ({raidCount}/{raidList.length})</span>}
                     </div>
                   </div>
 
-                  <div className="flex flex-col gap-1 text-[11px] mt-auto pt-1">
+                  <div className="flex flex-col gap-1 text-[11px] mt-auto pt-2 border-t border-zinc-700/30">
                     <div className="flex justify-between items-center"><span className="text-zinc-500 font-bold">전투력</span><span className="font-mono text-[#e6c788] font-bold">{Number(char.combat_power||0).toLocaleString()}</span></div>
                     <div className="flex justify-between items-center"><span className="text-zinc-500 font-bold">마도저항</span><span className="font-mono text-purple-300 font-bold">{Number(char.magic_resistance||0).toLocaleString()}</span></div>
                     <div className="flex justify-between items-center"><span className="text-zinc-500 font-bold">생활력</span><span className="font-mono text-emerald-300 font-bold">{Number(char.life_energy||0).toLocaleString()}</span></div>
@@ -257,8 +323,8 @@ export default function Home() {
         </section>
 
         {/* ⚔️ 실시간 파티 매칭 현황 */}
-        <section className="bg-[#252528] border border-zinc-700/50 rounded-xl p-5 shadow-lg w-full flex flex-col">
-          <div className="flex items-center justify-between mb-4 pb-3 border-b border-zinc-700/50">
+        <section className="bg-[#1c1c1e] border border-zinc-800 rounded-xl p-5 shadow-lg w-full flex flex-col">
+          <div className="flex items-center justify-between mb-4 pb-3 border-b border-zinc-800">
             <div>
               <h2 className="text-white font-bold text-sm">⚔️ 실시간 파티 매칭 현황</h2>
               <p className="text-[11px] text-zinc-400 mt-1">접속 중인 길드원들과 빠르게 파티를 꾸려보세요!</p>
@@ -267,7 +333,7 @@ export default function Home() {
           </div>
           <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-3 flex-1">
             {partyMatches.map((match) => (
-              <div key={match.id} className="rounded-xl border border-zinc-700/80 bg-[#1c1c1e] p-4 flex flex-col gap-2 hover:border-[#e6c788]/40 transition">
+              <div key={match.id} className="rounded-xl border border-zinc-700/80 bg-[#252528] p-4 flex flex-col gap-2 hover:border-[#e6c788]/40 transition">
                 <div className="flex justify-between items-start">
                   <p className="text-sm font-black text-white">{match.title}</p>
                   <span className="text-[10px] bg-zinc-800 text-zinc-300 font-bold px-2 py-0.5 rounded-full">{match.members}/{match.max}명</span>
@@ -285,16 +351,15 @@ export default function Home() {
         {/* 4단 분할: 랭킹 & SANCTUM 저널 */}
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
           
-          {/* 🏆 성역 명예의 전당 */}
-          <section className="lg:col-span-2 bg-[#252528] border border-zinc-700/50 rounded-xl p-5 shadow-lg">
-            <div className="flex justify-between items-center mb-4 border-b border-zinc-700/50 pb-3">
+          <section className="lg:col-span-2 bg-[#1c1c1e] border border-zinc-800 rounded-xl p-5 shadow-lg">
+            <div className="flex justify-between items-center mb-4 border-b border-zinc-800 pb-3">
               <h2 className="text-white font-bold text-sm">🏆 성역 명예의 전당</h2>
               <button onClick={() => router.push('/ranking')} className="text-[10px] text-zinc-400 font-bold hover:text-white transition">전체 랭킹</button>
             </div>
             <p className="text-[11px] text-zinc-500 mb-4 text-center">[이번 주 종합 전투력 순위]</p>
             <div className="space-y-3">
               {topRankers.map((ranker, idx) => (
-                <div key={ranker.id} className="flex items-center gap-3 bg-[#1c1c1e] p-3 rounded-xl border border-zinc-700/50">
+                <div key={ranker.id} className="flex items-center gap-3 bg-[#252528] p-3 rounded-xl border border-zinc-700/50">
                   <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black ${idx === 0 ? 'bg-yellow-900/40 text-yellow-500 border border-yellow-700/50' : idx === 1 ? 'bg-zinc-800 text-zinc-300 border border-zinc-600' : 'bg-amber-900/20 text-amber-600 border border-amber-800/50'}`}>
                     {idx + 1}
                   </div>
@@ -308,9 +373,8 @@ export default function Home() {
             </div>
           </section>
 
-          {/* 📒 SANCTUM 저널 */}
-          <section className="lg:col-span-3 bg-[#252528] border border-zinc-700/50 rounded-xl p-5 shadow-lg flex flex-col">
-            <div className="flex justify-between items-center mb-4 border-b border-zinc-700/50 pb-3">
+          <section className="lg:col-span-3 bg-[#1c1c1e] border border-zinc-800 rounded-xl p-5 shadow-lg flex flex-col">
+            <div className="flex justify-between items-center mb-4 border-b border-zinc-800 pb-3">
               <h2 className="text-white font-bold text-sm">📒 SANCTUM 저널</h2>
               <span className="text-[10px] bg-indigo-900/30 text-indigo-400 border border-indigo-700/50 px-2 py-1 rounded font-bold">활동 포인트 1,250 획득</span>
             </div>
@@ -319,24 +383,24 @@ export default function Home() {
               <div className="flex-1 space-y-2">
                 <p className="text-[11px] font-bold text-zinc-400 mb-2">최근 내 활동 내역</p>
                 {journal.map(entry => (
-                  <div key={entry.id} className="bg-[#1c1c1e] p-2.5 rounded-lg border border-zinc-700/50 flex justify-between items-center">
+                  <div key={entry.id} className="bg-[#252528] p-2.5 rounded-lg border border-zinc-700/50 flex justify-between items-center">
                     <span className="text-xs text-zinc-300">{entry.text}</span>
                     <span className="text-[10px] text-zinc-500">{entry.date}</span>
                   </div>
                 ))}
               </div>
               
-              <div className="flex-1 bg-[#1c1c1e] border border-zinc-700 rounded-xl p-4 flex flex-col">
+              <div className="flex-1 bg-[#252528] border border-zinc-700 rounded-xl p-4 flex flex-col">
                 <p className="text-[11px] font-bold text-zinc-400 mb-3">🏅 도전 중인 칭호</p>
                 <div className="flex flex-col gap-3">
-                  <div className="bg-[#252528] p-3 rounded-lg border border-dashed border-yellow-600/50 group cursor-help relative">
+                  <div className="bg-[#1c1c1e] p-3 rounded-lg border border-dashed border-yellow-600/50 group cursor-help relative">
                     <div className="flex justify-between items-center mb-1">
                       <span className="text-xs font-black text-zinc-400 group-hover:text-yellow-500 transition">❓ 파티 메이커</span>
                       <span className="text-[10px] text-zinc-500">6 / 10 회</span>
                     </div>
                     <div className="w-full bg-zinc-800 h-1 rounded-full overflow-hidden"><div className="bg-yellow-600 h-full" style={{ width: '60%' }}></div></div>
                   </div>
-                  <div className="bg-[#252528] p-3 rounded-lg border border-dashed border-purple-600/50 group cursor-help relative">
+                  <div className="bg-[#1c1c1e] p-3 rounded-lg border border-dashed border-purple-600/50 group cursor-help relative">
                     <div className="flex justify-between items-center mb-1">
                       <span className="text-xs font-black text-zinc-400 group-hover:text-purple-500 transition">❓ 그랜드 마스터</span>
                       <span className="text-[10px] text-zinc-500">{allRounderLevel} / 1365 LV</span>

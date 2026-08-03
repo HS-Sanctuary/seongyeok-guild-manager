@@ -16,7 +16,6 @@ export default function CharacterPage() {
   const [dbClasses, setDbClasses] = useState<any[]>([]);
   const [dbTasks, setDbTasks] = useState<any[]>([]);
   const [dbContents, setDbContents] = useState<any[]>([]);
-  // 🟢 물물교환 카탈로그 DB
   const [dbTrades, setDbTrades] = useState<any[]>([]); 
 
   const defaultProfile = { nickname: "한설", job: "전사", combatPower: "", magicResistance: "", lifeEnergy: "", charm: "", intro: "" };
@@ -24,17 +23,16 @@ export default function CharacterPage() {
   const [profile, setProfile] = useState(defaultProfile);
   const [levels, setLevels] = useState<Record<string, number>>({});
   
-  const [dailyChecks, setDailyChecks] = useState<string[]>([]);
-  const [weeklyChecks, setWeeklyChecks] = useState<string[]>([]);
-  const [repeatChecks, setRepeatChecks] = useState<Record<string, boolean[]>>({});
-  const [abyssChecks, setAbyssChecks] = useState<string[]>([]);
-  const [raidChecks, setRaidChecks] = useState<string[]>([]);
-  
-  // 🟢 유저의 물물교환 진행도 상태 { trade_id: count }
+  // 🟢 이름(String)이 아닌 고유 ID(Number) 저장 방식으로 전면 개편
+  const [dailyChecks, setDailyChecks] = useState<number[]>([]);
+  const [weeklyChecks, setWeeklyChecks] = useState<number[]>([]);
+  const [repeatChecks, setRepeatChecks] = useState<Record<number, boolean[]>>({});
+  const [abyssChecks, setAbyssChecks] = useState<number[]>([]);
+  const [raidChecks, setRaidChecks] = useState<number[]>([]);
   const [tradeProgress, setTradeProgress] = useState<Record<number, number>>({});
 
   const [isLevelOpen, setIsLevelOpen] = useState(false);
-  const [isTradeOpen, setIsTradeOpen] = useState(true); // 🟢 방금 만들었으니 기본으로 열어둡시다!
+  const [isTradeOpen, setIsTradeOpen] = useState(true);
 
   const abyssList = dbContents.filter(c => c.type === 'abyss');
   const raidList = dbContents.filter(c => c.type === 'raid');
@@ -60,7 +58,7 @@ export default function CharacterPage() {
         supabase.from('nexus_classes').select('*').eq('is_active', true).order('id'),
         supabase.from('nexus_tasks').select('*').eq('is_active', true).order('id'),
         supabase.from('nexus_contents').select('*').eq('is_active', true).order('id'),
-        supabase.from('nexus_trades').select('*').order('id') // 🟢 교환 목록 가져오기
+        supabase.from('nexus_trades').select('*').order('id')
       ]);
       if (clsRes.data) setDbClasses(clsRes.data);
       if (taskRes.data) setDbTasks(taskRes.data);
@@ -82,21 +80,24 @@ export default function CharacterPage() {
           lifeEnergy: data.life_energy || "", charm: data.charm || "", intro: data.intro || ""
         });
         setLevels(data.levels || {});
-        setDailyChecks(data.daily_checks || []);
+        
+        // 🟢 ID 기반 로드 (숫자 배열로 안전하게 파싱)
+        const dChecks = Array.isArray(data.daily_checks) ? data.daily_checks : [];
+        setDailyChecks(dChecks.map(Number).filter(n => !isNaN(n)));
         
         if (data.weekly_checks && !Array.isArray(data.weekly_checks)) {
-          setWeeklyChecks(data.weekly_checks.normal || []);
+          const wNormals = Array.isArray(data.weekly_checks.normal) ? data.weekly_checks.normal : [];
+          setWeeklyChecks(wNormals.map(Number).filter(n => !isNaN(n)));
           setRepeatChecks(data.weekly_checks.repeat || {});
         } else {
-          setWeeklyChecks(Array.isArray(data.weekly_checks) ? data.weekly_checks : []);
-          setRepeatChecks({});
+          setWeeklyChecks([]); setRepeatChecks({});
         }
         
-        const combinedRaids = data.raid_checks || [];
-        setAbyssChecks(combinedRaids.filter((item: string) => item.includes('어비스')));
-        setRaidChecks(combinedRaids.filter((item: string) => item.includes('레이드')));
+        const rChecks = Array.isArray(data.raid_checks) ? data.raid_checks.map(Number).filter(n => !isNaN(n)) : [];
+        // 컨텐츠 리스트와 대조해서 어비스/레이드 ID 분리
+        setAbyssChecks(rChecks.filter(id => dbContents.find(c => c.id === id)?.type === 'abyss'));
+        setRaidChecks(rChecks.filter(id => dbContents.find(c => c.id === id)?.type === 'raid'));
         
-        // 🟢 물교 진행도 불러오기
         setTradeProgress(data.trade_checks || {});
       } else {
         setProfile({ ...defaultProfile, nickname: charName });
@@ -112,10 +113,11 @@ export default function CharacterPage() {
         nickname: profile.nickname, job: profile.job,
         combat_power: profile.combatPower, magic_resistance: profile.magicResistance,
         life_energy: profile.lifeEnergy, charm: profile.charm, intro: profile.intro,
-        levels: levels, daily_checks: dailyChecks,
+        levels: levels, 
+        daily_checks: dailyChecks,
         weekly_checks: { normal: weeklyChecks, repeat: repeatChecks },
         raid_checks: [...abyssChecks, ...raidChecks],
-        trade_checks: tradeProgress, // 🟢 물교 진행도 DB에 저장
+        trade_checks: tradeProgress,
         updated_at: new Date()
       };
       await supabase.from('characters').upsert(payload, { onConflict: 'nickname' }); 
@@ -128,7 +130,7 @@ export default function CharacterPage() {
   const handleSyncNexonAPI = async () => {
     setIsSyncing(true);
     setTimeout(() => {
-      setAbyssChecks(abyssList.map(c => c.name)); setRaidChecks(raidList.slice(0, 1).map(c => c.name));
+      setAbyssChecks(abyssList.map(c => c.id)); setRaidChecks(raidList.slice(0, 1).map(c => c.id));
       setIsSyncing(false); alert(`[API 동기화 완료] 📡`);
     }, 1500);
   };
@@ -136,44 +138,42 @@ export default function CharacterPage() {
   const updateProfile = (field: string, value: string) => setProfile(prev => ({ ...prev, [field]: value }));
   const setMaxLevel = (cls: string) => setLevels(prev => ({ ...prev, [cls]: 65 }));
 
-  const updateRepeatCount = (name: string, delta: number, max: number) => {
+  const updateRepeatCount = (id: number, delta: number, max: number) => {
     setRepeatChecks(prev => {
-      const currentArr = prev[name] || Array(max).fill(false);
+      const currentArr = prev[id] || Array(max).fill(false);
       let newCount = currentArr.filter(Boolean).length + delta;
       if (newCount < 0) newCount = 0; if (newCount > max) newCount = max;
-      return { ...prev, [name]: Array(max).fill(false).map((_, i) => i < newCount) };
+      return { ...prev, [id]: Array(max).fill(false).map((_, i) => i < newCount) };
     });
   };
 
-  // 🟢 물물교환 진행도 카운터 함수
   const updateTradeProgress = (tradeId: number, delta: number, max: number) => {
     setTradeProgress(prev => {
       const current = prev[tradeId] || 0;
       let next = current + delta;
-      if (next < 0) next = 0;
-      if (next > max) next = max;
+      if (next < 0) next = 0; if (next > max) next = max;
       return { ...prev, [tradeId]: next };
     });
   };
 
   const handleToggleAll = (type: string, isCheckAll: boolean) => {
     if (type === 'daily') {
-      const normals = visibleDailyList.filter(t => !t.type.startsWith('repeat')).map(t => t.name);
+      const normals = visibleDailyList.filter(t => !t.type.startsWith('repeat')).map(t => t.id);
       setDailyChecks(isCheckAll ? normals : []);
-      setRepeatChecks(prev => { const next = { ...prev }; visibleDailyList.filter(t => t.type.startsWith('repeat')).forEach(t => { next[t.name] = isCheckAll ? Array(t.max_count).fill(true) : []; }); return next; });
+      setRepeatChecks(prev => { const next = { ...prev }; visibleDailyList.filter(t => t.type.startsWith('repeat')).forEach(t => { next[t.id] = isCheckAll ? Array(t.max_count).fill(true) : []; }); return next; });
     }
     if (type === 'weekly') {
-      const normals = visibleWeeklyList.filter(t => !t.type.startsWith('repeat')).map(t => t.name);
+      const normals = visibleWeeklyList.filter(t => !t.type.startsWith('repeat')).map(t => t.id);
       setWeeklyChecks(isCheckAll ? normals : []);
-      setRepeatChecks(prev => { const next = { ...prev }; visibleWeeklyList.filter(t => t.type.startsWith('repeat')).forEach(t => { next[t.name] = isCheckAll ? Array(t.max_count).fill(true) : []; }); return next; });
+      setRepeatChecks(prev => { const next = { ...prev }; visibleWeeklyList.filter(t => t.type.startsWith('repeat')).forEach(t => { next[t.id] = isCheckAll ? Array(t.max_count).fill(true) : []; }); return next; });
     }
-    if (type === 'abyss') setAbyssChecks(isCheckAll ? abyssList.map(t => t.name) : []);
-    if (type === 'raid') setRaidChecks(isCheckAll ? raidList.map(t => t.name) : []);
+    if (type === 'abyss') setAbyssChecks(isCheckAll ? abyssList.map(t => t.id) : []);
+    if (type === 'raid') setRaidChecks(isCheckAll ? raidList.map(t => t.id) : []);
   };
 
   const renderTask = (item: any, isDaily: boolean) => {
     if (item.type.startsWith('repeat')) {
-      const currentCount = (repeatChecks[item.name] || []).filter(Boolean).length;
+      const currentCount = (repeatChecks[item.id] || []).filter(Boolean).length;
       const isMax = currentCount === item.max_count;
       const badgeText = item.type === 'repeat_daily' ? '일간' : item.type === 'repeat_weekend' ? '주말' : '주간';
       
@@ -186,8 +186,8 @@ export default function CharacterPage() {
           <div className="flex items-center gap-2 bg-[#121212] px-1.5 py-1 rounded border border-zinc-700">
             <span className={`text-xs font-bold min-w-[36px] text-center whitespace-nowrap ${isMax ? "text-purple-400" : "text-zinc-400"}`}>{currentCount} <span className="text-zinc-600">/</span> {item.max_count}</span>
             <div className="flex gap-1 border-l border-zinc-700 pl-1.5">
-              <button onClick={() => updateRepeatCount(item.name, -1, item.max_count)} className="w-6 h-6 flex justify-center items-center rounded bg-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-700">-</button>
-              <button onClick={() => updateRepeatCount(item.name, 1, item.max_count)} className="w-6 h-6 flex justify-center items-center rounded bg-purple-900/40 text-purple-400 hover:text-white hover:bg-purple-700">+</button>
+              <button onClick={() => updateRepeatCount(item.id, -1, item.max_count)} className="w-6 h-6 flex justify-center items-center rounded bg-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-700">-</button>
+              <button onClick={() => updateRepeatCount(item.id, 1, item.max_count)} className="w-6 h-6 flex justify-center items-center rounded bg-purple-900/40 text-purple-400 hover:text-white hover:bg-purple-700">+</button>
             </div>
           </div>
         </div>
@@ -195,11 +195,11 @@ export default function CharacterPage() {
     } else {
       const checks = isDaily ? dailyChecks : weeklyChecks;
       const setChecks = isDaily ? setDailyChecks : setWeeklyChecks;
-      const isChecked = checks.includes(item.name);
+      const isChecked = checks.includes(item.id);
       const colorTheme = isDaily ? "amber" : "blue";
       
       return (
-        <div key={item.id} onClick={() => setChecks(isChecked ? checks.filter(i => i !== item.name) : [...checks, item.name])}
+        <div key={item.id} onClick={() => setChecks(isChecked ? checks.filter(i => i !== item.id) : [...checks, item.id])}
              className={`flex items-center justify-between p-3 rounded-lg cursor-pointer border transition-all duration-300 ${isChecked ? `bg-${colorTheme}-900/20 border-${colorTheme}-500/50` : "bg-[#1c1c1e] border-zinc-800 hover:border-zinc-600"}`}>
           <span className={`text-sm font-medium transition-colors ${isChecked ? `text-${colorTheme}-400` : "text-zinc-300"}`}>{item.name}</span>
           <div className={`w-5 h-5 rounded flex items-center justify-center transition-all ${isChecked ? `bg-${colorTheme}-500 text-white scale-110` : "bg-zinc-800 border border-zinc-600"}`}>
@@ -212,8 +212,8 @@ export default function CharacterPage() {
 
   if (!mounted || !user) return null;
 
-  const bhDailyDone = blackHoleDaily && dailyChecks.includes(blackHoleDaily.name);
-  const bhWeeklyCount = blackHoleWeekly ? (repeatChecks[blackHoleWeekly.name] || []).filter(Boolean).length : 0;
+  const bhDailyDone = blackHoleDaily && dailyChecks.includes(blackHoleDaily.id);
+  const bhWeeklyCount = blackHoleWeekly ? (repeatChecks[blackHoleWeekly.id] || []).filter(Boolean).length : 0;
   const bhTotalCount = (bhDailyDone ? 1 : 0) + bhWeeklyCount;
   const bhMaxCount = (blackHoleDaily ? 1 : 0) + (blackHoleWeekly?.max_count || 0);
 
@@ -221,7 +221,7 @@ export default function CharacterPage() {
     <main className="min-h-screen bg-[#1c1c1e] text-[#d4d4d8] font-sans pb-20 pt-6">
       <div className="max-w-[1400px] mx-auto p-4 md:p-8 space-y-6">
         
-        {/* 상단 프로필 및 검은구멍 영역은 그대로 */}
+        {/* 상단 프로필 */}
         <div className="bg-[#252528] rounded-2xl border border-zinc-700/80 p-6 shadow-xl relative overflow-hidden">
           <div className="flex flex-col md:flex-row gap-8 items-start relative z-10">
             <div className="w-32 h-32 bg-[#121212] rounded-xl border-2 border-zinc-700 flex items-center justify-center cursor-pointer hover:border-[#e6c788] transition-colors">
@@ -268,6 +268,7 @@ export default function CharacterPage() {
           </div>
         </div>
 
+        {/* 검은 구멍 탐험 상황판 */}
         {blackHoleDaily && blackHoleWeekly && (
           <div className="bg-[#1f1a29] rounded-xl border border-purple-500/40 p-5 shadow-[0_0_20px_rgba(168,85,247,0.15)] flex flex-col gap-4 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-48 h-full bg-purple-600/10 blur-3xl pointer-events-none"></div>
@@ -288,7 +289,7 @@ export default function CharacterPage() {
               <div className="h-full bg-gradient-to-r from-purple-600 to-fuchsia-500 transition-all duration-500" style={{ width: `${(bhTotalCount / bhMaxCount) * 100}%` }}></div>
             </div>
             <div className="flex flex-col md:flex-row gap-3 pt-2 relative z-10">
-              <div onClick={() => setDailyChecks(bhDailyDone ? dailyChecks.filter(i => i !== blackHoleDaily.name) : [...dailyChecks, blackHoleDaily.name])} className={`flex-1 flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all ${bhDailyDone ? "bg-purple-900/40 border-purple-500/60" : "bg-[#121212] border-zinc-700 hover:border-purple-500/40"}`}>
+              <div onClick={() => setDailyChecks(bhDailyDone ? dailyChecks.filter(i => i !== blackHoleDaily.id) : [...dailyChecks, blackHoleDaily.id])} className={`flex-1 flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all ${bhDailyDone ? "bg-purple-900/40 border-purple-500/60" : "bg-[#121212] border-zinc-700 hover:border-purple-500/40"}`}>
                 <span className={`text-sm font-bold ${bhDailyDone ? "text-purple-300" : "text-zinc-400"}`}>오늘의 기본 탐험 (1회)</span>
                 <div className={`w-5 h-5 rounded flex items-center justify-center transition-all ${bhDailyDone ? "bg-purple-500 text-white" : "bg-zinc-800 border border-zinc-600"}`}>
                   {bhDailyDone && <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
@@ -297,9 +298,9 @@ export default function CharacterPage() {
               <div className="flex-1 flex items-center justify-between p-3 rounded-lg bg-[#121212] border border-zinc-700">
                 <span className="text-sm font-bold text-zinc-400">이번주 초과 탐험 ({blackHoleWeekly.max_count}회)</span>
                 <div className="flex gap-1 bg-[#1c1c1e] p-1 rounded border border-zinc-800">
-                  <button onClick={() => updateRepeatCount(blackHoleWeekly.name, -1, blackHoleWeekly.max_count)} className="w-7 h-7 flex justify-center items-center rounded bg-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-700">-</button>
+                  <button onClick={() => updateRepeatCount(blackHoleWeekly.id, -1, blackHoleWeekly.max_count)} className="w-7 h-7 flex justify-center items-center rounded bg-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-700">-</button>
                   <span className="w-8 text-center text-sm font-black text-purple-400 flex items-center justify-center">{bhWeeklyCount}</span>
-                  <button onClick={() => updateRepeatCount(blackHoleWeekly.name, 1, blackHoleWeekly.max_count)} className="w-7 h-7 flex justify-center items-center rounded bg-purple-900/40 text-purple-400 hover:text-white hover:bg-purple-700">+</button>
+                  <button onClick={() => updateRepeatCount(blackHoleWeekly.id, 1, blackHoleWeekly.max_count)} className="w-7 h-7 flex justify-center items-center rounded bg-purple-900/40 text-purple-400 hover:text-white hover:bg-purple-700">+</button>
                 </div>
               </div>
             </div>
@@ -307,7 +308,6 @@ export default function CharacterPage() {
         )}
 
         <div className="grid grid-cols-1 xl:grid-cols-4 lg:grid-cols-2 gap-6">
-          {/* 일일, 주간, 어비스, 레이드 렌더링 유지 */}
           <div className="bg-[#252528] rounded-xl border border-zinc-800 p-5 shadow-md flex flex-col">
             <div className="flex justify-between items-center mb-4 border-b border-zinc-700 pb-3"><h3 className="font-bold text-amber-500 text-base">☀️ 일일 컨텐츠</h3><div className="flex items-center gap-2"><button onClick={() => handleToggleAll('daily', true)} className="text-[10px] text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 px-2 py-1 rounded transition">✓ 전체</button><button onClick={() => handleToggleAll('daily', false)} className="text-[10px] text-zinc-500 hover:text-red-400 bg-zinc-800/50 hover:bg-zinc-800 px-2 py-1 rounded transition">✗ 해제</button></div></div>
             <div className="space-y-2 flex-1 overflow-y-auto custom-scrollbar pr-2">{visibleDailyList.map(item => renderTask(item, true))}</div>
@@ -326,10 +326,8 @@ export default function CharacterPage() {
           </div>
         </div>
 
-        {/* 🟦 3. 하단 통합 아코디언 메뉴 */}
+        {/* 하단 아코디언 메뉴 */}
         <div className="space-y-4">
-          
-          {/* 🟢 물물교환 통합 카탈로그 아코디언 구현 */}
           <div className="bg-[#252528] rounded-xl border border-zinc-800 overflow-hidden shadow-lg">
             <button onClick={() => setIsTradeOpen(!isTradeOpen)} className="w-full flex items-center justify-between p-5 hover:bg-[#2a2a2e] transition">
               <h3 className="font-bold text-[#e6c788] text-lg flex items-center gap-2">⚖️ 캐릭터 교환/구매 진행도</h3>
@@ -384,11 +382,7 @@ export default function CharacterPage() {
                           </tr>
                         );
                       })}
-                      {dbTrades.length === 0 && (
-                        <tr>
-                          <td colSpan={5} className="p-10 text-center text-zinc-500">관리자가 등록한 구매/교환 카탈로그가 없습니다.</td>
-                        </tr>
-                      )}
+                      {dbTrades.length === 0 && <tr><td colSpan={5} className="p-10 text-center text-zinc-500">등록된 카탈로그가 없습니다.</td></tr>}
                     </tbody>
                   </table>
                 </div>
