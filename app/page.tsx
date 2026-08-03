@@ -3,6 +3,39 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../lib/supabase";
+import { calculateOptimalStartTime, isScheduleConflict, pickRandomLeader } from "../lib/matchingUtils";
+
+function CustomTimePicker({ value, onChange }: { value: string, onChange: (val: string) => void }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [h, m] = value.split(':');
+  const hours = Array.from({length: 24}, (_, i) => String(i).padStart(2, '0'));
+  const minutes = ["00", "15", "30", "45"];
+
+  return (
+    <div className="relative flex-1">
+      {isOpen && <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)}></div>}
+      <div onClick={() => setIsOpen(!isOpen)} className={`relative z-50 bg-[#121212] border ${isOpen ? 'border-[#e6c788]' : 'border-zinc-700'} hover:border-zinc-500 rounded p-2 text-xs font-bold text-white cursor-pointer text-center transition flex justify-center items-center gap-1`}>
+        <span>{h}:{m}</span>
+        <span className={`text-[9px] text-zinc-500 transition-transform ${isOpen ? 'rotate-180 text-[#e6c788]' : ''}`}>▼</span>
+      </div>
+      {isOpen && (
+        <div className="absolute top-full left-0 mt-1 w-[140px] bg-[#1c1c1e] border border-zinc-600 rounded-lg shadow-2xl z-50 p-2 flex gap-2">
+          <div className="flex-1 h-32 overflow-y-auto custom-scrollbar pr-1 space-y-1">
+            {hours.map(hour => (
+              <button key={hour} onClick={() => onChange(`${hour}:${m}`)} className={`w-full text-center py-1 rounded text-[10px] font-bold transition ${h === hour ? 'bg-yellow-600 text-white' : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'}`}>{hour}시</button>
+            ))}
+          </div>
+          <div className="w-px bg-zinc-700"></div>
+          <div className="flex-1 h-32 overflow-y-auto custom-scrollbar pr-1 space-y-1">
+            {minutes.map(minute => (
+              <button key={minute} onClick={() => { onChange(`${h}:${minute}`); setIsOpen(false); }} className={`w-full text-center py-1 rounded text-[10px] font-bold transition ${m === minute ? 'bg-yellow-600 text-white' : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'}`}>{minute}분</button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 const JOB_ICONS: Record<string, string> = {
   전사: "⚔️", 대검전사: "🗡️", 검술사: "🤺", 기사: "🛡️",
@@ -45,6 +78,8 @@ export default function Home() {
   const [joinPopupParty, setJoinPopupParty] = useState<any>(null);
   const [joinSelectedChar, setJoinSelectedChar] = useState<string>("");
   const [joinSelectedRole, setJoinSelectedRole] = useState<string>("");
+  const [joinTimeStart, setJoinTimeStart] = useState<string>("18:00");
+  const [joinTimeEnd, setJoinTimeEnd] = useState<string>("24:00");
   
   const [detailModalParty, setDetailModalParty] = useState<any>(null);
 
@@ -137,6 +172,8 @@ export default function Home() {
     } else {
       setJoinSelectedRole("딜러");
     }
+    setJoinTimeStart(party.time_start);
+    setJoinTimeEnd(party.time_end);
   };
 
   const executeJoinParty = async () => {
@@ -144,10 +181,13 @@ export default function Home() {
     if (!joinSelectedRole) return alert("수행할 포지션을 선택해주세요!");
 
     try {
-      const { data: latestParty, error: fetchErr } = await supabase
-        .from('parties').select('*').eq('id', joinPopupParty.id).single();
+      const [partyRes, allActivePartiesRes] = await Promise.all([
+        supabase.from('parties').select('*').eq('id', joinPopupParty.id).single(),
+        supabase.from('parties').select('*').neq('status', '종료됨')
+      ]);
       
-      if (fetchErr || !latestParty) return alert("파티 정보를 찾을 수 없습니다.");
+      if (partyRes.error || !partyRes.data) return alert("파티 정보를 찾을 수 없습니다.");
+      const latestParty = partyRes.data;
 
       if (latestParty.members.length >= latestParty.max_members) {
         alert("마감되었습니다!");
@@ -160,25 +200,57 @@ export default function Home() {
         return alert(`이미 '${joinSelectedChar}' 캐릭터가 이 파티에 참여 중입니다!`);
       }
 
+      // 충돌 방어 로직
+      const mySchedules = allActivePartiesRes.data
+        ?.filter(p => p.members.some((m: any) => m.name === joinSelectedChar))
+        .map(p => {
+          const dur = p.content_name.includes("통합") || p.content_name.includes("3종") ? 45 : 15;
+          const myMemInfo = p.members.find((m: any) => m.name === joinSelectedChar);
+          const st = p.final_start_time || myMemInfo?.time_start || p.time_start;
+          return { start: st, duration: dur };
+        }) || [];
+      
+      const newDur = latestParty.content_name.includes("통합") || latestParty.content_name.includes("3종") ? 45 : 15;
+      
+      if (isScheduleConflict(joinTimeStart, newDur, mySchedules)) {
+         return alert(`⚠️ [충돌 경고]\n'${joinSelectedChar}' 캐릭터는 해당 시간에 이미 다른 파티(${newDur}분 소요) 일정이 존재합니다!\n참여할 수 없습니다.`);
+      }
+
       const myJob = allCharactersMap[joinSelectedChar] || "전사";
-      const newMember = { name: joinSelectedChar, job: myJob, roles: [joinSelectedRole] };
+      const newMember = { name: joinSelectedChar, job: myJob, roles: [joinSelectedRole], time_start: joinTimeStart, time_end: joinTimeEnd };
       const updatedMembers = [...latestParty.members, newMember];
 
       let updatedWanted = [...(latestParty.wanted_roles || [])];
       const roleIndex = updatedWanted.indexOf(joinSelectedRole);
-      if (roleIndex > -1) {
-        updatedWanted.splice(roleIndex, 1);
+      if (roleIndex > -1) updatedWanted.splice(roleIndex, 1);
+
+      let updatePayload: any = { members: updatedMembers, wanted_roles: updatedWanted };
+
+      if (updatedMembers.length === latestParty.max_members) {
+        const timeRanges = updatedMembers.map(m => ({ start: m.time_start, end: m.time_end }));
+        const optimalTime = calculateOptimalStartTime(timeRanges);
+        
+        if (!optimalTime) {
+          alert("멤버들 간의 시간 교집합이 전혀 없습니다! 일단 파티장 설정 시간으로 임시 확정됩니다.");
+          updatePayload.final_start_time = latestParty.members[0].time_start;
+        } else {
+          updatePayload.final_start_time = optimalTime;
+        }
+        updatePayload.status = "모집완료";
+        updatePayload.leader_name = pickRandomLeader(updatedMembers);
+      } else {
+        updatePayload.status = "모집중";
       }
 
-      const { error: updateErr } = await supabase.from('parties').update({
-        members: updatedMembers,
-        wanted_roles: updatedWanted,
-        status: updatedMembers.length === latestParty.max_members ? "모집완료" : "모집중"
-      }).eq('id', joinPopupParty.id);
-
+      const { error: updateErr } = await supabase.from('parties').update(updatePayload).eq('id', joinPopupParty.id);
       if (updateErr) throw updateErr;
 
-      alert(`[${joinSelectedChar}] 파티 합류 완료!`);
+      if (updatePayload.status === "모집완료") {
+        alert(`🎉 파티 매칭 완료!\n⏰ 확정 출발 시간: ${updatePayload.final_start_time}\n👑 랜덤 파티장: ${updatePayload.leader_name}`);
+      } else {
+        alert(`[${joinSelectedChar}] 파티 합류 대기열에 등록되었습니다.`);
+      }
+      
       setJoinPopupParty(null);
       fetchDashboardData();
 
@@ -248,7 +320,7 @@ export default function Home() {
           </div>
         </header>
 
-        {/* 상단 알리미 위젯 */}
+        {/* 상단 알리미 위젯 (복구됨!) */}
         <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
           <div className="bg-[#1c1c1e] border border-zinc-700/50 rounded-xl p-4 flex flex-col justify-center relative shadow-lg">
             <p className="text-[11px] font-bold text-amber-500/80 mb-1">소환의 결계 알림</p>
@@ -298,7 +370,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* 캐릭터 숙제 체크보드 */}
+        {/* 캐릭터 숙제 체크보드 (복구됨!) */}
         <section className="bg-[#1c1c1e] border border-zinc-800 rounded-xl p-5 shadow-xl">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-5 border-b border-zinc-800 pb-4 gap-4">
             <div className="flex-none">
@@ -385,50 +457,57 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ⚔️ 실시간 파티 매칭 현황 */}
+        {/* 실시간 오토 매칭 현황 (스마트 시스템 탑재완료) */}
         <section className="bg-[#1c1c1e] border border-zinc-800 rounded-xl p-5 shadow-lg w-full flex flex-col">
           <div className="flex items-center justify-between mb-4 pb-3 border-b border-zinc-800">
             <div>
-              <h2 className="text-white font-bold text-sm">⚔️ 실시간 파티 매칭 현황</h2>
-              <p className="text-[11px] text-zinc-400 mt-1">공간을 줄이고 직관적으로 개편된 실시간 파티 현황입니다.</p>
+              <h2 className="text-white font-bold text-sm">⚔️ 실시간 오토 파티 매칭</h2>
+              <p className="text-[11px] text-zinc-400 mt-1">인원이 꽉 차면 시스템이 15분 단위 최적 출발 시간과 파티장을 자동 확정합니다.</p>
             </div>
             <button onClick={() => router.push('/party')} className="text-[10px] bg-[#e6c788] text-[#121212] font-black px-3 py-1.5 rounded hover:bg-yellow-500 transition shadow">전체 게시판 이동</button>
           </div>
           
           <div className="grid lg:grid-cols-2 gap-4 flex-1">
             {activeParties.length === 0 ? (
-              <div className="col-span-full flex justify-center items-center py-10 text-zinc-500 font-bold text-xs">
-                현재 모집 중인 파티가 없습니다.
-              </div>
+              <div className="col-span-full flex justify-center items-center py-10 text-zinc-500 font-bold text-xs">현재 모집 중인 파티가 없습니다.</div>
             ) : (
               activeParties.map((party) => {
-                // 🟢 누락되었던 isMyParty 선언 복구 완료
                 const isMyParty = party.members.some((m: any) => MY_ACCOUNT_CHARACTERS.includes(m.name));
                 const isFull = party.members.length >= party.max_members;
                 const isOver4 = party.max_members > 4;
+                const isCompleted = party.status === "모집완료";
 
                 return (
-                  <div key={party.id} className={`rounded-xl border ${party.party_type === '연속 뺑이' ? 'border-rose-900/40' : 'border-zinc-700/80'} bg-[#252528] p-4 flex flex-col gap-3 shadow-md`}>
+                  <div key={party.id} className={`rounded-xl border ${party.party_type === '연속 뺑이' ? 'border-rose-900/40' : 'border-zinc-700/80'} ${isCompleted ? 'bg-indigo-900/10 border-indigo-700/50' : 'bg-[#252528]'} p-4 flex flex-col gap-3 shadow-md transition-all`}>
                     
-                    {/* 상단 정보 */}
                     <div className="flex justify-between items-start gap-2 border-b border-zinc-700/50 pb-2.5">
                       <div className="flex flex-col">
                         <div className="flex items-center gap-1.5 mb-1 flex-wrap">
-                          {party.party_type === "연속 뺑이" ? (
-                            <span className="text-[9px] font-black bg-rose-900/80 text-white px-1.5 py-0.5 rounded border border-rose-500/50 animate-pulse">🔄 뺑이팟</span>
+                          {isCompleted ? (
+                            <span className="text-[9px] font-black bg-indigo-600 text-white px-2 py-0.5 rounded shadow">✅ 매칭완료</span>
                           ) : (
-                            <span className="text-[9px] font-black bg-zinc-700 text-zinc-300 px-1.5 py-0.5 rounded border border-zinc-500">🎯 1회팟</span>
+                            <span className="text-[9px] font-black bg-zinc-700 text-zinc-300 px-1.5 py-0.5 rounded border border-zinc-500">대기중</span>
                           )}
                           <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${DIFFICULTY_COLORS[party.difficulty] || "text-zinc-400 bg-zinc-800 border-zinc-600"}`}>{party.difficulty}</span>
                           <span className="text-[9px] font-bold text-zinc-400 bg-zinc-800 px-1.5 py-0.5 rounded">{party.max_members}인팟</span>
                         </div>
-                        <p className="text-base font-black text-white leading-tight">{party.content_name}</p>
-                        <p className="text-[10px] text-[#e6c788] font-mono mt-0.5">⏰ {party.time_start} ~ {party.time_end}</p>
+                        <p className={`text-base font-black ${isCompleted ? 'text-indigo-100' : 'text-white'} leading-tight`}>{party.content_name}</p>
+                        
+                        <div className="mt-1">
+                          {isCompleted ? (
+                             <span className="text-[11px] bg-yellow-900/40 px-2 py-0.5 rounded text-yellow-400 font-bold border border-yellow-600/50 animate-pulse">
+                               ⏰ 확정 출발 {party.final_start_time}
+                             </span>
+                          ) : (
+                             <span className="text-[10px] text-[#e6c788] font-mono">
+                               ⏰ 희망 {party.time_start} ~ {party.time_end}
+                             </span>
+                          )}
+                        </div>
                       </div>
 
                       <div className="flex flex-col items-end gap-1.5">
                         <span className="text-xs font-black text-white bg-[#121212] border border-zinc-700 px-2.5 py-1 rounded-full">{party.members.length} / {party.max_members} 명</span>
-                        
                         {isFull ? (
                            <button disabled className="text-[10px] font-bold bg-zinc-800 text-zinc-500 border border-zinc-700 px-3 py-1.5 rounded cursor-not-allowed">모집 마감</button>
                         ) : (
@@ -437,7 +516,6 @@ export default function Home() {
                       </div>
                     </div>
 
-                    {/* WANTED 영역 */}
                     {party.matching_mode === "조합우선" && party.wanted_roles && party.wanted_roles.length > 0 && (
                       <div className="flex items-center gap-1.5 bg-[#121212] border border-rose-900/30 px-2 py-1.5 rounded-lg">
                         <span className="text-[9px] font-black text-rose-500 animate-pulse">WANTED</span>
@@ -447,14 +525,13 @@ export default function Home() {
                       </div>
                     )}
 
-                    {/* 콤팩트 멤버 슬롯 */}
                     <div className="flex items-center justify-between gap-1.5 bg-[#121212] p-2 rounded-lg border border-zinc-800">
                       <div className="flex gap-1.5 overflow-x-auto custom-scrollbar flex-1">
                         {Array.from({ length: isOver4 ? 4 : party.max_members }).map((_, i) => {
                           const m = party.members[i];
                           const actualJob = m ? (allCharactersMap[m.name] || m.job || "전사") : "";
                           return m ? (
-                            <div key={i} className="flex flex-col items-center justify-center bg-zinc-800 border border-zinc-600 rounded p-1 w-12 h-14 flex-shrink-0 relative">
+                            <div key={i} className={`flex flex-col items-center justify-center border ${isCompleted && party.leader_name === m.name ? 'bg-yellow-900/20 border-yellow-600/50' : 'bg-zinc-800 border-zinc-600'} rounded p-1 w-12 h-14 flex-shrink-0 relative`}>
                               <span className="text-sm leading-none mb-0.5">{JOB_ICONS[actualJob] || "👤"}</span>
                               <span className="text-[8px] text-white truncate w-full text-center font-bold">{m.name}</span>
                               {m.roles && m.roles.length > 0 && (
@@ -468,7 +545,8 @@ export default function Home() {
                           )
                         })}
                       </div>
-
+                      
+                      {/* 8인 이상일 때 더보기 버튼 */}
                       {isOver4 && (
                         <button onClick={() => setDetailModalParty(party)} className="bg-zinc-800 hover:bg-zinc-700 border border-zinc-600 text-zinc-300 text-[10px] font-bold px-2.5 py-3 rounded flex flex-col items-center justify-center gap-1 transition flex-shrink-0">
                           <span>+보기</span>
@@ -478,7 +556,7 @@ export default function Home() {
                     </div>
                     
                     <div className="text-[10px] text-zinc-500 font-medium flex justify-between items-center pt-1">
-                      <span>파티장: <span className="text-zinc-300 font-bold">{party.members[0]?.name || "알 수 없음"}</span></span>
+                      <span>파티장: <span className="text-zinc-300 font-bold">{isCompleted ? `👑 ${party.leader_name}` : party.members[0]?.name || "알 수 없음"}</span></span>
                       {isMyParty && (
                         <button onClick={() => handleDeleteParty(party.id)} className="text-[9px] text-red-400 hover:underline">내 파티 취소하기</button>
                       )}
@@ -490,7 +568,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* 4단 분할: 랭킹 & 저널 */}
+        {/* 4단 분할: 랭킹 & 저널 (복구됨!) */}
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
           <section className="lg:col-span-2 bg-[#1c1c1e] border border-zinc-800 rounded-xl p-5 shadow-lg">
             <div className="flex justify-between items-center mb-4 border-b border-zinc-800 pb-3">
@@ -546,7 +624,7 @@ export default function Home() {
         </div>
       </div>
 
-      {/* 파티 참여 팝업 */}
+      {/* 파티 참여 팝업 (시간 선택 추가된 버전) */}
       {joinPopupParty && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-[#1c1c1e] border border-zinc-700 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
@@ -554,12 +632,8 @@ export default function Home() {
               <h2 className="text-lg font-black text-white">⚔️ 파티 합류 신청</h2>
               <button onClick={() => setJoinPopupParty(null)} className="text-zinc-500 hover:text-white text-xl">&times;</button>
             </div>
+            
             <div className="p-6 space-y-6 bg-[#1c1c1e]">
-              <div className="bg-[#121212] p-4 rounded-xl border border-zinc-800 text-center">
-                <p className="text-sm font-bold text-[#e6c788] mb-1">{joinPopupParty.content_name}</p>
-                <p className="text-xs text-zinc-400">⏰ {joinPopupParty.time_start} ~ {joinPopupParty.time_end}</p>
-              </div>
-
               <div>
                 <label className="text-[11px] font-bold text-zinc-500 mb-2 block">1. 캐릭터 선택</label>
                 <div className="flex flex-wrap gap-2">
@@ -589,16 +663,28 @@ export default function Home() {
                   ))}
                 </div>
               </div>
+
+              {/* 내 가능 시간 범위 제출기 */}
+              <div className="bg-[#121212] border border-zinc-700/50 p-4 rounded-xl">
+                <label className="text-[11px] font-bold text-[#e6c788] mb-1 block">3. 본인의 가능 시간 입력</label>
+                <p className="text-[9px] text-zinc-500 mb-3">시스템이 멤버들의 시간을 분석해 최적의 출발 시간을 확정합니다.</p>
+                <div className="flex items-center gap-2">
+                  <CustomTimePicker value={joinTimeStart} onChange={setJoinTimeStart} />
+                  <span className="text-zinc-500 font-bold">~</span>
+                  <CustomTimePicker value={joinTimeEnd} onChange={setJoinTimeEnd} />
+                </div>
+              </div>
             </div>
+            
             <div className="p-5 bg-[#252528] border-t border-zinc-700 flex gap-3">
               <button onClick={() => setJoinPopupParty(null)} className="flex-1 bg-[#121212] border border-zinc-700 text-zinc-400 font-bold py-3 rounded-xl">취소</button>
-              <button onClick={executeJoinParty} className="flex-[2] bg-emerald-600 hover:bg-emerald-500 text-white font-black py-3 rounded-xl shadow-lg">선착순 합류하기!</button>
+              <button onClick={executeJoinParty} className="flex-[2] bg-emerald-600 hover:bg-emerald-500 text-white font-black py-3 rounded-xl shadow-lg">가능 시간 제출 및 합류!</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* 전체보기 모달 */}
+      {/* 전체보기 모달 (복구됨!) */}
       {detailModalParty && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
           <div className="bg-[#1c1c1e] border border-zinc-700 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col">
@@ -611,7 +697,7 @@ export default function Home() {
                 const m = detailModalParty.members[i];
                 const actualJob = m ? (allCharactersMap[m.name] || m.job || "전사") : "";
                 return m ? (
-                  <div key={i} className="flex flex-col items-center justify-center bg-zinc-800 border border-zinc-600 rounded p-2 h-20 relative">
+                  <div key={i} className={`flex flex-col items-center justify-center border ${detailModalParty.status === '모집완료' && detailModalParty.leader_name === m.name ? 'bg-yellow-900/20 border-yellow-600/50' : 'bg-zinc-800 border-zinc-600'} rounded p-2 h-20 relative`}>
                     <span className="text-2xl mb-1">{JOB_ICONS[actualJob] || "👤"}</span>
                     <span className="text-[10px] text-white truncate w-full text-center font-bold">{m.name}</span>
                     {m.roles && m.roles.length > 0 && (
