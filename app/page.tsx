@@ -71,16 +71,30 @@ export default function Home() {
   const [weeklyTasks, setWeeklyTasks] = useState<any[]>([]);
   const [abyssList, setAbyssList] = useState<any[]>([]);
   const [raidList, setRaidList] = useState<any[]>([]);
-
-  const [currentTime, setCurrentTime] = useState(new Date());
   const [activeParties, setActiveParties] = useState<any[]>([]);
   
+  // 🟢 실시간 인게임 이벤트 상태 (API 연동 준비)
+  const [eventData, setEventData] = useState<{
+    boundarySec: number;
+    abyssText: string;
+    abyssSec: number;
+    deepHoleResetSec: number;
+    senmaiCh: number[];
+    paleMountainCh: number[];
+  }>({
+    boundarySec: 3600,
+    abyssText: "데이터 로딩 중...",
+    abyssSec: 7200,
+    deepHoleResetSec: 18000,
+    senmaiCh: [0, 0, 0, 0, 0, 0, 0, 0],
+    paleMountainCh: [0, 0, 0, 0, 0, 0, 0, 0]
+  });
+
   const [joinPopupParty, setJoinPopupParty] = useState<any>(null);
   const [joinSelectedChar, setJoinSelectedChar] = useState<string>("");
   const [joinSelectedRole, setJoinSelectedRole] = useState<string>("");
   const [joinTimeStart, setJoinTimeStart] = useState<string>("18:00");
   const [joinTimeEnd, setJoinTimeEnd] = useState<string>("24:00");
-  
   const [detailModalParty, setDetailModalParty] = useState<any>(null);
 
   const [journal] = useState([
@@ -89,16 +103,52 @@ export default function Home() {
   ]);
 
   useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
+    const fetchGameEvents = async () => {
+      try {
+        const res = await fetch('/api/game-events');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.success) {
+          setEventData({
+            boundarySec: data.boundary.remainingSeconds || 0,
+            abyssText: data.abyssHole.nextTimeText || "일정 확인 중",
+            abyssSec: data.abyssHole.remainingSeconds || 0,
+            deepHoleResetSec: data.deepHole.resetRemainingSeconds || 0,
+            senmaiCh: data.deepHole.senmai || [0, 0, 0, 0, 0, 0, 0, 0],
+            paleMountainCh: data.deepHole.paleMountain || [0, 0, 0, 0, 0, 0, 0, 0]
+          });
+        }
+      } catch (err) {
+        console.error("Event fetch error:", err);
+      }
+    };
+
+    fetchGameEvents();
+    const apiInterval = setInterval(fetchGameEvents, 60000); 
+
+    const timer = setInterval(() => {
+      setEventData(prev => ({
+        ...prev,
+        boundarySec: Math.max(0, prev.boundarySec - 1),
+        abyssSec: Math.max(0, prev.abyssSec - 1),
+        deepHoleResetSec: Math.max(0, prev.deepHoleResetSec - 1)
+      }));
+    }, 1000);
+
+    return () => { clearInterval(apiInterval); clearInterval(timer); };
   }, []);
 
-  const getCountdown = (targetMinutes: number) => {
-    const totalSeconds = targetMinutes * 60 - (currentTime.getMinutes() * 60 + currentTime.getSeconds());
-    const remaining = totalSeconds > 0 ? totalSeconds : totalSeconds + 3600;
-    const m = Math.floor(remaining / 60).toString().padStart(2, '0');
-    const s = (remaining % 60).toString().padStart(2, '0');
+  const formatSecondsToMMSS = (totalSeconds: number) => {
+    const m = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
+    const s = (totalSeconds % 60).toString().padStart(2, '0');
     return `${m}:${s}`;
+  };
+
+  const formatSecondsToHoursText = (totalSeconds: number) => {
+    if (totalSeconds <= 0) return "지금 출현 중!";
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    return `${h}시간 ${m}분 남음`;
   };
 
   const fetchDashboardData = async () => {
@@ -153,9 +203,7 @@ export default function Home() {
     if (!savedUser) { router.push("/login"); } else { setUser(JSON.parse(savedUser)); }
   }, [router]);
 
-  useEffect(() => {
-    if (user) fetchDashboardData();
-  }, [user]);
+  useEffect(() => { if (user) fetchDashboardData(); }, [user]);
 
   const handleDeleteParty = async (id: number) => {
     if (confirm("정말로 이 파티 모집을 취소하시겠습니까?")) {
@@ -167,11 +215,8 @@ export default function Home() {
   const openJoinPopup = (party: any) => {
     setJoinPopupParty(party);
     setJoinSelectedChar(myCharacters.length > 0 ? myCharacters[0].nickname : "");
-    if (party.wanted_roles && party.wanted_roles.length > 0) {
-      setJoinSelectedRole(party.wanted_roles[0]);
-    } else {
-      setJoinSelectedRole("딜러");
-    }
+    if (party.wanted_roles && party.wanted_roles.length > 0) setJoinSelectedRole(party.wanted_roles[0]);
+    else setJoinSelectedRole("딜러");
     setJoinTimeStart(party.time_start);
     setJoinTimeEnd(party.time_end);
   };
@@ -186,35 +231,20 @@ export default function Home() {
         supabase.from('parties').select('*').neq('status', '종료됨')
       ]);
       
-      if (partyRes.error || !partyRes.data) return alert("파티 정보를 찾을 수 없습니다.");
       const latestParty = partyRes.data;
+      if (!latestParty) return alert("파티를 찾을 수 없습니다.");
+      if (latestParty.members.length >= latestParty.max_members) return alert("마감되었습니다!");
+      if (latestParty.members.some((m: any) => m.name === joinSelectedChar)) return alert("이미 참여 중입니다!");
 
-      if (latestParty.members.length >= latestParty.max_members) {
-        alert("마감되었습니다!");
-        setJoinPopupParty(null);
-        fetchDashboardData();
-        return;
-      }
-
-      if (latestParty.members.some((m: any) => m.name === joinSelectedChar)) {
-        return alert(`이미 '${joinSelectedChar}' 캐릭터가 이 파티에 참여 중입니다!`);
-      }
-
-      // 충돌 방어 로직
-      const mySchedules = allActivePartiesRes.data
-        ?.filter(p => p.members.some((m: any) => m.name === joinSelectedChar))
-        .map(p => {
+      const mySchedules = allActivePartiesRes.data?.filter(p => p.members.some((m: any) => m.name === joinSelectedChar)).map(p => {
           const dur = p.content_name.includes("통합") || p.content_name.includes("3종") ? 45 : 15;
           const myMemInfo = p.members.find((m: any) => m.name === joinSelectedChar);
           const st = p.final_start_time || myMemInfo?.time_start || p.time_start;
           return { start: st, duration: dur };
-        }) || [];
+      }) || [];
       
       const newDur = latestParty.content_name.includes("통합") || latestParty.content_name.includes("3종") ? 45 : 15;
-      
-      if (isScheduleConflict(joinTimeStart, newDur, mySchedules)) {
-         return alert(`⚠️ [충돌 경고]\n'${joinSelectedChar}' 캐릭터는 해당 시간에 이미 다른 파티(${newDur}분 소요) 일정이 존재합니다!\n참여할 수 없습니다.`);
-      }
+      if (isScheduleConflict(joinTimeStart, newDur, mySchedules)) return alert(`⚠️ [충돌 경고]\n일정이 겹칩니다!`);
 
       const myJob = allCharactersMap[joinSelectedChar] || "전사";
       const newMember = { name: joinSelectedChar, job: myJob, roles: [joinSelectedRole], time_start: joinTimeStart, time_end: joinTimeEnd };
@@ -229,13 +259,7 @@ export default function Home() {
       if (updatedMembers.length === latestParty.max_members) {
         const timeRanges = updatedMembers.map(m => ({ start: m.time_start, end: m.time_end }));
         const optimalTime = calculateOptimalStartTime(timeRanges);
-        
-        if (!optimalTime) {
-          alert("멤버들 간의 시간 교집합이 전혀 없습니다! 일단 파티장 설정 시간으로 임시 확정됩니다.");
-          updatePayload.final_start_time = latestParty.members[0].time_start;
-        } else {
-          updatePayload.final_start_time = optimalTime;
-        }
+        updatePayload.final_start_time = optimalTime || latestParty.members[0].time_start;
         updatePayload.status = "모집완료";
         updatePayload.leader_name = pickRandomLeader(updatedMembers);
       } else {
@@ -245,35 +269,20 @@ export default function Home() {
       const { error: updateErr } = await supabase.from('parties').update(updatePayload).eq('id', joinPopupParty.id);
       if (updateErr) throw updateErr;
 
-      if (updatePayload.status === "모집완료") {
-        alert(`🎉 파티 매칭 완료!\n⏰ 확정 출발 시간: ${updatePayload.final_start_time}\n👑 랜덤 파티장: ${updatePayload.leader_name}`);
-      } else {
-        alert(`[${joinSelectedChar}] 파티 합류 대기열에 등록되었습니다.`);
-      }
-      
+      alert(updatePayload.status === "모집완료" ? "🎉 파티 매칭 완료!" : "파티 대기열 등록 완료");
       setJoinPopupParty(null);
       fetchDashboardData();
-
-    } catch (err) {
-      alert("합류 처리 중 오류가 발생했습니다.");
-    }
+    } catch (err) { alert("오류 발생"); }
   };
 
   const formatName = (fullName: string) => fullName.replace('어비스 - ', '').replace('레이드 - ', '').substring(0, 2);
 
-  let totalAccountCurrent = 0;
-  let totalAccountMax = 0;
+  let totalAccountCurrent = 0, totalAccountMax = 0;
   myCharacters.forEach(char => {
     const dChecks = Array.isArray(char.daily_checks) ? char.daily_checks.map(Number) : [];
     const wChecks = Array.isArray(char.weekly_checks?.normal) ? char.weekly_checks.normal.map(Number) : [];
     const rChecks = Array.isArray(char.raid_checks) ? char.raid_checks.map(Number) : [];
-
-    const dCount = dailyTasks.filter(t => dChecks.includes(t.id)).length;
-    const wCount = weeklyTasks.filter(t => wChecks.includes(t.id)).length;
-    const aCount = abyssList.filter(a => rChecks.includes(a.id)).length;
-    const rCount = raidList.filter(r => rChecks.includes(r.id)).length;
-
-    totalAccountCurrent += (dCount + wCount + aCount + rCount);
+    totalAccountCurrent += (dailyTasks.filter(t => dChecks.includes(t.id)).length + weeklyTasks.filter(t => wChecks.includes(t.id)).length + abyssList.filter(a => rChecks.includes(a.id)).length + raidList.filter(r => rChecks.includes(r.id)).length);
     totalAccountMax += (dailyTasks.length + weeklyTasks.length + abyssList.length + raidList.length);
   });
   const accountProgressRate = totalAccountMax > 0 ? Math.round((totalAccountCurrent / totalAccountMax) * 100) : 0;
@@ -283,23 +292,16 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-[#121212] text-[#d4d4d8] font-sans pb-10">
       
-      {/* GNB 미니 헤더 */}
       <div className="w-full bg-[#1c1c1e] border-b border-zinc-800 px-6 py-2.5 flex justify-between items-center shadow-md">
         <div className="flex items-center gap-2 text-white font-bold text-sm tracking-wide"><span>🏰 SANCTUM</span></div>
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-[#121212] border border-zinc-600 flex items-center justify-center text-sm shadow-inner">
-            {JOB_ICONS[user.job || "기사"] || "👦🏻"}
-          </div>
-          <div className="flex flex-col leading-tight">
-            <span className="font-bold text-white text-sm">{user.nickname}</span>
-            <span className="text-[10px] text-zinc-400">{user.role || "마스터"}</span>
-          </div>
+          <div className="w-8 h-8 rounded-full bg-[#121212] border border-zinc-600 flex items-center justify-center text-sm">{JOB_ICONS[user.job || "기사"] || "👦🏻"}</div>
+          <div className="flex flex-col leading-tight"><span className="font-bold text-white text-sm">{user.nickname}</span><span className="text-[10px] text-zinc-400">{user.role || "마스터"}</span></div>
         </div>
       </div>
 
       <div className="p-4 md:p-8 max-w-[1400px] mx-auto space-y-6">
         
-        {/* 대시보드 타이틀 */}
         <header className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-6">
             <div className="w-24 h-24 md:w-32 md:h-32 bg-[#121212] border border-yellow-600/30 rounded-lg flex items-center justify-center shadow-2xl relative overflow-hidden flex-shrink-0">
@@ -320,57 +322,70 @@ export default function Home() {
           </div>
         </header>
 
-        {/* 상단 알리미 위젯 (복구됨!) */}
-        <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
-          <div className="bg-[#1c1c1e] border border-zinc-700/50 rounded-xl p-4 flex flex-col justify-center relative shadow-lg">
-            <p className="text-[11px] font-bold text-amber-500/80 mb-1">소환의 결계 알림</p>
-            <div className="flex items-end gap-2 mt-1">
-              <span className="text-2xl font-black text-amber-100">{getCountdown(60)}</span>
-              <span className="text-xs text-zinc-500 font-bold mb-1">다음 출현까지</span>
-            </div>
-            <p className="text-[10px] text-zinc-500 mt-1">최근 리셋됨</p>
+        {/* 🟢 상단 알리미 위젯 (결계, 어비스, 심층 원상복구) */}
+        <section className="space-y-2">
+          <div className="flex justify-end items-center px-1">
+            <span className="text-[10px] text-zinc-500 font-medium flex items-center gap-1.5 bg-[#1c1c1e] px-2.5 py-1 rounded-full border border-zinc-800">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              데이안 서버 실시간 연동
+            </span>
           </div>
 
-          <div className="bg-[#1a1625] border border-purple-900/50 rounded-xl p-4 flex flex-col justify-center relative shadow-[0_0_15px_rgba(168,85,247,0.05)]">
-            <p className="text-[11px] font-bold text-purple-400 mb-1 flex justify-between">
-              <span>어비스 구멍 알림</span>
-              <span className="bg-purple-900/40 px-1.5 py-0.5 rounded text-[8px]">일정표</span>
-            </p>
-            <div className="flex flex-col mt-1">
-              <span className="text-lg font-black text-purple-100 tracking-tight">내일 오전 2시 26분</span>
-              <span className="text-[10px] text-purple-300/60 font-bold mt-0.5">16시간 35분 남음</span>
-            </div>
-          </div>
-
-          <div className="bg-[#201515] border border-red-900/50 rounded-xl p-4 flex flex-col justify-between relative shadow-[0_0_15px_rgba(239,68,68,0.05)]">
-            <div className="flex justify-between items-center mb-3">
-              <p className="text-[11px] font-bold text-red-400">데이안 서버 심층 구멍 알림</p>
-              <span className="text-[9px] text-red-300/60 font-mono">{getCountdown(30)} 후 리셋</span>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex justify-between items-center bg-[#121212] border border-zinc-800 p-2.5 rounded-lg">
-                <span className="text-[10px] text-zinc-300 font-bold">센마이 평원</span>
-                <span className="text-[10px] bg-red-900/40 text-red-400 px-2 py-0.5 rounded font-bold tracking-wide">대기 <span className="opacity-60">(0/3)</span></span>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+            <div className="bg-[#1c1c1e] border border-zinc-700/50 rounded-xl p-4 flex flex-col justify-center relative shadow-lg">
+              <p className="text-[11px] font-bold text-amber-500/80 mb-1">소환의 결계 알림</p>
+              <div className="flex items-end gap-2 mt-1">
+                <span className="text-2xl font-black text-amber-100">{formatSecondsToMMSS(eventData.boundarySec)}</span>
+                <span className="text-xs text-zinc-500 font-bold mb-1">다음 출현까지</span>
               </div>
-              <div className="flex justify-between items-center bg-[#121212] border border-zinc-800 p-2.5 rounded-lg">
-                <span className="text-[10px] text-zinc-300 font-bold">창백한 산</span>
-                <span className="text-[10px] bg-emerald-900/30 text-emerald-400 px-2 py-0.5 rounded font-bold tracking-wide">출현 <span className="opacity-60">(1/3)</span></span>
+              <p className="text-[10px] text-zinc-500 mt-1">실시간 타이머 작동 중</p>
+            </div>
+
+            <div className="bg-[#1a1625] border border-purple-900/50 rounded-xl p-4 flex flex-col justify-center relative shadow-[0_0_15px_rgba(168,85,247,0.05)]">
+              <p className="text-[11px] font-bold text-purple-400 mb-1 flex justify-between">
+                <span>어비스 구멍 알림</span>
+                <span className="bg-purple-900/40 px-1.5 py-0.5 rounded text-[8px]">일정표</span>
+              </p>
+              <div className="flex flex-col mt-1">
+                <span className="text-base font-black text-purple-100 tracking-tight truncate">{eventData.abyssText}</span>
+                <span className="text-[10px] text-purple-300/60 font-bold mt-0.5">{formatSecondsToHoursText(eventData.abyssSec)}</span>
               </div>
             </div>
-          </div>
 
-          <div className="rounded-xl border border-yellow-600/30 bg-[#1c1c1e] p-4 flex flex-col justify-center relative overflow-hidden shadow-lg">
-            <div className="absolute -right-4 -bottom-4 text-6xl opacity-5">⚡</div>
-            <p className="text-[11px] uppercase tracking-[0.1em] text-zinc-500 font-bold">올라운더 달성률</p>
-            <div className="mt-2 flex items-baseline gap-1">
-              <span className="text-3xl font-black text-[#e6c788]">{allRounderLevel}</span>
-              <span className="text-sm font-bold text-zinc-500">LV</span>
+            <div className="bg-[#201515] border border-red-900/50 rounded-xl p-4 flex flex-col justify-between relative shadow-[0_0_15px_rgba(239,68,68,0.05)]">
+              <div className="flex justify-between items-center mb-2">
+                <p className="text-[11px] font-bold text-red-400">데이안 서버 심층 구멍</p>
+                <span className="text-[9px] text-red-300/60 font-mono">{formatSecondsToMMSS(eventData.deepHoleResetSec)} 후 리셋</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="flex justify-between items-center bg-[#121212] border border-zinc-800 p-2 rounded-lg">
+                  <span className="text-[10px] text-zinc-300 font-bold">센마이 평원</span>
+                  <span className="text-[10px] bg-red-900/40 text-red-400 px-1.5 py-0.5 rounded font-bold">
+                    {eventData.senmaiCh.filter(c => c > 0).length > 0 ? `출현 (${eventData.senmaiCh.filter(c => c > 0).length})` : '대기'}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center bg-[#121212] border border-zinc-800 p-2 rounded-lg">
+                  <span className="text-[10px] text-zinc-300 font-bold">창백한 산</span>
+                  <span className="text-[10px] bg-emerald-900/30 text-emerald-400 px-1.5 py-0.5 rounded font-bold">
+                    {eventData.paleMountainCh.filter(c => c > 0).length > 0 ? `출현 (${eventData.paleMountainCh.filter(c => c > 0).length})` : '대기'}
+                  </span>
+                </div>
+              </div>
             </div>
-            <p className="text-[10px] text-zinc-500 mt-1">최대 1365 LV</p>
+
+            <div className="rounded-xl border border-yellow-600/30 bg-[#1c1c1e] p-4 flex flex-col justify-center relative overflow-hidden shadow-lg">
+              <div className="absolute -right-4 -bottom-4 text-6xl opacity-5">⚡</div>
+              <p className="text-[11px] uppercase tracking-[0.1em] text-zinc-500 font-bold">올라운더 달성률</p>
+              <div className="mt-2 flex items-baseline gap-1">
+                <span className="text-3xl font-black text-[#e6c788]">{allRounderLevel}</span>
+                <span className="text-sm font-bold text-zinc-500">LV</span>
+              </div>
+              <p className="text-[10px] text-zinc-500 mt-1">최대 1365 LV</p>
+            </div>
           </div>
         </section>
 
-        {/* 캐릭터 숙제 체크보드 (복구됨!) */}
+        {/* 캐릭터 숙제 체크보드 원상복구 */}
         <section className="bg-[#1c1c1e] border border-zinc-800 rounded-xl p-5 shadow-xl">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-5 border-b border-zinc-800 pb-4 gap-4">
             <div className="flex-none">
@@ -380,15 +395,14 @@ export default function Home() {
 
             <div className="flex-1 w-full px-0 md:px-8 max-w-2xl">
                <div className="flex justify-between items-center text-[10px] font-bold mb-1.5">
-                  <span className="text-zinc-400">계정 통합 달성률 <span className="font-normal text-zinc-600 hidden sm:inline">(전체 합산)</span></span>
+                  <span className="text-zinc-400">계정 통합 달성률</span>
                   <span className="text-[#e6c788] text-xs font-black">{accountProgressRate}%</span>
                </div>
                <div className="w-full bg-[#121212] border border-zinc-700/50 h-2.5 rounded-full overflow-hidden shadow-inner">
                   <div className="bg-gradient-to-r from-yellow-600 to-[#e6c788] h-full transition-all duration-700" style={{ width: `${accountProgressRate}%` }}></div>
                </div>
             </div>
-
-            <button onClick={() => router.push('/character')} className="flex-none text-xs bg-[#e6c788] text-[#121212] font-black px-4 py-2.5 rounded-lg hover:bg-yellow-500 transition shadow whitespace-nowrap">캐릭터 관리</button>
+            <button onClick={() => router.push('/character')} className="flex-none text-xs bg-[#e6c788] text-[#121212] font-black px-4 py-2.5 rounded-lg hover:bg-yellow-500 transition shadow">캐릭터 관리</button>
           </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
@@ -396,7 +410,6 @@ export default function Home() {
               const dChecks = Array.isArray(char.daily_checks) ? char.daily_checks.map(Number) : [];
               const wChecks = Array.isArray(char.weekly_checks?.normal) ? char.weekly_checks.normal.map(Number) : [];
               const rChecks = Array.isArray(char.raid_checks) ? char.raid_checks.map(Number) : [];
-              
               const dRate = Math.round((dailyTasks.filter(t => dChecks.includes(t.id)).length / (dailyTasks.length || 1)) * 100);
               const wRate = Math.round((weeklyTasks.filter(t => wChecks.includes(t.id)).length / (weeklyTasks.length || 1)) * 100);
               const abyssCount = abyssList.filter(a => rChecks.includes(a.id)).length;
@@ -405,10 +418,9 @@ export default function Home() {
               return (
                 <div key={char.id} onClick={() => router.push('/character')} className="bg-[#252528] border border-zinc-700/50 rounded-xl p-4 cursor-pointer hover:border-[#e6c788]/60 transition shadow-md flex flex-col gap-3 group">
                   <div className="flex items-center gap-2 border-b border-zinc-800 pb-2">
-                    <span className="text-base bg-[#121212] p-1.5 rounded-lg border border-zinc-700 shadow-inner group-hover:border-[#e6c788]/50 transition">{JOB_ICONS[char.job] || "👤"}</span>
+                    <span className="text-base bg-[#121212] p-1.5 rounded-lg border border-zinc-700 group-hover:border-[#e6c788]/50 transition">{JOB_ICONS[char.job] || "👤"}</span>
                     <span className="font-black text-white text-[15px] truncate">{char.nickname}</span>
                   </div>
-
                   <div className="space-y-2 text-[10px] font-bold">
                     <div>
                       <div className="flex justify-between text-zinc-400 mb-1"><span>일일 숙제</span><span className="text-amber-400 font-mono">{Math.min(dRate, 100)}%</span></div>
@@ -419,7 +431,6 @@ export default function Home() {
                       <div className="w-full bg-zinc-800 h-1.5 rounded-full overflow-hidden"><div className="bg-blue-500 h-full transition-all" style={{ width: `${Math.min(wRate, 100)}%` }}></div></div>
                     </div>
                   </div>
-
                   <div className="flex flex-col gap-2 bg-[#121212] p-2.5 rounded-lg border border-zinc-800">
                     <div className="flex flex-col gap-1.5">
                       <span className="text-[9px] font-bold text-zinc-500">어비스 ({abyssCount}/{abyssList.length})</span>
@@ -457,7 +468,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* 실시간 오토 매칭 현황 (스마트 시스템 탑재완료) */}
+        {/* 실시간 오토 파티 매칭 원상복구 */}
         <section className="bg-[#1c1c1e] border border-zinc-800 rounded-xl p-5 shadow-lg w-full flex flex-col">
           <div className="flex items-center justify-between mb-4 pb-3 border-b border-zinc-800">
             <div>
@@ -479,49 +490,29 @@ export default function Home() {
 
                 return (
                   <div key={party.id} className={`rounded-xl border ${party.party_type === '연속 뺑이' ? 'border-rose-900/40' : 'border-zinc-700/80'} ${isCompleted ? 'bg-indigo-900/10 border-indigo-700/50' : 'bg-[#252528]'} p-4 flex flex-col gap-3 shadow-md transition-all`}>
-                    
                     <div className="flex justify-between items-start gap-2 border-b border-zinc-700/50 pb-2.5">
                       <div className="flex flex-col">
                         <div className="flex items-center gap-1.5 mb-1 flex-wrap">
-                          {isCompleted ? (
-                            <span className="text-[9px] font-black bg-indigo-600 text-white px-2 py-0.5 rounded shadow">✅ 매칭완료</span>
-                          ) : (
-                            <span className="text-[9px] font-black bg-zinc-700 text-zinc-300 px-1.5 py-0.5 rounded border border-zinc-500">대기중</span>
-                          )}
+                          {isCompleted ? <span className="text-[9px] font-black bg-indigo-600 text-white px-2 py-0.5 rounded shadow">✅ 매칭완료</span> : <span className="text-[9px] font-black bg-zinc-700 text-zinc-300 px-1.5 py-0.5 rounded border border-zinc-500">대기중</span>}
                           <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${DIFFICULTY_COLORS[party.difficulty] || "text-zinc-400 bg-zinc-800 border-zinc-600"}`}>{party.difficulty}</span>
                           <span className="text-[9px] font-bold text-zinc-400 bg-zinc-800 px-1.5 py-0.5 rounded">{party.max_members}인팟</span>
                         </div>
                         <p className={`text-base font-black ${isCompleted ? 'text-indigo-100' : 'text-white'} leading-tight`}>{party.content_name}</p>
-                        
                         <div className="mt-1">
-                          {isCompleted ? (
-                             <span className="text-[11px] bg-yellow-900/40 px-2 py-0.5 rounded text-yellow-400 font-bold border border-yellow-600/50 animate-pulse">
-                               ⏰ 확정 출발 {party.final_start_time}
-                             </span>
-                          ) : (
-                             <span className="text-[10px] text-[#e6c788] font-mono">
-                               ⏰ 희망 {party.time_start} ~ {party.time_end}
-                             </span>
-                          )}
+                          {isCompleted ? <span className="text-[11px] bg-yellow-900/40 px-2 py-0.5 rounded text-yellow-400 font-bold border border-yellow-600/50 animate-pulse">⏰ 확정 출발 {party.final_start_time}</span> : <span className="text-[10px] text-[#e6c788] font-mono">⏰ 희망 {party.time_start} ~ {party.time_end}</span>}
                         </div>
                       </div>
 
                       <div className="flex flex-col items-end gap-1.5">
                         <span className="text-xs font-black text-white bg-[#121212] border border-zinc-700 px-2.5 py-1 rounded-full">{party.members.length} / {party.max_members} 명</span>
-                        {isFull ? (
-                           <button disabled className="text-[10px] font-bold bg-zinc-800 text-zinc-500 border border-zinc-700 px-3 py-1.5 rounded cursor-not-allowed">모집 마감</button>
-                        ) : (
-                           <button onClick={() => openJoinPopup(party)} className="text-[10px] font-black bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded shadow transition">참여 신청</button>
-                        )}
+                        {isFull ? <button disabled className="text-[10px] font-bold bg-zinc-800 text-zinc-500 border border-zinc-700 px-3 py-1.5 rounded cursor-not-allowed">모집 마감</button> : <button onClick={() => openJoinPopup(party)} className="text-[10px] font-black bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded shadow transition">참여 신청</button>}
                       </div>
                     </div>
 
                     {party.matching_mode === "조합우선" && party.wanted_roles && party.wanted_roles.length > 0 && (
                       <div className="flex items-center gap-1.5 bg-[#121212] border border-rose-900/30 px-2 py-1.5 rounded-lg">
                         <span className="text-[9px] font-black text-rose-500 animate-pulse">WANTED</span>
-                        {party.wanted_roles.map((role: string) => (
-                          <span key={role} className="text-[9px] font-bold bg-rose-900/40 text-rose-300 px-1.5 py-0.5 rounded border border-rose-700/50">{role}</span>
-                        ))}
+                        {party.wanted_roles.map((role: string) => <span key={role} className="text-[9px] font-bold bg-rose-900/40 text-rose-300 px-1.5 py-0.5 rounded border border-rose-700/50">{role}</span>)}
                       </div>
                     )}
 
@@ -534,32 +525,24 @@ export default function Home() {
                             <div key={i} className={`flex flex-col items-center justify-center border ${isCompleted && party.leader_name === m.name ? 'bg-yellow-900/20 border-yellow-600/50' : 'bg-zinc-800 border-zinc-600'} rounded p-1 w-12 h-14 flex-shrink-0 relative`}>
                               <span className="text-sm leading-none mb-0.5">{JOB_ICONS[actualJob] || "👤"}</span>
                               <span className="text-[8px] text-white truncate w-full text-center font-bold">{m.name}</span>
-                              {m.roles && m.roles.length > 0 && (
-                                <span className="absolute bottom-0 bg-indigo-600 w-full text-center text-[7px] text-white rounded-b truncate px-0.5">{m.roles[0]}</span>
-                              )}
+                              {m.roles && m.roles.length > 0 && <span className="absolute bottom-0 bg-indigo-600 w-full text-center text-[7px] text-white rounded-b truncate px-0.5">{m.roles[0]}</span>}
                             </div>
                           ) : (
-                            <div key={i} className="flex flex-col items-center justify-center bg-[#1c1c1e] border border-dashed border-zinc-700 rounded p-1 w-12 h-14 flex-shrink-0">
-                              <span className="text-[8px] text-zinc-600">빈자리</span>
-                            </div>
+                            <div key={i} className="flex flex-col items-center justify-center bg-[#1c1c1e] border border-dashed border-zinc-700 rounded p-1 w-12 h-14 flex-shrink-0"><span className="text-[8px] text-zinc-600">빈자리</span></div>
                           )
                         })}
                       </div>
                       
-                      {/* 8인 이상일 때 더보기 버튼 */}
                       {isOver4 && (
                         <button onClick={() => setDetailModalParty(party)} className="bg-zinc-800 hover:bg-zinc-700 border border-zinc-600 text-zinc-300 text-[10px] font-bold px-2.5 py-3 rounded flex flex-col items-center justify-center gap-1 transition flex-shrink-0">
-                          <span>+보기</span>
-                          <span className="text-[8px] text-zinc-500">({party.members.length}/{party.max_members})</span>
+                          <span>+보기</span><span className="text-[8px] text-zinc-500">({party.members.length}/{party.max_members})</span>
                         </button>
                       )}
                     </div>
                     
                     <div className="text-[10px] text-zinc-500 font-medium flex justify-between items-center pt-1">
                       <span>파티장: <span className="text-zinc-300 font-bold">{isCompleted ? `👑 ${party.leader_name}` : party.members[0]?.name || "알 수 없음"}</span></span>
-                      {isMyParty && (
-                        <button onClick={() => handleDeleteParty(party.id)} className="text-[9px] text-red-400 hover:underline">내 파티 취소하기</button>
-                      )}
+                      {isMyParty && <button onClick={() => handleDeleteParty(party.id)} className="text-[9px] text-red-400 hover:underline">내 파티 취소하기</button>}
                     </div>
                   </div>
                 );
@@ -568,7 +551,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* 4단 분할: 랭킹 & 저널 (복구됨!) */}
+        {/* 랭킹 & 저널 4단 분할 복구 */}
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
           <section className="lg:col-span-2 bg-[#1c1c1e] border border-zinc-800 rounded-xl p-5 shadow-lg">
             <div className="flex justify-between items-center mb-4 border-b border-zinc-800 pb-3">
@@ -579,9 +562,7 @@ export default function Home() {
             <div className="space-y-3">
               {topRankers.map((ranker, idx) => (
                 <div key={ranker.id} className="flex items-center gap-3 bg-[#252528] p-3 rounded-xl border border-zinc-700/50">
-                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black ${idx === 0 ? 'bg-yellow-900/40 text-yellow-500 border border-yellow-700/50' : idx === 1 ? 'bg-zinc-800 text-zinc-300 border border-zinc-600' : 'bg-amber-900/20 text-amber-600 border border-amber-800/50'}`}>
-                    {idx + 1}
-                  </div>
+                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black ${idx === 0 ? 'bg-yellow-900/40 text-yellow-500 border border-yellow-700/50' : idx === 1 ? 'bg-zinc-800 text-zinc-300 border border-zinc-600' : 'bg-amber-900/20 text-amber-600 border border-amber-800/50'}`}>{idx + 1}</div>
                   <div className="w-9 h-9 rounded-full bg-[#121212] flex items-center justify-center text-sm border border-zinc-700">{JOB_ICONS[ranker.job] || "👤"}</div>
                   <div className="flex-1 flex justify-between items-center">
                     <span className="font-bold text-sm text-zinc-200">{ranker.nickname}</span>
@@ -602,8 +583,7 @@ export default function Home() {
                 <p className="text-[11px] font-bold text-zinc-400 mb-2">최근 내 활동 내역</p>
                 {journal.map(entry => (
                   <div key={entry.id} className="bg-[#252528] p-2.5 rounded-lg border border-zinc-700/50 flex justify-between items-center">
-                    <span className="text-xs text-zinc-300">{entry.text}</span>
-                    <span className="text-[10px] text-zinc-500">{entry.date}</span>
+                    <span className="text-xs text-zinc-300">{entry.text}</span><span className="text-[10px] text-zinc-500">{entry.date}</span>
                   </div>
                 ))}
               </div>
@@ -612,8 +592,7 @@ export default function Home() {
                 <div className="flex flex-col gap-3">
                   <div className="bg-[#1c1c1e] p-3 rounded-lg border border-dashed border-yellow-600/50 group cursor-help relative">
                     <div className="flex justify-between items-center mb-1">
-                      <span className="text-xs font-black text-zinc-400 group-hover:text-yellow-500 transition">❓ 파티 메이커</span>
-                      <span className="text-[10px] text-zinc-500">6 / 10 회</span>
+                      <span className="text-xs font-black text-zinc-400 group-hover:text-yellow-500 transition">❓ 파티 메이커</span><span className="text-[10px] text-zinc-500">6 / 10 회</span>
                     </div>
                     <div className="w-full bg-zinc-800 h-1 rounded-full overflow-hidden"><div className="bg-yellow-600 h-full" style={{ width: '60%' }}></div></div>
                   </div>
@@ -624,7 +603,7 @@ export default function Home() {
         </div>
       </div>
 
-      {/* 파티 참여 팝업 (시간 선택 추가된 버전) */}
+      {/* 파티 참여 팝업 */}
       {joinPopupParty && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-[#1c1c1e] border border-zinc-700 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
@@ -651,9 +630,7 @@ export default function Home() {
                   <div className="mb-3 bg-rose-900/10 border border-rose-900/30 p-3 rounded-lg">
                     <p className="text-[10px] text-rose-400 font-bold mb-2">🔥 파티에서 급구 중인 포지션입니다!</p>
                     <div className="flex gap-2">
-                      {joinPopupParty.wanted_roles.map((role: string) => (
-                        <button key={role} onClick={() => setJoinSelectedRole(role)} className={`text-xs font-bold px-3 py-1.5 rounded transition ${joinSelectedRole === role ? 'bg-rose-600 text-white' : 'bg-rose-900/40 text-rose-300 border border-rose-700'}`}>{role}</button>
-                      ))}
+                      {joinPopupParty.wanted_roles.map((role: string) => <button key={role} onClick={() => setJoinSelectedRole(role)} className={`text-xs font-bold px-3 py-1.5 rounded transition ${joinSelectedRole === role ? 'bg-rose-600 text-white' : 'bg-rose-900/40 text-rose-300 border border-rose-700'}`}>{role}</button>)}
                     </div>
                   </div>
                 )}
@@ -664,11 +641,9 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* 내 가능 시간 범위 제출기 */}
               <div className="bg-[#121212] border border-zinc-700/50 p-4 rounded-xl">
                 <label className="text-[11px] font-bold text-[#e6c788] mb-1 block">3. 본인의 가능 시간 입력</label>
-                <p className="text-[9px] text-zinc-500 mb-3">시스템이 멤버들의 시간을 분석해 최적의 출발 시간을 확정합니다.</p>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 mt-2">
                   <CustomTimePicker value={joinTimeStart} onChange={setJoinTimeStart} />
                   <span className="text-zinc-500 font-bold">~</span>
                   <CustomTimePicker value={joinTimeEnd} onChange={setJoinTimeEnd} />
@@ -684,7 +659,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* 전체보기 모달 (복구됨!) */}
+      {/* 8인팟 전체보기 모달 */}
       {detailModalParty && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
           <div className="bg-[#1c1c1e] border border-zinc-700 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col">
@@ -700,14 +675,10 @@ export default function Home() {
                   <div key={i} className={`flex flex-col items-center justify-center border ${detailModalParty.status === '모집완료' && detailModalParty.leader_name === m.name ? 'bg-yellow-900/20 border-yellow-600/50' : 'bg-zinc-800 border-zinc-600'} rounded p-2 h-20 relative`}>
                     <span className="text-2xl mb-1">{JOB_ICONS[actualJob] || "👤"}</span>
                     <span className="text-[10px] text-white truncate w-full text-center font-bold">{m.name}</span>
-                    {m.roles && m.roles.length > 0 && (
-                      <span className="absolute bottom-0 bg-indigo-600 w-full text-center text-[8px] text-white rounded-b truncate px-0.5">{m.roles[0]}</span>
-                    )}
+                    {m.roles && m.roles.length > 0 && <span className="absolute bottom-0 bg-indigo-600 w-full text-center text-[8px] text-white rounded-b truncate px-0.5">{m.roles[0]}</span>}
                   </div>
                 ) : (
-                  <div key={i} className="flex flex-col items-center justify-center bg-[#1c1c1e] border border-dashed border-zinc-700 rounded p-2 h-20">
-                    <span className="text-[10px] text-zinc-600">빈자리</span>
-                  </div>
+                  <div key={i} className="flex flex-col items-center justify-center bg-[#1c1c1e] border border-dashed border-zinc-700 rounded p-2 h-20"><span className="text-[10px] text-zinc-600">빈자리</span></div>
                 )
               })}
             </div>
