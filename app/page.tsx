@@ -5,6 +5,23 @@ import { useRouter } from "next/navigation";
 import { supabase } from "../lib/supabase";
 import { calculateOptimalStartTime, isScheduleConflict, pickRandomLeader } from "../lib/matchingUtils";
 
+// --- [타입 정의] ---
+interface DeepHole {
+  id: string;
+  zone: string;
+  channel: string; // 구멍 갯수 (0~3) 저장용으로 재사용
+  reporter_name: string;
+  reported_at: string;
+}
+
+interface AbyssReport {
+  id: string;
+  reporter_name: string;
+  channel: string; // 입력 남은시간(분) 문자열 저장용
+  hole_time: string; // 계산된 출현 확정 시간
+  status: 'pending' | 'approved' | 'rejected';
+}
+
 function CustomTimePicker({ value, onChange }: { value: string, onChange: (val: string) => void }) {
   const [isOpen, setIsOpen] = useState(false);
   const [h, m] = value.split(':');
@@ -73,22 +90,24 @@ export default function Home() {
   const [raidList, setRaidList] = useState<any[]>([]);
   const [activeParties, setActiveParties] = useState<any[]>([]);
   
-  // 🟢 실시간 인게임 이벤트 상태 (API 연동 준비)
-  const [eventData, setEventData] = useState<{
-    boundarySec: number;
-    abyssText: string;
-    abyssSec: number;
-    deepHoleResetSec: number;
-    senmaiCh: number[];
-    paleMountainCh: number[];
-  }>({
-    boundarySec: 3600,
-    abyssText: "데이터 로딩 중...",
-    abyssSec: 7200,
-    deepHoleResetSec: 18000,
-    senmaiCh: [0, 0, 0, 0, 0, 0, 0, 0],
-    paleMountainCh: [0, 0, 0, 0, 0, 0, 0, 0]
-  });
+  // 🟢 실시간 타이머 및 이벤트 상태
+  const [eventData, setEventData] = useState({ boundarySec: 3600 });
+  const [deepTimer, setDeepTimer] = useState("00:00");
+  const [abyssDisplay, setAbyssDisplay] = useState({ text: "데이터 로딩 중...", time: "계산 중", isDefault: false });
+
+  // 🟢 구멍 제보 팝업 제어 및 상태
+  const [isDeepModalOpen, setIsDeepModalOpen] = useState(false);
+  const [isAbyssModalOpen, setIsAbyssModalOpen] = useState(false);
+  const [isAdminMode, setIsAdminMode] = useState(false);
+
+  const [deepHoles, setDeepHoles] = useState<DeepHole[]>([]);
+  const [deepReporter, setDeepReporter] = useState('');
+  const [deepZone, setDeepZone] = useState<'창백한 산' | '센마이 평원'>('창백한 산');
+  const [deepCount, setDeepCount] = useState('0'); // 0~3개
+
+  const [abyssReports, setAbyssReports] = useState<AbyssReport[]>([]);
+  const [abyssReporter, setAbyssReporter] = useState('');
+  const [abyssMins, setAbyssMins] = useState(''); // 입력받을 남은 분
 
   const [joinPopupParty, setJoinPopupParty] = useState<any>(null);
   const [joinSelectedChar, setJoinSelectedChar] = useState<string>("");
@@ -102,41 +121,33 @@ export default function Home() {
     { id: 2, text: "한설님이 파티 매칭에 참여했습니다.", date: "어제" }
   ]);
 
+  // --- [실시간 타이머 로직] ---
   useEffect(() => {
-    const fetchGameEvents = async () => {
-      try {
-        const res = await fetch('/api/game-events');
-        if (!res.ok) return;
-        const data = await res.json();
-        if (data.success) {
-          setEventData({
-            boundarySec: data.boundary.remainingSeconds || 0,
-            abyssText: data.abyssHole.nextTimeText || "일정 확인 중",
-            abyssSec: data.abyssHole.remainingSeconds || 0,
-            deepHoleResetSec: data.deepHole.resetRemainingSeconds || 0,
-            senmaiCh: data.deepHole.senmai || [0, 0, 0, 0, 0, 0, 0, 0],
-            paleMountainCh: data.deepHole.paleMountain || [0, 0, 0, 0, 0, 0, 0, 0]
-          });
-        }
-      } catch (err) {
-        console.error("Event fetch error:", err);
-      }
-    };
-
-    fetchGameEvents();
-    const apiInterval = setInterval(fetchGameEvents, 60000); 
-
     const timer = setInterval(() => {
-      setEventData(prev => ({
-        ...prev,
-        boundarySec: Math.max(0, prev.boundarySec - 1),
-        abyssSec: Math.max(0, prev.abyssSec - 1),
-        deepHoleResetSec: Math.max(0, prev.deepHoleResetSec - 1)
-      }));
+      const now = new Date();
+
+      // 1. 소환의 결계 타이머 (매 정시)
+      const nextHour = new Date(now);
+      nextHour.setHours(now.getHours() + 1, 0, 0, 0);
+      const bDiff = nextHour.getTime() - now.getTime();
+      setEventData({ boundarySec: Math.floor(bDiff / 1000) });
+
+      // 2. 심층 구멍 타이머 (00분, 30분 리셋)
+      const nextDeepReset = new Date(now);
+      if (now.getMinutes() < 30) nextDeepReset.setMinutes(30, 0, 0);
+      else nextDeepReset.setHours(now.getHours() + 1, 0, 0, 0);
+      
+      const deepDiff = nextDeepReset.getTime() - now.getTime();
+      const dM = Math.floor(deepDiff / 1000 / 60).toString().padStart(2, '0');
+      const dS = Math.floor((deepDiff / 1000) % 60).toString().padStart(2, '0');
+      setDeepTimer(`${dM}:${dS}`);
+
+      // 3. 어비스 구멍 렌더링 업데이트
+      updateAbyssDisplay();
     }, 1000);
 
-    return () => { clearInterval(apiInterval); clearInterval(timer); };
-  }, []);
+    return () => clearInterval(timer);
+  }, [abyssReports]);
 
   const formatSecondsToMMSS = (totalSeconds: number) => {
     const m = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
@@ -144,21 +155,50 @@ export default function Home() {
     return `${m}:${s}`;
   };
 
-  const formatSecondsToHoursText = (totalSeconds: number) => {
-    if (totalSeconds <= 0) return "지금 출현 중!";
-    const h = Math.floor(totalSeconds / 3600);
-    const m = Math.floor((totalSeconds % 3600) / 60);
-    return `${h}시간 ${m}분 남음`;
+  const updateAbyssDisplay = () => {
+    const approvedReports = abyssReports.filter(r => r.status === 'approved').sort((a, b) => new Date(b.hole_time).getTime() - new Date(a.hole_time).getTime());
+    
+    if (approvedReports.length > 0) {
+      // 승인된 최신 제보가 있는 경우
+      const latest = approvedReports[0];
+      const targetTime = new Date(latest.hole_time).getTime();
+      const now = new Date().getTime();
+      const diffSec = Math.floor((targetTime - now) / 1000);
+
+      if (diffSec <= 0) {
+        setAbyssDisplay({ text: `어비스 구멍 진행 중!`, time: `제보자: ${latest.reporter_name}`, isDefault: false });
+      } else {
+        const h = Math.floor(diffSec / 3600);
+        const m = Math.floor((diffSec % 3600) / 60);
+        setAbyssDisplay({ text: `${h > 0 ? h + '시간 ' : ''}${m}분 뒤 진행`, time: `제보자: ${latest.reporter_name}`, isDefault: false });
+      }
+    } else {
+      // 제보가 없을 경우 기본 36시간 15분 주기 계산 (예시: 임의의 고정 시작점 기준)
+      const baseCycle = (36 * 3600) + (15 * 60); // 36시간 15분 초단위
+      const epoch = new Date('2024-01-01T00:00:00Z').getTime() / 1000;
+      const currentSec = new Date().getTime() / 1000;
+      const elapsed = currentSec - epoch;
+      const nextSpawnSec = baseCycle - (elapsed % baseCycle);
+      
+      const h = Math.floor(nextSpawnSec / 3600);
+      const m = Math.floor((nextSpawnSec % 3600) / 60);
+      setAbyssDisplay({ text: "제보 대기 중", time: `기본 주기: 약 ${h}시간 ${m}분 남음`, isDefault: true });
+    }
   };
 
   const fetchDashboardData = async () => {
-    const [charRes, taskRes, contRes, partyRes] = await Promise.all([
+    const [charRes, taskRes, contRes, partyRes, deepRes, abyssRes] = await Promise.all([
       supabase.from('characters').select('*'),
       supabase.from('nexus_tasks').select('*').eq('is_active', true),
       supabase.from('nexus_contents').select('*').eq('is_active', true),
-      supabase.from('parties').select('*').order('created_at', { ascending: false }).limit(4)
+      supabase.from('parties').select('*').order('created_at', { ascending: false }).limit(4),
+      supabase.from('deep_holes').select('*').order('reported_at', { ascending: false }).limit(20),
+      supabase.from('abyss_reports').select('*').order('hole_time', { ascending: false }).limit(10)
     ]);
     
+    if (deepRes.data) setDeepHoles(deepRes.data);
+    if (abyssRes.data) setAbyssReports(abyssRes.data);
+
     if (charRes.data) {
       const allChars = charRes.data;
       const jobMap: Record<string, string> = {};
@@ -204,6 +244,42 @@ export default function Home() {
   }, [router]);
 
   useEffect(() => { if (user) fetchDashboardData(); }, [user]);
+
+  // --- [팝업 제보 제출 함수] ---
+  const submitDeepHole = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!deepReporter) return alert('닉네임을 입력해주세요!');
+    await supabase.from('deep_holes').insert([{ zone: deepZone, channel: deepCount, reporter_name: deepReporter }]);
+    setDeepReporter(''); setDeepCount('0'); setIsDeepModalOpen(false); fetchDashboardData();
+  };
+
+  const submitAbyssHole = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!abyssReporter || !abyssMins) return alert('닉네임과 남은 분을 입력해주세요!');
+    const targetTime = new Date(Date.now() + Number(abyssMins) * 60000).toISOString();
+    await supabase.from('abyss_reports').insert([{ reporter_name: abyssReporter, channel: abyssMins, hole_time: targetTime, status: 'pending' }]);
+    setAbyssReporter(''); setAbyssMins(''); setIsAbyssModalOpen(false); fetchDashboardData();
+  };
+
+  const updateAbyssStatus = async (id: string, newStatus: string) => {
+    await supabase.from('abyss_reports').update({ status: newStatus }).eq('id', id);
+    fetchDashboardData();
+  };
+
+  // 현재 시간 기준 이번 텀(00~29분 or 30~59분)에 제보된 것만 가져오기
+  const getActiveDeepHoles = (zone: string) => {
+    const now = new Date();
+    const lastReset = new Date(now);
+    if (now.getMinutes() < 30) lastReset.setMinutes(0, 0, 0);
+    else lastReset.setMinutes(30, 0, 0);
+
+    return deepHoles.filter(h => h.zone === zone && new Date(h.reported_at) > lastReset);
+  };
+
+  const activeSenmai = getActiveDeepHoles('센마이 평원')[0];
+  const activePale = getActiveDeepHoles('창백한 산')[0];
+
+  // ---------------------------------
 
   const handleDeleteParty = async (id: number) => {
     if (confirm("정말로 이 파티 모집을 취소하시겠습니까?")) {
@@ -290,7 +366,7 @@ export default function Home() {
   if (!mounted || !user) return null;
 
   return (
-    <main className="min-h-screen bg-[#121212] text-[#d4d4d8] font-sans pb-10">
+    <main className="min-h-screen bg-[#121212] text-[#d4d4d8] font-sans pb-10 relative">
       
       <div className="w-full bg-[#1c1c1e] border-b border-zinc-800 px-6 py-2.5 flex justify-between items-center shadow-md">
         <div className="flex items-center gap-2 text-white font-bold text-sm tracking-wide"><span>🏰 SANCTUM</span></div>
@@ -322,7 +398,7 @@ export default function Home() {
           </div>
         </header>
 
-        {/* 🟢 상단 알리미 위젯 (결계, 어비스, 심층 원상복구) */}
+        {/* 🟢 상단 알리미 위젯 (팝업 버튼 적용) */}
         <section className="space-y-2">
           <div className="flex justify-end items-center px-1">
             <span className="text-[10px] text-zinc-500 font-medium flex items-center gap-1.5 bg-[#1c1c1e] px-2.5 py-1 rounded-full border border-zinc-800">
@@ -338,36 +414,45 @@ export default function Home() {
                 <span className="text-2xl font-black text-amber-100">{formatSecondsToMMSS(eventData.boundarySec)}</span>
                 <span className="text-xs text-zinc-500 font-bold mb-1">다음 출현까지</span>
               </div>
-              <p className="text-[10px] text-zinc-500 mt-1">실시간 타이머 작동 중</p>
+              <p className="text-[10px] text-zinc-500 mt-1">실시간 정시 타이머</p>
             </div>
 
-            <div className="bg-[#1a1625] border border-purple-900/50 rounded-xl p-4 flex flex-col justify-center relative shadow-[0_0_15px_rgba(168,85,247,0.05)]">
-              <p className="text-[11px] font-bold text-purple-400 mb-1 flex justify-between">
-                <span>어비스 구멍 알림</span>
-                <span className="bg-purple-900/40 px-1.5 py-0.5 rounded text-[8px]">일정표</span>
-              </p>
+            {/* 🔴 어비스 구멍 위젯 (팝업버튼 추가) */}
+            <div className="bg-[#1a1625] border border-purple-900/50 rounded-xl p-4 flex flex-col justify-between relative shadow-[0_0_15px_rgba(168,85,247,0.05)]">
+              <div className="flex justify-between items-start mb-1">
+                <p className="text-[11px] font-bold text-purple-400">어비스 구멍 알림</p>
+                <button onClick={() => setIsAbyssModalOpen(true)} className="bg-purple-900/60 hover:bg-purple-800 text-purple-200 text-[10px] px-2 py-0.5 rounded border border-purple-700/50 transition font-bold shadow">
+                  제보하기
+                </button>
+              </div>
               <div className="flex flex-col mt-1">
-                <span className="text-base font-black text-purple-100 tracking-tight truncate">{eventData.abyssText}</span>
-                <span className="text-[10px] text-purple-300/60 font-bold mt-0.5">{formatSecondsToHoursText(eventData.abyssSec)}</span>
+                <span className={`text-xl font-black ${abyssDisplay.isDefault ? 'text-zinc-400' : 'text-purple-100'} tracking-tight truncate`}>{abyssDisplay.text}</span>
+                <span className="text-[10px] text-purple-300/60 font-bold mt-1">{abyssDisplay.time}</span>
               </div>
             </div>
 
+            {/* 🟡 데이안 서버 심층 구멍 위젯 (팝업버튼 추가) */}
             <div className="bg-[#201515] border border-red-900/50 rounded-xl p-4 flex flex-col justify-between relative shadow-[0_0_15px_rgba(239,68,68,0.05)]">
               <div className="flex justify-between items-center mb-2">
                 <p className="text-[11px] font-bold text-red-400">데이안 서버 심층 구멍</p>
-                <span className="text-[9px] text-red-300/60 font-mono">{formatSecondsToMMSS(eventData.deepHoleResetSec)} 후 리셋</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[9px] text-red-300/60 font-mono">{deepTimer} 후 초기화</span>
+                  <button onClick={() => setIsDeepModalOpen(true)} className="bg-red-900/40 hover:bg-red-800 text-red-300 text-[10px] px-2 py-0.5 rounded border border-red-700/50 transition font-bold shadow">
+                    제보하기
+                  </button>
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div className="flex justify-between items-center bg-[#121212] border border-zinc-800 p-2 rounded-lg">
                   <span className="text-[10px] text-zinc-300 font-bold">센마이 평원</span>
-                  <span className="text-[10px] bg-red-900/40 text-red-400 px-1.5 py-0.5 rounded font-bold">
-                    {eventData.senmaiCh.filter(c => c > 0).length > 0 ? `출현 (${eventData.senmaiCh.filter(c => c > 0).length})` : '대기'}
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${activeSenmai && activeSenmai.channel !== '0' ? 'bg-red-900/40 text-red-400' : 'bg-zinc-800 text-zinc-500'}`}>
+                    {activeSenmai ? `${activeSenmai.channel}개` : '대기'}
                   </span>
                 </div>
                 <div className="flex justify-between items-center bg-[#121212] border border-zinc-800 p-2 rounded-lg">
                   <span className="text-[10px] text-zinc-300 font-bold">창백한 산</span>
-                  <span className="text-[10px] bg-emerald-900/30 text-emerald-400 px-1.5 py-0.5 rounded font-bold">
-                    {eventData.paleMountainCh.filter(c => c > 0).length > 0 ? `출현 (${eventData.paleMountainCh.filter(c => c > 0).length})` : '대기'}
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${activePale && activePale.channel !== '0' ? 'bg-emerald-900/30 text-emerald-400' : 'bg-zinc-800 text-zinc-500'}`}>
+                    {activePale ? `${activePale.channel}개` : '대기'}
                   </span>
                 </div>
               </div>
@@ -603,9 +688,112 @@ export default function Home() {
         </div>
       </div>
 
-      {/* 파티 참여 팝업 */}
+      {/* ========================================= */}
+      {/* 🔴 [팝업] 어비스 구멍 제보 & 관리자 승인 모달 */}
+      {/* ========================================= */}
+      {isAbyssModalOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-[#1c1c1e] border border-purple-900/50 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
+            <div className="bg-[#252528] p-5 border-b border-zinc-700 flex justify-between items-center">
+              <h2 className="text-lg font-black text-purple-300">🕳️ 어비스 구멍 제보</h2>
+              <button onClick={() => setIsAbyssModalOpen(false)} className="text-zinc-500 hover:text-white text-xl">&times;</button>
+            </div>
+            
+            <div className="p-5 space-y-4 bg-[#1c1c1e]">
+              <div className="flex justify-between items-center">
+                <span className="text-[11px] font-bold text-zinc-400">신규 제보 입력</span>
+                <label className="flex items-center space-x-2 cursor-pointer bg-[#121212] border border-zinc-700 px-2 py-1 rounded">
+                  <input type="checkbox" checked={isAdminMode} onChange={(e) => setIsAdminMode(e.target.checked)} className="w-3 h-3 accent-purple-500" />
+                  <span className="text-[9px] font-bold text-zinc-500">관리자(CBT)</span>
+                </label>
+              </div>
+
+              <form onSubmit={submitAbyssHole} className="flex gap-2">
+                <input type="text" placeholder="닉네임" value={abyssReporter} onChange={(e) => setAbyssReporter(e.target.value)} className="w-24 text-xs p-2.5 rounded bg-[#121212] border border-zinc-700 focus:outline-none focus:border-purple-500 text-white" />
+                <div className="flex-1 relative">
+                  <input type="number" placeholder="등장까지 몇분 남았나요?" value={abyssMins} onChange={(e) => setAbyssMins(e.target.value)} className="w-full text-xs p-2.5 rounded bg-[#121212] border border-zinc-700 focus:outline-none focus:border-purple-500 text-white pr-8" />
+                  <span className="absolute right-3 top-2.5 text-xs text-zinc-500 font-bold">분</span>
+                </div>
+                <button type="submit" className="bg-purple-900/60 hover:bg-purple-800/80 text-purple-200 text-xs px-4 rounded font-bold transition border border-purple-700/50">제보</button>
+              </form>
+
+              {isAdminMode && (
+                <div className="mt-4 pt-4 border-t border-zinc-800">
+                  <h3 className="text-[10px] font-bold text-zinc-500 mb-2">관리자 승인 대기 목록</h3>
+                  <div className="max-h-[150px] overflow-y-auto custom-scrollbar space-y-2 pr-1">
+                    {abyssReports.filter(r => r.status === 'pending').map((report) => (
+                      <div key={report.id} className="bg-[#121212] p-3 rounded-lg border border-zinc-700/50 flex justify-between items-center">
+                        <div className="flex flex-col">
+                          <span className="text-xs text-purple-200 font-bold">{report.channel}분 후</span>
+                          <span className="text-[9px] text-zinc-500">제보: {report.reporter_name}</span>
+                        </div>
+                        <div className="flex gap-2">
+                          <button onClick={() => updateAbyssStatus(report.id, 'approved')} className="bg-emerald-900/40 text-emerald-400 text-[9px] px-2 py-1 rounded font-bold border border-emerald-700/50">승인</button>
+                          <button onClick={() => updateAbyssStatus(report.id, 'rejected')} className="bg-red-900/40 text-red-400 text-[9px] px-2 py-1 rounded font-bold border border-red-700/50">반려</button>
+                        </div>
+                      </div>
+                    ))}
+                    {abyssReports.filter(r => r.status === 'pending').length === 0 && <p className="text-[10px] text-zinc-600 text-center py-2">대기 중인 제보가 없습니다.</p>}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================= */}
+      {/* 🟡 [팝업] 심층 구멍 제보 모달 */}
+      {/* ========================================= */}
+      {isDeepModalOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-[#1c1c1e] border border-red-900/50 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col">
+            <div className="bg-[#252528] p-5 border-b border-zinc-700 flex justify-between items-center">
+              <h2 className="text-lg font-black text-red-400">🌌 심층 구멍 현황 제보</h2>
+              <button onClick={() => setIsDeepModalOpen(false)} className="text-zinc-500 hover:text-white text-xl">&times;</button>
+            </div>
+            
+            <form onSubmit={submitDeepHole} className="p-5 space-y-5 bg-[#1c1c1e]">
+              
+              <div>
+                <label className="text-[11px] font-bold text-zinc-400 mb-2 block">제보자 닉네임</label>
+                <input type="text" placeholder="닉네임 입력" value={deepReporter} onChange={(e) => setDeepReporter(e.target.value)} className="w-full text-sm p-3 rounded bg-[#121212] border border-zinc-700 focus:outline-none focus:border-red-500 text-white" />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-zinc-400 mb-2 block">사냥터 선택</label>
+                <div className="flex gap-2">
+                  {['창백한 산', '센마이 평원'].map((zone) => (
+                    <button type="button" key={zone} onClick={() => setDeepZone(zone as any)} className={`flex-1 text-xs font-bold py-2.5 rounded-lg transition ${deepZone === zone ? 'bg-zinc-700 text-white shadow' : 'bg-[#121212] text-zinc-500 border border-zinc-700'}`}>
+                      {zone}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-zinc-400 mb-2 block">현재 구멍 갯수</label>
+                <div className="flex gap-2">
+                  {['0', '1', '2', '3'].map((num) => (
+                    <button type="button" key={num} onClick={() => setDeepCount(num)} className={`flex-1 text-sm font-black py-2.5 rounded-lg transition ${deepCount === num ? 'bg-red-900/40 text-red-400 border border-red-700/50' : 'bg-[#121212] text-zinc-500 border border-zinc-700'}`}>
+                      {num}개
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <button type="submit" className="w-full bg-red-800 hover:bg-red-700 text-white text-sm py-3 rounded-xl font-black transition shadow-lg">제보 반영하기</button>
+              </div>
+
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 파티 참여 팝업 (기존 유지) */}
       {joinPopupParty && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-[#1c1c1e] border border-zinc-700 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
             <div className="bg-[#252528] p-5 border-b border-zinc-700 flex justify-between items-center">
               <h2 className="text-lg font-black text-white">⚔️ 파티 합류 신청</h2>
@@ -659,9 +847,9 @@ export default function Home() {
         </div>
       )}
 
-      {/* 8인팟 전체보기 모달 */}
+      {/* 8인팟 전체보기 모달 (기존 유지) */}
       {detailModalParty && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
           <div className="bg-[#1c1c1e] border border-zinc-700 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col">
             <div className="bg-[#252528] p-4 border-b border-zinc-700 flex justify-between items-center">
               <h3 className="text-white font-bold text-sm">👥 {detailModalParty.content_name} 전체 멤버 ({detailModalParty.members.length}/{detailModalParty.max_members})</h3>
