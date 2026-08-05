@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "../lib/supabase";
+import { supabase } from "../../lib/supabase"; // 🟢 경로 수정 완료 (../ -> ../../)
 
 interface Post {
   id: string;
@@ -14,15 +14,6 @@ interface Post {
   created_at: string;
 }
 
-const JOB_ICONS: Record<string, string> = {
-  전사: "⚔️", 대검전사: "🗡️", 검술사: "🤺", 기사: "🛡️",
-  마법사: "🪄", 화염술사: "🔥", 빙결술사: "❄️", 전격술사: "⚡",
-  궁수: "🏹", 장궁병: "🎯", 석궁사수: "🏹",
-  음유시인: "🎵", 댄서: "💃", 악사: "🎸",
-  힐러: "💖", 사제: "🕊️", 수도사: "🙏", 암흑술사: "🌑",
-  도적: "🥷", 격투가: "🥊", 듀얼블레이드: "⚔️"
-};
-
 export default function LoungePage() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
@@ -32,7 +23,6 @@ export default function LoungePage() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [isWriting, setIsWriting] = useState(false);
   
-  // 글쓰기 폼 상태
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [category, setCategory] = useState("자유");
@@ -55,7 +45,6 @@ export default function LoungePage() {
       .order('created_at', { ascending: false });
 
     if (error) {
-      // 테이블이 아직 없는 경우를 대비한 임시 더미 데이터 폴백
       setPosts([
         { id: '1', title: '이번 주 일요일 CBT 다들 준비되셨나요?', content: '성역 길드원들 파이팅!', author_name: '한설', category: '공지', likes: 5, created_at: '2026-06-05' },
         { id: '2', title: '방금 어비스 구멍 2채널 컷했습니다 ㅎㅎ', content: '득템 기원 1일차', author_name: '영겁', category: '자유', likes: 2, created_at: '2026-06-05' }
@@ -74,7 +63,7 @@ export default function LoungePage() {
     ]);
 
     if (error) {
-      alert('게시글 등록 중 오류가 발생했습니다. (DB 테이블 생성 여부를 확인해주세요)');
+      alert('게시글 등록 중 오류가 발생했습니다.');
     } else {
       alert('성공적으로 등록되었습니다!');
       setTitle('');
@@ -89,30 +78,23 @@ export default function LoungePage() {
   return (
     <main className="min-h-screen bg-[#121212] text-[#d4d4d8] font-sans pb-10 relative">
       
-      {/* 상단 네비게이션바 */}
-      <div className="w-full bg-[#1c1c1e] border-b border-zinc-800 px-6 py-2.5 flex justify-between items-center shadow-md sticky top-0 z-50">
-        <div className="flex items-center gap-6">
-          <div onClick={() => router.push('/')} className="flex items-center gap-2 text-white font-bold text-sm tracking-wide cursor-pointer hover:text-[#e6c788] transition">
-            <span>🏰 SANCTUM</span>
-          </div>
-          <div className="hidden md:flex items-center gap-4 text-xs font-bold text-zinc-400">
-            <button onClick={() => router.push('/')} className="hover:text-white transition">대시보드</button>
-            <button onClick={() => router.push('/lounge')} className="text-[#e6c788]">길드 라운지</button>
-            <button onClick={() => router.push('/market')} className="hover:text-white transition">거래소 시세</button>
-            <button onClick={() => router.push('/party')} className="hover:text-white transition">파티 매칭</button>
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-[#121212] border border-zinc-600 flex items-center justify-center text-sm">{JOB_ICONS[user.job || "기사"] || "👦🏻"}</div>
-          <div className="flex flex-col leading-tight">
-            <span className="font-bold text-white text-sm">{user.nickname}</span>
-            <span className="text-[10px] text-zinc-400">{user.role || "마스터"}</span>
-          </div>
-        </div>
-      </div>
-
+      {/* 🟢 라이트 모델이 넣었던 중복 글로벌 네비게이션(상단바) 삭제 완료 */}
+      
       <div className="p-4 md:p-8 max-w-[1000px] mx-auto space-y-6">
         
+        {/* 🟢 라운지 통합 서브 탭 (커뮤니티 / 캐릭터 관리 / 랭킹) */}
+        <div className="flex gap-2 bg-[#1c1c1e] p-2 rounded-xl border border-zinc-800 shadow-md overflow-x-auto custom-scrollbar">
+          <button className="flex-1 min-w-[100px] py-2.5 rounded-lg bg-[#e6c788] text-black font-black text-sm transition shadow">
+            💬 커뮤니티
+          </button>
+          <button onClick={() => router.push('/character')} className="flex-1 min-w-[100px] py-2.5 rounded-lg bg-[#121212] text-zinc-400 hover:text-white border border-zinc-700 hover:border-zinc-500 font-bold text-sm transition">
+            📋 캐릭터 관리
+          </button>
+          <button onClick={() => router.push('/ranking')} className="flex-1 min-w-[100px] py-2.5 rounded-lg bg-[#121212] text-zinc-400 hover:text-white border border-zinc-700 hover:border-zinc-500 font-bold text-sm transition">
+            🏆 성역 랭킹
+          </button>
+        </div>
+
         {/* 상단 타이틀 */}
         <header className="flex justify-between items-center bg-[#1c1c1e] border border-zinc-800 p-6 rounded-2xl shadow-xl">
           <div>
@@ -180,12 +162,12 @@ export default function LoungePage() {
         ) : (
           /* 게시글 목록 영역 */
           <section className="space-y-4">
-            <div className="flex gap-2 border-b border-zinc-800 pb-3">
+            <div className="flex gap-2 border-b border-zinc-800 pb-3 overflow-x-auto custom-scrollbar">
               {["전체", "자유", "공지", "정보", "질문"].map(tab => (
                 <button 
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${activeTab === tab ? 'bg-zinc-800 text-[#e6c788] border border-zinc-700' : 'text-zinc-500 hover:text-white'}`}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap ${activeTab === tab ? 'bg-zinc-800 text-[#e6c788] border border-zinc-700' : 'text-zinc-500 hover:text-white'}`}
                 >
                   {tab}
                 </button>
@@ -206,14 +188,26 @@ export default function LoungePage() {
                   </div>
                   <div className="flex flex-col items-end text-[10px] text-zinc-500 space-y-1">
                     <span className="font-bold text-zinc-300">{post.author_name}</span>
-                    <span>{post.created_at}</span>
+                    <span>{post.created_at.split('T')[0]}</span>
                   </div>
                 </div>
               ))}
+              {posts.length === 0 && (
+                <div className="text-center py-10 text-zinc-500 text-xs font-bold">
+                  아직 등록된 게시글이 없습니다.
+                </div>
+              )}
             </div>
           </section>
         )}
       </div>
+
+      <style dangerouslySetInnerHTML={{__html: `
+        .custom-scrollbar::-webkit-scrollbar { height: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #e6c788; }
+      `}} />
     </main>
   );
 }

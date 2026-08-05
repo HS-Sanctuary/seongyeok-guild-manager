@@ -161,13 +161,22 @@ export default function Home() {
     return `${m}:${s}`;
   };
 
-  const updateAbyssDisplay = () => {
-    const approvedReports = abyssReports.filter(r => r.status === 'approved').sort((a, b) => new Date(b.hole_time).getTime() - new Date(a.hole_time).getTime());
+ const updateAbyssDisplay = () => {
+    const now = new Date().getTime();
     
-    if (approvedReports.length > 0) {
-      const latest = approvedReports[0];
+    // 🟢 어비스 구멍 진행(유지) 시간 설정 (예: 30분 = 30 * 60 * 1000 ms)
+    const HOLE_DURATION = 15 * 60 * 1000; 
+
+    // 1. 유효한 제보 필터링 (승인되었고, 아직 유지 시간이 끝나지 않은 제보)
+    const validReports = abyssReports
+      .filter(r => r.status === 'approved')
+      .filter(r => (new Date(r.hole_time).getTime() + HOLE_DURATION) > now)
+      .sort((a, b) => new Date(b.hole_time).getTime() - new Date(a.hole_time).getTime());
+    
+    if (validReports.length > 0) {
+      // 제보된 어비스 구멍 시간이 다가오거나 진행 중일 때
+      const latest = validReports[0];
       const targetTime = new Date(latest.hole_time).getTime();
-      const now = new Date().getTime();
       const diffSec = Math.floor((targetTime - now) / 1000);
 
       if (diffSec <= 0) {
@@ -175,18 +184,27 @@ export default function Home() {
       } else {
         const h = Math.floor(diffSec / 3600);
         const m = Math.floor((diffSec % 3600) / 60);
-        setAbyssDisplay({ text: `${h > 0 ? h + '시간 ' : ''}${m}분 뒤 진행`, time: `제보자: ${latest.reporter_name}`, isDefault: false, remainingSec: diffSec });
+        const s = Math.floor(diffSec % 60);
+        setAbyssDisplay({ text: `${h > 0 ? h + '시간 ' : ''}${m}분 ${s}초 뒤 진행`, time: `제보자: ${latest.reporter_name}`, isDefault: false, remainingSec: diffSec });
       }
     } else {
-      const baseCycle = (36 * 3600) + (15 * 60);
+      // 2. 유효한 제보가 없을 때 (기본 36시간 15분 주기로 자동 카운트다운)
+      const baseCycle = (36 * 3600) + (15 * 60); // 36시간 15분을 초 단위로 환산
       const epoch = new Date('2024-01-01T00:00:00Z').getTime() / 1000;
-      const currentSec = new Date().getTime() / 1000;
+      const currentSec = now / 1000;
       const elapsed = currentSec - epoch;
       const nextSpawnSec = baseCycle - (elapsed % baseCycle);
       
       const h = Math.floor(nextSpawnSec / 3600);
       const m = Math.floor((nextSpawnSec % 3600) / 60);
-      setAbyssDisplay({ text: "제보 대기 중", time: `기본 주기: 약 ${h}시간 ${m}분 남음`, isDefault: true, remainingSec: nextSpawnSec });
+      const s = Math.floor(nextSpawnSec % 60); // 초 단위 추가
+
+      setAbyssDisplay({ 
+        text: `${h}시간 ${m}분 ${s}초 뒤 출현`, 
+        time: "점검 등으로 인해 변경 사항이 생기면 제보해 주세요.", 
+        isDefault: true, 
+        remainingSec: nextSpawnSec 
+      });
     }
   };
 
