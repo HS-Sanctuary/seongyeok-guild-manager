@@ -1,0 +1,27 @@
+🏢 1. 사무실 전용 명령어
+📥 사무실 출근 후 [집에서 한 작업 가져오기] (PULL)
+
+cd C:\Users\Moon\seongyeok-guild-manager
+
+git pull origin main
+
+📤 사무실 퇴근 전 [오늘 한 작업 집으로 보내기] (PUSH)
+
+git add .
+
+git commit -m "사무실 작업 완료_26-0806"
+
+git push origin main
+
+🏠 2. 집 전용 명령어
+📥 집 도착 후 [사무실에서 한 작업 가져오기] (PULL)
+
+git pull origin main
+
+📤 집 작업 끝난 후 [사무실로 작업 보내기] (PUSH)
+
+git add .
+
+git commit -m "집 작업 완료_26-0806"
+
+git push origin main
