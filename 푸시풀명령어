@@ -1,7 +1,7 @@
 🏢 1. 사무실 전용 명령어
 📥 사무실 출근 후 [집에서 한 작업 가져오기] (PULL)
 
-cd C:\Users\Moon\seongyeok-guild-manager
+cd seongyeok-guild-manager
 
 git pull origin main
 
