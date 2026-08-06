@@ -18,12 +18,12 @@ export default function CharacterPage() {
   const [dbContents, setDbContents] = useState<any[]>([]);
   const [dbTrades, setDbTrades] = useState<any[]>([]); 
 
-  const defaultProfile = { nickname: "한설", job: "전사", combatPower: "", magicResistance: "", lifeEnergy: "", charm: "", intro: "" };
+  // 🟢 아고라 연동을 위해 contribution(공헌도), isMain(본캐여부) 속성 추가
+  const defaultProfile = { nickname: "한설", job: "전사", combatPower: "", magicResistance: "", lifeEnergy: "", charm: "", contribution: "", intro: "", isMain: false };
   
   const [profile, setProfile] = useState(defaultProfile);
   const [levels, setLevels] = useState<Record<string, number>>({});
   
-  // 상태 관리 (ID 배열로 관리)
   const [dailyChecks, setDailyChecks] = useState<number[]>([]);
   const [weeklyChecks, setWeeklyChecks] = useState<number[]>([]);
   const [repeatChecks, setRepeatChecks] = useState<Record<number, boolean[]>>({});
@@ -77,7 +77,9 @@ export default function CharacterPage() {
         setProfile({
           nickname: data.nickname, job: data.job || "전사",
           combatPower: data.combat_power || "", magicResistance: data.magic_resistance || "",
-          lifeEnergy: data.life_energy || "", charm: data.charm || "", intro: data.intro || ""
+          lifeEnergy: data.life_energy || "", charm: data.charm || "", 
+          contribution: data.contribution || "", intro: data.intro || "", // DB에서 공헌도 불러오기
+          isMain: data.is_main || false // 본캐 여부 불러오기
         });
         setLevels(data.levels || {});
         
@@ -94,7 +96,6 @@ export default function CharacterPage() {
         
         const rChecks = Array.isArray(data.raid_checks) ? data.raid_checks.map(Number).filter(n => !isNaN(n)) : [];
         
-        // 🟢 여기서 어비스와 레이드의 ID를 정확하게 쪼개서 분류합니다.
         setAbyssChecks(rChecks.filter(id => dbContents.find(c => c.id === id)?.type === 'abyss'));
         setRaidChecks(rChecks.filter(id => dbContents.find(c => c.id === id)?.type === 'raid'));
         
@@ -109,10 +110,16 @@ export default function CharacterPage() {
 
   const saveProgress = async () => {
     try {
+      // 🟢 아고라에서 랭킹을 정렬하려면 수치가 반드시 '숫자형(Number)'으로 들어가야 합니다.
       const payload = {
         nickname: profile.nickname, job: profile.job,
-        combat_power: profile.combatPower, magic_resistance: profile.magicResistance,
-        life_energy: profile.lifeEnergy, charm: profile.charm, intro: profile.intro,
+        combat_power: Number(profile.combatPower) || 0, 
+        magic_resistance: Number(profile.magicResistance) || 0,
+        life_energy: Number(profile.lifeEnergy) || 0, 
+        charm: Number(profile.charm) || 0, 
+        contribution: Number(profile.contribution) || 0, // 공헌도 저장
+        intro: profile.intro,
+        is_main: profile.isMain, // 본캐 저장
         levels: levels, 
         daily_checks: dailyChecks,
         weekly_checks: { normal: weeklyChecks, repeat: repeatChecks },
@@ -135,7 +142,8 @@ export default function CharacterPage() {
     }, 1500);
   };
 
-  const updateProfile = (field: string, value: string) => setProfile(prev => ({ ...prev, [field]: value }));
+  // 🟢 updateProfile 밸류 타입을 any로 변경하여 boolean 값도 받게 수정
+  const updateProfile = (field: string, value: any) => setProfile(prev => ({ ...prev, [field]: value }));
   const setMaxLevel = (cls: string) => setLevels(prev => ({ ...prev, [cls]: 65 }));
 
   const updateRepeatCount = (id: number, delta: number, max: number) => {
@@ -156,7 +164,6 @@ export default function CharacterPage() {
     });
   };
 
-  // 🟢 전체 선택 / 해제 완벽 작동 매핑
   const handleToggleAll = (type: string, isCheckAll: boolean) => {
     if (type === 'daily') {
       const normals = visibleDailyList.filter(t => !t.type.startsWith('repeat')).map(t => t.id);
@@ -172,9 +179,7 @@ export default function CharacterPage() {
     if (type === 'raid') setRaidChecks(isCheckAll ? raidList.map(t => t.id) : []);
   };
 
-  // 🟢 핵심! 컴포넌트 분리 렌더링 로직 (버그의 주범 해결)
   const renderTask = (item: any, type: 'daily' | 'weekly' | 'abyss' | 'raid') => {
-    // 반복형 숙제 로직
     if (item.type?.startsWith('repeat')) {
       const currentCount = (repeatChecks[item.id] || []).filter(Boolean).length;
       const isMax = currentCount === item.max_count;
@@ -197,7 +202,6 @@ export default function CharacterPage() {
       );
     } 
     
-    // 일반 체크박스 로직 (타입별로 참조하는 State를 4개로 확실히 나눔)
     let checks: number[] = [];
     let setChecks: any;
     
@@ -208,7 +212,6 @@ export default function CharacterPage() {
 
     const isChecked = checks.includes(item.id);
     
-    // Tailwind 색상 적용 (컴파일러 누락 방지용 하드코딩)
     const getColorTheme = () => {
       if (!isChecked) return { wrapper: "bg-[#1c1c1e] border-zinc-800 hover:border-zinc-600", text: "text-zinc-300", box: "bg-zinc-800 border-zinc-600" };
       if (type === 'daily') return { wrapper: "bg-amber-900/20 border-amber-500/50", text: "text-amber-400", box: "bg-amber-500 border-amber-500 text-white scale-110" };
@@ -241,11 +244,36 @@ export default function CharacterPage() {
   return (
     <main className="min-h-screen bg-[#1c1c1e] text-[#d4d4d8] font-sans pb-20 pt-6">
       <div className="max-w-[1400px] mx-auto p-4 md:p-8 space-y-6">
+
+        {/* 🟢 기획 의도가 담긴 웅장한 헤더 배너 추가 */}
+        <header className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#1c1c1e] via-[#151515] to-[#1a1a1c] border border-zinc-800 p-8 md:p-10 shadow-2xl mb-8">
+          <div className="absolute top-0 left-0 w-1.5 h-full bg-[#e6c788] shadow-[0_0_15px_#e6c788]"></div>
+          <div className="absolute bottom-0 right-0 w-64 h-64 bg-[#e6c788] opacity-5 blur-[100px] rounded-full pointer-events-none"></div>
+          
+          <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+            <div>
+              <h1 className="text-4xl md:text-5xl font-black text-white tracking-widest flex items-end gap-4 drop-shadow-md">
+                CHRONOS <span className="text-[#e6c788] text-2xl md:text-3xl tracking-normal">성역의 기록소</span>
+              </h1>
+              
+              <div className="mt-5 bg-zinc-900/50 border border-zinc-700/50 p-4 rounded-xl max-w-3xl backdrop-blur-sm">
+                <p className="text-zinc-300 text-[13px] md:text-sm font-bold leading-relaxed flex gap-3">
+                  <span className="text-lg">⏳</span>
+                  <span>
+                    「 시간과 기록의 신, 크로노스. <br/>
+                    이곳은 성역을 거쳐간 당신의 발자취와 땀방울이 영원히 기록되는 공간입니다. <br/>
+                    <span className="text-[#e6c788]">당신이 새겨넣은 능력치는 AGORA(아고라)의 명예의 전당으로 즉시 연결되어 성역의 전설이 됩니다.</span> 」
+                  </span>
+                </p>
+              </div>
+            </div>
+          </div>
+        </header>
         
         {/* 상단 프로필 */}
         <div className="bg-[#252528] rounded-2xl border border-zinc-700/80 p-6 shadow-xl relative overflow-hidden">
           <div className="flex flex-col md:flex-row gap-8 items-start relative z-10">
-            <div className="w-32 h-32 bg-[#121212] rounded-xl border-2 border-zinc-700 flex items-center justify-center cursor-pointer hover:border-[#e6c788] transition-colors">
+            <div className="w-32 h-32 bg-[#121212] rounded-xl border-2 border-zinc-700 flex items-center justify-center cursor-pointer hover:border-[#e6c788] transition-colors shrink-0">
               <span className="text-5xl">{dbClasses.find(c => c.name === profile.job)?.icon || "👤"}</span>
             </div>
             <div className="flex-1 w-full space-y-5">
@@ -274,16 +302,28 @@ export default function CharacterPage() {
                   <p className="text-3xl font-black text-white leading-none mt-1">{totalLevel} <span className="text-sm font-normal text-zinc-500">LV</span></p>
                 </div>
               </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-[#1c1c1e] p-3 rounded-lg border border-zinc-700/50"><label className="text-[11px] font-bold text-red-400 mb-1 block">⚔️ 전투력</label><input type="number" value={profile.combatPower} onChange={e => updateProfile("combatPower", e.target.value)} placeholder="0" className="w-full bg-transparent text-lg font-bold text-white outline-none" /></div>
+              
+              {/* 🟢 5개 능력치로 변경 (공헌도 추가) */}
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <div className="bg-[#1c1c1e] p-3 rounded-lg border border-zinc-700/50"><label className="text-[11px] font-bold text-red-400 mb-1 block">⚔️ 전투력 (KRATOS)</label><input type="number" value={profile.combatPower} onChange={e => updateProfile("combatPower", e.target.value)} placeholder="0" className="w-full bg-transparent text-lg font-bold text-white outline-none" /></div>
                 <div className="bg-[#1c1c1e] p-3 rounded-lg border border-zinc-700/50"><label className="text-[11px] font-bold text-purple-400 mb-1 block">🔮 마도저항</label><input type="number" value={profile.magicResistance} onChange={e => updateProfile("magicResistance", e.target.value)} placeholder="0" className="w-full bg-transparent text-lg font-bold text-white outline-none" /></div>
-                <div className="bg-[#1c1c1e] p-3 rounded-lg border border-zinc-700/50"><label className="text-[11px] font-bold text-emerald-400 mb-1 block">🌿 생활력</label><input type="number" value={profile.lifeEnergy} onChange={e => updateProfile("lifeEnergy", e.target.value)} placeholder="0" className="w-full bg-transparent text-lg font-bold text-white outline-none" /></div>
-                <div className="bg-[#1c1c1e] p-3 rounded-lg border border-zinc-700/50"><label className="text-[11px] font-bold text-pink-400 mb-1 block">✨ 매력</label><input type="number" value={profile.charm} onChange={e => updateProfile("charm", e.target.value)} placeholder="0" className="w-full bg-transparent text-lg font-bold text-white outline-none" /></div>
+                <div className="bg-[#1c1c1e] p-3 rounded-lg border border-zinc-700/50"><label className="text-[11px] font-bold text-emerald-400 mb-1 block">🌿 생활력 (TECHNĒ)</label><input type="number" value={profile.lifeEnergy} onChange={e => updateProfile("lifeEnergy", e.target.value)} placeholder="0" className="w-full bg-transparent text-lg font-bold text-white outline-none" /></div>
+                <div className="bg-[#1c1c1e] p-3 rounded-lg border border-zinc-700/50"><label className="text-[11px] font-bold text-pink-400 mb-1 block">✨ 매력 (HARMONIA)</label><input type="number" value={profile.charm} onChange={e => updateProfile("charm", e.target.value)} placeholder="0" className="w-full bg-transparent text-lg font-bold text-white outline-none" /></div>
+                <div className="bg-[#1c1c1e] p-3 rounded-lg border border-zinc-700/50"><label className="text-[11px] font-bold text-amber-500 mb-1 block">🛡️ 공헌도 (PIETAS)</label><input type="number" value={profile.contribution} onChange={e => updateProfile("contribution", e.target.value)} placeholder="0" className="w-full bg-transparent text-lg font-bold text-white outline-none" /></div>
               </div>
-              <div className="flex gap-3">
+              
+              {/* 🟢 대표 설정 체크박스 및 저장 버튼 간격 조정 */}
+              <div className="flex flex-col xl:flex-row gap-3">
                 <input value={profile.intro} onChange={(e) => updateProfile("intro", e.target.value)} placeholder="길드원에게 보일 자기소개나 인삿말을 적어주세요!" className="flex-1 bg-[#1c1c1e] border border-zinc-700 rounded-lg p-3 text-sm text-white focus:border-[#e6c788] outline-none" />
-                <button onClick={handleSyncNexonAPI} className="bg-emerald-900/40 text-emerald-400 border border-emerald-800/50 font-bold px-4 rounded-lg text-sm flex items-center gap-2">🔄 API 갱신</button>
-                <button onClick={saveProgress} className="bg-yellow-600 hover:bg-yellow-500 text-white font-bold px-8 rounded-lg text-sm transition-colors">{saved ? "저장 완료!" : "서버에 저장"}</button>
+                
+                <div className="flex gap-3">
+                  <label className="flex items-center justify-center gap-2 bg-[#1c1c1e] border border-zinc-700 px-4 rounded-lg cursor-pointer hover:bg-zinc-800 transition min-w-[140px]">
+                    <input type="checkbox" checked={profile.isMain} onChange={e => updateProfile("isMain", e.target.checked)} className="accent-[#e6c788] w-4 h-4" />
+                    <span className="text-sm font-bold text-zinc-300">대표(본캐) 설정</span>
+                  </label>
+                  <button onClick={handleSyncNexonAPI} className="bg-emerald-900/40 text-emerald-400 border border-emerald-800/50 font-bold px-4 rounded-lg text-sm flex items-center gap-2 whitespace-nowrap">🔄 API 갱신</button>
+                  <button onClick={saveProgress} className="bg-yellow-600 hover:bg-yellow-500 text-black font-black px-6 rounded-lg text-sm transition-colors whitespace-nowrap min-w-[120px]">{saved ? "저장 완료!" : "서버에 저장"}</button>
+                </div>
               </div>
             </div>
           </div>
@@ -328,7 +368,6 @@ export default function CharacterPage() {
           </div>
         )}
 
-        {/* 🟢 수정 영역: renderTask 호출 시 정확한 타입(type) 지정! */}
         <div className="grid grid-cols-1 xl:grid-cols-4 lg:grid-cols-2 gap-6">
           <div className="bg-[#252528] rounded-xl border border-zinc-800 p-5 shadow-md flex flex-col">
             <div className="flex justify-between items-center mb-4 border-b border-zinc-700 pb-3"><h3 className="font-bold text-amber-500 text-base">☀️ 일일 컨텐츠</h3><div className="flex items-center gap-2"><button onClick={() => handleToggleAll('daily', true)} className="text-[10px] text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 px-2 py-1 rounded transition">✓ 전체</button><button onClick={() => handleToggleAll('daily', false)} className="text-[10px] text-zinc-500 hover:text-red-400 bg-zinc-800/50 hover:bg-zinc-800 px-2 py-1 rounded transition">✗ 해제</button></div></div>

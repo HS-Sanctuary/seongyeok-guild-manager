@@ -285,15 +285,32 @@ export default function AgoraLoungePage() {
     <main className="min-h-screen bg-[#121212] text-[#d4d4d8] font-sans pb-10 relative">
       <div className="p-4 md:p-8 max-w-[1200px] mx-auto space-y-8 pt-8">
         
-        <header className="relative flex flex-col items-center justify-center py-6 border-b border-zinc-800">
-          <h1 className="text-4xl md:text-5xl font-black text-white drop-shadow-md flex items-center gap-3 tracking-widest">
-            AGORA <span className="text-[#e6c788] text-2xl md:text-3xl">성역 라운지</span>
-          </h1>
-          <p className="text-zinc-400 text-sm mt-3 font-bold">성역의 모든 캐릭터들이 교류하고 증명하는 대광장</p>
+        <header className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#1c1c1e] via-[#151515] to-[#1a1a1c] border border-zinc-800 p-8 md:p-10 shadow-2xl mb-8">
+          <div className="absolute top-0 left-0 w-1.5 h-full bg-[#e6c788] shadow-[0_0_15px_#e6c788]"></div>
+          <div className="absolute bottom-0 right-0 w-64 h-64 bg-[#e6c788] opacity-5 blur-[100px] rounded-full pointer-events-none"></div>
           
-          <button onClick={() => setShowLoreGuide(true)} className="absolute right-0 top-1/2 -translate-y-1/2 bg-zinc-800/50 hover:bg-zinc-700 text-zinc-300 px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 border border-zinc-700 hidden md:flex">
-            <span>📖</span> SANCTUM 세계관 가이드
-          </button>
+          <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+            <div>
+              <h1 className="text-4xl md:text-5xl font-black text-white tracking-widest flex items-end gap-4 drop-shadow-md">
+                AGORA <span className="text-[#e6c788] text-2xl md:text-3xl tracking-normal">성역 라운지</span>
+              </h1>
+              
+              <div className="mt-5 bg-zinc-900/50 border border-zinc-700/50 p-4 rounded-xl max-w-3xl backdrop-blur-sm">
+                <p className="text-zinc-300 text-[13px] md:text-sm font-bold leading-relaxed flex gap-3">
+                  <span className="text-lg">🏛️</span>
+                  <span>
+                    「 고대 그리스의 대광장, 아고라. <br/>
+                    이곳은 성역의 모든 캐릭터들이 교류하고 증명하는 중심 공간입니다. <br/>
+                    <span className="text-[#e6c788]">당신의 땀방울이 기록된 크로노스의 데이터가 이곳 명예의 전당(PANTHEON)에 수여됩니다.</span> 」
+                  </span>
+                </p>
+              </div>
+            </div>
+            
+            <button onClick={() => setShowLoreGuide(true)} className="bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 px-5 py-3 rounded-xl text-sm font-bold transition flex items-center gap-2 border border-zinc-700 shadow-lg">
+              <span>📖</span> SANCTUM 세계관 가이드
+            </button>
+          </div>
         </header>
 
         {showLoreGuide && (
