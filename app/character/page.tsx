@@ -18,7 +18,6 @@ export default function CharacterPage() {
   const [dbContents, setDbContents] = useState<any[]>([]);
   const [dbTrades, setDbTrades] = useState<any[]>([]); 
 
-  // 🟢 아고라 연동을 위해 contribution(공헌도), isMain(본캐여부) 속성 추가
   const defaultProfile = { nickname: "한설", job: "전사", combatPower: "", magicResistance: "", lifeEnergy: "", charm: "", contribution: "", intro: "", isMain: false };
   
   const [profile, setProfile] = useState(defaultProfile);
@@ -60,17 +59,23 @@ export default function CharacterPage() {
         supabase.from('nexus_contents').select('*').eq('is_active', true).order('id'),
         supabase.from('nexus_trades').select('*').order('id')
       ]);
-      if (clsRes.data) setDbClasses(clsRes.data);
-      if (taskRes.data) setDbTasks(taskRes.data);
-      if (contRes.data) setDbContents(contRes.data);
-      if (tradeRes.data) setDbTrades(tradeRes.data);
       
-      loadCharacterData(parsedUser.nickname || "한설");
+      const classes = clsRes.data || [];
+      const tasks = taskRes.data || [];
+      const contents = contRes.data || [];
+      const trades = tradeRes.data || [];
+
+      setDbClasses(classes);
+      setDbTasks(tasks);
+      setDbContents(contents);
+      setDbTrades(trades);
+      
+      loadCharacterData(parsedUser.nickname || "한설", contents);
     };
     fetchMasterData();
   }, [router]);
 
-  const loadCharacterData = async (charName: string) => {
+  const loadCharacterData = async (charName: string, contentsList = dbContents) => {
     try {
       const { data } = await supabase.from('characters').select('*').eq('nickname', charName).single();
       if (data) {
@@ -78,8 +83,8 @@ export default function CharacterPage() {
           nickname: data.nickname, job: data.job || "전사",
           combatPower: data.combat_power || "", magicResistance: data.magic_resistance || "",
           lifeEnergy: data.life_energy || "", charm: data.charm || "", 
-          contribution: data.contribution || "", intro: data.intro || "", // DB에서 공헌도 불러오기
-          isMain: data.is_main || false // 본캐 여부 불러오기
+          contribution: data.contribution || "", intro: data.intro || "",
+          isMain: data.is_main || false
         });
         setLevels(data.levels || {});
         
@@ -96,8 +101,8 @@ export default function CharacterPage() {
         
         const rChecks = Array.isArray(data.raid_checks) ? data.raid_checks.map(Number).filter(n => !isNaN(n)) : [];
         
-        setAbyssChecks(rChecks.filter(id => dbContents.find(c => c.id === id)?.type === 'abyss'));
-        setRaidChecks(rChecks.filter(id => dbContents.find(c => c.id === id)?.type === 'raid'));
+        setAbyssChecks(rChecks.filter(id => contentsList.find(c => c.id === id)?.type === 'abyss'));
+        setRaidChecks(rChecks.filter(id => contentsList.find(c => c.id === id)?.type === 'raid'));
         
         setTradeProgress(data.trade_checks || {});
       } else {
@@ -110,16 +115,23 @@ export default function CharacterPage() {
 
   const saveProgress = async () => {
     try {
-      // 🟢 아고라에서 랭킹을 정렬하려면 수치가 반드시 '숫자형(Number)'으로 들어가야 합니다.
+      // 🟢 핵심 로직: 현재 캐릭터를 '대표 캐릭터'로 저장할 경우, 계정 내 다른 캐릭터들의 대표 속성을 전부 false로 초기화합니다.
+      if (profile.isMain) {
+        await supabase.from('characters')
+          .update({ is_main: false })
+          .in('nickname', MY_ACCOUNT_CHARACTERS)
+          .neq('nickname', profile.nickname); // 현재 저장 중인 캐릭터 본인은 제외
+      }
+
       const payload = {
         nickname: profile.nickname, job: profile.job,
         combat_power: Number(profile.combatPower) || 0, 
         magic_resistance: Number(profile.magicResistance) || 0,
         life_energy: Number(profile.lifeEnergy) || 0, 
         charm: Number(profile.charm) || 0, 
-        contribution: Number(profile.contribution) || 0, // 공헌도 저장
+        contribution: Number(profile.contribution) || 0,
         intro: profile.intro,
-        is_main: profile.isMain, // 본캐 저장
+        is_main: profile.isMain, // 갱신된 대표 캐릭터 여부 저장
         levels: levels, 
         daily_checks: dailyChecks,
         weekly_checks: { normal: weeklyChecks, repeat: repeatChecks },
@@ -132,7 +144,10 @@ export default function CharacterPage() {
     } catch (error) { alert("저장 실패"); }
   };
 
-  const switchCharacter = async (targetName: string) => { await saveProgress(); loadCharacterData(targetName); };
+  const switchCharacter = async (targetName: string) => { 
+    await saveProgress(); 
+    loadCharacterData(targetName, dbContents); 
+  };
 
   const handleSyncNexonAPI = async () => {
     setIsSyncing(true);
@@ -142,7 +157,6 @@ export default function CharacterPage() {
     }, 1500);
   };
 
-  // 🟢 updateProfile 밸류 타입을 any로 변경하여 boolean 값도 받게 수정
   const updateProfile = (field: string, value: any) => setProfile(prev => ({ ...prev, [field]: value }));
   const setMaxLevel = (cls: string) => setLevels(prev => ({ ...prev, [cls]: 65 }));
 
@@ -245,30 +259,65 @@ export default function CharacterPage() {
     <main className="min-h-screen bg-[#1c1c1e] text-[#d4d4d8] font-sans pb-20 pt-6">
       <div className="max-w-[1400px] mx-auto p-4 md:p-8 space-y-6">
 
-        {/* 🟢 기획 의도가 담긴 웅장한 헤더 배너 추가 */}
-        <header className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#1c1c1e] via-[#151515] to-[#1a1a1c] border border-zinc-800 p-8 md:p-10 shadow-2xl mb-8">
+        <header className="relative overflow-hidden rounded-xl bg-gradient-to-br from-[#1c1c1e] via-[#151515] to-[#1a1a1c] border border-zinc-800 py-3 px-6 shadow-xl mb-6">
+
           <div className="absolute top-0 left-0 w-1.5 h-full bg-[#e6c788] shadow-[0_0_15px_#e6c788]"></div>
-          <div className="absolute bottom-0 right-0 w-64 h-64 bg-[#e6c788] opacity-5 blur-[100px] rounded-full pointer-events-none"></div>
-          
-          <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
-            <div>
-              <h1 className="text-4xl md:text-5xl font-black text-white tracking-widest flex items-end gap-4 drop-shadow-md">
-                CHRONOS <span className="text-[#e6c788] text-2xl md:text-3xl tracking-normal">성역의 기록소</span>
+
+          <div className="absolute bottom-0 right-0 w-32 h-32 bg-[#e6c788] opacity-5 blur-[60px] rounded-full pointer-events-none"></div>
+
+         
+
+          <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+
+            {/* 왼쪽 타이틀 영역 (수직 정렬 완벽 일치) */}
+
+            <div className="flex flex-col items-start min-w-[200px]">
+
+              <h1 className="text-2xl font-black text-white tracking-widest drop-shadow-md leading-none">
+
+                CHRONOS
+
               </h1>
-              
-              <div className="mt-5 bg-zinc-900/50 border border-zinc-700/50 p-4 rounded-xl max-w-3xl backdrop-blur-sm">
-                <p className="text-zinc-300 text-[13px] md:text-sm font-bold leading-relaxed flex gap-3">
-                  <span className="text-lg">⏳</span>
-                  <span>
-                    「 시간과 기록의 신, 크로노스. <br/>
-                    이곳은 성역을 거쳐간 당신의 발자취와 땀방울이 영원히 기록되는 공간입니다. <br/>
-                    <span className="text-[#e6c788]">당신이 새겨넣은 능력치는 AGORA(아고라)의 명예의 전당으로 즉시 연결되어 성역의 전설이 됩니다.</span> 」
-                  </span>
-                </p>
-              </div>
+
+              <span className="text-[#e6c788] text-[13px] font-bold tracking-wide mt-1.5 leading-none">
+
+                크 로 노 스 : 캐 릭 터 관 리
+
+              </span>
+
             </div>
+
+           
+
+            {/* 오른쪽 설명 영역 (한 줄로 길게 뻗고 위아래 색상 분리) */}
+
+            <div className="bg-zinc-900/40 border border-zinc-700/50 px-4 py-2 rounded-lg w-full max-w-[750px] backdrop-blur-sm flex items-start gap-2.5">
+
+              <span className="text-sm mt-0.5 opacity-80">⏳</span>
+
+              <div className="flex flex-col text-[11px] md:text-[12px] font-bold leading-tight w-full">
+
+                <span className="text-zinc-300 w-full truncate md:whitespace-normal">
+
+                   시간과 기록의 신, 크로노스. 이곳은 성역을 거쳐간 당신의 발자취와 땀방울이 기록되는 공간입니다.
+
+                </span>
+
+                <span className="text-[#e6c788] mt-0.5">
+
+                입력한 능력치는 AGORA(아고라) 명예의 전당으로 즉시 연결됩니다.
+
+                </span>
+
+              </div>
+
+            </div>
+
           </div>
+
         </header>
+
+
         
         {/* 상단 프로필 */}
         <div className="bg-[#252528] rounded-2xl border border-zinc-700/80 p-6 shadow-xl relative overflow-hidden">
@@ -303,7 +352,6 @@ export default function CharacterPage() {
                 </div>
               </div>
               
-              {/* 🟢 5개 능력치로 변경 (공헌도 추가) */}
               <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                 <div className="bg-[#1c1c1e] p-3 rounded-lg border border-zinc-700/50"><label className="text-[11px] font-bold text-red-400 mb-1 block">⚔️ 전투력 (KRATOS)</label><input type="number" value={profile.combatPower} onChange={e => updateProfile("combatPower", e.target.value)} placeholder="0" className="w-full bg-transparent text-lg font-bold text-white outline-none" /></div>
                 <div className="bg-[#1c1c1e] p-3 rounded-lg border border-zinc-700/50"><label className="text-[11px] font-bold text-purple-400 mb-1 block">🔮 마도저항</label><input type="number" value={profile.magicResistance} onChange={e => updateProfile("magicResistance", e.target.value)} placeholder="0" className="w-full bg-transparent text-lg font-bold text-white outline-none" /></div>
@@ -312,14 +360,13 @@ export default function CharacterPage() {
                 <div className="bg-[#1c1c1e] p-3 rounded-lg border border-zinc-700/50"><label className="text-[11px] font-bold text-amber-500 mb-1 block">🛡️ 공헌도 (PIETAS)</label><input type="number" value={profile.contribution} onChange={e => updateProfile("contribution", e.target.value)} placeholder="0" className="w-full bg-transparent text-lg font-bold text-white outline-none" /></div>
               </div>
               
-              {/* 🟢 대표 설정 체크박스 및 저장 버튼 간격 조정 */}
               <div className="flex flex-col xl:flex-row gap-3">
                 <input value={profile.intro} onChange={(e) => updateProfile("intro", e.target.value)} placeholder="길드원에게 보일 자기소개나 인삿말을 적어주세요!" className="flex-1 bg-[#1c1c1e] border border-zinc-700 rounded-lg p-3 text-sm text-white focus:border-[#e6c788] outline-none" />
                 
                 <div className="flex gap-3">
                   <label className="flex items-center justify-center gap-2 bg-[#1c1c1e] border border-zinc-700 px-4 rounded-lg cursor-pointer hover:bg-zinc-800 transition min-w-[140px]">
                     <input type="checkbox" checked={profile.isMain} onChange={e => updateProfile("isMain", e.target.checked)} className="accent-[#e6c788] w-4 h-4" />
-                    <span className="text-sm font-bold text-zinc-300">대표(본캐) 설정</span>
+                    <span className="text-sm font-bold text-zinc-300">대표 캐릭터</span>
                   </label>
                   <button onClick={handleSyncNexonAPI} className="bg-emerald-900/40 text-emerald-400 border border-emerald-800/50 font-bold px-4 rounded-lg text-sm flex items-center gap-2 whitespace-nowrap">🔄 API 갱신</button>
                   <button onClick={saveProgress} className="bg-yellow-600 hover:bg-yellow-500 text-black font-black px-6 rounded-lg text-sm transition-colors whitespace-nowrap min-w-[120px]">{saved ? "저장 완료!" : "서버에 저장"}</button>

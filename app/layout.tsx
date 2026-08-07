@@ -80,36 +80,37 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <div className="max-w-7xl mx-auto px-4 w-full">
             <div className="flex items-center justify-between h-16">
               
-              <div className="flex items-center gap-8">
-                <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity mr-2">
-                  <div className="w-8 h-8 bg-gradient-to-br from-[#e6c788] to-yellow-600 rounded flex items-center justify-center shadow-lg shadow-yellow-900/20">
-                    <span className="text-black font-black text-sm tracking-tighter">SC</span>
+              <div className="flex items-center gap-2 lg:gap-6">
+                <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity mr-1 lg:mr-2">
+                  <div className="w-7 h-7 lg:w-8 lg:h-8 bg-gradient-to-br from-[#e6c788] to-yellow-600 rounded flex items-center justify-center shadow-lg shadow-yellow-900/20 shrink-0">
+                    <span className="text-black font-black text-xs lg:text-sm tracking-tighter">SC</span>
                   </div>
                   <div className="flex flex-col whitespace-nowrap">
-                    <span className="font-black text-lg text-white leading-none tracking-wider drop-shadow-md">SANCTUM</span>
-                    <span className="text-[9px] text-[#e6c788] font-bold tracking-widest mt-0.5 opacity-90">데이안 성역 길드</span>
+                    <span className="font-black text-base lg:text-lg text-white leading-none tracking-wider drop-shadow-md">SANCTUM</span>
+                    <span className="text-[8px] lg:text-[9px] text-[#e6c788] font-bold tracking-widest mt-0.5 opacity-90 hidden sm:block">데이안 성역 길드</span>
                   </div>
                 </Link>
 
-                <div className="hidden xl:flex space-x-2">
+                {/* 🟢 기존 호버 애니메이션 100% 복구 + 창 크기에 따라 폭/글자크기만 쫀득하게 줄어듦 */}
+                <div className="hidden md:flex space-x-0.5 lg:space-x-1 xl:space-x-2">
                   {navItems.map((item) => {
                     const isActive = pathname === item.path;
                     return (
                       <Link 
                         key={item.en} 
                         href={item.path} 
-                        className={`group relative h-12 w-24 flex items-center justify-center rounded-md transition-all overflow-hidden ${
+                        className={`group relative flex items-center justify-center rounded-md transition-all overflow-hidden h-10 lg:h-11 xl:h-12 w-14 lg:w-20 xl:w-24 ${
                           isActive ? 'bg-zinc-800/80 border-b-2 border-[#e6c788]' : 'hover:bg-zinc-800/50'
                         }`}
                       >
-                        <span className={`absolute font-black tracking-widest text-xs transition-all duration-300 transform group-hover:-translate-y-8 group-hover:opacity-0 ${
+                        <span className={`absolute font-black tracking-widest text-[8px] lg:text-[10px] xl:text-xs transition-all duration-300 transform group-hover:-translate-y-8 group-hover:opacity-0 ${
                           isActive ? 'text-white' : 'text-zinc-400'
                         }`}>
                           {item.en}
                         </span>
                         <div className="absolute flex flex-col items-center transition-all duration-300 transform translate-y-8 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 pointer-events-none">
-                          <span className="font-black text-[13px] text-white leading-tight whitespace-nowrap">{item.kr}</span>
-                          <span className="text-[9px] font-bold text-[#e6c788] whitespace-nowrap">{item.sub}</span>
+                          <span className="font-black text-[9px] lg:text-[11px] xl:text-[13px] text-white leading-tight whitespace-nowrap">{item.kr}</span>
+                          <span className="text-[7px] lg:text-[8px] xl:text-[9px] font-bold text-[#e6c788] whitespace-nowrap">{item.sub}</span>
                         </div>
                       </Link>
                     );
@@ -117,42 +118,44 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 </div>
               </div>
 
-              <div className="hidden xl:flex items-center gap-4 shrink-0">
+              {/* 🟢 우측 유저 프로필 및 햄버거 버튼 영역 */}
+              <div className="flex items-center gap-2 lg:gap-4 shrink-0">
                 {user ? (
-                  <div className="flex items-center gap-2 whitespace-nowrap">
-                    <span className="text-sm font-bold text-zinc-300 flex items-center gap-1">
+                  <div className="hidden md:flex items-center gap-1.5 lg:gap-2 whitespace-nowrap">
+                    <span className="text-xs lg:text-sm font-bold text-zinc-300 flex items-center gap-1">
                       <span className="text-[#e6c788]">👑</span>
                       <span>{user.nickname}</span>
                     </span>
                     
                     {isAdmin && (
                       <Link href="/admin" className="text-zinc-500 hover:text-[#e6c788] transition-colors p-1" title="SANCTUM 관리">
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                        <svg className="w-4 h-4 lg:w-5 lg:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                       </Link>
                     )}
                     <button onClick={handleLogout} className="text-zinc-500 hover:text-red-400 transition-colors p-1 flex items-center justify-center" title="로그아웃">
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                      <svg className="w-4 h-4 lg:w-5 lg:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
                     </button>
                   </div>
                 ) : (
-                  <Link href="/login" className="text-sm font-bold text-[#e6c788] hover:text-yellow-400 whitespace-nowrap">로그인</Link>
+                  <Link href="/login" className="hidden md:block text-xs lg:text-sm font-bold text-[#e6c788] hover:text-yellow-400 whitespace-nowrap">로그인</Link>
                 )}
-              </div>
-              
-              <div className="flex xl:hidden items-center shrink-0">
-                <button onClick={() => setIsMobileMenuOpen(true)} className="text-zinc-400 hover:text-white p-2 focus:outline-none transition-colors">
-                  <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
-                </button>
+                
+                {/* 🟢 햄버거 버튼은 모바일(스마트폰) 사이즈에서만 나오도록 md:hidden 적용 */}
+                <div className="flex md:hidden items-center shrink-0">
+                  <button onClick={() => setIsMobileMenuOpen(true)} className="text-zinc-400 hover:text-white p-2 focus:outline-none transition-colors">
+                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         </nav>
 
         {isMobileMenuOpen && (
-          <div className="fixed inset-0 bg-black/60 z-[10000] transition-opacity xl:hidden backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)}></div>
+          <div className="fixed inset-0 bg-black/60 z-[10000] transition-opacity md:hidden backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)}></div>
         )}
 
-        <div className={`fixed top-0 right-0 h-full w-72 bg-[#1c1c1e] z-[10001] transform transition-transform duration-300 ease-in-out border-l border-zinc-800 shadow-2xl xl:hidden flex flex-col ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+        <div className={`fixed top-0 right-0 h-full w-72 bg-[#1c1c1e] z-[10001] transform transition-transform duration-300 ease-in-out border-l border-zinc-800 shadow-2xl md:hidden flex flex-col ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}>
           <div className="flex items-center justify-between p-4 border-b border-zinc-800">
             <span className="font-black text-[#e6c788] text-lg tracking-tight">SANCTUM MENU</span>
             <button onClick={() => setIsMobileMenuOpen(false)} className="text-zinc-400 hover:text-white p-2 rounded-lg hover:bg-zinc-800 transition-colors">
@@ -164,7 +167,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             {navItems.map((item) => {
               const isActive = pathname === item.path;
               return (
-                // 🟢 모바일 레이아웃 개편: 좌측 영문+발음 / 우측 기능명칭
                 <Link 
                   key={item.en} 
                   href={item.path} 

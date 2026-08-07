@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { supabase } from "../../lib/supabase"; 
 
 // ==========================================
 // 1. 랭킹 메타 데이터
@@ -179,7 +180,6 @@ const generateLore = (title: string, rank: number, job: string, category: keyof 
     tribute = (TRIBUTE_MESSAGES as any)[category]?.[rank] || "";
   }
 
-  // 🟢 괄호 부분(종합 랭킹 등)을 제외하고 깔끔하게 생성
   const sourceText = category === 'KRATOS' 
     ? `ℹ️ 성역 ${RANKING_INFO[category].kr} [${job}] ${rank}위에게 부여되는 칭호`
     : `ℹ️ 성역 ${RANKING_INFO[category].kr} ${rank}위에게 부여되는 칭호`;
@@ -191,25 +191,17 @@ const generateLore = (title: string, rank: number, job: string, category: keyof 
 // 3. 데이터 모델
 // ==========================================
 interface Character {
-  id: string; accountId: string; name: string; job: string;
+  id: string; name: string; job: string;
   combatPower: number; magicResist: number; lifePower: number; charm: number; contribution: number;
   isMain: boolean; status: '생텀 접속중' | '인게임' | '오프라인'; lastSeen?: string;
   pendingTasks?: string[]; serverRankOverall?: number; serverRankDeian?: number;
 }
 
-const MOCK_CHARACTERS: Character[] = [
-  { id: '1', accountId: 'a1', name: '한설', job: '기사', combatPower: 55000, magicResist: 12000, lifePower: 18000, charm: 9500, contribution: 5000, isMain: true, status: '생텀 접속중', pendingTasks: ['어비스(0/4)'], serverRankOverall: 142, serverRankDeian: 12 },
-  { id: '2', accountId: 'a1', name: '한설부캐1', job: '대검전사', combatPower: 38000, magicResist: 8000, lifePower: 5000, charm: 3000, contribution: 1000, isMain: false, status: '생텀 접속중' },
-  { id: '3', accountId: 'a2', name: '영겁', job: '화염술사', combatPower: 46000, magicResist: 15000, lifePower: 8000, charm: 12000, contribution: 3500, isMain: true, status: '인게임', serverRankOverall: 412, serverRankDeian: 45 },
-  { id: '4', accountId: 'a3', name: '순월', job: '도적', combatPower: 42000, magicResist: 9000, lifePower: 22000, charm: 18000, contribution: 4200, isMain: true, status: '오프라인', lastSeen: '2일 전', pendingTasks: ['주간 레이드(2/4)'], serverRankOverall: 890, serverRankDeian: 98 },
-  { id: '5', accountId: 'a4', name: '마치', job: '힐러', combatPower: 40000, magicResist: 18000, lifePower: 15000, charm: 15000, contribution: 4800, isMain: true, status: '생텀 접속중', serverRankOverall: 1205, serverRankDeian: 150 },
-  { id: '7', accountId: 'a5', name: '탄월', job: '궁수', combatPower: 48000, magicResist: 10000, lifePower: 6000, charm: 8500, contribution: 2500, isMain: true, status: '인게임', serverRankOverall: 290, serverRankDeian: 31 },
-  { id: '8', accountId: 'a6', name: '검성유저', job: '검술사', combatPower: 47000, magicResist: 11000, lifePower: 4000, charm: 5000, contribution: 1500, isMain: true, status: '생텀 접속중', serverRankOverall: 310, serverRankDeian: 35 },
-];
-
 export default function AgoraLoungePage() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
+  const [dbCharacters, setDbCharacters] = useState<Character[]>([]); // 🟢 DB 연동 상태 추가
+
   const [activeMainTab, setActiveMainTab] = useState<'PANTHEON' | 'ASTRA'>('PANTHEON');
   const [activeRankTab, setActiveRankTab] = useState<keyof typeof RANKING_INFO>('TELOS');
   
@@ -219,21 +211,52 @@ export default function AgoraLoungePage() {
   
   const [openTooltipId, setOpenTooltipId] = useState<string | null>(null);
 
-  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => { 
+    setMounted(true); 
+    fetchServerData();
+  }, []);
 
+  // 🟢 수정 1: DB에서 가져올 때 확실하게 숫자로 변환 (Number 추가)
+  const fetchServerData = async () => {
+    try {
+      const { data, error } = await supabase.from('characters').select('*');
+      if (data && !error) {
+        const mappedData: Character[] = data.map((c: any) => ({
+          id: c.nickname,
+          name: c.nickname,
+          job: c.job || '전사',
+          combatPower: Number(c.combat_power) || 0,
+          magicResist: Number(c.magic_resistance) || 0,
+          lifePower: Number(c.life_energy) || 0,
+          charm: Number(c.charm) || 0,
+          contribution: Number(c.contribution) || 0,
+          isMain: c.is_main || false,
+          status: '오프라인', 
+          lastSeen: '최근 업데이트 됨',
+          pendingTasks: [] 
+        }));
+        setDbCharacters(mappedData);
+      }
+    } catch (err) {
+      console.error("데이터를 불러오는데 실패했습니다.", err);
+    }
+  };
+
+  // 🟢 수정 2: 점수 계산 시에도 무조건 숫자로 강제 변환
   const getScore = (c: Character, type: keyof typeof RANKING_INFO) => {
     switch(type) {
-      case 'KRATOS': return c.combatPower; 
-      case 'TECHNE': return c.lifePower;
-      case 'HARMONIA': return c.charm;
-      case 'TELOS': return c.combatPower + c.lifePower + c.charm;
-      case 'PIETAS': return c.contribution;
+      case 'KRATOS': return Number(c.combatPower); 
+      case 'TECHNE': return Number(c.lifePower);
+      case 'HARMONIA': return Number(c.charm);
+      case 'TELOS': return Number(c.combatPower) + Number(c.lifePower) + Number(c.charm);
+      case 'PIETAS': return Number(c.contribution);
       default: return 0;
     }
   };
 
+  // 🟢 MOCK_CHARACTERS 대신 불러온 dbCharacters 사용
   const getAllSortedCharacters = () => {
-    return [...MOCK_CHARACTERS].sort((a, b) => getScore(b, activeRankTab) - getScore(a, activeRankTab));
+    return [...dbCharacters].sort((a, b) => getScore(b, activeRankTab) - getScore(a, activeRankTab));
   };
 
   const getRankedCharacters = () => {
@@ -245,14 +268,14 @@ export default function AgoraLoungePage() {
   const getAllEarnedTitles = (char: Character) => {
     const titles: { type: string, name: string, color: string }[] = [];
     const pushIfTop3 = (type: string, scoreType: keyof typeof RANKING_INFO, titleArr: string[], colors: string) => {
-      const rank = [...MOCK_CHARACTERS].sort((a,b) => getScore(b, scoreType) - getScore(a, scoreType)).findIndex(c => c.id === char.id);
+      const rank = [...dbCharacters].sort((a,b) => getScore(b, scoreType) - getScore(a, scoreType)).findIndex(c => c.id === char.id);
       if(rank >= 0 && rank < 3) titles.push({ type, name: titleArr[rank], color: colors });
     };
 
     pushIfTop3('TELOS', 'TELOS', TOP_TITLES.TELOS, 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50');
     pushIfTop3('PIETAS', 'PIETAS', TOP_TITLES.PIETAS, 'bg-purple-500/20 text-purple-400 border-purple-500/50');
 
-    const kratosRank = [...MOCK_CHARACTERS].filter(c => c.job === char.job).sort((a,b) => b.combatPower - a.combatPower).findIndex(c => c.id === char.id);
+    const kratosRank = [...dbCharacters].filter(c => c.job === char.job).sort((a,b) => b.combatPower - a.combatPower).findIndex(c => c.id === char.id);
     const kTitles = CLASS_TITLES[char.job];
     if (kTitles) {
       if(kratosRank >= 0 && kratosRank < 3) titles.push({ type: 'KRATOS', name: kTitles[kratosRank], color: 'bg-red-500/20 text-red-400 border-red-700/50' });
@@ -265,51 +288,53 @@ export default function AgoraLoungePage() {
     return titles;
   };
 
-  const getGroupedRoster = () => {
-    const grouped: Record<string, Character[]> = {};
-    MOCK_CHARACTERS.forEach(c => {
-      if (!grouped[c.accountId]) grouped[c.accountId] = [];
-      grouped[c.accountId].push(c);
-    });
-    Object.values(grouped).forEach(arr => { arr.sort((a, b) => (a.isMain === b.isMain ? 0 : a.isMain ? -1 : 1)); });
-    return Object.values(grouped);
-  };
-
   if (!mounted) return null;
 
   const allSortedCharacters = getAllSortedCharacters();
   const rankedCharacters = getRankedCharacters();
-  const rosterGroups = getGroupedRoster();
+  
+  // 🟢 ASTRA 용: 대표 캐릭터(isMain === true)만 추출
+  const mainCharacters = dbCharacters.filter(c => c.isMain).sort((a, b) => b.combatPower - a.combatPower);
 
   return (
     <main className="min-h-screen bg-[#121212] text-[#d4d4d8] font-sans pb-10 relative">
       <div className="p-4 md:p-8 max-w-[1200px] mx-auto space-y-8 pt-8">
         
-        <header className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#1c1c1e] via-[#151515] to-[#1a1a1c] border border-zinc-800 p-8 md:p-10 shadow-2xl mb-8">
+        <header className="relative overflow-hidden rounded-xl bg-gradient-to-br from-[#1c1c1e] via-[#151515] to-[#1a1a1c] border border-zinc-800 py-3 px-6 shadow-xl mb-6">
           <div className="absolute top-0 left-0 w-1.5 h-full bg-[#e6c788] shadow-[0_0_15px_#e6c788]"></div>
-          <div className="absolute bottom-0 right-0 w-64 h-64 bg-[#e6c788] opacity-5 blur-[100px] rounded-full pointer-events-none"></div>
+          <div className="absolute bottom-0 right-0 w-32 h-32 bg-[#e6c788] opacity-5 blur-[60px] rounded-full pointer-events-none"></div>
           
-          <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
-            <div>
-              <h1 className="text-4xl md:text-5xl font-black text-white tracking-widest flex items-end gap-4 drop-shadow-md">
-                AGORA <span className="text-[#e6c788] text-2xl md:text-3xl tracking-normal">성역 라운지</span>
-              </h1>
-              
-              <div className="mt-5 bg-zinc-900/50 border border-zinc-700/50 p-4 rounded-xl max-w-3xl backdrop-blur-sm">
-                <p className="text-zinc-300 text-[13px] md:text-sm font-bold leading-relaxed flex gap-3">
-                  <span className="text-lg">🏛️</span>
-                  <span>
-                    「 고대 그리스의 대광장, 아고라. <br/>
-                    이곳은 성역의 모든 캐릭터들이 교류하고 증명하는 중심 공간입니다. <br/>
-                    <span className="text-[#e6c788]">당신의 땀방울이 기록된 크로노스의 데이터가 이곳 명예의 전당(PANTHEON)에 수여됩니다.</span> 」
-                  </span>
-                </p>
+          <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+            <div className="flex items-center gap-4 min-w-[200px]">
+              <div className="flex flex-col items-start">
+                <h1 className="text-2xl font-black text-white tracking-widest drop-shadow-md leading-none">
+                  AGORA
+                </h1>
+                <span className="text-[#e6c788] text-[13px] font-bold tracking-wide mt-1.5 leading-none">
+                  아고라 : 길드 라운지
+                </span>
               </div>
+              
+              <button 
+                onClick={() => setShowLoreGuide(true)} 
+                className="w-7 h-7 flex items-center justify-center rounded-full bg-zinc-800/80 border border-zinc-700 text-zinc-400 hover:text-[#e6c788] hover:bg-zinc-800 hover:border-[#e6c788] transition-all ml-2" 
+                title="명칭 가이드 보기"
+              >
+                ❔
+              </button>
             </div>
             
-            <button onClick={() => setShowLoreGuide(true)} className="bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 px-5 py-3 rounded-xl text-sm font-bold transition flex items-center gap-2 border border-zinc-700 shadow-lg">
-              <span>📖</span> SANCTUM 세계관 가이드
-            </button>
+            <div className="bg-zinc-900/40 border border-zinc-700/50 px-4 py-2 rounded-lg w-full max-w-[750px] backdrop-blur-sm flex items-start gap-2.5">
+              <span className="text-sm mt-0.5 opacity-80">🏛️</span>
+              <div className="flex flex-col text-[11px] md:text-[12px] font-bold leading-tight w-full">
+                <span className="text-zinc-300 w-full truncate md:whitespace-normal">
+                  고대 그리스의 대광장, 아고라. 이곳은 성역의 모든 캐릭터들이 교류하고 증명하는 중심 공간입니다.
+                </span>
+                <span className="text-[#e6c788] mt-0.5">
+                  성역의 모든 별을 아스트라에 새기고, 빛나는 결실을 판테온에 기립니다.
+                </span>
+              </div>
+            </div>
           </div>
         </header>
 
@@ -317,11 +342,11 @@ export default function AgoraLoungePage() {
           <div className="fixed inset-0 bg-black/80 z-[10000] flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setShowLoreGuide(false)}>
             <div className="bg-[#1c1c1e] border border-zinc-700 rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto p-8 shadow-2xl relative" onClick={e => e.stopPropagation()}>
               <button onClick={() => setShowLoreGuide(false)} className="absolute top-6 right-6 text-zinc-400 hover:text-white text-xl">✕</button>
-              <h2 className="text-2xl font-black text-[#e6c788] mb-6 border-b border-zinc-800 pb-4">📖 SANCTUM 세계관 가이드</h2>
+              <h2 className="text-2xl font-black text-[#e6c788] mb-6 border-b border-zinc-800 pb-4">📖 SANCTUM 명칭 가이드</h2>
               <div className="space-y-6 text-sm text-zinc-300">
                 <div><h3 className="text-lg font-bold text-white mb-1">🏛️ AGORA (아고라 / 길드 라운지)</h3><p>성역의 모든 구성원이 함께 모이고 소통하는 중심 공간입니다.</p></div>
-                <div><h3 className="text-lg font-bold text-white mb-1">✨ ASTRA (아스트라 / 길드원 현황)</h3><p>한 사람 한 사람이 하나의 별이며, 모두가 함께 성역을 이룹니다. 길드원의 정보와 성장 기록을 확인합니다.</p></div>
-                <div><h3 className="text-lg font-bold text-white mb-1">🏛️ PANTHEON (판테온 / 성역 랭킹)</h3><p>성역에서 최고의 경지에 오른 자들이 기록되는 명예의 전당입니다. 5가지 철학적 랭킹으로 나뉩니다.</p>
+                <div><h3 className="text-lg font-bold text-white mb-1">✨ ASTRA (아스트라 / 길드원 현황)</h3><p>한 명 한 명이 하나의 별이며, 모두가 함께 성역을 이룹니다. 길드원의 정보와 성장 기록을 확인합니다.</p></div>
+                <div><h3 className="text-lg font-bold text-white mb-1">🏛️ PANTHEON (판테온 / 성역 랭킹)</h3><p>성역의 모두와 그중 빛나는 이들을 기록하는 명예의 전당입니다. 5개의 철학적 기록으로 나뉩니다.</p>
                   <ul className="mt-3 space-y-2 pl-4 border-l-2 border-zinc-700">
                     <li><strong className="text-[#e6c788]">TELOS (텔로스)</strong>: 종합 랭킹. 도달과 완성의 기록.</li>
                     <li><strong className="text-[#e6c788]">KRATOS (크라토스)</strong>: 전투력 랭킹. 힘과 권능의 기록.</li>
@@ -395,7 +420,7 @@ export default function AgoraLoungePage() {
                 const score = getScore(char, activeRankTab);
                 
                 const categoryRank = allSortedCharacters.findIndex(c => c.id === char.id) + 1;
-                const classRank = activeRankTab === 'KRATOS' ? [...MOCK_CHARACTERS].filter(c => c.job === char.job).sort((a,b) => b.combatPower - a.combatPower).findIndex(c => c.id === char.id) + 1 : categoryRank;
+                const classRank = activeRankTab === 'KRATOS' ? [...dbCharacters].filter(c => c.job === char.job).sort((a,b) => b.combatPower - a.combatPower).findIndex(c => c.id === char.id) + 1 : categoryRank;
                 const rankToUse = activeRankTab === 'KRATOS' ? classRank : categoryRank;
                 const isTop3 = categoryRank <= 3;
                 
@@ -432,31 +457,19 @@ export default function AgoraLoungePage() {
                               {currentRankTitle}
                             </button>
 
-                            {/* 🟢 괄호가 제거된 출처 박스가 포함된 툴팁 UI */}
                             {isTooltipOpen && (
                               <div className="absolute top-[calc(100%+8px)] left-0 w-[300px] bg-[#1a1a1c] border border-zinc-700 rounded-xl p-4 shadow-2xl animate-in fade-in zoom-in-95 duration-150 z-[100] cursor-default" onClick={e => e.stopPropagation()}>
                                 <div className="absolute -top-1.5 left-6 w-3 h-3 bg-[#1a1a1c] border-t border-l border-zinc-700 transform rotate-45"></div>
-                                
                                 <div className="relative z-10 flex flex-col gap-3">
                                   <div className="flex items-center gap-1.5">
                                     <span className="text-[15px]">✨</span>
                                     <span className="font-black text-[#e6c788] text-[15px] tracking-wide">[{loreData.title}]</span>
                                   </div>
-                                  
-                                  <p className="text-[13px] font-bold text-zinc-300 leading-snug break-keep">
-                                    {loreData.meaning}
-                                  </p>
-                                  
+                                  <p className="text-[13px] font-bold text-zinc-300 leading-snug break-keep">{loreData.meaning}</p>
                                   <div className="w-full h-px bg-zinc-700/60"></div>
-                                  
-                                  <p className="text-[13px] font-bold text-zinc-200 leading-relaxed break-keep">
-                                    {loreData.tribute}
-                                  </p>
-
+                                  <p className="text-[13px] font-bold text-zinc-200 leading-relaxed break-keep">{loreData.tribute}</p>
                                   <div className="mt-1 bg-black/40 border border-zinc-800/80 rounded-md p-2">
-                                    <p className="text-[10px] font-bold text-zinc-400 text-center break-keep">
-                                      {loreData.sourceText}
-                                    </p>
+                                    <p className="text-[10px] font-bold text-zinc-400 text-center break-keep">{loreData.sourceText}</p>
                                   </div>
                                 </div>
                               </div>
@@ -502,24 +515,22 @@ export default function AgoraLoungePage() {
           </section>
         )}
 
-        {/* 탭 2: ASTRA (기존 코드 완벽 유지) */}
+        {/* 🟢 탭 2: ASTRA (오로지 대표 캐릭터 전용 현황판으로 개편) */}
         {activeMainTab === 'ASTRA' && (
           <section className="space-y-4 animate-in fade-in duration-300">
             <div className="flex gap-4 mb-6">
               <div className="bg-[#1c1c1e] border border-zinc-800 rounded-xl p-4 flex-1 flex flex-col items-center justify-center">
-                <span className="text-zinc-500 text-xs font-bold mb-1">등록된 계정</span>
-                <span className="text-2xl font-black text-white">{rosterGroups.length}</span>
+                <span className="text-zinc-500 text-xs font-bold mb-1">성역에 등록된 전체 캐릭터</span>
+                <span className="text-2xl font-black text-white">{dbCharacters.length}</span>
               </div>
               <div className="bg-[#1c1c1e] border border-zinc-800 rounded-xl p-4 flex-1 flex flex-col items-center justify-center">
-                <span className="text-zinc-500 text-xs font-bold mb-1">성역의 별 (총 캐릭터)</span>
-                <span className="text-2xl font-black text-[#e6c788]">{MOCK_CHARACTERS.length}</span>
+                <span className="text-zinc-500 text-xs font-bold mb-1">성역의 대표 (가문 대표)</span>
+                <span className="text-2xl font-black text-[#e6c788]">{mainCharacters.length}</span>
               </div>
             </div>
 
             <div className="grid grid-cols-1 gap-4">
-              {rosterGroups.map((group, idx) => {
-                const mainChar = group[0];
-                const alts = group.slice(1);
+              {mainCharacters.map((mainChar, idx) => {
                 const mainTitles = getAllEarnedTitles(mainChar);
                 
                 return (
@@ -537,7 +548,7 @@ export default function AgoraLoungePage() {
 
                       <div className="flex flex-col">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="text-[10px] bg-[#e6c788] text-black font-black px-1.5 py-0.5 rounded">대표</span>
+                          <span className="text-[10px] bg-[#e6c788] text-black font-black px-1.5 py-0.5 rounded">대표 캐릭터</span>
                           <span className="text-xs text-zinc-400 font-bold">{mainChar.job}</span>
                         </div>
                         <h4 className="text-2xl font-black text-white">{mainChar.name}</h4>
@@ -549,29 +560,14 @@ export default function AgoraLoungePage() {
                       </div>
                     </div>
 
-                    <div className="flex-1 bg-[#121212] border border-zinc-800/80 rounded-xl p-3 flex items-center gap-3">
-                      <span className="text-xl">📜</span>
-                      <div className="flex flex-col flex-1">
-                        <span className="text-[10px] text-zinc-500 font-bold">주간 미완료 과제</span>
-                        {mainChar.pendingTasks && mainChar.pendingTasks.length > 0 ? (
-                          <div className="flex flex-wrap gap-2 mt-1">
-                            {mainChar.pendingTasks.map((task, i) => (
-                              <button key={i} onClick={() => { setActiveMainTab('PANTHEON'); setActiveRankTab('KRATOS'); }} className="text-xs bg-red-900/30 text-red-400 border border-red-800/50 px-2 py-1 rounded hover:bg-red-800/50 transition cursor-pointer">{task}</button>
-                            ))}
-                          </div>
-                        ) : <span className="text-xs text-emerald-500 font-bold mt-1">모든 과제 완료! ✨</span>}
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col xl:items-end justify-center min-w-[200px]">
-                      <span className="text-[10px] text-zinc-500 font-bold mb-2">ASTRA (부캐릭터)</span>
-                      <div className="flex flex-wrap xl:justify-end gap-2">
-                        {alts.length > 0 ? alts.map(alt => (
-                          <div key={alt.id} className="flex items-center gap-1.5 bg-zinc-800/50 border border-zinc-700/50 px-3 py-1.5 rounded-lg opacity-80 hover:opacity-100 transition-opacity">
-                            <span className="text-[10px] text-zinc-400 font-bold">{alt.job}</span>
-                            <span className="text-sm font-bold text-zinc-200">{alt.name}</span>
-                          </div>
-                        )) : <span className="text-xs text-zinc-700 font-bold">등록된 별이 없습니다.</span>}
+                    {/* 🟢 대표 캐릭터의 4가지 주요 스탯을 한눈에 표시 */}
+                    <div className="flex flex-col xl:items-end justify-center min-w-[250px]">
+                      <span className="text-[10px] text-[#e6c788] font-bold mb-2 tracking-widest">대표 스탯 현황</span>
+                      <div className="grid grid-cols-2 gap-2 text-xs w-full xl:w-auto">
+                        <div className="bg-zinc-800/50 px-3 py-1.5 rounded border border-zinc-700/50 flex justify-between xl:gap-4"><span className="text-zinc-500">전투력</span> <span className="text-white font-black">{mainChar.combatPower.toLocaleString()}</span></div>
+                        <div className="bg-zinc-800/50 px-3 py-1.5 rounded border border-zinc-700/50 flex justify-between xl:gap-4"><span className="text-zinc-500">생활력</span> <span className="text-white font-black">{mainChar.lifePower.toLocaleString()}</span></div>
+                        <div className="bg-zinc-800/50 px-3 py-1.5 rounded border border-zinc-700/50 flex justify-between xl:gap-4"><span className="text-zinc-500">매력도</span> <span className="text-white font-black">{mainChar.charm.toLocaleString()}</span></div>
+                        <div className="bg-zinc-800/50 px-3 py-1.5 rounded border border-zinc-700/50 flex justify-between xl:gap-4"><span className="text-zinc-500">공헌도</span> <span className="text-white font-black">{mainChar.contribution.toLocaleString()}</span></div>
                       </div>
                     </div>
                   </div>

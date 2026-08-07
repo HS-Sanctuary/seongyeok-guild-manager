@@ -174,42 +174,70 @@ export default function NoticePage() {
   if (!mounted) return null;
 
   return (
-    <main className="min-h-screen bg-[#1c1c1e] text-[#d4d4d8] font-sans pb-20 pt-6">
-      <div className="max-w-[1000px] mx-auto p-4 md:p-8 space-y-6 relative">
+    <main className="min-h-screen bg-[#121212] text-[#d4d4d8] font-sans pb-20 pt-8">
+      <div className="max-w-[1200px] mx-auto p-4 md:p-8 space-y-6 relative">
         
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b border-zinc-700/50 pb-6">
-          <div>
-            <h1 className="text-3xl font-black text-white flex items-center gap-3 tracking-tight">
-              <span>📢</span> 공지사항
-            </h1>
-            <p className="text-zinc-500 text-sm mt-2 font-medium">성역 길드의 중요한 소식과 일정, 길드마스터의 메시지를 확인하세요.</p>
-          </div>
-          <button onClick={() => setIsWriteModalOpen(true)} className="bg-[#e6c788] hover:bg-yellow-500 text-[#121212] font-black px-6 py-2.5 rounded-lg text-sm shadow-[0_0_15px_rgba(230,199,136,0.3)] transition transform hover:scale-105 flex items-center gap-2">
-            <span>✍️</span> 새 공지 작성
-          </button>
-        </div>
+        {/* 🟢 KERYGMA 시그니처 헤더 (아고라/크로노스와 완벽 통일) */}
+        <header className="relative overflow-hidden rounded-xl bg-gradient-to-br from-[#1c1c1e] via-[#151515] to-[#1a1a1c] border border-zinc-800 py-3 px-6 shadow-xl mb-6">
+          <div className="absolute top-0 left-0 w-1.5 h-full bg-[#e6c788] shadow-[0_0_15px_#e6c788]"></div>
+          <div className="absolute bottom-0 right-0 w-32 h-32 bg-[#e6c788] opacity-5 blur-[60px] rounded-full pointer-events-none"></div>
+          
+          <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+            <div className="flex items-center gap-4 min-w-[200px]">
+              <div className="flex flex-col items-start">
+                <h1 className="text-2xl font-black text-white tracking-widest drop-shadow-md leading-none">
+                  KERYGMA
+                </h1>
+                <span className="text-[#e6c788] text-[13px] font-bold tracking-wide mt-1.5 leading-none">
+                  케뤼그마 : 길드 공지사항
+                </span>
+              </div>
+            </div>
+            
+            <div className="bg-zinc-900/40 border border-zinc-700/50 px-4 py-2 rounded-lg w-full max-w-[750px] backdrop-blur-sm flex items-start gap-2.5">
+              <span className="text-sm mt-0.5 opacity-80">📢</span>
+              <div className="flex flex-col text-[11px] md:text-[12px] font-bold leading-tight w-full">
+                <span className="text-zinc-300 w-full truncate md:whitespace-normal">
+                  케뤼그마는 고대 그리스어로 ‘선포’와 ‘공표’를 뜻하는 말입니다.
+                </span>
+                <span className="text-[#e6c788] mt-0.5">
+                  성역의 소식과 뜻이 가장 먼저 울려 퍼지는 공간입니다.
+                </span>
+              </div>
+            </div>
 
-        <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-[#252528] p-4 rounded-xl border border-zinc-800 shadow-md">
+            <button 
+              onClick={() => setIsWriteModalOpen(true)} 
+              className="bg-[#e6c788] hover:bg-yellow-500 text-[#121212] font-black px-4 py-2.5 rounded-lg text-xs md:text-sm shadow-[0_0_15px_rgba(230,199,136,0.3)] transition transform hover:scale-105 flex items-center gap-2 flex-shrink-0"
+            >
+              <span>✍️</span> 새 공지 작성
+            </button>
+          </div>
+        </header>
+
+        {/* 검색 및 필터 바 */}
+        <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-[#1c1c1e] p-4 rounded-xl border border-zinc-800 shadow-md">
           <div className="flex gap-2 w-full md:w-auto overflow-x-auto custom-scrollbar pb-1 md:pb-0">
             {CATEGORIES.map((cat) => (
-              <button key={cat} onClick={() => setActiveCategory(cat)} className={`px-4 py-1.5 rounded-full text-sm font-bold transition whitespace-nowrap ${activeCategory === cat ? "bg-[#e6c788] text-[#121212]" : "bg-[#1c1c1e] text-zinc-400 hover:text-white border border-zinc-700"}`}>
+              <button key={cat} onClick={() => setActiveCategory(cat)} className={`px-4 py-1.5 rounded-full text-xs font-bold transition whitespace-nowrap ${activeCategory === cat ? "bg-[#e6c788] text-[#121212]" : "bg-[#121212] text-zinc-400 hover:text-white border border-zinc-800"}`}>
                 {cat}
               </button>
             ))}
           </div>
           <div className="relative w-full md:w-72">
-            <input type="text" placeholder="제목이나 작성자로 검색..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-[#1c1c1e] border border-zinc-700 text-sm text-white rounded-lg pl-10 pr-4 py-2 focus:border-[#e6c788] outline-none transition placeholder-zinc-600" />
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500">🔍</span>
+            <input type="text" placeholder="제목이나 작성자로 검색..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-[#121212] border border-zinc-800 text-xs text-white rounded-lg pl-10 pr-4 py-2.5 focus:border-[#e6c788] outline-none transition placeholder-zinc-600" />
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-xs">🔍</span>
           </div>
         </div>
 
-        <div className="bg-[#252528] rounded-xl border border-zinc-800 overflow-hidden shadow-lg min-h-[300px]">
+        {/* 공지사항 목록 컨테이너 */}
+        <div className="bg-[#1c1c1e] rounded-xl border border-zinc-800 overflow-hidden shadow-lg min-h-[300px]">
           {isLoading ? (
-            <div className="flex justify-center items-center h-48 text-zinc-500 font-bold">데이터를 불러오는 중입니다...</div>
+            <div className="flex justify-center items-center h-48 text-zinc-500 font-bold text-sm">데이터를 불러오는 중입니다...</div>
           ) : notices.length === 0 ? (
             <div className="p-16 text-center text-zinc-500 font-medium flex flex-col items-center gap-4">
               <span className="text-5xl opacity-80">📭</span>
-              <p>등록된 공지사항이 없습니다.<br/>첫 번째 공지사항을 작성해보세요!</p>
+              <p className="text-sm">등록된 공지사항이 없습니다.<br/>첫 번째 공지사항을 작성해보세요!</p>
             </div>
           ) : (
             <>
@@ -226,29 +254,30 @@ export default function NoticePage() {
         </div>
       </div>
 
+      {/* 작성 모달 */}
       {isWriteModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
           <div className="bg-[#1c1c1e] border border-zinc-700 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200">
             <div className="bg-[#252528] px-6 py-4 border-b border-zinc-700 flex justify-between items-center">
-              <h2 className="text-xl font-bold text-white flex items-center gap-2"><span>✍️</span> 새 공지사항 작성</h2>
+              <h2 className="text-lg font-bold text-white flex items-center gap-2"><span>✍️</span> 새 공지사항 작성</h2>
               <button onClick={() => setIsWriteModalOpen(false)} className="text-zinc-400 hover:text-white text-2xl leading-none">&times;</button>
             </div>
             <div className="p-6 space-y-4">
               <div className="flex gap-4">
-                <select value={newNotice.type} onChange={(e) => setNewNotice({...newNotice, type: e.target.value})} className="bg-[#121212] border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:border-[#e6c788] outline-none font-bold">
+                <select value={newNotice.type} onChange={(e) => setNewNotice({...newNotice, type: e.target.value})} className="bg-[#121212] border border-zinc-700 rounded-lg px-3 py-2 text-xs text-white focus:border-[#e6c788] outline-none font-bold">
                   <option value="안내">안내</option><option value="필독">필독</option><option value="이벤트">이벤트</option>
                 </select>
-                <input type="text" placeholder="공지사항 제목을 입력하세요" value={newNotice.title} onChange={(e) => setNewNotice({...newNotice, title: e.target.value})} className="flex-1 bg-[#121212] border border-zinc-700 rounded-lg px-4 py-2 text-white focus:border-[#e6c788] outline-none" />
+                <input type="text" placeholder="공지사항 제목을 입력하세요" value={newNotice.title} onChange={(e) => setNewNotice({...newNotice, title: e.target.value})} className="flex-1 bg-[#121212] border border-zinc-700 rounded-lg px-4 py-2 text-xs text-white focus:border-[#e6c788] outline-none" />
               </div>
-              <textarea placeholder="공지사항 내용을 입력하세요... (길드원들에게 전할 메시지)" value={newNotice.content} onChange={(e) => setNewNotice({...newNotice, content: e.target.value})} className="w-full bg-[#121212] border border-zinc-700 rounded-lg p-4 text-white focus:border-[#e6c788] outline-none h-48 resize-none custom-scrollbar text-sm" />
+              <textarea placeholder="공지사항 내용을 입력하세요... (길드원들에게 전할 메시지)" value={newNotice.content} onChange={(e) => setNewNotice({...newNotice, content: e.target.value})} className="w-full bg-[#121212] border border-zinc-700 rounded-lg p-4 text-xs text-white focus:border-[#e6c788] outline-none h-48 resize-none custom-scrollbar" />
               <label className="flex items-center gap-2 cursor-pointer w-fit group mt-2">
                 <input type="checkbox" checked={newNotice.isPinned} onChange={(e) => setNewNotice({...newNotice, isPinned: e.target.checked})} className="w-4 h-4 accent-amber-500 bg-zinc-800 border-zinc-600 rounded cursor-pointer" />
-                <span className="text-sm font-medium text-zinc-400 group-hover:text-zinc-200 transition">이 글을 최상단에 고정합니다 (📌 필독 전용 권장)</span>
+                <span className="text-xs font-medium text-zinc-400 group-hover:text-zinc-200 transition">이 글을 최상단에 고정합니다 (📌 필독 전용 권장)</span>
               </label>
             </div>
             <div className="bg-[#252528] px-6 py-4 border-t border-zinc-700 flex justify-end gap-3">
-              <button onClick={() => setIsWriteModalOpen(false)} className="px-5 py-2.5 rounded-lg text-sm font-bold text-zinc-400 hover:text-white bg-[#1c1c1e] border border-zinc-700 hover:border-zinc-500 transition">취소</button>
-              <button onClick={handleSubmit} className="px-5 py-2.5 rounded-lg text-sm font-black text-[#121212] bg-[#e6c788] hover:bg-yellow-500 transition shadow-lg">등록하기</button>
+              <button onClick={() => setIsWriteModalOpen(false)} className="px-5 py-2.5 rounded-lg text-xs font-bold text-zinc-400 hover:text-white bg-[#121212] border border-zinc-700 hover:border-zinc-500 transition">취소</button>
+              <button onClick={handleSubmit} className="px-5 py-2.5 rounded-lg text-xs font-black text-[#121212] bg-[#e6c788] hover:bg-yellow-500 transition shadow-lg">등록하기</button>
             </div>
           </div>
         </div>

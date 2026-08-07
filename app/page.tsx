@@ -234,7 +234,13 @@ export default function Home() {
       setUniqueAccounts(1);
 
       const myChars = allChars.filter(char => MY_ACCOUNT_CHARACTERS.includes(char.nickname));
-      myChars.sort((a, b) => a.nickname === user?.nickname ? -1 : b.nickname === user?.nickname ? 1 : 0);
+      
+      // 🟢 [핵심 연동] is_main(대표 캐릭터)이 1순위로 오도록 정렬 후 본인 계정 우선 정렬
+      myChars.sort((a, b) => {
+        if (a.is_main && !b.is_main) return -1;
+        if (!a.is_main && b.is_main) return 1;
+        return a.nickname === user?.nickname ? -1 : b.nickname === user?.nickname ? 1 : 0;
+      });
       setMyCharacters(myChars);
 
       let maxLevelSum = 0;
@@ -422,7 +428,7 @@ export default function Home() {
           </div>
         </header>
 
-        {/* 🟢 상단 알리미 위젯 (팝업 버튼 & 3분 전 강조 시각 효과 적용) */}
+        {/* 상단 알리미 위젯 */}
         <section className="space-y-2">
           <div className="flex justify-end items-center px-1">
             <span className="text-[10px] text-zinc-500 font-medium flex items-center gap-1.5 bg-[#1c1c1e] px-2.5 py-1 rounded-full border border-zinc-800">
@@ -432,7 +438,7 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
-            {/* 🔴 소환의 결계 위젯 (3분 전 강조 로직 적용) */}
+            {/* 소환의 결계 위젯 */}
             <div className={`rounded-xl p-4 flex flex-col justify-center relative transition-all duration-500 ${isBoundaryAlert ? 'bg-amber-900/40 border-2 border-amber-500 animate-pulse shadow-[0_0_25px_rgba(245,158,11,0.4)]' : 'bg-[#1c1c1e] border border-zinc-700/50 shadow-lg'}`}>
               <p className={`text-[11px] font-bold mb-1 ${isBoundaryAlert ? 'text-amber-300' : 'text-amber-500/80'}`}>소환의 결계 알림 {isBoundaryAlert && '🔥 임박'}</p>
               <div className="flex items-end gap-2 mt-1">
@@ -442,7 +448,7 @@ export default function Home() {
               <p className="text-[10px] text-zinc-500 mt-1">실시간 정시 타이머</p>
             </div>
 
-            {/* 🟣 어비스 구멍 위젯 (3분 전 강조 로직 적용) */}
+            {/* 어비스 구멍 위젯 */}
             <div className={`rounded-xl p-4 flex flex-col justify-between relative transition-all duration-500 ${isAbyssAlert ? 'bg-purple-900/60 border-2 border-purple-400 animate-pulse shadow-[0_0_25px_rgba(168,85,247,0.5)]' : 'bg-[#1a1625] border border-purple-900/50 shadow-[0_0_15px_rgba(168,85,247,0.05)]'}`}>
               <div className="flex justify-between items-start mb-1">
                 <p className={`text-[11px] font-bold ${isAbyssAlert ? 'text-purple-300' : 'text-purple-400'}`}>어비스 구멍 알림 {isAbyssAlert && '🔥 임박'}</p>
@@ -456,7 +462,7 @@ export default function Home() {
               </div>
             </div>
 
-            {/* 🟡 데이안 서버 심층 구멍 위젯 (UID 뼈대 연동) */}
+            {/* 데이안 서버 심층 구멍 위젯 */}
             <div className="bg-[#201515] border border-red-900/50 rounded-xl p-4 flex flex-col justify-between relative shadow-[0_0_15px_rgba(239,68,68,0.05)]">
               <div className="flex justify-between items-center mb-2">
                 <p className="text-[11px] font-bold text-red-400">심층 구멍 알림</p>
@@ -468,7 +474,6 @@ export default function Home() {
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2">
-                {/* HUNTING_ZONES 배열을 기반으로 자동 렌더링 (현재 2개만 isActive) */}
                 {HUNTING_ZONES.filter(z => z.isActive).map(zone => {
                   const activeHole = getActiveDeepHoles(zone.uid)[0];
                   const colorClass = zone.theme === 'emerald' ? 'bg-emerald-900/30 text-emerald-400' : 'bg-red-900/40 text-red-400';
@@ -528,9 +533,15 @@ export default function Home() {
 
               return (
                 <div key={char.id} onClick={() => router.push('/character')} className="bg-[#252528] border border-zinc-700/50 rounded-xl p-4 cursor-pointer hover:border-[#e6c788]/60 transition shadow-md flex flex-col gap-3 group">
-                  <div className="flex items-center gap-2 border-b border-zinc-800 pb-2">
-                    <span className="text-base bg-[#121212] p-1.5 rounded-lg border border-zinc-700 group-hover:border-[#e6c788]/50 transition">{JOB_ICONS[char.job] || "👤"}</span>
-                    <span className="font-black text-white text-[15px] truncate">{char.nickname}</span>
+                  <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
+                    <div className="flex items-center gap-2 truncate">
+                      <span className="text-base bg-[#121212] p-1.5 rounded-lg border border-zinc-700 group-hover:border-[#e6c788]/50 transition">{JOB_ICONS[char.job] || "👤"}</span>
+                      <span className="font-black text-white text-[15px] truncate">{char.nickname}</span>
+                    </div>
+                    {/* 🟢 대표 캐릭터 뱃지 연동 */}
+                    {char.is_main && (
+                      <span className="text-[9px] bg-[#e6c788] text-black font-black px-1.5 py-0.5 rounded shrink-0">대표</span>
+                    )}
                   </div>
                   <div className="space-y-2 text-[10px] font-bold">
                     <div>
@@ -715,7 +726,7 @@ export default function Home() {
       </div>
 
       {/* ========================================= */}
-      {/* 🔴 [팝업] 어비스 구멍 제보 & 관리자 승인 모달 */}
+      {/* 어비스 구멍 제보 & 관리자 승인 모달 */}
       {/* ========================================= */}
       {isAbyssModalOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
@@ -735,7 +746,6 @@ export default function Home() {
               </div>
 
               <form onSubmit={submitAbyssHole} className="flex gap-2">
-                {/* 닉네임 자동 입력 필드 (수정 불가) */}
                 <input type="text" value={user?.nickname || "로딩중..."} disabled className="w-24 text-xs p-2.5 rounded bg-[#121212] border border-zinc-700 text-zinc-500 cursor-not-allowed" />
                 <div className="flex-1 relative">
                   <input type="number" placeholder="등장까지 몇분 남았나요?" value={abyssMins} onChange={(e) => setAbyssMins(e.target.value)} className="w-full text-xs p-2.5 rounded bg-[#121212] border border-zinc-700 focus:outline-none focus:border-purple-500 text-white pr-8" />
@@ -770,7 +780,7 @@ export default function Home() {
       )}
 
       {/* ========================================= */}
-      {/* 🟡 [팝업] 심층 구멍 제보 모달 (UID 연동 적용) */}
+      {/* 심층 구멍 제보 모달 */}
       {/* ========================================= */}
       {isDeepModalOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
@@ -781,10 +791,8 @@ export default function Home() {
             </div>
             
             <form onSubmit={submitDeepHole} className="p-5 space-y-5 bg-[#1c1c1e]">
-              
               <div>
                 <label className="text-[11px] font-bold text-zinc-400 mb-2 block">제보자 닉네임</label>
-                {/* 닉네임 자동 입력 필드 (수정 불가) */}
                 <input type="text" value={user?.nickname || "로딩중..."} disabled className="w-full text-sm p-3 rounded bg-[#121212] border border-zinc-700 text-zinc-500 cursor-not-allowed" />
               </div>
 
@@ -813,7 +821,6 @@ export default function Home() {
               <div className="pt-2">
                 <button type="submit" className="w-full bg-red-800 hover:bg-red-700 text-white text-sm py-3 rounded-xl font-black transition shadow-lg">제보 반영하기</button>
               </div>
-
             </form>
           </div>
         </div>
