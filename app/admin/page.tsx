@@ -58,8 +58,8 @@ export default function AdminPage() {
     if (!savedUser) { router.push("/login"); return; }
     const parsedUser = JSON.parse(savedUser);
     
-    // 🟢 마스터와 부마스터 모두 관리자 페이지 접근 허용
-    if (parsedUser.role !== "마스터" && parsedUser.role !== "부마스터") {
+    // 🟢 길드마스터, 마스터, 부마스터 모두 관리자 페이지 접근 허용
+    if (parsedUser.role !== "길드마스터" && parsedUser.role !== "마스터" && parsedUser.role !== "부마스터") {
       alert("관리자 권한이 없습니다."); router.push("/"); return;
     }
     setUser(parsedUser);
