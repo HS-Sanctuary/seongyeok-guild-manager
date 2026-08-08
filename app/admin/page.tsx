@@ -47,7 +47,6 @@ export default function AdminPage() {
   const [newWeekly, setNewWeekly] = useState("");
   const [newRepeat, setNewRepeat] = useState({ name: "", max: 1, cycle: "repeat_weekly" });
 
-  // 🟢 물물교환 관련 상태
   const [trades, setTrades] = useState<any[]>([]);
   const [newTrade, setNewTrade] = useState({
     map: "", npc: "", reward: "", reward_cnt: 1, cost: "", cost_cnt: 1, limit: 10, reset_type: "주간", scope: "캐릭당"
@@ -58,7 +57,9 @@ export default function AdminPage() {
     const savedUser = localStorage.getItem("nexus_user");
     if (!savedUser) { router.push("/login"); return; }
     const parsedUser = JSON.parse(savedUser);
-    if (parsedUser.nickname !== "한설" && parsedUser.role !== "마스터") {
+    
+    // 🟢 마스터와 부마스터 모두 관리자 페이지 접근 허용
+    if (parsedUser.role !== "마스터" && parsedUser.role !== "부마스터") {
       alert("관리자 권한이 없습니다."); router.push("/"); return;
     }
     setUser(parsedUser);
@@ -70,30 +71,25 @@ export default function AdminPage() {
     fetchTrades();
   }, [router]);
 
-  // 배너 로직
   const fetchActiveBanner = async () => { const { data } = await supabase.from('nexus_banners').select('*').eq('is_active', true).order('created_at', { ascending: false }).limit(1); if (data && data.length > 0) setActiveBanner(data[0]); else setActiveBanner(null); };
   const handleBroadcastBanner = async () => { if (!bannerInput.trim()) return alert("입력해주세요."); setIsSubmitting(true); try { await supabase.from('nexus_banners').update({ is_active: false }).eq('is_active', true); await supabase.from('nexus_banners').insert([{ message: bannerInput, is_active: true }]); alert("송출 성공!"); setBannerInput(""); fetchActiveBanner(); window.location.reload(); } catch (e) {} finally { setIsSubmitting(false); } };
   const handleTurnOffBanner = async () => { if (!activeBanner) return; await supabase.from('nexus_banners').update({ is_active: false }).eq('id', activeBanner.id); setActiveBanner(null); window.location.reload(); };
   
-  // 컨텐츠(어비스/레이드) 로직
   const fetchContents = async () => { const { data } = await supabase.from('nexus_contents').select('*').order('type').order('id'); if (data) setContents(data); };
   const handleAddContent = async (type: string, name: string) => { if (!name.trim()) return; const finalName = type === "abyss" ? `어비스 - ${name}` : `레이드 - ${name}`; await supabase.from('nexus_contents').insert([{ type, name: finalName, short_name: name.substring(0,2), is_weekend: false, is_active: true }]); if (type === 'abyss') setNewAbyss(""); else setNewRaid(""); fetchContents(); };
   const saveEditingContent = async () => { await supabase.from('nexus_contents').update({ name: editForm.name, is_weekend: editForm.is_weekend, is_active: editForm.is_active }).eq('id', editingId); setEditingId(null); fetchContents(); };
   const deleteContent = async (id: number) => { if (!confirm(`삭제하시겠습니까?`)) return; await supabase.from('nexus_contents').delete().eq('id', id); fetchContents(); };
   
-  // 숙제(일일/주간/반복) 로직
   const fetchTasks = async () => { const { data } = await supabase.from('nexus_tasks').select('*').order('type').order('id'); if (data) setTasks(data); };
   const handleAddTask = async (type: string, name: string, max_count: number = 1) => { if (!name.trim()) return; await supabase.from('nexus_tasks').insert([{ type, name, max_count, is_active: true }]); if (type === 'daily') setNewDaily(""); else if (type === 'weekly') setNewWeekly(""); else setNewRepeat({ name: "", max: 1, cycle: "repeat_weekly" }); fetchTasks(); };
   const saveEditingTask = async () => { await supabase.from('nexus_tasks').update({ name: editTaskForm.name, max_count: editTaskForm.max_count, is_active: editTaskForm.is_active }).eq('id', editingTaskId); setEditingTaskId(null); fetchTasks(); };
   const deleteTask = async (id: number) => { if (!confirm(`삭제하시겠습니까?`)) return; await supabase.from('nexus_tasks').delete().eq('id', id); fetchTasks(); };
   
-  // 클래스 로직
   const fetchClasses = async () => { const { data } = await supabase.from('nexus_classes').select('*').order('id'); if (data) setClasses(data); };
   const handleAddClass = async () => { if (!newClass.name.trim() || !newClass.icon.trim()) return; await supabase.from('nexus_classes').insert([{ name: newClass.name, icon: newClass.icon, is_active: true }]); setNewClass({ icon: "👤", name: "" }); fetchClasses(); };
   const saveEditingClass = async () => { await supabase.from('nexus_classes').update({ name: editClassForm.name, icon: editClassForm.icon, is_active: editClassForm.is_active }).eq('id', editingClassId); setEditingClassId(null); fetchClasses(); };
   const deleteClass = async (id: number) => { if (!confirm(`삭제하시겠습니까?`)) return; await supabase.from('nexus_classes').delete().eq('id', id); fetchClasses(); };
 
-  // 🟢 물물교환 API 로직
   const fetchTrades = async () => { const { data } = await supabase.from('nexus_trades').select('*').order('id'); if (data) setTrades(data); };
   const handleAddTrade = async () => {
     if (!newTrade.reward.trim() || !newTrade.cost.trim()) return alert("보상과 재화 이름은 필수입니다.");
@@ -127,7 +123,6 @@ export default function AdminPage() {
 
         <div className="bg-[#1c1c1e] border border-zinc-800 rounded-xl p-6 shadow-xl min-h-[500px]">
           
-          {/* 배너 탭 */}
           {activeMainTab === "banner" && (
             <div className="space-y-6 max-w-3xl">
               <h2 className="text-xl font-bold text-white mb-4">🚨 긴급 공지 배너 제어</h2>
@@ -150,7 +145,6 @@ export default function AdminPage() {
             </div>
           )}
 
-          {/* 🟢 캐릭터 관리 설정 탭 (완벽 복원) */}
           {activeMainTab === "character" && (
             <div className="space-y-6">
               <div className="flex border-b border-zinc-800 mb-6">
@@ -163,7 +157,6 @@ export default function AdminPage() {
 
               {activeCharTab === "tasks" && (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {/* 일일 콘텐츠 */}
                   <div className="bg-[#252528] rounded-xl border border-zinc-700 p-4">
                     <div className="flex justify-between items-center mb-4 border-b border-zinc-700 pb-2"><h3 className="text-[#e6c788] font-bold">☀️ 일일 콘텐츠</h3></div>
                     <div className="space-y-2">
@@ -193,7 +186,6 @@ export default function AdminPage() {
                     </div>
                   </div>
 
-                  {/* 주간 콘텐츠 */}
                   <div className="bg-[#252528] rounded-xl border border-zinc-700 p-4">
                     <div className="flex justify-between items-center mb-4 border-b border-zinc-700 pb-2"><h3 className="text-blue-400 font-bold">🌙 주간 콘텐츠</h3></div>
                     <div className="space-y-2">
@@ -223,7 +215,6 @@ export default function AdminPage() {
                     </div>
                   </div>
 
-                  {/* 반복 콘텐츠 */}
                   <div className="bg-[#252528] rounded-xl border border-zinc-700 p-4">
                     <div className="flex justify-between items-center mb-4 border-b border-zinc-700 pb-2"><h3 className="text-purple-400 font-bold">🔄 반복 콘텐츠</h3></div>
                     <div className="space-y-2">
@@ -276,7 +267,6 @@ export default function AdminPage() {
 
               {activeCharTab === "raids" && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl">
-                  {/* 어비스 관리 */}
                   <div className="bg-[#252528] rounded-xl border border-zinc-700 p-4">
                     <div className="flex justify-between items-center mb-4 border-b border-zinc-700 pb-2"><h3 className="text-emerald-400 font-bold text-lg">🌌 어비스 관리</h3></div>
                     <div className="space-y-2">
@@ -310,7 +300,6 @@ export default function AdminPage() {
                     </div>
                   </div>
 
-                  {/* 레이드 관리 */}
                   <div className="bg-[#252528] rounded-xl border border-zinc-700 p-4">
                     <div className="flex justify-between items-center mb-4 border-b border-zinc-700 pb-2"><h3 className="text-indigo-400 font-bold text-lg">🐉 레이드 관리</h3></div>
                     <div className="space-y-2">
@@ -388,7 +377,6 @@ export default function AdminPage() {
             </div>
           )}
 
-          {/* 🟢 구매/교환 탭 로직 */}
           {activeMainTab === "trade" && (
             <div className="space-y-6">
               <div className="flex justify-between items-end border-b border-zinc-800 pb-4">
@@ -398,7 +386,6 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* 입력 폼 */}
               <div className="bg-[#252528] rounded-xl border border-zinc-700 p-4">
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-9 gap-2">
                   <input type="text" placeholder="맵 (예: 두갈드아일)" value={newTrade.map} onChange={e => setNewTrade({...newTrade, map: e.target.value})} className="bg-[#121212] border border-zinc-600 rounded p-2 text-xs text-white" />
@@ -432,7 +419,6 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* 목록 테이블 */}
               <div className="bg-[#1c1c1e] border border-zinc-700 rounded-lg overflow-hidden overflow-x-auto custom-scrollbar">
                 <table className="w-full text-left text-sm whitespace-nowrap">
                   <thead className="bg-[#252528] text-zinc-400 border-b border-zinc-700">
