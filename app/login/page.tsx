@@ -3,6 +3,16 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+// 🟢 요청하신 계정 및 접속 코드 매핑
+const ACCOUNTS: Record<string, string> = {
+  "한설": "sy0923",
+  "화연": "sy0515",
+  "수도사는수도사": "sy0823",
+  "제스": "sy0720",
+  "신파랑": "sy0729",
+  "곰탕": "sy0000"
+};
+
 export default function LoginPage() {
   const router = useRouter();
   const [nickname, setNickname] = useState("");
@@ -11,14 +21,19 @@ export default function LoginPage() {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // 💡 나중에 수파베이스 DB와 연결해서 실제 코드를 검증할 부분입니다.
-    // 지금은 닉네임만 입력하면 통과되도록 임시 세팅해두었습니다.
-    if (nickname.trim() !== "") {
-      const role = nickname === "한설" ? "마스터" : "길드원"; // 한설님이 치면 마스터로 접속
-      localStorage.setItem("nexus_user", JSON.stringify({ nickname, role }));
-      router.push("/"); // 로그인 성공 시 메인 화면으로 이동
+    const trimmedNickname = nickname.trim();
+    if (!trimmedNickname) {
+      alert("대표 캐릭터 닉네임을 입력해주세요!");
+      return;
+    }
+
+    // 접속 코드 검증
+    if (ACCOUNTS[trimmedNickname] === code) {
+      const role = trimmedNickname === "한설" ? "마스터" : "길드원"; 
+      localStorage.setItem("nexus_user", JSON.stringify({ nickname: trimmedNickname, role }));
+      router.push("/"); // 메인 화면으로 이동
     } else {
-      alert("닉네임을 입력해주세요!");
+      alert("닉네임 또는 접속 코드가 올바르지 않습니다.");
     }
   };
 
@@ -31,18 +46,21 @@ export default function LoginPage() {
             <span className="text-2xl">🏰</span>
           </div>
           <h1 className="text-3xl font-black text-[#e6c788] tracking-tight">SANCTUM</h1>
-          <p className="text-zinc-400 text-sm mt-2">데이안 서버 성역 길드 전용망</p>
+          {/* 🟢 문구 수정 완료 */}
+          <p className="text-zinc-400 text-sm mt-2">마비노기 모바일 데이안 서버 성역 길드</p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label className="block text-xs font-bold text-zinc-400 mb-1">캐릭터 닉네임</label>
+            {/* 🟢 레이블 수정 완료 */}
+            <label className="block text-xs font-bold text-zinc-400 mb-1">대표 캐릭터 닉네임</label>
             <input 
               type="text" 
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
               className="w-full bg-[#1c1c1e] border border-zinc-700 text-white rounded-lg p-3 text-sm focus:outline-none focus:border-yellow-600 focus:ring-1 focus:ring-yellow-600"
-              placeholder="본캐릭 닉네임을 입력하세요"
+              {/* 🟢 플레이스홀더 수정 완료 */}
+              placeholder="대표 캐릭터 닉네임을 입력하세요"
             />
           </div>
           <div>
