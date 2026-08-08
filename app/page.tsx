@@ -384,13 +384,24 @@ export default function Home() {
     <main className="min-h-screen bg-[#121212] text-[#d4d4d8] font-sans pb-10 relative">
       
       {/* 🟢 로그인한 유저 정보 동적 바인딩 */}
-      <div className="w-full bg-[#1c1c1e] border-b border-zinc-800 px-6 py-2.5 flex justify-between items-center shadow-md">
+     <div className="w-full bg-[#1c1c1e] border-b border-zinc-800 px-6 py-2.5 flex justify-between items-center shadow-md">
         <div className="flex items-center gap-2 text-white font-bold text-sm tracking-wide"><span>🏰 SANCTUM</span></div>
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-[#121212] border border-zinc-600 flex items-center justify-center text-sm">👤</div>
-          <div className="flex flex-col leading-tight">
-            <span className="font-bold text-white text-sm">{user.nickname}</span>
-            <span className="text-[10px] text-zinc-400">{user.role || "길드원"}</span>
+        <div className="flex items-center gap-4">
+          {/* 🟢 길드마스터, 마스터, 부마스터에게만 보이는 관리자 설정 버튼 */}
+          {(user?.role === "길드마스터" || user?.role === "마스터" || user?.role === "부마스터") && (
+            <button 
+              onClick={() => router.push('/admin')} 
+              className="text-xs bg-yellow-600/20 text-[#e6c788] border border-yellow-600/45 hover:bg-yellow-600/30 px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1"
+            >
+              ⚙️ 관리자 설정
+            </button>
+          )}
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-[#121212] border border-zinc-600 flex items-center justify-center text-sm">👤</div>
+            <div className="flex flex-col leading-tight">
+              <span className="font-bold text-white text-sm">{user.nickname}</span>
+              <span className="text-[10px] text-zinc-400">{user.role || "길드원"}</span>
+            </div>
           </div>
         </div>
       </div>
