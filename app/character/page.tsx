@@ -17,8 +17,9 @@ export default function CharacterPage() {
   const [dbTrades, setDbTrades] = useState<any[]>([]); 
 
   const [myCharacters, setMyCharacters] = useState<any[]>([]);
+  const [accountContribution, setAccountContribution] = useState<string>(""); // 계정별 공헌도 상태
 
-  const defaultProfile = { nickname: "", job: "전사", combatPower: "", magicResistance: "", lifeEnergy: "", charm: "", contribution: "", intro: "", isMain: false };
+  const defaultProfile = { nickname: "", job: "전사", combatPower: "", magicResistance: "", lifeEnergy: "", charm: "", intro: "", isMain: false };
   
   const [profile, setProfile] = useState(defaultProfile);
   const [levels, setLevels] = useState<Record<string, number>>({});
@@ -65,10 +66,25 @@ export default function CharacterPage() {
       setDbContents(contRes.data || []);
       setDbTrades(tradeRes.data || []);
       
+      await fetchAccountData(parsedUser.nickname);
       await fetchUserCharacters(parsedUser.nickname, contRes.data || []);
     };
     fetchMasterData();
   }, [router]);
+
+  // 계정별 공헌도 불러오기 (첫 번째 캐릭터 데이터나 전용 관리 테이블에서 가져옴)
+  const fetchAccountData = async (loginUserNick: string) => {
+    try {
+      const { data } = await supabase
+        .from('characters')
+        .select('contribution')
+        .eq('owner', loginUserNick)
+        .limit(1);
+      if (data && data.length > 0) {
+        setAccountContribution(data[0].contribution ?? "");
+      }
+    } catch (e) {}
+  };
 
   const fetchUserCharacters = async (loginUserNick: string, contentsList: any[]) => {
     try {
@@ -83,7 +99,7 @@ export default function CharacterPage() {
         const target = data.some((d: any) => d.nickname === loginUserNick) ? loginUserNick : data[0].nickname;
         loadCharacterData(target, contentsList);
       } else {
-        const initialChar = { nickname: loginUserNick, sort_order: 0 };
+        const initialChar = { nickname: loginUserNick, sort_order: 0, owner: loginUserNick };
         setMyCharacters([initialChar]);
         loadCharacterData(loginUserNick, contentsList);
       }
@@ -101,9 +117,12 @@ export default function CharacterPage() {
           nickname: data.nickname, job: data.job || "전사",
           combatPower: data.combat_power || "", magicResistance: data.magic_resistance || "",
           lifeEnergy: data.life_energy || "", charm: data.charm || "", 
-          contribution: data.contribution || "", intro: data.intro || "",
+          intro: data.intro || "",
           isMain: data.is_main || false
         });
+        if (data.contribution !== undefined && data.contribution !== null) {
+          setAccountContribution(data.contribution);
+        }
         setLevels(data.levels || {});
         
         const dChecks = Array.isArray(data.daily_checks) ? data.daily_checks : [];
@@ -155,7 +174,7 @@ export default function CharacterPage() {
         magic_resistance: Number(profile.magicResistance) || 0,
         life_energy: Number(profile.lifeEnergy) || 0, 
         charm: Number(profile.charm) || 0, 
-        contribution: Number(profile.contribution) || 0,
+        contribution: Number(accountContribution) || 0, // 계정별 공헌도 통일 저장
         intro: profile.intro,
         is_main: profile.isMain, 
         levels: levels, 
@@ -168,6 +187,11 @@ export default function CharacterPage() {
       
       await supabase.from('characters').upsert(payload, { onConflict: 'nickname' }); 
       
+      // 만약 계정 내 모든 캐릭터의 공헌도를 동기화하고 싶다면 한 번에 업데이트 가능
+      await supabase.from('characters')
+        .update({ contribution: Number(accountContribution) || 0 })
+        .eq('owner', user.nickname);
+
       if (existingIndex === -1) {
         setMyCharacters((prev: any[]) => [...prev, { nickname: profile.nickname, sort_order: currentSortOrder }]);
       }
@@ -195,7 +219,7 @@ export default function CharacterPage() {
     }
     
     const newSortOrder = myCharacters.length;
-    const newCharObj = { nickname: trimmedName, sort_order: newSortOrder, owner: user.nickname };
+    const newCharObj = { nickname: trimmedName, sort_order: newSortOrder, owner: user.nickname, contribution: Number(accountContribution) || 0 };
 
     await supabase.from('characters').upsert([newCharObj], { onConflict: 'nickname' });
 
@@ -381,33 +405,36 @@ export default function CharacterPage() {
             </div>
             <div className="flex-1 w-full space-y-5">
               <div className="flex justify-between items-end border-b border-zinc-700/50 pb-4">
-                <div className="flex gap-4 items-end flex-wrap">
-                  <div>
-                    <label className="text-[10px] font-bold text-zinc-500 mb-1 block">닉네임</label>
-                    <input value={profile.nickname} onChange={(e) => updateProfile("nickname", e.target.value)} className="bg-transparent text-2xl font-black text-white border-b border-transparent focus:border-[#e6c788] outline-none w-36" />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-zinc-500 mb-1 block">주 클래스</label>
-                    <select value={profile.job} onChange={(e) => updateProfile("job", e.target.value)} className="bg-[#121212] border border-zinc-700 rounded px-3 py-1.5 text-sm text-white focus:border-[#e6c788] outline-none">
-                      {dbClasses.map((cls: any) => <option key={cls.name} value={cls.name}>{cls.name}</option>)}
-                    </select>
-                  </div>
-                  <div className="ml-2 pl-4 border-l border-zinc-700/50 hidden md:flex items-center gap-2 flex-wrap max-w-[550px]">
-                    <div className="flex flex-wrap gap-1.5 items-center">
-                      {myCharacters.map((char: any, idx: number) => (
-                        <div key={char.nickname} className={`flex items-center gap-1 border text-[11px] font-medium px-2 py-1 rounded transition ${char.nickname === profile.nickname ? 'bg-[#e6c788] text-black border-[#e6c788] font-bold' : 'bg-[#1c1c1e] border-zinc-700 text-zinc-400'}`}>
-                          <button onClick={() => switchCharacter(char.nickname)} className="truncate max-w-[80px]">{char.nickname}</button>
-                          <div className="flex items-center gap-0.5 ml-1 border-l border-zinc-600 pl-1">
-                            {idx > 0 && <button onClick={() => handleMoveOrder(idx, -1)} className="text-[9px] hover:text-white">◀</button>}
-                            {idx < myCharacters.length - 1 && <button onClick={() => handleMoveOrder(idx, 1)} className="text-[9px] hover:text-white">▶</button>}
-                          </div>
-                        </div>
-                      ))}
+                <div className="flex flex-col gap-3 w-full">
+                  <div className="flex gap-4 items-end flex-wrap">
+                    <div>
+                      <label className="text-[10px] font-bold text-zinc-500 mb-1 block">닉네임</label>
+                      <input value={profile.nickname} onChange={(e) => updateProfile("nickname", e.target.value)} className="bg-transparent text-2xl font-black text-white border-b border-transparent focus:border-[#e6c788] outline-none w-36" />
                     </div>
-                    <button onClick={handleCreateNewCharacter} className="bg-zinc-800 hover:bg-zinc-700 text-[#e6c788] border border-dashed border-[#e6c788]/50 text-[11px] font-bold px-2.5 py-1 rounded transition">+ 캐릭터 추가</button>
+                    <div>
+                      <label className="text-[10px] font-bold text-zinc-500 mb-1 block">주 클래스</label>
+                      <select value={profile.job} onChange={(e) => updateProfile("job", e.target.value)} className="bg-[#121212] border border-zinc-700 rounded px-3 py-1.5 text-sm text-white focus:border-[#e6c788] outline-none">
+                        {dbClasses.map((cls: any) => <option key={cls.name} value={cls.name}>{cls.name}</option>)}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* 💡 [빨간 박스 영역] 닉네임 바로 아래 캐릭터 선택 및 순서 변경 바 */}
+                  <div className="flex items-center gap-2 flex-wrap bg-[#1c1c1e] p-2 rounded-lg border border-zinc-700/60 w-fit">
+                    {myCharacters.map((char: any, idx: number) => (
+                      <div key={char.nickname} className={`flex items-center gap-1.5 border text-[12px] font-medium px-2.5 py-1 rounded transition ${char.nickname === profile.nickname ? 'bg-[#e6c788] text-black border-[#e6c788] font-bold shadow-md' : 'bg-[#121212] border-zinc-700 text-zinc-300'}`}>
+                        <button onClick={() => switchCharacter(char.nickname)} className="truncate max-w-[100px]">{char.nickname}</button>
+                        <div className="flex items-center gap-1 ml-1 border-l border-zinc-600/50 pl-1">
+                          {idx > 0 && <button onClick={() => handleMoveOrder(idx, -1)} className="text-[10px] opacity-70 hover:opacity-100">◀</button>}
+                          {idx < myCharacters.length - 1 && <button onClick={() => handleMoveOrder(idx, 1)} className="text-[10px] opacity-70 hover:opacity-100">▶</button>}
+                        </div>
+                      </div>
+                    ))}
+                    <button onClick={handleCreateNewCharacter} className="bg-zinc-800 hover:bg-zinc-700 text-[#e6c788] border border-dashed border-[#e6c788]/50 text-[11px] font-bold px-3 py-1 rounded transition">+ 캐릭터 추가</button>
                   </div>
                 </div>
-                <div className="flex gap-2 items-center">
+
+                <div className="flex gap-2 items-center shrink-0">
                   <button onClick={handleDeleteCharacter} className="bg-red-950/40 hover:bg-red-900/60 text-red-400 border border-red-800/50 text-xs font-bold px-3 py-2 rounded-lg transition">🗑️ 삭제</button>
                   <div className="text-right bg-[#1c1c1e] px-4 py-2 rounded-lg border border-yellow-600/30">
                     <p className="text-[10px] text-[#e6c788] font-bold tracking-widest">누적 레벨</p>
@@ -421,7 +448,11 @@ export default function CharacterPage() {
                 <div className="bg-[#1c1c1e] p-3 rounded-lg border border-zinc-700/50"><label className="text-[11px] font-bold text-purple-400 mb-1 block">🔮 마도저항</label><input type="number" value={profile.magicResistance} onChange={e => updateProfile("magicResistance", e.target.value)} placeholder="0" className="w-full bg-transparent text-lg font-bold text-white outline-none" /></div>
                 <div className="bg-[#1c1c1e] p-3 rounded-lg border border-zinc-700/50"><label className="text-[11px] font-bold text-emerald-400 mb-1 block">🌿 생활력 (TECHNĒ)</label><input type="number" value={profile.lifeEnergy} onChange={e => updateProfile("lifeEnergy", e.target.value)} placeholder="0" className="w-full bg-transparent text-lg font-bold text-white outline-none" /></div>
                 <div className="bg-[#1c1c1e] p-3 rounded-lg border border-zinc-700/50"><label className="text-[11px] font-bold text-pink-400 mb-1 block">✨ 매력 (HARMONIA)</label><input type="number" value={profile.charm} onChange={e => updateProfile("charm", e.target.value)} placeholder="0" className="w-full bg-transparent text-lg font-bold text-white outline-none" /></div>
-                <div className="bg-[#1c1c1e] p-3 rounded-lg border border-zinc-700/50"><label className="text-[11px] font-bold text-amber-500 mb-1 block">🛡️ 공헌도 (PIETAS)</label><input type="number" value={profile.contribution} onChange={e => updateProfile("contribution", e.target.value)} placeholder="0" className="w-full bg-transparent text-lg font-bold text-white outline-none" /></div>
+                {/* 💡 [초록 박스 영역] 계정별 누적 길드 공헌도 (PIETAS) */}
+                <div className="bg-[#1c1c1e] p-3 rounded-lg border border-zinc-700/50">
+                  <label className="text-[11px] font-bold text-amber-500 mb-1 block">🛡️ 누적 길드 공헌도 (PIETAS)</label>
+                  <input type="number" value={accountContribution} onChange={e => setAccountContribution(e.target.value)} placeholder="0" className="w-full bg-transparent text-lg font-bold text-white outline-none" />
+                </div>
               </div>
               
               <div className="flex flex-col xl:flex-row gap-3">
