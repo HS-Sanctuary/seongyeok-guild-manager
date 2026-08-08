@@ -16,8 +16,7 @@ export default function CharacterPage() {
   const [dbContents, setDbContents] = useState<any[]>([]);
   const [dbTrades, setDbTrades] = useState<any[]>([]); 
 
-  // 현재 로그인한 계정 소유의 캐릭터 목록
-  const [myCharacters, setMyCharacters] = useState<string[]>([]);
+  const [myCharacters, setMyCharacters] = useState<any[]>([]);
 
   const defaultProfile = { nickname: "", job: "전사", combatPower: "", magicResistance: "", lifeEnergy: "", charm: "", contribution: "", intro: "", isMain: false };
   
@@ -34,14 +33,14 @@ export default function CharacterPage() {
   const [isLevelOpen, setIsLevelOpen] = useState(false);
   const [isTradeOpen, setIsTradeOpen] = useState(true);
 
-  const abyssList = dbContents.filter(c => c.type === 'abyss');
-  const raidList = dbContents.filter(c => c.type === 'raid');
+  const abyssList = dbContents.filter((c: any) => c.type === 'abyss');
+  const raidList = dbContents.filter((c: any) => c.type === 'raid');
 
-  const blackHoleDaily = dbTasks.find(t => (t.type === 'daily' || t.type === 'repeat_daily') && t.name.includes("검은 구멍"));
-  const blackHoleWeekly = dbTasks.find(t => (t.type === 'weekly' || t.type === 'repeat_weekly') && t.name.includes("검은 구멍"));
+  const blackHoleDaily = dbTasks.find((t: any) => (t.type === 'daily' || t.type === 'repeat_daily') && t.name.includes("검은 구멍"));
+  const blackHoleWeekly = dbTasks.find((t: any) => (t.type === 'weekly' || t.type === 'repeat_weekly') && t.name.includes("검은 구멍"));
   
-  const visibleDailyList = dbTasks.filter(t => (t.type === 'daily' || t.type === 'repeat_daily') && !t.name.includes("검은 구멍"));
-  const visibleWeeklyList = dbTasks.filter(t => (t.type === 'weekly' || t.type === 'repeat_weekly' || t.type === 'repeat_weekend') && !t.name.includes("검은 구멍"));
+  const visibleDailyList = dbTasks.filter((t: any) => (t.type === 'daily' || t.type === 'repeat_daily') && !t.name.includes("검은 구멍"));
+  const visibleWeeklyList = dbTasks.filter((t: any) => (t.type === 'weekly' || t.type === 'repeat_weekly' || t.type === 'repeat_weekend') && !t.name.includes("검은 구멍"));
 
   const totalLevel = Object.values(levels).reduce((sum, lvl) => sum + lvl, 0);
 
@@ -61,42 +60,35 @@ export default function CharacterPage() {
         supabase.from('nexus_trades').select('*').order('id')
       ]);
       
-      const classes = clsRes.data || [];
-      const tasks = taskRes.data || [];
-      const contents = contRes.data || [];
-      const trades = tradeRes.data || [];
-
-      setDbClasses(classes);
-      setDbTasks(tasks);
-      setDbContents(contents);
-      setDbTrades(trades);
+      setDbClasses(clsRes.data || []);
+      setDbTasks(taskRes.data || []);
+      setDbContents(contRes.data || []);
+      setDbTrades(tradeRes.data || []);
       
-      // 💡 [핵심] 로그인한 유저의 닉네임과 일치하는 캐릭터들만 불러오도록 필터링
-      await fetchUserCharacters(parsedUser.nickname, contents);
+      await fetchUserCharacters(parsedUser.nickname, contRes.data || []);
     };
     fetchMasterData();
   }, [router]);
 
-  // 로그인한 유저가 소유한 캐릭터만 가져오기
   const fetchUserCharacters = async (loginUserNick: string, contentsList: any[]) => {
     try {
-      // owner가 이 유저이거나, 기존 데이터 호환을 위해 닉네임이 유저 닉네임과 같은 경우 검색
       const { data } = await supabase
         .from('characters')
-        .select('nickname, owner')
-        .or(`owner.eq.${loginUserNick},nickname.eq.${loginUserNick}`);
+        .select('nickname, sort_order, owner')
+        .or(`owner.eq.${loginUserNick},nickname.eq.${loginUserNick}`)
+        .order('sort_order', { ascending: true });
 
       if (data && data.length > 0) {
-        const nicks = Array.from(new Set(data.map(d => d.nickname)));
-        setMyCharacters(nicks);
-        const target = nicks.includes(loginUserNick) ? loginUserNick : (nicks[0] || loginUserNick);
+        setMyCharacters(data);
+        const target = data.some((d: any) => d.nickname === loginUserNick) ? loginUserNick : data[0].nickname;
         loadCharacterData(target, contentsList);
       } else {
-        setMyCharacters([loginUserNick]);
+        const initialChar = { nickname: loginUserNick, sort_order: 0 };
+        setMyCharacters([initialChar]);
         loadCharacterData(loginUserNick, contentsList);
       }
     } catch (e) {
-      setMyCharacters([loginUserNick]);
+      setMyCharacters([{ nickname: loginUserNick, sort_order: 0 }]);
       loadCharacterData(loginUserNick, contentsList);
     }
   };
@@ -125,9 +117,9 @@ export default function CharacterPage() {
           setWeeklyChecks([]); setRepeatChecks({});
         }
         
-        const rChecks = Array.isArray(data.raid_checks) ? data.raid_checks.map(Number).filter(n => !isNaN(n)) : [];
-        setAbyssChecks(rChecks.filter((id: number) => contentsList.find(c => c.id === id)?.type === 'abyss'));
-        setRaidChecks(rChecks.filter((id: number) => contentsList.find(c => c.id === id)?.type === 'raid'));
+        const rChecks = Array.isArray(data.raid_checks) ? data.raid_checks.map(Number).filter((n: any) => !isNaN(n)) : [];
+        setAbyssChecks(rChecks.filter((id: number) => contentsList.find((c: any) => c.id === id)?.type === 'abyss'));
+        setRaidChecks(rChecks.filter((id: number) => contentsList.find((c: any) => c.id === id)?.type === 'raid'));
         
         setTradeProgress(data.trade_checks || {});
       } else {
@@ -151,9 +143,13 @@ export default function CharacterPage() {
           .neq('nickname', profile.nickname);
       }
 
+      const existingIndex = myCharacters.findIndex((c: any) => c.nickname === profile.nickname);
+      const currentSortOrder = existingIndex !== -1 ? (myCharacters[existingIndex].sort_order ?? myCharacters.length) : myCharacters.length;
+
       const payload = {
         nickname: profile.nickname, 
-        owner: user.nickname, // 👈 저장할 때 현재 로그인한 유저를 소유자로 지정!
+        owner: user.nickname, 
+        sort_order: currentSortOrder,
         job: profile.job,
         combat_power: Number(profile.combatPower) || 0, 
         magic_resistance: Number(profile.magicResistance) || 0,
@@ -172,8 +168,8 @@ export default function CharacterPage() {
       
       await supabase.from('characters').upsert(payload, { onConflict: 'nickname' }); 
       
-      if (!myCharacters.includes(profile.nickname)) {
-        setMyCharacters(prev => [...prev, profile.nickname]);
+      if (existingIndex === -1) {
+        setMyCharacters((prev: any[]) => [...prev, { nickname: profile.nickname, sort_order: currentSortOrder }]);
       }
 
       setSaved(true); 
@@ -188,16 +184,23 @@ export default function CharacterPage() {
     loadCharacterData(targetName, dbContents); 
   };
 
-  const handleCreateNewCharacter = () => {
+  const handleCreateNewCharacter = async () => {
     const newName = prompt("생성할 부캐릭터(또는 캐릭터)의 닉네임을 입력하세요:");
     if (!newName || !newName.trim()) return;
     
-    if (myCharacters.includes(newName.trim())) {
+    const trimmedName = newName.trim();
+    if (myCharacters.some((c: any) => c.nickname === trimmedName)) {
       alert("이미 존재하는 캐릭터 이름입니다.");
       return;
     }
     
-    setProfile({ ...defaultProfile, nickname: newName.trim() });
+    const newSortOrder = myCharacters.length;
+    const newCharObj = { nickname: trimmedName, sort_order: newSortOrder, owner: user.nickname };
+
+    await supabase.from('characters').upsert([newCharObj], { onConflict: 'nickname' });
+
+    setMyCharacters((prev: any[]) => [...prev, newCharObj]);
+    setProfile({ ...defaultProfile, nickname: trimmedName });
     setLevels({});
     setDailyChecks([]);
     setWeeklyChecks([]);
@@ -207,11 +210,42 @@ export default function CharacterPage() {
     setTradeProgress({});
   };
 
+  const handleMoveOrder = async (index: number, direction: number) => {
+    const newIndex = index + direction;
+    if (newIndex < 0 || newIndex >= myCharacters.length) return;
+
+    const updated = [...myCharacters];
+    const temp = updated[index];
+    updated[index] = updated[newIndex];
+    updated[newIndex] = temp;
+
+    const reordered = updated.map((item: any, idx: number) => ({ ...item, sort_order: idx }));
+    setMyCharacters(reordered);
+
+    for (const item of reordered) {
+      await supabase.from('characters').update({ sort_order: item.sort_order }).eq('nickname', item.nickname);
+    }
+  };
+
+  const handleDeleteCharacter = async () => {
+    if (myCharacters.length <= 1) {
+      alert("최소 1개의 캐릭터는 유지되어야 합니다.");
+      return;
+    }
+    if (!confirm(`정말로 [${profile.nickname}] 캐릭터를 삭제하시겠습니까?`)) return;
+
+    await supabase.from('characters').delete().eq('nickname', profile.nickname);
+
+    const remaining = myCharacters.filter((c: any) => c.nickname !== profile.nickname);
+    setMyCharacters(remaining);
+    loadCharacterData(remaining[0].nickname, dbContents);
+  };
+
   const handleSyncNexonAPI = async () => {
     setIsSyncing(true);
     setTimeout(() => {
-      setAbyssChecks(abyssList.map(c => c.id)); 
-      setRaidChecks(raidList.slice(0, 1).map(c => c.id));
+      setAbyssChecks(abyssList.map((c: any) => c.id)); 
+      setRaidChecks(raidList.slice(0, 1).map((c: any) => c.id));
       setIsSyncing(false); 
       alert(`[API 동기화 완료] 📡`);
     }, 1500);
@@ -240,17 +274,17 @@ export default function CharacterPage() {
 
   const handleToggleAll = (type: string, isCheckAll: boolean) => {
     if (type === 'daily') {
-      const normals = visibleDailyList.filter(t => !t.type.startsWith('repeat')).map(t => t.id);
+      const normals = visibleDailyList.filter((t: any) => !t.type.startsWith('repeat')).map((t: any) => t.id);
       setDailyChecks(isCheckAll ? normals : []);
-      setRepeatChecks(prev => { const next = { ...prev }; visibleDailyList.filter(t => t.type.startsWith('repeat')).forEach(t => { next[t.id] = isCheckAll ? Array(t.max_count).fill(true) : []; }); return next; });
+      setRepeatChecks(prev => { const next = { ...prev }; visibleDailyList.filter((t: any) => t.type.startsWith('repeat')).forEach((t: any) => { next[t.id] = isCheckAll ? Array(t.max_count).fill(true) : []; }); return next; });
     }
     if (type === 'weekly') {
-      const normals = visibleWeeklyList.filter(t => !t.type.startsWith('repeat')).map(t => t.id);
+      const normals = visibleWeeklyList.filter((t: any) => !t.type.startsWith('repeat')).map((t: any) => t.id);
       setWeeklyChecks(isCheckAll ? normals : []);
-      setRepeatChecks(prev => { const next = { ...prev }; visibleWeeklyList.filter(t => t.type.startsWith('repeat')).forEach(t => { next[t.id] = isCheckAll ? Array(t.max_count).fill(true) : []; }); return next; });
+      setRepeatChecks(prev => { const next = { ...prev }; visibleWeeklyList.filter((t: any) => t.type.startsWith('repeat')).forEach((t: any) => { next[t.id] = isCheckAll ? Array(t.max_count).fill(true) : []; }); return next; });
     }
-    if (type === 'abyss') setAbyssChecks(isCheckAll ? abyssList.map(t => t.id) : []);
-    if (type === 'raid') setRaidChecks(isCheckAll ? raidList.map(t => t.id) : []);
+    if (type === 'abyss') setAbyssChecks(isCheckAll ? abyssList.map((t: any) => t.id) : []);
+    if (type === 'raid') setRaidChecks(isCheckAll ? raidList.map((t: any) => t.id) : []);
   };
 
   const renderTask = (item: any, type: 'daily' | 'weekly' | 'abyss' | 'raid') => {
@@ -298,7 +332,7 @@ export default function CharacterPage() {
     const theme = getColorTheme();
 
     return (
-      <div key={item.id} onClick={() => setChecks(isChecked ? checks.filter(i => i !== item.id) : [...checks, item.id])}
+      <div key={item.id} onClick={() => setChecks(isChecked ? checks.filter((i: number) => i !== item.id) : [...checks, item.id])}
            className={`flex items-center justify-between p-3 rounded-lg cursor-pointer border transition-all duration-300 ${theme.wrapper}`}>
         <span className={`text-sm font-medium transition-colors ${theme.text}`}>{item.name}</span>
         <div className={`w-5 h-5 rounded flex items-center justify-center transition-all ${theme.box}`}>
@@ -343,7 +377,7 @@ export default function CharacterPage() {
         <div className="bg-[#252528] rounded-2xl border border-zinc-700/80 p-6 shadow-xl relative overflow-hidden">
           <div className="flex flex-col md:flex-row gap-8 items-start relative z-10">
             <div className="w-32 h-32 bg-[#121212] rounded-xl border-2 border-zinc-700 flex items-center justify-center cursor-pointer hover:border-[#e6c788] transition-colors shrink-0">
-              <span className="text-5xl">{dbClasses.find(c => c.name === profile.job)?.icon || "👤"}</span>
+              <span className="text-5xl">{dbClasses.find((c: any) => c.name === profile.job)?.icon || "👤"}</span>
             </div>
             <div className="flex-1 w-full space-y-5">
               <div className="flex justify-between items-end border-b border-zinc-700/50 pb-4">
@@ -355,21 +389,30 @@ export default function CharacterPage() {
                   <div>
                     <label className="text-[10px] font-bold text-zinc-500 mb-1 block">주 클래스</label>
                     <select value={profile.job} onChange={(e) => updateProfile("job", e.target.value)} className="bg-[#121212] border border-zinc-700 rounded px-3 py-1.5 text-sm text-white focus:border-[#e6c788] outline-none">
-                      {dbClasses.map(cls => <option key={cls.name} value={cls.name}>{cls.name}</option>)}
+                      {dbClasses.map((cls: any) => <option key={cls.name} value={cls.name}>{cls.name}</option>)}
                     </select>
                   </div>
-                  <div className="ml-2 pl-4 border-l border-zinc-700/50 hidden md:flex items-center gap-2 flex-wrap max-w-[450px]">
+                  <div className="ml-2 pl-4 border-l border-zinc-700/50 hidden md:flex items-center gap-2 flex-wrap max-w-[550px]">
                     <div className="flex flex-wrap gap-1.5 items-center">
-                      {myCharacters.map(name => (
-                        <button key={name} onClick={() => switchCharacter(name)} className={`border text-[11px] font-medium px-2.5 py-1 rounded transition ${name === profile.nickname ? 'bg-[#e6c788] text-black border-[#e6c788] font-bold' : 'bg-[#1c1c1e] border-zinc-700 hover:border-zinc-400 text-zinc-400'}`}>{name}</button>
+                      {myCharacters.map((char: any, idx: number) => (
+                        <div key={char.nickname} className={`flex items-center gap-1 border text-[11px] font-medium px-2 py-1 rounded transition ${char.nickname === profile.nickname ? 'bg-[#e6c788] text-black border-[#e6c788] font-bold' : 'bg-[#1c1c1e] border-zinc-700 text-zinc-400'}`}>
+                          <button onClick={() => switchCharacter(char.nickname)} className="truncate max-w-[80px]">{char.nickname}</button>
+                          <div className="flex items-center gap-0.5 ml-1 border-l border-zinc-600 pl-1">
+                            {idx > 0 && <button onClick={() => handleMoveOrder(idx, -1)} className="text-[9px] hover:text-white">◀</button>}
+                            {idx < myCharacters.length - 1 && <button onClick={() => handleMoveOrder(idx, 1)} className="text-[9px] hover:text-white">▶</button>}
+                          </div>
+                        </div>
                       ))}
                     </div>
                     <button onClick={handleCreateNewCharacter} className="bg-zinc-800 hover:bg-zinc-700 text-[#e6c788] border border-dashed border-[#e6c788]/50 text-[11px] font-bold px-2.5 py-1 rounded transition">+ 캐릭터 추가</button>
                   </div>
                 </div>
-                <div className="text-right bg-[#1c1c1e] px-4 py-2 rounded-lg border border-yellow-600/30">
-                  <p className="text-[10px] text-[#e6c788] font-bold tracking-widest">누적 레벨</p>
-                  <p className="text-3xl font-black text-white leading-none mt-1">{totalLevel} <span className="text-sm font-normal text-zinc-500">LV</span></p>
+                <div className="flex gap-2 items-center">
+                  <button onClick={handleDeleteCharacter} className="bg-red-950/40 hover:bg-red-900/60 text-red-400 border border-red-800/50 text-xs font-bold px-3 py-2 rounded-lg transition">🗑️ 삭제</button>
+                  <div className="text-right bg-[#1c1c1e] px-4 py-2 rounded-lg border border-yellow-600/30">
+                    <p className="text-[10px] text-[#e6c788] font-bold tracking-widest">누적 레벨</p>
+                    <p className="text-3xl font-black text-white leading-none mt-1">{totalLevel} <span className="text-sm font-normal text-zinc-500">LV</span></p>
+                  </div>
                 </div>
               </div>
               
@@ -439,19 +482,19 @@ export default function CharacterPage() {
         <div className="grid grid-cols-1 xl:grid-cols-4 lg:grid-cols-2 gap-6">
           <div className="bg-[#252528] rounded-xl border border-zinc-800 p-5 shadow-md flex flex-col">
             <div className="flex justify-between items-center mb-4 border-b border-zinc-700 pb-3"><h3 className="font-bold text-amber-500 text-base">☀️ 일일 컨텐츠</h3><div className="flex items-center gap-2"><button onClick={() => handleToggleAll('daily', true)} className="text-[10px] text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 px-2 py-1 rounded transition">✓ 전체</button><button onClick={() => handleToggleAll('daily', false)} className="text-[10px] text-zinc-500 hover:text-red-400 bg-zinc-800/50 hover:bg-zinc-800 px-2 py-1 rounded transition">✗ 해제</button></div></div>
-            <div className="space-y-2 flex-1 overflow-y-auto custom-scrollbar pr-2">{visibleDailyList.map(item => renderTask(item, 'daily'))}</div>
+            <div className="space-y-2 flex-1 overflow-y-auto custom-scrollbar pr-2">{visibleDailyList.map((item: any) => renderTask(item, 'daily'))}</div>
           </div>
           <div className="bg-[#252528] rounded-xl border border-zinc-800 p-5 shadow-md flex flex-col">
             <div className="flex justify-between items-center mb-4 border-b border-zinc-700 pb-3"><h3 className="font-bold text-blue-400 text-base">🌙 주간 컨텐츠</h3><div className="flex items-center gap-2"><button onClick={() => handleToggleAll('weekly', true)} className="text-[10px] text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 px-2 py-1 rounded transition">✓ 전체</button><button onClick={() => handleToggleAll('weekly', false)} className="text-[10px] text-zinc-500 hover:text-red-400 bg-zinc-800/50 hover:bg-zinc-800 px-2 py-1 rounded transition">✗ 해제</button></div></div>
-            <div className="space-y-2 flex-1 overflow-y-auto custom-scrollbar pr-2">{visibleWeeklyList.map(item => renderTask(item, 'weekly'))}</div>
+            <div className="space-y-2 flex-1 overflow-y-auto custom-scrollbar pr-2">{visibleWeeklyList.map((item: any) => renderTask(item, 'weekly'))}</div>
           </div>
           <div className="bg-[#252528] rounded-xl border border-zinc-800 p-5 shadow-md flex flex-col">
             <div className="flex justify-between items-center mb-4 border-b border-zinc-700 pb-3"><h3 className="font-bold text-emerald-400 text-base">🌌 어비스 관리</h3><div className="flex items-center gap-2"><button onClick={() => handleToggleAll('abyss', true)} className="text-[10px] text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 px-2 py-1 rounded transition">✓ 전체</button><button onClick={() => handleToggleAll('abyss', false)} className="text-[10px] text-zinc-500 hover:text-red-400 bg-zinc-800/50 hover:bg-zinc-800 px-2 py-1 rounded transition">✗ 해제</button></div></div>
-            <div className="space-y-2 flex-1 overflow-y-auto custom-scrollbar pr-2">{abyssList.map(item => renderTask(item, 'abyss'))}</div>
+            <div className="space-y-2 flex-1 overflow-y-auto custom-scrollbar pr-2">{abyssList.map((item: any) => renderTask(item, 'abyss'))}</div>
           </div>
           <div className="bg-[#252528] rounded-xl border border-zinc-800 p-5 shadow-md flex flex-col">
             <div className="flex justify-between items-center mb-4 border-b border-zinc-700 pb-3"><h3 className="font-bold text-indigo-400 text-base">🐉 레이드 관리</h3><div className="flex items-center gap-2"><button onClick={() => handleToggleAll('raid', true)} className="text-[10px] text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 px-2 py-1 rounded transition">✓ 전체</button><button onClick={() => handleToggleAll('raid', false)} className="text-[10px] text-zinc-500 hover:text-red-400 bg-zinc-800/50 hover:bg-zinc-800 px-2 py-1 rounded transition">✗ 해제</button></div></div>
-            <div className="space-y-2 flex-1 overflow-y-auto custom-scrollbar pr-2">{raidList.map(item => renderTask(item, 'raid'))}</div>
+            <div className="space-y-2 flex-1 overflow-y-auto custom-scrollbar pr-2">{raidList.map((item: any) => renderTask(item, 'raid'))}</div>
           </div>
         </div>
 
@@ -476,7 +519,7 @@ export default function CharacterPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-800/50">
-                      {dbTrades.map((trade) => {
+                      {dbTrades.map((trade: any) => {
                         const currentVal = tradeProgress[trade.id] || 0;
                         const isMax = currentVal >= trade.limit;
                         return (
@@ -527,7 +570,7 @@ export default function CharacterPage() {
             {isLevelOpen && (
               <div className="p-5 border-t border-zinc-800 bg-[#1c1c1e]">
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-3">
-                  {dbClasses.map(cls => {
+                  {dbClasses.map((cls: any) => {
                     const currentLevel = levels[cls.name] || 1;
                     const isMax = currentLevel === 65;
                     return (
