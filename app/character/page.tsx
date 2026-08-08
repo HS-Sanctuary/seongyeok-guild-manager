@@ -89,11 +89,11 @@ export default function CharacterPage() {
         setLevels(data.levels || {});
         
         const dChecks = Array.isArray(data.daily_checks) ? data.daily_checks : [];
-        setDailyChecks(dChecks.map(Number).filter(n => !isNaN(n)));
+        setDailyChecks(dChecks.map(Number).filter((n: any) => !isNaN(n)));
         
         if (data.weekly_checks && !Array.isArray(data.weekly_checks)) {
           const wNormals = Array.isArray(data.weekly_checks.normal) ? data.weekly_checks.normal : [];
-          setWeeklyChecks(wNormals.map(Number).filter(n => !isNaN(n)));
+         setWeeklyChecks(wNormals.map(Number).filter((n: any) => !isNaN(n)));
           setRepeatChecks(data.weekly_checks.repeat || {});
         } else {
           setWeeklyChecks([]); setRepeatChecks({});
