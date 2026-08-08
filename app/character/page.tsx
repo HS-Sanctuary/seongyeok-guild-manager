@@ -4,8 +4,6 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase"; 
 
-const MY_ACCOUNT_CHARACTERS = ["한설", "영겁", "순월", "쌍월", "먀치", "탄월"];
-
 export default function CharacterPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
@@ -18,7 +16,10 @@ export default function CharacterPage() {
   const [dbContents, setDbContents] = useState<any[]>([]);
   const [dbTrades, setDbTrades] = useState<any[]>([]); 
 
-  const defaultProfile = { nickname: "한설", job: "전사", combatPower: "", magicResistance: "", lifeEnergy: "", charm: "", contribution: "", intro: "", isMain: false };
+  // 현재 로그인한 계정 소유의 캐릭터 목록
+  const [myCharacters, setMyCharacters] = useState<string[]>([]);
+
+  const defaultProfile = { nickname: "", job: "전사", combatPower: "", magicResistance: "", lifeEnergy: "", charm: "", contribution: "", intro: "", isMain: false };
   
   const [profile, setProfile] = useState(defaultProfile);
   const [levels, setLevels] = useState<Record<string, number>>({});
@@ -70,10 +71,35 @@ export default function CharacterPage() {
       setDbContents(contents);
       setDbTrades(trades);
       
-      loadCharacterData(parsedUser.nickname || "한설", contents);
+      // 💡 [핵심] 로그인한 유저의 닉네임과 일치하는 캐릭터들만 불러오도록 필터링
+      await fetchUserCharacters(parsedUser.nickname, contents);
     };
     fetchMasterData();
   }, [router]);
+
+  // 로그인한 유저가 소유한 캐릭터만 가져오기
+  const fetchUserCharacters = async (loginUserNick: string, contentsList: any[]) => {
+    try {
+      // owner가 이 유저이거나, 기존 데이터 호환을 위해 닉네임이 유저 닉네임과 같은 경우 검색
+      const { data } = await supabase
+        .from('characters')
+        .select('nickname, owner')
+        .or(`owner.eq.${loginUserNick},nickname.eq.${loginUserNick}`);
+
+      if (data && data.length > 0) {
+        const nicks = Array.from(new Set(data.map(d => d.nickname)));
+        setMyCharacters(nicks);
+        const target = nicks.includes(loginUserNick) ? loginUserNick : (nicks[0] || loginUserNick);
+        loadCharacterData(target, contentsList);
+      } else {
+        setMyCharacters([loginUserNick]);
+        loadCharacterData(loginUserNick, contentsList);
+      }
+    } catch (e) {
+      setMyCharacters([loginUserNick]);
+      loadCharacterData(loginUserNick, contentsList);
+    }
+  };
 
   const loadCharacterData = async (charName: string, contentsList = dbContents) => {
     try {
@@ -93,14 +119,13 @@ export default function CharacterPage() {
         
         if (data.weekly_checks && !Array.isArray(data.weekly_checks)) {
           const wNormals = Array.isArray(data.weekly_checks.normal) ? data.weekly_checks.normal : [];
-         setWeeklyChecks(wNormals.map(Number).filter((n: any) => !isNaN(n)));
+          setWeeklyChecks(wNormals.map(Number).filter((n: any) => !isNaN(n)));
           setRepeatChecks(data.weekly_checks.repeat || {});
         } else {
           setWeeklyChecks([]); setRepeatChecks({});
         }
         
-const rChecks = Array.isArray(data.raid_checks) ? data.raid_checks.map(Number).filter((n: any) => !isNaN(n)) : [];
-        
+        const rChecks = Array.isArray(data.raid_checks) ? data.raid_checks.map(Number).filter(n => !isNaN(n)) : [];
         setAbyssChecks(rChecks.filter((id: number) => contentsList.find(c => c.id === id)?.type === 'abyss'));
         setRaidChecks(rChecks.filter((id: number) => contentsList.find(c => c.id === id)?.type === 'raid'));
         
@@ -114,24 +139,29 @@ const rChecks = Array.isArray(data.raid_checks) ? data.raid_checks.map(Number).f
   };
 
   const saveProgress = async () => {
+    if (!profile.nickname.trim()) {
+      alert("캐릭터 닉네임을 입력해주세요!");
+      return;
+    }
     try {
-      // 🟢 핵심 로직: 현재 캐릭터를 '대표 캐릭터'로 저장할 경우, 계정 내 다른 캐릭터들의 대표 속성을 전부 false로 초기화합니다.
       if (profile.isMain) {
         await supabase.from('characters')
           .update({ is_main: false })
-          .in('nickname', MY_ACCOUNT_CHARACTERS)
-          .neq('nickname', profile.nickname); // 현재 저장 중인 캐릭터 본인은 제외
+          .eq('owner', user.nickname)
+          .neq('nickname', profile.nickname);
       }
 
       const payload = {
-        nickname: profile.nickname, job: profile.job,
+        nickname: profile.nickname, 
+        owner: user.nickname, // 👈 저장할 때 현재 로그인한 유저를 소유자로 지정!
+        job: profile.job,
         combat_power: Number(profile.combatPower) || 0, 
         magic_resistance: Number(profile.magicResistance) || 0,
         life_energy: Number(profile.lifeEnergy) || 0, 
         charm: Number(profile.charm) || 0, 
         contribution: Number(profile.contribution) || 0,
         intro: profile.intro,
-        is_main: profile.isMain, // 갱신된 대표 캐릭터 여부 저장
+        is_main: profile.isMain, 
         levels: levels, 
         daily_checks: dailyChecks,
         weekly_checks: { normal: weeklyChecks, repeat: repeatChecks },
@@ -139,9 +169,18 @@ const rChecks = Array.isArray(data.raid_checks) ? data.raid_checks.map(Number).f
         trade_checks: tradeProgress,
         updated_at: new Date()
       };
+      
       await supabase.from('characters').upsert(payload, { onConflict: 'nickname' }); 
-      setSaved(true); setTimeout(() => setSaved(false), 1500);
-    } catch (error) { alert("저장 실패"); }
+      
+      if (!myCharacters.includes(profile.nickname)) {
+        setMyCharacters(prev => [...prev, profile.nickname]);
+      }
+
+      setSaved(true); 
+      setTimeout(() => setSaved(false), 1500);
+    } catch (error) { 
+      alert("저장 실패"); 
+    }
   };
 
   const switchCharacter = async (targetName: string) => { 
@@ -149,11 +188,32 @@ const rChecks = Array.isArray(data.raid_checks) ? data.raid_checks.map(Number).f
     loadCharacterData(targetName, dbContents); 
   };
 
+  const handleCreateNewCharacter = () => {
+    const newName = prompt("생성할 부캐릭터(또는 캐릭터)의 닉네임을 입력하세요:");
+    if (!newName || !newName.trim()) return;
+    
+    if (myCharacters.includes(newName.trim())) {
+      alert("이미 존재하는 캐릭터 이름입니다.");
+      return;
+    }
+    
+    setProfile({ ...defaultProfile, nickname: newName.trim() });
+    setLevels({});
+    setDailyChecks([]);
+    setWeeklyChecks([]);
+    setRepeatChecks({});
+    setAbyssChecks([]);
+    setRaidChecks([]);
+    setTradeProgress({});
+  };
+
   const handleSyncNexonAPI = async () => {
     setIsSyncing(true);
     setTimeout(() => {
-      setAbyssChecks(abyssList.map(c => c.id)); setRaidChecks(raidList.slice(0, 1).map(c => c.id));
-      setIsSyncing(false); alert(`[API 동기화 완료] 📡`);
+      setAbyssChecks(abyssList.map(c => c.id)); 
+      setRaidChecks(raidList.slice(0, 1).map(c => c.id));
+      setIsSyncing(false); 
+      alert(`[API 동기화 완료] 📡`);
     }, 1500);
   };
 
@@ -260,64 +320,24 @@ const rChecks = Array.isArray(data.raid_checks) ? data.raid_checks.map(Number).f
       <div className="max-w-[1400px] mx-auto p-4 md:p-8 space-y-6">
 
         <header className="relative overflow-hidden rounded-xl bg-gradient-to-br from-[#1c1c1e] via-[#151515] to-[#1a1a1c] border border-zinc-800 py-3 px-6 shadow-xl mb-6">
-
           <div className="absolute top-0 left-0 w-1.5 h-full bg-[#e6c788] shadow-[0_0_15px_#e6c788]"></div>
-
           <div className="absolute bottom-0 right-0 w-32 h-32 bg-[#e6c788] opacity-5 blur-[60px] rounded-full pointer-events-none"></div>
 
-         
-
           <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-
-            {/* 왼쪽 타이틀 영역 (수직 정렬 완벽 일치) */}
-
             <div className="flex flex-col items-start min-w-[200px]">
-
-              <h1 className="text-2xl font-black text-white tracking-widest drop-shadow-md leading-none">
-
-                CHRONOS
-
-              </h1>
-
-              <span className="text-[#e6c788] text-[13px] font-bold tracking-wide mt-1.5 leading-none">
-
-                크 로 노 스 : 캐 릭 터 관 리
-
-              </span>
-
+              <h1 className="text-2xl font-black text-white tracking-widest drop-shadow-md leading-none">CHRONOS</h1>
+              <span className="text-[#e6c788] text-[13px] font-bold tracking-wide mt-1.5 leading-none">크 로 노 스 : 캐 릭 터 관 리</span>
             </div>
-
            
-
-            {/* 오른쪽 설명 영역 (한 줄로 길게 뻗고 위아래 색상 분리) */}
-
             <div className="bg-zinc-900/40 border border-zinc-700/50 px-4 py-2 rounded-lg w-full max-w-[750px] backdrop-blur-sm flex items-start gap-2.5">
-
               <span className="text-sm mt-0.5 opacity-80">⏳</span>
-
               <div className="flex flex-col text-[11px] md:text-[12px] font-bold leading-tight w-full">
-
-                <span className="text-zinc-300 w-full truncate md:whitespace-normal">
-
-                   시간과 기록의 신, 크로노스. 이곳은 성역을 거쳐간 당신의 발자취와 땀방울이 기록되는 공간입니다.
-
-                </span>
-
-                <span className="text-[#e6c788] mt-0.5">
-
-                입력한 능력치는 AGORA(아고라) 명예의 전당으로 즉시 연결됩니다.
-
-                </span>
-
+                <span className="text-zinc-300 w-full truncate md:whitespace-normal">시간과 기록의 신, 크로노스. 이곳은 성역을 거쳐간 당신의 발자취와 땀방울이 기록되는 공간입니다.</span>
+                <span className="text-[#e6c788] mt-0.5">입력한 능력치는 AGORA(아고라) 명예의 전당으로 즉시 연결됩니다.</span>
               </div>
-
             </div>
-
           </div>
-
         </header>
-
-
         
         {/* 상단 프로필 */}
         <div className="bg-[#252528] rounded-2xl border border-zinc-700/80 p-6 shadow-xl relative overflow-hidden">
@@ -330,7 +350,7 @@ const rChecks = Array.isArray(data.raid_checks) ? data.raid_checks.map(Number).f
                 <div className="flex gap-4 items-end flex-wrap">
                   <div>
                     <label className="text-[10px] font-bold text-zinc-500 mb-1 block">닉네임</label>
-                    <input value={profile.nickname} onChange={(e) => updateProfile("nickname", e.target.value)} className="bg-transparent text-2xl font-black text-white border-b border-transparent focus:border-[#e6c788] outline-none w-32" />
+                    <input value={profile.nickname} onChange={(e) => updateProfile("nickname", e.target.value)} className="bg-transparent text-2xl font-black text-white border-b border-transparent focus:border-[#e6c788] outline-none w-36" />
                   </div>
                   <div>
                     <label className="text-[10px] font-bold text-zinc-500 mb-1 block">주 클래스</label>
@@ -338,12 +358,13 @@ const rChecks = Array.isArray(data.raid_checks) ? data.raid_checks.map(Number).f
                       {dbClasses.map(cls => <option key={cls.name} value={cls.name}>{cls.name}</option>)}
                     </select>
                   </div>
-                  <div className="ml-2 pl-4 border-l border-zinc-700/50 hidden md:block max-w-[400px]">
-                    <div className="flex flex-wrap gap-1.5">
-                      {MY_ACCOUNT_CHARACTERS.filter(name => name !== profile.nickname).map(name => (
-                        <button key={name} onClick={() => switchCharacter(name)} className="bg-[#1c1c1e] border border-zinc-700 hover:border-zinc-400 hover:text-white text-zinc-400 text-[11px] font-medium px-2.5 py-1 rounded transition">{name}</button>
+                  <div className="ml-2 pl-4 border-l border-zinc-700/50 hidden md:flex items-center gap-2 flex-wrap max-w-[450px]">
+                    <div className="flex flex-wrap gap-1.5 items-center">
+                      {myCharacters.map(name => (
+                        <button key={name} onClick={() => switchCharacter(name)} className={`border text-[11px] font-medium px-2.5 py-1 rounded transition ${name === profile.nickname ? 'bg-[#e6c788] text-black border-[#e6c788] font-bold' : 'bg-[#1c1c1e] border-zinc-700 hover:border-zinc-400 text-zinc-400'}`}>{name}</button>
                       ))}
                     </div>
+                    <button onClick={handleCreateNewCharacter} className="bg-zinc-800 hover:bg-zinc-700 text-[#e6c788] border border-dashed border-[#e6c788]/50 text-[11px] font-bold px-2.5 py-1 rounded transition">+ 캐릭터 추가</button>
                   </div>
                 </div>
                 <div className="text-right bg-[#1c1c1e] px-4 py-2 rounded-lg border border-yellow-600/30">
