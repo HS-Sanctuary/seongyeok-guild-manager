@@ -17,7 +17,7 @@ export default function CharacterPage() {
   const [dbTrades, setDbTrades] = useState<any[]>([]); 
 
   const [myCharacters, setMyCharacters] = useState<any[]>([]);
-  const [accountContribution, setAccountContribution] = useState<string>(""); // 계정별 공헌도 상태
+  const [accountContribution, setAccountContribution] = useState<string>("");
 
   const defaultProfile = { nickname: "", job: "전사", combatPower: "", magicResistance: "", lifeEnergy: "", charm: "", intro: "", isMain: false };
   
@@ -72,7 +72,6 @@ export default function CharacterPage() {
     fetchMasterData();
   }, [router]);
 
-  // 계정별 공헌도 불러오기 (첫 번째 캐릭터 데이터나 전용 관리 테이블에서 가져옴)
   const fetchAccountData = async (loginUserNick: string) => {
     try {
       const { data } = await supabase
@@ -174,7 +173,7 @@ export default function CharacterPage() {
         magic_resistance: Number(profile.magicResistance) || 0,
         life_energy: Number(profile.lifeEnergy) || 0, 
         charm: Number(profile.charm) || 0, 
-        contribution: Number(accountContribution) || 0, // 계정별 공헌도 통일 저장
+        contribution: Number(accountContribution) || 0,
         intro: profile.intro,
         is_main: profile.isMain, 
         levels: levels, 
@@ -187,7 +186,6 @@ export default function CharacterPage() {
       
       await supabase.from('characters').upsert(payload, { onConflict: 'nickname' }); 
       
-      // 만약 계정 내 모든 캐릭터의 공헌도를 동기화하고 싶다면 한 번에 업데이트 가능
       await supabase.from('characters')
         .update({ contribution: Number(accountContribution) || 0 })
         .eq('owner', user.nickname);
@@ -405,32 +403,34 @@ export default function CharacterPage() {
             </div>
             <div className="flex-1 w-full space-y-5">
               <div className="flex justify-between items-end border-b border-zinc-700/50 pb-4">
-                <div className="flex flex-col gap-3 w-full">
-                  <div className="flex gap-4 items-end flex-wrap">
-                    <div>
-                      <label className="text-[10px] font-bold text-zinc-500 mb-1 block">닉네임</label>
-                      <input value={profile.nickname} onChange={(e) => updateProfile("nickname", e.target.value)} className="bg-transparent text-2xl font-black text-white border-b border-transparent focus:border-[#e6c788] outline-none w-36" />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-bold text-zinc-500 mb-1 block">주 클래스</label>
-                      <select value={profile.job} onChange={(e) => updateProfile("job", e.target.value)} className="bg-[#121212] border border-zinc-700 rounded px-3 py-1.5 text-sm text-white focus:border-[#e6c788] outline-none">
-                        {dbClasses.map((cls: any) => <option key={cls.name} value={cls.name}>{cls.name}</option>)}
-                      </select>
-                    </div>
+                <div className="flex gap-4 items-end flex-wrap w-full">
+                  <div>
+                    <label className="text-[10px] font-bold text-zinc-500 mb-1 block">닉네임</label>
+                    <input value={profile.nickname} onChange={(e) => updateProfile("nickname", e.target.value)} className="bg-transparent text-2xl font-black text-white border-b border-transparent focus:border-[#e6c788] outline-none w-36" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-zinc-500 mb-1 block">주 클래스</label>
+                    <select value={profile.job} onChange={(e) => updateProfile("job", e.target.value)} className="bg-[#121212] border border-zinc-700 rounded px-3 py-1.5 text-sm text-white focus:border-[#e6c788] outline-none">
+                      {dbClasses.map((cls: any) => <option key={cls.name} value={cls.name}>{cls.name}</option>)}
+                    </select>
                   </div>
 
-                  {/* 💡 [빨간 박스 영역] 닉네임 바로 아래 캐릭터 선택 및 순서 변경 바 */}
-                  <div className="flex items-center gap-2 flex-wrap bg-[#1c1c1e] p-2 rounded-lg border border-zinc-700/60 w-fit">
-                    {myCharacters.map((char: any, idx: number) => (
-                      <div key={char.nickname} className={`flex items-center gap-1.5 border text-[12px] font-medium px-2.5 py-1 rounded transition ${char.nickname === profile.nickname ? 'bg-[#e6c788] text-black border-[#e6c788] font-bold shadow-md' : 'bg-[#121212] border-zinc-700 text-zinc-300'}`}>
-                        <button onClick={() => switchCharacter(char.nickname)} className="truncate max-w-[100px]">{char.nickname}</button>
-                        <div className="flex items-center gap-1 ml-1 border-l border-zinc-600/50 pl-1">
-                          {idx > 0 && <button onClick={() => handleMoveOrder(idx, -1)} className="text-[10px] opacity-70 hover:opacity-100">◀</button>}
-                          {idx < myCharacters.length - 1 && <button onClick={() => handleMoveOrder(idx, 1)} className="text-[10px] opacity-70 hover:opacity-100">▶</button>}
+                  {/* 원래 위치(주 클래스 우측)에 세로 배치형 캐릭터 카드 리스트 적용 */}
+                  <div className="ml-2 pl-4 border-l border-zinc-700/50 hidden md:flex items-center gap-2 flex-wrap max-w-[650px]">
+                    <div className="flex flex-wrap gap-2 items-center">
+                      {myCharacters.map((char: any, idx: number) => (
+                        <div key={char.nickname} className={`flex flex-col items-center border text-[12px] font-medium px-3 py-1.5 rounded-lg transition ${char.nickname === profile.nickname ? 'bg-[#e6c788]/20 text-[#e6c788] border-[#e6c788] font-bold shadow-md' : 'bg-[#1c1c1e] border-zinc-700 text-zinc-300'}`}>
+                          {/* 닉네임 (클릭시 전환) */}
+                          <button onClick={() => switchCharacter(char.nickname)} className="truncate max-w-[90px] text-center">{char.nickname}</button>
+                          {/* 화살표 버튼 (닉네임 아래 세로 배치) */}
+                          <div className="flex items-center gap-2 mt-1 pt-1 border-t border-zinc-700/50 w-full justify-center">
+                            {idx > 0 && <button onClick={() => handleMoveOrder(idx, -1)} className="text-[10px] text-zinc-400 hover:text-white px-1">◀</button>}
+                            {idx < myCharacters.length - 1 && <button onClick={() => handleMoveOrder(idx, 1)} className="text-[10px] text-zinc-400 hover:text-white px-1">▶</button>}
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                    <button onClick={handleCreateNewCharacter} className="bg-zinc-800 hover:bg-zinc-700 text-[#e6c788] border border-dashed border-[#e6c788]/50 text-[11px] font-bold px-3 py-1 rounded transition">+ 캐릭터 추가</button>
+                      ))}
+                    </div>
+                    <button onClick={handleCreateNewCharacter} className="bg-zinc-800 hover:bg-zinc-700 text-[#e6c788] border border-dashed border-[#e6c788]/50 text-[11px] font-bold px-3 py-2 rounded-lg transition h-fit">+ 캐릭터 추가</button>
                   </div>
                 </div>
 
@@ -448,7 +448,6 @@ export default function CharacterPage() {
                 <div className="bg-[#1c1c1e] p-3 rounded-lg border border-zinc-700/50"><label className="text-[11px] font-bold text-purple-400 mb-1 block">🔮 마도저항</label><input type="number" value={profile.magicResistance} onChange={e => updateProfile("magicResistance", e.target.value)} placeholder="0" className="w-full bg-transparent text-lg font-bold text-white outline-none" /></div>
                 <div className="bg-[#1c1c1e] p-3 rounded-lg border border-zinc-700/50"><label className="text-[11px] font-bold text-emerald-400 mb-1 block">🌿 생활력 (TECHNĒ)</label><input type="number" value={profile.lifeEnergy} onChange={e => updateProfile("lifeEnergy", e.target.value)} placeholder="0" className="w-full bg-transparent text-lg font-bold text-white outline-none" /></div>
                 <div className="bg-[#1c1c1e] p-3 rounded-lg border border-zinc-700/50"><label className="text-[11px] font-bold text-pink-400 mb-1 block">✨ 매력 (HARMONIA)</label><input type="number" value={profile.charm} onChange={e => updateProfile("charm", e.target.value)} placeholder="0" className="w-full bg-transparent text-lg font-bold text-white outline-none" /></div>
-                {/* 💡 [초록 박스 영역] 계정별 누적 길드 공헌도 (PIETAS) */}
                 <div className="bg-[#1c1c1e] p-3 rounded-lg border border-zinc-700/50">
                   <label className="text-[11px] font-bold text-amber-500 mb-1 block">🛡️ 누적 길드 공헌도 (PIETAS)</label>
                   <input type="number" value={accountContribution} onChange={e => setAccountContribution(e.target.value)} placeholder="0" className="w-full bg-transparent text-lg font-bold text-white outline-none" />
