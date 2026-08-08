@@ -99,10 +99,10 @@ export default function CharacterPage() {
           setWeeklyChecks([]); setRepeatChecks({});
         }
         
-        const rChecks = Array.isArray(data.raid_checks) ? data.raid_checks.map(Number).filter(n => !isNaN(n)) : [];
+const rChecks = Array.isArray(data.raid_checks) ? data.raid_checks.map(Number).filter((n: any) => !isNaN(n)) : [];
         
-        setAbyssChecks(rChecks.filter(id => contentsList.find(c => c.id === id)?.type === 'abyss'));
-        setRaidChecks(rChecks.filter(id => contentsList.find(c => c.id === id)?.type === 'raid'));
+        setAbyssChecks(rChecks.filter((id: number) => contentsList.find(c => c.id === id)?.type === 'abyss'));
+        setRaidChecks(rChecks.filter((id: number) => contentsList.find(c => c.id === id)?.type === 'raid'));
         
         setTradeProgress(data.trade_checks || {});
       } else {
