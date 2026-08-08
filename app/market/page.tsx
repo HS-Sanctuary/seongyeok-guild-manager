@@ -100,7 +100,6 @@ export default function MarketPage() {
     setSearchQuery(val);
     
     if (val.trim().length > 0) {
-      // 검색어가 포함된 아이템 최대 5개 추출
       const filtered = catalog.filter(item => item.name.includes(val)).slice(0, 5);
       setSuggestions(filtered);
       setShowSuggestions(true);
@@ -116,13 +115,12 @@ export default function MarketPage() {
     executeSearch(itemName, activeCategory);
   };
 
-  // 4. 실제 거래소 시세 검색 실행 (API 연동 전 시뮬레이션)
+  // 4. 실제 거래소 시세 검색 실행
   const executeSearch = (query: string, category: string) => {
     setIsSearching(true);
     setShowSuggestions(false);
 
     setTimeout(() => {
-      // 카탈로그 기반으로 검색된 아이템 목록 추출
       let filteredCatalog = catalog;
       if (query.trim()) {
         filteredCatalog = filteredCatalog.filter(item => item.name.includes(query));
@@ -131,7 +129,6 @@ export default function MarketPage() {
         filteredCatalog = filteredCatalog.filter(item => item.category === category);
       }
 
-      // 모비라이프 시세 API가 연결될 자리 (임시로 랜덤 시세 부여)
       const simulatedResults: MarketResult[] = filteredCatalog.map(item => {
         const basePrice = Math.floor(Math.random() * 50000) + 1000;
         return {
@@ -147,7 +144,7 @@ export default function MarketPage() {
 
       setResults(simulatedResults);
       setIsSearching(false);
-    }, 500); // 0.5초 로딩 연출
+    }, 500);
   };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -155,7 +152,6 @@ export default function MarketPage() {
     executeSearch(searchQuery, activeCategory);
   };
 
-  // 카테고리 탭 변경 시 자동 검색
   useEffect(() => {
     if (mounted && catalog.length > 0) {
       executeSearch(searchQuery, activeCategory);
@@ -166,18 +162,30 @@ export default function MarketPage() {
   if (!mounted || !user) return null;
 
   return (
-    <main className="min-h-screen bg-[#121212] text-[#d4d4d8] font-sans pb-10 relative">
-      
-      {/* 🟢 상단 네비게이션은 layout.tsx에서 처리하므로 삭제 (깔끔한 UI) */}
-
-      <div className="p-4 md:p-8 max-w-[1000px] mx-auto space-y-6 pt-8">
+    <main className="min-h-screen bg-[#121212] text-[#d4d4d8] font-sans pb-20 pt-8 relative">
+      <div className="max-w-[1300px] mx-auto p-4 md:p-8 space-y-6 relative">
         
-        {/* 상단 타이틀 영역 */}
-        <header className="flex flex-col items-center justify-center py-6">
-          <h1 className="text-3xl md:text-4xl font-black text-white drop-shadow-md flex items-center gap-2">
-            ⚖️ 성역 <span className="text-[#e6c788]">통합 거래소</span>
-          </h1>
-          <p className="text-zinc-400 text-xs md:text-sm mt-2 font-bold">데이안 서버의 실시간 경매장 시세와 변동 추이를 확인하세요.</p>
+        {/* 🟢 EMPORION 헤더 배너 (요청하신 문구 반영) */}
+        <header className="relative overflow-hidden rounded-xl bg-gradient-to-br from-[#1c1c1e] via-[#151515] to-[#1a1a1c] border border-zinc-800 py-3 px-6 shadow-xl mb-6">
+          <div className="absolute top-0 left-0 w-1.5 h-full bg-[#e6c788] shadow-[0_0_15px_#e6c788]"></div>
+          <div className="absolute bottom-0 right-0 w-32 h-32 bg-[#e6c788] opacity-5 blur-[60px] rounded-full pointer-events-none"></div>
+          
+          <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+            <div className="flex items-center gap-4 min-w-[200px]">
+              <div className="flex flex-col items-start">
+                <h1 className="text-2xl font-black text-white tracking-widest drop-shadow-md leading-none">EMPORION</h1>
+                <span className="text-[#e6c788] text-[13px] font-bold tracking-wide mt-1.5 leading-none">엠포리온 : 실시간 거래소 정보</span>
+              </div>
+            </div>
+            
+            <div className="bg-zinc-900/40 border border-zinc-700/50 px-4 py-2 rounded-lg w-full max-w-[750px] backdrop-blur-sm flex items-start gap-2.5">
+              <span className="text-sm mt-0.5 opacity-80">💡</span>
+              <div className="flex flex-col text-[11px] md:text-[12px] font-bold leading-tight w-full">
+                <span className="text-zinc-300 w-full">엠포리온은 고대 그리스어로 ‘무역과 상업이 이루어지는 시장’을 뜻합니다.</span>
+                <span className="text-[#e6c788] mt-0.5">게임 접속을 하지 않아도 실시간 거래소 정보를 확인할 수 있는 공간입니다.</span>
+              </div>
+            </div>
+          </div>
         </header>
 
         {/* 검색 및 카테고리 필터 영역 */}
@@ -217,7 +225,7 @@ export default function MarketPage() {
               검색
             </button>
 
-            {/* 🟢 자동완성 (Auto-complete) 드롭다운 창 */}
+            {/* 자동완성 드롭다운 창 */}
             {showSuggestions && suggestions.length > 0 && (
               <div className="absolute top-full left-0 right-0 mt-2 bg-[#252528] border border-zinc-600 rounded-xl shadow-2xl z-50 overflow-hidden animate-in slide-in-from-top-2 duration-200">
                 {suggestions.map((item, idx) => (

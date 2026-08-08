@@ -12,7 +12,7 @@ const navItems = [
   { en: 'AGORA', kr: '아고라', sub: '길드 라운지', path: '/lounge' },
   { en: 'EMPORION', kr: '엠포리온', sub: '거래소 정보', path: '/market' },
   { en: 'SYNAXIS', kr: '시낙시스', sub: '파티 매칭', path: '/party' },
-  { en: 'GNOSIS', kr: '그노시스', sub: '정보 공유', path: '/guide' },
+  { en: 'GNOSIS', kr: '그노시스', sub: '정보 공유', path: '/gnosis' },
   { en: 'LOGOS', kr: '로고스', sub: '문의/건의', path: '/support' },
 ];
 
