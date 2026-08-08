@@ -104,7 +104,7 @@ export default function Home() {
   const [isAbyssModalOpen, setIsAbyssModalOpen] = useState(false);
   const [isAdminMode, setIsAdminMode] = useState(false);
 
-  const [deepHoles, setDeepHoles] = useState<DeepHoles[]>([]);
+  const [deepHoles, setDeepHoles] = useState<DeepHole[]>([]);
   const [deepZoneUID, setDeepZoneUID] = useState<string>('hz_001');
   const [deepCount, setDeepCount] = useState('0');
 
@@ -219,7 +219,6 @@ export default function Home() {
       setRaidList(contRes.data?.filter(c => c.type === 'raid') || []);
       setUniqueAccounts(1);
 
-      // 🟢 [핵심 수정] 로그인한 유저의 닉네임과 일치하는 캐릭터만 필터링!
       const myChars = allChars.filter(char => char.owner === currentUser?.nickname);
       
       myChars.sort((a, b) => {
@@ -383,12 +382,14 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-[#121212] text-[#d4d4d8] font-sans pb-10 relative">
       
-      {/* 🟢 로그인한 유저 정보 동적 바인딩 */}
-     <div className="w-full bg-[#1c1c1e] border-b border-zinc-800 px-6 py-2.5 flex justify-between items-center shadow-md">
+      {/* 🟢 상단 헤더: 유저 정보 및 관리자 설정 */}
+      <div className="w-full bg-[#1c1c1e] border-b border-zinc-800 px-6 py-2.5 flex justify-between items-center shadow-md">
         <div className="flex items-center gap-2 text-white font-bold text-sm tracking-wide"><span>🏰 SANCTUM</span></div>
         <div className="flex items-center gap-4">
-          {/* 🟢 길드마스터, 마스터, 부마스터에게만 보이는 관리자 설정 버튼 */}
-          {(user?.role === "길드마스터" || user?.role === "마스터" || user?.role === "부마스터") && (
+          
+          {/* 🟢 핵심 관리자 닉네임 + 관리자 직급 모두에게 보이는 관리자 설정 버튼 */}
+          {((user?.nickname && ["한설", "수도사는수도사", "신파랑", "제스"].includes(user.nickname)) || 
+            ["길드마스터", "마스터", "부마스터"].includes(user?.role)) && (
             <button 
               onClick={() => router.push('/admin')} 
               className="text-xs bg-yellow-600/20 text-[#e6c788] border border-yellow-600/45 hover:bg-yellow-600/30 px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1"
@@ -396,6 +397,7 @@ export default function Home() {
               ⚙️ 관리자 설정
             </button>
           )}
+
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-[#121212] border border-zinc-600 flex items-center justify-center text-sm">👤</div>
             <div className="flex flex-col leading-tight">
@@ -736,10 +738,16 @@ export default function Home() {
             <div className="p-5 space-y-4 bg-[#1c1c1e]">
               <div className="flex justify-between items-center">
                 <span className="text-[11px] font-bold text-zinc-400">신규 제보 입력</span>
-                <label className="flex items-center space-x-2 cursor-pointer bg-[#121212] border border-zinc-700 px-2 py-1 rounded">
-                  <input type="checkbox" checked={isAdminMode} onChange={(e) => setIsAdminMode(e.target.checked)} className="w-3 h-3 accent-purple-500" />
-                  <span className="text-[9px] font-bold text-zinc-500">관리자(CBT)</span>
-                </label>
+                
+                {/* 🟢 어비스 관리자(CBT) 체크박스도 권한자에게만 노출 */}
+                {((user?.nickname && ["한설", "수도사는수도사", "신파랑", "제스"].includes(user.nickname)) || 
+                  ["길드마스터", "마스터", "부마스터"].includes(user?.role)) && (
+                  <label className="flex items-center space-x-2 cursor-pointer bg-[#121212] border border-zinc-700 px-2 py-1 rounded">
+                    <input type="checkbox" checked={isAdminMode} onChange={(e) => setIsAdminMode(e.target.checked)} className="w-3 h-3 accent-purple-500" />
+                    <span className="text-[9px] font-bold text-zinc-500">관리자(CBT)</span>
+                  </label>
+                )}
+                
               </div>
               <form onSubmit={submitAbyssHole} className="flex gap-2">
                 <input type="text" value={user?.nickname || "로딩중..."} disabled className="w-24 text-xs p-2.5 rounded bg-[#121212] border border-zinc-700 text-zinc-500 cursor-not-allowed" />
