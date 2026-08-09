@@ -95,7 +95,19 @@ export default function CharacterPage() {
 
       if (data && data.length > 0) {
         setMyCharacters(data);
-        const target = data.some((d: any) => d.nickname === loginUserNick) ? loginUserNick : data[0].nickname;
+        
+        // URL에서 클릭한 캐릭터 닉네임 파라미터 확인
+        const urlParams = new URLSearchParams(window.location.search);
+        const targetChar = urlParams.get('char');
+        
+        let target = data[0].nickname; // 기본값: 첫 번째 캐릭터
+        
+        if (targetChar && data.some((d: any) => d.nickname === targetChar)) {
+          target = targetChar; // 클릭한 캐릭터가 내 캐릭터 목록에 있으면 해당 캐릭터 로드
+        } else if (data.some((d: any) => d.nickname === loginUserNick)) {
+          target = loginUserNick; // 없으면 대표 닉네임 로드
+        }
+        
         loadCharacterData(target, contentsList);
       } else {
         const initialChar = { nickname: loginUserNick, sort_order: 0, owner: loginUserNick };
@@ -204,6 +216,8 @@ export default function CharacterPage() {
   const switchCharacter = async (targetName: string) => { 
     await saveProgress(); 
     loadCharacterData(targetName, dbContents); 
+    // 주소창의 파라미터도 업데이트 해주는 센스 (선택 사항)
+    window.history.replaceState(null, '', `?char=${encodeURIComponent(targetName)}`);
   };
 
   const handleCreateNewCharacter = async () => {
@@ -384,7 +398,7 @@ export default function CharacterPage() {
               <h1 className="text-2xl font-black text-white tracking-widest drop-shadow-md leading-none">CHRONOS</h1>
               <span className="text-[#e6c788] text-[13px] font-bold tracking-wide mt-1.5 leading-none">크 로 노 스 : 캐 릭 터 관 리</span>
             </div>
-           
+            
             <div className="bg-zinc-900/40 border border-zinc-700/50 px-4 py-2 rounded-lg w-full max-w-[750px] backdrop-blur-sm flex items-start gap-2.5">
               <span className="text-sm mt-0.5 opacity-80">⏳</span>
               <div className="flex flex-col text-[11px] md:text-[12px] font-bold leading-tight w-full">

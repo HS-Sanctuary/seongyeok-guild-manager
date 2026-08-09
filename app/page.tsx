@@ -221,11 +221,8 @@ export default function Home() {
 
       const myChars = allChars.filter(char => char.owner === currentUser?.nickname);
       
-      myChars.sort((a, b) => {
-        if (a.is_main && !b.is_main) return -1;
-        if (!a.is_main && b.is_main) return 1;
-        return 0;
-      });
+      // 사용자 지정 정렬 (sort_order 기준)
+      myChars.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
       setMyCharacters(myChars);
 
       let maxLevelSum = 0;
@@ -534,7 +531,7 @@ export default function Home() {
                 const raidCount = raidList.filter(r => rChecks.includes(r.id)).length;
 
                 return (
-                  <div key={char.id} onClick={() => router.push('/character')} className="bg-[#252528] border border-zinc-700/50 rounded-xl p-4 cursor-pointer hover:border-[#e6c788]/60 transition shadow-md flex flex-col gap-3 group">
+                  <div key={char.id} onClick={() => router.push(`/character?char=${encodeURIComponent(char.nickname)}`)} className="bg-[#252528] border border-zinc-700/50 rounded-xl p-4 cursor-pointer hover:border-[#e6c788]/60 transition shadow-md flex flex-col gap-3 group">
                     <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
                       <div className="flex items-center gap-2 truncate">
                         <span className="text-base bg-[#121212] p-1.5 rounded-lg border border-zinc-700 group-hover:border-[#e6c788]/50 transition">{JOB_ICONS[char.job] || "👤"}</span>
