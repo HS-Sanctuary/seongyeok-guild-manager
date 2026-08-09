@@ -4,23 +4,46 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase"; 
 
+// --- 아고라 칭호 연동을 위한 데이터 ---
+const CATEGORY_THEMES: Record<string, any> = {
+  TELOS: { tags: ['bg-purple-500/30 text-purple-300 border-purple-400', 'bg-purple-800/40 text-purple-400 border-purple-600/80', 'bg-purple-950/50 text-purple-500 border-purple-800/70'] },
+  KRATOS: { tags: ['bg-red-500/30 text-red-300 border-red-400', 'bg-red-800/40 text-red-400 border-red-600/80', 'bg-red-950/50 text-red-500 border-red-800/70'] },
+  TECHNE: { tags: ['bg-blue-500/30 text-blue-300 border-blue-400', 'bg-blue-800/40 text-blue-400 border-blue-600/80', 'bg-blue-950/50 text-blue-500 border-blue-800/70'] },
+  HARMONIA: { tags: ['bg-yellow-500/30 text-yellow-300 border-yellow-400', 'bg-yellow-700/40 text-yellow-400 border-yellow-600/80', 'bg-yellow-900/40 text-yellow-500 border-yellow-800/70'] },
+  PIETAS: { tags: ['bg-emerald-500/30 text-emerald-300 border-emerald-400', 'bg-emerald-800/40 text-emerald-400 border-emerald-600/80', 'bg-emerald-950/50 text-emerald-500 border-emerald-800/70'] }
+};
+const RANKING_INFO = {
+  TELOS: { type: 'TELOS', stat: '종합' }, KRATOS: { type: 'KRATOS', stat: '전투력' }, 
+  TECHNE: { type: 'TECHNE', stat: '생활력' }, HARMONIA: { type: 'HARMONIA', stat: '매력' }, PIETAS: { type: 'PIETAS', stat: '공헌도' }
+};
+const TOP_TITLES = { TELOS: ['헬리오스', '셀레네', '에오스'], PIETAS: ['시리우스', '레굴루스', '알데바란'], TECHNE: ['폴리매스', '마이스터', '아르티장'], HARMONIA: ['아글라이아', '카리스', '칼로스'] };
+const CLASS_TITLES: Record<string, string[]> = {
+  "전사": ["검투신", "검투왕", "검투사", "전사"], "대검전사": ["파괴신", "파괴왕", "광전사", "대검전사"], "검술사": ["검신", "검왕", "검성", "검술사"], "기사": ["수호신", "수호왕", "수호기사", "기사"],
+  "마법사": ["마신", "대현자", "현자", "마법사"], "화염술사": ["화신", "염왕", "염마", "화염술사"], "빙결술사": ["빙신", "빙왕", "빙마", "빙결술사"], "전격술사": ["뢰신", "뇌왕", "뇌마", "전격술사"],
+  "궁수": ["폭풍신", "폭풍왕", "화랑", "궁수"], "장궁병": ["신궁", "천궁", "명궁", "장궁병"], "석궁사수": ["파천궁신", "파천궁제", "파천사수", "석궁사수"],
+  "음유시인": ["셰익스피어", "호메로스", "오르페우스", "음유시인"], "댄서": ["플로라비", "파피에르", "블루에트", "댄서"], "악사": ["마에스트로", "비르투오사", "솔리스트", "악사"],
+  "힐러": ["그라시아", "베네딕토", "렐릭스", "힐러"], "사제": ["메시아", "디바인", "프리스트", "사제"], "수도사": ["아라한", "금강", "나한", "수도사"], "암흑술사": ["암제", "암왕", "암마", "암흑술사"],
+  "도적": ["독왕", "트릭스터", "땅거미", "도적"], "격투가": ["권신", "권왕", "권호", "격투가"], "듀얼블레이드": ["유성천침", "쌍극난무", "질풍쌍화", "듀얼블레이드"],
+};
+
 export default function CharacterPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [mounted, setMounted] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
-
+  
+  // 마스터 데이터
   const [dbClasses, setDbClasses] = useState<any[]>([]);
   const [dbTasks, setDbTasks] = useState<any[]>([]);
   const [dbContents, setDbContents] = useState<any[]>([]);
   const [dbTrades, setDbTrades] = useState<any[]>([]); 
+  const [allCharacters, setAllCharacters] = useState<any[]>([]); // 칭호 계산용 전체 유저 데이터
 
+  // 내 데이터
   const [myCharacters, setMyCharacters] = useState<any[]>([]);
   const [accountContribution, setAccountContribution] = useState<string>("");
 
   const defaultProfile = { nickname: "", job: "전사", combatPower: "", magicResistance: "", lifeEnergy: "", charm: "", intro: "", isMain: false };
-  
   const [profile, setProfile] = useState(defaultProfile);
   const [levels, setLevels] = useState<Record<string, number>>({});
   
@@ -31,8 +54,13 @@ export default function CharacterPage() {
   const [raidChecks, setRaidChecks] = useState<number[]>([]);
   const [tradeProgress, setTradeProgress] = useState<Record<number, number>>({});
 
+  // UI 상태
   const [isLevelOpen, setIsLevelOpen] = useState(false);
-  const [isTradeOpen, setIsTradeOpen] = useState(true);
+  const [isTradeOpen, setIsTradeOpen] = useState(false); // 기본 닫힘으로 변경
+  
+  // 모달 관리 상태
+  const [isManageModalOpen, setIsManageModalOpen] = useState(false);
+  const [manageList, setManageList] = useState<any[]>([]);
 
   const abyssList = dbContents.filter((c: any) => c.type === 'abyss');
   const raidList = dbContents.filter((c: any) => c.type === 'raid');
@@ -52,36 +80,32 @@ export default function CharacterPage() {
     
     const parsedUser = JSON.parse(savedUser);
     setUser(parsedUser);
-
-    const fetchMasterData = async () => {
-      const [clsRes, taskRes, contRes, tradeRes] = await Promise.all([
-        supabase.from('nexus_classes').select('*').eq('is_active', true).order('id'),
-        supabase.from('nexus_tasks').select('*').eq('is_active', true).order('id'),
-        supabase.from('nexus_contents').select('*').eq('is_active', true).order('id'),
-        supabase.from('nexus_trades').select('*').order('id')
-      ]);
-      
-      setDbClasses(clsRes.data || []);
-      setDbTasks(taskRes.data || []);
-      setDbContents(contRes.data || []);
-      setDbTrades(tradeRes.data || []);
-      
-      await fetchAccountData(parsedUser.nickname);
-      await fetchUserCharacters(parsedUser.nickname, contRes.data || []);
-    };
-    fetchMasterData();
+    fetchMasterData(parsedUser.nickname);
   }, [router]);
+
+  const fetchMasterData = async (loginUserNick: string) => {
+    const [clsRes, taskRes, contRes, tradeRes, allCharsRes] = await Promise.all([
+      supabase.from('nexus_classes').select('*').eq('is_active', true).order('id'),
+      supabase.from('nexus_tasks').select('*').eq('is_active', true).order('id'),
+      supabase.from('nexus_contents').select('*').eq('is_active', true).order('id'),
+      supabase.from('nexus_trades').select('*').order('id'),
+      supabase.from('characters').select('*') // 칭호 계산용
+    ]);
+    
+    setDbClasses(clsRes.data || []);
+    setDbTasks(taskRes.data || []);
+    setDbContents(contRes.data || []);
+    setDbTrades(tradeRes.data || []);
+    setAllCharacters(allCharsRes.data || []);
+    
+    await fetchAccountData(loginUserNick);
+    await fetchUserCharacters(loginUserNick, contRes.data || []);
+  };
 
   const fetchAccountData = async (loginUserNick: string) => {
     try {
-      const { data } = await supabase
-        .from('characters')
-        .select('contribution')
-        .eq('owner', loginUserNick)
-        .limit(1);
-      if (data && data.length > 0) {
-        setAccountContribution(data[0].contribution ?? "");
-      }
+      const { data } = await supabase.from('characters').select('contribution').eq('owner', loginUserNick).limit(1);
+      if (data && data.length > 0) setAccountContribution(data[0].contribution ?? "");
     } catch (e) {}
   };
 
@@ -89,35 +113,26 @@ export default function CharacterPage() {
     try {
       const { data } = await supabase
         .from('characters')
-        .select('nickname, sort_order, owner')
+        .select('nickname, sort_order, owner, job')
         .or(`owner.eq.${loginUserNick},nickname.eq.${loginUserNick}`)
         .order('sort_order', { ascending: true });
 
       if (data && data.length > 0) {
         setMyCharacters(data);
-        
-        // URL에서 클릭한 캐릭터 닉네임 파라미터 확인
         const urlParams = new URLSearchParams(window.location.search);
         const targetChar = urlParams.get('char');
+        let target = data[0].nickname; 
         
-        let target = data[0].nickname; // 기본값: 첫 번째 캐릭터
-        
-        if (targetChar && data.some((d: any) => d.nickname === targetChar)) {
-          target = targetChar; // 클릭한 캐릭터가 내 캐릭터 목록에 있으면 해당 캐릭터 로드
-        } else if (data.some((d: any) => d.nickname === loginUserNick)) {
-          target = loginUserNick; // 없으면 대표 닉네임 로드
-        }
+        if (targetChar && data.some((d: any) => d.nickname === targetChar)) target = targetChar;
+        else if (data.some((d: any) => d.nickname === loginUserNick)) target = loginUserNick;
         
         loadCharacterData(target, contentsList);
       } else {
-        const initialChar = { nickname: loginUserNick, sort_order: 0, owner: loginUserNick };
+        const initialChar = { nickname: loginUserNick, sort_order: 0, owner: loginUserNick, job: '전사' };
         setMyCharacters([initialChar]);
         loadCharacterData(loginUserNick, contentsList);
       }
-    } catch (e) {
-      setMyCharacters([{ nickname: loginUserNick, sort_order: 0 }]);
-      loadCharacterData(loginUserNick, contentsList);
-    }
+    } catch (e) {}
   };
 
   const loadCharacterData = async (charName: string, contentsList = dbContents) => {
@@ -128,12 +143,9 @@ export default function CharacterPage() {
           nickname: data.nickname, job: data.job || "전사",
           combatPower: data.combat_power || "", magicResistance: data.magic_resistance || "",
           lifeEnergy: data.life_energy || "", charm: data.charm || "", 
-          intro: data.intro || "",
-          isMain: data.is_main || false
+          intro: data.intro || "", isMain: data.is_main || false
         });
-        if (data.contribution !== undefined && data.contribution !== null) {
-          setAccountContribution(data.contribution);
-        }
+        if (data.contribution !== undefined && data.contribution !== null) setAccountContribution(data.contribution);
         setLevels(data.levels || {});
         
         const dChecks = Array.isArray(data.daily_checks) ? data.daily_checks : [];
@@ -150,7 +162,6 @@ export default function CharacterPage() {
         const rChecks = Array.isArray(data.raid_checks) ? data.raid_checks.map(Number).filter((n: any) => !isNaN(n)) : [];
         setAbyssChecks(rChecks.filter((id: number) => contentsList.find((c: any) => c.id === id)?.type === 'abyss'));
         setRaidChecks(rChecks.filter((id: number) => contentsList.find((c: any) => c.id === id)?.type === 'raid'));
-        
         setTradeProgress(data.trade_checks || {});
       } else {
         setProfile({ ...defaultProfile, nickname: charName });
@@ -161,130 +172,47 @@ export default function CharacterPage() {
   };
 
   const saveProgress = async () => {
-    if (!profile.nickname.trim()) {
-      alert("캐릭터 닉네임을 입력해주세요!");
-      return;
-    }
+    if (!profile.nickname.trim()) { alert("캐릭터 닉네임을 입력해주세요!"); return; }
     try {
       if (profile.isMain) {
-        await supabase.from('characters')
-          .update({ is_main: false })
-          .eq('owner', user.nickname)
-          .neq('nickname', profile.nickname);
+        await supabase.from('characters').update({ is_main: false }).eq('owner', user.nickname).neq('nickname', profile.nickname);
       }
 
       const existingIndex = myCharacters.findIndex((c: any) => c.nickname === profile.nickname);
       const currentSortOrder = existingIndex !== -1 ? (myCharacters[existingIndex].sort_order ?? myCharacters.length) : myCharacters.length;
 
       const payload = {
-        nickname: profile.nickname, 
-        owner: user.nickname, 
-        sort_order: currentSortOrder,
-        job: profile.job,
-        combat_power: Number(profile.combatPower) || 0, 
-        magic_resistance: Number(profile.magicResistance) || 0,
-        life_energy: Number(profile.lifeEnergy) || 0, 
-        charm: Number(profile.charm) || 0, 
-        contribution: Number(accountContribution) || 0,
-        intro: profile.intro,
-        is_main: profile.isMain, 
-        levels: levels, 
-        daily_checks: dailyChecks,
-        weekly_checks: { normal: weeklyChecks, repeat: repeatChecks },
-        raid_checks: [...abyssChecks, ...raidChecks],
-        trade_checks: tradeProgress,
-        updated_at: new Date()
+        nickname: profile.nickname, owner: user.nickname, sort_order: currentSortOrder,
+        job: profile.job, combat_power: Number(profile.combatPower) || 0, magic_resistance: Number(profile.magicResistance) || 0,
+        life_energy: Number(profile.lifeEnergy) || 0, charm: Number(profile.charm) || 0, contribution: Number(accountContribution) || 0,
+        intro: profile.intro, is_main: profile.isMain, levels: levels, 
+        daily_checks: dailyChecks, weekly_checks: { normal: weeklyChecks, repeat: repeatChecks },
+        raid_checks: [...abyssChecks, ...raidChecks], trade_checks: tradeProgress, updated_at: new Date()
       };
       
       await supabase.from('characters').upsert(payload, { onConflict: 'nickname' }); 
-      
-      await supabase.from('characters')
-        .update({ contribution: Number(accountContribution) || 0 })
-        .eq('owner', user.nickname);
+      await supabase.from('characters').update({ contribution: Number(accountContribution) || 0 }).eq('owner', user.nickname);
 
       if (existingIndex === -1) {
-        setMyCharacters((prev: any[]) => [...prev, { nickname: profile.nickname, sort_order: currentSortOrder }]);
+        setMyCharacters((prev: any[]) => [...prev, { nickname: profile.nickname, sort_order: currentSortOrder, job: profile.job }]);
       }
 
-      setSaved(true); 
-      setTimeout(() => setSaved(false), 1500);
-    } catch (error) { 
-      alert("저장 실패"); 
-    }
+      // 저장 후 최신 데이터를 불러와 칭호 등 계산 갱신
+      const allCharsRes = await supabase.from('characters').select('*');
+      setAllCharacters(allCharsRes.data || []);
+
+      setSaved(true); setTimeout(() => setSaved(false), 1500);
+    } catch (error) { alert("저장 실패"); }
   };
 
   const switchCharacter = async (targetName: string) => { 
     await saveProgress(); 
     loadCharacterData(targetName, dbContents); 
-    // 주소창의 파라미터도 업데이트 해주는 센스 (선택 사항)
     window.history.replaceState(null, '', `?char=${encodeURIComponent(targetName)}`);
   };
 
-  const handleCreateNewCharacter = async () => {
-    const newName = prompt("생성할 부캐릭터(또는 캐릭터)의 닉네임을 입력하세요:");
-    if (!newName || !newName.trim()) return;
-    
-    const trimmedName = newName.trim();
-    if (myCharacters.some((c: any) => c.nickname === trimmedName)) {
-      alert("이미 존재하는 캐릭터 이름입니다.");
-      return;
-    }
-    
-    const newSortOrder = myCharacters.length;
-    const newCharObj = { nickname: trimmedName, sort_order: newSortOrder, owner: user.nickname, contribution: Number(accountContribution) || 0 };
-
-    await supabase.from('characters').upsert([newCharObj], { onConflict: 'nickname' });
-
-    setMyCharacters((prev: any[]) => [...prev, newCharObj]);
-    setProfile({ ...defaultProfile, nickname: trimmedName });
-    setLevels({});
-    setDailyChecks([]);
-    setWeeklyChecks([]);
-    setRepeatChecks({});
-    setAbyssChecks([]);
-    setRaidChecks([]);
-    setTradeProgress({});
-  };
-
-  const handleMoveOrder = async (index: number, direction: number) => {
-    const newIndex = index + direction;
-    if (newIndex < 0 || newIndex >= myCharacters.length) return;
-
-    const updated = [...myCharacters];
-    const temp = updated[index];
-    updated[index] = updated[newIndex];
-    updated[newIndex] = temp;
-
-    const reordered = updated.map((item: any, idx: number) => ({ ...item, sort_order: idx }));
-    setMyCharacters(reordered);
-
-    for (const item of reordered) {
-      await supabase.from('characters').update({ sort_order: item.sort_order }).eq('nickname', item.nickname);
-    }
-  };
-
-  const handleDeleteCharacter = async () => {
-    if (myCharacters.length <= 1) {
-      alert("최소 1개의 캐릭터는 유지되어야 합니다.");
-      return;
-    }
-    if (!confirm(`정말로 [${profile.nickname}] 캐릭터를 삭제하시겠습니까?`)) return;
-
-    await supabase.from('characters').delete().eq('nickname', profile.nickname);
-
-    const remaining = myCharacters.filter((c: any) => c.nickname !== profile.nickname);
-    setMyCharacters(remaining);
-    loadCharacterData(remaining[0].nickname, dbContents);
-  };
-
-  const handleSyncNexonAPI = async () => {
-    setIsSyncing(true);
-    setTimeout(() => {
-      setAbyssChecks(abyssList.map((c: any) => c.id)); 
-      setRaidChecks(raidList.slice(0, 1).map((c: any) => c.id));
-      setIsSyncing(false); 
-      alert(`[API 동기화 완료] 📡`);
-    }, 1500);
+  const handleSyncNexonAPI = () => {
+    alert("넥슨 공식 홈페이지 연동(스니핑) 기능은 현재 준비 중입니다.\n추후 자동 갱신 기능이 추가될 예정입니다. 📡");
   };
 
   const updateProfile = (field: string, value: any) => setProfile(prev => ({ ...prev, [field]: value }));
@@ -323,6 +251,104 @@ export default function CharacterPage() {
     if (type === 'raid') setRaidChecks(isCheckAll ? raidList.map((t: any) => t.id) : []);
   };
 
+  // --- 캐릭터 관리 모달 로직 ---
+  const openManageModal = () => {
+    const editList = myCharacters.map((c, i) => ({
+      ...c, originalName: c.nickname, tempNickname: c.nickname, tempJob: c.job, isDeleted: false, sort_order: i
+    }));
+    setManageList(editList);
+    setIsManageModalOpen(true);
+  };
+
+  const addManageCharacter = () => {
+    setManageList([...manageList, { originalName: "", tempNickname: "새 캐릭터", tempJob: "전사", isDeleted: false, sort_order: manageList.length, isNew: true }]);
+  };
+
+  const moveManageCharacter = (index: number, direction: number) => {
+    const newList = [...manageList];
+    if (index + direction < 0 || index + direction >= newList.length) return;
+    const temp = newList[index];
+    newList[index] = newList[index + direction];
+    newList[index + direction] = temp;
+    setManageList(newList.map((item, idx) => ({ ...item, sort_order: idx })));
+  };
+
+  const saveManageModal = async () => {
+    const activeChars = manageList.filter(c => !c.isDeleted);
+    if (activeChars.length === 0) {
+      alert("최소 1개의 캐릭터는 유지되어야 합니다."); return;
+    }
+    
+    // 삭제 처리
+    const toDelete = manageList.filter(c => c.isDeleted && !c.isNew);
+    for (const char of toDelete) {
+      await supabase.from('characters').delete().eq('nickname', char.originalName);
+    }
+
+    // 수정 및 추가 처리
+    for (const char of activeChars) {
+      const payload: any = {
+        owner: user.nickname, sort_order: char.sort_order, job: char.tempJob,
+        contribution: Number(accountContribution) || 0
+      };
+      
+      if (char.isNew) {
+        payload.nickname = char.tempNickname;
+        await supabase.from('characters').insert([payload]);
+      } else {
+        if (char.originalName !== char.tempNickname) payload.nickname = char.tempNickname;
+        await supabase.from('characters').update(payload).eq('nickname', char.originalName);
+      }
+    }
+
+    setIsManageModalOpen(false);
+    // 현재 보고있던 캐릭터가 삭제되었거나 이름이 바뀌었을 수 있으므로 재로딩
+    const targetNick = activeChars.find(c => c.originalName === profile.nickname)?.tempNickname || activeChars[0].tempNickname;
+    await fetchMasterData(user.nickname); // 전체 강제 갱신
+    window.history.replaceState(null, '', `?char=${encodeURIComponent(targetNick)}`);
+  };
+
+  // --- 칭호 계산 로직 ---
+  const getScore = (c: any, type: string) => {
+    switch(type) {
+      case 'KRATOS': return Number(c.combat_power || 0); 
+      case 'TECHNE': return Number(c.life_energy || 0);
+      case 'HARMONIA': return Number(c.charm || 0);
+      case 'TELOS': return Number(c.combat_power || 0) + Number(c.life_energy || 0) + Number(c.charm || 0);
+      case 'PIETAS': return Number(c.contribution || 0);
+      default: return 0;
+    }
+  };
+
+  const getMyEarnedTitles = () => {
+    if (!profile.nickname || allCharacters.length === 0) return [];
+    
+    const titles: { type: string, name: string, rank: number, tagClass: string }[] = [];
+    const myData = allCharacters.find(c => c.nickname === profile.nickname);
+    if (!myData) return [];
+
+    const pushIfTop3 = (type: keyof typeof RANKING_INFO, titleArr: string[]) => {
+      const rank = [...allCharacters].sort((a,b) => getScore(b, type) - getScore(a, type)).findIndex(c => c.nickname === profile.nickname);
+      if(rank >= 0 && rank < 3) titles.push({ type, name: titleArr[rank], rank: rank + 1, tagClass: CATEGORY_THEMES[type].tags[rank] });
+    };
+
+    pushIfTop3('TELOS', TOP_TITLES.TELOS);
+    pushIfTop3('PIETAS', TOP_TITLES.PIETAS);
+
+    const kratosRank = [...allCharacters].filter(c => c.job === profile.job).sort((a,b) => (b.combat_power||0) - (a.combat_power||0)).findIndex(c => c.nickname === profile.nickname);
+    const kTitles = CLASS_TITLES[profile.job];
+    if (kTitles) {
+      if(kratosRank >= 0 && kratosRank < 3) {
+        titles.push({ type: 'KRATOS', name: kTitles[kratosRank], rank: kratosRank + 1, tagClass: CATEGORY_THEMES.KRATOS.tags[kratosRank] });
+      }
+    }
+    pushIfTop3('TECHNE', TOP_TITLES.TECHNE);
+    pushIfTop3('HARMONIA', TOP_TITLES.HARMONIA);
+
+    return titles;
+  };
+
+  // 렌더링 헬퍼
   const renderTask = (item: any, type: 'daily' | 'weekly' | 'abyss' | 'raid') => {
     if (item.type?.startsWith('repeat')) {
       const currentCount = (repeatChecks[item.id] || []).filter(Boolean).length;
@@ -346,16 +372,13 @@ export default function CharacterPage() {
       );
     } 
     
-    let checks: number[] = [];
-    let setChecks: any;
-    
+    let checks: number[] = []; let setChecks: any;
     if (type === 'daily') { checks = dailyChecks; setChecks = setDailyChecks; }
     else if (type === 'weekly') { checks = weeklyChecks; setChecks = setWeeklyChecks; }
     else if (type === 'abyss') { checks = abyssChecks; setChecks = setAbyssChecks; }
     else if (type === 'raid') { checks = raidChecks; setChecks = setRaidChecks; }
 
     const isChecked = checks.includes(item.id);
-    
     const getColorTheme = () => {
       if (!isChecked) return { wrapper: "bg-[#1c1c1e] border-zinc-800 hover:border-zinc-600", text: "text-zinc-300", box: "bg-zinc-800 border-zinc-600" };
       if (type === 'daily') return { wrapper: "bg-amber-900/20 border-amber-500/50", text: "text-amber-400", box: "bg-amber-500 border-amber-500 text-white scale-110" };
@@ -384,11 +407,56 @@ export default function CharacterPage() {
   const bhWeeklyCount = blackHoleWeekly ? (repeatChecks[blackHoleWeekly.id] || []).filter(Boolean).length : 0;
   const bhTotalCount = (bhDailyDone ? 1 : 0) + bhWeeklyCount;
   const bhMaxCount = (blackHoleDaily ? 1 : 0) + (blackHoleWeekly?.max_count || 0);
+  
+  const earnedTitles = getMyEarnedTitles();
+  const dailyTrades = dbTrades.filter(t => t.reset_type === '일간');
+  const weeklyTrades = dbTrades.filter(t => t.reset_type === '주간');
 
   return (
     <main className="min-h-screen bg-[#1c1c1e] text-[#d4d4d8] font-sans pb-20 pt-6">
-      <div className="max-w-[1400px] mx-auto p-4 md:p-8 space-y-6">
+      
+      {/* 캐릭터 관리 모달 */}
+      {isManageModalOpen && (
+        <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4">
+          <div className="bg-[#1c1c1e] border border-zinc-700 rounded-xl w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col shadow-2xl">
+            <div className="p-5 border-b border-zinc-800 flex justify-between items-center bg-[#151515]">
+              <h2 className="text-xl font-black text-[#e6c788]">⚙️ 캐릭터 관리</h2>
+              <button onClick={() => setIsManageModalOpen(false)} className="text-zinc-400 hover:text-white">✕</button>
+            </div>
+            <div className="p-5 overflow-y-auto custom-scrollbar flex-1 space-y-3">
+              {manageList.map((char, index) => !char.isDeleted && (
+                <div key={index} className="flex flex-col md:flex-row items-center gap-3 bg-[#252528] p-3 rounded-lg border border-zinc-700/50">
+                  <div className="flex flex-col gap-1 w-full md:w-auto md:flex-1">
+                    <label className="text-[10px] text-zinc-500 font-bold">닉네임</label>
+                    <input value={char.tempNickname} onChange={(e) => { const nw = [...manageList]; nw[index].tempNickname = e.target.value; setManageList(nw); }} className="bg-[#121212] border border-zinc-700 rounded px-3 py-1.5 text-sm text-white focus:border-[#e6c788] outline-none w-full" />
+                  </div>
+                  <div className="flex flex-col gap-1 w-full md:w-auto">
+                    <label className="text-[10px] text-zinc-500 font-bold">주 클래스</label>
+                    <select value={char.tempJob} onChange={(e) => { const nw = [...manageList]; nw[index].tempJob = e.target.value; setManageList(nw); }} className="bg-[#121212] border border-zinc-700 rounded px-3 py-1.5 text-sm text-white focus:border-[#e6c788] outline-none w-full">
+                      {dbClasses.map((cls: any) => <option key={cls.name} value={cls.name}>{cls.name}</option>)}
+                    </select>
+                  </div>
+                  <div className="flex gap-2 items-end justify-center w-full md:w-auto pt-4 md:pt-0">
+                    <div className="flex bg-[#121212] border border-zinc-700 rounded overflow-hidden">
+                      <button onClick={() => moveManageCharacter(index, -1)} disabled={index === 0} className="px-3 py-1.5 hover:bg-zinc-800 disabled:opacity-30">▲</button>
+                      <div className="w-px bg-zinc-700"></div>
+                      <button onClick={() => moveManageCharacter(index, 1)} disabled={index === manageList.filter(c=>!c.isDeleted).length - 1} className="px-3 py-1.5 hover:bg-zinc-800 disabled:opacity-30">▼</button>
+                    </div>
+                    <button onClick={() => { if(confirm(`정말 [${char.tempNickname}] 캐릭터를 삭제하시겠습니까?`)) { const nw = [...manageList]; nw[index].isDeleted = true; setManageList(nw); } }} className="bg-red-950/40 text-red-400 border border-red-800/50 px-3 py-1.5 rounded hover:bg-red-900/60 text-sm font-bold">삭제</button>
+                  </div>
+                </div>
+              ))}
+              <button onClick={addManageCharacter} className="w-full border border-dashed border-[#e6c788]/50 text-[#e6c788] py-3 rounded-lg hover:bg-[#e6c788]/10 font-bold transition">+ 새 캐릭터 추가</button>
+            </div>
+            <div className="p-5 border-t border-zinc-800 bg-[#151515] flex justify-end gap-3">
+              <button onClick={() => setIsManageModalOpen(false)} className="px-5 py-2 rounded-lg bg-zinc-800 text-zinc-300 hover:bg-zinc-700 font-bold transition">취소</button>
+              <button onClick={saveManageModal} className="px-5 py-2 rounded-lg bg-yellow-600 text-black hover:bg-yellow-500 font-black transition">변경사항 저장</button>
+            </div>
+          </div>
+        </div>
+      )}
 
+      <div className="max-w-[1400px] mx-auto p-4 md:p-8 space-y-6">
         <header className="relative overflow-hidden rounded-xl bg-gradient-to-br from-[#1c1c1e] via-[#151515] to-[#1a1a1c] border border-zinc-800 py-3 px-6 shadow-xl mb-6">
           <div className="absolute top-0 left-0 w-1.5 h-full bg-[#e6c788] shadow-[0_0_15px_#e6c788]"></div>
           <div className="absolute bottom-0 right-0 w-32 h-32 bg-[#e6c788] opacity-5 blur-[60px] rounded-full pointer-events-none"></div>
@@ -412,48 +480,52 @@ export default function CharacterPage() {
         {/* 상단 프로필 */}
         <div className="bg-[#252528] rounded-2xl border border-zinc-700/80 p-6 shadow-xl relative overflow-hidden">
           <div className="flex flex-col md:flex-row gap-8 items-start relative z-10">
-            <div className="w-32 h-32 bg-[#121212] rounded-xl border-2 border-zinc-700 flex items-center justify-center cursor-pointer hover:border-[#e6c788] transition-colors shrink-0">
-              <span className="text-5xl">{dbClasses.find((c: any) => c.name === profile.job)?.icon || "👤"}</span>
+            {/* 이모지 공간을 칭호 전시관으로 변경 */}
+            <div className="w-full md:w-64 flex-shrink-0 bg-[#121212] rounded-xl border border-zinc-700 p-4 h-full flex flex-col justify-center gap-3">
+              <span className="text-xs font-bold text-[#e6c788] tracking-widest flex items-center gap-1.5 mb-1"><span className="text-[10px]">✨</span> 획득한 성역 칭호</span>
+              <div className="flex flex-col gap-2">
+                {earnedTitles.length > 0 ? earnedTitles.map(t => (
+                  <div key={t.type} className={`text-[11px] font-black px-2 py-1.5 rounded-md border text-center break-keep w-full ${t.tagClass}`}>
+                    {t.name}
+                  </div>
+                )) : (
+                  <div className="text-xs text-zinc-600 bg-zinc-800/40 border border-zinc-800 p-3 rounded-md text-center break-keep">
+                    아고라(AGORA)에서 랭킹을 달성해 칭호를 획득해 보세요.
+                  </div>
+                )}
+              </div>
             </div>
+
             <div className="flex-1 w-full space-y-5">
-              <div className="flex justify-between items-end border-b border-zinc-700/50 pb-4">
+              <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end border-b border-zinc-700/50 pb-4 gap-4">
                 <div className="flex gap-4 items-end flex-wrap w-full">
                   <div>
                     <label className="text-[10px] font-bold text-zinc-500 mb-1 block">닉네임</label>
-                    <input value={profile.nickname} onChange={(e) => updateProfile("nickname", e.target.value)} className="bg-transparent text-2xl font-black text-white border-b border-transparent focus:border-[#e6c788] outline-none w-36" />
+                    <input value={profile.nickname} readOnly className="bg-transparent text-2xl font-black text-white outline-none w-36 cursor-default" />
                   </div>
                   <div>
                     <label className="text-[10px] font-bold text-zinc-500 mb-1 block">주 클래스</label>
-                    <select value={profile.job} onChange={(e) => updateProfile("job", e.target.value)} className="bg-[#121212] border border-zinc-700 rounded px-3 py-1.5 text-sm text-white focus:border-[#e6c788] outline-none">
-                      {dbClasses.map((cls: any) => <option key={cls.name} value={cls.name}>{cls.name}</option>)}
-                    </select>
+                    <div className="bg-[#1c1c1e] border border-zinc-700 rounded px-3 py-1.5 text-sm font-bold text-zinc-300">
+                      {profile.job}
+                    </div>
                   </div>
 
-                  {/* 원래 위치(주 클래스 우측)에 세로 배치형 캐릭터 카드 리스트 적용 */}
-                  <div className="ml-2 pl-4 border-l border-zinc-700/50 hidden md:flex items-center gap-2 flex-wrap max-w-[650px]">
-                    <div className="flex flex-wrap gap-2 items-center">
-                      {myCharacters.map((char: any, idx: number) => (
-                        <div key={char.nickname} className={`flex flex-col items-center border text-[12px] font-medium px-3 py-1.5 rounded-lg transition ${char.nickname === profile.nickname ? 'bg-[#e6c788]/20 text-[#e6c788] border-[#e6c788] font-bold shadow-md' : 'bg-[#1c1c1e] border-zinc-700 text-zinc-300'}`}>
-                          {/* 닉네임 (클릭시 전환) */}
-                          <button onClick={() => switchCharacter(char.nickname)} className="truncate max-w-[90px] text-center">{char.nickname}</button>
-                          {/* 화살표 버튼 (닉네임 아래 세로 배치) */}
-                          <div className="flex items-center gap-2 mt-1 pt-1 border-t border-zinc-700/50 w-full justify-center">
-                            {idx > 0 && <button onClick={() => handleMoveOrder(idx, -1)} className="text-[10px] text-zinc-400 hover:text-white px-1">◀</button>}
-                            {idx < myCharacters.length - 1 && <button onClick={() => handleMoveOrder(idx, 1)} className="text-[10px] text-zinc-400 hover:text-white px-1">▶</button>}
-                          </div>
-                        </div>
+                  <div className="ml-2 pl-4 border-l border-zinc-700/50 flex flex-1 items-center gap-2 overflow-x-auto custom-scrollbar pb-1">
+                    <div className="flex gap-2 items-center">
+                      {myCharacters.map((char: any) => (
+                        <button key={char.nickname} onClick={() => switchCharacter(char.nickname)} className={`flex flex-col items-center border px-3 py-1.5 rounded-lg transition min-w-[80px] ${char.nickname === profile.nickname ? 'bg-[#e6c788]/20 border-[#e6c788] shadow-md' : 'bg-[#1c1c1e] border-zinc-700 hover:border-zinc-500'}`}>
+                          <span className={`text-[12px] font-bold truncate max-w-[90px] ${char.nickname === profile.nickname ? 'text-[#e6c788]' : 'text-zinc-300'}`}>{char.nickname}</span>
+                          <span className="text-[9px] text-zinc-500 mt-0.5">{char.job || '전사'}</span>
+                        </button>
                       ))}
                     </div>
-                    <button onClick={handleCreateNewCharacter} className="bg-zinc-800 hover:bg-zinc-700 text-[#e6c788] border border-dashed border-[#e6c788]/50 text-[11px] font-bold px-3 py-2 rounded-lg transition h-fit">+ 캐릭터 추가</button>
+                    <button onClick={openManageModal} className="shrink-0 bg-zinc-800 hover:bg-zinc-700 text-[#e6c788] border border-zinc-600 text-[11px] font-bold px-3 py-2.5 rounded-lg transition ml-2">⚙️ 캐릭터 관리</button>
                   </div>
                 </div>
 
-                <div className="flex gap-2 items-center shrink-0">
-                  <button onClick={handleDeleteCharacter} className="bg-red-950/40 hover:bg-red-900/60 text-red-400 border border-red-800/50 text-xs font-bold px-3 py-2 rounded-lg transition">🗑️ 삭제</button>
-                  <div className="text-right bg-[#1c1c1e] px-4 py-2 rounded-lg border border-yellow-600/30">
-                    <p className="text-[10px] text-[#e6c788] font-bold tracking-widest">누적 레벨</p>
-                    <p className="text-3xl font-black text-white leading-none mt-1">{totalLevel} <span className="text-sm font-normal text-zinc-500">LV</span></p>
-                  </div>
+                <div className="text-right bg-[#1c1c1e] px-4 py-2 rounded-lg border border-yellow-600/30 shrink-0 min-w-[120px]">
+                  <p className="text-[10px] text-[#e6c788] font-bold tracking-widest">누적 레벨</p>
+                  <p className="text-3xl font-black text-white leading-none mt-1">{totalLevel} <span className="text-sm font-normal text-zinc-500">LV</span></p>
                 </div>
               </div>
               
@@ -476,7 +548,7 @@ export default function CharacterPage() {
                     <input type="checkbox" checked={profile.isMain} onChange={e => updateProfile("isMain", e.target.checked)} className="accent-[#e6c788] w-4 h-4" />
                     <span className="text-sm font-bold text-zinc-300">대표 캐릭터</span>
                   </label>
-                  <button onClick={handleSyncNexonAPI} className="bg-emerald-900/40 text-emerald-400 border border-emerald-800/50 font-bold px-4 rounded-lg text-sm flex items-center gap-2 whitespace-nowrap">🔄 API 갱신</button>
+                  <button onClick={handleSyncNexonAPI} className="bg-zinc-800 text-zinc-400 border border-zinc-700 font-bold px-4 rounded-lg text-sm flex items-center gap-2 whitespace-nowrap hover:text-white transition">📡 연동 준비중</button>
                   <button onClick={saveProgress} className="bg-yellow-600 hover:bg-yellow-500 text-black font-black px-6 rounded-lg text-sm transition-colors whitespace-nowrap min-w-[120px]">{saved ? "저장 완료!" : "서버에 저장"}</button>
                 </div>
               </div>
@@ -546,62 +618,86 @@ export default function CharacterPage() {
         <div className="space-y-4">
           <div className="bg-[#252528] rounded-xl border border-zinc-800 overflow-hidden shadow-lg">
             <button onClick={() => setIsTradeOpen(!isTradeOpen)} className="w-full flex items-center justify-between p-5 hover:bg-[#2a2a2e] transition">
-              <h3 className="font-bold text-[#e6c788] text-lg flex items-center gap-2">⚖️ 캐릭터 교환/구매 진행도</h3>
+              <h3 className="font-bold text-[#e6c788] text-lg flex items-center gap-2">⚖️ 주간 구매 및 물물 교환 관리</h3>
               <span className="text-zinc-500">{isTradeOpen ? "▲" : "▼"}</span>
             </button>
             {isTradeOpen && (
-              <div className="p-0 sm:p-5 border-t border-zinc-800 bg-[#1c1c1e]">
-                <div className="overflow-x-auto custom-scrollbar">
-                  <table className="w-full text-left text-sm whitespace-nowrap min-w-[800px]">
-                    <thead className="bg-[#252528] text-zinc-400 border-b border-zinc-700">
-                      <tr>
-                        <th className="p-3 font-bold text-xs w-[15%]">맵 / NPC</th>
-                        <th className="p-3 font-bold text-xs w-[25%]">획득 보상</th>
-                        <th className="p-3 font-bold text-xs w-[25%]">소모 재화</th>
-                        <th className="p-3 font-bold text-xs text-center w-[15%]">초기화/범위</th>
-                        <th className="p-3 font-bold text-xs text-center w-[20%]">목표 달성 진척도</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-zinc-800/50">
-                      {dbTrades.map((trade: any) => {
-                        const currentVal = tradeProgress[trade.id] || 0;
-                        const isMax = currentVal >= trade.limit;
-                        return (
-                          <tr key={trade.id} className={`transition-colors ${isMax ? 'bg-[#252528]/50' : 'hover:bg-[#202023]'}`}>
-                            <td className="p-3">
-                              <div className={`font-bold ${isMax ? 'text-zinc-500' : 'text-zinc-300'}`}>{trade.map || "-"}</div>
-                              <div className="text-[10px] text-zinc-500">{trade.npc || "-"}</div>
-                            </td>
-                            <td className="p-3">
-                              <div className={`font-bold ${isMax ? 'text-emerald-900' : 'text-emerald-400'}`}>{trade.reward}</div>
-                              <div className="text-[10px] text-zinc-500">{trade.reward_cnt}개 획득</div>
-                            </td>
-                            <td className="p-3">
-                              <div className={`font-bold ${isMax ? 'text-amber-900' : 'text-amber-400'}`}>{trade.cost}</div>
-                              <div className="text-[10px] text-zinc-500">{trade.cost_cnt}개 소모</div>
-                            </td>
-                            <td className="p-3 text-center">
-                              <div className="flex flex-col gap-1 items-center">
-                                <span className={`text-[9px] px-1.5 py-0.5 rounded ${isMax ? 'bg-zinc-800 text-zinc-600' : trade.reset_type === '일간' ? 'bg-amber-900/30 text-amber-400' : 'bg-blue-900/30 text-blue-400'}`}>{trade.reset_type}</span>
-                                <span className={`text-[9px] px-1.5 py-0.5 rounded ${isMax ? 'bg-zinc-800 text-zinc-600' : trade.scope === '캐릭당' ? 'bg-zinc-800 text-zinc-300' : 'bg-rose-900/30 text-rose-400'}`}>{trade.scope}</span>
-                              </div>
-                            </td>
-                            <td className="p-3 text-center">
-                              <div className="flex items-center justify-center gap-3 bg-[#121212] px-2 py-1.5 rounded-lg border border-zinc-700/50 mx-auto w-fit">
-                                <span className={`text-xs font-bold w-8 text-center tracking-wider ${isMax ? "text-emerald-500" : "text-zinc-300"}`}>{currentVal} <span className="text-zinc-600 font-normal">/</span> {trade.limit}</span>
-                                <div className="flex gap-1 border-l border-zinc-700 pl-2">
-                                  <button onClick={() => updateTradeProgress(trade.id, -1, trade.limit)} className="w-7 h-7 flex justify-center items-center rounded bg-zinc-800 text-zinc-400 hover:text-white transition-colors">-</button>
-                                  <button onClick={() => updateTradeProgress(trade.id, 1, trade.limit)} className={`w-7 h-7 flex justify-center items-center rounded transition-colors ${isMax ? 'bg-emerald-900/20 text-emerald-500/50 cursor-not-allowed' : 'bg-[#e6c788]/20 text-[#e6c788] hover:bg-[#e6c788] hover:text-black'}`}>+</button>
+              <div className="p-0 sm:p-5 border-t border-zinc-800 bg-[#1c1c1e] space-y-8">
+                
+                {/* 일간 갱신 목록 */}
+                <div>
+                  <h4 className="text-amber-500 font-bold mb-3 flex items-center gap-2 text-sm px-3 md:px-0"><span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block"></span> 일일 갱신 (Daily)</h4>
+                  <div className="overflow-x-auto custom-scrollbar border border-zinc-800 rounded-lg">
+                    <table className="w-full text-left text-sm whitespace-nowrap min-w-[800px]">
+                      <thead className="bg-[#252528] text-zinc-400 border-b border-zinc-800">
+                        <tr>
+                          <th className="p-3 font-bold text-xs w-[15%]">맵 / NPC</th><th className="p-3 font-bold text-xs w-[25%]">획득 보상</th><th className="p-3 font-bold text-xs w-[25%]">소모 재화</th><th className="p-3 font-bold text-xs text-center w-[15%]">적용 범위</th><th className="p-3 font-bold text-xs text-center w-[20%]">목표 달성 진척도</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-zinc-800/50 bg-[#1c1c1e]">
+                        {dailyTrades.map((trade: any) => {
+                          const currentVal = tradeProgress[trade.id] || 0; const isMax = currentVal >= trade.limit;
+                          return (
+                            <tr key={trade.id} className={`transition-colors ${isMax ? 'bg-zinc-900/60' : 'hover:bg-[#202023]'}`}>
+                              <td className="p-3"><div className={`font-bold ${isMax ? 'text-zinc-500' : 'text-zinc-300'}`}>{trade.map || "-"}</div><div className="text-[10px] text-zinc-500">{trade.npc || "-"}</div></td>
+                              <td className="p-3"><div className={`font-bold ${isMax ? 'text-emerald-900' : 'text-emerald-400'}`}>{trade.reward}</div><div className="text-[10px] text-zinc-500">{trade.reward_cnt}개 획득</div></td>
+                              <td className="p-3"><div className={`font-bold ${isMax ? 'text-amber-900' : 'text-amber-400'}`}>{trade.cost}</div><div className="text-[10px] text-zinc-500">{trade.cost_cnt}개 소모</div></td>
+                              <td className="p-3 text-center"><span className={`text-[9px] px-1.5 py-0.5 rounded ${isMax ? 'bg-zinc-800 text-zinc-600' : trade.scope === '캐릭당' ? 'bg-zinc-800 text-zinc-300' : 'bg-rose-900/30 text-rose-400'}`}>{trade.scope}</span></td>
+                              <td className="p-3 text-center">
+                                <div className="flex items-center justify-center gap-3 bg-[#121212] px-2 py-1.5 rounded-lg border border-zinc-700/50 mx-auto w-fit">
+                                  <span className={`text-xs font-bold w-8 text-center tracking-wider ${isMax ? "text-emerald-500" : "text-zinc-300"}`}>{currentVal} <span className="text-zinc-600 font-normal">/</span> {trade.limit}</span>
+                                  <div className="flex gap-1 border-l border-zinc-700 pl-2">
+                                    <button onClick={() => updateTradeProgress(trade.id, -1, trade.limit)} className="w-7 h-7 flex justify-center items-center rounded bg-zinc-800 text-zinc-400 hover:text-white transition-colors">-</button>
+                                    <button onClick={() => updateTradeProgress(trade.id, 1, trade.limit)} className={`w-7 h-7 flex justify-center items-center rounded transition-colors ${isMax ? 'bg-emerald-900/20 text-emerald-500/50 cursor-not-allowed' : 'bg-[#e6c788]/20 text-[#e6c788] hover:bg-[#e6c788] hover:text-black'}`}>+</button>
+                                  </div>
                                 </div>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                      {dbTrades.length === 0 && <tr><td colSpan={5} className="p-10 text-center text-zinc-500">등록된 카탈로그가 없습니다.</td></tr>}
-                    </tbody>
-                  </table>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                        {dailyTrades.length === 0 && <tr><td colSpan={5} className="p-6 text-center text-zinc-500 text-xs">등록된 일간 갱신 목록이 없습니다.</td></tr>}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
+
+                {/* 주간 갱신 목록 */}
+                <div>
+                  <h4 className="text-blue-400 font-bold mb-3 flex items-center gap-2 text-sm px-3 md:px-0"><span className="w-1.5 h-1.5 rounded-full bg-blue-400 inline-block"></span> 주간 갱신 (Weekly)</h4>
+                  <div className="overflow-x-auto custom-scrollbar border border-zinc-800 rounded-lg">
+                    <table className="w-full text-left text-sm whitespace-nowrap min-w-[800px]">
+                      <thead className="bg-[#252528] text-zinc-400 border-b border-zinc-800">
+                        <tr>
+                          <th className="p-3 font-bold text-xs w-[15%]">맵 / NPC</th><th className="p-3 font-bold text-xs w-[25%]">획득 보상</th><th className="p-3 font-bold text-xs w-[25%]">소모 재화</th><th className="p-3 font-bold text-xs text-center w-[15%]">적용 범위</th><th className="p-3 font-bold text-xs text-center w-[20%]">목표 달성 진척도</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-zinc-800/50 bg-[#1c1c1e]">
+                        {weeklyTrades.map((trade: any) => {
+                          const currentVal = tradeProgress[trade.id] || 0; const isMax = currentVal >= trade.limit;
+                          return (
+                            <tr key={trade.id} className={`transition-colors ${isMax ? 'bg-zinc-900/60' : 'hover:bg-[#202023]'}`}>
+                              <td className="p-3"><div className={`font-bold ${isMax ? 'text-zinc-500' : 'text-zinc-300'}`}>{trade.map || "-"}</div><div className="text-[10px] text-zinc-500">{trade.npc || "-"}</div></td>
+                              <td className="p-3"><div className={`font-bold ${isMax ? 'text-emerald-900' : 'text-emerald-400'}`}>{trade.reward}</div><div className="text-[10px] text-zinc-500">{trade.reward_cnt}개 획득</div></td>
+                              <td className="p-3"><div className={`font-bold ${isMax ? 'text-amber-900' : 'text-amber-400'}`}>{trade.cost}</div><div className="text-[10px] text-zinc-500">{trade.cost_cnt}개 소모</div></td>
+                              <td className="p-3 text-center"><span className={`text-[9px] px-1.5 py-0.5 rounded ${isMax ? 'bg-zinc-800 text-zinc-600' : trade.scope === '캐릭당' ? 'bg-zinc-800 text-zinc-300' : 'bg-rose-900/30 text-rose-400'}`}>{trade.scope}</span></td>
+                              <td className="p-3 text-center">
+                                <div className="flex items-center justify-center gap-3 bg-[#121212] px-2 py-1.5 rounded-lg border border-zinc-700/50 mx-auto w-fit">
+                                  <span className={`text-xs font-bold w-8 text-center tracking-wider ${isMax ? "text-emerald-500" : "text-zinc-300"}`}>{currentVal} <span className="text-zinc-600 font-normal">/</span> {trade.limit}</span>
+                                  <div className="flex gap-1 border-l border-zinc-700 pl-2">
+                                    <button onClick={() => updateTradeProgress(trade.id, -1, trade.limit)} className="w-7 h-7 flex justify-center items-center rounded bg-zinc-800 text-zinc-400 hover:text-white transition-colors">-</button>
+                                    <button onClick={() => updateTradeProgress(trade.id, 1, trade.limit)} className={`w-7 h-7 flex justify-center items-center rounded transition-colors ${isMax ? 'bg-emerald-900/20 text-emerald-500/50 cursor-not-allowed' : 'bg-[#e6c788]/20 text-[#e6c788] hover:bg-[#e6c788] hover:text-black'}`}>+</button>
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                        {weeklyTrades.length === 0 && <tr><td colSpan={5} className="p-6 text-center text-zinc-500 text-xs">등록된 주간 갱신 목록이 없습니다.</td></tr>}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
               </div>
             )}
           </div>
