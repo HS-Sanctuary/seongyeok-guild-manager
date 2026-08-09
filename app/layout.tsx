@@ -91,7 +91,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   </div>
                 </Link>
 
-                {/* 🟢 기존 호버 애니메이션 100% 복구 + 창 크기에 따라 폭/글자크기만 쫀득하게 줄어듦 */}
                 <div className="hidden md:flex space-x-0.5 lg:space-x-1 xl:space-x-2">
                   {navItems.map((item) => {
                     const isActive = pathname === item.path;
@@ -103,22 +102,26 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                           isActive ? 'bg-zinc-800/80 border-b-2 border-[#e6c788]' : 'hover:bg-zinc-800/50'
                         }`}
                       >
-                        <span className={`absolute font-black tracking-widest text-[8px] lg:text-[10px] xl:text-xs transition-all duration-300 transform group-hover:-translate-y-8 group-hover:opacity-0 ${
+                        {/* 🟢 기본 상태: 한글 이름 + 서브 타이틀 (호버 시 위로 사라짐) */}
+                        <div className="absolute flex flex-col items-center transition-all duration-300 transform group-hover:-translate-y-8 group-hover:opacity-0 pointer-events-none">
+                          <span className={`font-black text-[9px] lg:text-[11px] xl:text-[13px] leading-tight whitespace-nowrap ${
+                            isActive ? 'text-white' : 'text-zinc-300'
+                          }`}>{item.kr}</span>
+                          <span className="text-[7px] lg:text-[8px] xl:text-[9px] font-bold text-[#e6c788] whitespace-nowrap">{item.sub}</span>
+                        </div>
+                        
+                        {/* 🟢 호버 상태: 영문 이름 (호버 시 아래에서 올라옴) */}
+                        <span className={`absolute font-black tracking-widest text-[8px] lg:text-[10px] xl:text-xs transition-all duration-300 transform translate-y-8 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 ${
                           isActive ? 'text-white' : 'text-zinc-400'
                         }`}>
                           {item.en}
                         </span>
-                        <div className="absolute flex flex-col items-center transition-all duration-300 transform translate-y-8 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 pointer-events-none">
-                          <span className="font-black text-[9px] lg:text-[11px] xl:text-[13px] text-white leading-tight whitespace-nowrap">{item.kr}</span>
-                          <span className="text-[7px] lg:text-[8px] xl:text-[9px] font-bold text-[#e6c788] whitespace-nowrap">{item.sub}</span>
-                        </div>
                       </Link>
                     );
                   })}
                 </div>
               </div>
 
-              {/* 🟢 우측 유저 프로필 및 햄버거 버튼 영역 */}
               <div className="flex items-center gap-2 lg:gap-4 shrink-0">
                 {user ? (
                   <div className="hidden md:flex items-center gap-1.5 lg:gap-2 whitespace-nowrap">
@@ -140,7 +143,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   <Link href="/login" className="hidden md:block text-xs lg:text-sm font-bold text-[#e6c788] hover:text-yellow-400 whitespace-nowrap">로그인</Link>
                 )}
                 
-                {/* 🟢 햄버거 버튼은 모바일(스마트폰) 사이즈에서만 나오도록 md:hidden 적용 */}
                 <div className="flex md:hidden items-center shrink-0">
                   <button onClick={() => setIsMobileMenuOpen(true)} className="text-zinc-400 hover:text-white p-2 focus:outline-none transition-colors">
                     <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
@@ -175,8 +177,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   }`}
                 >
                   <div className="flex flex-col">
-                    <span className={`font-black text-sm tracking-wider ${isActive ? 'text-white' : 'text-zinc-300'}`}>{item.en}</span>
-                    <span className="text-[10px] text-zinc-500 font-bold mt-0.5">{item.kr}</span>
+                    {/* 모바일에서도 한글을 위로, 영문을 아래로 변경 */}
+                    <span className={`font-black text-sm tracking-wider ${isActive ? 'text-white' : 'text-zinc-300'}`}>{item.kr}</span>
+                    <span className="text-[10px] text-zinc-500 font-bold mt-0.5">{item.en}</span>
                   </div>
                   <span className={`text-xs font-bold ${isActive ? 'text-[#e6c788]' : 'text-zinc-500'}`}>{item.sub}</span>
                 </Link>

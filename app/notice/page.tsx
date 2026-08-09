@@ -189,7 +189,7 @@ export default function NoticePage() {
                   KERYGMA
                 </h1>
                 <span className="text-[#e6c788] text-[13px] font-bold tracking-wide mt-1.5 leading-none">
-                  케뤼그마 : 길드 공지사항
+                  케리그마 : 길드 공지사항
                 </span>
               </div>
             </div>
@@ -198,7 +198,7 @@ export default function NoticePage() {
               <span className="text-sm mt-0.5 opacity-80">📢</span>
               <div className="flex flex-col text-[11px] md:text-[12px] font-bold leading-tight w-full">
                 <span className="text-zinc-300 w-full truncate md:whitespace-normal">
-                  케뤼그마는 고대 그리스어로 ‘선포’와 ‘공표’를 뜻하는 말입니다.
+                  케리그마는 고대 그리스어로 ‘선포’와 ‘공표’를 뜻하는 말입니다.
                 </span>
                 <span className="text-[#e6c788] mt-0.5">
                   성역의 소식과 뜻이 가장 먼저 울려 퍼지는 공간입니다.
