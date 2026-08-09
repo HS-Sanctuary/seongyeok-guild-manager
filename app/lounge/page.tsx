@@ -1,10 +1,9 @@
 "use client";
 
-import './globals.css'
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase'; 
+import '../globals.css'
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { supabase } from "../../lib/supabase"; 
 
 // ==========================================
 // 1. 랭킹 메타 데이터
@@ -169,7 +168,6 @@ export default function AgoraLoungePage() {
   const [isClassFilterOpen, setIsClassFilterOpen] = useState(false);
   const [showLoreGuide, setShowLoreGuide] = useState(false);
   
-  // 상태 분리: 상단 칭호(마우스 오버) / 하단 보유 칭호(클릭)
   const [openHoverTooltipId, setOpenHoverTooltipId] = useState<string | null>(null);
   const [openClickTooltipId, setOpenClickTooltipId] = useState<string | null>(null);
 
@@ -217,14 +215,12 @@ export default function AgoraLoungePage() {
     return chars;
   };
 
-  // 🟢 색상 의존도를 낮추고 직관성 부여 (아이콘 + 순위별 색상)
   const getAllEarnedTitles = (char: Character) => {
     const titles: { type: string, name: string, color: string, icon: string, rank: number }[] = [];
     
     const pushIfTop3 = (type: keyof typeof RANKING_INFO, titleArr: string[]) => {
       const rank = [...dbCharacters].sort((a,b) => getScore(b, type) - getScore(a, type)).findIndex(c => c.id === char.id);
       if(rank >= 0 && rank < 3) {
-        // 1위 금색, 2위 은색, 3위 동색
         const colors = rank === 0 ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50' :
                        rank === 1 ? 'bg-slate-500/20 text-slate-300 border-slate-500/50' :
                                     'bg-amber-700/20 text-amber-500 border-amber-700/50';
@@ -263,7 +259,6 @@ export default function AgoraLoungePage() {
   return (
     <main className="min-h-screen bg-[#121212] text-[#d4d4d8] font-sans pb-10 relative">
       
-      {/* 바깥 배경 클릭 시 하단 칭호 툴팁을 닫기 위한 투명 레이어 */}
       {openClickTooltipId && (
         <div className="fixed inset-0 z-[80]" onClick={() => setOpenClickTooltipId(null)}></div>
       )}
@@ -414,7 +409,6 @@ export default function AgoraLoungePage() {
                     <div className="flex flex-col gap-4">
                       <div className="pr-12">
                         {currentRankTitle && rankToUse <= 3 ? (
-                          // 상단 칭호: 오직 마우스 오버(Hover) 시에만 작동
                           <div 
                             className="relative inline-block mb-2"
                             onMouseEnter={() => setOpenHoverTooltipId(hoverTooltipId)}
@@ -459,7 +453,6 @@ export default function AgoraLoungePage() {
                         <div className="text-xs text-zinc-400 font-bold mt-1">{char.job}</div>
                       </div>
 
-                      {/* 하단 보유 칭호 목록: 오직 클릭(Click) 시에만 작동 */}
                       <div className="flex flex-wrap gap-1.5 mt-1 relative">
                         {earnedTitles.map(t => {
                           const clickId = `click-${char.id}-${t.type}-PANTHEON`;
@@ -519,7 +512,6 @@ export default function AgoraLoungePage() {
           </section>
         )}
 
-        {/* 🟢 탭 2: ASTRA */}
         {activeMainTab === 'ASTRA' && (
           <section className="space-y-4 animate-in fade-in duration-300">
             <div className="flex gap-4 mb-6">
@@ -557,7 +549,6 @@ export default function AgoraLoungePage() {
                         </div>
                         <h4 className="text-2xl font-black text-white">{mainChar.name}</h4>
                         
-                        {/* ASTRA 탭 하단 보유 칭호 목록: 오직 클릭(Click) 시에만 작동 */}
                         <div className="flex flex-wrap gap-1.5 mt-2 relative">
                           {mainTitles.length > 0 ? mainTitles.map(t => {
                             const clickId = `click-${mainChar.id}-${t.type}-ASTRA`;
