@@ -31,6 +31,7 @@ export default function CharacterPage() {
   const [user, setUser] = useState<any>(null);
   const [mounted, setMounted] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   
   const [dbClasses, setDbClasses] = useState<any[]>([]);
   const [dbTasks, setDbTasks] = useState<any[]>([]);
@@ -52,12 +53,10 @@ export default function CharacterPage() {
   const [raidChecks, setRaidChecks] = useState<number[]>([]);
   const [tradeProgress, setTradeProgress] = useState<Record<number, number>>({});
 
-  // UI 상태
   const [isLevelOpen, setIsLevelOpen] = useState(false);
   const [isTradeOpen, setIsTradeOpen] = useState(false);
-  const [isTitleAccordionOpen, setIsTitleAccordionOpen] = useState(false); // 칭호 아코디언 상태
+  const [isTitleAccordionOpen, setIsTitleAccordionOpen] = useState(false);
   
-  // 모달 관리 상태
   const [isManageModalOpen, setIsManageModalOpen] = useState(false);
   const [manageList, setManageList] = useState<any[]>([]);
 
@@ -71,6 +70,10 @@ export default function CharacterPage() {
   const visibleWeeklyList = dbTasks.filter((t: any) => (t.type === 'weekly' || t.type === 'repeat_weekly' || t.type === 'repeat_weekend') && !t.name.includes("검은 구멍"));
 
   const totalLevel = Object.values(levels).reduce((sum, lvl) => sum + lvl, 0);
+
+  const handleSync = async () => {
+    alert("모비라이프 서버는 강력한 보안 방화벽(Cloudflare)으로 외부 직접 접근이 차단되어 있습니다.\n\n각 항목(전투력, 생활력 등)의 숫자를 직접 입력 후 [서버에 저장]을 누르시면 아고라 랭킹에 곧바로 반영됩니다! ✨");
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -209,10 +212,6 @@ export default function CharacterPage() {
     window.history.replaceState(null, '', `?char=${encodeURIComponent(targetName)}`);
   };
 
-  const handleSyncNexonAPI = () => {
-    alert("넥슨 공식 홈페이지 연동(스니핑) 기능은 현재 준비 중입니다.\n추후 자동 갱신 기능이 추가될 예정입니다. 📡");
-  };
-
   const updateProfile = (field: string, value: any) => setProfile(prev => ({ ...prev, [field]: value }));
   const setMaxLevel = (cls: string) => setLevels(prev => ({ ...prev, [cls]: 65 }));
 
@@ -249,7 +248,6 @@ export default function CharacterPage() {
     if (type === 'raid') setRaidChecks(isCheckAll ? raidList.map((t: any) => t.id) : []);
   };
 
-  // --- 캐릭터 관리 모달 로직 ---
   const openManageModal = () => {
     const editList = myCharacters.map((c, i) => ({
       ...c, originalName: c.nickname, tempNickname: c.nickname, tempJob: c.job, isDeleted: false, sort_order: i
@@ -303,7 +301,6 @@ export default function CharacterPage() {
     window.history.replaceState(null, '', `?char=${encodeURIComponent(targetNick)}`);
   };
 
-  // --- 칭호 계산 로직 ---
   const getScore = (c: any, type: string) => {
     switch(type) {
       case 'KRATOS': return Number(c.combat_power || 0); 
@@ -409,7 +406,6 @@ export default function CharacterPage() {
   return (
     <main className="min-h-screen bg-[#1c1c1e] text-[#d4d4d8] font-sans pb-20 pt-6">
       
-      {/* 캐릭터 관리 모달 */}
       {isManageModalOpen && (
         <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4">
           <div className="bg-[#1c1c1e] border border-zinc-700 rounded-xl w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col shadow-2xl">
@@ -471,13 +467,10 @@ export default function CharacterPage() {
           </div>
         </header>
         
-        {/* 상단 프로필 */}
         <div className="bg-[#252528] rounded-2xl border border-zinc-700/80 p-6 shadow-xl relative overflow-hidden">
           <div className="flex flex-col md:flex-row gap-8 items-start relative z-10">
             
-            {/* 좌측: AI 캐리커처 자리 및 아코디언 칭호 박스 */}
             <div className="w-full md:w-72 flex-shrink-0 flex flex-col gap-4">
-              {/* AI 캐리커처 프로필 박스 */}
               <div className="bg-[#121212] rounded-xl border border-zinc-700 p-5 flex flex-col items-center justify-center text-center relative overflow-hidden group h-44 shadow-inner">
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent z-0"></div>
                 <div className="relative z-10 flex flex-col items-center">
@@ -487,7 +480,6 @@ export default function CharacterPage() {
                 </div>
               </div>
 
-              {/* 칭호 아코디언 박스 */}
               <div className="bg-[#121212] rounded-xl border border-zinc-700 overflow-hidden shadow-md">
                 <button 
                   onClick={() => setIsTitleAccordionOpen(!isTitleAccordionOpen)} 
@@ -514,7 +506,6 @@ export default function CharacterPage() {
               </div>
             </div>
 
-            {/* 우측 메인 프로필 내용 */}
             <div className="flex-1 w-full space-y-5">
               <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end border-b border-zinc-700/50 pb-4 gap-4">
                 <div className="flex gap-4 items-end flex-wrap w-full">
@@ -536,7 +527,6 @@ export default function CharacterPage() {
                 </div>
               </div>
 
-              {/* 개선된 캐릭터 선택 리스트 (가로 스크롤 제거 -> 2단 반응형 그리드) */}
               <div className="bg-[#121212] border border-zinc-700/60 rounded-xl p-4 space-y-3">
                 <div className="flex justify-between items-center border-b border-zinc-800 pb-2">
                   <span className="text-xs font-bold text-zinc-400">보유 캐릭터 목록</span>
@@ -575,7 +565,7 @@ export default function CharacterPage() {
                     <input type="checkbox" checked={profile.isMain} onChange={e => updateProfile("isMain", e.target.checked)} className="accent-[#e6c788] w-4 h-4" />
                     <span className="text-sm font-bold text-zinc-300">대표 캐릭터</span>
                   </label>
-                  <button onClick={handleSyncNexonAPI} className="bg-zinc-800 text-zinc-400 border border-zinc-700 font-bold px-4 rounded-lg text-sm flex items-center gap-2 whitespace-nowrap hover:text-white transition">📡 연동 준비중</button>
+                  <button onClick={handleSync} className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-4 rounded-lg text-sm transition">🔄 랭킹 동기화</button>
                   <button onClick={saveProgress} className="bg-yellow-600 hover:bg-yellow-500 text-black font-black px-6 rounded-lg text-sm transition-colors whitespace-nowrap min-w-[120px]">{saved ? "저장 완료!" : "서버에 저장"}</button>
                 </div>
               </div>
@@ -583,7 +573,6 @@ export default function CharacterPage() {
           </div>
         </div>
 
-        {/* 검은 구멍 탐험 상황판 */}
         {blackHoleDaily && blackHoleWeekly && (
           <div className="bg-[#1f1a29] rounded-xl border border-purple-500/40 p-5 shadow-[0_0_20px_rgba(168,85,247,0.15)] flex flex-col gap-4 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-48 h-full bg-purple-600/10 blur-3xl pointer-events-none"></div>
@@ -641,7 +630,6 @@ export default function CharacterPage() {
           </div>
         </div>
 
-        {/* 하단 아코디언 메뉴 */}
         <div className="space-y-4">
           <div className="bg-[#252528] rounded-xl border border-zinc-800 overflow-hidden shadow-lg">
             <button onClick={() => setIsTradeOpen(!isTradeOpen)} className="w-full flex items-center justify-between p-5 hover:bg-[#2a2a2e] transition">
@@ -650,8 +638,6 @@ export default function CharacterPage() {
             </button>
             {isTradeOpen && (
               <div className="p-0 sm:p-5 border-t border-zinc-800 bg-[#1c1c1e] space-y-8">
-                
-                {/* 일간 갱신 목록 */}
                 <div>
                   <h4 className="text-amber-500 font-bold mb-3 flex items-center gap-2 text-sm px-3 md:px-0"><span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block"></span> 일일 갱신 (Daily)</h4>
                   <div className="overflow-x-auto custom-scrollbar border border-zinc-800 rounded-lg">
@@ -687,8 +673,6 @@ export default function CharacterPage() {
                     </table>
                   </div>
                 </div>
-
-                {/* 주간 갱신 목록 */}
                 <div>
                   <h4 className="text-blue-400 font-bold mb-3 flex items-center gap-2 text-sm px-3 md:px-0"><span className="w-1.5 h-1.5 rounded-full bg-blue-400 inline-block"></span> 주간 갱신 (Weekly)</h4>
                   <div className="overflow-x-auto custom-scrollbar border border-zinc-800 rounded-lg">
@@ -724,7 +708,6 @@ export default function CharacterPage() {
                     </table>
                   </div>
                 </div>
-
               </div>
             )}
           </div>
