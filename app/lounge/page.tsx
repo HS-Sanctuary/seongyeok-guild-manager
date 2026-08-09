@@ -6,43 +6,58 @@ import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase"; 
 
 // ==========================================
-// 1. 카테고리 컬러 테마 정의 (이모지 대체)
+// 1. 카테고리 컬러 테마 정의 (순위별 3단계 색상)
 // ==========================================
 const CATEGORY_THEMES: Record<string, any> = {
-  TELOS: { 
+  TELOS: { // 🟣 텔로스 (보라색 계열)
     tab: 'bg-zinc-800/80 border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.2)]', 
     text: 'text-purple-400', 
-    tag: 'bg-purple-900/30 text-purple-400 border-purple-700/50', 
-    border: 'border-purple-500/50'
+    tags: [
+      'bg-purple-500/30 text-purple-300 border-purple-400 shadow-[0_0_10px_rgba(168,85,247,0.3)]', // 1위 (쨍하게)
+      'bg-purple-800/40 text-purple-400 border-purple-600/80', // 2위 (조금 죽게)
+      'bg-purple-950/50 text-purple-500 border-purple-800/70', // 3위 (더 죽게)
+    ],
+    borders: ['border-purple-400', 'border-purple-600/80', 'border-purple-800/70']
   },
-  KRATOS: { 
+  KRATOS: { // 🔴 크라토스 (빨간색 계열)
     tab: 'bg-zinc-800/80 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.2)]', 
     text: 'text-red-400', 
-    tag: 'bg-red-900/30 text-red-400 border-red-700/50', 
-    border: 'border-red-500/50'
+    tags: [
+      'bg-red-500/30 text-red-300 border-red-400 shadow-[0_0_10px_rgba(239,68,68,0.3)]',
+      'bg-red-800/40 text-red-400 border-red-600/80',
+      'bg-red-950/50 text-red-500 border-red-800/70',
+    ],
+    borders: ['border-red-400', 'border-red-600/80', 'border-red-800/70']
   },
-  TECHNE: { 
+  TECHNE: { // 🔵 테크네 (파란색 계열)
     tab: 'bg-zinc-800/80 border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.2)]', 
     text: 'text-blue-400', 
-    tag: 'bg-blue-900/30 text-blue-400 border-blue-700/50', 
-    border: 'border-blue-500/50'
+    tags: [
+      'bg-blue-500/30 text-blue-300 border-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.3)]',
+      'bg-blue-800/40 text-blue-400 border-blue-600/80',
+      'bg-blue-950/50 text-blue-500 border-blue-800/70',
+    ],
+    borders: ['border-blue-400', 'border-blue-600/80', 'border-blue-800/70']
   },
-  HARMONIA: { 
+  HARMONIA: { // 🟡 하르모니아 (노란색 계열)
     tab: 'bg-zinc-800/80 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.2)]', 
     text: 'text-yellow-400', 
-    tag: 'bg-yellow-900/30 text-yellow-400 border-yellow-700/50', 
-    border: 'border-yellow-500/50'
+    tags: [
+      'bg-yellow-500/30 text-yellow-300 border-yellow-400 shadow-[0_0_10px_rgba(234,179,8,0.3)]',
+      'bg-yellow-700/40 text-yellow-400 border-yellow-600/80', 
+      'bg-yellow-900/40 text-yellow-500 border-yellow-800/70',
+    ],
+    borders: ['border-yellow-400', 'border-yellow-600/80', 'border-yellow-800/70']
   },
-  PIETAS: { 
+  PIETAS: { // 🟢 피에타스 (짙은 녹색 계열)
     tab: 'bg-zinc-800/80 border-emerald-600 shadow-[0_0_15px_rgba(16,185,129,0.2)]', 
     text: 'text-emerald-500', 
-    tag: 'bg-emerald-900/30 text-emerald-500 border-emerald-700/50', 
-    border: 'border-emerald-500/50'
-  },
-  DEFAULT: {
-    tag: 'bg-zinc-800 text-zinc-400 border-zinc-700',
-    text: 'text-zinc-400',
-    border: 'border-zinc-700'
+    tags: [
+      'bg-emerald-500/30 text-emerald-300 border-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.3)]',
+      'bg-emerald-800/40 text-emerald-400 border-emerald-600/80',
+      'bg-emerald-950/50 text-emerald-500 border-emerald-800/70',
+    ],
+    borders: ['border-emerald-400', 'border-emerald-600/80', 'border-emerald-800/70']
   }
 };
 
@@ -272,7 +287,12 @@ export default function AgoraLoungePage() {
       if(kratosRank >= 0 && kratosRank < 3) {
         titles.push({ type: 'KRATOS', name: kTitles[kratosRank], rank: kratosRank + 1, theme: CATEGORY_THEMES.KRATOS });
       } else {
-        titles.push({ type: 'KRATOS', name: kTitles[3], rank: 4, theme: CATEGORY_THEMES.DEFAULT });
+        // 크라토스 4위 이하 (일반 칭호)는 무채색 기본값 적용
+        titles.push({ type: 'KRATOS', name: kTitles[3], rank: 4, theme: {
+          tags: ['bg-zinc-800 text-zinc-400 border-zinc-700', 'bg-zinc-800 text-zinc-400 border-zinc-700', 'bg-zinc-800 text-zinc-400 border-zinc-700', 'bg-zinc-800 text-zinc-400 border-zinc-700'],
+          borders: ['border-zinc-700', 'border-zinc-700', 'border-zinc-700', 'border-zinc-700'],
+          text: 'text-zinc-400'
+        } });
       }
     }
 
@@ -425,13 +445,15 @@ export default function AgoraLoungePage() {
                 
                 const hoverTooltipId = `hover-${char.id}-${activeRankTab}`;
                 const isHoverTooltipOpen = openHoverTooltipId === hoverTooltipId;
-                
-                // 🟢 핵심 Z-Index 수정: 클릭 툴팁이 이 카드 안에서 열렸는지 아이디(char.id)를 포함하는지 확인
                 const isClickTooltipOpenForThisCard = openClickTooltipId?.includes(`-${char.id}-`) && openClickTooltipId?.includes('-PANTHEON');
                 const isTooltipActiveOnCard = isHoverTooltipOpen || isClickTooltipOpenForThisCard;
                 
                 const topLoreData = generateLore(currentRankTitle, rankToUse, char.job, activeRankTab);
                 const topTheme = CATEGORY_THEMES[activeRankTab];
+                
+                const isTopRanked = rankToUse <= 3;
+                const topTagClass = isTopRanked ? topTheme.tags[rankToUse - 1] : 'bg-zinc-800 text-zinc-400 border-zinc-700';
+                const topBorderClass = isTopRanked ? topTheme.borders[rankToUse - 1] : 'border-zinc-700';
 
                 return (
                   <div key={char.id} className={`relative bg-gradient-to-b from-[#1c1c1e] to-[#121212] border ${isTop3 ? 'border-[#e6c788]/40 shadow-[0_5px_20px_rgba(230,199,136,0.1)]' : 'border-zinc-800'} rounded-2xl p-6 group hover:border-zinc-500 transition-all ${isTooltipActiveOnCard ? 'z-50' : 'z-10'}`}>
@@ -452,13 +474,13 @@ export default function AgoraLoungePage() {
                             onMouseEnter={() => setOpenHoverTooltipId(hoverTooltipId)}
                             onMouseLeave={() => setOpenHoverTooltipId(null)}
                           >
-                            <span className={`text-[11px] font-black px-2 py-1 rounded-md inline-flex items-center gap-1 transition-transform cursor-help border ${topTheme.tag}`}>
+                            <span className={`text-[11px] font-black px-2 py-1 rounded-md inline-flex items-center gap-1 transition-transform cursor-help border ${topTagClass}`}>
                               {currentRankTitle}
                             </span>
 
                             {isHoverTooltipOpen && (
-                              <div className={`absolute top-[calc(100%+8px)] left-0 w-[300px] bg-[#1a1a1c] border ${topTheme.border} rounded-xl p-4 shadow-2xl animate-in fade-in zoom-in-95 duration-150 z-[100] cursor-default`} onClick={e => e.stopPropagation()}>
-                                <div className={`absolute -top-1.5 left-6 w-3 h-3 bg-[#1a1a1c] border-t border-l ${topTheme.border} transform rotate-45`}></div>
+                              <div className={`absolute top-[calc(100%+8px)] left-0 w-[300px] bg-[#1a1a1c] border ${topBorderClass} rounded-xl p-4 shadow-2xl animate-in fade-in zoom-in-95 duration-150 z-[100] cursor-default`} onClick={e => e.stopPropagation()}>
+                                <div className={`absolute -top-1.5 left-6 w-3 h-3 bg-[#1a1a1c] border-t border-l ${topBorderClass} transform rotate-45`}></div>
                                 <div className="relative z-10 flex flex-col gap-3">
                                   <div className="flex items-center gap-1.5">
                                     <span className={`font-black ${topTheme.text} text-[15px] tracking-wide`}>[{topLoreData.title}]</span>
@@ -475,7 +497,7 @@ export default function AgoraLoungePage() {
                           </div>
                         ) : (
                           currentRankTitle && (
-                            <span className={`text-[11px] font-black px-2 py-1 rounded-md mb-2 inline-flex items-center gap-1 border ${topTheme.tag}`}>
+                            <span className={`text-[11px] font-black px-2 py-1 rounded-md mb-2 inline-flex items-center gap-1 border ${topTagClass}`}>
                               {currentRankTitle}
                             </span>
                           )
@@ -490,19 +512,23 @@ export default function AgoraLoungePage() {
                           const clickId = `click-${char.id}-${t.type}-PANTHEON`;
                           const isClicked = openClickTooltipId === clickId;
                           const loreData = generateLore(t.name, t.rank, char.job, t.type as any);
+                          
+                          const isRankedTitle = t.rank <= 3;
+                          const tagClass = isRankedTitle ? t.theme.tags[t.rank - 1] : t.theme.tags[0];
+                          const borderClass = isRankedTitle ? t.theme.borders[t.rank - 1] : t.theme.borders[0];
 
                           return (
                             <div key={t.type} className="relative inline-block">
                               <button 
                                 onClick={(e) => { e.stopPropagation(); setOpenClickTooltipId(isClicked ? null : clickId); }}
-                                className={`text-[10px] px-1.5 py-0.5 rounded border flex items-center gap-1 cursor-pointer transition-all hover:scale-105 ${t.theme.tag} ${isClicked ? 'ring-2 ring-white/50 z-10 opacity-100' : 'opacity-80 hover:opacity-100'}`}
+                                className={`text-[10px] px-1.5 py-0.5 rounded border flex items-center gap-1 cursor-pointer transition-all hover:scale-105 ${tagClass} ${isClicked ? 'ring-2 ring-white/50 z-10 opacity-100' : 'opacity-80 hover:opacity-100'}`}
                               >
                                 {t.name}
                               </button>
 
                               {isClicked && (
-                                <div className={`absolute top-[calc(100%+8px)] left-0 w-[280px] bg-[#1a1a1c] border ${t.theme.border} rounded-xl p-4 shadow-2xl animate-in fade-in zoom-in-95 duration-150 z-[100] cursor-default`} onClick={e => e.stopPropagation()}>
-                                  <div className={`absolute -top-1.5 left-4 w-3 h-3 bg-[#1a1a1c] border-t border-l ${t.theme.border} transform rotate-45`}></div>
+                                <div className={`absolute top-[calc(100%+8px)] left-0 w-[280px] bg-[#1a1a1c] border ${borderClass} rounded-xl p-4 shadow-2xl animate-in fade-in zoom-in-95 duration-150 z-[100] cursor-default`} onClick={e => e.stopPropagation()}>
+                                  <div className={`absolute -top-1.5 left-4 w-3 h-3 bg-[#1a1a1c] border-t border-l ${borderClass} transform rotate-45`}></div>
                                   <div className="relative z-10 flex flex-col gap-2.5 text-left">
                                     <div className="flex items-center gap-1.5">
                                       <span className={`font-black ${t.theme.text} text-[14px] tracking-wide`}>[{loreData.title}]</span>
@@ -586,19 +612,23 @@ export default function AgoraLoungePage() {
                             const clickId = `click-${mainChar.id}-${t.type}-ASTRA`;
                             const isClicked = openClickTooltipId === clickId;
                             const loreData = generateLore(t.name, t.rank, mainChar.job, t.type as any);
+                            
+                            const isRankedTitle = t.rank <= 3;
+                            const tagClass = isRankedTitle ? t.theme.tags[t.rank - 1] : t.theme.tags[0];
+                            const borderClass = isRankedTitle ? t.theme.borders[t.rank - 1] : t.theme.borders[0];
 
                             return (
                               <div key={t.type} className="relative inline-block">
                                 <button 
                                   onClick={(e) => { e.stopPropagation(); setOpenClickTooltipId(isClicked ? null : clickId); }}
-                                  className={`text-[10px] px-1.5 py-0.5 rounded border flex items-center gap-1 cursor-pointer transition-all hover:scale-105 ${t.theme.tag} ${isClicked ? 'ring-2 ring-white/50 z-10 opacity-100' : 'opacity-80 hover:opacity-100'}`}
+                                  className={`text-[10px] px-1.5 py-0.5 rounded border flex items-center gap-1 cursor-pointer transition-all hover:scale-105 ${tagClass} ${isClicked ? 'ring-2 ring-white/50 z-10 opacity-100' : 'opacity-80 hover:opacity-100'}`}
                                 >
                                   {t.name}
                                 </button>
 
                                 {isClicked && (
-                                  <div className={`absolute top-[calc(100%+8px)] left-0 w-[280px] bg-[#1a1a1c] border ${t.theme.border} rounded-xl p-4 shadow-2xl animate-in fade-in zoom-in-95 duration-150 z-[100] cursor-default`} onClick={e => e.stopPropagation()}>
-                                    <div className={`absolute -top-1.5 left-4 w-3 h-3 bg-[#1a1a1c] border-t border-l ${t.theme.border} transform rotate-45`}></div>
+                                  <div className={`absolute top-[calc(100%+8px)] left-0 w-[280px] bg-[#1a1a1c] border ${borderClass} rounded-xl p-4 shadow-2xl animate-in fade-in zoom-in-95 duration-150 z-[100] cursor-default`} onClick={e => e.stopPropagation()}>
+                                    <div className={`absolute -top-1.5 left-4 w-3 h-3 bg-[#1a1a1c] border-t border-l ${borderClass} transform rotate-45`}></div>
                                     <div className="relative z-10 flex flex-col gap-2.5 text-left">
                                       <div className="flex items-center gap-1.5">
                                         <span className={`font-black ${t.theme.text} text-[14px] tracking-wide`}>[{loreData.title}]</span>
