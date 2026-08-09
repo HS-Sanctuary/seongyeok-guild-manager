@@ -6,14 +6,52 @@ import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase"; 
 
 // ==========================================
-// 1. 랭킹 메타 데이터
+// 1. 카테고리 컬러 테마 정의 (이모지 대체)
 // ==========================================
+const CATEGORY_THEMES: Record<string, any> = {
+  TELOS: { 
+    tab: 'bg-zinc-800/80 border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.2)]', 
+    text: 'text-purple-400', 
+    tag: 'bg-purple-900/30 text-purple-400 border-purple-700/50', 
+    border: 'border-purple-500/50'
+  },
+  KRATOS: { 
+    tab: 'bg-zinc-800/80 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.2)]', 
+    text: 'text-red-400', 
+    tag: 'bg-red-900/30 text-red-400 border-red-700/50', 
+    border: 'border-red-500/50'
+  },
+  TECHNE: { 
+    tab: 'bg-zinc-800/80 border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.2)]', 
+    text: 'text-blue-400', 
+    tag: 'bg-blue-900/30 text-blue-400 border-blue-700/50', 
+    border: 'border-blue-500/50'
+  },
+  HARMONIA: { 
+    tab: 'bg-zinc-800/80 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.2)]', 
+    text: 'text-yellow-400', 
+    tag: 'bg-yellow-900/30 text-yellow-400 border-yellow-700/50', 
+    border: 'border-yellow-500/50'
+  },
+  PIETAS: { 
+    tab: 'bg-zinc-800/80 border-emerald-600 shadow-[0_0_15px_rgba(16,185,129,0.2)]', 
+    text: 'text-emerald-500', 
+    tag: 'bg-emerald-900/30 text-emerald-500 border-emerald-700/50', 
+    border: 'border-emerald-500/50'
+  },
+  DEFAULT: {
+    tag: 'bg-zinc-800 text-zinc-400 border-zinc-700',
+    text: 'text-zinc-400',
+    border: 'border-zinc-700'
+  }
+};
+
 const RANKING_INFO = {
-  TELOS: { en: 'TELOS', kr: '텔로스', desc: '도달과 완성의 기록', sub: '종합 랭킹', stat: '종합 점수', icon: '🌟' },
-  KRATOS: { en: 'KRATOS', kr: '크라토스', desc: '힘과 권능의 기록', sub: '전투력 랭킹', stat: '전투력', icon: '⚔️' },
-  TECHNE: { en: 'TECHNĒ', kr: '테크네', desc: '기술과 숙련의 기록', sub: '생활력 랭킹', stat: '생활력', icon: '🛠️' },
-  HARMONIA: { en: 'HARMONIA', kr: '하르모니아', desc: '아름다움과 조화의 기록', sub: '매력 랭킹', stat: '매력', icon: '✨' },
-  PIETAS: { en: 'PIETAS', kr: '피에타스', desc: '헌신과 공헌의 기록', sub: '공헌도 랭킹', stat: '공헌도', icon: '🤝' },
+  TELOS: { en: 'TELOS', kr: '텔로스', desc: '도달과 완성의 기록', sub: '종합 랭킹', stat: '종합 점수' },
+  KRATOS: { en: 'KRATOS', kr: '크라토스', desc: '힘과 권능의 기록', sub: '전투력 랭킹', stat: '전투력' },
+  TECHNE: { en: 'TECHNĒ', kr: '테크네', desc: '기술과 숙련의 기록', sub: '생활력 랭킹', stat: '생활력' },
+  HARMONIA: { en: 'HARMONIA', kr: '하르모니아', desc: '아름다움과 조화의 기록', sub: '매력 랭킹', stat: '매력' },
+  PIETAS: { en: 'PIETAS', kr: '피에타스', desc: '헌신과 공헌의 기록', sub: '공헌도 랭킹', stat: '공헌도' },
 };
 
 const CLASS_GROUPS = [
@@ -57,7 +95,7 @@ const TOP_TITLES = {
 };
 
 // ==========================================
-// 2. 서사(Lore) 사전 및 마스터 특별 헌정사
+// 2. 서사(Lore) 사전
 // ==========================================
 const LORE_DICTIONARY: Record<string, string> = {
   '헬리오스': '그리스 신화의 태양신. 모든 것을 비추는 태양처럼 최고의 경지에 도달한 존재를 상징합니다.',
@@ -140,8 +178,8 @@ const generateLore = (title: string, rank: number, job: string, category: keyof 
   }
 
   const sourceText = category === 'KRATOS' 
-    ? `ℹ️ 성역 ${RANKING_INFO[category].kr} [${job}] ${rank <= 3 ? rank + '위' : '랭커'}에게 부여되는 칭호`
-    : `ℹ️ 성역 ${RANKING_INFO[category].kr} ${rank <= 3 ? rank + '위' : '랭커'}에게 부여되는 칭호`;
+    ? `성역 ${RANKING_INFO[category].kr} [${job}] ${rank <= 3 ? rank + '위' : '랭커'}에게 부여되는 칭호`
+    : `성역 ${RANKING_INFO[category].kr} ${rank <= 3 ? rank + '위' : '랭커'}에게 부여되는 칭호`;
 
   return { title, meaning, tribute, rank, sourceText };
 };
@@ -216,15 +254,12 @@ export default function AgoraLoungePage() {
   };
 
   const getAllEarnedTitles = (char: Character) => {
-    const titles: { type: string, name: string, color: string, icon: string, rank: number }[] = [];
+    const titles: { type: string, name: string, rank: number, theme: any }[] = [];
     
     const pushIfTop3 = (type: keyof typeof RANKING_INFO, titleArr: string[]) => {
       const rank = [...dbCharacters].sort((a,b) => getScore(b, type) - getScore(a, type)).findIndex(c => c.id === char.id);
       if(rank >= 0 && rank < 3) {
-        const colors = rank === 0 ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50' :
-                       rank === 1 ? 'bg-slate-500/20 text-slate-300 border-slate-500/50' :
-                                    'bg-amber-700/20 text-amber-500 border-amber-700/50';
-        titles.push({ type, name: titleArr[rank], color: colors, icon: RANKING_INFO[type].icon, rank: rank + 1 });
+        titles.push({ type, name: titleArr[rank], rank: rank + 1, theme: CATEGORY_THEMES[type] });
       }
     };
 
@@ -235,12 +270,9 @@ export default function AgoraLoungePage() {
     const kTitles = CLASS_TITLES[char.job];
     if (kTitles) {
       if(kratosRank >= 0 && kratosRank < 3) {
-        const colors = kratosRank === 0 ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50' :
-                       kratosRank === 1 ? 'bg-slate-500/20 text-slate-300 border-slate-500/50' :
-                                          'bg-amber-700/20 text-amber-500 border-amber-700/50';
-        titles.push({ type: 'KRATOS', name: kTitles[kratosRank], color: colors, icon: RANKING_INFO.KRATOS.icon, rank: kratosRank + 1 });
+        titles.push({ type: 'KRATOS', name: kTitles[kratosRank], rank: kratosRank + 1, theme: CATEGORY_THEMES.KRATOS });
       } else {
-        titles.push({ type: 'KRATOS', name: kTitles[3], color: 'bg-zinc-800 text-zinc-400 border-zinc-700', icon: RANKING_INFO.KRATOS.icon, rank: 4 });
+        titles.push({ type: 'KRATOS', name: kTitles[3], rank: 4, theme: CATEGORY_THEMES.DEFAULT });
       }
     }
 
@@ -284,13 +316,12 @@ export default function AgoraLoungePage() {
                 className="w-7 h-7 flex items-center justify-center rounded-full bg-zinc-800/80 border border-zinc-700 text-zinc-400 hover:text-[#e6c788] hover:bg-zinc-800 hover:border-[#e6c788] transition-all ml-2" 
                 title="명칭 가이드 보기"
               >
-                ❔
+                ?
               </button>
             </div>
             
             <div className="bg-zinc-900/40 border border-zinc-700/50 px-4 py-2 rounded-lg w-full max-w-[750px] backdrop-blur-sm flex items-start gap-2.5">
-              <span className="text-sm mt-0.5 opacity-80">🏛️</span>
-              <div className="flex flex-col text-[11px] md:text-[12px] font-bold leading-tight w-full">
+              <div className="flex flex-col text-[11px] md:text-[12px] font-bold leading-tight w-full mt-1">
                 <span className="text-zinc-300 w-full truncate md:whitespace-normal">
                   고대 그리스의 대광장, 아고라. 이곳은 성역의 모든 캐릭터들이 교류하고 증명하는 중심 공간입니다.
                 </span>
@@ -306,17 +337,17 @@ export default function AgoraLoungePage() {
           <div className="fixed inset-0 bg-black/80 z-[10000] flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setShowLoreGuide(false)}>
             <div className="bg-[#1c1c1e] border border-zinc-700 rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto p-8 shadow-2xl relative" onClick={e => e.stopPropagation()}>
               <button onClick={() => setShowLoreGuide(false)} className="absolute top-6 right-6 text-zinc-400 hover:text-white text-xl">✕</button>
-              <h2 className="text-2xl font-black text-[#e6c788] mb-6 border-b border-zinc-800 pb-4">📖 SANCTUM 명칭 가이드</h2>
+              <h2 className="text-2xl font-black text-[#e6c788] mb-6 border-b border-zinc-800 pb-4">SANCTUM 명칭 가이드</h2>
               <div className="space-y-6 text-sm text-zinc-300">
-                <div><h3 className="text-lg font-bold text-white mb-1">🏛️ AGORA (아고라 / 길드 라운지)</h3><p>성역의 모든 구성원이 함께 모이고 소통하는 중심 공간입니다.</p></div>
-                <div><h3 className="text-lg font-bold text-white mb-1">✨ ASTRA (아스트라 / 길드원 현황)</h3><p>한 명 한 명이 하나의 별이며, 모두가 함께 성역을 이룹니다. 길드원의 정보와 성장 기록을 확인합니다.</p></div>
-                <div><h3 className="text-lg font-bold text-white mb-1">🏛️ PANTHEON (판테온 / 성역 랭킹)</h3><p>성역의 모두와 그중 빛나는 이들을 기록하는 명예의 전당입니다. 5개의 철학적 기록으로 나뉩니다.</p>
+                <div><h3 className="text-lg font-bold text-white mb-1">AGORA (아고라 / 길드 라운지)</h3><p>성역의 모든 구성원이 함께 모이고 소통하는 중심 공간입니다.</p></div>
+                <div><h3 className="text-lg font-bold text-white mb-1">ASTRA (아스트라 / 길드원 현황)</h3><p>한 명 한 명이 하나의 별이며, 모두가 함께 성역을 이룹니다. 길드원의 정보와 성장 기록을 확인합니다.</p></div>
+                <div><h3 className="text-lg font-bold text-white mb-1">PANTHEON (판테온 / 성역 랭킹)</h3><p>성역의 모두와 그중 빛나는 이들을 기록하는 명예의 전당입니다. 5개의 철학적 기록으로 나뉩니다.</p>
                   <ul className="mt-3 space-y-2 pl-4 border-l-2 border-zinc-700">
-                    <li><strong className="text-[#e6c788]">🌟 TELOS (텔로스)</strong>: 종합 랭킹. 도달과 완성의 기록.</li>
-                    <li><strong className="text-[#e6c788]">⚔️ KRATOS (크라토스)</strong>: 전투력 랭킹. 힘과 권능의 기록.</li>
-                    <li><strong className="text-[#e6c788]">🛠️ TECHNĒ (테크네)</strong>: 생활력 랭킹. 기술과 숙련의 기록.</li>
-                    <li><strong className="text-[#e6c788]">✨ HARMONIA (하르모니아)</strong>: 매력 랭킹. 아름다움과 조화의 기록.</li>
-                    <li><strong className="text-[#e6c788]">🤝 PIETAS (피에타스)</strong>: 공헌도 랭킹. 헌신과 공헌의 기록.</li>
+                    <li><strong className="text-purple-400">TELOS (텔로스)</strong>: 종합 랭킹. 도달과 완성의 기록.</li>
+                    <li><strong className="text-red-400">KRATOS (크라토스)</strong>: 전투력 랭킹. 힘과 권능의 기록.</li>
+                    <li><strong className="text-blue-400">TECHNĒ (테크네)</strong>: 생활력 랭킹. 기술과 숙련의 기록.</li>
+                    <li><strong className="text-yellow-400">HARMONIA (하르모니아)</strong>: 매력 랭킹. 아름다움과 조화의 기록.</li>
+                    <li><strong className="text-emerald-500">PIETAS (피에타스)</strong>: 공헌도 랭킹. 헌신과 공헌의 기록.</li>
                   </ul>
                 </div>
               </div>
@@ -341,18 +372,19 @@ export default function AgoraLoungePage() {
               {(Object.keys(RANKING_INFO) as Array<keyof typeof RANKING_INFO>).map((key) => {
                 const info = RANKING_INFO[key];
                 const isActive = activeRankTab === key;
+                const theme = CATEGORY_THEMES[key];
+                
                 return (
-                  <button key={key} onClick={() => setActiveRankTab(key)} className={`group relative w-28 md:w-36 h-16 md:h-20 rounded-2xl border transition-all overflow-hidden ${isActive ? 'bg-zinc-800/80 border-[#e6c788] shadow-[0_0_15px_rgba(230,199,136,0.2)]' : 'bg-[#1c1c1e] border-zinc-800 hover:border-zinc-600 opacity-60 hover:opacity-100'}`}>
+                  <button key={key} onClick={() => setActiveRankTab(key)} className={`group relative w-28 md:w-36 h-16 md:h-20 rounded-2xl border transition-all overflow-hidden ${isActive ? theme.tab : 'bg-[#1c1c1e] border-zinc-800 hover:border-zinc-600 opacity-60 hover:opacity-100'}`}>
                     <div className={`absolute inset-0 flex items-center justify-center transition-all duration-300 group-hover:-translate-y-full group-hover:opacity-0 ${isActive ? '-translate-y-full opacity-0' : 'translate-y-0 opacity-100'}`}><span className="font-black tracking-widest text-zinc-400 text-sm md:text-base">{info.en}</span></div>
-                    <div className={`absolute inset-0 flex flex-col items-center justify-center transition-all duration-300 translate-y-full opacity-0 group-hover:translate-y-0 group-hover:opacity-100 ${isActive ? '!translate-y-0 !opacity-100' : ''}`}><span className="font-black text-white text-[13px] md:text-[15px] leading-tight">{info.kr}</span><span className="text-[9px] font-bold text-[#e6c788]">{info.sub}</span></div>
+                    <div className={`absolute inset-0 flex flex-col items-center justify-center transition-all duration-300 translate-y-full opacity-0 group-hover:translate-y-0 group-hover:opacity-100 ${isActive ? '!translate-y-0 !opacity-100' : ''}`}><span className={`font-black ${isActive ? theme.text : 'text-white'} text-[13px] md:text-[15px] leading-tight`}>{info.kr}</span><span className={`text-[9px] font-bold ${isActive ? theme.text : 'text-zinc-500'}`}>{info.sub}</span></div>
                   </button>
                 );
               })}
             </div>
 
             <div className="text-center py-2">
-              <h2 className="text-3xl font-black text-white tracking-widest flex justify-center items-center gap-3">
-                <span>{RANKING_INFO[activeRankTab].icon}</span>
+              <h2 className={`text-3xl font-black tracking-widest flex justify-center items-center gap-3 ${CATEGORY_THEMES[activeRankTab].text}`}>
                 {RANKING_INFO[activeRankTab].en}
               </h2>
               <p className="text-zinc-400 text-sm mt-2 font-bold">「 {RANKING_INFO[activeRankTab].desc} 」</p>
@@ -393,10 +425,16 @@ export default function AgoraLoungePage() {
                 
                 const hoverTooltipId = `hover-${char.id}-${activeRankTab}`;
                 const isHoverTooltipOpen = openHoverTooltipId === hoverTooltipId;
+                
+                // 🟢 핵심 Z-Index 수정: 클릭 툴팁이 이 카드 안에서 열렸는지 아이디(char.id)를 포함하는지 확인
+                const isClickTooltipOpenForThisCard = openClickTooltipId?.includes(`-${char.id}-`) && openClickTooltipId?.includes('-PANTHEON');
+                const isTooltipActiveOnCard = isHoverTooltipOpen || isClickTooltipOpenForThisCard;
+                
                 const topLoreData = generateLore(currentRankTitle, rankToUse, char.job, activeRankTab);
+                const topTheme = CATEGORY_THEMES[activeRankTab];
 
                 return (
-                  <div key={char.id} className={`relative bg-gradient-to-b from-[#1c1c1e] to-[#121212] border ${isTop3 ? 'border-[#e6c788]/40 shadow-[0_5px_20px_rgba(230,199,136,0.1)]' : 'border-zinc-800'} rounded-2xl p-6 group hover:border-zinc-500 transition-all ${isHoverTooltipOpen ? 'z-50' : 'z-10'}`}>
+                  <div key={char.id} className={`relative bg-gradient-to-b from-[#1c1c1e] to-[#121212] border ${isTop3 ? 'border-[#e6c788]/40 shadow-[0_5px_20px_rgba(230,199,136,0.1)]' : 'border-zinc-800'} rounded-2xl p-6 group hover:border-zinc-500 transition-all ${isTooltipActiveOnCard ? 'z-50' : 'z-10'}`}>
                     
                     <div className={`absolute right-0 top-0 w-16 h-16 rounded-bl-3xl rounded-tr-2xl flex items-center justify-center font-black text-2xl shadow-bl ${
                       categoryRank === 1 ? 'bg-gradient-to-br from-yellow-300 to-yellow-600 text-black' :
@@ -414,22 +452,16 @@ export default function AgoraLoungePage() {
                             onMouseEnter={() => setOpenHoverTooltipId(hoverTooltipId)}
                             onMouseLeave={() => setOpenHoverTooltipId(null)}
                           >
-                            <span className={`text-[11px] font-black px-2 py-1 rounded-md inline-flex items-center gap-1 transition-transform cursor-help ${
-                              rankToUse === 1 ? 'bg-yellow-900/40 text-yellow-400 border border-yellow-700/50' :
-                              rankToUse === 2 ? 'bg-slate-800 text-slate-300 border border-slate-600/50' :
-                              'bg-amber-900/40 text-amber-500 border border-amber-700/50'
-                            }`}>
-                              <span>{RANKING_INFO[activeRankTab].icon}</span>
+                            <span className={`text-[11px] font-black px-2 py-1 rounded-md inline-flex items-center gap-1 transition-transform cursor-help border ${topTheme.tag}`}>
                               {currentRankTitle}
                             </span>
 
                             {isHoverTooltipOpen && (
-                              <div className="absolute top-[calc(100%+8px)] left-0 w-[300px] bg-[#1a1a1c] border border-zinc-700 rounded-xl p-4 shadow-2xl animate-in fade-in zoom-in-95 duration-150 z-[100] cursor-default" onClick={e => e.stopPropagation()}>
-                                <div className="absolute -top-1.5 left-6 w-3 h-3 bg-[#1a1a1c] border-t border-l border-zinc-700 transform rotate-45"></div>
+                              <div className={`absolute top-[calc(100%+8px)] left-0 w-[300px] bg-[#1a1a1c] border ${topTheme.border} rounded-xl p-4 shadow-2xl animate-in fade-in zoom-in-95 duration-150 z-[100] cursor-default`} onClick={e => e.stopPropagation()}>
+                                <div className={`absolute -top-1.5 left-6 w-3 h-3 bg-[#1a1a1c] border-t border-l ${topTheme.border} transform rotate-45`}></div>
                                 <div className="relative z-10 flex flex-col gap-3">
                                   <div className="flex items-center gap-1.5">
-                                    <span className="text-[15px]">{RANKING_INFO[activeRankTab].icon}</span>
-                                    <span className="font-black text-[#e6c788] text-[15px] tracking-wide">[{topLoreData.title}]</span>
+                                    <span className={`font-black ${topTheme.text} text-[15px] tracking-wide`}>[{topLoreData.title}]</span>
                                   </div>
                                   <p className="text-[13px] font-bold text-zinc-300 leading-snug break-keep">{topLoreData.meaning}</p>
                                   <div className="w-full h-px bg-zinc-700/60"></div>
@@ -443,8 +475,8 @@ export default function AgoraLoungePage() {
                           </div>
                         ) : (
                           currentRankTitle && (
-                            <span className="text-[11px] font-black px-2 py-1 rounded-md mb-2 inline-flex items-center gap-1 bg-zinc-800 text-zinc-400 border border-zinc-700">
-                              <span>{RANKING_INFO[activeRankTab].icon}</span> {currentRankTitle}
+                            <span className={`text-[11px] font-black px-2 py-1 rounded-md mb-2 inline-flex items-center gap-1 border ${topTheme.tag}`}>
+                              {currentRankTitle}
                             </span>
                           )
                         )}
@@ -463,18 +495,17 @@ export default function AgoraLoungePage() {
                             <div key={t.type} className="relative inline-block">
                               <button 
                                 onClick={(e) => { e.stopPropagation(); setOpenClickTooltipId(isClicked ? null : clickId); }}
-                                className={`text-[10px] px-1.5 py-0.5 rounded border flex items-center gap-1 cursor-pointer transition-all hover:scale-105 ${t.color} ${isClicked ? 'ring-2 ring-white/50 z-10 opacity-100' : 'opacity-80 hover:opacity-100'}`}
+                                className={`text-[10px] px-1.5 py-0.5 rounded border flex items-center gap-1 cursor-pointer transition-all hover:scale-105 ${t.theme.tag} ${isClicked ? 'ring-2 ring-white/50 z-10 opacity-100' : 'opacity-80 hover:opacity-100'}`}
                               >
-                                <span>{t.icon}</span> <span>{t.name}</span>
+                                {t.name}
                               </button>
 
                               {isClicked && (
-                                <div className="absolute top-[calc(100%+8px)] left-0 w-[280px] bg-[#1a1a1c] border border-zinc-600 rounded-xl p-4 shadow-2xl animate-in fade-in zoom-in-95 duration-150 z-[100] cursor-default" onClick={e => e.stopPropagation()}>
-                                  <div className="absolute -top-1.5 left-4 w-3 h-3 bg-[#1a1a1c] border-t border-l border-zinc-600 transform rotate-45"></div>
+                                <div className={`absolute top-[calc(100%+8px)] left-0 w-[280px] bg-[#1a1a1c] border ${t.theme.border} rounded-xl p-4 shadow-2xl animate-in fade-in zoom-in-95 duration-150 z-[100] cursor-default`} onClick={e => e.stopPropagation()}>
+                                  <div className={`absolute -top-1.5 left-4 w-3 h-3 bg-[#1a1a1c] border-t border-l ${t.theme.border} transform rotate-45`}></div>
                                   <div className="relative z-10 flex flex-col gap-2.5 text-left">
                                     <div className="flex items-center gap-1.5">
-                                      <span className="text-[14px]">{t.icon}</span>
-                                      <span className="font-black text-white text-[14px] tracking-wide">[{loreData.title}]</span>
+                                      <span className={`font-black ${t.theme.text} text-[14px] tracking-wide`}>[{loreData.title}]</span>
                                     </div>
                                     <p className="text-[12px] font-bold text-zinc-300 leading-snug break-keep">{loreData.meaning}</p>
                                     <div className="w-full h-px bg-zinc-700/60"></div>
@@ -528,9 +559,10 @@ export default function AgoraLoungePage() {
             <div className="grid grid-cols-1 gap-4">
               {mainCharacters.map((mainChar, idx) => {
                 const mainTitles = getAllEarnedTitles(mainChar);
+                const isClickTooltipOpenForThisCard = openClickTooltipId?.includes(`-${mainChar.id}-`) && openClickTooltipId?.includes('-ASTRA');
                 
                 return (
-                  <div key={idx} className="bg-gradient-to-r from-[#1c1c1e] to-[#121212] border border-zinc-800 rounded-2xl p-5 flex flex-col xl:flex-row justify-between xl:items-center gap-6 hover:border-zinc-600 transition-colors">
+                  <div key={idx} className={`relative bg-gradient-to-r from-[#1c1c1e] to-[#121212] border border-zinc-800 rounded-2xl p-5 flex flex-col xl:flex-row justify-between xl:items-center gap-6 hover:border-zinc-600 transition-colors ${isClickTooltipOpenForThisCard ? 'z-50' : 'z-10'}`}>
                     <div className="flex items-center gap-5 min-w-[280px]">
                       <div className="flex flex-col items-center justify-center min-w-[70px]">
                         {mainChar.status === '생텀 접속중' && <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)] mb-1"></div>}
@@ -559,18 +591,17 @@ export default function AgoraLoungePage() {
                               <div key={t.type} className="relative inline-block">
                                 <button 
                                   onClick={(e) => { e.stopPropagation(); setOpenClickTooltipId(isClicked ? null : clickId); }}
-                                  className={`text-[10px] px-1.5 py-0.5 rounded border flex items-center gap-1 cursor-pointer transition-all hover:scale-105 ${t.color} ${isClicked ? 'ring-2 ring-white/50 z-10 opacity-100' : 'opacity-80 hover:opacity-100'}`}
+                                  className={`text-[10px] px-1.5 py-0.5 rounded border flex items-center gap-1 cursor-pointer transition-all hover:scale-105 ${t.theme.tag} ${isClicked ? 'ring-2 ring-white/50 z-10 opacity-100' : 'opacity-80 hover:opacity-100'}`}
                                 >
-                                  <span>{t.icon}</span> <span>{t.name}</span>
+                                  {t.name}
                                 </button>
 
                                 {isClicked && (
-                                  <div className="absolute top-[calc(100%+8px)] left-0 w-[280px] bg-[#1a1a1c] border border-zinc-600 rounded-xl p-4 shadow-2xl animate-in fade-in zoom-in-95 duration-150 z-[100] cursor-default" onClick={e => e.stopPropagation()}>
-                                    <div className="absolute -top-1.5 left-4 w-3 h-3 bg-[#1a1a1c] border-t border-l border-zinc-600 transform rotate-45"></div>
+                                  <div className={`absolute top-[calc(100%+8px)] left-0 w-[280px] bg-[#1a1a1c] border ${t.theme.border} rounded-xl p-4 shadow-2xl animate-in fade-in zoom-in-95 duration-150 z-[100] cursor-default`} onClick={e => e.stopPropagation()}>
+                                    <div className={`absolute -top-1.5 left-4 w-3 h-3 bg-[#1a1a1c] border-t border-l ${t.theme.border} transform rotate-45`}></div>
                                     <div className="relative z-10 flex flex-col gap-2.5 text-left">
                                       <div className="flex items-center gap-1.5">
-                                        <span className="text-[14px]">{t.icon}</span>
-                                        <span className="font-black text-white text-[14px] tracking-wide">[{loreData.title}]</span>
+                                        <span className={`font-black ${t.theme.text} text-[14px] tracking-wide`}>[{loreData.title}]</span>
                                       </div>
                                       <p className="text-[12px] font-bold text-zinc-300 leading-snug break-keep">{loreData.meaning}</p>
                                       <div className="w-full h-px bg-zinc-700/60"></div>
