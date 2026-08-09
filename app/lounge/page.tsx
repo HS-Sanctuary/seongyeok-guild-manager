@@ -1,18 +1,20 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { supabase } from "../../lib/supabase"; 
+import './globals.css'
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { supabase } from '../../lib/supabase'; 
 
 // ==========================================
 // 1. 랭킹 메타 데이터
 // ==========================================
 const RANKING_INFO = {
-  TELOS: { en: 'TELOS', kr: '텔로스', desc: '도달과 완성의 기록', sub: '종합 랭킹', stat: '종합 점수' },
-  KRATOS: { en: 'KRATOS', kr: '크라토스', desc: '힘과 권능의 기록', sub: '전투력 랭킹', stat: '전투력' },
-  TECHNE: { en: 'TECHNĒ', kr: '테크네', desc: '기술과 숙련의 기록', sub: '생활력 랭킹', stat: '생활력' },
-  HARMONIA: { en: 'HARMONIA', kr: '하르모니아', desc: '아름다움과 조화의 기록', sub: '매력 랭킹', stat: '매력' },
-  PIETAS: { en: 'PIETAS', kr: '피에타스', desc: '헌신과 공헌의 기록', sub: '공헌도 랭킹', stat: '공헌도' },
+  TELOS: { en: 'TELOS', kr: '텔로스', desc: '도달과 완성의 기록', sub: '종합 랭킹', stat: '종합 점수', icon: '🌟' },
+  KRATOS: { en: 'KRATOS', kr: '크라토스', desc: '힘과 권능의 기록', sub: '전투력 랭킹', stat: '전투력', icon: '⚔️' },
+  TECHNE: { en: 'TECHNĒ', kr: '테크네', desc: '기술과 숙련의 기록', sub: '생활력 랭킹', stat: '생활력', icon: '🛠️' },
+  HARMONIA: { en: 'HARMONIA', kr: '하르모니아', desc: '아름다움과 조화의 기록', sub: '매력 랭킹', stat: '매력', icon: '✨' },
+  PIETAS: { en: 'PIETAS', kr: '피에타스', desc: '헌신과 공헌의 기록', sub: '공헌도 랭킹', stat: '공헌도', icon: '🤝' },
 };
 
 const CLASS_GROUPS = [
@@ -70,13 +72,13 @@ const LORE_DICTIONARY: Record<string, string> = {
   '아르티장': '오랜 시간 벼려낸 숙련된 기술과 솜씨를 가진 장인을 의미합니다.',
   '아글라이아': '찬란함, 빛남, 아름다움을 상징하는 신화 속 이름입니다.',
   '카리스': '거부할 수 없는 매력, 은총, 우아함, 사람을 끌어당기는 힘을 의미합니다.',
-  '칼로스': '내면과 외면을 아우르는 진정한 아름다움과 훌륭함을 의미합니다.'
+  '칼로스': '내면과 외면을 아우르는 진정한 아름다움을 의미합니다.'
 };
 
 const TRIBUTE_MESSAGES = {
   TELOS: {
     1: "모든 시련을 극복하고 만물의 이치를 깨우친 절대자여. 완벽한 밸런스로 도달한 그대의 궁극적인 경지는 성역의 영원한 신화로 기록될 것입니다.",
-    2: "정상의 옥좌를 턱밑까지 추격한 초월자. 무력, 기술, 매력 어느 하나 빠짐없이 갈고닦은 그대의 끈질긴 집념은 차기 성역의 지배자를 예고하고 있습니다.",
+    2: "정상의 옥좌를 턱밑까지 추격한 초월자. 다방면으로 갈고닦은 그대의 끈질긴 집념은 차기 성역의 지배자를 예고하고 있습니다.",
     3: "균형과 완성의 길을 걷는 위대한 선구자. 다방면에서 이룩한 눈부신 성취는 숱한 별들에게 성역이 나아가야 할 궁극의 길을 제시합니다."
   },
   TECHNE: {
@@ -86,7 +88,7 @@ const TRIBUTE_MESSAGES = {
   },
   HARMONIA: {
     1: "숨이 멎을 듯한 자태로 만인을 굴복시킨 절대적인 미(美)의 화신. 그대가 걸음을 내디딜 때마다 성역의 모든 별들이 매혹되어 빛을 잃습니다.",
-    2: "거부할 수 없는 우아함과 기품을 흩뿌리는 매혹의 지배자. 사람들의 시선과 마음을 훔친 그대의 찬란한 오라는 성역의 가장 아름다운 풍경입니다.",
+    2: "거부할 수 없는 우아함과 기품을 흩뿌리는 매혹의 지배자. 사람들의 시선과 마음을 훔친 그대의 찬란한 오라는 성역의 아름다운 풍경입니다.",
     3: "내면과 외면이 완벽한 조화를 이룬 고결한 우상. 수많은 이들의 사랑을 한몸에 받는 그대의 미소는 성역의 지친 영혼들을 치유합니다."
   },
   PIETAS: {
@@ -98,68 +100,26 @@ const TRIBUTE_MESSAGES = {
 
 const KRATOS_LORE: Record<string, { meaning: string, tribute: string }> = {
   "검투신": { meaning: "수많은 전장을 넘어, 검으로 신의 경지에 닿은 자.", tribute: "성역의 검이 향하는 곳에, 더 이상 적은 남지 않는다." },
-  "검투왕": { meaning: "싸움의 본질을 꿰뚫고 모든 검투사를 굴복시킨 자.", tribute: "성역의 전장에서 가장 먼저 이름을 부를 만한 전사." },
-  "검투사": { meaning: "가장 거친 전장에서도 끝까지 검을 놓지 않는 자.", tribute: "성역은 당신이 버티는 한 결코 무너지지 않는다." },
   "파괴신": { meaning: "휘두른 한 번의 일격으로 전장을 무너뜨리는 자.", tribute: "성역의 적들에게 가장 두려운 것은 당신의 대검이다." },
-  "파괴왕": { meaning: "거대한 검 끝에서 파괴의 권능을 휘두르는 자.", tribute: "성역은 당신의 한 방을 믿고 전장에 선다." },
-  "광전사": { meaning: "두려움을 버리고 오직 파괴를 향해 돌진하는 자.", tribute: "성역의 맹렬함을 가장 뜨겁게 증명하는 자." },
   "검신": { meaning: "검과 하나가 되어 검의 극의를 넘어선 자.", tribute: "성역의 검은 이제 무기가 아니라 하나의 경지다." },
-  "검왕": { meaning: "한 자루의 검으로 모든 검객 위에 군림하는 자.", tribute: "성역의 검객들이 바라보는 가장 높은 곳." },
-  "검성": { meaning: "검의 길을 끝없이 갈고닦아 경지에 오른 자.", tribute: "성역의 검로 위에 당신의 발자국이 남는다." },
   "수호신": { meaning: "자신의 방패 뒤에 모든 동료를 지켜낸 자.", tribute: "성역의 누구도 당신의 뒤에서는 두려워하지 않는다." },
-  "수호왕": { meaning: "어떠한 공격 앞에서도 물러서지 않는 자.", tribute: "성역의 가장 단단한 방패가 되어준 이름." },
-  "수호기사": { meaning: "가장 먼저 앞에 서서 동료의 길을 열어주는 자.", tribute: "성역의 전우들이 가장 믿고 등을 맡길 수 있는 기사." },
   "마신": { meaning: "인간의 한계를 넘어 마법 그 자체에 닿은 자.", tribute: "성역의 마법이 어디까지 갈 수 있는지를 보여준 자." },
-  "대현자": { meaning: "수많은 마법의 비밀을 통달한 지혜로운 자.", tribute: "성역의 마법사들이 길을 잃을 때 가장 먼저 찾는 이름." },
-  "현자": { meaning: "지식과 마력을 갈고닦아 깊은 경지에 이른 자.", tribute: "성역의 지혜를 마력으로 증명한 마법사." },
   "화신": { meaning: "타오르는 불꽃을 자신의 의지처럼 다루는 자.", tribute: "성역의 불꽃이 꺼지지 않는 이유는 당신이 있기 때문이다." },
-  "염왕": { meaning: "모든 불꽃을 거느리고 전장을 불태우는 자.", tribute: "성역의 적들이 가장 먼저 피해야 할 불길." },
-  "염마": { meaning: "닿는 모든 것을 재로 만드는 지옥의 불꽃을 품은 자.", tribute: "성역의 분노가 가장 뜨겁게 타오르는 순간." },
   "빙신": { meaning: "세상의 온기마저 얼려버리는 절대적인 냉기의 지배자.", tribute: "성역의 전장을 고요하게 얼려버리는 절대적인 힘." },
-  "빙왕": { meaning: "얼어붙은 전장을 자신의 왕국으로 만든 자.", tribute: "성역의 적에게 움직일 틈조차 허락하지 않는 자." },
-  "빙마": { meaning: "차가운 마력을 휘둘러 적의 움직임을 봉인하는 자.", tribute: "성역의 겨울이 가장 날카로워지는 순간." },
   "뢰신": { meaning: "하늘에서 떨어진 번개를 자신의 힘으로 삼은 자.", tribute: "성역의 하늘이 당신을 위해 번개를 내린다." },
-  "뇌왕": { meaning: "천둥과 번개를 휘몰아 전장을 지배하는 자.", tribute: "성역의 전장을 한순간에 뒤집는 천둥의 왕." },
-  "뇌마": { meaning: "한순간의 섬광으로 전장을 뒤흔드는 번개의 악마.", tribute: "성역의 적들이 당신의 움직임을 알아차리는 순간은 이미 늦었다." },
   "폭풍신": { meaning: "수많은 화살로 전장을 폭풍처럼 휩쓰는 자.", tribute: "성역의 화살비가 시작되면 누구도 그 폭풍에서 벗어날 수 없다." },
-  "폭풍왕": { meaning: "쉴 새 없이 몰아치는 화살비로 적을 혼란에 빠뜨리는 자.", tribute: "성역의 전장을 가장 빠르게 뒤흔드는 바람." },
-  "화랑": { meaning: "자유롭게 전장을 누비며 활과 발걸음으로 적을 농락하는 자.", tribute: "성역의 전장을 누비는 가장 자유로운 사수." },
   "신궁": { meaning: "하늘과 땅의 거리를 넘어 한 발의 화살로 운명을 꿰뚫는 자.", tribute: "성역의 가장 먼 곳까지 닿는 한 발의 신뢰." },
-  "천궁": { meaning: "가장 먼 곳에서도 목표를 놓치지 않는 하늘의 궁수.", tribute: "성역의 하늘 아래, 당신의 사거리 밖은 없다." },
-  "명궁": { meaning: "한 번 당긴 활시위에 승부를 맡기는 뛰어난 궁수.", tribute: "성역이 믿는 것은 백 발의 화살보다 당신의 한 발이다." },
   "파천궁신": { meaning: "한 발의 화살로 하늘마저 가르는 궁극의 사수.", tribute: "성역의 이름을 등에 지고 하늘을 꿰뚫은 자." },
-  "파천궁제": { meaning: "수많은 화살과 힘을 한순간에 폭발시키는 파천의 지배자.", tribute: "성역의 화력이 한순간에 폭발하는 그 중심에 선 자." },
-  "파천사수": { meaning: "꿰뚫는 화살과 끊임없는 움직임으로 전장을 장악하는 자.", tribute: "성역의 전장을 꿰뚫고 누비는 가장 날카로운 사수." },
   "셰익스피어": { meaning: "음악과 이야기로 사람의 마음을 움직이는 전장의 예술가.", tribute: "성역의 이야기를 노래로 남길 자격을 얻은 사람." },
-  "호메로스": { meaning: "자신의 연주를 전설로 남기는 위대한 이야기꾼.", tribute: "오늘의 성역을 내일의 전설로 바꾸는 목소리." },
-  "오르페우스": { meaning: "한 곡의 선율로 적의 마음마저 사로잡는 자.", tribute: "성역의 전장에도 당신의 선율이 흐른다." },
   "플로라비": { meaning: "꽃잎처럼 가볍게 춤추며 전장을 자신의 무대로 만드는 자.", tribute: "성역의 전장을 가장 아름다운 무대로 바꾸는 춤." },
-  "파피에르": { meaning: "한순간의 몸짓마저 예술로 승화시키는 무대의 지배자.", tribute: "성역의 모두가 당신의 다음 움직임을 기다린다." },
-  "블루에트": { meaning: "화려한 발걸음과 리듬으로 전장의 흐름을 바꾸는 자.", tribute: "성역의 전장에 가장 경쾌한 변화를 만들어내는 춤." },
   "마에스트로": { meaning: "모든 선율과 리듬을 지휘하여 전장을 하나의 악장으로 만드는 자.", tribute: "성역의 전장이 당신의 지휘 아래 하나의 음악이 된다." },
-  "비르투오사": { meaning: "누구도 흉내 낼 수 없는 연주로 자신의 이름을 증명한 자.", tribute: "성역의 가장 빛나는 연주를 만들어내는 사람." },
-  "솔리스트": { meaning: "오직 자신의 선율 하나만으로 무대를 완성하는 자.", tribute: "성역의 무대에 당신의 선율만으로 충분하다." },
   "그라시아": { meaning: "은총의 힘으로 쓰러진 이들에게 다시 일어설 힘을 주는 자.", tribute: "성역의 사람들이 다시 일어설 수 있는 이유가 되어준 자." },
-  "베네딕토": { meaning: "축복을 내려 동료들의 생명을 지켜내는 자.", tribute: "성역의 전우들에게 가장 따뜻한 축복을 건네는 손." },
-  "렐릭스": { meaning: "성스러운 힘을 품고 끝까지 동료 곁을 지키는 자.", tribute: "성역의 전우가 쓰러지지 않도록 끝까지 함께하는 사람." },
   "메시아": { meaning: "절망 속에서도 모두에게 구원의 길을 보여주는 자.", tribute: "성역이 어둠 속에서도 희망을 잃지 않는 이유." },
-  "디바인": { meaning: "신성한 힘으로 어둠을 몰아내고 질서를 세우는 자.", tribute: "성역의 빛을 가장 강하게 밝히는 자." },
-  "프리스트": { meaning: "기도와 신앙으로 동료의 영혼을 지켜주는 자.", tribute: "성역의 모두에게 평온한 안식을 건네는 사람." },
   "아라한": { meaning: "번뇌를 내려놓고 자신의 육체와 정신을 극한까지 단련한 자.", tribute: "성역의 무도가 어디까지 닿을 수 있는지 보여준 자." },
-  "금강": { meaning: "무엇으로도 꺾을 수 없는 육체와 의지를 가진 자.", tribute: "성역의 가장 단단한 의지는 결코 쓰러지지 않는다." },
-  "나한": { meaning: "끊임없는 수행 끝에 자신만의 무도를 깨우친 자.", tribute: "성역의 길 위에서 스스로 답을 찾아낸 수행자." },
   "암제": { meaning: "어둠의 힘을 지배하여 어둠의 정점에 오른 자.", tribute: "성역의 그림자마저 당신의 힘 앞에서는 고개를 숙인다." },
-  "암왕": { meaning: "끝없는 암흑을 거느리고 적을 공포에 빠뜨리는 자.", tribute: "성역의 어둠을 가장 강력한 무기로 바꾼 자." },
-  "암마": { meaning: "어둠 속에 몸을 감추고 죽음의 순간을 기다리는 자.", tribute: "성역의 그림자처럼 조용히 적의 뒤를 지키는 자." },
   "독왕": { meaning: "보이지 않는 독으로 전장을 지배하는 치명적인 사냥꾼.", tribute: "성역의 적에게 가장 조용하고 치명적인 경고." },
-  "트릭스터": { meaning: "적의 예상을 뒤집으며 전장을 장난처럼 휘젓는 자.", tribute: "성역의 전장을 예측할 수 없게 만드는 가장 영리한 변수." },
-  "땅거미": { meaning: "해가 지는 순간처럼 조용히 나타나 흔적 없이 사라지는 자.", tribute: "성역의 그림자가 되어 적이 보지 못하는 곳을 지키는 자." },
   "권신": { meaning: "두 주먹만으로 인간의 한계를 넘어선 자.", tribute: "성역의 주먹에는 무기가 필요하지 않다." },
-  "권왕": { meaning: "맨주먹 하나로 모든 격투가 위에 군림하는 자.", tribute: "성역에서 가장 강한 것은 때때로 한 쌍의 주먹이다." },
-  "권호": { meaning: "호랑이처럼 거칠고 날카로운 권격으로 상대를 압도하는 자.", tribute: "성역의 포효를 주먹 하나로 증명하는 자." },
   "유성천침": { meaning: "유성처럼 떨어지는 두 칼날로 적의 빈틈을 꿰뚫는 궁극의 쌍검사.", tribute: "성역의 칼날이 가장 빠르게, 그리고 가장 정확하게 승리를 새긴다." },
-  "쌍극난무": { meaning: "두 칼날의 극의를 자유롭게 오가며 폭풍처럼 검격을 쏟아내는 자.", tribute: "성역의 전장을 가장 화려한 칼날의 춤으로 바꾸는 자." },
-  "질풍쌍화": { meaning: "질풍처럼 적 사이를 누비며 두 칼날로 검화(劍花)를 피워내는 자.", tribute: "성역의 전장에 가장 빠르고 아름다운 칼날의 꽃을 피운다." }
 };
 
 const generateLore = (title: string, rank: number, job: string, category: keyof typeof RANKING_INFO) => {
@@ -172,17 +132,17 @@ const generateLore = (title: string, rank: number, job: string, category: keyof 
       meaning = customLore.meaning;
       tribute = customLore.tribute;
     } else {
-      meaning = `무력의 정점에 달하여 더 이상 범접할 수 없는 ${job}의 절대자입니다.`;
-      tribute = `성역의 전장을 지배하는 ${job}의 왕.`;
+      meaning = `끝없는 투지로 전장을 누비는 ${job}입니다.`;
+      tribute = `성역을 위해 무기를 든 자랑스러운 전사.`;
     }
   } else {
     meaning = LORE_DICTIONARY[title] || `${title}의 경지에 오른 자입니다.`;
-    tribute = (TRIBUTE_MESSAGES as any)[category]?.[rank] || "";
+    tribute = (TRIBUTE_MESSAGES as any)[category]?.[rank] || "꾸준한 노력과 의지로 성역의 발전에 이바지하는 자입니다.";
   }
 
   const sourceText = category === 'KRATOS' 
-    ? `ℹ️ 성역 ${RANKING_INFO[category].kr} [${job}] ${rank}위에게 부여되는 칭호`
-    : `ℹ️ 성역 ${RANKING_INFO[category].kr} ${rank}위에게 부여되는 칭호`;
+    ? `ℹ️ 성역 ${RANKING_INFO[category].kr} [${job}] ${rank <= 3 ? rank + '위' : '랭커'}에게 부여되는 칭호`
+    : `ℹ️ 성역 ${RANKING_INFO[category].kr} ${rank <= 3 ? rank + '위' : '랭커'}에게 부여되는 칭호`;
 
   return { title, meaning, tribute, rank, sourceText };
 };
@@ -200,7 +160,7 @@ interface Character {
 export default function AgoraLoungePage() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
-  const [dbCharacters, setDbCharacters] = useState<Character[]>([]); // 🟢 DB 연동 상태 추가
+  const [dbCharacters, setDbCharacters] = useState<Character[]>([]);
 
   const [activeMainTab, setActiveMainTab] = useState<'PANTHEON' | 'ASTRA'>('PANTHEON');
   const [activeRankTab, setActiveRankTab] = useState<keyof typeof RANKING_INFO>('TELOS');
@@ -209,31 +169,25 @@ export default function AgoraLoungePage() {
   const [isClassFilterOpen, setIsClassFilterOpen] = useState(false);
   const [showLoreGuide, setShowLoreGuide] = useState(false);
   
-  const [openTooltipId, setOpenTooltipId] = useState<string | null>(null);
+  // 상태 분리: 상단 칭호(마우스 오버) / 하단 보유 칭호(클릭)
+  const [openHoverTooltipId, setOpenHoverTooltipId] = useState<string | null>(null);
+  const [openClickTooltipId, setOpenClickTooltipId] = useState<string | null>(null);
 
   useEffect(() => { 
     setMounted(true); 
     fetchServerData();
   }, []);
 
-  // 🟢 수정 1: DB에서 가져올 때 확실하게 숫자로 변환 (Number 추가)
   const fetchServerData = async () => {
     try {
       const { data, error } = await supabase.from('characters').select('*');
       if (data && !error) {
         const mappedData: Character[] = data.map((c: any) => ({
-          id: c.nickname,
-          name: c.nickname,
-          job: c.job || '전사',
-          combatPower: Number(c.combat_power) || 0,
-          magicResist: Number(c.magic_resistance) || 0,
-          lifePower: Number(c.life_energy) || 0,
-          charm: Number(c.charm) || 0,
-          contribution: Number(c.contribution) || 0,
-          isMain: c.is_main || false,
-          status: '오프라인', 
-          lastSeen: '최근 업데이트 됨',
-          pendingTasks: [] 
+          id: c.nickname, name: c.nickname, job: c.job || '전사',
+          combatPower: Number(c.combat_power) || 0, magicResist: Number(c.magic_resistance) || 0,
+          lifePower: Number(c.life_energy) || 0, charm: Number(c.charm) || 0,
+          contribution: Number(c.contribution) || 0, isMain: c.is_main || false,
+          status: '오프라인', lastSeen: '최근 업데이트 됨', pendingTasks: [] 
         }));
         setDbCharacters(mappedData);
       }
@@ -242,7 +196,6 @@ export default function AgoraLoungePage() {
     }
   };
 
-  // 🟢 수정 2: 점수 계산 시에도 무조건 숫자로 강제 변환
   const getScore = (c: Character, type: keyof typeof RANKING_INFO) => {
     switch(type) {
       case 'KRATOS': return Number(c.combatPower); 
@@ -254,7 +207,6 @@ export default function AgoraLoungePage() {
     }
   };
 
-  // 🟢 MOCK_CHARACTERS 대신 불러온 dbCharacters 사용
   const getAllSortedCharacters = () => {
     return [...dbCharacters].sort((a, b) => getScore(b, activeRankTab) - getScore(a, activeRankTab));
   };
@@ -265,25 +217,39 @@ export default function AgoraLoungePage() {
     return chars;
   };
 
+  // 🟢 색상 의존도를 낮추고 직관성 부여 (아이콘 + 순위별 색상)
   const getAllEarnedTitles = (char: Character) => {
-    const titles: { type: string, name: string, color: string }[] = [];
-    const pushIfTop3 = (type: string, scoreType: keyof typeof RANKING_INFO, titleArr: string[], colors: string) => {
-      const rank = [...dbCharacters].sort((a,b) => getScore(b, scoreType) - getScore(a, scoreType)).findIndex(c => c.id === char.id);
-      if(rank >= 0 && rank < 3) titles.push({ type, name: titleArr[rank], color: colors });
+    const titles: { type: string, name: string, color: string, icon: string, rank: number }[] = [];
+    
+    const pushIfTop3 = (type: keyof typeof RANKING_INFO, titleArr: string[]) => {
+      const rank = [...dbCharacters].sort((a,b) => getScore(b, type) - getScore(a, type)).findIndex(c => c.id === char.id);
+      if(rank >= 0 && rank < 3) {
+        // 1위 금색, 2위 은색, 3위 동색
+        const colors = rank === 0 ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50' :
+                       rank === 1 ? 'bg-slate-500/20 text-slate-300 border-slate-500/50' :
+                                    'bg-amber-700/20 text-amber-500 border-amber-700/50';
+        titles.push({ type, name: titleArr[rank], color: colors, icon: RANKING_INFO[type].icon, rank: rank + 1 });
+      }
     };
 
-    pushIfTop3('TELOS', 'TELOS', TOP_TITLES.TELOS, 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50');
-    pushIfTop3('PIETAS', 'PIETAS', TOP_TITLES.PIETAS, 'bg-purple-500/20 text-purple-400 border-purple-500/50');
+    pushIfTop3('TELOS', TOP_TITLES.TELOS);
+    pushIfTop3('PIETAS', TOP_TITLES.PIETAS);
 
     const kratosRank = [...dbCharacters].filter(c => c.job === char.job).sort((a,b) => b.combatPower - a.combatPower).findIndex(c => c.id === char.id);
     const kTitles = CLASS_TITLES[char.job];
     if (kTitles) {
-      if(kratosRank >= 0 && kratosRank < 3) titles.push({ type: 'KRATOS', name: kTitles[kratosRank], color: 'bg-red-500/20 text-red-400 border-red-700/50' });
-      else titles.push({ type: 'KRATOS', name: kTitles[3], color: 'bg-zinc-800 text-zinc-400 border-zinc-700' });
+      if(kratosRank >= 0 && kratosRank < 3) {
+        const colors = kratosRank === 0 ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50' :
+                       kratosRank === 1 ? 'bg-slate-500/20 text-slate-300 border-slate-500/50' :
+                                          'bg-amber-700/20 text-amber-500 border-amber-700/50';
+        titles.push({ type: 'KRATOS', name: kTitles[kratosRank], color: colors, icon: RANKING_INFO.KRATOS.icon, rank: kratosRank + 1 });
+      } else {
+        titles.push({ type: 'KRATOS', name: kTitles[3], color: 'bg-zinc-800 text-zinc-400 border-zinc-700', icon: RANKING_INFO.KRATOS.icon, rank: 4 });
+      }
     }
 
-    pushIfTop3('TECHNE', 'TECHNE', TOP_TITLES.TECHNE, 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50');
-    pushIfTop3('HARMONIA', 'HARMONIA', TOP_TITLES.HARMONIA, 'bg-pink-500/20 text-pink-400 border-pink-500/50');
+    pushIfTop3('TECHNE', TOP_TITLES.TECHNE);
+    pushIfTop3('HARMONIA', TOP_TITLES.HARMONIA);
 
     return titles;
   };
@@ -292,13 +258,17 @@ export default function AgoraLoungePage() {
 
   const allSortedCharacters = getAllSortedCharacters();
   const rankedCharacters = getRankedCharacters();
-  
-  // 🟢 ASTRA 용: 대표 캐릭터(isMain === true)만 추출
   const mainCharacters = dbCharacters.filter(c => c.isMain).sort((a, b) => b.combatPower - a.combatPower);
 
   return (
     <main className="min-h-screen bg-[#121212] text-[#d4d4d8] font-sans pb-10 relative">
-      <div className="p-4 md:p-8 max-w-[1200px] mx-auto space-y-8 pt-8">
+      
+      {/* 바깥 배경 클릭 시 하단 칭호 툴팁을 닫기 위한 투명 레이어 */}
+      {openClickTooltipId && (
+        <div className="fixed inset-0 z-[80]" onClick={() => setOpenClickTooltipId(null)}></div>
+      )}
+
+      <div className="p-4 md:p-8 max-w-[1200px] mx-auto space-y-8 pt-8 relative z-10">
         
         <header className="relative overflow-hidden rounded-xl bg-gradient-to-br from-[#1c1c1e] via-[#151515] to-[#1a1a1c] border border-zinc-800 py-3 px-6 shadow-xl mb-6">
           <div className="absolute top-0 left-0 w-1.5 h-full bg-[#e6c788] shadow-[0_0_15px_#e6c788]"></div>
@@ -314,7 +284,6 @@ export default function AgoraLoungePage() {
                   아고라 : 길드 라운지
                 </span>
               </div>
-              
               <button 
                 onClick={() => setShowLoreGuide(true)} 
                 className="w-7 h-7 flex items-center justify-center rounded-full bg-zinc-800/80 border border-zinc-700 text-zinc-400 hover:text-[#e6c788] hover:bg-zinc-800 hover:border-[#e6c788] transition-all ml-2" 
@@ -348,11 +317,11 @@ export default function AgoraLoungePage() {
                 <div><h3 className="text-lg font-bold text-white mb-1">✨ ASTRA (아스트라 / 길드원 현황)</h3><p>한 명 한 명이 하나의 별이며, 모두가 함께 성역을 이룹니다. 길드원의 정보와 성장 기록을 확인합니다.</p></div>
                 <div><h3 className="text-lg font-bold text-white mb-1">🏛️ PANTHEON (판테온 / 성역 랭킹)</h3><p>성역의 모두와 그중 빛나는 이들을 기록하는 명예의 전당입니다. 5개의 철학적 기록으로 나뉩니다.</p>
                   <ul className="mt-3 space-y-2 pl-4 border-l-2 border-zinc-700">
-                    <li><strong className="text-[#e6c788]">TELOS (텔로스)</strong>: 종합 랭킹. 도달과 완성의 기록.</li>
-                    <li><strong className="text-[#e6c788]">KRATOS (크라토스)</strong>: 전투력 랭킹. 힘과 권능의 기록.</li>
-                    <li><strong className="text-[#e6c788]">TECHNĒ (테크네)</strong>: 생활력 랭킹. 기술과 숙련의 기록.</li>
-                    <li><strong className="text-[#e6c788]">HARMONIA (하르모니아)</strong>: 매력 랭킹. 아름다움과 조화의 기록.</li>
-                    <li><strong className="text-[#e6c788]">PIETAS (피에타스)</strong>: 공헌도 랭킹. 헌신과 공헌의 기록.</li>
+                    <li><strong className="text-[#e6c788]">🌟 TELOS (텔로스)</strong>: 종합 랭킹. 도달과 완성의 기록.</li>
+                    <li><strong className="text-[#e6c788]">⚔️ KRATOS (크라토스)</strong>: 전투력 랭킹. 힘과 권능의 기록.</li>
+                    <li><strong className="text-[#e6c788]">🛠️ TECHNĒ (테크네)</strong>: 생활력 랭킹. 기술과 숙련의 기록.</li>
+                    <li><strong className="text-[#e6c788]">✨ HARMONIA (하르모니아)</strong>: 매력 랭킹. 아름다움과 조화의 기록.</li>
+                    <li><strong className="text-[#e6c788]">🤝 PIETAS (피에타스)</strong>: 공헌도 랭킹. 헌신과 공헌의 기록.</li>
                   </ul>
                 </div>
               </div>
@@ -373,7 +342,6 @@ export default function AgoraLoungePage() {
 
         {activeMainTab === 'PANTHEON' && (
           <section className="space-y-8 animate-in fade-in duration-300">
-            
             <div className="flex flex-wrap justify-center gap-3">
               {(Object.keys(RANKING_INFO) as Array<keyof typeof RANKING_INFO>).map((key) => {
                 const info = RANKING_INFO[key];
@@ -388,7 +356,10 @@ export default function AgoraLoungePage() {
             </div>
 
             <div className="text-center py-2">
-              <h2 className="text-3xl font-black text-white tracking-widest">{RANKING_INFO[activeRankTab].en}</h2>
+              <h2 className="text-3xl font-black text-white tracking-widest flex justify-center items-center gap-3">
+                <span>{RANKING_INFO[activeRankTab].icon}</span>
+                {RANKING_INFO[activeRankTab].en}
+              </h2>
               <p className="text-zinc-400 text-sm mt-2 font-bold">「 {RANKING_INFO[activeRankTab].desc} 」</p>
             </div>
 
@@ -416,7 +387,8 @@ export default function AgoraLoungePage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {rankedCharacters.map((char) => {
                 const earnedTitles = getAllEarnedTitles(char);
-                const currentRankTitle = earnedTitles.find(t => t.type === activeRankTab)?.name || '';
+                const currentRankTitleInfo = earnedTitles.find(t => t.type === activeRankTab);
+                const currentRankTitle = currentRankTitleInfo?.name || '';
                 const score = getScore(char, activeRankTab);
                 
                 const categoryRank = allSortedCharacters.findIndex(c => c.id === char.id) + 1;
@@ -424,13 +396,12 @@ export default function AgoraLoungePage() {
                 const rankToUse = activeRankTab === 'KRATOS' ? classRank : categoryRank;
                 const isTop3 = categoryRank <= 3;
                 
-                const tooltipId = `${char.id}-${activeRankTab}`;
-                const isTooltipOpen = openTooltipId === tooltipId;
-                
-                const loreData = generateLore(currentRankTitle, rankToUse, char.job, activeRankTab);
+                const hoverTooltipId = `hover-${char.id}-${activeRankTab}`;
+                const isHoverTooltipOpen = openHoverTooltipId === hoverTooltipId;
+                const topLoreData = generateLore(currentRankTitle, rankToUse, char.job, activeRankTab);
 
                 return (
-                  <div key={char.id} className={`relative bg-gradient-to-b from-[#1c1c1e] to-[#121212] border ${isTop3 ? 'border-[#e6c788]/40 shadow-[0_5px_20px_rgba(230,199,136,0.1)]' : 'border-zinc-800'} rounded-2xl p-6 group hover:border-zinc-500 transition-all ${isTooltipOpen ? 'z-50' : 'z-10'}`}>
+                  <div key={char.id} className={`relative bg-gradient-to-b from-[#1c1c1e] to-[#121212] border ${isTop3 ? 'border-[#e6c788]/40 shadow-[0_5px_20px_rgba(230,199,136,0.1)]' : 'border-zinc-800'} rounded-2xl p-6 group hover:border-zinc-500 transition-all ${isHoverTooltipOpen ? 'z-50' : 'z-10'}`}>
                     
                     <div className={`absolute right-0 top-0 w-16 h-16 rounded-bl-3xl rounded-tr-2xl flex items-center justify-center font-black text-2xl shadow-bl ${
                       categoryRank === 1 ? 'bg-gradient-to-br from-yellow-300 to-yellow-600 text-black' :
@@ -443,33 +414,34 @@ export default function AgoraLoungePage() {
                     <div className="flex flex-col gap-4">
                       <div className="pr-12">
                         {currentRankTitle && rankToUse <= 3 ? (
+                          // 상단 칭호: 오직 마우스 오버(Hover) 시에만 작동
                           <div 
                             className="relative inline-block mb-2"
-                            onMouseEnter={() => setOpenTooltipId(tooltipId)}
-                            onMouseLeave={() => setOpenTooltipId(null)}
-                            onClick={() => setOpenTooltipId(isTooltipOpen ? null : tooltipId)}
+                            onMouseEnter={() => setOpenHoverTooltipId(hoverTooltipId)}
+                            onMouseLeave={() => setOpenHoverTooltipId(null)}
                           >
-                            <button className={`text-[11px] font-black px-2 py-1 rounded-md inline-flex items-center gap-1 cursor-pointer transition-transform hover:scale-105 hover:shadow-lg ${
-                              rankToUse === 1 || currentRankTitle === CLASS_TITLES[char.job]?.[0] ? 'bg-red-900/40 text-red-400 border border-red-700/50 hover:bg-red-900/60' :
-                              rankToUse === 2 || currentRankTitle === CLASS_TITLES[char.job]?.[1] ? 'bg-blue-900/40 text-blue-400 border border-blue-700/50 hover:bg-blue-900/60' :
-                              'bg-green-900/40 text-green-400 border border-green-700/50 hover:bg-green-900/60'
+                            <span className={`text-[11px] font-black px-2 py-1 rounded-md inline-flex items-center gap-1 transition-transform cursor-help ${
+                              rankToUse === 1 ? 'bg-yellow-900/40 text-yellow-400 border border-yellow-700/50' :
+                              rankToUse === 2 ? 'bg-slate-800 text-slate-300 border border-slate-600/50' :
+                              'bg-amber-900/40 text-amber-500 border border-amber-700/50'
                             }`}>
+                              <span>{RANKING_INFO[activeRankTab].icon}</span>
                               {currentRankTitle}
-                            </button>
+                            </span>
 
-                            {isTooltipOpen && (
+                            {isHoverTooltipOpen && (
                               <div className="absolute top-[calc(100%+8px)] left-0 w-[300px] bg-[#1a1a1c] border border-zinc-700 rounded-xl p-4 shadow-2xl animate-in fade-in zoom-in-95 duration-150 z-[100] cursor-default" onClick={e => e.stopPropagation()}>
                                 <div className="absolute -top-1.5 left-6 w-3 h-3 bg-[#1a1a1c] border-t border-l border-zinc-700 transform rotate-45"></div>
                                 <div className="relative z-10 flex flex-col gap-3">
                                   <div className="flex items-center gap-1.5">
-                                    <span className="text-[15px]">✨</span>
-                                    <span className="font-black text-[#e6c788] text-[15px] tracking-wide">[{loreData.title}]</span>
+                                    <span className="text-[15px]">{RANKING_INFO[activeRankTab].icon}</span>
+                                    <span className="font-black text-[#e6c788] text-[15px] tracking-wide">[{topLoreData.title}]</span>
                                   </div>
-                                  <p className="text-[13px] font-bold text-zinc-300 leading-snug break-keep">{loreData.meaning}</p>
+                                  <p className="text-[13px] font-bold text-zinc-300 leading-snug break-keep">{topLoreData.meaning}</p>
                                   <div className="w-full h-px bg-zinc-700/60"></div>
-                                  <p className="text-[13px] font-bold text-zinc-200 leading-relaxed break-keep">{loreData.tribute}</p>
+                                  <p className="text-[13px] font-bold text-zinc-200 leading-relaxed break-keep">{topLoreData.tribute}</p>
                                   <div className="mt-1 bg-black/40 border border-zinc-800/80 rounded-md p-2">
-                                    <p className="text-[10px] font-bold text-zinc-400 text-center break-keep">{loreData.sourceText}</p>
+                                    <p className="text-[10px] font-bold text-zinc-400 text-center break-keep">{topLoreData.sourceText}</p>
                                   </div>
                                 </div>
                               </div>
@@ -477,8 +449,8 @@ export default function AgoraLoungePage() {
                           </div>
                         ) : (
                           currentRankTitle && (
-                            <span className="text-[11px] font-black px-2 py-1 rounded-md mb-2 inline-block bg-zinc-800 text-zinc-400 border border-zinc-700">
-                              {currentRankTitle}
+                            <span className="text-[11px] font-black px-2 py-1 rounded-md mb-2 inline-flex items-center gap-1 bg-zinc-800 text-zinc-400 border border-zinc-700">
+                              <span>{RANKING_INFO[activeRankTab].icon}</span> {currentRankTitle}
                             </span>
                           )
                         )}
@@ -487,10 +459,42 @@ export default function AgoraLoungePage() {
                         <div className="text-xs text-zinc-400 font-bold mt-1">{char.job}</div>
                       </div>
 
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {earnedTitles.map(t => (
-                          <span key={t.type} className={`text-[9px] px-1.5 py-0.5 rounded border ${t.color} opacity-80`} title={t.type}>{t.name}</span>
-                        ))}
+                      {/* 하단 보유 칭호 목록: 오직 클릭(Click) 시에만 작동 */}
+                      <div className="flex flex-wrap gap-1.5 mt-1 relative">
+                        {earnedTitles.map(t => {
+                          const clickId = `click-${char.id}-${t.type}-PANTHEON`;
+                          const isClicked = openClickTooltipId === clickId;
+                          const loreData = generateLore(t.name, t.rank, char.job, t.type as any);
+
+                          return (
+                            <div key={t.type} className="relative inline-block">
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); setOpenClickTooltipId(isClicked ? null : clickId); }}
+                                className={`text-[10px] px-1.5 py-0.5 rounded border flex items-center gap-1 cursor-pointer transition-all hover:scale-105 ${t.color} ${isClicked ? 'ring-2 ring-white/50 z-10 opacity-100' : 'opacity-80 hover:opacity-100'}`}
+                              >
+                                <span>{t.icon}</span> <span>{t.name}</span>
+                              </button>
+
+                              {isClicked && (
+                                <div className="absolute top-[calc(100%+8px)] left-0 w-[280px] bg-[#1a1a1c] border border-zinc-600 rounded-xl p-4 shadow-2xl animate-in fade-in zoom-in-95 duration-150 z-[100] cursor-default" onClick={e => e.stopPropagation()}>
+                                  <div className="absolute -top-1.5 left-4 w-3 h-3 bg-[#1a1a1c] border-t border-l border-zinc-600 transform rotate-45"></div>
+                                  <div className="relative z-10 flex flex-col gap-2.5 text-left">
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="text-[14px]">{t.icon}</span>
+                                      <span className="font-black text-white text-[14px] tracking-wide">[{loreData.title}]</span>
+                                    </div>
+                                    <p className="text-[12px] font-bold text-zinc-300 leading-snug break-keep">{loreData.meaning}</p>
+                                    <div className="w-full h-px bg-zinc-700/60"></div>
+                                    <p className="text-[12px] font-bold text-zinc-200 leading-relaxed break-keep">{loreData.tribute}</p>
+                                    <div className="mt-1 bg-black/40 border border-zinc-800/80 rounded-md p-2">
+                                      <p className="text-[9px] font-bold text-zinc-400 text-center break-keep">{loreData.sourceText}</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
 
                       <div className="bg-[#121212] p-4 rounded-xl border border-zinc-800/80 mt-2 space-y-3">
@@ -515,7 +519,7 @@ export default function AgoraLoungePage() {
           </section>
         )}
 
-        {/* 🟢 탭 2: ASTRA (오로지 대표 캐릭터 전용 현황판으로 개편) */}
+        {/* 🟢 탭 2: ASTRA */}
         {activeMainTab === 'ASTRA' && (
           <section className="space-y-4 animate-in fade-in duration-300">
             <div className="flex gap-4 mb-6">
@@ -552,15 +556,47 @@ export default function AgoraLoungePage() {
                           <span className="text-xs text-zinc-400 font-bold">{mainChar.job}</span>
                         </div>
                         <h4 className="text-2xl font-black text-white">{mainChar.name}</h4>
-                        <div className="flex flex-wrap gap-1 mt-1.5">
-                          {mainTitles.length > 0 ? mainTitles.map((t, i) => (
-                            <span key={i} className={`text-[9px] px-1.5 py-0.5 rounded border ${t.color}`}>{t.name}</span>
-                          )) : <span className="text-[9px] text-zinc-600">획득한 칭호 없음</span>}
+                        
+                        {/* ASTRA 탭 하단 보유 칭호 목록: 오직 클릭(Click) 시에만 작동 */}
+                        <div className="flex flex-wrap gap-1.5 mt-2 relative">
+                          {mainTitles.length > 0 ? mainTitles.map(t => {
+                            const clickId = `click-${mainChar.id}-${t.type}-ASTRA`;
+                            const isClicked = openClickTooltipId === clickId;
+                            const loreData = generateLore(t.name, t.rank, mainChar.job, t.type as any);
+
+                            return (
+                              <div key={t.type} className="relative inline-block">
+                                <button 
+                                  onClick={(e) => { e.stopPropagation(); setOpenClickTooltipId(isClicked ? null : clickId); }}
+                                  className={`text-[10px] px-1.5 py-0.5 rounded border flex items-center gap-1 cursor-pointer transition-all hover:scale-105 ${t.color} ${isClicked ? 'ring-2 ring-white/50 z-10 opacity-100' : 'opacity-80 hover:opacity-100'}`}
+                                >
+                                  <span>{t.icon}</span> <span>{t.name}</span>
+                                </button>
+
+                                {isClicked && (
+                                  <div className="absolute top-[calc(100%+8px)] left-0 w-[280px] bg-[#1a1a1c] border border-zinc-600 rounded-xl p-4 shadow-2xl animate-in fade-in zoom-in-95 duration-150 z-[100] cursor-default" onClick={e => e.stopPropagation()}>
+                                    <div className="absolute -top-1.5 left-4 w-3 h-3 bg-[#1a1a1c] border-t border-l border-zinc-600 transform rotate-45"></div>
+                                    <div className="relative z-10 flex flex-col gap-2.5 text-left">
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="text-[14px]">{t.icon}</span>
+                                        <span className="font-black text-white text-[14px] tracking-wide">[{loreData.title}]</span>
+                                      </div>
+                                      <p className="text-[12px] font-bold text-zinc-300 leading-snug break-keep">{loreData.meaning}</p>
+                                      <div className="w-full h-px bg-zinc-700/60"></div>
+                                      <p className="text-[12px] font-bold text-zinc-200 leading-relaxed break-keep">{loreData.tribute}</p>
+                                      <div className="mt-1 bg-black/40 border border-zinc-800/80 rounded-md p-2">
+                                        <p className="text-[9px] font-bold text-zinc-400 text-center break-keep">{loreData.sourceText}</p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          }) : <span className="text-[9px] text-zinc-600">획득한 칭호 없음</span>}
                         </div>
                       </div>
                     </div>
 
-                    {/* 🟢 대표 캐릭터의 4가지 주요 스탯을 한눈에 표시 */}
                     <div className="flex flex-col xl:items-end justify-center min-w-[250px]">
                       <span className="text-[10px] text-[#e6c788] font-bold mb-2 tracking-widest">대표 스탯 현황</span>
                       <div className="grid grid-cols-2 gap-2 text-xs w-full xl:w-auto">
