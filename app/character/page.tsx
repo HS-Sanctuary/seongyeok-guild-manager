@@ -32,14 +32,12 @@ export default function CharacterPage() {
   const [mounted, setMounted] = useState(false);
   const [saved, setSaved] = useState(false);
   
-  // 마스터 데이터
   const [dbClasses, setDbClasses] = useState<any[]>([]);
   const [dbTasks, setDbTasks] = useState<any[]>([]);
   const [dbContents, setDbContents] = useState<any[]>([]);
   const [dbTrades, setDbTrades] = useState<any[]>([]); 
-  const [allCharacters, setAllCharacters] = useState<any[]>([]); // 칭호 계산용 전체 유저 데이터
+  const [allCharacters, setAllCharacters] = useState<any[]>([]);
 
-  // 내 데이터
   const [myCharacters, setMyCharacters] = useState<any[]>([]);
   const [accountContribution, setAccountContribution] = useState<string>("");
 
@@ -56,7 +54,8 @@ export default function CharacterPage() {
 
   // UI 상태
   const [isLevelOpen, setIsLevelOpen] = useState(false);
-  const [isTradeOpen, setIsTradeOpen] = useState(false); // 기본 닫힘으로 변경
+  const [isTradeOpen, setIsTradeOpen] = useState(false);
+  const [isTitleAccordionOpen, setIsTitleAccordionOpen] = useState(false); // 칭호 아코디언 상태
   
   // 모달 관리 상태
   const [isManageModalOpen, setIsManageModalOpen] = useState(false);
@@ -89,7 +88,7 @@ export default function CharacterPage() {
       supabase.from('nexus_tasks').select('*').eq('is_active', true).order('id'),
       supabase.from('nexus_contents').select('*').eq('is_active', true).order('id'),
       supabase.from('nexus_trades').select('*').order('id'),
-      supabase.from('characters').select('*') // 칭호 계산용
+      supabase.from('characters').select('*')
     ]);
     
     setDbClasses(clsRes.data || []);
@@ -197,7 +196,6 @@ export default function CharacterPage() {
         setMyCharacters((prev: any[]) => [...prev, { nickname: profile.nickname, sort_order: currentSortOrder, job: profile.job }]);
       }
 
-      // 저장 후 최신 데이터를 불러와 칭호 등 계산 갱신
       const allCharsRes = await supabase.from('characters').select('*');
       setAllCharacters(allCharsRes.data || []);
 
@@ -279,13 +277,11 @@ export default function CharacterPage() {
       alert("최소 1개의 캐릭터는 유지되어야 합니다."); return;
     }
     
-    // 삭제 처리
     const toDelete = manageList.filter(c => c.isDeleted && !c.isNew);
     for (const char of toDelete) {
       await supabase.from('characters').delete().eq('nickname', char.originalName);
     }
 
-    // 수정 및 추가 처리
     for (const char of activeChars) {
       const payload: any = {
         owner: user.nickname, sort_order: char.sort_order, job: char.tempJob,
@@ -302,9 +298,8 @@ export default function CharacterPage() {
     }
 
     setIsManageModalOpen(false);
-    // 현재 보고있던 캐릭터가 삭제되었거나 이름이 바뀌었을 수 있으므로 재로딩
     const targetNick = activeChars.find(c => c.originalName === profile.nickname)?.tempNickname || activeChars[0].tempNickname;
-    await fetchMasterData(user.nickname); // 전체 강제 갱신
+    await fetchMasterData(user.nickname); 
     window.history.replaceState(null, '', `?char=${encodeURIComponent(targetNick)}`);
   };
 
@@ -348,7 +343,6 @@ export default function CharacterPage() {
     return titles;
   };
 
-  // 렌더링 헬퍼
   const renderTask = (item: any, type: 'daily' | 'weekly' | 'abyss' | 'raid') => {
     if (item.type?.startsWith('repeat')) {
       const currentCount = (repeatChecks[item.id] || []).filter(Boolean).length;
@@ -480,22 +474,47 @@ export default function CharacterPage() {
         {/* 상단 프로필 */}
         <div className="bg-[#252528] rounded-2xl border border-zinc-700/80 p-6 shadow-xl relative overflow-hidden">
           <div className="flex flex-col md:flex-row gap-8 items-start relative z-10">
-            {/* 이모지 공간을 칭호 전시관으로 변경 */}
-            <div className="w-full md:w-64 flex-shrink-0 bg-[#121212] rounded-xl border border-zinc-700 p-4 h-full flex flex-col justify-center gap-3">
-              <span className="text-xs font-bold text-[#e6c788] tracking-widest flex items-center gap-1.5 mb-1"><span className="text-[10px]">✨</span> 획득한 성역 칭호</span>
-              <div className="flex flex-col gap-2">
-                {earnedTitles.length > 0 ? earnedTitles.map(t => (
-                  <div key={t.type} className={`text-[11px] font-black px-2 py-1.5 rounded-md border text-center break-keep w-full ${t.tagClass}`}>
-                    {t.name}
-                  </div>
-                )) : (
-                  <div className="text-xs text-zinc-600 bg-zinc-800/40 border border-zinc-800 p-3 rounded-md text-center break-keep">
-                    아고라(AGORA)에서 랭킹을 달성해 칭호를 획득해 보세요.
+            
+            {/* 좌측: AI 캐리커처 자리 및 아코디언 칭호 박스 */}
+            <div className="w-full md:w-72 flex-shrink-0 flex flex-col gap-4">
+              {/* AI 캐리커처 프로필 박스 */}
+              <div className="bg-[#121212] rounded-xl border border-zinc-700 p-5 flex flex-col items-center justify-center text-center relative overflow-hidden group h-44 shadow-inner">
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent z-0"></div>
+                <div className="relative z-10 flex flex-col items-center">
+                  <span className="text-4xl mb-2 filter drop-shadow-[0_0_10px_rgba(230,199,136,0.3)]">🎨</span>
+                  <span className="text-xs font-bold text-white tracking-wide">AI 캐리커처 준비 중</span>
+                  <span className="text-[10px] text-zinc-500 mt-1">추후 캐릭터 얼굴 코딩 생성 연동</span>
+                </div>
+              </div>
+
+              {/* 칭호 아코디언 박스 */}
+              <div className="bg-[#121212] rounded-xl border border-zinc-700 overflow-hidden shadow-md">
+                <button 
+                  onClick={() => setIsTitleAccordionOpen(!isTitleAccordionOpen)} 
+                  className="w-full flex items-center justify-between p-3.5 bg-[#1c1c1e] hover:bg-zinc-800 transition text-left"
+                >
+                  <span className="text-xs font-bold text-[#e6c788] tracking-widest flex items-center gap-1.5">
+                    ✨ 획득한 성역 칭호 <span className="text-[10px] bg-zinc-800 text-zinc-400 px-1.5 py-0.2 rounded-full border border-zinc-700">{earnedTitles.length}</span>
+                  </span>
+                  <span className="text-zinc-500 text-xs">{isTitleAccordionOpen ? "▲ 접기" : "▼ 보기"}</span>
+                </button>
+                {isTitleAccordionOpen && (
+                  <div className="p-3 border-t border-zinc-800 max-h-48 overflow-y-auto custom-scrollbar space-y-2 bg-[#121212]">
+                    {earnedTitles.length > 0 ? earnedTitles.map(t => (
+                      <div key={t.type} className={`text-[11px] font-black px-2 py-1.5 rounded-md border text-center break-keep w-full ${t.tagClass}`}>
+                        {t.name}
+                      </div>
+                    )) : (
+                      <div className="text-[11px] text-zinc-500 bg-zinc-900/60 border border-zinc-800 p-3 rounded-md text-center break-keep">
+                        아고라(AGORA) 랭킹을 달성해 칭호를 획득해 보세요.
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
             </div>
 
+            {/* 우측 메인 프로필 내용 */}
             <div className="flex-1 w-full space-y-5">
               <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end border-b border-zinc-700/50 pb-4 gap-4">
                 <div className="flex gap-4 items-end flex-wrap w-full">
@@ -509,23 +528,31 @@ export default function CharacterPage() {
                       {profile.job}
                     </div>
                   </div>
-
-                  <div className="ml-2 pl-4 border-l border-zinc-700/50 flex flex-1 items-center gap-2 overflow-x-auto custom-scrollbar pb-1">
-                    <div className="flex gap-2 items-center">
-                      {myCharacters.map((char: any) => (
-                        <button key={char.nickname} onClick={() => switchCharacter(char.nickname)} className={`flex flex-col items-center border px-3 py-1.5 rounded-lg transition min-w-[80px] ${char.nickname === profile.nickname ? 'bg-[#e6c788]/20 border-[#e6c788] shadow-md' : 'bg-[#1c1c1e] border-zinc-700 hover:border-zinc-500'}`}>
-                          <span className={`text-[12px] font-bold truncate max-w-[90px] ${char.nickname === profile.nickname ? 'text-[#e6c788]' : 'text-zinc-300'}`}>{char.nickname}</span>
-                          <span className="text-[9px] text-zinc-500 mt-0.5">{char.job || '전사'}</span>
-                        </button>
-                      ))}
-                    </div>
-                    <button onClick={openManageModal} className="shrink-0 bg-zinc-800 hover:bg-zinc-700 text-[#e6c788] border border-zinc-600 text-[11px] font-bold px-3 py-2.5 rounded-lg transition ml-2">⚙️ 캐릭터 관리</button>
-                  </div>
                 </div>
 
                 <div className="text-right bg-[#1c1c1e] px-4 py-2 rounded-lg border border-yellow-600/30 shrink-0 min-w-[120px]">
                   <p className="text-[10px] text-[#e6c788] font-bold tracking-widest">누적 레벨</p>
                   <p className="text-3xl font-black text-white leading-none mt-1">{totalLevel} <span className="text-sm font-normal text-zinc-500">LV</span></p>
+                </div>
+              </div>
+
+              {/* 개선된 캐릭터 선택 리스트 (가로 스크롤 제거 -> 2단 반응형 그리드) */}
+              <div className="bg-[#121212] border border-zinc-700/60 rounded-xl p-4 space-y-3">
+                <div className="flex justify-between items-center border-b border-zinc-800 pb-2">
+                  <span className="text-xs font-bold text-zinc-400">보유 캐릭터 목록</span>
+                  <button onClick={openManageModal} className="bg-zinc-800 hover:bg-zinc-700 text-[#e6c788] border border-zinc-600 text-[11px] font-bold px-3 py-1.5 rounded-lg transition">⚙️ 캐릭터 관리</button>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5">
+                  {myCharacters.map((char: any) => (
+                    <button 
+                      key={char.nickname} 
+                      onClick={() => switchCharacter(char.nickname)} 
+                      className={`flex flex-col items-center justify-center p-2.5 rounded-lg border transition text-center ${char.nickname === profile.nickname ? 'bg-[#e6c788]/20 border-[#e6c788] shadow-md' : 'bg-[#1c1c1e] border-zinc-700 hover:border-zinc-500'}`}
+                    >
+                      <span className={`text-xs font-black truncate max-w-full ${char.nickname === profile.nickname ? 'text-[#e6c788]' : 'text-zinc-200'}`}>{char.nickname}</span>
+                      <span className="text-[10px] text-zinc-500 mt-0.5">{char.job || '전사'}</span>
+                    </button>
+                  ))}
                 </div>
               </div>
               
