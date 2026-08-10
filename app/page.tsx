@@ -279,8 +279,10 @@ export default function Home() {
 
       setDailyTasks(sortedTasks.filter(t => t.type === 'daily'));
       setWeeklyTasks(sortedTasks.filter(t => t.type === 'weekly'));
-      setAbyssList(sortedContents.filter(c => c.type === 'abyss'));
-      setRaidList(sortedContents.filter(c => c.type === 'raid'));
+      
+      // 관리자 설정 및 DB의 sort_order 순서를 완벽히 보존하여 정렬
+      setAbyssList(sortedContents.filter(c => c.type === 'abyss').sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)));
+      setRaidList(sortedContents.filter(c => c.type === 'raid').sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)));
 
       const myChars = allChars.filter(char => char.owner === currentUser?.nickname);
       myChars.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
@@ -452,7 +454,7 @@ export default function Home() {
             
             {/* 1. 🌟 Sanctuary ASTRA 통합 박스 (링크 /lounge/astra 고정 및 콤팩트 디자인) */}
             <div 
-              onClick={() => router.push('/lounge')}
+              onClick={() => router.push('/lounge/astra')}
               className="rounded-xl border border-yellow-600/30 bg-[#1c1c1e] p-3 flex flex-col justify-between relative overflow-hidden shadow-lg order-1 cursor-pointer hover:border-yellow-500 transition group h-[115px]"
             >
               <div className="absolute -right-4 -bottom-4 text-5xl opacity-5 group-hover:scale-110 transition-transform">✨</div>
@@ -615,31 +617,33 @@ export default function Home() {
                     <div className="flex flex-col gap-1.5 md:gap-2 bg-[#121212] p-2 md:p-2.5 rounded-lg border border-zinc-800 mt-1">
                       <div className="flex flex-col gap-1 md:gap-1.5">
                         <span className="text-[0.6rem] font-bold text-zinc-500">어비스 ({abyssCount}/{abyssList.length})</span>
-                        <div className="flex flex-wrap gap-1">
+                        {/* 짝수 그리드 정렬 및 줄바꿈 최적화 적용 */}
+                        <div className="grid grid-cols-2 gap-1">
                           {abyssList.length > 0 ? abyssList.map(a => {
                             const isChecked = rChecks.includes(a.id);
                             const dName = a.short_name || formatName(a.name);
                             return (
-                              <span key={a.id} className={`text-[0.6rem] px-1 md:px-1.5 py-0.5 rounded border font-bold transition-colors ${isChecked ? 'bg-emerald-900/40 text-emerald-400 border-emerald-700/50' : 'bg-zinc-800/50 text-zinc-500 border-zinc-700'}`}>
+                              <span key={a.id} className={`text-[0.6rem] px-1 md:px-1.5 py-0.5 rounded border font-bold text-center truncate transition-colors ${isChecked ? 'bg-emerald-900/40 text-emerald-400 border-emerald-700/50' : 'bg-zinc-800/50 text-zinc-500 border-zinc-700'}`}>
                                 {dName}
                               </span>
                             )
-                          }) : <span className="text-zinc-600 font-normal text-[0.6rem]">없음</span>}
+                          }) : <span className="text-zinc-600 font-normal text-[0.6rem] col-span-2 text-center">없음</span>}
                         </div>
                       </div>
                       <div className="border-t border-zinc-800/80"></div>
                       <div className="flex flex-col gap-1 md:gap-1.5">
                         <span className="text-[0.6rem] font-bold text-zinc-500">레이드 ({raidCount}/{raidList.length})</span>
-                        <div className="flex flex-wrap gap-1">
+                        {/* 짝수 그리드 정렬 및 관리자 설정 정렬 순서(카브 -> 에렐 -> 화서 -> 주말) 100% 반영 */}
+                        <div className="grid grid-cols-2 gap-1">
                           {raidList.length > 0 ? raidList.map(r => {
                             const isChecked = rChecks.includes(r.id);
                             const dName = r.short_name || formatName(r.name);
                             return (
-                              <span key={r.id} className={`text-[0.6rem] px-1 md:px-1.5 py-0.5 rounded border font-bold transition-colors ${isChecked ? 'bg-indigo-900/40 text-indigo-400 border-indigo-700/50' : 'bg-zinc-800/50 text-zinc-500 border-zinc-700'}`}>
+                              <span key={r.id} className={`text-[0.6rem] px-1 md:px-1.5 py-0.5 rounded border font-bold text-center truncate transition-colors ${isChecked ? 'bg-indigo-900/40 text-indigo-400 border-indigo-700/50' : 'bg-zinc-800/50 text-zinc-500 border-zinc-700'}`}>
                                 {dName}
                               </span>
                             )
-                          }) : <span className="text-zinc-600 font-normal text-[0.6rem]">없음</span>}
+                          }) : <span className="text-zinc-600 font-normal text-[0.6rem] col-span-2 text-center">없음</span>}
                         </div>
                       </div>
                     </div>
@@ -699,7 +703,7 @@ export default function Home() {
                     )}
 
                     <div className="flex items-center justify-between gap-1.5 bg-[#121212] p-2 rounded-lg border border-zinc-800">
-                      <div className="flex gap-1.5 overflow-x-auto custom-scrollbar flex-1">
+                      <div className="flex gap-1.5 overflow-x-auto custom-scrollbar flex-1 touch-pan-x">
                         {Array.from({ length: isOver4 ? 4 : party.max_members }).map((_, i) => {
                           const m = party.members[i];
                           const actualJob = m ? (allCharactersMap[m.name] || m.job || "전사") : "";

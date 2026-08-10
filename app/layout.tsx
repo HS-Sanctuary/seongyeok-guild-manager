@@ -52,8 +52,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const startFabX = useRef(0);
   const hasMoved = useRef(false);
 
+  const [pendingCount, setPendingCount] = useState(0);
   const [banner, setBanner] = useState<any>(null);
 
+  // 폰트 크기 상태 관리
   useEffect(() => {
     const savedFont = localStorage.getItem('nexus_font_size') || 'normal';
     setFontSizeLevel(savedFont);
@@ -116,7 +118,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     setIsMobileAccountMenuOpen(false);
     setIsFabOpen(false);
     window.dispatchEvent(new CustomEvent("sanctum_account_changed", { detail: acc }));
-    router.refresh();
   };
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -146,15 +147,28 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     window.addEventListener('pointerup', onPointerUp);
   };
 
-  const handleHomeClick = () => {
+  const handleHomeClick = (e: React.MouseEvent) => {
     if (hasMoved.current) return;
     router.push('/');
     setIsFabOpen(false);
   };
 
-  const handleMenuClick = () => {
+  const handleMenuClick = (e: React.MouseEvent) => {
     if (hasMoved.current) return;
     setIsFabOpen(!isFabOpen);
+  };
+
+  useEffect(() => {
+    if (activeAccount && (activeAccount.nickname === "한설" || activeAccount.role === "마스터")) {
+      checkPendingInquiries();
+      const interval = setInterval(checkPendingInquiries, 10000);
+      return () => clearInterval(interval);
+    }
+  }, [activeAccount]);
+
+  const checkPendingInquiries = async () => {
+    const { count, error } = await supabase.from('inquiries').select('*', { count: 'exact', head: true }).eq('status', '대기중');
+    if (!error && count !== null) setPendingCount(count);
   };
 
   useEffect(() => {
@@ -169,7 +183,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       } catch (err) {}
     };
     fetchBanner();
-    const bannerInterval = setInterval(fetchBanner, 5000); 
+    const bannerInterval = setInterval(fetchBanner, 5000);
     return () => clearInterval(bannerInterval);
   }, []);
 
@@ -190,6 +204,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
   if (pathname === '/login') return <html lang="ko"><body>{children}</body></html>;
 
+  const isAdmin = activeAccount?.nickname === "한설" || activeAccount?.role === "마스터";
   const activeColor = activeAccount?.borderColor || "#E6C788";
 
   return (
@@ -197,120 +212,125 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="bg-[#121212] text-zinc-200 overflow-x-hidden min-h-screen relative font-sans">
         
         {activeAccount?.bgImage && (
-          <div 
+          <div
             className="fixed inset-0 z-[-1] bg-cover bg-center pointer-events-none opacity-20 filter blur-[2px]"
             style={{ backgroundImage: `url(${activeAccount.bgImage})` }}
           />
         )}
 
-        {/* 🟢 데스크톱 & 공통 네비게이션 바 */}
-        <nav className="sticky top-0 z-[900] flex flex-col shadow-lg border-b border-zinc-800 bg-[#1c1c1e]/95 backdrop-blur-md w-full">
+        {/* 🟢 데스크톱 네비게이션 바 */}
+        <nav className="sticky top-0 z-[900] flex flex-col shadow-lg border-b border-zinc-800 bg-[#1c1c1e]/90 backdrop-blur-md w-full">
           {banner && (
             <div className="w-full py-2 bg-red-600 text-white text-center text-xs font-black animate-pulse flex items-center justify-center gap-2 border-b border-red-800">
               <span>🚨</span><span>{banner.message}</span><span>🚨</span>
             </div>
           )}
 
-          <div className="max-w-[1500px] mx-auto px-4 md:px-6 w-full">
-            <div className="flex items-center justify-between h-20">
-              
-              <Link href="/" className="flex items-center gap-3 md:gap-4 hover:opacity-80 transition-opacity">
-                <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center shadow-lg transition-colors border border-black/10 relative overflow-hidden" style={{ backgroundColor: activeColor }}>
+          <div className="max-w-7xl mx-auto px-4 w-full">
+            <div className="flex items-center justify-between h-16">
+             
+              {/* 상단 로고 (별 모양 아이콘) */}
+              <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity shrink-0">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg transition-colors border border-black/10 relative overflow-hidden shrink-0" style={{ backgroundColor: activeColor }}>
                   <div className="absolute inset-0 bg-gradient-to-br from-white/30 to-transparent"></div>
-                  <svg className="w-6 h-6 md:w-7 md:h-7 text-black relative z-10 drop-shadow-sm" viewBox="0 0 24 24" fill="currentColor">
+                  <svg className="w-6 h-6 text-black relative z-10 drop-shadow-sm" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12 1L15.39 8.26L23 9.27L17.5 14.14L18.81 21.02L12 17.77L5.19 21.02L6.5 14.14L1 9.27L8.61 8.26L12 1Z" />
                   </svg>
                 </div>
                 <div className="flex flex-col whitespace-nowrap">
-                  <span className="font-black text-xl md:text-2xl text-white leading-none tracking-wider drop-shadow-md">SANCTUM</span>
-                  <span className="text-[0.65rem] md:text-[0.7rem] font-bold tracking-tight mt-1 opacity-90 hidden sm:block text-zinc-400">
-                    데이안 서버 성역 길드 <span className="mx-1 text-zinc-600">|</span> 생텀
-                  </span>
+                  <span className="font-black text-lg text-white leading-none tracking-wider">SANCTUM</span>
+                  <span className="text-[9px] font-bold tracking-tight mt-1 opacity-90 hidden sm:block text-zinc-400">데이안 서버 성역 길드</span>
                 </div>
               </Link>
 
-              <div className="hidden md:flex flex-1 justify-center space-x-2 lg:space-x-4 px-4">
+              {/* 데스크톱 전용 상단 메뉴 (호버 애니메이션 포함) */}
+              <div className="hidden lg:flex space-x-1 xl:space-x-2">
                 {navItems.map((item) => {
                   const isActive = pathname === item.path;
                   return (
-                    <Link 
-                      key={item.en} 
-                      href={item.path} 
-                      className={`group relative flex flex-col items-center justify-center rounded-lg transition-all overflow-hidden px-3.5 py-2 ${isActive ? 'bg-zinc-800/90 border-b-2' : 'hover:bg-zinc-800/50'}`}
+                    <Link
+                      key={item.en}
+                      href={item.path}
+                      className={`group relative flex items-center justify-center rounded-md transition-all overflow-hidden h-11 w-20 xl:w-24 ${isActive ? 'bg-zinc-800/90 border-b-2' : 'hover:bg-zinc-800/50'}`}
                       style={{ borderColor: isActive ? activeColor : 'transparent' }}
                     >
-                      <span className="font-black text-[0.85rem] tracking-wider mb-0.5 text-white">{item.en}</span>
-                      <span className="text-[0.75rem] font-bold" style={{ color: activeColor }}>{item.kr}</span>
-                      {item.hasNew && <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>}
+                      <div className="absolute flex flex-col items-center transition-all duration-300 transform group-hover:-translate-y-8 group-hover:opacity-0 pointer-events-none">
+                        <span className={`font-black text-[11px] xl:text-[13px] leading-tight ${isActive ? 'text-white' : 'text-zinc-300'}`}>{item.kr}</span>
+                        <span className="text-[8px] font-bold" style={{ color: activeColor }}>{item.sub}</span>
+                      </div>
+                      <span className={`absolute font-black tracking-widest text-[10px] xl:text-xs transition-all duration-300 transform translate-y-8 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 ${isActive ? 'text-white' : 'text-zinc-400'}`}>{item.en}</span>
+                      {item.hasNew && <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>}
                     </Link>
                   );
                 })}
               </div>
 
-              <div className="flex items-center gap-2 md:gap-4 relative">
+              {/* 우측 유틸리티 영역 (글자 크기 조절 위젯 복구 + 프로필) */}
+              <div className="hidden lg:flex items-center gap-3 relative shrink-0">
                 
-                <div className="flex items-center gap-0.5 md:gap-1 bg-[#121212] border border-zinc-700 rounded-lg p-1 shadow-inner">
-                  <button onClick={() => setFontSizeLevel('small')} className={`px-2 py-1 rounded text-[0.7rem] font-bold transition ${fontSizeLevel === 'small' ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300'}`}>A-</button>
-                  <button onClick={() => setFontSizeLevel('normal')} className={`px-2 py-1 rounded text-[0.8rem] font-bold transition ${fontSizeLevel === 'normal' ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300'}`}>A</button>
-                  <button onClick={() => setFontSizeLevel('large')} className={`px-2 py-1 rounded text-[0.9rem] font-bold transition ${fontSizeLevel === 'large' ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300'}`}>A+</button>
+                {/* 글자 크기 변경 버튼 위젯 */}
+                <div className="flex items-center bg-[#121212] border border-zinc-700 rounded-lg p-0.5 shadow-inner">
+                  <button onClick={() => setFontSizeLevel('small')} className={`px-2 py-1 rounded text-[11px] font-bold transition ${fontSizeLevel === 'small' ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}>A-</button>
+                  <button onClick={() => setFontSizeLevel('normal')} className={`px-2 py-1 rounded text-[11px] font-bold transition ${fontSizeLevel === 'normal' ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}>A</button>
+                  <button onClick={() => setFontSizeLevel('large')} className={`px-2 py-1 rounded text-[11px] font-bold transition ${fontSizeLevel === 'large' ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}>A+</button>
                 </div>
 
                 {activeAccount ? (
-                  <div className="relative hidden md:block">
-                    <button onClick={() => setIsAccountMenuOpen(!isAccountMenuOpen)} className="flex items-center gap-2.5 bg-[#121212] hover:bg-zinc-800 px-4 py-2 rounded-full border transition shadow-md" style={{ borderColor: activeColor }}>
-                      <div className="w-7 h-7 rounded-full flex items-center justify-center text-[0.8rem] bg-zinc-800">👑</div>
-                      <div className="flex flex-col text-left leading-tight">
-                        <span className="text-[0.85rem] font-bold text-white flex items-center gap-1">{activeAccount.alias || activeAccount.nickname}</span>
-                        <span className="text-[0.65rem] font-bold uppercase" style={{ color: activeColor }}>{activeAccount.role}</span>
+                  <div className="relative">
+                    <button onClick={() => setIsAccountMenuOpen(!isAccountMenuOpen)} className="flex items-center gap-2 bg-[#121212] hover:bg-zinc-800 px-3 py-1.5 rounded-full border transition shadow-md whitespace-nowrap" style={{ borderColor: activeColor }}>
+                      <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs bg-zinc-800 shrink-0">👑</div>
+                      <div className="flex flex-col text-left leading-none">
+                        <span className="text-xs font-bold text-white flex items-center gap-1 max-w-[100px] truncate">{activeAccount.alias || activeAccount.nickname}</span>
+                        <span className="text-[9px] text-zinc-500">{activeAccount.role}</span>
                       </div>
-                      <span className="text-[0.6rem] text-zinc-400 ml-1">▼</span>
+                      <span className="text-[9px] text-zinc-400 ml-1">▼</span>
                     </button>
 
                     {isAccountMenuOpen && (
-                      <div className="absolute right-0 mt-2 w-56 bg-[#1c1c1e] border border-zinc-700 rounded-xl shadow-2xl z-[1000] overflow-hidden p-2 animate-in fade-in slide-in-from-top-2">
-                        <div className="text-[0.65rem] font-bold text-zinc-500 px-2 py-1">현재 활성 계정</div>
+                      <div className="absolute right-0 mt-2 w-56 bg-[#1c1c1e] border border-zinc-700 rounded-xl shadow-2xl z-[1000] overflow-hidden p-2">
+                        <div className="text-[10px] font-bold text-zinc-500 px-2 py-1">현재 활성 계정</div>
                         <div className="flex items-center justify-between p-2 rounded-lg bg-zinc-800/80 mb-2 border-l-4" style={{ borderColor: activeColor }}>
-                          <span className="text-[0.8rem] font-black text-white">{activeAccount.alias || activeAccount.nickname}</span>
-                          <span className="text-[0.6rem] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded">접속중</span>
+                          <span className="text-xs font-black text-white truncate">{activeAccount.alias || activeAccount.nickname}</span>
+                          <span className="text-[9px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded shrink-0">선택됨</span>
                         </div>
 
                         {accounts.filter(a => a.id !== activeAccount.id).length > 0 && (
                           <>
-                            <div className="text-[0.65rem] font-bold text-zinc-500 px-2 py-1 border-t border-zinc-800 mt-1">계정 빠른 스위칭</div>
+                            <div className="text-[10px] font-bold text-zinc-500 px-2 py-1 border-t border-zinc-800 mt-1">계정 빠른 스위칭</div>
                             {accounts.filter(a => a.id !== activeAccount.id).map(acc => (
-                              <button key={acc.id} onClick={() => switchAccount(acc)} className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-zinc-800 text-left transition my-0.5 border border-transparent hover:border-zinc-700">
-                                <span className="text-[0.8rem] font-bold text-zinc-300">{acc.alias || acc.nickname}</span>
-                                <span className="text-[0.6rem] bg-zinc-700 text-zinc-400 px-1.5 py-0.5 rounded">전환</span>
+                              <button key={acc.id} onClick={() => switchAccount(acc)} className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-zinc-800 text-left transition my-0.5">
+                                <span className="text-xs font-bold text-zinc-300 truncate">{acc.alias || acc.nickname}</span>
+                                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: acc.borderColor }}></span>
                               </button>
                             ))}
                           </>
                         )}
 
-                        <div className="border-t border-zinc-800 mt-2 pt-2 flex flex-col gap-1.5">
-                          <Link href="/login" className="w-full text-center text-[0.8rem] font-bold text-[#e6c788] hover:bg-zinc-800 py-1.5 rounded transition">➕ 계정 추가 로그인</Link>
-                          <Link href="/admin" className="w-full text-center text-[0.8rem] font-bold text-zinc-300 hover:text-white hover:bg-zinc-800 py-1.5 rounded transition">⚙️ SANCTUM 관리자 설정</Link>
-                          <button onClick={handleLogout} className="w-full text-center text-[0.8rem] font-bold text-red-400 hover:bg-red-950/30 py-1.5 rounded transition mt-1">🚪 현재 계정 로그아웃</button>
+                        <div className="border-t border-zinc-800 mt-2 pt-1 flex flex-col gap-1">
+                          <Link href="/login" className="w-full text-center text-xs font-bold text-[#e6c788] hover:bg-zinc-800 py-1.5 rounded transition">➕ 계정 추가 로그인</Link>
+                          {isAdmin && <Link href="/admin" className="w-full text-center text-xs font-bold text-zinc-400 hover:text-white hover:bg-zinc-800 py-1.5 rounded transition">⚙️ SANCTUM 관리자 {pendingCount > 0 && <span className="bg-red-500 text-white px-1.5 py-0.2 rounded-full text-[9px] ml-1">{pendingCount}</span>}</Link>}
+                          <button onClick={handleLogout} className="w-full text-center text-xs font-bold text-red-400 hover:bg-red-950/30 py-1.5 rounded transition">🚪 현재 계정 로그아웃</button>
                         </div>
                       </div>
                     )}
                   </div>
                 ) : (
-                  <Link href="/login" className="text-[0.8rem] font-bold text-[#e6c788] hover:text-yellow-400 hidden md:block">로그인</Link>
+                  <Link href="/login" className="text-xs font-bold text-[#e6c788] hover:text-yellow-400">로그인</Link>
                 )}
               </div>
             </div>
           </div>
         </nav>
 
-        {/* 📱 듀얼 플로팅 알약 버튼 (모바일) */}
-        <div 
-          className="md:hidden fixed bottom-6 z-[10000] flex items-center bg-[#1c1c1e] rounded-full shadow-[0_0_15px_rgba(0,0,0,0.7)] border-[1.5px] cursor-grab active:cursor-grabbing select-none"
+        {/* 📱 듀얼 플로팅 알약 버튼 */}
+        <div
+          className="lg:hidden fixed bottom-6 z-[10000] flex items-center bg-[#1c1c1e] rounded-full shadow-[0_0_15px_rgba(0,0,0,0.7)] border-[1.5px] cursor-grab active:cursor-grabbing select-none"
           style={{ right: `${fabPosition.x}px`, borderColor: activeColor }}
           onPointerDown={handlePointerDown}
         >
           <button onClick={handleHomeClick} className="w-[3.2rem] h-[3.2rem] flex items-center justify-center border-r border-zinc-800 hover:bg-zinc-800 rounded-l-full transition-colors">
             <svg className="w-5 h-5 drop-shadow-sm" style={{ color: activeColor }} viewBox="0 0 24 24" fill="currentColor">
-               <path d="M12 1L15.39 8.26L23 9.27L17.5 14.14L18.81 21.02L12 17.77L5.19 21.02L6.5 14.14L1 9.27L8.61 8.26L12 1Z" />
+               <path d="M12 1L15.39 8.26L23 9.27L17.5 14.14L18.81 21.02L12 17.77L5.19 21.02L6.5 14.14L1-9.27L8.61 8.26L12 1Z" />
             </svg>
           </button>
           <button onClick={handleMenuClick} className={`w-[3.2rem] h-[3.2rem] flex items-center justify-center rounded-r-full transition-colors relative ${isFabOpen ? 'bg-zinc-800' : 'hover:bg-zinc-800'}`}>
@@ -323,22 +343,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </button>
         </div>
 
-        {/* 📱 모바일 바텀 시트 오버레이 */}
-        <div 
-          className={`fixed inset-0 z-[9998] md:hidden bg-black/70 backdrop-blur-sm transition-opacity duration-300 ${isFabOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+        {/* 📱 바텀 시트 오버레이 */}
+        <div
+          className={`fixed inset-0 z-[9998] lg:hidden bg-black/70 backdrop-blur-sm transition-opacity duration-300 ${isFabOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
           onClick={() => setIsFabOpen(false)}
         />
 
-        {/* 📱 모바일 바텀 시트 */}
-        <div 
-          className={`fixed inset-x-0 bottom-0 z-[9999] md:hidden bg-[#1c1c1e] border-t-[1.5px] rounded-t-[28px] p-4 shadow-2xl flex flex-col transition-transform duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] ${isFabOpen ? 'translate-y-0' : 'translate-y-[120%]'}`}
+        {/* 📱 초압축 바텀 시트 (노란색 activeColor 포인트 적용 + 글자 크기 조절 위젯 내장) */}
+        <div
+          className={`fixed inset-x-0 bottom-0 z-[9999] lg:hidden bg-[#1c1c1e] border-t-[1.5px] rounded-t-[28px] p-4 shadow-2xl flex flex-col transition-transform duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] ${isFabOpen ? 'translate-y-0' : 'translate-y-[120%]'}`}
           style={{ borderColor: activeColor }}
         >
           <div className="w-10 h-1.5 bg-zinc-700 rounded-full mx-auto mb-4" />
 
           <div className="overflow-y-auto custom-scrollbar flex flex-col gap-3 pb-16">
-            
-            {/* 메뉴 그리드 */}
+           
             <div className="grid grid-cols-2 gap-2.5">
               {navItems.map((item) => {
                 const isActive = pathname === item.path;
@@ -350,16 +369,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     className={`relative overflow-hidden flex flex-col justify-center px-4 py-3.5 rounded-xl border transition-colors ${isActive ? 'bg-zinc-800/90 border-l-[3px] shadow-sm' : 'bg-[#252528] border-zinc-800'}`}
                     style={{ borderLeftColor: isActive ? activeColor : undefined }}
                   >
-                    <span className="absolute -right-1 -bottom-2 text-3xl font-black italic opacity-[0.06] text-white select-none pointer-events-none uppercase tracking-tighter">
+                    <span className="absolute -right-1 -bottom-2 text-[32px] font-black italic opacity-[0.06] text-white select-none pointer-events-none uppercase tracking-tighter">
                       {item.en}
                     </span>
-                    
+                   
                     {isActive && <div className="absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-[#e6c788]/10 to-transparent pointer-events-none"></div>}
 
                     <div className="relative z-10 flex items-center justify-between w-full">
                       <div className="flex flex-col">
-                        <span className="font-black text-[0.95rem] tracking-wide leading-tight" style={{ color: activeColor }}>{item.kr}</span>
-                        <span className="text-[0.65rem] font-bold text-zinc-300 mt-1">{item.sub}</span>
+                        <span className="font-black text-[15px] tracking-wide leading-tight" style={{ color: activeColor }}>{item.kr}</span>
+                        <span className="text-[10px] font-bold mt-1 text-zinc-400">{item.sub}</span>
                       </div>
                       {item.hasNew && <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shadow-[0_0_5px_red] self-start mt-1.5"></span>}
                     </div>
@@ -368,19 +387,32 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               })}
             </div>
 
-            {/* 계정 설정 영역 */}
+            {/* 계정 설정 및 폰트 조절 바텀 박스 */}
             <div className="bg-[#121212] rounded-xl border border-zinc-700/60 overflow-hidden mt-1">
               <div className="flex items-center justify-between px-3.5 py-3 bg-[#252528]">
-                
+               
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-zinc-800 border border-zinc-600 flex items-center justify-center text-[0.8rem] shadow-inner">👑</div>
+                  <div className="w-9 h-9 rounded-full bg-zinc-800 border border-zinc-600 flex items-center justify-center text-sm shadow-inner">👑</div>
                   <div className="flex flex-col">
-                    <span className="text-[0.9rem] font-black text-white leading-tight">{activeAccount?.alias || activeAccount?.nickname || "로그인 필요"}</span>
-                    <span className="text-[0.65rem] font-bold uppercase mt-0.5" style={{ color: activeColor }}>{activeAccount?.role || "길드원"}</span>
+                    <span className="text-sm font-black text-white leading-tight">{activeAccount?.alias || activeAccount?.nickname || "로그인 필요"}</span>
+                    <span className="text-[10px] font-bold uppercase mt-0.5" style={{ color: activeColor }}>{activeAccount?.role || "길드원"}</span>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
+                 
+                  {/* 모바일 폰트 크기 변경 위젯 */}
+                  <div className="flex items-center bg-[#121212] border border-zinc-700 rounded p-0.5">
+                    <button onClick={() => setFontSizeLevel('small')} className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${fontSizeLevel === 'small' ? 'bg-zinc-700 text-white' : 'text-zinc-500'}`}>A-</button>
+                    <button onClick={() => setFontSizeLevel('normal')} className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${fontSizeLevel === 'normal' ? 'bg-zinc-700 text-white' : 'text-zinc-500'}`}>A</button>
+                    <button onClick={() => setFontSizeLevel('large')} className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${fontSizeLevel === 'large' ? 'bg-zinc-700 text-white' : 'text-zinc-500'}`}>A+</button>
+                  </div>
+
+                  <button className="relative p-1.5 rounded-md bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 transition-colors">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                    <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 rounded-full text-[8px] font-black flex items-center justify-center text-white border border-[#252528]">2</span>
+                  </button>
+
                   <button
                     onClick={() => setIsMobileAccountMenuOpen(!isMobileAccountMenuOpen)}
                     className={`p-1.5 rounded-md border transition-all duration-300 ${isMobileAccountMenuOpen ? 'bg-zinc-700 text-white border-zinc-500' : 'bg-zinc-800 text-zinc-400 border-zinc-700'}`}
@@ -395,21 +427,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
               {isMobileAccountMenuOpen && (
                 <div className="p-3 flex flex-col gap-1.5 border-t border-zinc-800 bg-[#1a1a1c] animate-in fade-in slide-in-from-top-2">
-                  <div className="text-[0.65rem] font-bold text-zinc-500 px-2 mb-1">빠른 계정 스위칭</div>
-                  
+                  <div className="text-[10px] font-bold text-zinc-500 px-2 mb-1">빠른 계정 스위칭</div>
+                 
                   {accounts.filter(a => a.id !== activeAccount?.id).map(acc => (
                     <button key={acc.id} onClick={() => switchAccount(acc)} className="w-full flex items-center justify-between p-2.5 rounded-lg bg-zinc-800/60 hover:bg-zinc-700 text-left transition border border-zinc-700/50">
-                      <span className="text-[0.8rem] font-bold text-zinc-200">{acc.alias || acc.nickname}</span>
-                      <span className="text-[0.6rem] text-zinc-400 bg-zinc-700 px-1.5 py-0.5 rounded-md">전환</span>
+                      <span className="text-xs font-bold text-zinc-200">{acc.alias || acc.nickname}</span>
+                      <span className="text-[9px] text-zinc-500 bg-[#121212] px-1.5 py-0.5 rounded-md">스위치 🔄</span>
                     </button>
                   ))}
-                  {accounts.filter(a => a.id !== activeAccount?.id).length === 0 && <div className="text-[0.65rem] text-zinc-600 px-2 py-1 text-center">등록된 부계정이 없습니다.</div>}
+                  {accounts.filter(a => a.id !== activeAccount?.id).length === 0 && <div className="text-[10px] text-zinc-600 px-2 py-1 text-center">등록된 부계정이 없습니다.</div>}
 
                   <div className="h-px w-full bg-zinc-800 my-1"></div>
-                  
-                  <Link href="/login" onClick={() => setIsFabOpen(false)} className="w-full text-center text-[0.75rem] font-bold text-[#e6c788] bg-yellow-900/10 py-2.5 rounded-lg transition border border-yellow-900/30">➕ 계정 추가 로그인</Link>
-                  <Link href="/admin" onClick={() => setIsFabOpen(false)} className="w-full text-center text-[0.75rem] font-bold text-zinc-300 bg-zinc-800/80 py-2.5 rounded-lg transition border border-zinc-700">⚙️ SANCTUM 관리자 메뉴</Link>
-                  <button onClick={handleLogout} className="w-full text-center text-[0.75rem] font-bold text-red-400 bg-red-950/20 py-2.5 rounded-lg transition border border-red-900/30">🚪 활성 계정 로그아웃</button>
+                 
+                  <Link href="/login" onClick={() => setIsFabOpen(false)} className="w-full text-center text-[11px] font-bold text-[#e6c788] bg-yellow-900/10 py-2.5 rounded-lg transition border border-yellow-900/30">➕ 계정 추가 로그인</Link>
+                  {isAdmin && <Link href="/admin" onClick={() => setIsFabOpen(false)} className="w-full text-center text-[11px] font-bold text-zinc-300 bg-zinc-800/80 py-2.5 rounded-lg transition border border-zinc-700">⚙️ SANCTUM 관리자 메뉴 {pendingCount > 0 && <span className="bg-red-500 text-white px-1.5 py-0.2 rounded-full text-[9px] ml-1">{pendingCount}</span>}</Link>}
+                  <button onClick={handleLogout} className="w-full text-center text-[11px] font-bold text-red-400 bg-red-950/20 py-2.5 rounded-lg transition border border-red-900/30">🚪 활성 계정 로그아웃</button>
                 </div>
               )}
             </div>
