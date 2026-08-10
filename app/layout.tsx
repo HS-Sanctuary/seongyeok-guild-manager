@@ -38,57 +38,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const pathname = usePathname();
   const router = useRouter();
 
-  // 초기 상태를 빌드 타임 에러 없이 localStorage에서 즉시 가져오도록 설정
-  const [accounts, setAccounts] = useState<AccountPreset[]>(() => {
-    if (typeof window === 'undefined') return [];
-    try {
-      const saved = localStorage.getItem("sanctum_accounts");
-      if (saved) return JSON.parse(saved);
-      const oldUser = localStorage.getItem("nexus_user");
-      if (oldUser) {
-        const parsedOld = JSON.parse(oldUser);
-        return [{
-          id: 'default-id',
-          nickname: parsedOld.nickname || "길드원",
-          role: parsedOld.role || "길드원",
-          alias: parsedOld.nickname || "내 계정 1",
-          borderColor: "#E6C788",
-          theme: "Classic Gold"
-        }];
-      }
-    } catch (e) {}
-    return [];
-  });
-
-  const [activeAccount, setActiveAccount] = useState<AccountPreset | null>(() => {
-    if (typeof window === 'undefined') return null;
-    try {
-      const savedAccounts = localStorage.getItem("sanctum_accounts");
-      const savedActiveId = localStorage.getItem("sanctum_active_account_id");
-      if (savedAccounts) {
-        const parsed: AccountPreset[] = JSON.parse(savedAccounts);
-        if (parsed.length > 0) {
-          return parsed.find(a => a.id === savedActiveId) || parsed[0];
-        }
-      } else {
-        const oldUser = localStorage.getItem("nexus_user");
-        if (oldUser) {
-          const parsedOld = JSON.parse(oldUser);
-          return {
-            id: 'default-id',
-            nickname: parsedOld.nickname || "길드원",
-            role: parsedOld.role || "길드원",
-            alias: parsedOld.nickname || "내 계정 1",
-            borderColor: "#E6C788",
-            theme: "Classic Gold"
-          };
-        }
-      }
-    } catch (e) {}
-    return null;
-  });
-
-  const [isLoaded, setIsLoaded] = useState(true);
+  const [accounts, setAccounts] = useState<AccountPreset[]>([]);
+  const [activeAccount, setActiveAccount] = useState<AccountPreset | null>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
   
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const [isMobileAccountMenuOpen, setIsMobileAccountMenuOpen] = useState(false);
@@ -329,7 +281,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 })}
               </div>
 
-              {/* 우측 유틸리티 영역 */}
+              {/* 우측 유틸리티 영역 (isLoaded 체크로 하이드레이션 오류 원천 차단) */}
               <div className="hidden lg:flex items-center gap-3 relative shrink-0">
                 
                 {/* 글자 크기 변경 위젯 */}
@@ -339,8 +291,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   <button onClick={() => setFontSizeLevel('large')} className={`px-2 py-1 rounded text-[0.65rem] font-bold transition ${fontSizeLevel === 'large' ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}>A+</button>
                 </div>
 
-                {/* 프로필 드롭다운 (즉시 반영 보장) */}
-                {activeAccount ? (
+                {isLoaded && activeAccount ? (
                   <div className="relative">
                     <button onClick={() => setIsAccountMenuOpen(!isAccountMenuOpen)} className="flex items-center gap-2 bg-[#121212] hover:bg-zinc-800 px-3 py-1.5 rounded-full border transition shadow-md whitespace-nowrap" style={{ borderColor: activeColor }}>
                       <div className="w-6 h-6 rounded-full flex items-center justify-center text-[0.65rem] bg-zinc-800 shrink-0">👑</div>
@@ -379,8 +330,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                       </div>
                     )}
                   </div>
-                ) : (
+                ) : isLoaded ? (
                   <Link href="/login" className="text-[0.7rem] font-bold text-[#e6c788] hover:text-yellow-400 whitespace-nowrap">로그인</Link>
+                ) : (
+                  <div className="w-16 h-6"></div>
                 )}
               </div>
             </div>
