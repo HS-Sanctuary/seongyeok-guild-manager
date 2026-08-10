@@ -38,9 +38,57 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const pathname = usePathname();
   const router = useRouter();
 
-  const [accounts, setAccounts] = useState<AccountPreset[]>([]);
-  const [activeAccount, setActiveAccount] = useState<AccountPreset | null>(null);
-  const [isLoaded, setIsLoaded] = useState(false);
+  // 초기 상태를 빌드 타임 에러 없이 localStorage에서 즉시 가져오도록 설정
+  const [accounts, setAccounts] = useState<AccountPreset[]>(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const saved = localStorage.getItem("sanctum_accounts");
+      if (saved) return JSON.parse(saved);
+      const oldUser = localStorage.getItem("nexus_user");
+      if (oldUser) {
+        const parsedOld = JSON.parse(oldUser);
+        return [{
+          id: 'default-id',
+          nickname: parsedOld.nickname || "길드원",
+          role: parsedOld.role || "길드원",
+          alias: parsedOld.nickname || "내 계정 1",
+          borderColor: "#E6C788",
+          theme: "Classic Gold"
+        }];
+      }
+    } catch (e) {}
+    return [];
+  });
+
+  const [activeAccount, setActiveAccount] = useState<AccountPreset | null>(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const savedAccounts = localStorage.getItem("sanctum_accounts");
+      const savedActiveId = localStorage.getItem("sanctum_active_account_id");
+      if (savedAccounts) {
+        const parsed: AccountPreset[] = JSON.parse(savedAccounts);
+        if (parsed.length > 0) {
+          return parsed.find(a => a.id === savedActiveId) || parsed[0];
+        }
+      } else {
+        const oldUser = localStorage.getItem("nexus_user");
+        if (oldUser) {
+          const parsedOld = JSON.parse(oldUser);
+          return {
+            id: 'default-id',
+            nickname: parsedOld.nickname || "길드원",
+            role: parsedOld.role || "길드원",
+            alias: parsedOld.nickname || "내 계정 1",
+            borderColor: "#E6C788",
+            theme: "Classic Gold"
+          };
+        }
+      }
+    } catch (e) {}
+    return null;
+  });
+
+  const [isLoaded, setIsLoaded] = useState(true);
   
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const [isMobileAccountMenuOpen, setIsMobileAccountMenuOpen] = useState(false);
@@ -56,7 +104,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const [pendingCount, setPendingCount] = useState(0);
   const [banner, setBanner] = useState<any>(null);
 
-  // 폰트 크기 세팅: 대(22px), 중(20px), 소(18px)
+  // 폰트 크기 세팅
   useEffect(() => {
     const savedFont = localStorage.getItem('nexus_font_size') || 'normal';
     setFontSizeLevel(savedFont);
@@ -255,7 +303,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 </div>
               </Link>
 
-              {/* 상단 네비게이션 메뉴 (좌우 짤림 완벽 해결 - 기준을 한글 텍스트 뼈대로 잡음) */}
+              {/* 상단 네비게이션 메뉴 */}
               <div className="hidden lg:flex items-center space-x-2 xl:space-x-3">
                 {navItems.map((item) => {
                   const isActive = pathname === item.path;
@@ -266,13 +314,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                       className={`group relative flex items-center justify-center rounded-md transition-all overflow-hidden h-12 px-3 lg:px-4 shrink-0 ${isActive ? 'bg-zinc-800/90 border-b-2' : 'hover:bg-zinc-800/50'}`}
                       style={{ borderColor: isActive ? activeColor : 'transparent' }}
                     >
-                      {/* 기본 한글 메뉴 (이 요소가 공간을 차지해서 좌우 짤림을 막아줌) */}
                       <div className="flex flex-col items-center transition-transform duration-300 transform group-hover:-translate-y-12">
                         <span className={`font-black text-[0.7rem] xl:text-[0.75rem] leading-tight whitespace-nowrap ${isActive ? 'text-white' : 'text-zinc-300'}`}>{item.kr}</span>
                         <span className="text-[0.5rem] font-bold mt-0.5 whitespace-nowrap" style={{ color: activeColor }}>{item.sub}</span>
                       </div>
                       
-                      {/* 호버 시 등장하는 영문 메뉴 (절대 위치) */}
                       <div className="absolute inset-0 flex items-center justify-center transition-all duration-300 transform translate-y-12 opacity-0 group-hover:translate-y-0 group-hover:opacity-100">
                         <span className={`font-black tracking-widest text-[0.65rem] xl:text-[0.7rem] whitespace-nowrap ${isActive ? 'text-white' : 'text-zinc-400'}`}>{item.en}</span>
                       </div>
@@ -293,8 +339,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   <button onClick={() => setFontSizeLevel('large')} className={`px-2 py-1 rounded text-[0.65rem] font-bold transition ${fontSizeLevel === 'large' ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}>A+</button>
                 </div>
 
-                {/* 프로필 드롭다운 */}
-                {isLoaded && activeAccount ? (
+                {/* 프로필 드롭다운 (즉시 반영 보장) */}
+                {activeAccount ? (
                   <div className="relative">
                     <button onClick={() => setIsAccountMenuOpen(!isAccountMenuOpen)} className="flex items-center gap-2 bg-[#121212] hover:bg-zinc-800 px-3 py-1.5 rounded-full border transition shadow-md whitespace-nowrap" style={{ borderColor: activeColor }}>
                       <div className="w-6 h-6 rounded-full flex items-center justify-center text-[0.65rem] bg-zinc-800 shrink-0">👑</div>
@@ -333,9 +379,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                       </div>
                     )}
                   </div>
-                ) : isLoaded ? (
+                ) : (
                   <Link href="/login" className="text-[0.7rem] font-bold text-[#e6c788] hover:text-yellow-400 whitespace-nowrap">로그인</Link>
-                ) : null}
+                )}
               </div>
             </div>
           </div>

@@ -5,28 +5,36 @@ import { useRouter, usePathname } from "next/navigation";
 
 export default function Navbar() {
   const router = useRouter();
-  const pathname = usePathname(); // 현재 우리가 어떤 페이지에 있는지 알아내는 마법의 훅!
+  const pathname = usePathname();
   const [user, setUser] = useState<any>(null);
-  const [mounted, setMounted] = useState(false);
 
-  useEffect(() => {
-    setMounted(true);
+  // 컴포넌트가 로드될 때와 storage 이벤트(로그인 변경 신호) 발생 시 유저 정보 체크
+  const checkUser = () => {
     const savedUser = localStorage.getItem("nexus_user");
     if (savedUser) {
       setUser(JSON.parse(savedUser));
+    } else {
+      setUser(null);
     }
-  }, [pathname]); // 페이지를 이동할 때마다 유저 정보를 다시 체크합니다.
+  };
 
-  // 💡 로그인 페이지에서는 상단 메뉴바를 숨깁니다!
+  useEffect(() => {
+    checkUser();
+    // 다른 탭이나 로그인 시점에서 상태가 바뀌면 즉시 반응
+    window.addEventListener("storage", checkUser);
+    return () => window.removeEventListener("storage", checkUser);
+  }, [pathname]);
+
   if (pathname === "/login") return null;
-  if (!mounted || !user) return null;
+  // 유저가 없으면 일단 빈 화면을 보여주거나 로그인 버튼만 보이게 처리
+  if (!user) return null; 
 
   const handleLogout = () => {
     localStorage.removeItem("nexus_user");
+    window.dispatchEvent(new Event("storage")); // 로그아웃 신호 전송
     router.push("/login");
   };
 
-  // 💡 여기에 메뉴를 추가하면 모든 페이지에 자동으로 반영됩니다.
   const navLinks = [
     { name: "공지사항", path: "/notice" },
     { name: "캐릭터 관리", path: "/character" },
@@ -47,8 +55,6 @@ export default function Navbar() {
             SANCTUM
           </span>
         </a>
-        
-        {/* 상단 메뉴바 (자동으로 밑줄 활성화 기능 포함) */}
         <nav className="hidden md:flex items-center gap-6 text-sm font-bold text-zinc-400">
           {navLinks.map((link) => (
             <a
@@ -63,7 +69,6 @@ export default function Navbar() {
           ))}
         </nav>
       </div>
-      
       <div className="flex items-center gap-3 text-xs">
         <span className="bg-zinc-800 text-zinc-300 px-2.5 py-1 rounded-full font-bold">{user.nickname}</span>
         <button onClick={handleLogout} className="text-zinc-500 hover:text-red-400 transition">로그아웃</button>
