@@ -1,32 +1,94 @@
 @import "tailwindcss";
 
-/* 💡 SANCTUM 전역 스타일 방어막 */
-* {
-  box-sizing: border-box;
+@theme {
+  --color-panel: var(--panel);
+  --color-panel-hover: var(--panel-hover);
+  --color-panel-border: var(--panel-border);
+  --color-inner-box: var(--inner-box);
+  --color-text-main: var(--text-main);
+  --color-text-sub: var(--text-sub);
+  --color-accent: var(--accent);
 }
 
-body {
-  margin: 0;
+/* 1. 오리지널 다크 */
+:root, [data-theme="dark"] {
+  --panel: rgba(28, 28, 30, 0.9);
+  --panel-hover: rgba(37, 37, 40, 0.9);
+  --panel-border: rgba(39, 39, 42, 1);
+  --inner-box: rgba(0, 0, 0, 0.4);
+  --text-main: #ffffff;
+  --text-sub: #a1a1aa;
+  --accent: #e6c788;
+}
+
+/* 2. 클린 라이트 (화사한 배경 + 세련된 로얄 블루 포인트) */
+[data-theme="light"] {
+  --panel: rgba(254, 252, 246, 0.98);
+  --panel-hover: rgba(253, 250, 240, 0.98);
+  --panel-border: rgba(37, 99, 235, 0.3);      /* 테두리를 은은한 블루빛으로 */
+  --inner-box: rgba(255, 255, 255, 0.9);
+  --text-main: #0f172a;                         /* 아주 어두운 네이비/블랙 텍스트 */
+  --text-sub: #475569;                          /* 차분한 서브 텍스트 */
+  --accent: #2563eb;                          /* 💡 핵심 포인트 컬러를 세련된 로얄 블루로 변경! */
+}
+
+/* 3. 민트바닐라 */
+[data-theme="mint"] {
+  --panel: rgba(15, 32, 24, 0.92);
+  --panel-hover: rgba(20, 43, 32, 0.95);
+  --panel-border: rgba(52, 211, 153, 0.35);
+  --inner-box: rgba(10, 22, 16, 0.6);
+  --text-main: #ecfdf5;
+  --text-sub: #6ee7b7;
+  --accent: #10b981;
+}
+
+/* 4. 퍼플릿 */
+[data-theme="purple"] {
+  --panel: rgba(28, 20, 40, 0.85);
+  --panel-hover: rgba(38, 28, 54, 0.9);
+  --panel-border: rgba(168, 85, 247, 0.3);
+  --inner-box: rgba(0, 0, 0, 0.4);
+  --text-main: #ffffff;
+  --text-sub: #a78bfa;
+  --accent: #c084fc;
+}
+
+/* 5. 로즈블룸 */
+[data-theme="rose"] {
+  --panel: rgba(37, 21, 26, 0.85);
+  --panel-hover: rgba(49, 28, 35, 0.9);
+  --panel-border: rgba(244, 63, 94, 0.3);
+  --inner-box: rgba(0, 0, 0, 0.4);
+  --text-main: #ffffff;
+  --text-sub: #fda4af;
+  --accent: #fb7185;
+}
+
+* { box-sizing: border-box; }
+
+/* 💡 HTML과 BODY 전체 배경을 테마에 맞추어 완벽하게 제어합니다 */
+html, body {
+  margin: 0; 
   padding: 0;
   font-family: Arial, Helvetica, sans-serif;
   overflow-x: hidden;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* 커스텀 스크롤바 디자인 */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+/* 다크모드일 때 전체 배경 */
+html:not([data-theme="light"]), [data-theme="dark"] {
+  background-color: #0d0d0f;
+  color: #ffffff;
 }
 
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.1);
+/* 라이트모드일 때 전체 배경을 화사한 화이트/크림톤으로 변경 및 텍스트 고정 */
+html[data-theme="light"], [data-theme="light"] {
+  background-color: #f5f4ef !important;
+  color: #1f1908 !important;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 3px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.4);
-}
+.custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: var(--panel-border); border-radius: 10px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: var(--text-sub); }

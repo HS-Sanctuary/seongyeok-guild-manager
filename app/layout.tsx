@@ -19,10 +19,10 @@ interface AccountPreset {
   role: string;
   alias: string;
   borderColor: string;
-  theme: string; // 'dark' | 'light' | 'mint' | 'purple' | 'rose'
+  theme: string;
   bgImage?: string;
   dimmer?: number;
-  textStroke?: boolean; // 커스텀 배경용 텍스트 외곽선 여부
+  textStroke?: boolean;
 }
 
 const navItems: NavItem[] = [
@@ -47,7 +47,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const [isMobileAccountMenuOpen, setIsMobileAccountMenuOpen] = useState(false);
   const [isWingsOpen, setIsWingsOpen] = useState(false);
   
-  // 테마 모달 임시 상태값
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
   const [tempTheme, setTempTheme] = useState('dark');
   const [tempBgImage, setTempBgImage] = useState('');
@@ -210,6 +209,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     setIsThemeModalOpen(false);
   };
 
+  // 💡 버튼 클릭을 방해하지 않는 깔끔한 드래그 핸들러
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     dragStartX.current = e.clientX;
     startFabX.current = fabPosition.x;
@@ -324,16 +324,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   if (pathname === '/login') return <html lang="ko"><body>{children}</body></html>;
 
   const isAdmin = activeAccount?.nickname === "한설" || activeAccount?.role === "마스터";
-  const activeColor = activeAccount?.borderColor || "#E6C788";
+  const activeColor = activeAccount?.theme === 'light' ? '#2563eb' : (activeAccount?.borderColor || "#E6C788");
   
-  // 💡 기본 다크 / 클린 라이트 및 3종 그라데이션 완벽 처리
   const getThemeBackground = () => {
     const theme = activeAccount?.theme || 'dark';
-    if (theme === 'light') return 'bg-[#f4f4f5] text-zinc-900';
+    if (theme === 'light') return 'bg-[#fcfbf9] text-zinc-900'; 
     if (theme === 'purple') return 'bg-gradient-to-b from-[#1c1428] via-[#121212] to-[#0f0b15] text-zinc-200';
     if (theme === 'rose') return 'bg-gradient-to-b from-[#25151a] via-[#121212] to-[#150b0f] text-zinc-200';
     if (theme === 'mint') return 'bg-gradient-to-b from-[#11221c] via-[#121212] to-[#0b1411] text-zinc-200';
-    return 'bg-[#121212] text-zinc-200'; // 기본 다크모드
+    return 'bg-[#121212] text-zinc-200'; 
   };
 
   return (
@@ -353,7 +352,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           />
         )}
 
-        <nav className="sticky top-0 z-[900] flex flex-col shadow-lg border-b border-zinc-800 bg-[#1c1c1e]/90 backdrop-blur-md w-full">
+        <nav className={`sticky top-0 z-[900] flex flex-col shadow-lg border-b backdrop-blur-md w-full transition-colors ${
+          activeAccount?.theme === 'light' 
+            ? 'bg-white/90 border-blue-200/60' 
+            : 'bg-[#1c1c1e]/90 border-zinc-800'
+        }`}>
           {banner && (
             <div className="w-full py-2 bg-red-600 text-white text-center text-xs font-black flex items-center justify-center gap-2 border-b border-red-800">
               <span>🚨</span><span>{banner.message}</span><span>🚨</span>
@@ -367,13 +370,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity shrink-0">
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg transition-colors border border-black/10 relative overflow-hidden shrink-0" style={{ backgroundColor: activeColor }}>
                     <div className="absolute inset-0 bg-gradient-to-br from-white/30 to-transparent"></div>
-                    <svg className="w-6 h-6 text-black relative z-10 drop-shadow-sm" viewBox="0 0 24 24" fill="currentColor">
+                    <svg className="w-6 h-6 text-white relative z-10 drop-shadow-sm" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M12 1L15.39 8.26L23 9.27L17.5 14.14L18.81 21.02L12 17.77L5.19 21.02L6.5 14.14L1 9.27L8.61 8.26L12 1Z" />
                     </svg>
                   </div>
                   <div className="flex flex-col whitespace-nowrap">
-                    <span className="text-[0.55rem] font-bold text-zinc-400 tracking-tight">데이안 성역 길드 전용 플랫폼</span>
-                    <span className="font-black text-xl text-white leading-tight tracking-wider mt-0.5">SANCTUM</span>
+                    <span className={`text-[0.55rem] font-bold tracking-tight ${activeAccount?.theme === 'light' ? 'text-zinc-500' : 'text-zinc-400'}`}>데이안 성역 길드 전용 플랫폼</span>
+                    <span className={`font-black text-xl leading-tight tracking-wider mt-0.5 ${activeAccount?.theme === 'light' ? 'text-zinc-900' : 'text-white'}`}>SANCTUM</span>
                   </div>
                 </Link>
 
@@ -453,16 +456,28 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     <Link
                       key={item.en}
                       href={item.path}
-                      className={`group relative flex items-center justify-center rounded-md transition-all overflow-hidden h-12 px-3 lg:px-4 shrink-0 ${isActive ? 'bg-zinc-800/90 border-b-2' : 'hover:bg-zinc-800/50'}`}
+                      className={`group relative flex items-center justify-center rounded-md transition-all overflow-hidden h-12 px-3 lg:px-4 shrink-0 ${
+                        isActive 
+                          ? (activeAccount?.theme === 'light' ? 'bg-blue-50 border-b-2 shadow-sm' : 'bg-zinc-800/90 border-b-2') 
+                          : (activeAccount?.theme === 'light' ? 'hover:bg-blue-50/50' : 'hover:bg-zinc-800/50')
+                      }`}
                       style={{ borderColor: isActive ? activeColor : 'transparent' }}
                     >
                       <div className="flex flex-col items-center transition-transform duration-300 transform group-hover:-translate-y-12">
-                        <span className={`font-black text-[0.7rem] xl:text-[0.75rem] leading-tight whitespace-nowrap ${isActive ? 'text-white' : 'text-zinc-300'}`}>{item.kr}</span>
+                        <span className={`font-black text-[0.7rem] xl:text-[0.75rem] leading-tight whitespace-nowrap ${
+                          isActive 
+                            ? (activeAccount?.theme === 'light' ? 'text-zinc-900' : 'text-white') 
+                            : (activeAccount?.theme === 'light' ? 'text-zinc-700' : 'text-zinc-300')
+                        }`}>{item.kr}</span>
                         <span className="text-[0.5rem] font-bold mt-0.5 whitespace-nowrap" style={{ color: activeColor }}>{item.sub}</span>
                       </div>
                       
                       <div className="absolute inset-0 flex items-center justify-center transition-all duration-300 transform translate-y-12 opacity-0 group-hover:translate-y-0 group-hover:opacity-100">
-                        <span className={`font-black tracking-widest text-[0.65rem] xl:text-[0.7rem] whitespace-nowrap ${isActive ? 'text-white' : 'text-zinc-400'}`}>{item.en}</span>
+                        <span className={`font-black tracking-widest text-[0.65rem] xl:text-[0.7rem] whitespace-nowrap ${
+                          isActive 
+                            ? (activeAccount?.theme === 'light' ? 'text-zinc-900' : 'text-white') 
+                            : (activeAccount?.theme === 'light' ? 'text-zinc-600' : 'text-zinc-400')
+                        }`}>{item.en}</span>
                       </div>
                     </Link>
                   );
@@ -472,7 +487,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <div className="hidden lg:flex items-center gap-2.5 relative shrink-0">
                 <button 
                   onClick={() => setIsThemeModalOpen(true)}
-                  className="bg-[#121212] border border-zinc-700 rounded-xl p-2.5 text-zinc-400 hover:text-white hover:border-zinc-500 transition cursor-pointer flex items-center justify-center shadow-sm"
+                  className={`border rounded-xl p-2.5 transition cursor-pointer flex items-center justify-center shadow-sm ${
+                    activeAccount?.theme === 'light' 
+                      ? 'bg-white border-blue-300 text-zinc-700 hover:text-black hover:border-blue-500' 
+                      : 'bg-[#121212] border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-500'
+                  }`}
                   title="성역 테마 및 배경 설정"
                 >
                   <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
@@ -480,7 +499,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   </svg>
                 </button>
 
-                <div className="bg-[#121212] border border-zinc-700 rounded-xl p-2.5 text-zinc-400 hover:text-white hover:border-zinc-500 transition cursor-pointer flex items-center justify-center shadow-sm" title="메일함 (목업)">
+                <div className={`border rounded-xl p-2.5 transition cursor-pointer flex items-center justify-center shadow-sm ${
+                  activeAccount?.theme === 'light' 
+                    ? 'bg-white border-blue-300 text-zinc-700 hover:text-black hover:border-blue-500' 
+                    : 'bg-[#121212] border-zinc-700 text-zinc-400 hover:text-white'
+                }`} title="메일함 (목업)">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
                   </svg>
@@ -489,39 +512,47 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 {mounted ? (
                   activeAccount ? (
                     <div className="relative" ref={accountMenuRef}>
-                      <button onClick={() => setIsAccountMenuOpen(!isAccountMenuOpen)} className="flex items-center gap-2 bg-[#121212] hover:bg-zinc-800 px-3.5 py-2 rounded-full border transition shadow-md whitespace-nowrap" style={{ borderColor: activeColor }}>
-                        <div className="w-6 h-6 rounded-full flex items-center justify-center text-[0.65rem] bg-zinc-800 shrink-0">👑</div>
+                      <button onClick={() => setIsAccountMenuOpen(!isAccountMenuOpen)} className={`flex items-center gap-2 px-3.5 py-2 rounded-full border transition shadow-md whitespace-nowrap ${
+                        activeAccount?.theme === 'light' 
+                          ? 'bg-white hover:bg-blue-50 text-zinc-900 border-blue-300' 
+                          : 'bg-[#121212] hover:bg-zinc-800 text-white'
+                      }`} style={{ borderColor: activeColor }}>
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[0.65rem] shrink-0 ${activeAccount?.theme === 'light' ? 'bg-blue-100 text-blue-800' : 'bg-zinc-800 text-white'}`}>👑</div>
                         <div className="flex flex-col text-left leading-none whitespace-nowrap">
-                          <span className="text-[0.7rem] font-bold text-white flex items-center gap-1 max-w-[120px] truncate">{activeAccount.alias || activeAccount.nickname}</span>
+                          <span className={`text-[0.7rem] font-bold flex items-center gap-1 max-w-[120px] truncate ${activeAccount?.theme === 'light' ? 'text-zinc-900' : 'text-white'}`}>{activeAccount.alias || activeAccount.nickname}</span>
                           <span className="text-[0.55rem] text-zinc-500 mt-0.5">{activeAccount.role}</span>
                         </div>
                         <span className="text-[0.55rem] text-zinc-400 ml-1">▼</span>
                       </button>
 
                       {isAccountMenuOpen && (
-                        <div className="absolute right-0 mt-2 w-56 bg-[#1c1c1e] border border-zinc-700 rounded-xl shadow-2xl z-[960] overflow-hidden p-2">
+                        <div className={`absolute right-0 mt-2 w-56 border rounded-xl shadow-2xl z-[960] overflow-hidden p-2 ${
+                          activeAccount?.theme === 'light' 
+                            ? 'bg-white border-blue-200 text-zinc-900 shadow-xl' 
+                            : 'bg-[#1c1c1e] border-zinc-700 text-white'
+                        }`}>
                           <div className="text-[0.55rem] font-bold text-zinc-500 px-2 py-1">현재 활성 계정</div>
-                          <div className="flex items-center justify-between p-2 rounded-lg bg-zinc-800/80 mb-2 border-l-4" style={{ borderColor: activeColor }}>
-                            <span className="text-[0.7rem] font-black text-white truncate">{activeAccount.alias || activeAccount.nickname}</span>
-                            <span className="text-[0.55rem] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded shrink-0">선택됨</span>
+                          <div className={`flex items-center justify-between p-2 rounded-lg mb-2 border-l-4 ${activeAccount?.theme === 'light' ? 'bg-blue-50' : 'bg-zinc-800/80'}`} style={{ borderColor: activeColor }}>
+                            <span className={`text-[0.7rem] font-black truncate ${activeAccount?.theme === 'light' ? 'text-zinc-900' : 'text-white'}`}>{activeAccount.alias || activeAccount.nickname}</span>
+                            <span className="text-[0.55rem] bg-blue-500/20 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded shrink-0">선택됨</span>
                           </div>
 
                           {accounts.filter(a => a.id !== activeAccount.id).length > 0 && (
                             <>
-                              <div className="text-[0.55rem] font-bold text-zinc-500 px-2 py-1 border-t border-zinc-800 mt-1">계정 빠른 스위칭</div>
+                              <div className="text-[0.55rem] font-bold text-zinc-500 px-2 py-1 border-t border-zinc-200 dark:border-zinc-800 mt-1">계정 빠른 스위칭</div>
                               {accounts.filter(a => a.id !== activeAccount.id).map(acc => (
-                                <button key={acc.id} onClick={() => switchAccount(acc)} className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-zinc-800 text-left transition my-0.5">
-                                  <span className="text-[0.7rem] font-bold text-zinc-300 truncate">{acc.alias || acc.nickname}</span>
+                                <button key={acc.id} onClick={() => switchAccount(acc)} className={`w-full flex items-center justify-between p-2 rounded-lg text-left transition my-0.5 ${activeAccount?.theme === 'light' ? 'hover:bg-blue-50 text-zinc-700' : 'hover:bg-zinc-800 text-zinc-300'}`}>
+                                  <span className="text-[0.7rem] font-bold truncate">{acc.alias || acc.nickname}</span>
                                   <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: acc.borderColor }}></span>
                                 </button>
                               ))}
                             </>
                           )}
 
-                          <div className="border-t border-zinc-800 mt-2 pt-1 flex flex-col gap-1">
-                            <Link href="/login" className="w-full text-center text-[0.7rem] font-bold text-[#e6c788] hover:bg-zinc-800 py-1.5 rounded transition">➕ 계정 추가 로그인</Link>
-                            {isAdmin && <Link href="/admin" className="w-full text-center text-[0.7rem] font-bold text-zinc-400 hover:text-white hover:bg-zinc-800 py-1.5 rounded transition">⚙️ SANCTUM 관리자 {pendingCount > 0 && <span className="bg-red-500 text-white px-1.5 py-0.2 rounded-full text-[0.55rem] ml-1">{pendingCount}</span>}</Link>}
-                            <button onClick={handleLogout} className="w-full text-center text-[0.7rem] font-bold text-red-400 hover:bg-red-950/30 py-1.5 rounded transition">🚪 현재 계정 로그아웃</button>
+                          <div className="border-t border-zinc-200 dark:border-zinc-800 mt-2 pt-1 flex flex-col gap-1">
+                            <Link href="/login" className="w-full text-center text-[0.7rem] font-bold text-blue-600 dark:text-[#e6c788] hover:bg-blue-50 dark:hover:bg-zinc-800 py-1.5 rounded transition">➕ 계정 추가 로그인</Link>
+                            {isAdmin && <Link href="/admin" className="w-full text-center text-[0.7rem] font-bold text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 py-1.5 rounded transition">⚙️ SANCTUM 관리자 {pendingCount > 0 && <span className="bg-red-500 text-white px-1.5 py-0.2 rounded-full text-[0.55rem] ml-1">{pendingCount}</span>}</Link>}
+                            <button onClick={handleLogout} className="w-full text-center text-[0.7rem] font-bold text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 py-1.5 rounded transition">🚪 현재 계정 로그아웃</button>
                           </div>
                         </div>
                       )}
@@ -537,21 +568,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </div>
         </nav>
 
+        {/* 모바일 플로팅 버튼 (FAB) - 💡 터치 클릭 무반응 문제 해결 */}
         <div
-          className="lg:hidden fixed bottom-6 z-[10000] flex items-center bg-[#1c1c1e] rounded-full shadow-[0_0_15px_rgba(0,0,0,0.7)] border-[1.5px] cursor-grab active:cursor-grabbing select-none"
+          className={`lg:hidden fixed bottom-6 z-[10000] flex items-center rounded-full shadow-[0_0_15px_rgba(0,0,0,0.7)] border-[1.5px] cursor-grab active:cursor-grabbing select-none ${activeAccount?.theme === 'light' ? 'bg-white shadow-lg' : 'bg-[#1c1c1e]'}`}
           style={{ right: `${fabPosition.x}px`, borderColor: activeColor }}
           onPointerDown={handlePointerDown}
         >
-          <button onClick={handleHomeClick} className="w-[2.2rem] h-[2.2rem] flex items-center justify-center border-r border-zinc-800 hover:bg-zinc-800 rounded-l-full transition-colors">
+          <button onClick={handleHomeClick} className={`w-[2.2rem] h-[2.2rem] flex items-center justify-center rounded-l-full transition-colors ${activeAccount?.theme === 'light' ? 'border-r border-zinc-200 hover:bg-blue-50' : 'border-r border-zinc-800 hover:bg-zinc-800'}`}>
             <svg className="w-3.5 h-3.5 drop-shadow-sm" style={{ color: activeColor }} viewBox="0 0 24 24" fill="currentColor">
                <path d="M12 1L15.39 8.26L23 9.27L17.5 14.14L18.81 21.02L12 17.77L5.19 21.02L6.5 14.14L1 9.27L8.61 8.26L12 1Z" />
             </svg>
           </button>
-          <button onClick={handleMenuClick} className={`w-[2.2rem] h-[2.2rem] flex items-center justify-center rounded-r-full transition-colors relative ${isFabOpen ? 'bg-zinc-800' : 'hover:bg-zinc-800'}`}>
+          <button onClick={handleMenuClick} className={`w-[2.2rem] h-[2.2rem] flex items-center justify-center rounded-r-full transition-colors relative ${isFabOpen ? (activeAccount?.theme === 'light' ? 'bg-blue-100' : 'bg-zinc-800') : (activeAccount?.theme === 'light' ? 'hover:bg-blue-50' : 'hover:bg-zinc-800')}`}>
             {isFabOpen ? (
-              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+              <svg className={`w-4 h-4 ${activeAccount?.theme === 'light' ? 'text-zinc-900' : 'text-white'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
             ) : (
-              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+              <svg className={`w-4 h-4 ${activeAccount?.theme === 'light' ? 'text-zinc-900' : 'text-white'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 6h16M4 12h16M4 18h16"></path></svg>
             )}
           </button>
         </div>
@@ -562,7 +594,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
 
         <div
-          className={`fixed inset-x-0 bottom-0 z-[9999] lg:hidden bg-[#1c1c1e] border-t-[1.5px] rounded-t-[28px] p-4 shadow-2xl flex flex-col ${isDraggingSheet ? '' : 'transition-transform duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)]'} ${isFabOpen ? 'translate-y-0' : 'translate-y-[120%]'}`}
+          className={`fixed inset-x-0 bottom-0 z-[9999] lg:hidden border-t-[1.5px] rounded-t-[28px] p-4 shadow-2xl flex flex-col ${activeAccount?.theme === 'light' ? 'bg-white text-zinc-900' : 'bg-[#1c1c1e] text-white'} ${isDraggingSheet ? '' : 'transition-transform duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)]'} ${isFabOpen ? 'translate-y-0' : 'translate-y-[120%]'}`}
           style={{ 
             borderColor: activeColor, 
             transform: isFabOpen ? `translateY(${sheetTranslateY}px)` : 'translateY(120%)' 
@@ -572,7 +604,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             className="w-full py-2.5 flex items-center justify-center cursor-grab active:cursor-grabbing touch-none select-none"
             onPointerDown={handleSheetDragStart}
           >
-            <div className="w-10 h-1.5 bg-zinc-600 rounded-full" />
+            <div className="w-10 h-1.5 bg-zinc-400 dark:bg-zinc-600 rounded-full" />
           </div>
 
           <div className="overflow-y-auto custom-scrollbar flex flex-col gap-3 pb-16">
@@ -584,19 +616,23 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     key={item.en}
                     href={item.path}
                     onClick={() => setIsFabOpen(false)}
-                    className={`relative overflow-hidden flex flex-col justify-center px-4 py-3.5 rounded-xl border transition-colors ${isActive ? 'bg-zinc-800/90 border-l-[3px] shadow-sm' : 'bg-[#252528] border-zinc-800'}`}
+                    className={`relative overflow-hidden flex flex-col justify-center px-4 py-3.5 rounded-xl border transition-colors ${
+                      isActive 
+                        ? (activeAccount?.theme === 'light' ? 'bg-blue-50 border-l-[3px] shadow-sm' : 'bg-zinc-800/90 border-l-[3px] shadow-sm') 
+                        : (activeAccount?.theme === 'light' ? 'bg-zinc-50 border-zinc-200' : 'bg-[#252528] border-zinc-800')
+                    }`}
                     style={{ borderLeftColor: isActive ? activeColor : undefined }}
                   >
-                    <span className="absolute -right-1 -bottom-2 text-[1.6rem] font-black italic opacity-[0.06] text-white select-none pointer-events-none uppercase tracking-tighter">
+                    <span className="absolute -right-1 -bottom-2 text-[1.6rem] font-black italic opacity-[0.06] select-none pointer-events-none uppercase tracking-tighter">
                       {item.en}
                     </span>
                    
-                    {isActive && <div className="absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-[#e6c788]/10 to-transparent pointer-events-none"></div>}
+                    {isActive && <div className={`absolute inset-y-0 right-0 w-12 bg-gradient-to-l ${activeAccount?.theme === 'light' ? 'from-blue-600/10' : 'from-[#e6c788]/10'} to-transparent pointer-events-none`}></div>}
 
                     <div className="relative z-10 flex items-center justify-between w-full">
                       <div className="flex flex-col">
                         <span className="font-black text-[0.75rem] tracking-wide leading-tight whitespace-nowrap" style={{ color: activeColor }}>{item.kr}</span>
-                        <span className="text-[0.55rem] font-bold mt-1 text-zinc-400 whitespace-nowrap">{item.sub}</span>
+                        <span className={`text-[0.55rem] font-bold mt-1 whitespace-nowrap ${activeAccount?.theme === 'light' ? 'text-zinc-600' : 'text-zinc-400'}`}>{item.sub}</span>
                       </div>
                     </div>
                   </Link>
@@ -604,12 +640,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               })}
             </div>
 
-            <div className="bg-[#121212] rounded-xl border border-zinc-700/60 overflow-hidden mt-1">
-              <div className="flex items-center justify-between px-3.5 py-3 bg-[#252528]">
+            <div className={`rounded-xl border overflow-hidden mt-1 ${activeAccount?.theme === 'light' ? 'bg-blue-50/50 border-blue-200' : 'bg-[#121212] border-zinc-700/60'}`}>
+              <div className={`flex items-center justify-between px-3.5 py-3 ${activeAccount?.theme === 'light' ? 'bg-blue-100/60' : 'bg-[#252528]'}`}>
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-zinc-800 border border-zinc-600 flex items-center justify-center text-[0.7rem] shadow-inner shrink-0">👑</div>
+                  <div className={`w-9 h-9 rounded-full border flex items-center justify-center text-[0.7rem] shadow-inner shrink-0 ${activeAccount?.theme === 'light' ? 'bg-white border-blue-300 text-blue-800' : 'bg-zinc-800 border-zinc-600 text-white'}`}>👑</div>
                   <div className="flex flex-col whitespace-nowrap">
-                    <span className="text-[0.7rem] font-black text-white leading-tight">{activeAccount?.alias || activeAccount?.nickname || "로그인 필요"}</span>
+                    <span className={`text-[0.7rem] font-black leading-tight ${activeAccount?.theme === 'light' ? 'text-zinc-900' : 'text-white'}`}>{activeAccount?.alias || activeAccount?.nickname || "로그인 필요"}</span>
                     <span className="text-[0.55rem] font-bold uppercase mt-0.5" style={{ color: activeColor }}>{activeAccount?.role || "길드원"}</span>
                   </div>
                 </div>
@@ -617,7 +653,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <div className="flex items-center gap-2 shrink-0">
                   <button 
                     onClick={() => { setIsThemeModalOpen(true); setIsFabOpen(false); }}
-                    className="p-2 rounded-md bg-[#121212] border border-zinc-700 text-zinc-400 hover:text-white transition flex items-center justify-center"
+                    className={`p-2 rounded-md border transition flex items-center justify-center ${activeAccount?.theme === 'light' ? 'bg-white border-blue-300 text-zinc-700 hover:bg-blue-50' : 'bg-[#121212] border-zinc-700 text-zinc-400 hover:text-white'}`}
                     title="테마 및 배경 설정"
                   >
                     <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
@@ -625,13 +661,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     </svg>
                   </button>
 
-                  <div className="p-2 rounded-md bg-[#121212] border border-zinc-700 text-zinc-400 flex items-center justify-center">
+                  <div className={`p-2 rounded-md border flex items-center justify-center ${activeAccount?.theme === 'light' ? 'bg-white border-blue-300 text-zinc-700' : 'bg-[#121212] border-zinc-700 text-zinc-400'}`}>
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
                   </div>
 
                   <button
                     onClick={() => setIsMobileAccountMenuOpen(!isMobileAccountMenuOpen)}
-                    className={`p-1.5 rounded-md border transition-all duration-300 ${isMobileAccountMenuOpen ? 'bg-zinc-700 text-white border-zinc-500' : 'bg-zinc-800 text-zinc-400 border-zinc-700'}`}
+                    className={`p-1.5 rounded-md border transition-all duration-300 ${isMobileAccountMenuOpen ? 'bg-zinc-700 text-white border-zinc-500' : (activeAccount?.theme === 'light' ? 'bg-white text-zinc-700 border-blue-300 hover:bg-blue-50' : 'bg-zinc-800 text-zinc-400 border-zinc-700')}`}
                   >
                     <svg className={`w-4 h-4 transition-transform duration-300 ${isMobileAccountMenuOpen ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
@@ -642,29 +678,28 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </div>
 
               {isMobileAccountMenuOpen && (
-                <div className="p-3 flex flex-col gap-1.5 border-t border-zinc-800 bg-[#1a1a1c] animate-in fade-in slide-in-from-top-2">
+                <div className={`p-3 flex flex-col gap-1.5 border-t animate-in fade-in slide-in-from-top-2 ${activeAccount?.theme === 'light' ? 'bg-white border-blue-200' : 'bg-[#1a1a1c] border-zinc-800'}`}>
                   <div className="text-[0.55rem] font-bold text-zinc-500 px-2 mb-1">빠른 계정 스위칭</div>
                  
                   {accounts.filter(a => a.id !== activeAccount?.id).map(acc => (
-                    <button key={acc.id} onClick={() => switchAccount(acc)} className="w-full flex items-center justify-between p-2.5 rounded-lg bg-zinc-800/60 hover:bg-zinc-700 text-left transition border border-zinc-700/50">
-                      <span className="text-[0.7rem] font-bold text-zinc-200">{acc.alias || acc.nickname}</span>
-                      <span className="text-[0.55rem] text-zinc-500 bg-[#121212] px-1.5 py-0.5 rounded-md">스위치 🔄</span>
+                    <button key={acc.id} onClick={() => switchAccount(acc)} className={`w-full flex items-center justify-between p-2.5 rounded-lg text-left transition border ${activeAccount?.theme === 'light' ? 'bg-blue-50 hover:bg-blue-100 border-blue-200 text-zinc-900' : 'bg-zinc-800/60 hover:bg-zinc-700 border-zinc-700/50 text-zinc-200'}`}>
+                      <span className="text-[0.7rem] font-bold">{acc.alias || acc.nickname}</span>
+                      <span className="text-[0.55rem] text-zinc-500 bg-black/10 dark:bg-[#121212] px-1.5 py-0.5 rounded-md">스위치 🔄</span>
                     </button>
                   ))}
-                  {accounts.filter(a => a.id !== activeAccount?.id).length === 0 && <div className="text-[0.55rem] text-zinc-600 px-2 py-1 text-center">등록된 부계정이 없습니다.</div>}
+                  {accounts.filter(a => a.id !== activeAccount?.id).length === 0 && <div className="text-[0.55rem] text-zinc-500 px-2 py-1 text-center">등록된 부계정이 없습니다.</div>}
 
-                  <div className="h-px w-full bg-zinc-800 my-1"></div>
+                  <div className="h-px w-full bg-zinc-200 dark:bg-zinc-800 my-1"></div>
                  
-                  <Link href="/login" onClick={() => setIsFabOpen(false)} className="w-full text-center text-[0.65rem] font-bold text-[#e6c788] bg-yellow-900/10 py-2.5 rounded-lg transition border border-yellow-900/30">➕ 계정 추가 로그인</Link>
-                  {isAdmin && <Link href="/admin" onClick={() => setIsFabOpen(false)} className="w-full text-center text-[0.65rem] font-bold text-zinc-300 bg-zinc-800/80 py-2.5 rounded-lg transition border border-zinc-700">⚙️ SANCTUM 관리자 메뉴</Link>}
-                  <button onClick={handleLogout} className="w-full text-center text-[0.65rem] font-bold text-red-400 bg-red-950/20 py-2.5 rounded-lg transition border border-red-900/30">🚪 활성 계정 로그아웃</button>
+                  <Link href="/login" onClick={() => setIsFabOpen(false)} className={`w-full text-center text-[0.65rem] font-bold py-2.5 rounded-lg transition border ${activeAccount?.theme === 'light' ? 'text-blue-600 bg-blue-50 border-blue-200 hover:bg-blue-100' : 'text-[#e6c788] bg-yellow-900/10 border-yellow-900/30'}`}>➕ 계정 추가 로그인</Link>
+                  {isAdmin && <Link href="/admin" onClick={() => setIsFabOpen(false)} className="w-full text-center text-[0.65rem] font-bold text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800/80 py-2.5 rounded-lg transition border border-zinc-300 dark:border-zinc-700">⚙️ SANCTUM 관리자 메뉴</Link>}
+                  <button onClick={handleLogout} className="w-full text-center text-[0.65rem] font-bold text-red-500 dark:text-red-400 bg-red-950/20 py-2.5 rounded-lg transition border border-red-900/30">🚪 활성 계정 로그아웃</button>
                 </div>
               )}
             </div>
           </div>
         </div>
 
-        {/* 💡 확장된 성역 테마 & 시인성 고도화 모달 */}
         {isThemeModalOpen && (
           <div className="fixed inset-0 z-[11000] flex items-center justify-center p-4 bg-black/70 animate-in fade-in duration-200">
             <div className="bg-[#161618]/95 border border-zinc-600 rounded-2xl shadow-[0_0_30px_rgba(0,0,0,0.9)] w-full max-w-md overflow-hidden flex flex-col">
@@ -677,7 +712,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
               <div className="p-6 space-y-5 max-h-[80vh] overflow-y-auto custom-scrollbar">
                 
-                {/* 1. 기본 다크/라이트 포함 5종 선택 */}
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-zinc-300">성역 화면 프리셋 테마</label>
                   <div className="grid grid-cols-2 gap-2">
@@ -692,10 +726,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     <button
                       type="button"
                       onClick={() => setTempTheme('light')}
-                      className={`p-2.5 rounded-xl border text-xs font-bold transition flex items-center gap-2 ${tempTheme === 'light' ? 'bg-zinc-200 border-[#e6c788] text-black shadow-lg' : 'bg-[#121212] border-zinc-700 text-zinc-400 hover:border-zinc-500'}`}
+                      className={`p-2.5 rounded-xl border text-xs font-bold transition flex items-center gap-2 ${tempTheme === 'light' ? 'bg-blue-50 border-blue-500 text-zinc-900 shadow-lg' : 'bg-[#121212] border-zinc-700 text-zinc-400 hover:border-zinc-500'}`}
                     >
-                      <span className="w-3.5 h-3.5 rounded-full bg-white border border-zinc-400"></span>
-                      클린 라이트모드
+                      <span className="w-3.5 h-3.5 rounded-full bg-blue-100 border-blue-400"></span>
+                      클린 라이트 블루
                     </button>
                   </div>
                   <div className="grid grid-cols-3 gap-2 pt-1">
@@ -726,7 +760,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   </div>
                 </div>
 
-                {/* 2. 커스텀 배경 이미지 주소 */}
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-zinc-300">커스텀 배경 이미지 주소 (URL)</label>
                   <input
@@ -739,7 +772,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   <p className="text-[0.6rem] text-zinc-400">* 이 기기에서 현재 계정에만 적용되는 로컬 배경입니다.</p>
                 </div>
 
-                {/* 3. 시인성 강화 옵션 (어둡기 조절 & 텍스트 외곽선) */}
                 {tempBgImage && (
                   <div className="p-3 bg-[#111113] border border-zinc-700 rounded-xl space-y-3">
                     <span className="text-xs font-black text-[#e6c788] block">👁️ 커스텀 배경 시인성 보정</span>
@@ -772,7 +804,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   </div>
                 )}
 
-                {/* 4. 화면 글자 크기 */}
                 <div className="pt-3 border-t border-zinc-700 flex items-center justify-between">
                   <span className="text-xs font-bold text-zinc-300">화면 글자 크기</span>
                   <div className="flex items-center bg-[#111113] border border-zinc-600 rounded-xl p-1 gap-1">
