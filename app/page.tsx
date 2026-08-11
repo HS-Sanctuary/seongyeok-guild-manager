@@ -42,7 +42,7 @@ function CustomTimePicker({ value, onChange, isLightMode }: { value: string, onC
         <span className={`text-[0.6rem] transition-transform ${isOpen ? 'rotate-180 text-blue-600 dark:text-[#e6c788]' : 'text-zinc-500'}`}>▼</span>
       </div>
       {isOpen && (
-        <div className={`absolute top-full left-0 mt-1 w-[140px] border rounded-lg shadow-2xl z-50 p-2 flex gap-2 ${isLightMode ? 'bg-[#fefcf6] border-blue-300' : 'bg-[#1c1c1e] border-zinc-600'}`}>
+        <div className={`absolute top-full left-0 mt-1 w-[140px] border rounded-lg shadow-2xl z-50 p-2 flex gap-2 ${isLightMode ? 'bg-white border-blue-300' : 'bg-[#1c1c1e] border-zinc-600'}`}>
           <div className="flex-1 h-32 overflow-y-auto custom-scrollbar pr-1 space-y-1">
             {hours.map(hour => (
               <button key={hour} onClick={() => onChange(`${hour}:${m}`)} className={`w-full text-center py-1 rounded text-[0.7rem] font-bold transition ${h === hour ? 'bg-blue-600 text-white dark:bg-yellow-600 dark:text-white' : 'text-zinc-600 dark:text-zinc-400 hover:bg-blue-100 dark:hover:bg-zinc-800'}`}>{hour}시</button>
@@ -461,15 +461,16 @@ export default function Home() {
 
   if (!mounted || !user) return null;
 
-  const panelBg = isLightMode ? "bg-[#fefcf6]/95 border-blue-300 text-[#0f172a] shadow-xl" : "bg-[#1c1c1e]/90 border-zinc-800 text-zinc-200 shadow-lg";
-  const innerCardBg = isLightMode ? "bg-white/90 border-blue-200 text-[#0f172a]" : "bg-[#252528]/90 border-zinc-700/50 text-zinc-200";
+  // 💡 패널 배경과 테두리를 완전히 제거(bg-transparent border-none)하여 배경과 이질감 없이 완전히 일체화합니다.
+  const panelBg = isLightMode ? "bg-transparent text-[#0f172a]" : "bg-transparent text-zinc-200";
+  const innerCardBg = isLightMode ? "bg-white border-blue-200 text-[#0f172a]" : "bg-[#252528]/90 border-zinc-700/50 text-zinc-200";
   const subBoxBg = isLightMode ? "bg-blue-50/50 border-blue-200 text-[#334155]" : "bg-[#121212]/80 border-zinc-800 text-zinc-300";
   const textColor = isLightMode ? "text-[#0f172a]" : "text-white";
   const subTextColor = isLightMode ? "text-[#475569]" : "text-zinc-400";
   const accentColor = isLightMode ? "#2563eb" : "#e6c788"; 
 
   return (
-    <main className={`min-h-screen font-sans pb-10 relative transition-colors duration-300 ${isLightMode ? 'bg-[#f5f4ef] text-[#0f172a]' : 'bg-transparent text-white'}`}>
+    <main className={`min-h-screen font-sans pb-10 relative transition-colors duration-300 ${isLightMode ? 'bg-[#ffffff] text-[#0f172a]' : 'bg-transparent text-white'}`}>
       
       <div className="p-4 md:p-8 max-w-[1500px] mx-auto space-y-4 md:space-y-6">
         
@@ -485,7 +486,7 @@ export default function Home() {
             
             <div 
               onClick={() => router.push('/lounge/astra')}
-              className={`rounded-xl border backdrop-blur p-3.5 flex flex-col justify-between relative overflow-hidden shadow-lg order-1 cursor-pointer transition group ${isLightMode ? 'bg-[#fefcf6]/90 border-blue-300 hover:border-blue-500' : 'bg-[#1c1c1e]/90 border-yellow-600/30 hover:border-yellow-500'}`}
+              className={`rounded-xl border backdrop-blur p-3.5 flex flex-col justify-between relative overflow-hidden shadow-lg order-1 cursor-pointer transition group ${isLightMode ? 'bg-white border-blue-300 hover:border-blue-500' : 'bg-[#1c1c1e]/90 border-yellow-600/30 hover:border-yellow-500'}`}
             >
               <div className="absolute -right-4 -bottom-4 text-5xl opacity-5 group-hover:scale-110 transition-transform pointer-events-none">✨</div>
               
@@ -512,7 +513,7 @@ export default function Home() {
               </div>
             </div>
 
-            <div className={`rounded-xl border backdrop-blur p-3.5 flex flex-col justify-between relative overflow-hidden shadow-lg order-2 ${isLightMode ? 'bg-[#fefcf6]/90 border-blue-300' : 'bg-[#1c1c1e]/90 border-yellow-600/30'}`}>
+            <div className={`rounded-xl border backdrop-blur p-3.5 flex flex-col justify-between relative overflow-hidden shadow-lg order-2 ${isLightMode ? 'bg-white border-blue-300' : 'bg-[#1c1c1e]/90 border-yellow-600/30'}`}>
               <div className="absolute -right-4 -bottom-4 text-5xl opacity-5 pointer-events-none">⚡</div>
               <p className={`text-[0.6rem] uppercase tracking-[0.1em] font-bold whitespace-nowrap ${subTextColor}`}>올라운더 달성률</p>
               <div className="my-auto py-1 flex items-baseline gap-1">
@@ -522,8 +523,7 @@ export default function Home() {
               <p className={`text-[0.6rem] whitespace-nowrap ${subTextColor}`}>최대 1365 LV</p>
             </div>
 
-            {/* 💡 필드보스 알림 상단 박스 테두리 다크모드 골드 톤(border-yellow-600/30) 적용 */}
-            <div className={`rounded-xl border p-3.5 flex flex-col justify-between relative transition-all duration-500 order-3 backdrop-blur ${fieldBossEvent.status === 'imminent' ? 'bg-orange-900/40 border-2 border-orange-500 animate-pulse shadow-[0_0_25px_rgba(249,115,22,0.4)]' : fieldBossEvent.status === 'active' ? 'bg-orange-950/60 border border-orange-600 shadow-[0_0_15px_rgba(249,115,22,0.3)]' : isLightMode ? 'bg-[#fefcf6]/90 border-blue-300 shadow-lg' : 'bg-[#1c1c1e]/90 border-yellow-600/30 shadow-lg'}`}>
+            <div className={`rounded-xl border p-3.5 flex flex-col justify-between relative transition-all duration-500 order-3 backdrop-blur ${fieldBossEvent.status === 'imminent' ? 'bg-orange-900/40 border-2 border-orange-500 animate-pulse shadow-[0_0_25px_rgba(249,115,22,0.4)]' : fieldBossEvent.status === 'active' ? 'bg-orange-950/60 border border-orange-600 shadow-[0_0_15px_rgba(249,115,22,0.3)]' : isLightMode ? 'bg-white border-blue-300 shadow-lg' : 'bg-[#1c1c1e]/90 border-yellow-600/30 shadow-lg'}`}>
               <p className={`text-[0.6rem] font-bold whitespace-nowrap ${fieldBossEvent.status === 'waiting' ? (isLightMode ? 'text-blue-700' : 'text-orange-400') : 'text-orange-300'}`}>필드보스 알림</p>
               <div className="my-auto py-1 flex flex-col">
                 <span className={`text-lg md:text-xl font-black leading-tight whitespace-nowrap ${fieldBossEvent.status === 'waiting' ? (isLightMode ? 'text-[#0f172a]' : 'text-orange-100') : 'text-white'}`}>
@@ -534,8 +534,7 @@ export default function Home() {
               <p className={`text-[0.6rem] whitespace-nowrap ${subTextColor}`}>{fieldBossEvent.status === 'active' ? '지도에서 위치 확인' : '12, 18, 20, 22시'}</p>
             </div>
 
-            {/* 💡 소환의 결계 알림 상단 박스 테두리 다크모드 골드 톤(border-yellow-600/30) 적용 */}
-            <div className={`rounded-xl border p-3.5 flex flex-col justify-between relative transition-all duration-500 order-4 backdrop-blur ${barrierEvent.status === 'imminent' ? 'bg-amber-900/40 border-2 border-amber-500 animate-pulse shadow-[0_0_25px_rgba(245,158,11,0.4)]' : barrierEvent.status === 'active' ? 'bg-rose-950/60 border border-rose-600 shadow-[0_0_15px_rgba(225,29,72,0.3)]' : isLightMode ? 'bg-[#fefcf6]/90 border-blue-300 shadow-lg' : 'bg-[#1c1c1e]/90 border-yellow-600/30 shadow-lg'}`}>
+            <div className={`rounded-xl border p-3.5 flex flex-col justify-between relative transition-all duration-500 order-4 backdrop-blur ${barrierEvent.status === 'imminent' ? 'bg-amber-900/40 border-2 border-amber-500 animate-pulse shadow-[0_0_25px_rgba(245,158,11,0.4)]' : barrierEvent.status === 'active' ? 'bg-rose-950/60 border border-rose-600 shadow-[0_0_15px_rgba(225,29,72,0.3)]' : isLightMode ? 'bg-white border-blue-300 shadow-lg' : 'bg-[#1c1c1e]/90 border-yellow-600/30 shadow-lg'}`}>
               <p className={`text-[0.6rem] font-bold whitespace-nowrap ${barrierEvent.status === 'waiting' ? (isLightMode ? 'text-blue-700' : 'text-amber-400') : 'text-amber-300'}`}>소환의 결계 알림</p>
               <div className="my-auto py-1 flex flex-col">
                 <span className={`text-lg md:text-xl font-black leading-tight whitespace-nowrap ${barrierEvent.status === 'waiting' ? (isLightMode ? 'text-[#0f172a]' : 'text-amber-100') : 'text-white'}`}>
@@ -546,7 +545,7 @@ export default function Home() {
               <p className={`text-[0.6rem] whitespace-nowrap ${subTextColor}`}>{barrierEvent.status === 'active' ? '몬스터 등장 중' : '매 정각 실시간 타이머'}</p>
             </div>
 
-            <div className={`rounded-xl border p-3.5 flex flex-col justify-between relative transition-all duration-500 order-5 backdrop-blur ${abyssDisplay.status === 'imminent' ? 'bg-purple-900/60 border-2 border-purple-400 animate-pulse shadow-[0_0_25px_rgba(168,85,247,0.5)]' : abyssDisplay.status === 'active' ? 'bg-fuchsia-950/60 border border-fuchsia-500 shadow-[0_0_15px_rgba(217,70,239,0.3)]' : isLightMode ? 'bg-[#fefcf6]/90 border-blue-300 shadow-lg' : 'bg-[#1a1625]/90 border border-purple-900/50 shadow-[0_0_15px_rgba(168,85,247,0.05)]'}`}>
+            <div className={`rounded-xl border p-3.5 flex flex-col justify-between relative transition-all duration-500 order-5 backdrop-blur ${abyssDisplay.status === 'imminent' ? 'bg-purple-900/60 border-2 border-purple-400 animate-pulse shadow-[0_0_25px_rgba(168,85,247,0.5)]' : abyssDisplay.status === 'active' ? 'bg-fuchsia-950/60 border border-fuchsia-500 shadow-[0_0_15px_rgba(217,70,239,0.3)]' : isLightMode ? 'bg-white border-blue-300 shadow-lg' : 'bg-[#1a1625]/90 border border-purple-900/50 shadow-[0_0_15px_rgba(168,85,247,0.05)]'}`}>
               <div className="flex justify-between items-start mb-1 gap-2">
                 <p className={`text-[0.6rem] font-bold whitespace-nowrap ${abyssDisplay.status === 'waiting' ? (isLightMode ? 'text-blue-700' : 'text-purple-400') : 'text-purple-300'}`}>어비스 구멍 알림</p>
                 <button onClick={() => setIsAbyssModalOpen(true)} className={`text-[0.6rem] px-2.5 py-0.5 rounded border transition font-bold shadow shrink-0 whitespace-nowrap ${isLightMode ? 'bg-blue-100 hover:bg-blue-200 text-blue-900 border-blue-300' : 'bg-purple-900/60 hover:bg-purple-800 text-purple-200 border-purple-700/50'}`}>
@@ -561,7 +560,7 @@ export default function Home() {
               </div>
             </div>
 
-            <div className={`backdrop-blur rounded-xl p-3.5 flex flex-col justify-between relative shadow-lg order-6 ${isLightMode ? 'bg-[#fefcf6]/90 border border-blue-300' : 'bg-[#201515]/90 border border-red-900/50'}`}>
+            <div className={`backdrop-blur rounded-xl p-3.5 flex flex-col justify-between relative shadow-lg order-6 ${isLightMode ? 'bg-white border border-blue-300' : 'bg-[#201515]/90 border border-red-900/50'}`}>
               <div className="flex flex-col mb-1.5">
                 <div className="flex justify-between items-center w-full gap-2">
                   <p className="text-[0.6rem] font-bold text-red-600 dark:text-red-400 whitespace-nowrap">심층 구멍 알림</p>
@@ -576,7 +575,7 @@ export default function Home() {
                   const activeHole = getActiveDeepHoles(zone.uid)[0];
                   const colorClass = zone.theme === 'emerald' ? 'bg-emerald-900/30 text-emerald-400' : 'bg-red-900/40 text-red-400';
                   return (
-                    <div key={zone.uid} className={`flex flex-col justify-center items-center border p-1.5 rounded-lg text-center gap-0.5 whitespace-nowrap ${isLightMode ? 'bg-white/80 border-blue-200' : 'bg-[#121212]/80 border-zinc-800'}`}>
+                    <div key={zone.uid} className={`flex flex-col justify-center items-center border p-1.5 rounded-lg text-center gap-0.5 whitespace-nowrap ${isLightMode ? 'bg-white border-blue-200' : 'bg-[#121212]/80 border-zinc-800'}`}>
                       <span className={`text-[0.6rem] font-bold leading-tight ${textColor}`}>{zone.name}</span>
                       <span className={`text-[0.6rem] w-full py-0.5 rounded font-bold ${activeHole && activeHole.channel !== '0' ? colorClass : isLightMode ? 'bg-blue-100 text-zinc-700' : 'bg-zinc-800 text-zinc-400'}`}>
                         {activeHole ? `${activeHole.channel}개` : '대기'}
@@ -590,7 +589,8 @@ export default function Home() {
           </div>
         </section>
 
-        <section className={`backdrop-blur border rounded-xl p-3 md:p-5 shadow-xl ${panelBg}`}>
+        {/* 💡 배경과 경계선을 완전히 제거하여 이질감 없는 일체감을 주는 캐릭터 체크보드 섹션 */}
+        <section className={`p-3 md:p-5 ${panelBg}`}>
           <div className={`flex flex-col lg:flex-row justify-between items-start lg:items-center mb-4 md:mb-5 border-b pb-4 gap-4 ${isLightMode ? 'border-blue-200' : 'border-zinc-800'}`}>
             
             <div className="flex-1 w-full lg:w-auto min-w-0">
@@ -629,15 +629,16 @@ export default function Home() {
                 return (
                   <div key={char.id} onClick={() => router.push(`/character?char=${encodeURIComponent(char.nickname)}`)} 
                         className={`backdrop-blur border rounded-xl p-2.5 md:p-4 cursor-pointer transition shadow-md flex flex-col gap-2 md:gap-3 group min-w-0 active:scale-[0.98] ${innerCardBg} hover:border-blue-500/60 dark:hover:border-[#e6c788]/60`}>
-                    <div className={`flex items-center justify-between border-b pb-1.5 md:pb-2 gap-2 ${isLightMode ? 'border-blue-200' : 'border-zinc-800'}`}>
-                      <div className="flex items-center gap-1.5 md:gap-2 w-full truncate">
-                        <span className={`text-sm md:text-base p-1.5 rounded-lg border transition shrink-0 ${isLightMode ? 'bg-[#fefcf6] border-blue-200' : 'bg-[#121212] border-zinc-700'}`}>{JOB_ICONS[char.job] || "👤"}</span>
-                        <span className={`font-black text-[0.75rem] md:text-[0.9rem] truncate flex-1 min-w-0 ${textColor}`}>{char.nickname}</span>
+                    
+                    {/* 💡 햄버거 현상(세로 줄바꿈) 원천 차단: whitespace-nowrap 적용 */}
+                    <div className={`flex items-center justify-between border-b pb-1.5 md:pb-2 gap-1 ${isLightMode ? 'border-blue-200' : 'border-zinc-800'}`}>
+                      <div className="flex items-center gap-1 min-w-0 flex-1">
+                        <span className={`text-xs md:text-sm p-1 rounded-lg border transition shrink-0 ${isLightMode ? 'bg-white border-blue-200' : 'bg-[#121212] border-zinc-700'}`}>{JOB_ICONS[char.job] || "👤"}</span>
+                        <span className={`font-black text-[0.7rem] md:text-[0.8rem] tracking-tight whitespace-nowrap ${textColor}`}>{char.nickname}</span>
                       </div>
-                      {char.is_main && <span className="text-[0.6rem] font-black px-1.5 py-0.5 rounded shrink-0 hidden sm:block whitespace-nowrap" style={{ backgroundColor: accentColor, color: '#ffffff' }}>대표</span>}
+                      {char.is_main && <span className="text-[0.5rem] font-black px-1.5 py-0.5 rounded shrink-0 whitespace-nowrap" style={{ backgroundColor: accentColor, color: '#ffffff' }}>대표</span>}
                     </div>
 
-                    {/* 💡 일일/주간 숙제 게이지 바와 퍼센트 글씨에 테마 accentColor(다크모드 시 골드 #e6c788) 적용 */}
                     <div className="space-y-1.5 md:space-y-2 text-[0.6rem] md:text-[0.65rem] font-bold px-0.5">
                       <div>
                         <div className={`flex justify-between mb-1 gap-2 ${subTextColor}`}>
@@ -668,7 +669,7 @@ export default function Home() {
                             const dName = a.short_name || formatName(a.name);
                             const isOddAndLast = (abyssList.length % 2 !== 0) && (idx === abyssList.length - 1);
                             return (
-                              <span key={a.id} className={`w-full text-[0.6rem] px-1 md:px-1.5 py-1 rounded border font-bold text-center truncate transition-colors ${isOddAndLast ? 'col-span-2' : ''} ${isChecked ? (isLightMode ? 'bg-blue-600 text-white border-blue-600' : 'bg-emerald-900/40 text-emerald-400 border-emerald-700/50') : isLightMode ? 'bg-white/80 text-[#0f172a] border-blue-200' : 'bg-zinc-800/50 text-zinc-400 border-zinc-700'}`}>
+                              <span key={a.id} className={`w-full text-[0.6rem] px-1 md:px-1.5 py-1 rounded border font-bold text-center truncate transition-colors ${isOddAndLast ? 'col-span-2' : ''} ${isChecked ? (isLightMode ? 'bg-blue-600 text-white border-blue-600' : 'bg-emerald-900/40 text-emerald-400 border-emerald-700/50') : isLightMode ? 'bg-white text-[#0f172a] border-blue-200' : 'bg-zinc-800/50 text-zinc-400 border-zinc-700'}`}>
                                 {dName}
                               </span>
                             )
@@ -684,7 +685,7 @@ export default function Home() {
                             const dName = r.short_name || formatName(r.name);
                             const isOddAndLast = (raidList.length % 2 !== 0) && (idx === raidList.length - 1);
                             return (
-                              <span key={r.id} className={`w-full text-[0.6rem] px-1 md:px-1.5 py-1 rounded border font-bold text-center truncate transition-colors ${isOddAndLast ? 'col-span-2' : ''} ${isChecked ? (isLightMode ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-indigo-900/40 text-indigo-400 border-indigo-700/50') : isLightMode ? 'bg-white/80 text-[#0f172a] border-blue-200' : 'bg-zinc-800/50 text-zinc-400 border-zinc-700'}`}>
+                              <span key={r.id} className={`w-full text-[0.6rem] px-1 md:px-1.5 py-1 rounded border font-bold text-center truncate transition-colors ${isOddAndLast ? 'col-span-2' : ''} ${isChecked ? (isLightMode ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-indigo-900/40 text-indigo-400 border-indigo-700/50') : isLightMode ? 'bg-white text-[#0f172a] border-blue-200' : 'bg-zinc-800/50 text-zinc-400 border-zinc-700'}`}>
                                 {dName}
                               </span>
                             )
@@ -699,7 +700,8 @@ export default function Home() {
           </div>
         </section>
 
-        <section className={`backdrop-blur border rounded-xl p-4 md:p-5 shadow-lg w-full flex flex-col ${panelBg}`}>
+        {/* 💡 배경과 경계선을 완전히 제거하여 페이지와 매끄럽게 이어지는 파티 매칭 섹션 */}
+        <section className={`w-full flex flex-col p-3 md:p-5 ${panelBg}`}>
           <div className={`flex flex-wrap sm:flex-nowrap items-start sm:items-center justify-between mb-4 pb-3 border-b gap-3 ${isLightMode ? 'border-blue-200' : 'border-zinc-800'}`}>
             <div className="flex-1 min-w-0">
               <h2 className={`font-bold text-sm md:text-base whitespace-nowrap ${textColor}`}>⚔️ 실시간 오토 파티 매칭</h2>
@@ -782,7 +784,7 @@ export default function Home() {
         </section>
 
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-          <section className={`lg:col-span-2 backdrop-blur border rounded-xl p-4 md:p-5 shadow-lg ${panelBg}`}>
+          <section className={`lg:col-span-2 p-4 md:p-5 ${panelBg}`}>
             <div className={`flex justify-between items-center mb-4 border-b pb-3 gap-3 ${isLightMode ? 'border-blue-200' : 'border-zinc-800'}`}>
               <h2 className={`font-bold text-sm md:text-base whitespace-nowrap ${textColor}`}>🏆 성역 명예의 전당</h2>
               <button onClick={() => router.push('/ranking')} className={`text-[0.65rem] font-bold transition shrink-0 whitespace-nowrap ${subTextColor}`}>전체 랭킹</button>
@@ -802,7 +804,7 @@ export default function Home() {
             </div>
           </section>
 
-          <section className={`lg:col-span-3 backdrop-blur border rounded-xl p-4 md:p-5 shadow-lg flex flex-col ${panelBg}`}>
+          <section className={`lg:col-span-3 flex flex-col p-4 md:p-5 ${panelBg}`}>
             <div className={`flex justify-between items-center mb-4 border-b pb-3 gap-3 ${isLightMode ? 'border-blue-200' : 'border-zinc-800'}`}>
               <h2 className={`font-bold text-sm md:text-base whitespace-nowrap ${textColor}`}>📒 SANCTUM 저널</h2>
               <span className="text-[0.65rem] bg-indigo-900/30 text-indigo-400 border border-indigo-700/50 px-2 py-1 rounded font-bold shrink-0 whitespace-nowrap">활동 포인트 1,250 획득</span>
@@ -834,7 +836,7 @@ export default function Home() {
 
       {isAbyssModalOpen && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className={`border rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col ${isLightMode ? 'bg-[#fefcf6] border-blue-300 text-[#0f172a]' : 'bg-[#1c1c1e] border-purple-900/50 text-white'}`}>
+          <div className={`border rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col ${isLightMode ? 'bg-white border-blue-300 text-[#0f172a]' : 'bg-[#1c1c1e] border-purple-900/50 text-white'}`}>
             <div className={`p-5 border-b flex justify-between items-center gap-2 ${isLightMode ? 'bg-blue-50 border-blue-200' : 'bg-[#252528] border-zinc-700'}`}>
               <h2 className="text-lg font-black text-purple-600 dark:text-purple-300 whitespace-nowrap">🕳️ 어비스 구멍 제보</h2>
               <button onClick={() => setIsAbyssModalOpen(false)} className="text-zinc-400 hover:text-white text-xl shrink-0">&times;</button>
@@ -842,7 +844,7 @@ export default function Home() {
             <div className="p-5 space-y-4">
               <div className="flex justify-between items-center gap-2">
                 <span className={`text-[0.7rem] font-bold whitespace-nowrap ${subTextColor}`}>신규 제보 입력</span>
-                {((user?.nickname && ["한설", "수도사는수도사", "신파랑", "제ส"].includes(user.nickname)) || 
+                {((user?.nickname && ["한설", "수도사는수도사", "신파랑", "제ส", "맛춘법"].includes(user.nickname)) || 
                   ["길드마스터", "마스터", "부마스터"].includes(user?.role)) && (
                   <label className={`flex items-center space-x-2 cursor-pointer border px-2 py-1 rounded shrink-0 ${isLightMode ? 'bg-blue-50 border-blue-300' : 'bg-[#121212] border-zinc-700'}`}>
                     <input type="checkbox" checked={isAdminMode} onChange={(e) => setIsAdminMode(e.target.checked)} className="w-3 h-3 accent-purple-500" />
@@ -865,7 +867,7 @@ export default function Home() {
 
       {isDeepModalOpen && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className={`border rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col ${isLightMode ? 'bg-[#fefcf6] border-blue-300 text-[#0f172a]' : 'bg-[#1c1c1e] border-red-900/50 text-white'}`}>
+          <div className={`border rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col ${isLightMode ? 'bg-white border-blue-300 text-[#0f172a]' : 'bg-[#1c1c1e] border-red-900/50 text-white'}`}>
             <div className={`p-5 border-b flex justify-between items-center gap-2 ${isLightMode ? 'bg-blue-50 border-blue-200' : 'bg-[#252528] border-zinc-700'}`}>
               <h2 className="text-lg font-black text-red-500 dark:text-red-400 whitespace-nowrap">🌌 심층 구멍 현황 제보</h2>
               <button onClick={() => setIsDeepModalOpen(false)} className="text-zinc-400 hover:text-white text-xl shrink-0">&times;</button>
@@ -905,7 +907,7 @@ export default function Home() {
 
       {detailModalParty && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className={`border rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col ${isLightMode ? 'bg-[#fefcf6] border-blue-300 text-[#0f172a]' : 'bg-[#1c1c1e] border-zinc-700 text-white'}`}>
+          <div className={`border rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col ${isLightMode ? 'bg-white border-blue-300 text-[#0f172a]' : 'bg-[#1c1c1e] border-zinc-700 text-white'}`}>
             <div className={`p-4 border-b flex justify-between items-center gap-2 ${isLightMode ? 'bg-blue-50 border-blue-200' : 'bg-[#252528] border-zinc-700'}`}>
               <h3 className={`font-bold text-[0.8rem] truncate ${textColor}`}>👥 {detailModalParty.content_name} 전체 멤버 ({detailModalParty.members.length}/{detailModalParty.max_members})</h3>
               <button onClick={() => setDetailModalParty(null)} className="text-zinc-400 hover:text-white text-lg shrink-0">&times;</button>
@@ -934,7 +936,7 @@ export default function Home() {
 
       {joinPopupParty && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-           <div className={`border rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col ${isLightMode ? 'bg-[#fefcf6] border-blue-300 text-[#0f172a]' : 'bg-[#1c1c1e] border-emerald-900/50 text-white'}`}>
+           <div className={`border rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col ${isLightMode ? 'bg-white border-blue-300 text-[#0f172a]' : 'bg-[#1c1c1e] border-emerald-900/50 text-white'}`}>
               <div className={`p-5 border-b flex justify-between items-center gap-2 ${isLightMode ? 'bg-blue-50 border-blue-200' : 'bg-[#252528] border-zinc-700'}`}>
                 <h2 className="text-lg font-black text-emerald-600 dark:text-emerald-400 whitespace-nowrap">⚔️ 파티 참여 확인</h2>
                 <button onClick={() => setJoinPopupParty(null)} className="text-zinc-400 hover:text-white text-xl shrink-0">&times;</button>
