@@ -22,14 +22,15 @@ interface AccountPreset {
   borderColor: string;
   theme: string;
   bgImage?: string;
+  dimmer?: number;
 }
 
 const navItems: NavItem[] = [
-  { en: 'KERYGMA', kr: '케리그마', sub: '공지사항', path: '/notice', hasNew: true },
+  { en: 'KERYGMA', kr: '케리그마', sub: '공지사항', path: '/notice' },
   { en: 'CHRONOS', kr: '크로노스', sub: '캐릭터 관리', path: '/character' },
   { en: 'AGORA', kr: '아고라', sub: '길드 라운지', path: '/lounge' },
   { en: 'EMPORION', kr: '엠포리온', sub: '거래소 정보', path: '/market' },
-  { en: 'SYNAXIS', kr: '시낙시스', sub: '파티 매칭', path: '/party', hasNew: true },
+  { en: 'SYNAXIS', kr: '시낙시스', sub: '파티 매칭', path: '/party' },
   { en: 'GNOSIS', kr: '그노시스', sub: '정보 공유', path: '/gnosis' },
   { en: 'LOGOS', kr: '로고스', sub: '문의/건의', path: '/support' },
 ];
@@ -38,12 +39,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const pathname = usePathname();
   const router = useRouter();
 
+  const [mounted, setMounted] = useState(false);
   const [accounts, setAccounts] = useState<AccountPreset[]>([]);
   const [activeAccount, setActiveAccount] = useState<AccountPreset | null>(null);
-  const [isLoaded, setIsLoaded] = useState(false);
-  
+
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const [isMobileAccountMenuOpen, setIsMobileAccountMenuOpen] = useState(false);
+  const [isWingsOpen, setIsWingsOpen] = useState(false);
+  
+  const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
+  const [tempTheme, setTempTheme] = useState('mint');
+  const [tempBgImage, setTempBgImage] = useState('');
+  const [tempDimmer, setTempDimmer] = useState(40);
 
   const [isFabOpen, setIsFabOpen] = useState(false);
   const [fabPosition, setFabPosition] = useState<{ x: number }>({ x: 20 });
@@ -53,13 +60,47 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const startFabX = useRef(0);
   const hasMoved = useRef(false);
 
+  // 바텀시트 드래그 닫기용 ref
+  const sheetDragStartY = useRef(0);
+  const sheetCurrentDeltaY = useRef(0);
+  const [sheetTranslateY, setSheetTranslateY] = useState(0);
+  const [isDraggingSheet, setIsDraggingSheet] = useState(false);
+
+  const wingsRef = useRef<HTMLDivElement>(null);
+  const accountMenuRef = useRef<HTMLDivElement>(null);
+
   const [pendingCount, setPendingCount] = useState(0);
   const [banner, setBanner] = useState<any>(null);
 
-  // 폰트 크기 세팅
   useEffect(() => {
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+      if (wingsRef.current && !wingsRef.current.contains(event.target as Node)) {
+        setIsWingsOpen(false);
+      }
+      if (accountMenuRef.current && !accountMenuRef.current.contains(event.target as Node)) {
+        setIsAccountMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, []);
+
+  useEffect(() => {
+    setMounted(true);
     const savedFont = localStorage.getItem('nexus_font_size') || 'normal';
     setFontSizeLevel(savedFont);
+    loadAccounts();
+
+    const handleAccountChange = () => {
+      loadAccounts();
+    };
+    window.addEventListener("sanctum_account_changed", handleAccountChange);
+    return () => window.removeEventListener("sanctum_account_changed", handleAccountChange);
   }, []);
 
   useEffect(() => {
@@ -75,60 +116,92 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   }, [fontSizeLevel]);
 
   const loadAccounts = () => {
-    const savedAccounts = localStorage.getItem("sanctum_accounts");
-    const savedActiveId = localStorage.getItem("sanctum_active_account_id");
-
-    if (savedAccounts) {
-      try {
-        const parsed: AccountPreset[] = JSON.parse(savedAccounts);
-        setAccounts(parsed);
-        if (parsed.length > 0) {
-          const current = parsed.find(a => a.id === savedActiveId) || parsed[0];
-          setActiveAccount(current);
-        }
-      } catch (e) {
-        console.error("Account parse error", e);
-      }
-    } else {
+    try {
       const oldUser = localStorage.getItem("nexus_user");
-      if (oldUser) {
+      const savedAccounts = localStorage.getItem("sanctum_accounts");
+      const savedActiveId = localStorage.getItem("sanctum_active_account_id");
+
+      let parsedAccounts: AccountPreset[] = [];
+      if (savedAccounts) {
         try {
-          const parsedOld = JSON.parse(oldUser);
-          const defaultAcc: AccountPreset = {
-            id: String(Date.now()),
-            nickname: parsedOld.nickname || "길드원",
-            role: parsedOld.role || "길드원",
-            alias: parsedOld.nickname || "내 계정 1",
-            borderColor: "#E6C788",
-            theme: "Classic Gold"
-          };
-          setAccounts([defaultAcc]);
-          setActiveAccount(defaultAcc);
-          localStorage.setItem("sanctum_accounts", JSON.stringify([defaultAcc]));
-          localStorage.setItem("sanctum_active_account_id", defaultAcc.id);
+          parsedAccounts = JSON.parse(savedAccounts);
         } catch (e) {}
       }
-    }
-    setIsLoaded(true);
-  };
 
-  useEffect(() => {
-    loadAccounts();
-    const handleAccountChange = () => {
-      loadAccounts();
-    };
-    window.addEventListener("sanctum_account_changed", handleAccountChange);
-    return () => window.removeEventListener("sanctum_account_changed", handleAccountChange);
-  }, []);
+      if ((!parsedAccounts || parsedAccounts.length === 0) && oldUser) {
+        const parsedOld = JSON.parse(oldUser);
+        parsedAccounts = [{
+          id: 'default-id',
+          nickname: parsedOld.nickname || "한설",
+          role: parsedOld.role || "마스터",
+          alias: parsedOld.alias || parsedOld.nickname || "한설이네",
+          borderColor: parsedOld.borderColor || "#E6C788",
+          theme: parsedOld.theme || "mint",
+          bgImage: parsedOld.bgImage || "",
+          dimmer: parsedOld.dimmer || 40
+        }];
+        localStorage.setItem("sanctum_accounts", JSON.stringify(parsedAccounts));
+        localStorage.setItem("sanctum_active_account_id", parsedAccounts[0].id);
+      }
+
+      setAccounts(parsedAccounts);
+      if (parsedAccounts.length > 0) {
+        const current = parsedAccounts.find(a => a.id === savedActiveId) || parsedAccounts[0];
+        setActiveAccount(current);
+        setTempTheme(current.theme || 'mint');
+        setTempBgImage(current.bgImage || '');
+        setTempDimmer(current.dimmer ?? 40);
+      }
+    } catch (e) {
+      console.error("Account parse error", e);
+    }
+  };
 
   const switchAccount = (acc: AccountPreset) => {
     setActiveAccount(acc);
+    setTempTheme(acc.theme || 'mint');
+    setTempBgImage(acc.bgImage || '');
+    setTempDimmer(acc.dimmer ?? 40);
+
     localStorage.setItem("sanctum_active_account_id", acc.id);
-    localStorage.setItem("nexus_user", JSON.stringify({ nickname: acc.nickname, role: acc.role }));
+    localStorage.setItem("nexus_user", JSON.stringify({ 
+      nickname: acc.nickname, 
+      alias: acc.alias, 
+      role: acc.role,
+      borderColor: acc.borderColor,
+      theme: acc.theme 
+    }));
     setIsAccountMenuOpen(false);
     setIsMobileAccountMenuOpen(false);
     setIsFabOpen(false);
     window.dispatchEvent(new CustomEvent("sanctum_account_changed", { detail: acc }));
+  };
+
+  const handleSaveThemeSettings = () => {
+    if (!activeAccount) return;
+    
+    const updatedAccounts = accounts.map(acc => {
+      if (acc.id === activeAccount.id) {
+        return {
+          ...acc,
+          theme: tempTheme,
+          bgImage: tempBgImage,
+          dimmer: tempDimmer
+        };
+      }
+      return acc;
+    });
+
+    setAccounts(updatedAccounts);
+    localStorage.setItem("sanctum_accounts", JSON.stringify(updatedAccounts));
+    
+    const updatedCurrent = updatedAccounts.find(a => a.id === activeAccount.id) || null;
+    setActiveAccount(updatedCurrent);
+    if (updatedCurrent) {
+      window.dispatchEvent(new CustomEvent("sanctum_account_changed", { detail: updatedCurrent }));
+    }
+
+    setIsThemeModalOpen(false);
   };
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -152,6 +225,35 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     const onPointerUp = () => {
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerup', onPointerUp);
+    };
+
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+  };
+
+  // 💡 바텀시트 손잡이 드래그 내리기 제스처 핸들러
+  const handleSheetDragStart = (e: React.PointerEvent) => {
+    sheetDragStartY.current = e.clientY;
+    sheetCurrentDeltaY.current = 0;
+    setIsDraggingSheet(true);
+
+    const onPointerMove = (moveEvent: PointerEvent) => {
+      const deltaY = moveEvent.clientY - sheetDragStartY.current;
+      if (deltaY > 0) {
+        sheetCurrentDeltaY.current = deltaY;
+        setSheetTranslateY(deltaY);
+      }
+    };
+
+    const onPointerUp = () => {
+      setIsDraggingSheet(false);
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+
+      if (sheetCurrentDeltaY.current > 80) {
+        setIsFabOpen(false);
+      }
+      setSheetTranslateY(0);
     };
 
     window.addEventListener('pointermove', onPointerMove);
@@ -218,44 +320,124 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
   const isAdmin = activeAccount?.nickname === "한설" || activeAccount?.role === "마스터";
   const activeColor = activeAccount?.borderColor || "#E6C788";
+  
+  const getThemeBackground = () => {
+    const theme = activeAccount?.theme || 'mint';
+    if (theme === 'purple') return 'bg-gradient-to-b from-[#1c1428] via-[#121212] to-[#0f0b15]';
+    if (theme === 'rose') return 'bg-gradient-to-b from-[#25151a] via-[#121212] to-[#150b0f]';
+    return 'bg-gradient-to-b from-[#11221c] via-[#121212] to-[#0b1411]';
+  };
 
   return (
     <html lang="ko">
-      <body className="bg-[#121212] text-zinc-200 overflow-x-hidden min-h-screen relative font-sans">
+      <body className={`text-zinc-200 overflow-x-hidden min-h-screen relative font-sans ${getThemeBackground()}`}>
         
         {activeAccount?.bgImage && (
           <div
-            className="fixed inset-0 z-[-1] bg-cover bg-center pointer-events-none opacity-20 filter blur-[2px]"
+            className="fixed inset-0 z-[-2] bg-cover bg-center pointer-events-none"
             style={{ backgroundImage: `url(${activeAccount.bgImage})` }}
           />
         )}
+        {activeAccount?.bgImage && (
+          <div 
+            className="fixed inset-0 z-[-1] pointer-events-none bg-black"
+            style={{ opacity: (activeAccount.dimmer ?? 40) / 100 }}
+          />
+        )}
 
-        {/* 🟢 데스크톱 네비게이션 바 */}
         <nav className="sticky top-0 z-[900] flex flex-col shadow-lg border-b border-zinc-800 bg-[#1c1c1e]/90 backdrop-blur-md w-full">
           {banner && (
-            <div className="w-full py-2 bg-red-600 text-white text-center text-xs font-black animate-pulse flex items-center justify-center gap-2 border-b border-red-800">
+            <div className="w-full py-2 bg-red-600 text-white text-center text-xs font-black flex items-center justify-center gap-2 border-b border-red-800">
               <span>🚨</span><span>{banner.message}</span><span>🚨</span>
             </div>
           )}
 
-          <div className="max-w-[1600px] mx-auto px-4 w-full">
+          <div className="max-w-[1600px] mx-auto px-4 w-full relative">
             <div className="flex items-center justify-between h-20">
              
-              {/* 로고 영역 */}
-              <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity shrink-0">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg transition-colors border border-black/10 relative overflow-hidden shrink-0" style={{ backgroundColor: activeColor }}>
-                  <div className="absolute inset-0 bg-gradient-to-br from-white/30 to-transparent"></div>
-                  <svg className="w-6 h-6 text-black relative z-10 drop-shadow-sm" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 1L15.39 8.26L23 9.27L17.5 14.14L18.81 21.02L12 17.77L5.19 21.02L6.5 14.14L1 9.27L8.61 8.26L12 1Z" />
-                  </svg>
-                </div>
-                <div className="flex flex-col whitespace-nowrap">
-                  <span className="font-black text-xl text-white leading-none tracking-wider">SANCTUM</span>
-                  <span className="text-[0.55rem] font-bold tracking-tight mt-1 opacity-90 hidden sm:block text-zinc-400">데이안 서버 성역 길드</span>
-                </div>
-              </Link>
+              <div className="flex items-center gap-3 shrink-0">
+                <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity shrink-0">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg transition-colors border border-black/10 relative overflow-hidden shrink-0" style={{ backgroundColor: activeColor }}>
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/30 to-transparent"></div>
+                    <svg className="w-6 h-6 text-black relative z-10 drop-shadow-sm" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 1L15.39 8.26L23 9.27L17.5 14.14L18.81 21.02L12 17.77L5.19 21.02L6.5 14.14L1 9.27L8.61 8.26L12 1Z" />
+                    </svg>
+                  </div>
+                  <div className="flex flex-col whitespace-nowrap">
+                    <span className="text-[0.55rem] font-bold text-zinc-400 tracking-tight">데이안 성역 길드 전용 플랫폼</span>
+                    <span className="font-black text-xl text-white leading-tight tracking-wider mt-0.5">SANCTUM</span>
+                  </div>
+                </Link>
 
-              {/* 상단 네비게이션 메뉴 */}
+                <div className="relative z-[100] ml-1" ref={wingsRef}>
+                  <button 
+                    onClick={() => setIsWingsOpen(!isWingsOpen)}
+                    className="flex items-center justify-center p-1 transition-transform duration-200 hover:scale-110 active:scale-95 group focus:outline-none"
+                    title="정령의 날개 (빠른 이동)"
+                  >
+                    <span className="text-[1.1rem] drop-shadow-[0_0_6px_rgba(255,255,255,0.9)]">🪽</span>
+                  </button>
+
+                  {isWingsOpen && (
+                    <div className="absolute top-full left-0 mt-3 w-[260px] bg-[#141414] p-1 rounded-xl shadow-[0_0_20px_rgba(0,0,0,0.8)] border border-[#0a0a0c] animate-in fade-in slide-in-from-top-2 z-[960]">
+                      <div className="relative border border-[#00c853] rounded-lg h-full w-full flex flex-col bg-[#141414]">
+                        <div className="absolute -top-[3px] -left-[3px] w-2.5 h-2.5 border-t-[1.5px] border-l-[1.5px] border-[#00c853] rounded-tl-full"></div>
+                        <div className="absolute -top-[3px] -right-[3px] w-2.5 h-2.5 border-t-[1.5px] border-r-[1.5px] border-[#00c853] rounded-tr-full"></div>
+                        <div className="absolute -bottom-[3px] -left-[3px] w-2.5 h-2.5 border-b-[1.5px] border-l-[1.5px] border-[#00c853] rounded-bl-full"></div>
+                        <div className="absolute -bottom-[3px] -right-[3px] w-2.5 h-2.5 border-b-[1.5px] border-r-[1.5px] border-[#00c853] rounded-br-full"></div>
+                        
+                        <div className="p-3 border-b border-[#00c853]/30 flex justify-between items-start">
+                          <div>
+                            <h3 className="text-[#00c853] font-black text-[1.1rem] tracking-tight">정령의 날개</h3>
+                            <p className="text-zinc-400 text-[0.7rem] font-bold mt-1"><span className="text-[#00c853]">고급</span> 재화</p>
+                          </div>
+                          <div className="w-12 h-12 relative flex items-center justify-center bg-[radial-gradient(circle_at_center,rgba(0,200,83,0.35)_0%,rgba(0,0,0,0)_75%)]">
+                            <span className="text-2xl drop-shadow-[0_0_8px_rgba(255,255,255,0.9)] pb-0.5">🪽</span>
+                          </div>
+                        </div>
+                        
+                        <div className="p-3 bg-[#111111] rounded-b-lg">
+                          <p className="text-[0.65rem] text-[#9ca3af] leading-relaxed mb-4 break-keep font-medium">
+                            정령의 힘이 담긴 날개 모양의 장식품.<br/>
+                            바람의 정령을 불러내 먼 거리를<br/>빠르게 이동하는데 사용한다.
+                          </p>
+                          <div className="flex flex-col gap-1.5">
+                            <a href="https://mabinogimobile.nexon.com/Main" target="_blank" rel="noreferrer" className="bg-[#1c1c1e] hover:bg-[#252528] text-zinc-300 text-[0.7rem] font-bold py-2 px-2.5 rounded flex justify-between items-center transition border border-zinc-800 hover:border-[#00c853]/50 group">
+                              <div className="flex items-center gap-2">
+                                <img src="https://www.google.com/s2/favicons?domain=mabinogimobile.nexon.com&sz=32" alt="로고" className="w-4 h-4 rounded-sm" />
+                                공식 홈페이지
+                              </div>
+                              <span className="text-zinc-600 group-hover:text-[#00c853] transition text-[0.6rem]">↗</span>
+                            </a>
+                            <a href="https://mabimobi.life/" target="_blank" rel="noreferrer" className="bg-[#1c1c1e] hover:bg-[#252528] text-zinc-300 text-[0.7rem] font-bold py-2 px-2.5 rounded flex justify-between items-center transition border border-zinc-800 hover:border-[#00c853]/50 group">
+                              <div className="flex items-center gap-2">
+                                <img src="https://www.google.com/s2/favicons?domain=mabimobi.life&sz=32" alt="로고" className="w-4 h-4 rounded-sm" />
+                                모비라이프
+                              </div>
+                              <span className="text-zinc-600 group-hover:text-[#00c853] transition text-[0.6rem]">↗</span>
+                            </a>
+                            <a href="https://arca.live/b/mabimobile" target="_blank" rel="noreferrer" className="bg-[#1c1c1e] hover:bg-[#252528] text-zinc-300 text-[0.7rem] font-bold py-2 px-2.5 rounded flex justify-between items-center transition border border-zinc-800 hover:border-[#00c853]/50 group">
+                              <div className="flex items-center gap-2">
+                                <img src="https://www.google.com/s2/favicons?domain=arca.live&sz=32" alt="로고" className="w-4 h-4 rounded-sm" />
+                                모비 채널 <span className="text-[0.6rem] font-normal text-zinc-500">(아카라이브)</span>
+                              </div>
+                              <span className="text-zinc-600 group-hover:text-[#00c853] transition text-[0.6rem]">↗</span>
+                            </a>
+                            <a href="https://gall.dcinside.com/mgallery/board/lists/?id=enban" target="_blank" rel="noreferrer" className="bg-[#1c1c1e] hover:bg-[#252528] text-zinc-300 text-[0.7rem] font-bold py-2 px-2.5 rounded flex justify-between items-center transition border border-zinc-800 hover:border-[#00c853]/50 group">
+                              <div className="flex items-center gap-2">
+                                <img src="https://www.google.com/s2/favicons?domain=gall.dcinside.com&sz=32" alt="로고" className="w-4 h-4 rounded-sm" />
+                                에반 갤러리 <span className="text-[0.6rem] font-normal text-zinc-500">(디시)</span>
+                              </div>
+                              <span className="text-zinc-600 group-hover:text-[#00c853] transition text-[0.6rem]">↗</span>
+                            </a>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               <div className="hidden lg:flex items-center space-x-2 xl:space-x-3">
                 {navItems.map((item) => {
                   const isActive = pathname === item.path;
@@ -274,26 +456,32 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                       <div className="absolute inset-0 flex items-center justify-center transition-all duration-300 transform translate-y-12 opacity-0 group-hover:translate-y-0 group-hover:opacity-100">
                         <span className={`font-black tracking-widest text-[0.65rem] xl:text-[0.7rem] whitespace-nowrap ${isActive ? 'text-white' : 'text-zinc-400'}`}>{item.en}</span>
                       </div>
-
-                      {item.hasNew && <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0"></span>}
                     </Link>
                   );
                 })}
               </div>
 
-              {/* 우측 유틸리티 영역 (isLoaded 체크로 하이드레이션 오류 원천 차단) */}
-              <div className="hidden lg:flex items-center gap-3 relative shrink-0">
+              <div className="hidden lg:flex items-center gap-2.5 relative shrink-0">
                 
-                {/* 글자 크기 변경 위젯 */}
-                <div className="flex items-center bg-[#121212] border border-zinc-700 rounded-lg p-0.5 shadow-inner">
-                  <button onClick={() => setFontSizeLevel('small')} className={`px-2 py-1 rounded text-[0.65rem] font-bold transition ${fontSizeLevel === 'small' ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}>A-</button>
-                  <button onClick={() => setFontSizeLevel('normal')} className={`px-2 py-1 rounded text-[0.65rem] font-bold transition ${fontSizeLevel === 'normal' ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}>A</button>
-                  <button onClick={() => setFontSizeLevel('large')} className={`px-2 py-1 rounded text-[0.65rem] font-bold transition ${fontSizeLevel === 'large' ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}>A+</button>
+                <button 
+                  onClick={() => setIsThemeModalOpen(true)}
+                  className="bg-[#121212] border border-zinc-700 rounded-xl p-2.5 text-zinc-400 hover:text-white hover:border-zinc-500 transition cursor-pointer flex items-center justify-center shadow-sm"
+                  title="성역 테마 및 배경 설정"
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M18.5 2h-13C4.12 2 3 3.12 3 4.5v3C3 8.88 4.12 10 5.5 10H7v1c0 1.66 1.34 3 3 3h1v4.5C11 19.88 12.12 21 13.5 21h2c1.38 0 2.5-1.12 2.5-2.5V14h1c1.66 0 3-1.34 3-3V4.5C21 3.12 19.88 2 18.5 2zM19 11c0 .55-.45 1-1 1h-1V9h1c.55 0 1 .45 1 1v1zm-3-8v3H8V3h8z" />
+                  </svg>
+                </button>
+
+                <div className="bg-[#121212] border border-zinc-700 rounded-xl p-2.5 text-zinc-400 hover:text-white hover:border-zinc-500 transition cursor-pointer flex items-center justify-center shadow-sm" title="메일함 (목업)">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                  </svg>
                 </div>
 
-                {isLoaded && activeAccount ? (
-                  <div className="relative">
-                    <button onClick={() => setIsAccountMenuOpen(!isAccountMenuOpen)} className="flex items-center gap-2 bg-[#121212] hover:bg-zinc-800 px-3 py-1.5 rounded-full border transition shadow-md whitespace-nowrap" style={{ borderColor: activeColor }}>
+                {mounted && activeAccount ? (
+                  <div className="relative" ref={accountMenuRef}>
+                    <button onClick={() => setIsAccountMenuOpen(!isAccountMenuOpen)} className="flex items-center gap-2 bg-[#121212] hover:bg-zinc-800 px-3.5 py-2 rounded-full border transition shadow-md whitespace-nowrap" style={{ borderColor: activeColor }}>
                       <div className="w-6 h-6 rounded-full flex items-center justify-center text-[0.65rem] bg-zinc-800 shrink-0">👑</div>
                       <div className="flex flex-col text-left leading-none whitespace-nowrap">
                         <span className="text-[0.7rem] font-bold text-white flex items-center gap-1 max-w-[120px] truncate">{activeAccount.alias || activeAccount.nickname}</span>
@@ -303,7 +491,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     </button>
 
                     {isAccountMenuOpen && (
-                      <div className="absolute right-0 mt-2 w-56 bg-[#1c1c1e] border border-zinc-700 rounded-xl shadow-2xl z-[1000] overflow-hidden p-2">
+                      <div className="absolute right-0 mt-2 w-56 bg-[#1c1c1e] border border-zinc-700 rounded-xl shadow-2xl z-[960] overflow-hidden p-2">
                         <div className="text-[0.55rem] font-bold text-zinc-500 px-2 py-1">현재 활성 계정</div>
                         <div className="flex items-center justify-between p-2 rounded-lg bg-zinc-800/80 mb-2 border-l-4" style={{ borderColor: activeColor }}>
                           <span className="text-[0.7rem] font-black text-white truncate">{activeAccount.alias || activeAccount.nickname}</span>
@@ -330,7 +518,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                       </div>
                     )}
                   </div>
-                ) : isLoaded ? (
+                ) : mounted ? (
                   <Link href="/login" className="text-[0.7rem] font-bold text-[#e6c788] hover:text-yellow-400 whitespace-nowrap">로그인</Link>
                 ) : (
                   <div className="w-16 h-6"></div>
@@ -340,39 +528,45 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </div>
         </nav>
 
-        {/* 📱 듀얼 플로팅 알약 버튼 */}
         <div
           className="lg:hidden fixed bottom-6 z-[10000] flex items-center bg-[#1c1c1e] rounded-full shadow-[0_0_15px_rgba(0,0,0,0.7)] border-[1.5px] cursor-grab active:cursor-grabbing select-none"
           style={{ right: `${fabPosition.x}px`, borderColor: activeColor }}
           onPointerDown={handlePointerDown}
         >
-          <button onClick={handleHomeClick} className="w-[3.2rem] h-[3.2rem] flex items-center justify-center border-r border-zinc-800 hover:bg-zinc-800 rounded-l-full transition-colors">
-            <svg className="w-5 h-5 drop-shadow-sm" style={{ color: activeColor }} viewBox="0 0 24 24" fill="currentColor">
+          <button onClick={handleHomeClick} className="w-[2.2rem] h-[2.2rem] flex items-center justify-center border-r border-zinc-800 hover:bg-zinc-800 rounded-l-full transition-colors">
+            <svg className="w-3.5 h-3.5 drop-shadow-sm" style={{ color: activeColor }} viewBox="0 0 24 24" fill="currentColor">
                <path d="M12 1L15.39 8.26L23 9.27L17.5 14.14L18.81 21.02L12 17.77L5.19 21.02L6.5 14.14L1 9.27L8.61 8.26L12 1Z" />
             </svg>
           </button>
-          <button onClick={handleMenuClick} className={`w-[3.2rem] h-[3.2rem] flex items-center justify-center rounded-r-full transition-colors relative ${isFabOpen ? 'bg-zinc-800' : 'hover:bg-zinc-800'}`}>
-            {!isFabOpen && <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 absolute top-2 right-2 animate-pulse border-2 border-[#1c1c1e]"></span>}
+          <button onClick={handleMenuClick} className={`w-[2.2rem] h-[2.2rem] flex items-center justify-center rounded-r-full transition-colors relative ${isFabOpen ? 'bg-zinc-800' : 'hover:bg-zinc-800'}`}>
             {isFabOpen ? (
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
             ) : (
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 6h16M4 12h16M4 18h16"></path></svg>
             )}
           </button>
         </div>
 
-        {/* 📱 바텀 시트 오버레이 */}
         <div
-          className={`fixed inset-0 z-[9998] lg:hidden bg-black/70 backdrop-blur-sm transition-opacity duration-300 ${isFabOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+          className={`fixed inset-0 z-[9998] lg:hidden bg-black/60 transition-opacity duration-300 ${isFabOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
           onClick={() => setIsFabOpen(false)}
         />
 
-        {/* 📱 초압축 바텀 시트 */}
+        {/* 💡 손잡이 드래그 제스처가 적용된 모바일 바텀시트 */}
         <div
-          className={`fixed inset-x-0 bottom-0 z-[9999] lg:hidden bg-[#1c1c1e] border-t-[1.5px] rounded-t-[28px] p-4 shadow-2xl flex flex-col transition-transform duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] ${isFabOpen ? 'translate-y-0' : 'translate-y-[120%]'}`}
-          style={{ borderColor: activeColor }}
+          className={`fixed inset-x-0 bottom-0 z-[9999] lg:hidden bg-[#1c1c1e] border-t-[1.5px] rounded-t-[28px] p-4 shadow-2xl flex flex-col ${isDraggingSheet ? '' : 'transition-transform duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)]'} ${isFabOpen ? 'translate-y-0' : 'translate-y-[120%]'}`}
+          style={{ 
+            borderColor: activeColor, 
+            transform: isFabOpen ? `translateY(${sheetTranslateY}px)` : 'translateY(120%)' 
+          }}
         >
-          <div className="w-10 h-1.5 bg-zinc-700 rounded-full mx-auto mb-4" />
+          {/* 손잡이(인디케이터 바) 영역에 드래그 이벤트 장착 */}
+          <div 
+            className="w-full py-2.5 flex items-center justify-center cursor-grab active:cursor-grabbing touch-none select-none"
+            onPointerDown={handleSheetDragStart}
+          >
+            <div className="w-10 h-1.5 bg-zinc-600 rounded-full" />
+          </div>
 
           <div className="overflow-y-auto custom-scrollbar flex flex-col gap-3 pb-16">
            
@@ -398,7 +592,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                         <span className="font-black text-[0.75rem] tracking-wide leading-tight whitespace-nowrap" style={{ color: activeColor }}>{item.kr}</span>
                         <span className="text-[0.55rem] font-bold mt-1 text-zinc-400 whitespace-nowrap">{item.sub}</span>
                       </div>
-                      {item.hasNew && <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shadow-[0_0_5px_red] self-start mt-1.5 shrink-0"></span>}
                     </div>
                   </Link>
                 );
@@ -418,16 +611,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
                 <div className="flex items-center gap-2 shrink-0">
                  
-                  <div className="flex items-center bg-[#121212] border border-zinc-700 rounded p-0.5">
-                    <button onClick={() => setFontSizeLevel('small')} className={`px-1.5 py-0.5 rounded text-[0.55rem] font-bold ${fontSizeLevel === 'small' ? 'bg-zinc-700 text-white' : 'text-zinc-500'}`}>A-</button>
-                    <button onClick={() => setFontSizeLevel('normal')} className={`px-1.5 py-0.5 rounded text-[0.55rem] font-bold ${fontSizeLevel === 'normal' ? 'bg-zinc-700 text-white' : 'text-zinc-500'}`}>A</button>
-                    <button onClick={() => setFontSizeLevel('large')} className={`px-1.5 py-0.5 rounded text-[0.55rem] font-bold ${fontSizeLevel === 'large' ? 'bg-zinc-700 text-white' : 'text-zinc-500'}`}>A+</button>
-                  </div>
-
-                  <button className="relative p-1.5 rounded-md bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 transition-colors">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
-                    <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 rounded-full text-[0.5rem] font-black flex items-center justify-center text-white border border-[#252528]">2</span>
+                  <button 
+                    onClick={() => { setIsThemeModalOpen(true); setIsFabOpen(false); }}
+                    className="p-2 rounded-md bg-[#121212] border border-zinc-700 text-zinc-400 hover:text-white transition flex items-center justify-center"
+                    title="테마 및 배경 설정"
+                  >
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M18.5 2h-13C4.12 2 3 3.12 3 4.5v3C3 8.88 4.12 10 5.5 10H7v1c0 1.66 1.34 3 3 3h1v4.5C11 19.88 12.12 21 13.5 21h2c1.38 0 2.5-1.12 2.5-2.5V14h1c1.66 0 3-1.34 3-3V4.5C21 3.12 19.88 2 18.5 2zM19 11c0 .55-.45 1-1 1h-1V9h1c.55 0 1 .45 1 1v1zm-3-8v3H8V3h8z" />
+                    </svg>
                   </button>
+
+                  <div className="p-2 rounded-md bg-[#121212] border border-zinc-700 text-zinc-400 flex items-center justify-center">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                  </div>
 
                   <button
                     onClick={() => setIsMobileAccountMenuOpen(!isMobileAccountMenuOpen)}
@@ -456,7 +652,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   <div className="h-px w-full bg-zinc-800 my-1"></div>
                  
                   <Link href="/login" onClick={() => setIsFabOpen(false)} className="w-full text-center text-[0.65rem] font-bold text-[#e6c788] bg-yellow-900/10 py-2.5 rounded-lg transition border border-yellow-900/30">➕ 계정 추가 로그인</Link>
-                  {isAdmin && <Link href="/admin" onClick={() => setIsFabOpen(false)} className="w-full text-center text-[0.65rem] font-bold text-zinc-300 bg-zinc-800/80 py-2.5 rounded-lg transition border border-zinc-700">⚙️ SANCTUM 관리자 메뉴 {pendingCount > 0 && <span className="bg-red-500 text-white px-1.5 py-0.2 rounded-full text-[0.55rem] ml-1">{pendingCount}</span>}</Link>}
+                  {isAdmin && <Link href="/admin" onClick={() => setIsFabOpen(false)} className="w-full text-center text-[0.65rem] font-bold text-zinc-300 bg-zinc-800/80 py-2.5 rounded-lg transition border border-zinc-700">⚙️ SANCTUM 관리자 메뉴</Link>}
                   <button onClick={handleLogout} className="w-full text-center text-[0.65rem] font-bold text-red-400 bg-red-950/20 py-2.5 rounded-lg transition border border-red-900/30">🚪 활성 계정 로그아웃</button>
                 </div>
               )}
@@ -464,6 +660,99 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
           </div>
         </div>
+
+        {/* 💡 블러를 제거하고 시인성을 강화한 성역 테마 & 배경 설정 모달 */}
+        {isThemeModalOpen && (
+          <div className="fixed inset-0 z-[11000] flex items-center justify-center p-4 bg-black/70 animate-in fade-in duration-200">
+            <div className="bg-[#161618]/95 border border-zinc-600 rounded-2xl shadow-[0_0_30px_rgba(0,0,0,0.9)] w-full max-w-md overflow-hidden flex flex-col">
+              
+              <div className="bg-[#222225] p-4 border-b border-zinc-700 flex justify-between items-center">
+                <h3 className="text-white font-black text-base flex items-center gap-2">
+                  <span>🎨</span> 성역 테마 & 배경 설정 ({activeAccount?.nickname})
+                </h3>
+                <button onClick={() => setIsThemeModalOpen(false)} className="text-zinc-400 hover:text-white text-xl">&times;</button>
+              </div>
+
+              <div className="p-6 space-y-5">
+                
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-zinc-300">성역 그라데이션 테마</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setTempTheme('mint')}
+                      className={`p-3 rounded-xl border text-xs font-bold transition flex flex-col items-center gap-1.5 ${tempTheme === 'mint' ? 'bg-[#11221c] border-[#00c853] text-white shadow-lg' : 'bg-[#121212] border-zinc-700 text-zinc-400 hover:border-zinc-500'}`}
+                    >
+                      <span className="w-4 h-4 rounded-full bg-[#11221c] border border-[#00c853]"></span>
+                      민트바닐라
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTempTheme('purple')}
+                      className={`p-3 rounded-xl border text-xs font-bold transition flex flex-col items-center gap-1.5 ${tempTheme === 'purple' ? 'bg-[#1c1428] border-purple-500 text-white shadow-lg' : 'bg-[#121212] border-zinc-700 text-zinc-400 hover:border-zinc-500'}`}
+                    >
+                      <span className="w-4 h-4 rounded-full bg-[#1c1428] border border-purple-500"></span>
+                      퍼플릿
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTempTheme('rose')}
+                      className={`p-3 rounded-xl border text-xs font-bold transition flex flex-col items-center gap-1.5 ${tempTheme === 'rose' ? 'bg-[#25151a] border-rose-500 text-white shadow-lg' : 'bg-[#121212] border-zinc-700 text-zinc-400 hover:border-zinc-500'}`}
+                    >
+                      <span className="w-4 h-4 rounded-full bg-[#25151a] border border-rose-500"></span>
+                      로즈블룸
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-zinc-300">커스텀 배경 이미지 주소 (URL)</label>
+                  <input
+                    type="text"
+                    placeholder="https://example.com/image.jpg"
+                    value={tempBgImage}
+                    onChange={(e) => setTempBgImage(e.target.value)}
+                    className="w-full bg-[#111113] border border-zinc-600 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#e6c788]"
+                  />
+                  <p className="text-[0.6rem] text-zinc-400">* 이 기기에서 현재 계정에만 적용되는 로컬 배경입니다.</p>
+                </div>
+
+                {tempBgImage && (
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center text-xs font-bold">
+                      <span className="text-zinc-300">배경 시인성 오버레이 투명도</span>
+                      <span className="text-[#e6c788]">{tempDimmer}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="80"
+                      value={tempDimmer}
+                      onChange={(e) => setTempDimmer(Number(e.target.value))}
+                      className="w-full accent-[#e6c788]"
+                    />
+                  </div>
+                )}
+
+                <div className="pt-3 border-t border-zinc-700 flex items-center justify-between">
+                  <span className="text-xs font-bold text-zinc-300">화면 글자 크기</span>
+                  <div className="flex items-center bg-[#111113] border border-zinc-600 rounded-xl p-1 gap-1">
+                    <button onClick={() => setFontSizeLevel('small')} className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition ${fontSizeLevel === 'small' ? 'bg-zinc-700 text-white shadow' : 'text-zinc-400 hover:text-zinc-200'}`}>A-</button>
+                    <button onClick={() => setFontSizeLevel('normal')} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${fontSizeLevel === 'normal' ? 'bg-zinc-700 text-white shadow' : 'text-zinc-400 hover:text-zinc-200'}`}>A</button>
+                    <button onClick={() => setFontSizeLevel('large')} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${fontSizeLevel === 'large' ? 'bg-zinc-700 text-white shadow' : 'text-zinc-400 hover:text-zinc-200'}`}>A+</button>
+                  </div>
+                </div>
+
+              </div>
+
+              <div className="bg-[#222225] p-4 border-t border-zinc-700 flex justify-between gap-2">
+                <button onClick={() => setIsThemeModalOpen(false)} className="px-5 py-2 rounded-lg bg-zinc-800 text-zinc-300 text-xs font-bold hover:bg-zinc-700 transition">취소</button>
+                <button onClick={handleSaveThemeSettings} className="px-5 py-2 rounded-lg bg-[#e6c788] text-black text-xs font-black hover:bg-yellow-500 transition shadow">적용하기</button>
+              </div>
+
+            </div>
+          </div>
+        )}
 
         {children}
       </body>

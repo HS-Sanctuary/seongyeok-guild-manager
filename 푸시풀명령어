@@ -25,3 +25,5 @@ git add .
 git commit -m "집 작업 완료_26-0806"
 
 git push origin main
+
+npm run dev

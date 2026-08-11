@@ -1,0 +1,6 @@
+INSERT INTO accounts (id, nickname, code, role)
+VALUES 
+  (gen_random_uuid(), '꽃잎처럼떨어져라', 'sy2222', '부마스터'),
+  (gen_random_uuid(), '오십쇼', 'sy3333', '부마스터'),
+  (gen_random_uuid(), '뉴월', 'sy0903', '부마스터'),
+  (gen_random_uuid(), 'ynara', 'sy0507', '부마스터');

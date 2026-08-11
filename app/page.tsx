@@ -74,7 +74,7 @@ const ALL_CLASSES = Object.keys(JOB_ICONS);
 const DIFFICULTY_COLORS: Record<string, string> = {
   "입문": "text-purple-400 bg-purple-400/10 border-purple-500/50",
   "어려움": "text-yellow-400 bg-yellow-400/10 border-yellow-500/50",
-  "매우 어려움": "text-red-500 bg-red-500/10 border-red-500/50",
+  "매 어려움": "text-red-500 bg-red-500/10 border-red-500/50",
   "지옥 1": "text-rose-400 bg-rose-900/40 border-rose-600/50"
 };
 
@@ -278,6 +278,7 @@ export default function Home() {
       setAbyssList(sortedContents.filter(c => c.type === 'abyss').sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)));
       setRaidList(sortedContents.filter(c => c.type === 'raid').sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)));
 
+      // 💡 진짜 이름(nickname) 또는 현재 활성 계정 기준으로 캐릭터 필터링
       const myChars = allChars.filter(char => char.owner === currentUser?.nickname);
       myChars.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
       setMyCharacters(myChars);
@@ -306,14 +307,25 @@ export default function Home() {
 
   useEffect(() => {
     setMounted(true);
-    const savedUser = localStorage.getItem("nexus_user");
-    if (!savedUser) { 
-      router.push("/login"); 
-    } else { 
-      const parsedUser = JSON.parse(savedUser);
-      setUser(parsedUser);
-      fetchDashboardData(parsedUser);
-    }
+    const loadUserAndData = () => {
+      const savedUser = localStorage.getItem("nexus_user");
+      if (!savedUser) { 
+        router.push("/login"); 
+      } else { 
+        const parsedUser = JSON.parse(savedUser);
+        setUser(parsedUser);
+        fetchDashboardData(parsedUser);
+      }
+    };
+
+    loadUserAndData();
+
+    // 💡 다계정 빠른 스위치 이벤트 리스너 연동
+    const handleAccountChange = (e: any) => {
+      loadUserAndData();
+    };
+    window.addEventListener("sanctum_account_changed", handleAccountChange);
+    return () => window.removeEventListener("sanctum_account_changed", handleAccountChange);
   }, [router]);
 
   const submitDeepHole = async (e: React.FormEvent) => {
@@ -329,11 +341,6 @@ export default function Home() {
     const targetTime = new Date(Date.now() + Number(abyssMins) * 60000).toISOString();
     await supabase.from('abyss_reports').insert([{ reporter_name: user.nickname, channel: abyssMins, hole_time: targetTime, status: 'pending' }]);
     setAbyssMins(''); setIsAbyssModalOpen(false); fetchDashboardData(user);
-  };
-
-  const updateAbyssStatus = async (id: string, newStatus: string) => {
-    await supabase.from('abyss_reports').update({ status: newStatus }).eq('id', id);
-    fetchDashboardData(user);
   };
 
   const getActiveDeepHoles = (uid: string) => {
@@ -431,13 +438,14 @@ export default function Home() {
   if (!mounted || !user) return null;
 
   return (
-    <main className="min-h-screen bg-[#121212] text-[#d4d4d8] font-sans pb-10 relative">
+    <main className="min-h-screen text-[#d4d4d8] font-sans pb-10 relative bg-transparent">
       
       <div className="p-4 md:p-8 max-w-[1500px] mx-auto space-y-4 md:space-y-6">
         
+        {/* 상단 6대 알리미 위젯 */}
         <section className="space-y-2">
           <div className="flex justify-end items-center px-1">
-            <span className="text-[0.6rem] md:text-[0.65rem] text-zinc-500 font-medium flex items-center gap-1.5 bg-[#1c1c1e] px-2.5 py-1 rounded-full border border-zinc-800 whitespace-nowrap">
+            <span className="text-[0.6rem] md:text-[0.65rem] text-zinc-400 font-medium flex items-center gap-1.5 bg-[#1c1c1e]/80 backdrop-blur px-2.5 py-1 rounded-full border border-zinc-800 whitespace-nowrap shadow-sm">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
               심층 및 어비스 구멍 출현시간 제보 시 모두에게 공유됩니다!!
             </span>
@@ -448,7 +456,7 @@ export default function Home() {
             {/* 1. Sanctuary ASTRA */}
             <div 
               onClick={() => router.push('/lounge/astra')}
-              className="rounded-xl border border-yellow-600/30 bg-[#1c1c1e] p-3.5 flex flex-col justify-between relative overflow-hidden shadow-lg order-1 cursor-pointer hover:border-yellow-500 transition group"
+              className="rounded-xl border border-yellow-600/30 bg-[#1c1c1e]/90 backdrop-blur p-3.5 flex flex-col justify-between relative overflow-hidden shadow-lg order-1 cursor-pointer hover:border-yellow-500 transition group"
             >
               <div className="absolute -right-4 -bottom-4 text-5xl opacity-5 group-hover:scale-110 transition-transform pointer-events-none">✨</div>
               
@@ -476,45 +484,45 @@ export default function Home() {
             </div>
 
             {/* 2. 올라운더 달성률 */}
-            <div className="rounded-xl border border-yellow-600/30 bg-[#1c1c1e] p-3.5 flex flex-col justify-between relative overflow-hidden shadow-lg order-2">
+            <div className="rounded-xl border border-yellow-600/30 bg-[#1c1c1e]/90 backdrop-blur p-3.5 flex flex-col justify-between relative overflow-hidden shadow-lg order-2">
               <div className="absolute -right-4 -bottom-4 text-5xl opacity-5 pointer-events-none">⚡</div>
-              <p className="text-[0.6rem] uppercase tracking-[0.1em] text-zinc-500 font-bold whitespace-nowrap">올라운더 달성률</p>
+              <p className="text-[0.6rem] uppercase tracking-[0.1em] text-zinc-400 font-bold whitespace-nowrap">올라운더 달성률</p>
               <div className="my-auto py-1 flex items-baseline gap-1">
                 <span className="text-2xl md:text-3xl font-black text-[#e6c788] leading-none">{allRounderLevel}</span>
-                <span className="text-[0.7rem] font-bold text-zinc-500 leading-none">LV</span>
+                <span className="text-[0.7rem] font-bold text-zinc-400 leading-none">LV</span>
               </div>
-              <p className="text-[0.6rem] text-zinc-500 whitespace-nowrap">최대 1365 LV</p>
+              <p className="text-[0.6rem] text-zinc-400 whitespace-nowrap">최대 1365 LV</p>
             </div>
 
             {/* 3. 필드보스 알림 */}
-            <div className={`rounded-xl p-3.5 flex flex-col justify-between relative transition-all duration-500 order-3 ${fieldBossEvent.status === 'imminent' ? 'bg-orange-900/40 border-2 border-orange-500 animate-pulse shadow-[0_0_25px_rgba(249,115,22,0.4)]' : fieldBossEvent.status === 'active' ? 'bg-orange-950/60 border border-orange-600 shadow-[0_0_15px_rgba(249,115,22,0.3)]' : 'bg-[#1c1c1e] border border-zinc-700/50 shadow-lg'}`}>
-              <p className={`text-[0.6rem] font-bold whitespace-nowrap ${fieldBossEvent.status === 'waiting' ? 'text-orange-500/80' : 'text-orange-300'}`}>필드보스 알림</p>
+            <div className={`rounded-xl p-3.5 flex flex-col justify-between relative transition-all duration-500 order-3 backdrop-blur ${fieldBossEvent.status === 'imminent' ? 'bg-orange-900/40 border-2 border-orange-500 animate-pulse shadow-[0_0_25px_rgba(249,115,22,0.4)]' : fieldBossEvent.status === 'active' ? 'bg-orange-950/60 border border-orange-600 shadow-[0_0_15px_rgba(249,115,22,0.3)]' : 'bg-[#1c1c1e]/90 border border-zinc-700/50 shadow-lg'}`}>
+              <p className={`text-[0.6rem] font-bold whitespace-nowrap ${fieldBossEvent.status === 'waiting' ? 'text-orange-400' : 'text-orange-300'}`}>필드보스 알림</p>
               <div className="my-auto py-1 flex flex-col">
                 <span className={`text-lg md:text-xl font-black leading-tight whitespace-nowrap ${fieldBossEvent.status === 'waiting' ? 'text-orange-100' : 'text-white'}`}>
                   {fieldBossEvent.status === 'imminent' ? '출현 임박!' : fieldBossEvent.status === 'active' ? '출현중!' : formatTimeHM(fieldBossEvent.sec)}
                 </span>
-                {fieldBossEvent.status === 'waiting' && <span className="text-[0.6rem] text-zinc-500 font-bold mt-1 whitespace-nowrap">다음 출현까지</span>}
+                {fieldBossEvent.status === 'waiting' && <span className="text-[0.6rem] text-zinc-400 font-bold mt-1 whitespace-nowrap">다음 출현까지</span>}
               </div>
-              <p className="text-[0.6rem] text-zinc-500 whitespace-nowrap">{fieldBossEvent.status === 'active' ? '지도에서 위치 확인' : '12, 18, 20, 22시'}</p>
+              <p className="text-[0.6rem] text-zinc-400 whitespace-nowrap">{fieldBossEvent.status === 'active' ? '지도에서 위치 확인' : '12, 18, 20, 22시'}</p>
             </div>
 
             {/* 4. 소환의 결계 알림 */}
-            <div className={`rounded-xl p-3.5 flex flex-col justify-between relative transition-all duration-500 order-4 ${barrierEvent.status === 'imminent' ? 'bg-amber-900/40 border-2 border-amber-500 animate-pulse shadow-[0_0_25px_rgba(245,158,11,0.4)]' : barrierEvent.status === 'active' ? 'bg-rose-950/60 border border-rose-600 shadow-[0_0_15px_rgba(225,29,72,0.3)]' : 'bg-[#1c1c1e] border border-zinc-700/50 shadow-lg'}`}>
-              <p className={`text-[0.6rem] font-bold whitespace-nowrap ${barrierEvent.status === 'waiting' ? 'text-amber-500/80' : 'text-amber-300'}`}>소환의 결계 알림</p>
+            <div className={`rounded-xl p-3.5 flex flex-col justify-between relative transition-all duration-500 order-4 backdrop-blur ${barrierEvent.status === 'imminent' ? 'bg-amber-900/40 border-2 border-amber-500 animate-pulse shadow-[0_0_25px_rgba(245,158,11,0.4)]' : barrierEvent.status === 'active' ? 'bg-rose-950/60 border border-rose-600 shadow-[0_0_15px_rgba(225,29,72,0.3)]' : 'bg-[#1c1c1e]/90 border border-zinc-700/50 shadow-lg'}`}>
+              <p className={`text-[0.6rem] font-bold whitespace-nowrap ${barrierEvent.status === 'waiting' ? 'text-amber-400' : 'text-amber-300'}`}>소환의 결계 알림</p>
               <div className="my-auto py-1 flex flex-col">
                 <span className={`text-lg md:text-xl font-black leading-tight whitespace-nowrap ${barrierEvent.status === 'waiting' ? 'text-amber-100' : 'text-white'}`}>
                   {barrierEvent.status === 'imminent' ? '곧 출현!' : barrierEvent.status === 'active' ? '출현중!' : formatTimeHM(barrierEvent.sec)}
                 </span>
-                {barrierEvent.status === 'waiting' && <span className="text-[0.6rem] text-zinc-500 font-bold mt-1 whitespace-nowrap">다음 출현까지</span>}
+                {barrierEvent.status === 'waiting' && <span className="text-[0.6rem] text-zinc-400 font-bold mt-1 whitespace-nowrap">다음 출현까지</span>}
               </div>
-              <p className="text-[0.6rem] text-zinc-500 whitespace-nowrap">{barrierEvent.status === 'active' ? '몬스터 등장 중' : '매 정각 실시간 타이머'}</p>
+              <p className="text-[0.6rem] text-zinc-400 whitespace-nowrap">{barrierEvent.status === 'active' ? '몬스터 등장 중' : '매 정각 실시간 타이머'}</p>
             </div>
 
-            {/* 5. 어비스 구멍 알림 (문구 통일: 시간 아래에 다음 출현까지 표기) */}
-            <div className={`rounded-xl p-3.5 flex flex-col justify-between relative transition-all duration-500 order-5 ${abyssDisplay.status === 'imminent' ? 'bg-purple-900/60 border-2 border-purple-400 animate-pulse shadow-[0_0_25px_rgba(168,85,247,0.5)]' : abyssDisplay.status === 'active' ? 'bg-fuchsia-950/60 border border-fuchsia-500 shadow-[0_0_15px_rgba(217,70,239,0.3)]' : 'bg-[#1a1625] border border-purple-900/50 shadow-[0_0_15px_rgba(168,85,247,0.05)]'}`}>
-              <div className="flex justify-between items-start mb-1">
+            {/* 5. 어비스 구멍 알림 */}
+            <div className={`rounded-xl p-3.5 flex flex-col justify-between relative transition-all duration-500 order-5 backdrop-blur ${abyssDisplay.status === 'imminent' ? 'bg-purple-900/60 border-2 border-purple-400 animate-pulse shadow-[0_0_25px_rgba(168,85,247,0.5)]' : abyssDisplay.status === 'active' ? 'bg-fuchsia-950/60 border border-fuchsia-500 shadow-[0_0_15px_rgba(217,70,239,0.3)]' : 'bg-[#1a1625]/90 border border-purple-900/50 shadow-[0_0_15px_rgba(168,85,247,0.05)]'}`}>
+              <div className="flex justify-between items-start mb-1 gap-2">
                 <p className={`text-[0.6rem] font-bold whitespace-nowrap ${abyssDisplay.status === 'waiting' ? 'text-purple-400' : 'text-purple-300'}`}>어비스 구멍 알림</p>
-                <button onClick={() => setIsAbyssModalOpen(true)} className="bg-purple-900/60 hover:bg-purple-800 text-purple-200 text-[0.6rem] px-2 py-0.5 rounded border border-purple-700/50 transition font-bold shadow whitespace-nowrap">
+                <button onClick={() => setIsAbyssModalOpen(true)} className="bg-purple-900/60 hover:bg-purple-800 text-purple-200 text-[0.6rem] px-2 py-0.5 rounded border border-purple-700/50 transition font-bold shadow shrink-0 whitespace-nowrap">
                   제보하기
                 </button>
               </div>
@@ -522,27 +530,27 @@ export default function Home() {
                 <span className={`text-lg md:text-xl font-black ${abyssDisplay.status === 'waiting' ? 'text-purple-100' : 'text-white'} leading-tight whitespace-nowrap`}>
                   {abyssDisplay.timeText}
                 </span>
-                <span className="text-[0.6rem] text-purple-300/60 font-bold mt-1 whitespace-nowrap">{abyssDisplay.subText}</span>
+                <span className="text-[0.6rem] text-purple-300/80 font-bold mt-1 whitespace-nowrap">{abyssDisplay.subText}</span>
               </div>
             </div>
 
             {/* 6. 심층 구멍 알림 */}
-            <div className="bg-[#201515] border border-red-900/50 rounded-xl p-3.5 flex flex-col justify-between relative shadow-[0_0_15px_rgba(239,68,68,0.05)] order-6">
+            <div className="bg-[#201515]/90 backdrop-blur border border-red-900/50 rounded-xl p-3.5 flex flex-col justify-between relative shadow-[0_0_15px_rgba(239,68,68,0.05)] order-6">
               <div className="flex flex-col mb-1.5">
-                <div className="flex justify-between items-center w-full">
+                <div className="flex justify-between items-center w-full gap-2">
                   <p className="text-[0.6rem] font-bold text-red-400 whitespace-nowrap">심층 구멍 알림</p>
-                  <button onClick={() => setIsDeepModalOpen(true)} className="bg-red-900/40 hover:bg-red-800 text-red-300 text-[0.6rem] px-2.5 py-0.5 rounded border border-red-700/50 transition font-bold shadow whitespace-nowrap">
+                  <button onClick={() => setIsDeepModalOpen(true)} className="bg-red-900/40 hover:bg-red-800 text-red-300 text-[0.6rem] px-2.5 py-0.5 rounded border border-red-700/50 transition font-bold shadow shrink-0 whitespace-nowrap">
                     제보
                   </button>
                 </div>
-                <span className="text-[0.55rem] text-red-300/60 font-mono mt-0.5 whitespace-nowrap">{deepTimer} 초기화</span>
+                <span className="text-[0.55rem] text-red-300/80 font-mono mt-0.5 whitespace-nowrap">{deepTimer} 초기화</span>
               </div>
               <div className="grid grid-cols-2 gap-1.5 my-auto">
                 {HUNTING_ZONES.filter(z => z.isActive).map(zone => {
                   const activeHole = getActiveDeepHoles(zone.uid)[0];
                   const colorClass = zone.theme === 'emerald' ? 'bg-emerald-900/30 text-emerald-400' : 'bg-red-900/40 text-red-400';
                   return (
-                    <div key={zone.uid} className="flex flex-col justify-center items-center bg-[#121212] border border-zinc-800 p-1.5 rounded-lg text-center gap-0.5 whitespace-nowrap">
+                    <div key={zone.uid} className="flex flex-col justify-center items-center bg-[#121212]/80 border border-zinc-800 p-1.5 rounded-lg text-center gap-0.5 whitespace-nowrap">
                       <span className="text-[0.6rem] text-zinc-300 font-bold leading-tight">{zone.name}</span>
                       <span className={`text-[0.6rem] w-full py-0.5 rounded font-bold ${activeHole && activeHole.channel !== '0' ? colorClass : 'bg-zinc-800 text-zinc-400'}`}>
                         {activeHole ? `${activeHole.channel}개` : '대기'}
@@ -556,28 +564,33 @@ export default function Home() {
           </div>
         </section>
 
-        {/* 나머지 캐릭터 및 매칭 영역 */}
-        <section className="bg-[#1c1c1e] border border-zinc-800 rounded-xl p-4 md:p-5 shadow-xl">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 md:mb-5 border-b border-zinc-800 pb-3 md:pb-4 gap-3 md:gap-4">
-            <div className="flex-none">
-              <h2 className="text-white font-bold text-sm md:text-base flex items-center gap-2">📋 캐릭터 숙제 체크보드</h2>
-              <p className="text-[0.65rem] md:text-[0.7rem] text-zinc-400 mt-1">계정 내 모든 캐릭터의 핵심 스탯과 주간 숙제를 한눈에 관리하세요.</p>
+        {/* 캐릭터 숙제 체크보드 */}
+        <section className="bg-[#1c1c1e]/90 backdrop-blur border border-zinc-800 rounded-xl p-3 md:p-5 shadow-xl">
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-4 md:mb-5 border-b border-zinc-800 pb-4 gap-4">
+            
+            <div className="flex-1 w-full lg:w-auto min-w-0">
+              <h2 className="text-white font-bold text-sm md:text-base flex items-center gap-2 whitespace-nowrap">📋 캐릭터 숙제 체크보드</h2>
+              <p className="text-[0.65rem] md:text-[0.7rem] text-zinc-400 mt-1 break-keep truncate sm:whitespace-normal">계정 내 모든 캐릭터의 핵심 스탯과 주간 숙제를 한눈에 관리하세요.</p>
             </div>
-            <div className="flex-1 w-full px-0 md:px-8 max-w-2xl">
-               <div className="flex justify-between items-center text-[0.65rem] md:text-[0.7rem] font-bold mb-1.5">
-                  <span className="text-zinc-400">계정 통합 달성률</span>
-                  <span className="text-[#e6c788] text-[0.75rem] font-black">{accountProgressRate}%</span>
-               </div>
-               <div className="w-full bg-[#121212] border border-zinc-700/50 h-2 md:h-2.5 rounded-full overflow-hidden shadow-inner">
-                  <div className="bg-gradient-to-r from-yellow-600 to-[#e6c788] h-full transition-all duration-700" style={{ width: `${accountProgressRate}%` }}></div>
-               </div>
+            
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 w-full lg:w-auto lg:flex-1 lg:max-w-2xl shrink-0 lg:shrink">
+              <div className="flex-1 w-full min-w-[200px]">
+                 <div className="flex justify-between items-center text-[0.65rem] md:text-[0.7rem] font-bold mb-1.5 gap-2">
+                    <span className="text-zinc-400 whitespace-nowrap">계정 통합 달성률</span>
+                    <span className="text-[#e6c788] text-[0.75rem] font-black whitespace-nowrap">{accountProgressRate}%</span>
+                 </div>
+                 <div className="w-full bg-[#121212] border border-zinc-700/50 h-2 md:h-2.5 rounded-full overflow-hidden shadow-inner">
+                    <div className="bg-gradient-to-r from-yellow-600 to-[#e6c788] h-full transition-all duration-700" style={{ width: `${accountProgressRate}%` }}></div>
+                 </div>
+              </div>
+              <button onClick={() => router.push('/character')} className="w-full sm:w-auto whitespace-nowrap shrink-0 text-[0.75rem] bg-[#e6c788] text-[#121212] font-black px-4 py-2.5 md:py-2.5 rounded-lg hover:bg-yellow-500 transition shadow">캐릭터 관리</button>
             </div>
-            <button onClick={() => router.push('/character')} className="w-full md:w-auto text-[0.75rem] bg-[#e6c788] text-[#121212] font-black px-4 py-2 rounded-lg hover:bg-yellow-500 transition shadow">캐릭터 관리</button>
+
           </div>
           
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2 md:gap-3">
             {myCharacters.length === 0 ? (
-              <div className="col-span-full text-center py-8 text-zinc-500 text-xs">등록된 캐릭터가 없습니다. '캐릭터 관리'에서 캐릭터를 등록해주세요!</div>
+              <div className="col-span-full text-center py-8 text-zinc-400 text-xs font-bold">등록된 캐릭터가 없습니다. '캐릭터 관리'에서 캐릭터를 등록해주세요!</div>
             ) : (
               myCharacters.map((char) => {
                 const dChecks = Array.isArray(char.daily_checks) ? char.daily_checks.map(Number) : [];
@@ -589,52 +602,56 @@ export default function Home() {
                 const raidCount = raidList.filter(r => rChecks.includes(r.id)).length;
 
                 return (
-                  <div key={char.id} onClick={() => router.push(`/character?char=${encodeURIComponent(char.nickname)}`)} className="bg-[#252528] border border-zinc-700/50 rounded-xl p-2.5 md:p-4 cursor-pointer hover:border-[#e6c788]/60 transition shadow-md flex flex-col gap-2 md:gap-3 group">
-                    <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
-                      <div className="flex items-center gap-1.5 md:gap-2 truncate">
-                        <span className="text-sm md:text-base bg-[#121212] p-1.5 rounded-lg border border-zinc-700 group-hover:border-[#e6c788]/50 transition">{JOB_ICONS[char.job] || "👤"}</span>
-                        <span className="font-black text-white text-[0.8rem] md:text-[0.9rem] truncate">{char.nickname}</span>
+                  <div key={char.id} onClick={() => router.push(`/character?char=${encodeURIComponent(char.nickname)}`)} 
+                       className="bg-[#252528]/90 backdrop-blur border border-zinc-700/50 rounded-xl p-2.5 md:p-4 cursor-pointer hover:border-[#e6c788]/60 transition shadow-md flex flex-col gap-2 md:gap-3 group min-w-0 active:scale-[0.98]">
+                    <div className="flex items-center justify-between border-b border-zinc-800 pb-1.5 md:pb-2 gap-2">
+                      <div className="flex items-center gap-1.5 md:gap-2 w-full truncate">
+                        <span className="text-sm md:text-base bg-[#121212] p-1.5 rounded-lg border border-zinc-700 group-hover:border-[#e6c788]/50 transition shrink-0">{JOB_ICONS[char.job] || "👤"}</span>
+                        <span className="font-black text-white text-[0.75rem] md:text-[0.9rem] truncate flex-1 min-w-0">{char.nickname}</span>
                       </div>
-                      {char.is_main && <span className="text-[0.6rem] bg-[#e6c788] text-black font-black px-1.5 py-0.5 rounded shrink-0 hidden sm:block">대표</span>}
+                      {char.is_main && <span className="text-[0.6rem] bg-[#e6c788] text-black font-black px-1.5 py-0.5 rounded shrink-0 hidden sm:block whitespace-nowrap">대표</span>}
                     </div>
-                    <div className="space-y-1.5 md:space-y-2 text-[0.65rem] font-bold">
+                    <div className="space-y-1.5 md:space-y-2 text-[0.6rem] md:text-[0.65rem] font-bold px-0.5">
                       <div>
-                        <div className="flex justify-between text-zinc-400 mb-1"><span>일일 숙제</span><span className="text-amber-400 font-mono">{Math.min(dRate, 100)}%</span></div>
-                        <div className="w-full bg-zinc-800 h-1 md:h-1.5 rounded-full overflow-hidden"><div className="bg-amber-500 h-full transition-all" style={{ width: `${Math.min(dRate, 100)}%` }}></div></div>
+                        <div className="flex justify-between text-zinc-400 mb-1 gap-2"><span className="whitespace-nowrap">일일 숙제</span><span className="text-amber-400 font-mono shrink-0">{Math.min(dRate, 100)}%</span></div>
+                        <div className="w-full bg-zinc-800 h-1.5 rounded-full overflow-hidden"><div className="bg-amber-500 h-full transition-all" style={{ width: `${Math.min(dRate, 100)}%` }}></div></div>
                       </div>
                       <div>
-                        <div className="flex justify-between text-zinc-400 mb-1"><span>주간 숙제</span><span className="text-blue-400 font-mono">{Math.min(wRate, 100)}%</span></div>
-                        <div className="w-full bg-zinc-800 h-1 md:h-1.5 rounded-full overflow-hidden"><div className="bg-blue-500 h-full transition-all" style={{ width: `${Math.min(wRate, 100)}%` }}></div></div>
+                        <div className="flex justify-between text-zinc-400 mb-1 gap-2"><span className="whitespace-nowrap">주간 숙제</span><span className="text-blue-400 font-mono shrink-0">{Math.min(wRate, 100)}%</span></div>
+                        <div className="w-full bg-zinc-800 h-1.5 rounded-full overflow-hidden"><div className="bg-blue-500 h-full transition-all" style={{ width: `${Math.min(wRate, 100)}%` }}></div></div>
                       </div>
                     </div>
-                    <div className="flex flex-col gap-1.5 md:gap-2 bg-[#121212] p-2 md:p-2.5 rounded-lg border border-zinc-800 mt-1">
+                    
+                    <div className="flex flex-col gap-1.5 md:gap-2 bg-[#121212]/80 p-1.5 md:p-2.5 rounded-lg border border-zinc-800 mt-auto">
                       <div className="flex flex-col gap-1 md:gap-1.5">
-                        <span className="text-[0.6rem] font-bold text-zinc-500">어비스 ({abyssCount}/{abyssList.length})</span>
-                        <div className="grid grid-cols-2 gap-1">
-                          {abyssList.length > 0 ? abyssList.map(a => {
+                        <span className="text-[0.6rem] font-bold text-zinc-400 truncate">어비스 ({abyssCount}/{abyssList.length})</span>
+                        <div className="grid grid-cols-2 gap-1 md:gap-1.5">
+                          {abyssList.length > 0 ? abyssList.map((a, idx) => {
                             const isChecked = rChecks.includes(a.id);
                             const dName = a.short_name || formatName(a.name);
+                            const isOddAndLast = (abyssList.length % 2 !== 0) && (idx === abyssList.length - 1);
                             return (
-                              <span key={a.id} className={`text-[0.6rem] px-1 md:px-1.5 py-0.5 rounded border font-bold text-center truncate transition-colors ${isChecked ? 'bg-emerald-900/40 text-emerald-400 border-emerald-700/50' : 'bg-zinc-800/50 text-zinc-500 border-zinc-700'}`}>
+                              <span key={a.id} className={`w-full text-[0.6rem] px-1 md:px-1.5 py-1 rounded border font-bold text-center truncate transition-colors ${isOddAndLast ? 'col-span-2' : ''} ${isChecked ? 'bg-emerald-900/40 text-emerald-400 border-emerald-700/50' : 'bg-zinc-800/50 text-zinc-400 border-zinc-700'}`}>
                                 {dName}
                               </span>
                             )
-                          }) : <span className="text-zinc-600 font-normal text-[0.6rem] col-span-2 text-center">없음</span>}
+                          }) : <span className="text-zinc-500 font-normal text-[0.6rem] col-span-2 text-center">없음</span>}
                         </div>
                       </div>
                       <div className="border-t border-zinc-800/80"></div>
                       <div className="flex flex-col gap-1 md:gap-1.5">
-                        <span className="text-[0.6rem] font-bold text-zinc-500">레이드 ({raidCount}/{raidList.length})</span>
-                        <div className="grid grid-cols-2 gap-1">
-                          {raidList.length > 0 ? raidList.map(r => {
+                        <span className="text-[0.6rem] font-bold text-zinc-400 truncate">레이드 ({raidCount}/{raidList.length})</span>
+                        <div className="grid grid-cols-2 gap-1 md:gap-1.5">
+                          {raidList.length > 0 ? raidList.map((r, idx) => {
                             const isChecked = rChecks.includes(r.id);
                             const dName = r.short_name || formatName(r.name);
+                            const isOddAndLast = (raidList.length % 2 !== 0) && (idx === raidList.length - 1);
                             return (
-                              <span key={r.id} className={`text-[0.6rem] px-1 md:px-1.5 py-0.5 rounded border font-bold text-center truncate transition-colors ${isChecked ? 'bg-indigo-900/40 text-indigo-400 border-indigo-700/50' : 'bg-zinc-800/50 text-zinc-500 border-zinc-700'}`}>
+                              <span key={r.id} className={`w-full text-[0.6rem] px-1 md:px-1.5 py-1 rounded border font-bold text-center truncate transition-colors ${isOddAndLast ? 'col-span-2' : ''} ${isChecked ? 'bg-indigo-900/40 text-indigo-400 border-indigo-700/50' : 'bg-zinc-800/50 text-zinc-400 border-zinc-700'}`}>
                                 {dName}
                               </span>
                             )
-                          }) : <span className="text-zinc-600 font-normal text-[0.6rem] col-span-2 text-center">없음</span>}
+                          }) : <span className="text-zinc-500 font-normal text-[0.6rem] col-span-2 text-center">없음</span>}
                         </div>
                       </div>
                     </div>
@@ -646,18 +663,18 @@ export default function Home() {
         </section>
 
         {/* 파티 매칭 및 저널 */}
-        <section className="bg-[#1c1c1e] border border-zinc-800 rounded-xl p-4 md:p-5 shadow-lg w-full flex flex-col">
-          <div className="flex items-center justify-between mb-4 pb-3 border-b border-zinc-800">
-            <div>
-              <h2 className="text-white font-bold text-sm md:text-base">⚔️ 실시간 오토 파티 매칭</h2>
-              <p className="text-[0.65rem] md:text-[0.7rem] text-zinc-400 mt-1">인원이 꽉 차면 시스템이 15분 단위 최적 출발 시간과 파티장을 자동 확정합니다.</p>
+        <section className="bg-[#1c1c1e]/90 backdrop-blur border border-zinc-800 rounded-xl p-4 md:p-5 shadow-lg w-full flex flex-col">
+          <div className="flex flex-wrap sm:flex-nowrap items-start sm:items-center justify-between mb-4 pb-3 border-b border-zinc-800 gap-3">
+            <div className="flex-1 min-w-0">
+              <h2 className="text-white font-bold text-sm md:text-base whitespace-nowrap">⚔️ 실시간 오토 파티 매칭</h2>
+              <p className="text-[0.65rem] md:text-[0.7rem] text-zinc-400 mt-1 truncate sm:whitespace-normal break-keep">인원이 꽉 차면 시스템이 15분 단위 최적 출발 시간과 파티장을 자동 확정합니다.</p>
             </div>
-            <button onClick={() => router.push('/party')} className="text-[0.65rem] bg-[#e6c788] text-[#121212] font-black px-3 py-1.5 rounded hover:bg-yellow-500 transition shadow">전체 게시판</button>
+            <button onClick={() => router.push('/party')} className="w-full sm:w-auto whitespace-nowrap shrink-0 text-[0.65rem] bg-[#e6c788] text-[#121212] font-black px-4 py-2 rounded-lg hover:bg-yellow-500 transition shadow">전체 게시판</button>
           </div>
           
           <div className="grid lg:grid-cols-2 gap-4 flex-1">
             {activeParties.length === 0 ? (
-              <div className="col-span-full flex justify-center items-center py-10 text-zinc-500 font-bold text-[0.75rem]">현재 모집 중인 파티가 없습니다.</div>
+              <div className="col-span-full flex justify-center items-center py-10 text-zinc-400 font-bold text-[0.75rem]">현재 모집 중인 파티가 없습니다.</div>
             ) : (
               activeParties.map((party) => {
                 const isMyParty = party.members.some((m: any) => m.name === user?.nickname || myCharacters.some(c => c.nickname === m.name));
@@ -666,34 +683,34 @@ export default function Home() {
                 const isCompleted = party.status === "모집완료";
 
                 return (
-                  <div key={party.id} className={`rounded-xl border ${party.party_type === '연속 뺑이' ? 'border-rose-900/40' : 'border-zinc-700/80'} ${isCompleted ? 'bg-indigo-900/10 border-indigo-700/50' : 'bg-[#252528]'} p-4 flex flex-col gap-3 shadow-md transition-all`}>
+                  <div key={party.id} className={`rounded-xl border ${party.party_type === '연속 뺑이' ? 'border-rose-900/40' : 'border-zinc-700/80'} ${isCompleted ? 'bg-indigo-900/10 border-indigo-700/50' : 'bg-[#252528]/90'} p-4 flex flex-col gap-3 shadow-md transition-all min-w-0 backdrop-blur`}>
                     <div className="flex justify-between items-start gap-2 border-b border-zinc-700/50 pb-2.5">
-                      <div className="flex flex-col">
+                      <div className="flex flex-col flex-1 min-w-0">
                         <div className="flex items-center gap-1.5 mb-1 flex-wrap">
-                          {isCompleted ? <span className="text-[0.6rem] font-black bg-indigo-600 text-white px-2 py-0.5 rounded shadow">✅ 매칭완료</span> : <span className="text-[0.6rem] font-black bg-zinc-700 text-zinc-300 px-1.5 py-0.5 rounded border border-zinc-500">대기중</span>}
-                          <span className={`text-[0.6rem] font-bold px-1.5 py-0.5 rounded border ${DIFFICULTY_COLORS[party.difficulty] || "text-zinc-400 bg-zinc-800 border-zinc-600"}`}>{party.difficulty}</span>
-                          <span className="text-[0.6rem] font-bold text-zinc-400 bg-zinc-800 px-1.5 py-0.5 rounded">{party.max_members}인팟</span>
+                          {isCompleted ? <span className="text-[0.6rem] font-black bg-indigo-600 text-white px-2 py-0.5 rounded shadow whitespace-nowrap">✅ 매칭완료</span> : <span className="text-[0.6rem] font-black bg-zinc-700 text-zinc-300 px-1.5 py-0.5 rounded border border-zinc-500 whitespace-nowrap">대기중</span>}
+                          <span className={`text-[0.6rem] font-bold px-1.5 py-0.5 rounded border whitespace-nowrap ${DIFFICULTY_COLORS[party.difficulty] || "text-zinc-400 bg-zinc-800 border-zinc-600"}`}>{party.difficulty}</span>
+                          <span className="text-[0.6rem] font-bold text-zinc-400 bg-zinc-800 px-1.5 py-0.5 rounded whitespace-nowrap">{party.max_members}인팟</span>
                         </div>
-                        <p className={`text-[0.9rem] md:text-base font-black ${isCompleted ? 'text-indigo-100' : 'text-white'} leading-tight`}>{party.content_name}</p>
+                        <p className={`text-[0.9rem] md:text-base font-black ${isCompleted ? 'text-indigo-100' : 'text-white'} leading-tight truncate`}>{party.content_name}</p>
                         <div className="mt-1">
-                          {isCompleted ? <span className="text-[0.65rem] bg-yellow-900/40 px-2 py-0.5 rounded text-yellow-400 font-bold border border-yellow-600/50 animate-pulse">⏰ 확정 출발 {party.final_start_time}</span> : <span className="text-[0.65rem] text-[#e6c788] font-mono">⏰ 희망 {party.time_start} ~ {party.time_end}</span>}
+                          {isCompleted ? <span className="text-[0.65rem] bg-yellow-900/40 px-2 py-0.5 rounded text-yellow-400 font-bold border border-yellow-600/50 animate-pulse whitespace-nowrap">⏰ 확정 출발 {party.final_start_time}</span> : <span className="text-[0.65rem] text-[#e6c788] font-mono whitespace-nowrap">⏰ 희망 {party.time_start} ~ {party.time_end}</span>}
                         </div>
                       </div>
 
-                      <div className="flex flex-col items-end gap-1.5">
-                        <span className="text-[0.7rem] font-black text-white bg-[#121212] border border-zinc-700 px-2.5 py-1 rounded-full">{party.members.length} / {party.max_members} 명</span>
-                        {isFull ? <button disabled className="text-[0.6rem] font-bold bg-zinc-800 text-zinc-500 border border-zinc-700 px-3 py-1.5 rounded cursor-not-allowed">모집 마감</button> : <button onClick={() => openJoinPopup(party)} className="text-[0.6rem] font-black bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded shadow transition">참여 신청</button>}
+                      <div className="flex flex-col items-end gap-1.5 shrink-0">
+                        <span className="text-[0.7rem] font-black text-white bg-[#121212] border border-zinc-700 px-2.5 py-1 rounded-full shrink-0 whitespace-nowrap">{party.members.length} / {party.max_members} 명</span>
+                        {isFull ? <button disabled className="text-[0.6rem] font-bold bg-zinc-800 text-zinc-500 border border-zinc-700 px-3 py-1.5 rounded cursor-not-allowed shrink-0 whitespace-nowrap">모집 마감</button> : <button onClick={() => openJoinPopup(party)} className="text-[0.6rem] font-black bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded shadow transition shrink-0 whitespace-nowrap">참여 신청</button>}
                       </div>
                     </div>
 
                     {party.matching_mode === "조합우선" && party.wanted_roles && party.wanted_roles.length > 0 && (
-                      <div className="flex items-center gap-1.5 bg-[#121212] border border-rose-900/30 px-2 py-1.5 rounded-lg">
-                        <span className="text-[0.6rem] font-black text-rose-500 animate-pulse">WANTED</span>
-                        {party.wanted_roles.map((role: string) => <span key={role} className="text-[0.6rem] font-bold bg-rose-900/40 text-rose-300 px-1.5 py-0.5 rounded border border-rose-700/50">{role}</span>)}
+                      <div className="flex items-center gap-1.5 bg-[#121212]/80 border border-rose-900/30 px-2 py-1.5 rounded-lg flex-wrap">
+                        <span className="text-[0.6rem] font-black text-rose-500 animate-pulse shrink-0">WANTED</span>
+                        {party.wanted_roles.map((role: string) => <span key={role} className="text-[0.6rem] font-bold bg-rose-900/40 text-rose-300 px-1.5 py-0.5 rounded border border-rose-700/50 whitespace-nowrap">{role}</span>)}
                       </div>
                     )}
 
-                    <div className="flex items-center justify-between gap-1.5 bg-[#121212] p-2 rounded-lg border border-zinc-800">
+                    <div className="flex items-center justify-between gap-1.5 bg-[#121212]/80 p-2 rounded-lg border border-zinc-800">
                       <div className="flex gap-1.5 overflow-x-auto custom-scrollbar flex-1 touch-pan-x">
                         {Array.from({ length: isOver4 ? 4 : party.max_members }).map((_, i) => {
                           const m = party.members[i];
@@ -705,21 +722,21 @@ export default function Home() {
                               {m.roles && m.roles.length > 0 && <span className="absolute bottom-0 bg-indigo-600 w-full text-center text-[0.45rem] md:text-[0.5rem] text-white rounded-b truncate px-0.5">{m.roles[0]}</span>}
                             </div>
                           ) : (
-                            <div key={i} className="flex flex-col items-center justify-center bg-[#1c1c1e] border border-dashed border-zinc-700 rounded p-1 w-10 h-12 md:w-12 md:h-14 flex-shrink-0"><span className="text-[0.5rem] md:text-[0.55rem] text-zinc-600">빈자리</span></div>
+                            <div key={i} className="flex flex-col items-center justify-center bg-[#1c1c1e] border border-dashed border-zinc-700 rounded p-1 w-10 h-12 md:w-12 md:h-14 flex-shrink-0"><span className="text-[0.5rem] md:text-[0.55rem] text-zinc-400 whitespace-nowrap">빈자리</span></div>
                           )
                         })}
                       </div>
                       
                       {isOver4 && (
                         <button onClick={() => setDetailModalParty(party)} className="bg-zinc-800 hover:bg-zinc-700 border border-zinc-600 text-zinc-300 text-[0.6rem] font-bold px-2 py-2 md:px-2.5 md:py-3 rounded flex flex-col items-center justify-center gap-1 transition flex-shrink-0">
-                          <span>+보기</span><span className="text-[0.5rem] md:text-[0.55rem] text-zinc-500">({party.members.length}/{party.max_members})</span>
+                          <span className="whitespace-nowrap">+보기</span><span className="text-[0.5rem] md:text-[0.55rem] text-zinc-400 whitespace-nowrap">({party.members.length}/{party.max_members})</span>
                         </button>
                       )}
                     </div>
                     
-                    <div className="text-[0.65rem] text-zinc-500 font-medium flex justify-between items-center pt-1">
-                      <span>파티장: <span className="text-zinc-300 font-bold">{isCompleted ? `👑 ${party.leader_name}` : party.members[0]?.name || "알 수 없음"}</span></span>
-                      {isMyParty && <button onClick={() => handleDeleteParty(party.id)} className="text-[0.6rem] text-red-400 hover:underline">내 파티 취소하기</button>}
+                    <div className="text-[0.65rem] text-zinc-400 font-medium flex justify-between items-center pt-1 gap-2">
+                      <span className="truncate">파티장: <span className="text-zinc-200 font-bold">{isCompleted ? `👑 ${party.leader_name}` : party.members[0]?.name || "알 수 없음"}</span></span>
+                      {isMyParty && <button onClick={() => handleDeleteParty(party.id)} className="text-[0.6rem] text-red-400 hover:underline shrink-0 whitespace-nowrap">내 파티 취소하기</button>}
                     </div>
                   </div>
                 );
@@ -729,46 +746,46 @@ export default function Home() {
         </section>
 
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-          <section className="lg:col-span-2 bg-[#1c1c1e] border border-zinc-800 rounded-xl p-4 md:p-5 shadow-lg">
-            <div className="flex justify-between items-center mb-4 border-b border-zinc-800 pb-3">
-              <h2 className="text-white font-bold text-sm md:text-base">🏆 성역 명예의 전당</h2>
-              <button onClick={() => router.push('/ranking')} className="text-[0.65rem] text-zinc-400 font-bold hover:text-white transition">전체 랭킹</button>
+          <section className="lg:col-span-2 bg-[#1c1c1e]/90 backdrop-blur border border-zinc-800 rounded-xl p-4 md:p-5 shadow-lg">
+            <div className="flex justify-between items-center mb-4 border-b border-zinc-800 pb-3 gap-3">
+              <h2 className="text-white font-bold text-sm md:text-base whitespace-nowrap">🏆 성역 명예의 전당</h2>
+              <button onClick={() => router.push('/ranking')} className="text-[0.65rem] text-zinc-400 font-bold hover:text-white transition shrink-0 whitespace-nowrap">전체 랭킹</button>
             </div>
-            <p className="text-[0.7rem] text-zinc-500 mb-4 text-center">[이번 주 종합 전투력 순위]</p>
+            <p className="text-[0.7rem] text-zinc-400 mb-4 text-center break-keep">[이번 주 종합 전투력 순위]</p>
             <div className="space-y-3">
               {topRankers.map((ranker, idx) => (
-                <div key={ranker.id} className="flex items-center gap-3 bg-[#252528] p-3 rounded-xl border border-zinc-700/50">
-                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-[0.75rem] font-black ${idx === 0 ? 'bg-yellow-900/40 text-yellow-500 border border-yellow-700/50' : idx === 1 ? 'bg-zinc-800 text-zinc-300 border border-zinc-600' : 'bg-amber-900/20 text-amber-600 border border-amber-800/50'}`}>{idx + 1}</div>
-                  <div className="w-9 h-9 rounded-full bg-[#121212] flex items-center justify-center text-[0.8rem] border border-zinc-700">{JOB_ICONS[ranker.job] || "👤"}</div>
-                  <div className="flex-1 flex justify-between items-center">
-                    <span className="font-bold text-[0.8rem] md:text-[0.85rem] text-zinc-200">{ranker.nickname}</span>
-                    <span className="font-mono font-bold text-[0.8rem] md:text-[0.85rem] text-[#e6c788]">{Number(String(ranker.combat_power||"0").replace(/,/g, '')).toLocaleString()} <span className="text-[0.6rem] text-zinc-500">CP</span></span>
+                <div key={ranker.id} className="flex items-center gap-3 bg-[#252528]/90 backdrop-blur p-3 rounded-xl border border-zinc-700/50 min-w-0">
+                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-[0.75rem] font-black shrink-0 ${idx === 0 ? 'bg-yellow-900/40 text-yellow-500 border border-yellow-700/50' : idx === 1 ? 'bg-zinc-800 text-zinc-300 border border-zinc-600' : 'bg-amber-900/20 text-amber-600 border border-amber-800/50'}`}>{idx + 1}</div>
+                  <div className="w-9 h-9 rounded-full bg-[#121212] flex items-center justify-center text-[0.8rem] border border-zinc-700 shrink-0">{JOB_ICONS[ranker.job] || "👤"}</div>
+                  <div className="flex-1 flex justify-between items-center min-w-0 gap-2">
+                    <span className="font-bold text-[0.8rem] md:text-[0.85rem] text-zinc-200 truncate">{ranker.nickname}</span>
+                    <span className="font-mono font-bold text-[0.8rem] md:text-[0.85rem] text-[#e6c788] shrink-0 whitespace-nowrap">{Number(String(ranker.combat_power||"0").replace(/,/g, '')).toLocaleString()} <span className="text-[0.6rem] text-zinc-400">CP</span></span>
                   </div>
                 </div>
               ))}
             </div>
           </section>
 
-          <section className="lg:col-span-3 bg-[#1c1c1e] border border-zinc-800 rounded-xl p-4 md:p-5 shadow-lg flex flex-col">
-            <div className="flex justify-between items-center mb-4 border-b border-zinc-800 pb-3">
-              <h2 className="text-white font-bold text-sm md:text-base">📒 SANCTUM 저널</h2>
-              <span className="text-[0.65rem] bg-indigo-900/30 text-indigo-400 border border-indigo-700/50 px-2 py-1 rounded font-bold">활동 포인트 1,250 획득</span>
+          <section className="lg:col-span-3 bg-[#1c1c1e]/90 backdrop-blur border border-zinc-800 rounded-xl p-4 md:p-5 shadow-lg flex flex-col">
+            <div className="flex justify-between items-center mb-4 border-b border-zinc-800 pb-3 gap-3">
+              <h2 className="text-white font-bold text-sm md:text-base whitespace-nowrap">📒 SANCTUM 저널</h2>
+              <span className="text-[0.65rem] bg-indigo-900/30 text-indigo-400 border border-indigo-700/50 px-2 py-1 rounded font-bold shrink-0 whitespace-nowrap">활동 포인트 1,250 획득</span>
             </div>
             <div className="flex gap-4 flex-col sm:flex-row flex-1">
-              <div className="flex-1 space-y-2">
-                <p className="text-[0.7rem] font-bold text-zinc-400 mb-2">최근 내 활동 내역</p>
+              <div className="flex-1 space-y-2 min-w-0">
+                <p className="text-[0.7rem] font-bold text-zinc-400 mb-2 whitespace-nowrap">최근 내 활동 내역</p>
                 {journal.map(entry => (
-                  <div key={entry.id} className="bg-[#252528] p-2.5 rounded-lg border border-zinc-700/50 flex justify-between items-center">
-                    <span className="text-[0.75rem] text-zinc-300">{entry.text}</span><span className="text-[0.65rem] text-zinc-500">{entry.date}</span>
+                  <div key={entry.id} className="bg-[#252528]/90 backdrop-blur p-2.5 rounded-lg border border-zinc-700/50 flex justify-between items-center gap-2 min-w-0">
+                    <span className="text-[0.75rem] text-zinc-300 truncate">{entry.text}</span><span className="text-[0.65rem] text-zinc-400 shrink-0 whitespace-nowrap">{entry.date}</span>
                   </div>
                 ))}
               </div>
-              <div className="flex-1 bg-[#252528] border border-zinc-700 rounded-xl p-4 flex flex-col">
-                <p className="text-[0.7rem] font-bold text-zinc-400 mb-3">🏅 도전 중인 칭호</p>
+              <div className="flex-1 bg-[#252528]/90 backdrop-blur border border-zinc-700 rounded-xl p-4 flex flex-col min-w-0">
+                <p className="text-[0.7rem] font-bold text-zinc-400 mb-3 whitespace-nowrap">🏅 도전 중인 칭호</p>
                 <div className="flex flex-col gap-3">
                   <div className="bg-[#1c1c1e] p-3 rounded-lg border border-dashed border-yellow-600/50 group cursor-help relative">
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-[0.75rem] font-black text-zinc-400 group-hover:text-yellow-500 transition">❓ 파티 메이커</span><span className="text-[0.65rem] text-zinc-500">6 / 10 회</span>
+                    <div className="flex justify-between items-center mb-1 gap-2">
+                      <span className="text-[0.75rem] font-black text-zinc-400 group-hover:text-yellow-500 transition whitespace-nowrap">❓ 파티 메이커</span><span className="text-[0.65rem] text-zinc-400 shrink-0 whitespace-nowrap">6 / 10 회</span>
                     </div>
                     <div className="w-full bg-zinc-800 h-1 rounded-full overflow-hidden"><div className="bg-yellow-600 h-full" style={{ width: '60%' }}></div></div>
                   </div>
@@ -779,32 +796,32 @@ export default function Home() {
         </div>
       </div>
 
-      {/* 모달 */}
+      {/* 모달들 */}
       {isAbyssModalOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-[#1c1c1e] border border-purple-900/50 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
-            <div className="bg-[#252528] p-5 border-b border-zinc-700 flex justify-between items-center">
-              <h2 className="text-lg font-black text-purple-300">🕳️ 어비스 구멍 제보</h2>
-              <button onClick={() => setIsAbyssModalOpen(false)} className="text-zinc-500 hover:text-white text-xl">&times;</button>
+            <div className="bg-[#252528] p-5 border-b border-zinc-700 flex justify-between items-center gap-2">
+              <h2 className="text-lg font-black text-purple-300 whitespace-nowrap">🕳️ 어비스 구멍 제보</h2>
+              <button onClick={() => setIsAbyssModalOpen(false)} className="text-zinc-400 hover:text-white text-xl shrink-0">&times;</button>
             </div>
             <div className="p-5 space-y-4 bg-[#1c1c1e]">
-              <div className="flex justify-between items-center">
-                <span className="text-[0.7rem] font-bold text-zinc-400">신규 제보 입력</span>
+              <div className="flex justify-between items-center gap-2">
+                <span className="text-[0.7rem] font-bold text-zinc-400 whitespace-nowrap">신규 제보 입력</span>
                 {((user?.nickname && ["한설", "수도사는수도사", "신파랑", "제스"].includes(user.nickname)) || 
                   ["길드마스터", "마스터", "부마스터"].includes(user?.role)) && (
-                  <label className="flex items-center space-x-2 cursor-pointer bg-[#121212] border border-zinc-700 px-2 py-1 rounded">
+                  <label className="flex items-center space-x-2 cursor-pointer bg-[#121212] border border-zinc-700 px-2 py-1 rounded shrink-0">
                     <input type="checkbox" checked={isAdminMode} onChange={(e) => setIsAdminMode(e.target.checked)} className="w-3 h-3 accent-purple-500" />
-                    <span className="text-[0.65rem] font-bold text-zinc-500">관리자(CBT)</span>
+                    <span className="text-[0.65rem] font-bold text-zinc-400 whitespace-nowrap">관리자(CBT)</span>
                   </label>
                 )}
               </div>
               <form onSubmit={submitAbyssHole} className="flex gap-2">
-                <input type="text" value={user?.nickname || "로딩중..."} disabled className="w-24 text-[0.75rem] p-2.5 rounded bg-[#121212] border border-zinc-700 text-zinc-500 cursor-not-allowed" />
-                <div className="flex-1 relative">
+                <input type="text" value={user?.nickname || "로딩중..."} disabled className="w-24 text-[0.75rem] p-2.5 rounded bg-[#121212] border border-zinc-700 text-zinc-500 cursor-not-allowed shrink-0" />
+                <div className="flex-1 relative min-w-0">
                   <input type="number" placeholder="등장까지 몇분 남았나요?" value={abyssMins} onChange={(e) => setAbyssMins(e.target.value)} className="w-full text-[0.75rem] p-2.5 rounded bg-[#121212] border border-zinc-700 focus:outline-none focus:border-purple-500 text-white pr-8" />
-                  <span className="absolute right-3 top-2.5 text-[0.75rem] text-zinc-500 font-bold">분</span>
+                  <span className="absolute right-3 top-2.5 text-[0.75rem] text-zinc-400 font-bold whitespace-nowrap">분</span>
                 </div>
-                <button type="submit" className="bg-purple-900/60 hover:bg-purple-800/80 text-purple-200 text-[0.75rem] px-4 rounded font-bold transition border border-purple-700/50">제보</button>
+                <button type="submit" className="bg-purple-900/60 hover:bg-purple-800/80 text-purple-200 text-[0.75rem] px-4 rounded font-bold transition border border-purple-700/50 shrink-0 whitespace-nowrap">제보</button>
               </form>
             </div>
           </div>
@@ -812,39 +829,39 @@ export default function Home() {
       )}
 
       {isDeepModalOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-[#1c1c1e] border border-red-900/50 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col">
-            <div className="bg-[#252528] p-5 border-b border-zinc-700 flex justify-between items-center">
-              <h2 className="text-lg font-black text-red-400">🌌 심층 구멍 현황 제보</h2>
-              <button onClick={() => setIsDeepModalOpen(false)} className="text-zinc-500 hover:text-white text-xl">&times;</button>
+            <div className="bg-[#252528] p-5 border-b border-zinc-700 flex justify-between items-center gap-2">
+              <h2 className="text-lg font-black text-red-400 whitespace-nowrap">🌌 심층 구멍 현황 제보</h2>
+              <button onClick={() => setIsDeepModalOpen(false)} className="text-zinc-400 hover:text-white text-xl shrink-0">&times;</button>
             </div>
             <form onSubmit={submitDeepHole} className="p-5 space-y-5 bg-[#1c1c1e]">
               <div>
-                <label className="text-[0.7rem] font-bold text-zinc-400 mb-2 block">제보자 닉네임</label>
+                <label className="text-[0.7rem] font-bold text-zinc-400 mb-2 block whitespace-nowrap">제보자 닉네임</label>
                 <input type="text" value={user?.nickname || "로딩중..."} disabled className="w-full text-[0.8rem] p-3 rounded bg-[#121212] border border-zinc-700 text-zinc-500 cursor-not-allowed" />
               </div>
               <div>
-                <label className="text-[0.7rem] font-bold text-zinc-400 mb-2 block">사냥터 선택</label>
-                <div className="flex gap-2">
+                <label className="text-[0.7rem] font-bold text-zinc-400 mb-2 block whitespace-nowrap">사냥터 선택</label>
+                <div className="flex gap-2 flex-wrap">
                   {HUNTING_ZONES.filter(z => z.isActive).map((zone) => (
-                    <button type="button" key={zone.uid} onClick={() => setDeepZoneUID(zone.uid)} className={`flex-1 text-[0.75rem] font-bold py-2.5 rounded-lg transition ${deepZoneUID === zone.uid ? 'bg-zinc-700 text-white shadow' : 'bg-[#121212] text-zinc-500 border border-zinc-700'}`}>
+                    <button type="button" key={zone.uid} onClick={() => setDeepZoneUID(zone.uid)} className={`flex-1 min-w-[100px] text-[0.75rem] font-bold py-2.5 rounded-lg transition whitespace-nowrap ${deepZoneUID === zone.uid ? 'bg-zinc-700 text-white shadow' : 'bg-[#121212] text-zinc-400 border border-zinc-700'}`}>
                       {zone.name}
                     </button>
                   ))}
                 </div>
               </div>
               <div>
-                <label className="text-[0.7rem] font-bold text-zinc-400 mb-2 block">현재 구멍 갯수</label>
+                <label className="text-[0.7rem] font-bold text-zinc-400 mb-2 block whitespace-nowrap">현재 구멍 갯수</label>
                 <div className="flex gap-2">
                   {['0', '1', '2', '3'].map((num) => (
-                    <button type="button" key={num} onClick={() => setDeepCount(num)} className={`flex-1 text-[0.85rem] font-black py-2.5 rounded-lg transition ${deepCount === num ? 'bg-red-900/40 text-red-400 border border-red-700/50' : 'bg-[#121212] text-zinc-500 border border-zinc-700'}`}>
+                    <button type="button" key={num} onClick={() => setDeepCount(num)} className={`flex-1 text-[0.85rem] font-black py-2.5 rounded-lg transition whitespace-nowrap ${deepCount === num ? 'bg-red-900/40 text-red-400 border border-red-700/50' : 'bg-[#121212] text-zinc-400 border border-zinc-700'}`}>
                       {num}개
                     </button>
                   ))}
                 </div>
               </div>
               <div className="pt-2">
-                <button type="submit" className="w-full bg-red-800 hover:bg-red-700 text-white text-[0.8rem] py-3 rounded-xl font-black transition shadow-lg">제보 반영하기</button>
+                <button type="submit" className="w-full bg-red-800 hover:bg-red-700 text-white text-[0.8rem] py-3 rounded-xl font-black transition shadow-lg whitespace-nowrap">제보 반영하기</button>
               </div>
             </form>
           </div>
@@ -852,11 +869,11 @@ export default function Home() {
       )}
 
       {detailModalParty && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
           <div className="bg-[#1c1c1e] border border-zinc-700 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col">
-            <div className="bg-[#252528] p-4 border-b border-zinc-700 flex justify-between items-center">
-              <h3 className="text-white font-bold text-[0.8rem]">👥 {detailModalParty.content_name} 전체 멤버 ({detailModalParty.members.length}/{detailModalParty.max_members})</h3>
-              <button onClick={() => setDetailModalParty(null)} className="text-zinc-500 hover:text-white text-lg">&times;</button>
+            <div className="bg-[#252528] p-4 border-b border-zinc-700 flex justify-between items-center gap-2">
+              <h3 className="text-white font-bold text-[0.8rem] truncate">👥 {detailModalParty.content_name} 전체 멤버 ({detailModalParty.members.length}/{detailModalParty.max_members})</h3>
+              <button onClick={() => setDetailModalParty(null)} className="text-zinc-400 hover:text-white text-lg shrink-0">&times;</button>
             </div>
             <div className="p-5 grid grid-cols-4 gap-2 bg-[#121212] max-h-[60vh] overflow-y-auto custom-scrollbar">
               {Array.from({ length: detailModalParty.max_members }).map((_, i) => {
@@ -864,19 +881,59 @@ export default function Home() {
                 const actualJob = m ? (allCharactersMap[m.name] || m.job || "전사") : "";
                 return m ? (
                   <div key={i} className={`flex flex-col items-center justify-center border ${detailModalParty.status === '모집완료' && detailModalParty.leader_name === m.name ? 'bg-yellow-900/20 border-yellow-600/50' : 'bg-zinc-800 border-zinc-600'} rounded p-2 h-20 relative`}>
-                    <span className="text-2xl mb-1">{JOB_ICONS[actualJob] || "👤"}</span>
+                    <span className="text-2xl mb-1 shrink-0">{JOB_ICONS[actualJob] || "👤"}</span>
                     <span className="text-[0.65rem] text-white truncate w-full text-center font-bold">{m.name}</span>
                     {m.roles && m.roles.length > 0 && <span className="absolute bottom-0 bg-indigo-600 w-full text-center text-[0.5rem] text-white rounded-b truncate px-0.5">{m.roles[0]}</span>}
                   </div>
                 ) : (
-                  <div key={i} className="flex flex-col items-center justify-center bg-[#1c1c1e] border border-dashed border-zinc-700 rounded p-2 h-20"><span className="text-[0.65rem] text-zinc-600">빈자리</span></div>
+                  <div key={i} className="flex flex-col items-center justify-center bg-[#1c1c1e] border border-dashed border-zinc-700 rounded p-2 h-20"><span className="text-[0.65rem] text-zinc-500 whitespace-nowrap">빈자리</span></div>
                 )
               })}
             </div>
             <div className="p-4 bg-[#252528] border-t border-zinc-700 text-right">
-              <button onClick={() => setDetailModalParty(null)} className="bg-zinc-800 hover:bg-zinc-700 text-white text-[0.75rem] font-bold px-4 py-2 rounded">닫기</button>
+              <button onClick={() => setDetailModalParty(null)} className="bg-zinc-800 hover:bg-zinc-700 text-white text-[0.75rem] font-bold px-4 py-2 rounded whitespace-nowrap">닫기</button>
             </div>
           </div>
+        </div>
+      )}
+
+      {joinPopupParty && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+           <div className="bg-[#1c1c1e] border border-emerald-900/50 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col">
+              <div className="bg-[#252528] p-5 border-b border-zinc-700 flex justify-between items-center gap-2">
+                <h2 className="text-lg font-black text-emerald-400 whitespace-nowrap">⚔️ 파티 참여 확인</h2>
+                <button onClick={() => setJoinPopupParty(null)} className="text-zinc-400 hover:text-white text-xl shrink-0">&times;</button>
+              </div>
+              <div className="p-5 space-y-4">
+                <div>
+                  <label className="text-[0.7rem] font-bold text-zinc-400 mb-2 block whitespace-nowrap">어떤 캐릭터로 참여할까요?</label>
+                  <select value={joinSelectedChar} onChange={(e) => setJoinSelectedChar(e.target.value)} className="w-full p-2.5 rounded bg-[#121212] border border-zinc-700 text-sm font-bold text-white focus:outline-none focus:border-emerald-500">
+                    {myCharacters.map(c => (
+                      <option key={c.nickname} value={c.nickname}>{c.nickname} ({JOB_ICONS[c.job] || "👤"})</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[0.7rem] font-bold text-zinc-400 mb-2 block whitespace-nowrap">희망 포지션</label>
+                  <select value={joinSelectedRole} onChange={(e) => setJoinSelectedRole(e.target.value)} className="w-full p-2.5 rounded bg-[#121212] border border-zinc-700 text-sm font-bold text-white focus:outline-none focus:border-emerald-500">
+                    <option value="딜러">딜러</option>
+                    <option value="서포터">서포터</option>
+                    <option value="탱커">탱커</option>
+                  </select>
+                </div>
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <label className="text-[0.7rem] font-bold text-zinc-400 mb-2 block whitespace-nowrap">가능 시간 (시작)</label>
+                    <CustomTimePicker value={joinTimeStart} onChange={setJoinTimeStart} />
+                  </div>
+                  <div className="flex-1">
+                    <label className="text-[0.7rem] font-bold text-zinc-400 mb-2 block whitespace-nowrap">가능 시간 (종료)</label>
+                    <CustomTimePicker value={joinTimeEnd} onChange={setJoinTimeEnd} />
+                  </div>
+                </div>
+                <button onClick={executeJoinParty} className="w-full mt-2 bg-emerald-700 hover:bg-emerald-600 text-white font-black py-3 rounded-xl shadow-lg transition whitespace-nowrap">파티 합류하기</button>
+              </div>
+           </div>
         </div>
       )}
 
