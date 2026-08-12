@@ -31,12 +31,13 @@ export default function CharacterPage() {
   const [user, setUser] = useState<any>(null);
   const [mounted, setMounted] = useState(false);
   
-  // 실시간 자동 저장 상태
-  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved');
+  // 저장 알림 토스트
+  const [saveToast, setSaveToast] = useState<string>('idle');
   const isInitialLoad = useRef(true);
+  const toastTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // 모비라이프형 탭 메뉴 상태 ('daily' | 'weekly' | 'abyss_raid' | 'trades' | 'levels' | 'all')
-  const [activeTab, setActiveTab] = useState<'daily' | 'weekly' | 'abyss_raid' | 'trades' | 'levels' | 'all'>('daily');
+  // 탭 메뉴 상태
+  const [activeTab, setActiveTab] = useState<'all' | 'abyss_raid' | 'trades' | 'daily' | 'weekly' | 'levels'>('all');
 
   const [dbClasses, setDbClasses] = useState<any[]>([]);
   const [dbTasks, setDbTasks] = useState<any[]>([]);
@@ -47,7 +48,7 @@ export default function CharacterPage() {
   const [myCharacters, setMyCharacters] = useState<any[]>([]);
   const [accountContribution, setAccountContribution] = useState<string>("");
 
-  const defaultProfile = { nickname: "", job: "전사", combatPower: "", magicResistance: "", lifeEnergy: "", charm: "", intro: "", isMain: false };
+  const defaultProfile = { nickname: "", alias: "", job: "전사", combatPower: "", magicResistance: "", lifeEnergy: "", charm: "", isMain: false };
   const [profile, setProfile] = useState(defaultProfile);
   const [levels, setLevels] = useState<Record<string, number>>({});
   
@@ -61,16 +62,41 @@ export default function CharacterPage() {
 
   const [isTitleAccordionOpen, setIsTitleAccordionOpen] = useState(false);
   const [isManageModalOpen, setIsManageModalOpen] = useState(false);
+  const [isHowToOpen, setIsHowToOpen] = useState(false);
   const [manageList, setManageList] = useState<any[]>([]);
+  const dragItemIndex = useRef<number | null>(null);
 
   const abyssList = dbContents.filter((c: any) => c.type === 'abyss');
   const raidList = dbContents.filter((c: any) => c.type === 'raid');
 
-  const blackHoleDaily = dbTasks.find((t: any) => (t.type === 'daily' || t.type === 'repeat_daily') && t.name.includes("검은 구멍"));
-  const blackHoleWeekly = dbTasks.find((t: any) => (t.type === 'weekly' || t.type === 'repeat_weekly') && t.name.includes("검은 구멍"));
-  
+  // 요일별 검은 구멍 최대치 계산 (월:8 ~ 일:14)
+  const getBlackHoleMaxCount = () => {
+    const day = new Date().getDay(); // 0(일), 1(월)... 6(토)
+    if (day === 1) return 8;
+    if (day === 2) return 9;
+    if (day === 3) return 10;
+    if (day === 4) return 11;
+    if (day === 5) return 12;
+    if (day === 6) return 13;
+    return 14;
+  };
+
+  const blackHoleMax = getBlackHoleMaxCount();
+
+  // 내장 주간 반복 타스크 (검은 구멍, 소환의 결계, 뱅가드 브리치)
+  const defaultExtraWeeklyTasks = [
+    { id: 9900, name: "검은 구멍", type: "repeat_weekly", max_count: blackHoleMax },
+    { id: 9901, name: "소환의 결계", type: "repeat_weekly", max_count: 7 },
+    { id: 9902, name: "뱅가드 브리치", type: "repeat_weekly", max_count: 3 }
+  ];
+
   const visibleDailyList = dbTasks.filter((t: any) => (t.type === 'daily' || t.type === 'repeat_daily') && !t.name.includes("검은 구멍"));
-  const visibleWeeklyList = dbTasks.filter((t: any) => (t.type === 'weekly' || t.type === 'repeat_weekly' || t.type === 'repeat_weekend') && !t.name.includes("검은 구멍"));
+  
+  const rawWeeklyList = dbTasks.filter((t: any) => (t.type === 'weekly' || t.type === 'repeat_weekly' || t.type === 'repeat_weekend') && !t.name.includes("검은 구멍"));
+  const visibleWeeklyList = [
+    ...defaultExtraWeeklyTasks,
+    ...rawWeeklyList.filter(r => !defaultExtraWeeklyTasks.some(e => e.name === r.name))
+  ];
 
   const totalLevel = Object.values(levels).reduce((sum, lvl) => sum + lvl, 0);
 
@@ -87,8 +113,23 @@ export default function CharacterPage() {
       try { setPinnedTrades(JSON.parse(savedPins)); } catch (e) {}
     }
 
+    checkResetNotification();
     fetchMasterData(parsedUser.nickname);
   }, [router]);
+
+  const checkResetNotification = () => {
+    const now = new Date();
+    const lastCheck = localStorage.getItem("chronos_last_reset_check");
+    const todayStr = now.toISOString().split('T')[0];
+
+    if (lastCheck !== todayStr) {
+      localStorage.setItem("chronos_last_reset_check", todayStr);
+      const isMonday = now.getDay() === 1;
+      
+      setSaveToast(isMonday ? 'reset_weekly' : 'reset_daily');
+      setTimeout(() => setSaveToast('idle'), 3000);
+    }
+  };
 
   const fetchMasterData = async (loginUserNick: string) => {
     const [clsRes, taskRes, contRes, tradeRes, allCharsRes] = await Promise.all([
@@ -118,11 +159,23 @@ export default function CharacterPage() {
 
   const fetchUserCharacters = async (loginUserNick: string, contentsList: any[]) => {
     try {
-      const { data } = await supabase
+      let data = null;
+      const res1 = await supabase
         .from('characters')
-        .select('nickname, sort_order, owner, job')
+        .select('nickname, alias, sort_order, owner, job, is_main')
         .or(`owner.eq.${loginUserNick},nickname.eq.${loginUserNick}`)
         .order('sort_order', { ascending: true });
+
+      if (!res1.error) {
+        data = res1.data;
+      } else {
+        const res2 = await supabase
+          .from('characters')
+          .select('nickname, sort_order, owner, job, is_main')
+          .or(`owner.eq.${loginUserNick},nickname.eq.${loginUserNick}`)
+          .order('sort_order', { ascending: true });
+        data = res2.data;
+      }
 
       if (data && data.length > 0) {
         setMyCharacters(data);
@@ -135,7 +188,7 @@ export default function CharacterPage() {
         
         loadCharacterData(target, contentsList);
       } else {
-        const initialChar = { nickname: loginUserNick, sort_order: 0, owner: loginUserNick, job: '전사' };
+        const initialChar = { nickname: loginUserNick, alias: "", sort_order: 0, owner: loginUserNick, job: '전사', is_main: true };
         setMyCharacters([initialChar]);
         loadCharacterData(loginUserNick, contentsList);
       }
@@ -148,10 +201,10 @@ export default function CharacterPage() {
       const { data } = await supabase.from('characters').select('*').eq('nickname', charName).single();
       if (data) {
         setProfile({
-          nickname: data.nickname, job: data.job || "전사",
+          nickname: data.nickname, alias: data.alias || "", job: data.job || "전사",
           combatPower: data.combat_power || "", magicResistance: data.magic_resistance || "",
           lifeEnergy: data.life_energy || "", charm: data.charm || "", 
-          intro: data.intro || "", isMain: data.is_main || false
+          isMain: data.is_main || false
         });
         if (data.contribution !== undefined && data.contribution !== null) setAccountContribution(data.contribution);
         setLevels(data.levels || {});
@@ -179,16 +232,15 @@ export default function CharacterPage() {
     } catch (e) {} finally {
       setTimeout(() => {
         isInitialLoad.current = false;
-        setSaveStatus('saved');
+        setSaveToast('idle');
       }, 150);
     }
   };
 
-  // 실시간 오토 세이브
   const saveProgress = async () => {
     if (!profile.nickname.trim() || !user?.nickname) return;
     try {
-      setSaveStatus('saving');
+      setSaveToast('saving');
       if (profile.isMain) {
         await supabase.from('characters').update({ is_main: false }).eq('owner', user.nickname).neq('nickname', profile.nickname);
       }
@@ -197,10 +249,10 @@ export default function CharacterPage() {
       const currentSortOrder = existingIndex !== -1 ? (myCharacters[existingIndex].sort_order ?? myCharacters.length) : myCharacters.length;
 
       const payload = {
-        nickname: profile.nickname, owner: user.nickname, sort_order: currentSortOrder,
+        nickname: profile.nickname, alias: profile.alias, owner: user.nickname, sort_order: currentSortOrder,
         job: profile.job, combat_power: Number(profile.combatPower) || 0, magic_resistance: Number(profile.magicResistance) || 0,
         life_energy: Number(profile.lifeEnergy) || 0, charm: Number(profile.charm) || 0, contribution: Number(accountContribution) || 0,
-        intro: profile.intro, is_main: profile.isMain, levels: levels, 
+        is_main: profile.isMain, levels: levels, 
         daily_checks: dailyChecks, weekly_checks: { normal: weeklyChecks, repeat: repeatChecks },
         raid_checks: [...abyssChecks, ...raidChecks], trade_checks: tradeProgress, updated_at: new Date()
       };
@@ -209,18 +261,25 @@ export default function CharacterPage() {
       await supabase.from('characters').update({ contribution: Number(accountContribution) || 0 }).eq('owner', user.nickname);
 
       if (existingIndex === -1) {
-        setMyCharacters((prev: any[]) => [...prev, { nickname: profile.nickname, sort_order: currentSortOrder, job: profile.job }]);
+        setMyCharacters((prev: any[]) => [...prev, { nickname: profile.nickname, alias: profile.alias, sort_order: currentSortOrder, job: profile.job, is_main: profile.isMain }]);
+      } else {
+        setMyCharacters((prev: any[]) => prev.map(c => c.nickname === profile.nickname ? { ...c, alias: profile.alias, job: profile.job, is_main: profile.isMain } : c));
       }
 
-      setSaveStatus('saved');
+      setSaveToast('saved');
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+      toastTimerRef.current = setTimeout(() => {
+        setSaveToast('idle');
+      }, 1500);
+
     } catch (error) { 
-      setSaveStatus('error');
+      setSaveToast('error');
     }
   };
 
   useEffect(() => {
     if (isInitialLoad.current) return;
-    setSaveStatus('saving');
+    setSaveToast('saving');
     const timer = setTimeout(() => {
       saveProgress();
     }, 800);
@@ -275,27 +334,26 @@ export default function CharacterPage() {
     });
   };
 
-  // 단일 스마트 토글 버튼 (완료 ➔ 해제)
   const handleSmartToggle = (type: string) => {
     if (type === 'daily') {
-      const normals = visibleDailyList.filter((t: any) => !t.type.startsWith('repeat')).map((t: any) => t.id);
+      const normals = visibleDailyList.filter((t: any) => !t.type?.startsWith('repeat')).map((t: any) => t.id);
       const isAllChecked = normals.every(id => dailyChecks.includes(id));
       setDailyChecks(isAllChecked ? [] : normals);
       setRepeatChecks(prev => {
         const next = { ...prev };
-        visibleDailyList.filter((t: any) => t.type.startsWith('repeat')).forEach((t: any) => {
+        visibleDailyList.filter((t: any) => t.type?.startsWith('repeat')).forEach((t: any) => {
           next[t.id] = isAllChecked ? [] : Array(t.max_count).fill(true);
         });
         return next;
       });
     }
     if (type === 'weekly') {
-      const normals = visibleWeeklyList.filter((t: any) => !t.type.startsWith('repeat')).map((t: any) => t.id);
+      const normals = visibleWeeklyList.filter((t: any) => !t.type?.startsWith('repeat')).map((t: any) => t.id);
       const isAllChecked = normals.every(id => weeklyChecks.includes(id));
       setWeeklyChecks(isAllChecked ? [] : normals);
       setRepeatChecks(prev => {
         const next = { ...prev };
-        visibleWeeklyList.filter((t: any) => t.type.startsWith('repeat')).forEach((t: any) => {
+        visibleWeeklyList.filter((t: any) => t.type?.startsWith('repeat')).forEach((t: any) => {
           next[t.id] = isAllChecked ? [] : Array(t.max_count).fill(true);
         });
         return next;
@@ -315,23 +373,41 @@ export default function CharacterPage() {
 
   const openManageModal = () => {
     const editList = myCharacters.map((c, i) => ({
-      ...c, originalName: c.nickname, tempNickname: c.nickname, tempJob: c.job, isDeleted: false, sort_order: i
+      ...c, 
+      originalName: c.nickname, 
+      tempAlias: (c.alias || "").slice(0, 2),
+      tempNickname: c.nickname, 
+      tempJob: c.job, 
+      isMain: c.is_main || false,
+      isDeleted: false, 
+      sort_order: i
     }));
     setManageList(editList);
     setIsManageModalOpen(true);
   };
 
   const addManageCharacter = () => {
-    setManageList([...manageList, { originalName: "", tempNickname: "새 캐릭터", tempJob: "전사", isDeleted: false, sort_order: manageList.length, isNew: true }]);
+    setManageList([...manageList, { 
+      originalName: "", tempAlias: "", tempNickname: "새캐릭", tempJob: "전사", isMain: false, isDeleted: false, sort_order: manageList.length, isNew: true 
+    }]);
   };
 
-  const moveManageCharacter = (index: number, direction: number) => {
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    dragItemIndex.current = index;
+  };
+
+  const handleDragEnter = (e: React.DragEvent, index: number) => {
+    if (dragItemIndex.current === null || dragItemIndex.current === index) return;
     const newList = [...manageList];
-    if (index + direction < 0 || index + direction >= newList.length) return;
-    const temp = newList[index];
-    newList[index] = newList[index + direction];
-    newList[index + direction] = temp;
+    const draggedItem = newList[dragItemIndex.current];
+    newList.splice(dragItemIndex.current, 1);
+    newList.splice(index, 0, draggedItem);
+    dragItemIndex.current = index;
     setManageList(newList.map((item, idx) => ({ ...item, sort_order: idx })));
+  };
+
+  const handleSetMain = (index: number) => {
+    setManageList(prev => prev.map((item, idx) => ({ ...item, isMain: idx === index })));
   };
 
   const saveManageModal = async () => {
@@ -347,7 +423,11 @@ export default function CharacterPage() {
 
     for (const char of activeChars) {
       const payload: any = {
-        owner: user.nickname, sort_order: char.sort_order, job: char.tempJob,
+        owner: user.nickname, 
+        sort_order: char.sort_order, 
+        job: char.tempJob,
+        alias: char.tempAlias.slice(0, 2),
+        is_main: char.isMain,
         contribution: Number(accountContribution) || 0
       };
       
@@ -405,7 +485,6 @@ export default function CharacterPage() {
     return titles;
   };
 
-  // 접두사("어비스 - ", "레이드 - ") 자동 제거 함수
   const cleanItemName = (name: string) => name.replace(/^어비스\s*-\s*/, '').replace(/^레이드\s*-\s*/, '');
 
   const renderTask = (item: any, type: 'daily' | 'weekly' | 'abyss' | 'raid') => {
@@ -414,19 +493,20 @@ export default function CharacterPage() {
     if (item.type?.startsWith('repeat')) {
       const currentCount = (repeatChecks[item.id] || []).filter(Boolean).length;
       const isMax = currentCount === item.max_count;
-      const badgeText = item.type === 'repeat_daily' ? '일간' : item.type === 'repeat_weekend' ? '주말' : '주간';
+      const showBadge = item.type === 'repeat_daily' || item.type === 'repeat_weekend';
+      const badgeText = item.type === 'repeat_daily' ? '일간' : '주말';
       
       return (
         <div key={item.id} className={`flex items-center justify-between p-2 rounded-lg border transition-all ${isMax ? "bg-[var(--accent-soft)] border-[var(--accent)]" : "bg-[var(--inner-box)] border-[var(--panel-border)]"}`}>
           <div className="flex flex-col min-w-0 pr-1.5">
-            <span className={`text-[9px] w-fit px-1 py-0.2 rounded font-bold ${isMax ? 'bg-[var(--accent)] text-[var(--accent-fg)]' : 'bg-[var(--panel)] text-[var(--text-sub)]'}`}>{badgeText}</span>
+            {showBadge && <span className={`text-xs w-fit px-1 py-0.2 rounded font-bold ${isMax ? 'bg-[var(--accent)] text-[var(--accent-fg)]' : 'bg-[var(--panel)] text-[var(--text-sub)]'}`}>{badgeText}</span>}
             <span className={`text-xs md:text-sm font-medium truncate ${isMax ? "text-[var(--accent)]" : "text-[var(--text-main)]"}`}>{displayName}</span>
           </div>
           <div className="flex items-center gap-1 bg-[var(--panel)] px-1.5 py-0.5 rounded border border-[var(--panel-border)] shrink-0">
             <span className={`text-xs font-bold min-w-[28px] text-center ${isMax ? "text-[var(--accent)]" : "text-[var(--text-sub)]"}`}>{currentCount}/{item.max_count}</span>
             <div className="flex gap-0.5 border-l border-[var(--panel-border)] pl-1">
-              <button onClick={() => updateRepeatCount(item.id, -1, item.max_count)} className="w-4 h-4 flex justify-center items-center rounded bg-[var(--inner-box)] text-[var(--text-sub)] hover:text-[var(--text-main)] text-[10px]">-</button>
-              <button onClick={() => updateRepeatCount(item.id, 1, item.max_count)} className="w-4 h-4 flex justify-center items-center rounded bg-[var(--accent)] text-[var(--accent-fg)] font-bold text-[10px]">+</button>
+              <button onClick={() => updateRepeatCount(item.id, -1, item.max_count)} className="w-5 h-5 flex justify-center items-center rounded bg-[var(--inner-box)] text-[var(--text-sub)] hover:text-[var(--text-main)] text-xs font-bold">-</button>
+              <button onClick={() => updateRepeatCount(item.id, 1, item.max_count)} className="w-5 h-5 flex justify-center items-center rounded bg-[var(--accent)] text-[var(--accent-fg)] font-bold text-xs">+</button>
             </div>
           </div>
         </div>
@@ -464,14 +544,8 @@ export default function CharacterPage() {
 
   if (!mounted || !user) return null;
 
-  const bhDailyDone = blackHoleDaily && dailyChecks.includes(blackHoleDaily.id);
-  const bhWeeklyCount = blackHoleWeekly ? (repeatChecks[blackHoleWeekly.id] || []).filter(Boolean).length : 0;
-  const bhTotalCount = (bhDailyDone ? 1 : 0) + bhWeeklyCount;
-  const bhMaxCount = (blackHoleDaily ? 1 : 0) + (blackHoleWeekly?.max_count || 0);
-  
   const earnedTitles = getMyEarnedTitles();
 
-  // 즐겨찾기(핀) 적용 정렬
   const dailyTrades = [...dbTrades.filter(t => t.reset_type === '일간')].sort((a, b) => {
     const aPin = pinnedTrades.includes(a.id) ? 1 : 0;
     const bPin = pinnedTrades.includes(b.id) ? 1 : 0;
@@ -484,227 +558,276 @@ export default function CharacterPage() {
     return bPin - aPin;
   });
 
-  // 스마트 토글 버튼 텍스트 판단
-  const isDailyAllChecked = visibleDailyList.filter((t: any) => !t.type.startsWith('repeat')).every((t: any) => dailyChecks.includes(t.id));
-  const isWeeklyAllChecked = visibleWeeklyList.filter((t: any) => !t.type.startsWith('repeat')).every((t: any) => weeklyChecks.includes(t.id));
+  const isDailyAllChecked = visibleDailyList.filter((t: any) => !t.type?.startsWith('repeat')).every((t: any) => dailyChecks.includes(t.id));
+  const isWeeklyAllChecked = visibleWeeklyList.filter((t: any) => !t.type?.startsWith('repeat')).every((t: any) => weeklyChecks.includes(t.id));
   const isAbyssAllChecked = abyssList.every((t: any) => abyssChecks.includes(t.id));
   const isRaidAllChecked = raidList.every((t: any) => raidChecks.includes(t.id));
 
+  const displayName = (profile.alias || profile.nickname).slice(0, 2);
+
   return (
-    <main className="min-h-screen bg-[var(--background)] text-[var(--text-main)] font-sans pb-16 pt-2 md:pt-4">
+    <main className="min-h-screen bg-[var(--background)] text-[var(--text-main)] font-sans pb-16 pt-2 md:pt-4 relative">
       
-      {/* 캐릭터 관리 모달 (모바일 A+ 환경 반응형 방어) */}
+      {/* 플로팅 토스트 */}
+      {saveToast !== 'idle' && (
+        <div className={`fixed top-4 right-4 z-[110] px-3.5 py-1.5 rounded-full border shadow-lg text-xs font-bold transition-all duration-300 flex items-center gap-1.5 backdrop-blur-md ${
+          saveToast === 'saving' ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 animate-pulse' :
+          saveToast === 'error' ? 'bg-rose-500/20 text-rose-300 border-rose-500/50' :
+          saveToast === 'reset_daily' ? 'bg-blue-500/30 text-blue-300 border-blue-400' :
+          saveToast === 'reset_weekly' ? 'bg-purple-500/30 text-purple-300 border-purple-400' :
+          'bg-emerald-500/20 text-emerald-300 border-emerald-500/50'
+        }`}>
+          {saveToast === 'saving' ? '⏳ 저장 중...' : 
+           saveToast === 'error' ? '⚠️ 저장 실패' : 
+           saveToast === 'reset_daily' ? '☀️ 일일 컨텐츠 정보가 초기화 됐습니다.' :
+           saveToast === 'reset_weekly' ? '🌙 모든 컨텐츠 정보가 초기화 되었습니다.' :
+           '✅ 저장 완료'}
+        </div>
+      )}
+
+      {/* ⭐️ 캐릭터 관리 모달 (삭제 버튼 이탈 방지 + 핸들 압축 + 문구 수정 완료) */}
       {isManageModalOpen && (
-        <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-2.5">
-          <div className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-xl w-[96%] max-w-xl max-h-[88vh] overflow-hidden flex flex-col shadow-2xl">
-            <div className="p-3 md:p-4 border-b border-[var(--panel-border)] flex justify-between items-center bg-[var(--inner-box)]">
-              <h2 className="text-base md:text-lg font-black text-[var(--accent)]">⚙️ 캐릭터 관리</h2>
+        <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-2 md:p-4">
+          <div className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-xl w-[98%] max-w-2xl max-h-[88vh] overflow-hidden flex flex-col shadow-2xl">
+            <div className="p-2.5 md:p-3 border-b border-[var(--panel-border)] flex justify-between items-center bg-[var(--inner-box)]">
+              <h2 className="text-xs md:text-base font-black text-[var(--accent)]">⚙️ 캐릭터 관리 & 순서 변경</h2>
               <button onClick={() => setIsManageModalOpen(false)} className="text-[var(--text-sub)] hover:text-[var(--text-main)] text-sm">✕</button>
             </div>
-            <div className="p-3 md:p-4 overflow-y-auto custom-scrollbar flex-1 space-y-2.5">
+            
+            <div className="p-1.5 md:p-3 overflow-y-auto custom-scrollbar flex-1 space-y-1.5">
+              
+              {/* [사용 방법] 아코디언 버튼 */}
+              <button 
+                onClick={() => setIsHowToOpen(!isHowToOpen)}
+                className="w-full text-left text-xs text-[var(--accent)] bg-[var(--inner-box)] border border-[var(--panel-border)] px-2 py-1 rounded-lg font-bold hover:bg-[var(--accent-soft)] transition flex justify-between items-center"
+              >
+                <span>📖 [사용 방법]</span>
+                <span className="text-[10px]">{isHowToOpen ? '▲ 닫기' : '▼ 펼치기'}</span>
+              </button>
+
+              {/* 사용 방법 안내 문구 (요청문구 수정 완료) */}
+              {isHowToOpen && (
+                <div className="bg-[var(--inner-box)] border border-[var(--panel-border)] p-2 rounded-lg text-xs space-y-1 text-[var(--text-sub)]">
+                  <p>● :: 핸들을 움직여 순서를 변경 할 수 있습니다!</p>
+                  <p>● 애칭은 최대 두글자 입니다. 필수 입력 해주세요!</p>
+                  <p>● 닉네임은 인게임 닉네임을 정확히 입력해주세요!</p>
+                  <p>● 대표 캐릭터는 한 캐릭터만 지정할 수 있습니다!</p>
+                </div>
+              )}
+              
+              {/* 초슬림 캐릭터 행 (모바일 100% 한 줄 보장) */}
               {manageList.map((char, index) => !char.isDeleted && (
-                <div key={index} className="flex items-center gap-2 bg-[var(--inner-box)] p-2 rounded-lg border border-[var(--panel-border)]">
-                  <div className="flex flex-col gap-0.5 flex-1 min-w-0">
-                    <label className="text-[9px] text-[var(--text-sub)] font-bold">닉네임</label>
-                    <input value={char.tempNickname} onChange={(e) => { const nw = [...manageList]; nw[index].tempNickname = e.target.value; setManageList(nw); }} className="bg-[var(--panel)] border border-[var(--panel-border)] rounded px-2 py-1 text-xs text-[var(--text-main)] focus:border-[var(--accent)] outline-none w-full" />
+                <div 
+                  key={index} 
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, index)}
+                  onDragEnter={(e) => handleDragEnter(e, index)}
+                  onDragOver={(e) => e.preventDefault()}
+                  className="flex items-center gap-1 bg-[var(--inner-box)] p-1 rounded-lg border border-[var(--panel-border)] transition hover:border-[var(--accent)]/50 min-w-0"
+                >
+                  {/* :: 슬림 드래그 핸들 */}
+                  <div className="flex items-center text-[var(--text-sub)] font-mono cursor-grab active:cursor-grabbing shrink-0 select-none text-[10px] leading-none">
+                    <span className="font-bold text-[11px] text-[var(--text-sub)]">::</span>
+                    <span className="font-bold text-[var(--accent)] min-w-[10px] text-center">{index + 1}</span>
                   </div>
-                  <div className="flex flex-col gap-0.5 w-24 shrink-0">
-                    <label className="text-[9px] text-[var(--text-sub)] font-bold">주 클래스</label>
-                    <select value={char.tempJob} onChange={(e) => { const nw = [...manageList]; nw[index].tempJob = e.target.value; setManageList(nw); }} className="bg-[var(--panel)] border border-[var(--panel-border)] rounded px-1.5 py-1 text-xs text-[var(--text-main)] focus:border-[var(--accent)] outline-none w-full">
-                      {dbClasses.map((cls: any) => <option key={cls.name} value={cls.name}>{cls.name}</option>)}
-                    </select>
-                  </div>
-                  <div className="flex gap-1 items-end shrink-0 pt-3">
-                    <div className="flex bg-[var(--panel)] border border-[var(--panel-border)] rounded overflow-hidden text-xs">
-                      <button onClick={() => moveManageCharacter(index, -1)} disabled={index === 0} className="px-2 py-1 hover:bg-[var(--panel-hover)] disabled:opacity-30">▲</button>
-                      <div className="w-px bg-[var(--panel-border)]"></div>
-                      <button onClick={() => moveManageCharacter(index, 1)} disabled={index === manageList.filter(c=>!c.isDeleted).length - 1} className="px-2 py-1 hover:bg-[var(--panel-hover)] disabled:opacity-30">▼</button>
-                    </div>
-                    <button onClick={() => { if(confirm(`정말 [${char.tempNickname}] 캐릭터를 삭제하시겠습니까?`)) { const nw = [...manageList]; nw[index].isDeleted = true; setManageList(nw); } }} className="bg-red-950/40 text-red-400 border border-red-800/50 px-2 py-1 rounded text-xs font-bold">삭제</button>
-                  </div>
+
+                  {/* 애칭 (최대 2자) */}
+                  <input 
+                    value={char.tempAlias} 
+                    maxLength={2}
+                    placeholder="애칭(2자)"
+                    onChange={(e) => { 
+                      const nw = [...manageList]; 
+                      nw[index].tempAlias = e.target.value.slice(0, 2); 
+                      setManageList(nw); 
+                    }} 
+                    className="w-10 sm:w-12 bg-[var(--panel)] border border-[var(--panel-border)] rounded px-1 py-1 text-[11px] text-[var(--text-main)] focus:border-[var(--accent)] outline-none text-center shrink-0 font-bold" 
+                  />
+
+                  {/* 정확한 닉네임 */}
+                  <input 
+                    value={char.tempNickname} 
+                    placeholder="닉네임"
+                    onChange={(e) => { const nw = [...manageList]; nw[index].tempNickname = e.target.value; setManageList(nw); }} 
+                    className="flex-1 min-w-[48px] bg-[var(--panel)] border border-[var(--panel-border)] rounded px-1 py-1 text-[11px] text-[var(--text-main)] focus:border-[var(--accent)] outline-none" 
+                  />
+
+                  {/* 주 클래스 */}
+                  <select 
+                    value={char.tempJob} 
+                    onChange={(e) => { const nw = [...manageList]; nw[index].tempJob = e.target.value; setManageList(nw); }} 
+                    className="w-[62px] sm:w-20 bg-[var(--panel)] border border-[var(--panel-border)] rounded px-0.5 py-1 text-[10px] sm:text-xs text-[var(--text-main)] focus:border-[var(--accent)] outline-none shrink-0"
+                  >
+                    {dbClasses.map((cls: any) => <option key={cls.name} value={cls.name}>{cls.name}</option>)}
+                  </select>
+
+                  {/* 대표 선택 */}
+                  <button 
+                    type="button"
+                    onClick={() => handleSetMain(index)}
+                    className={`px-1.5 py-1 rounded text-[10px] sm:text-xs font-bold shrink-0 transition ${
+                      char.isMain 
+                        ? 'bg-[var(--accent)] text-[var(--accent-fg)]' 
+                        : 'bg-[var(--panel)] text-[var(--text-sub)] border border-[var(--panel-border)] hover:text-[var(--text-main)]'
+                    }`}
+                  >
+                    대표
+                  </button>
+
+                  {/* 삭제 버튼 */}
+                  <button 
+                    onClick={() => { if(confirm(`정말 [${char.tempAlias || char.tempNickname}] 캐릭터를 삭제하시겠습니까?`)) { const nw = [...manageList]; nw[index].isDeleted = true; setManageList(nw); } }} 
+                    className="bg-red-950/40 text-red-400 border border-red-800/50 px-1.5 py-1 rounded text-[10px] sm:text-xs font-bold hover:bg-red-900/60 shrink-0"
+                  >
+                    삭제
+                  </button>
                 </div>
               ))}
-              <button onClick={addManageCharacter} className="w-full border border-dashed border-[var(--accent)] text-[var(--accent)] py-2 rounded-lg hover:bg-[var(--accent-soft)] font-bold text-xs transition">+ 새 캐릭터 추가</button>
+
+              <button onClick={addManageCharacter} className="w-full border border-dashed border-[var(--accent)] text-[var(--accent)] py-1.5 rounded-lg hover:bg-[var(--accent-soft)] font-bold text-xs transition">+ 새 캐릭터 추가</button>
             </div>
-            <div className="p-3 border-t border-[var(--panel-border)] bg-[var(--inner-box)] flex justify-end gap-2">
-              <button onClick={() => setIsManageModalOpen(false)} className="px-3 py-1.5 rounded-lg bg-[var(--panel)] text-[var(--text-sub)] text-xs font-bold transition">취소</button>
-              <button onClick={saveManageModal} className="px-4 py-1.5 rounded-lg bg-[var(--accent)] text-[var(--accent-fg)] text-xs font-black transition">변경사항 저장</button>
+
+            <div className="p-2 border-t border-[var(--panel-border)] bg-[var(--inner-box)] flex justify-end gap-1.5">
+              <button onClick={() => setIsManageModalOpen(false)} className="px-3 py-1 rounded-lg bg-[var(--panel)] text-[var(--text-sub)] text-xs font-bold transition">취소</button>
+              <button onClick={saveManageModal} className="px-4 py-1 rounded-lg bg-[var(--accent)] text-[var(--accent-fg)] text-xs font-black transition">변경사항 저장</button>
             </div>
           </div>
         </div>
       )}
 
-      <div className="max-w-[1400px] mx-auto p-2.5 md:p-6 space-y-3 md:space-y-4">
+      <div className="max-w-[1400px] mx-auto p-2 md:p-6 space-y-2.5 md:space-y-4">
         
-        {/* 헤더 & 가독성 최적화 */}
-        <header className="relative overflow-hidden rounded-xl bg-[var(--panel)] border border-[var(--panel-border)] py-2.5 px-3 md:px-5 shadow-xs">
+        {/* CHRONOS 헤더 */}
+        <header className="relative overflow-hidden rounded-xl bg-[var(--panel)] border border-[var(--panel-border)] py-2 px-3 md:px-5 shadow-xs">
           <div className="absolute top-0 left-0 w-1.5 h-full bg-[var(--accent)]"></div>
-          <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
+          <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-1.5">
             <div className="flex items-center gap-2 min-w-0">
-              <h1 className="text-lg md:text-xl font-black tracking-widest leading-none text-[var(--text-main)]">CHRONOS</h1>
+              <h1 className="text-base md:text-lg font-black tracking-widest leading-none text-[var(--text-main)]">CHRONOS</h1>
               <span className="text-[var(--accent)] text-xs font-bold tracking-wide whitespace-nowrap">크로노스 : 캐릭터 관리</span>
             </div>
-            <div className="bg-[var(--inner-box)] border border-[var(--panel-border)] px-2.5 py-1.5 rounded-lg w-full md:max-w-[650px] flex items-center gap-2">
+            <div className="bg-[var(--inner-box)] border border-[var(--panel-border)] px-2.5 py-1 rounded-lg w-full md:max-w-[650px] flex items-center gap-1.5">
               <span className="text-xs shrink-0">⏳</span>
-              <p className="text-[10px] md:text-[11px] font-bold leading-tight break-keep text-[var(--text-sub)]">
-                시간과 기록의 신, 크로노스. 입력한 능력치는 <span className="text-[var(--accent)]">AGORA 명예의 전당</span>으로 즉시 연결됩니다.
-              </p>
+              <div className="text-[11px] font-bold leading-tight text-[var(--text-sub)]">
+                <p>시간과 기록의 신, 크로노스.</p>
+                <p>입력한 능력치는 <span className="text-[var(--accent)]">AGORA 명예의 전당</span>으로 즉시 연결됩니다.</p>
+              </div>
             </div>
           </div>
         </header>
         
-        {/* 상단 프로필 & 슬림 아바타 바 */}
-        <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-3 md:p-4 shadow-xs space-y-3">
+        {/* 상단 프로필 카드 */}
+        <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-2.5 md:p-4 shadow-xs space-y-2.5">
           
-          <div className="flex items-center justify-between border-b border-[var(--panel-border)] pb-2.5 gap-2">
-            
-            {/* 초상화 & 닉네임 & 주 클래스 */}
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-9 h-9 md:w-11 md:h-11 bg-[var(--inner-box)] rounded-xl border border-[var(--panel-border)] flex items-center justify-center text-lg shrink-0 shadow-inner" title="AI 캐리커처 연동 예정">
+          <div className="flex items-center justify-between border-b border-[var(--panel-border)] pb-2 gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-8 h-8 md:w-10 md:h-10 bg-[var(--inner-box)] rounded-xl border border-[var(--panel-border)] flex items-center justify-center text-base shrink-0 shadow-inner">
                 🎨
               </div>
               <div className="min-w-0">
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-sm md:text-base font-black text-[var(--text-main)] truncate max-w-[130px] md:max-w-[200px]">{profile.nickname}</span>
-                  <span className="text-[10px] bg-[var(--inner-box)] border border-[var(--panel-border)] px-1.5 py-0.2 rounded font-bold text-[var(--accent)] whitespace-nowrap">{profile.job}</span>
+                <div className="flex items-center gap-1.5 flex-wrap leading-tight">
+                  <span className="text-sm md:text-base font-black text-[var(--text-main)] truncate max-w-[140px] md:max-w-[220px]">{displayName}</span>
+                  {profile.alias && <span className="text-xs text-[var(--text-sub)] font-mono">({profile.nickname})</span>}
+                  <span className="text-xs bg-[var(--inner-box)] border border-[var(--panel-border)] px-1.5 py-0.2 rounded font-bold text-[var(--accent)] whitespace-nowrap">{profile.job}</span>
+                  {profile.isMain && <span className="text-xs bg-[var(--accent)] text-[var(--accent-fg)] font-black px-1.5 py-0.2 rounded">대표</span>}
                 </div>
-                <div className="text-[10px] text-[var(--text-sub)] font-mono mt-0.5">총 레벨 {totalLevel} LV</div>
+                <div className="text-xs text-[var(--text-sub)] font-mono mt-0.5">총 레벨 {totalLevel} LV</div>
               </div>
             </div>
 
-            {/* 자동 저장 상태 & 칭호 토글 */}
-            <div className="flex items-center gap-2 shrink-0">
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border transition-all whitespace-nowrap ${
-                saveStatus === 'saving' ? 'bg-amber-500/10 text-amber-400 border-amber-500/30 animate-pulse' :
-                saveStatus === 'error' ? 'bg-rose-500/10 text-rose-400 border-rose-500/30' :
-                'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-              }`}>
-                {saveStatus === 'saving' ? '⏳ 저장 중...' : saveStatus === 'error' ? '⚠️ 실패' : '✅ 저장됨'}
-              </span>
-
-              <button onClick={() => setIsTitleAccordionOpen(!isTitleAccordionOpen)} className="bg-[var(--inner-box)] border border-[var(--panel-border)] text-[10px] font-bold text-[var(--accent)] px-2 py-1 rounded transition whitespace-nowrap">
-                ✨ 칭호 {earnedTitles.length}
-              </button>
-            </div>
-
+            <button onClick={() => setIsTitleAccordionOpen(!isTitleAccordionOpen)} className="bg-[var(--inner-box)] border border-[var(--panel-border)] text-xs font-bold text-[var(--accent)] px-2 py-1 rounded transition whitespace-nowrap shrink-0">
+              ✨ 칭호 {earnedTitles.length}
+            </button>
           </div>
 
           {/* 칭호 아코디언 */}
           {isTitleAccordionOpen && (
-            <div className="p-2.5 border rounded-lg border-[var(--panel-border)] bg-[var(--inner-box)] space-y-1.5 text-xs">
+            <div className="p-2 border rounded-lg border-[var(--panel-border)] bg-[var(--inner-box)] space-y-1 text-xs">
               {earnedTitles.length > 0 ? (
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1">
                   {earnedTitles.map(t => (
-                    <div key={t.type} className={`text-[10px] font-black p-1 rounded border text-center truncate ${t.tagClass}`}>{t.name}</div>
+                    <div key={t.type} className={`text-xs font-black p-1 rounded border text-center truncate ${t.tagClass}`}>{t.name}</div>
                   ))}
                 </div>
               ) : (
-                <div className="text-[10px] text-[var(--text-sub)] text-center py-1">아고라 랭킹을 달성해 칭호를 획득해 보세요.</div>
+                <div className="text-xs text-[var(--text-sub)] text-center py-0.5">아고라 랭킹을 달성해 칭호를 획득해 보세요.</div>
               )}
             </div>
           )}
 
-          {/* 보유 캐릭터 스위처 바 */}
-          <div className="space-y-1.5">
-            <div className="flex justify-between items-center text-[11px] font-bold text-[var(--text-sub)]">
-              <span>캐릭터 선택</span>
-              <button onClick={openManageModal} className="text-[10px] text-[var(--accent)] hover:underline">⚙️ 캐릭터 관리</button>
+          {/* 5대 스탯 */}
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5">
+            <div className="bg-[var(--inner-box)] p-1.5 md:p-2 rounded-lg border border-[var(--panel-border)]">
+              <label className="text-xs font-black text-red-400 block whitespace-nowrap">⚔️ 전투력</label>
+              <input type="number" value={profile.combatPower} onChange={e => updateProfile("combatPower", e.target.value)} placeholder="0" className="w-full bg-transparent text-xs md:text-sm font-black text-[var(--text-main)] outline-none" />
             </div>
-            <div className="flex gap-1.5 overflow-x-auto custom-scrollbar pb-1 touch-pan-x">
-              {myCharacters.map((char: any) => (
-                <button 
-                  key={char.nickname} 
-                  onClick={() => switchCharacter(char.nickname)} 
-                  className={`flex flex-col items-center justify-center px-3 py-1.5 rounded-lg border text-center transition shrink-0 min-w-[70px] ${char.nickname === profile.nickname ? 'bg-[var(--accent-soft)] border-[var(--accent)]' : 'bg-[var(--inner-box)] border-[var(--panel-border)]'}`}
-                >
-                  <span className={`text-xs font-black truncate max-w-[80px] ${char.nickname === profile.nickname ? 'text-[var(--accent)]' : 'text-[var(--text-main)]'}`}>{char.nickname}</span>
-                  <span className="text-[9px] text-[var(--text-sub)] truncate">{char.job || '전사'}</span>
-                </button>
-              ))}
+            <div className="bg-[var(--inner-box)] p-1.5 md:p-2 rounded-lg border border-[var(--panel-border)]">
+              <label className="text-xs font-black text-emerald-400 block whitespace-nowrap">🌿 생활력</label>
+              <input type="number" value={profile.lifeEnergy} onChange={e => updateProfile("lifeEnergy", e.target.value)} placeholder="0" className="w-full bg-transparent text-xs md:text-sm font-black text-[var(--text-main)] outline-none" />
             </div>
-          </div>
-
-          {/* 5대 스탯 (순서: 전투력 ➔ 생활력 ➔ 매력 ➔ 마도저항 ➔ 길드 공헌도) */}
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-            <div className="bg-[var(--inner-box)] p-2 rounded-lg border border-[var(--panel-border)]">
-              <label className="text-[10px] font-black text-red-400 block whitespace-nowrap">⚔️ 전투력</label>
-              <input type="number" value={profile.combatPower} onChange={e => updateProfile("combatPower", e.target.value)} placeholder="0" className="w-full bg-transparent text-sm md:text-base font-black text-[var(--text-main)] outline-none" />
+            <div className="bg-[var(--inner-box)] p-1.5 md:p-2 rounded-lg border border-[var(--panel-border)]">
+              <label className="text-xs font-black text-pink-400 block whitespace-nowrap">✨ 매력</label>
+              <input type="number" value={profile.charm} onChange={e => updateProfile("charm", e.target.value)} placeholder="0" className="w-full bg-transparent text-xs md:text-sm font-black text-[var(--text-main)] outline-none" />
             </div>
-            <div className="bg-[var(--inner-box)] p-2 rounded-lg border border-[var(--panel-border)]">
-              <label className="text-[10px] font-black text-emerald-400 block whitespace-nowrap">🌿 생활력</label>
-              <input type="number" value={profile.lifeEnergy} onChange={e => updateProfile("lifeEnergy", e.target.value)} placeholder="0" className="w-full bg-transparent text-sm md:text-base font-black text-[var(--text-main)] outline-none" />
+            <div className="bg-[var(--inner-box)] p-1.5 md:p-2 rounded-lg border border-[var(--panel-border)]">
+              <label className="text-xs font-black text-purple-400 block whitespace-nowrap">🔮 마도저항</label>
+              <input type="number" value={profile.magicResistance} onChange={e => updateProfile("magicResistance", e.target.value)} placeholder="0" className="w-full bg-transparent text-xs md:text-sm font-black text-[var(--text-main)] outline-none" />
             </div>
-            <div className="bg-[var(--inner-box)] p-2 rounded-lg border border-[var(--panel-border)]">
-              <label className="text-[10px] font-black text-pink-400 block whitespace-nowrap">✨ 매력</label>
-              <input type="number" value={profile.charm} onChange={e => updateProfile("charm", e.target.value)} placeholder="0" className="w-full bg-transparent text-sm md:text-base font-black text-[var(--text-main)] outline-none" />
+            <div className="bg-[var(--inner-box)] p-1.5 md:p-2 rounded-lg border border-[var(--panel-border)] col-span-2 sm:col-span-1">
+              <label className="text-xs font-black text-amber-400 block whitespace-nowrap">🛡️ 길드 공헌도</label>
+              <input type="number" value={accountContribution} onChange={e => setAccountContribution(e.target.value)} placeholder="0" className="w-full bg-transparent text-xs md:text-sm font-black text-[var(--text-main)] outline-none" />
             </div>
-            <div className="bg-[var(--inner-box)] p-2 rounded-lg border border-[var(--panel-border)]">
-              <label className="text-[10px] font-black text-purple-400 block whitespace-nowrap">🔮 마도저항</label>
-              <input type="number" value={profile.magicResistance} onChange={e => updateProfile("magicResistance", e.target.value)} placeholder="0" className="w-full bg-transparent text-sm md:text-base font-black text-[var(--text-main)] outline-none" />
-            </div>
-            <div className="bg-[var(--inner-box)] p-2 rounded-lg border border-[var(--panel-border)] col-span-2 sm:col-span-1">
-              <label className="text-[10px] font-black text-amber-400 block whitespace-nowrap">🛡️ 길드 공헌도</label>
-              <input type="number" value={accountContribution} onChange={e => setAccountContribution(e.target.value)} placeholder="0" className="w-full bg-transparent text-sm md:text-base font-black text-[var(--text-main)] outline-none" />
-            </div>
-          </div>
-          
-          {/* 자기소개 & 대표 캐릭터 체크 */}
-          <div className="flex gap-2">
-            <input value={profile.intro} onChange={(e) => updateProfile("intro", e.target.value)} placeholder="자기소개나 인삿말을 적어주세요!" className="flex-1 bg-[var(--inner-box)] border border-[var(--panel-border)] rounded-lg p-2 text-xs text-[var(--text-main)] focus:border-[var(--accent)] outline-none" />
-            <label className="flex items-center justify-center gap-1.5 bg-[var(--inner-box)] border border-[var(--panel-border)] px-3 rounded-lg cursor-pointer hover:bg-[var(--panel-hover)] transition shrink-0">
-              <input type="checkbox" checked={profile.isMain} onChange={e => updateProfile("isMain", e.target.checked)} className="accent-[var(--accent)] w-3.5 h-3.5" />
-              <span className="text-xs font-bold text-[var(--text-main)] whitespace-nowrap">대표</span>
-            </label>
           </div>
 
         </div>
 
-        {/* 검은 구멍 탐험 슬림 상황판 */}
-        {blackHoleDaily && blackHoleWeekly && (
-          <div className="bg-[var(--panel)] rounded-xl border border-purple-500/40 p-3 shadow-xs flex flex-col gap-2 relative overflow-hidden">
-            <div className="flex justify-between items-center gap-2">
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="text-base shrink-0">🕳️</span>
-                <span className="text-xs font-black text-purple-300 truncate">검은 구멍 상황판</span>
-              </div>
-              <div className="text-xs font-black text-[var(--text-main)] shrink-0">
-                {bhTotalCount} <span className="text-[10px] text-[var(--text-sub)] font-normal">/ {bhMaxCount}</span>
-              </div>
-            </div>
-            <div className="w-full bg-[var(--inner-box)] h-1.5 rounded-full overflow-hidden border border-purple-900/50">
-              <div className="h-full bg-gradient-to-r from-purple-600 to-fuchsia-500 transition-all duration-500" style={{ width: `${(bhTotalCount / bhMaxCount) * 100}%` }}></div>
-            </div>
-            <div className="flex gap-2 text-xs">
-              <div onClick={() => setDailyChecks(bhDailyDone ? dailyChecks.filter(i => i !== blackHoleDaily.id) : [...dailyChecks, blackHoleDaily.id])} className={`flex-1 flex items-center justify-between p-1.5 rounded-lg border cursor-pointer ${bhDailyDone ? "bg-purple-900/30 border-purple-500/60" : "bg-[var(--inner-box)] border-[var(--panel-border)]"}`}>
-                <span className={`text-[11px] font-bold ${bhDailyDone ? "text-purple-300" : "text-[var(--text-sub)]"}`}>기본 (1회)</span>
-                <span className={`text-[10px] font-bold ${bhDailyDone ? "text-purple-400" : "text-[var(--text-sub)]"}`}>{bhDailyDone ? "✓" : "미완료"}</span>
-              </div>
-              <div className="flex-1 flex items-center justify-between p-1.5 rounded-lg bg-[var(--inner-box)] border border-[var(--panel-border)]">
-                <span className="text-[11px] font-bold text-[var(--text-sub)]">초과 ({blackHoleWeekly.max_count}회)</span>
-                <div className="flex gap-1 items-center">
-                  <button onClick={() => updateRepeatCount(blackHoleWeekly.id, -1, blackHoleWeekly.max_count)} className="w-4 h-4 rounded bg-[var(--panel)] text-[10px] font-bold text-[var(--text-sub)]">-</button>
-                  <span className="text-xs font-black text-purple-400 min-w-[14px] text-center">{bhWeeklyCount}</span>
-                  <button onClick={() => updateRepeatCount(blackHoleWeekly.id, 1, blackHoleWeekly.max_count)} className="w-4 h-4 rounded bg-purple-900/40 text-[10px] font-bold text-purple-400">+</button>
-                </div>
-              </div>
-            </div>
+        {/* 보유 캐릭터 선택 바 */}
+        <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-2 shadow-xs space-y-1">
+          <div className="flex justify-between items-center text-xs font-bold text-[var(--text-sub)] px-1">
+            <span>캐릭터 선택</span>
+            <button 
+              onClick={openManageModal} 
+              className="text-xs bg-[var(--inner-box)] border border-[var(--panel-border)] px-2 py-0.5 rounded text-[var(--accent)] hover:bg-[var(--accent-soft)] transition font-bold"
+            >
+              ⚙️ 설정
+            </button>
           </div>
-        )}
+          
+          <div className="flex gap-1.5 overflow-x-auto custom-scrollbar pb-0.5 touch-pan-x">
+            {myCharacters.map((char: any) => {
+              const nameToShow = (char.alias || char.nickname).slice(0, 2);
+              const isSelected = char.nickname === profile.nickname;
+              return (
+                <button 
+                  key={char.nickname} 
+                  onClick={() => switchCharacter(char.nickname)} 
+                  className={`flex flex-col items-center justify-center px-2 py-1 rounded-lg border text-center transition shrink-0 min-w-[52px] ${
+                    isSelected 
+                      ? 'bg-[var(--accent-soft)] border-[var(--accent)] shadow-xs' 
+                      : 'bg-[var(--inner-box)] border-[var(--panel-border)] hover:border-[var(--accent)]/50'
+                  }`}
+                >
+                  <span className={`text-xs font-black leading-tight ${isSelected ? 'text-[var(--accent)]' : 'text-[var(--text-main)]'}`}>{nameToShow}</span>
+                  <span className="text-[10px] text-[var(--text-sub)] truncate mt-0.5">{char.job || '전사'}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
-        {/* ⭐️ 모비라이프형 상단 탭 메뉴 (스마트 스크롤 방지) */}
-        <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar bg-[var(--inner-box)] p-1.5 rounded-xl border border-[var(--panel-border)] touch-pan-x">
+        {/* 2행 3열 탭 메뉴 */}
+        <div className="grid grid-cols-3 gap-1.5 bg-[var(--inner-box)] p-1.5 rounded-xl border border-[var(--panel-border)]">
           {[
-            { id: 'daily', label: '☀️ 일일' },
-            { id: 'weekly', label: '🌙 주간' },
-            { id: 'abyss_raid', label: '🌌 어비스/레이드' },
-            { id: 'trades', label: '⚖️ 물물교환' },
-            { id: 'levels', label: '⚡ 클래스' },
-            { id: 'all', label: '📋 전체보기' }
+            { id: 'all', label: 'ALL' },
+            { id: 'abyss_raid', label: '어비스/레이드' },
+            { id: 'trades', label: '물교/구매' },
+            { id: 'daily', label: '일일' },
+            { id: 'weekly', label: '주간' },
+            { id: 'levels', label: '클래스' }
           ].map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-black whitespace-nowrap transition shrink-0 ${
+              className={`py-2 px-1 rounded-lg text-xs font-black text-center truncate transition ${
                 activeTab === tab.id 
                   ? 'bg-[var(--accent)] text-[var(--accent-fg)] shadow-xs' 
                   : 'text-[var(--text-sub)] hover:text-[var(--text-main)] hover:bg-[var(--panel)]'
@@ -715,130 +838,86 @@ export default function CharacterPage() {
           ))}
         </div>
 
-        {/* 컨텐츠 그리드/탭 레이아웃 */}
-        <div className="space-y-4">
-          
-          {/* 일일 / 주간 / 어비스 / 레이드 관리 */}
+        {/* 컨텐츠 영역 */}
+        <div className="space-y-3">
           {(activeTab === 'all' || activeTab === 'daily' || activeTab === 'weekly' || activeTab === 'abyss_raid') && (
-            <div className={`grid gap-3 ${activeTab === 'all' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4' : 'grid-cols-1 md:grid-cols-2'}`}>
+            <div className={`grid gap-2.5 ${activeTab === 'all' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4' : 'grid-cols-1 md:grid-cols-2'}`}>
               
-              {/* 일일 컨텐츠 */}
               {(activeTab === 'all' || activeTab === 'daily') && (
-                <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-3 shadow-xs flex flex-col">
-                  <div className="flex justify-between items-center mb-2.5 border-b border-[var(--panel-border)] pb-2 gap-2">
+                <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-2.5 shadow-xs flex flex-col">
+                  <div className="flex justify-between items-center mb-2 border-b border-[var(--panel-border)] pb-1.5 gap-2">
                     <h3 className="font-bold text-amber-400 text-xs md:text-sm whitespace-nowrap">일일 컨텐츠</h3>
-                    <button 
-                      onClick={() => handleSmartToggle('daily')} 
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded transition shadow-xs whitespace-nowrap ${
-                        isDailyAllChecked 
-                          ? 'bg-[var(--inner-box)] text-[var(--text-sub)] hover:text-rose-400 border border-[var(--panel-border)]' 
-                          : 'bg-[var(--accent)] text-[var(--accent-fg)]'
-                      }`}
-                    >
-                      {isDailyAllChecked ? '전체 해제' : '전체 완료'}
-                    </button>
+                    <button onClick={() => handleSmartToggle('daily')} className={`text-xs font-bold px-2 py-0.5 rounded transition shadow-xs whitespace-nowrap ${isDailyAllChecked ? 'bg-[var(--inner-box)] text-[var(--text-sub)] border border-[var(--panel-border)]' : 'bg-[var(--accent)] text-[var(--accent-fg)]'}`}>{isDailyAllChecked ? '전체 해제' : '전체 완료'}</button>
                   </div>
-                  <div className="space-y-1.5 flex-1 overflow-y-auto custom-scrollbar pr-0.5">{visibleDailyList.map((item: any) => renderTask(item, 'daily'))}</div>
+                  <div className="space-y-1 flex-1 overflow-y-auto custom-scrollbar pr-0.5">{visibleDailyList.map((item: any) => renderTask(item, 'daily'))}</div>
                 </div>
               )}
 
-              {/* 주간 컨텐츠 */}
               {(activeTab === 'all' || activeTab === 'weekly') && (
-                <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-3 shadow-xs flex flex-col">
-                  <div className="flex justify-between items-center mb-2.5 border-b border-[var(--panel-border)] pb-2 gap-2">
+                <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-2.5 shadow-xs flex flex-col">
+                  <div className="flex justify-between items-center mb-2 border-b border-[var(--panel-border)] pb-1.5 gap-2">
                     <h3 className="font-bold text-blue-400 text-xs md:text-sm whitespace-nowrap">주간 컨텐츠</h3>
-                    <button 
-                      onClick={() => handleSmartToggle('weekly')} 
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded transition shadow-xs whitespace-nowrap ${
-                        isWeeklyAllChecked 
-                          ? 'bg-[var(--inner-box)] text-[var(--text-sub)] hover:text-rose-400 border border-[var(--panel-border)]' 
-                          : 'bg-[var(--accent)] text-[var(--accent-fg)]'
-                      }`}
-                    >
-                      {isWeeklyAllChecked ? '전체 해제' : '전체 완료'}
-                    </button>
+                    <button onClick={() => handleSmartToggle('weekly')} className={`text-xs font-bold px-2 py-0.5 rounded transition shadow-xs whitespace-nowrap ${isWeeklyAllChecked ? 'bg-[var(--inner-box)] text-[var(--text-sub)] border border-[var(--panel-border)]' : 'bg-[var(--accent)] text-[var(--accent-fg)]'}`}>{isWeeklyAllChecked ? '전체 해제' : '전체 완료'}</button>
                   </div>
-                  <div className="space-y-1.5 flex-1 overflow-y-auto custom-scrollbar pr-0.5">{visibleWeeklyList.map((item: any) => renderTask(item, 'weekly'))}</div>
+                  <div className="space-y-1 flex-1 overflow-y-auto custom-scrollbar pr-0.5">{visibleWeeklyList.map((item: any) => renderTask(item, 'weekly'))}</div>
                 </div>
               )}
 
-              {/* 어비스 관리 */}
               {(activeTab === 'all' || activeTab === 'abyss_raid') && (
-                <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-3 shadow-xs flex flex-col">
-                  <div className="flex justify-between items-center mb-2.5 border-b border-[var(--panel-border)] pb-2 gap-2">
+                <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-2.5 shadow-xs flex flex-col">
+                  <div className="flex justify-between items-center mb-2 border-b border-[var(--panel-border)] pb-1.5 gap-2">
                     <h3 className="font-bold text-emerald-400 text-xs md:text-sm whitespace-nowrap">어비스 관리</h3>
-                    <button 
-                      onClick={() => handleSmartToggle('abyss')} 
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded transition shadow-xs whitespace-nowrap ${
-                        isAbyssAllChecked 
-                          ? 'bg-[var(--inner-box)] text-[var(--text-sub)] hover:text-rose-400 border border-[var(--panel-border)]' 
-                          : 'bg-[var(--accent)] text-[var(--accent-fg)]'
-                      }`}
-                    >
-                      {isAbyssAllChecked ? '전체 해제' : '전체 완료'}
-                    </button>
+                    <button onClick={() => handleSmartToggle('abyss')} className={`text-xs font-bold px-2 py-0.5 rounded transition shadow-xs whitespace-nowrap ${isAbyssAllChecked ? 'bg-[var(--inner-box)] text-[var(--text-sub)] border border-[var(--panel-border)]' : 'bg-[var(--accent)] text-[var(--accent-fg)]'}`}>{isAbyssAllChecked ? '전체 해제' : '전체 완료'}</button>
                   </div>
-                  <div className="space-y-1.5 flex-1 overflow-y-auto custom-scrollbar pr-0.5">{abyssList.map((item: any) => renderTask(item, 'abyss'))}</div>
+                  <div className="space-y-1 flex-1 overflow-y-auto custom-scrollbar pr-0.5">{abyssList.map((item: any) => renderTask(item, 'abyss'))}</div>
                 </div>
               )}
 
-              {/* 레이드 관리 */}
               {(activeTab === 'all' || activeTab === 'abyss_raid') && (
-                <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-3 shadow-xs flex flex-col">
-                  <div className="flex justify-between items-center mb-2.5 border-b border-[var(--panel-border)] pb-2 gap-2">
+                <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-2.5 shadow-xs flex flex-col">
+                  <div className="flex justify-between items-center mb-2 border-b border-[var(--panel-border)] pb-1.5 gap-2">
                     <h3 className="font-bold text-indigo-400 text-xs md:text-sm whitespace-nowrap">레이드 관리</h3>
-                    <button 
-                      onClick={() => handleSmartToggle('raid')} 
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded transition shadow-xs whitespace-nowrap ${
-                        isRaidAllChecked 
-                          ? 'bg-[var(--inner-box)] text-[var(--text-sub)] hover:text-rose-400 border border-[var(--panel-border)]' 
-                          : 'bg-[var(--accent)] text-[var(--accent-fg)]'
-                      }`}
-                    >
-                      {isRaidAllChecked ? '전체 해제' : '전체 완료'}
-                    </button>
+                    <button onClick={() => handleSmartToggle('raid')} className={`text-xs font-bold px-2 py-0.5 rounded transition shadow-xs whitespace-nowrap ${isRaidAllChecked ? 'bg-[var(--inner-box)] text-[var(--text-sub)] border border-[var(--panel-border)]' : 'bg-[var(--accent)] text-[var(--accent-fg)]'}`}>{isRaidAllChecked ? '전체 해제' : '전체 완료'}</button>
                   </div>
-                  <div className="space-y-1.5 flex-1 overflow-y-auto custom-scrollbar pr-0.5">{raidList.map((item: any) => renderTask(item, 'raid'))}</div>
+                  <div className="space-y-1 flex-1 overflow-y-auto custom-scrollbar pr-0.5">{raidList.map((item: any) => renderTask(item, 'raid'))}</div>
                 </div>
               )}
 
             </div>
           )}
 
-          {/* 물물교환 & 주간상점 (모바일 카드 가로 콤팩트화) */}
           {(activeTab === 'all' || activeTab === 'trades') && (
-            <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-3 md:p-4 shadow-xs space-y-4">
-              <h3 className="font-bold text-[var(--accent)] text-sm md:text-base whitespace-nowrap border-b border-[var(--panel-border)] pb-2">⚖️ 주간 구매 및 물물 교환 관리</h3>
+            <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-2.5 md:p-3 shadow-xs space-y-3">
+              <h3 className="font-bold text-[var(--accent)] text-xs md:text-sm whitespace-nowrap border-b border-[var(--panel-border)] pb-1.5">⚖️ 물교/구매 관리</h3>
               
-              {/* 일일 갱신 카드 리스트 */}
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <h4 className="text-amber-400 font-bold text-xs flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span> 일일 갱신 (Daily)
                 </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5">
                   {dailyTrades.map((trade: any) => {
                     const currentVal = tradeProgress[trade.id] || 0;
                     const isMax = currentVal >= trade.limit;
                     const isPinned = pinnedTrades.includes(trade.id);
                     return (
-                      <div key={trade.id} className={`flex flex-col justify-between p-2.5 rounded-lg border transition ${isPinned ? 'bg-[var(--accent-soft)]/20 border-[var(--accent)]' : 'bg-[var(--inner-box)] border-[var(--panel-border)]'}`}>
-                        <div className="flex items-center justify-between mb-1.5 min-w-0">
-                          <div className="flex items-center gap-1.5 min-w-0">
+                      <div key={trade.id} className={`flex flex-col justify-between p-2 rounded-lg border transition ${isPinned ? 'bg-[var(--accent-soft)]/20 border-[var(--accent)]' : 'bg-[var(--inner-box)] border-[var(--panel-border)]'}`}>
+                        <div className="flex items-center justify-between mb-1 min-w-0">
+                          <div className="flex items-center gap-1 min-w-0">
                             <button onClick={() => togglePinTrade(trade.id)} className={`text-xs ${isPinned ? 'opacity-100' : 'opacity-30'}`}>📌</button>
-                            <span className="font-bold text-xs text-[var(--text-main)] truncate">{trade.map || "-"} <span className="text-[10px] text-[var(--text-sub)] font-normal">({trade.npc || "-"})</span></span>
+                            <span className="font-bold text-xs text-[var(--text-main)] truncate">{trade.map || "-"} <span className="text-xs text-[var(--text-sub)] font-normal">({trade.npc || "-"})</span></span>
                           </div>
-                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-[var(--panel)] text-[var(--text-sub)] shrink-0">{trade.scope}</span>
+                          <span className="text-xs px-1 py-0.2 rounded bg-[var(--panel)] text-[var(--text-sub)] shrink-0">{trade.scope}</span>
                         </div>
                         <div className="flex items-center justify-between gap-2 text-xs">
                           <div className="min-w-0">
-                            <div className="text-[10px] font-bold text-emerald-400 truncate">보상: {trade.reward} ({trade.reward_cnt}개)</div>
-                            <div className="text-[10px] font-bold text-amber-400 truncate">소모: {trade.cost} ({trade.cost_cnt}개)</div>
+                            <div className="text-xs font-bold text-emerald-400 truncate">보상: {trade.reward} ({trade.reward_cnt}개)</div>
+                            <div className="text-xs font-bold text-amber-400 truncate">소모: {trade.cost} ({trade.cost_cnt}개)</div>
                           </div>
-                          <div className="flex items-center gap-1.5 bg-[var(--panel)] px-2 py-1 rounded border border-[var(--panel-border)] shrink-0">
-                            <span className={`text-xs font-bold w-8 text-center ${isMax ? "text-emerald-400" : "text-[var(--text-main)]"}`}>{currentVal}/{trade.limit}</span>
+                          <div className="flex items-center gap-1 bg-[var(--panel)] px-1.5 py-0.5 rounded border border-[var(--panel-border)] shrink-0">
+                            <span className={`text-xs font-bold w-7 text-center ${isMax ? "text-emerald-400" : "text-[var(--text-main)]"}`}>{currentVal}/{trade.limit}</span>
                             <div className="flex gap-0.5 border-l border-[var(--panel-border)] pl-1">
-                              <button onClick={() => updateTradeProgress(trade.id, -1, trade.limit)} className="w-4 h-4 rounded bg-[var(--inner-box)] text-[10px] font-bold text-[var(--text-sub)]">-</button>
-                              <button onClick={() => updateTradeProgress(trade.id, 1, trade.limit)} className="w-4 h-4 rounded bg-[var(--accent)] text-[var(--accent-fg)] font-bold text-[10px]">+</button>
+                              <button onClick={() => updateTradeProgress(trade.id, -1, trade.limit)} className="w-4 h-4 rounded bg-[var(--inner-box)] text-xs font-bold text-[var(--text-sub)]">-</button>
+                              <button onClick={() => updateTradeProgress(trade.id, 1, trade.limit)} className="w-4 h-4 rounded bg-[var(--accent)] text-[var(--accent-fg)] font-bold text-xs">+</button>
                             </div>
                           </div>
                         </div>
@@ -848,35 +927,34 @@ export default function CharacterPage() {
                 </div>
               </div>
 
-              {/* 주간 갱신 카드 리스트 */}
-              <div className="space-y-2 pt-2 border-t border-[var(--panel-border)]">
+              <div className="space-y-1.5 pt-1.5 border-t border-[var(--panel-border)]">
                 <h4 className="text-blue-400 font-bold text-xs flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span> 주간 갱신 (Weekly)
                 </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5">
                   {weeklyTrades.map((trade: any) => {
                     const currentVal = tradeProgress[trade.id] || 0;
                     const isMax = currentVal >= trade.limit;
                     const isPinned = pinnedTrades.includes(trade.id);
                     return (
-                      <div key={trade.id} className={`flex flex-col justify-between p-2.5 rounded-lg border transition ${isPinned ? 'bg-[var(--accent-soft)]/20 border-[var(--accent)]' : 'bg-[var(--inner-box)] border-[var(--panel-border)]'}`}>
-                        <div className="flex items-center justify-between mb-1.5 min-w-0">
-                          <div className="flex items-center gap-1.5 min-w-0">
+                      <div key={trade.id} className={`flex flex-col justify-between p-2 rounded-lg border transition ${isPinned ? 'bg-[var(--accent-soft)]/20 border-[var(--accent)]' : 'bg-[var(--inner-box)] border-[var(--panel-border)]'}`}>
+                        <div className="flex items-center justify-between mb-1 min-w-0">
+                          <div className="flex items-center gap-1 min-w-0">
                             <button onClick={() => togglePinTrade(trade.id)} className={`text-xs ${isPinned ? 'opacity-100' : 'opacity-30'}`}>📌</button>
-                            <span className="font-bold text-xs text-[var(--text-main)] truncate">{trade.map || "-"} <span className="text-[10px] text-[var(--text-sub)] font-normal">({trade.npc || "-"})</span></span>
+                            <span className="font-bold text-xs text-[var(--text-main)] truncate">{trade.map || "-"} <span className="text-xs text-[var(--text-sub)] font-normal">({trade.npc || "-"})</span></span>
                           </div>
-                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-[var(--panel)] text-[var(--text-sub)] shrink-0">{trade.scope}</span>
+                          <span className="text-xs px-1 py-0.2 rounded bg-[var(--panel)] text-[var(--text-sub)] shrink-0">{trade.scope}</span>
                         </div>
                         <div className="flex items-center justify-between gap-2 text-xs">
                           <div className="min-w-0">
-                            <div className="text-[10px] font-bold text-emerald-400 truncate">보상: {trade.reward} ({trade.reward_cnt}개)</div>
-                            <div className="text-[10px] font-bold text-amber-400 truncate">소모: {trade.cost} ({trade.cost_cnt}개)</div>
+                            <div className="text-xs font-bold text-emerald-400 truncate">보상: {trade.reward} ({trade.reward_cnt}개)</div>
+                            <div className="text-xs font-bold text-amber-400 truncate">소모: {trade.cost} ({trade.cost_cnt}개)</div>
                           </div>
-                          <div className="flex items-center gap-1.5 bg-[var(--panel)] px-2 py-1 rounded border border-[var(--panel-border)] shrink-0">
-                            <span className={`text-xs font-bold w-8 text-center ${isMax ? "text-emerald-400" : "text-[var(--text-main)]"}`}>{currentVal}/{trade.limit}</span>
+                          <div className="flex items-center gap-1 bg-[var(--panel)] px-1.5 py-0.5 rounded border border-[var(--panel-border)] shrink-0">
+                            <span className={`text-xs font-bold w-7 text-center ${isMax ? "text-emerald-400" : "text-[var(--text-main)]"}`}>{currentVal}/{trade.limit}</span>
                             <div className="flex gap-0.5 border-l border-[var(--panel-border)] pl-1">
-                              <button onClick={() => updateTradeProgress(trade.id, -1, trade.limit)} className="w-4 h-4 rounded bg-[var(--inner-box)] text-[10px] font-bold text-[var(--text-sub)]">-</button>
-                              <button onClick={() => updateTradeProgress(trade.id, 1, trade.limit)} className="w-4 h-4 rounded bg-[var(--accent)] text-[var(--accent-fg)] font-bold text-[10px]">+</button>
+                              <button onClick={() => updateTradeProgress(trade.id, -1, trade.limit)} className="w-4 h-4 rounded bg-[var(--inner-box)] text-xs font-bold text-[var(--text-sub)]">-</button>
+                              <button onClick={() => updateTradeProgress(trade.id, 1, trade.limit)} className="w-4 h-4 rounded bg-[var(--accent)] text-[var(--accent-fg)] font-bold text-xs">+</button>
                             </div>
                           </div>
                         </div>
@@ -889,39 +967,35 @@ export default function CharacterPage() {
             </div>
           )}
 
-          {/* 클래스 레벨 관리 (가로 1줄 슬림 배치 & MAX/MIN 스위치) */}
           {(activeTab === 'all' || activeTab === 'levels') && (
-            <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-3 md:p-4 shadow-xs space-y-3">
-              <h3 className="font-bold text-[var(--accent)] text-sm md:text-base whitespace-nowrap border-b border-[var(--panel-border)] pb-2">⚡ 클래스 레벨 관리</h3>
+            <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-2.5 md:p-3 shadow-xs space-y-2">
+              <h3 className="font-bold text-[var(--accent)] text-xs md:text-sm whitespace-nowrap border-b border-[var(--panel-border)] pb-1.5">⚡ 클래스 레벨 관리</h3>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-1.5">
                 {dbClasses.map((cls: any) => {
                   const currentLevel = levels[cls.name] || 1;
                   const isMax = currentLevel === 65;
                   return (
-                    <div key={cls.name} className={`flex items-center justify-between p-2 rounded-lg border transition min-w-0 ${isMax ? 'border-[var(--accent)] bg-[var(--accent-soft)]/20' : 'bg-[var(--inner-box)] border-[var(--panel-border)]'}`}>
-                      {/* 직업명 & 아이콘 */}
-                      <div className="flex items-center gap-1.5 min-w-0 pr-1">
-                        <span className="text-sm shrink-0">{cls.icon || "🛡️"}</span>
+                    <div key={cls.name} className={`flex items-center justify-between p-1.5 rounded-lg border transition min-w-0 ${isMax ? 'border-[var(--accent)] bg-[var(--accent-soft)]/20' : 'bg-[var(--inner-box)] border-[var(--panel-border)]'}`}>
+                      <div className="flex items-center gap-1 min-w-0 pr-1">
+                        <span className="text-xs shrink-0">{cls.icon || "🛡️"}</span>
                         <span className={`text-xs font-bold truncate ${isMax ? 'text-[var(--accent)]' : 'text-[var(--text-main)]'}`}>{cls.name}</span>
                       </div>
 
-                      {/* 레벨 수치 & 컨트롤 버튼 그룹 */}
-                      <div className="flex items-center gap-1 shrink-0">
+                      <div className="flex items-center gap-0.5 shrink-0">
                         <span className="text-xs font-black font-mono text-[var(--accent)] mr-0.5 whitespace-nowrap">Lv.{currentLevel}</span>
                         
-                        <button onClick={() => updateClassLevel(cls.name, -10)} className="px-1 py-0.5 text-[9px] font-bold rounded bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)]">-10</button>
-                        <button onClick={() => updateClassLevel(cls.name, -1)} className="px-1 py-0.5 text-[10px] font-bold rounded bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)]">-1</button>
+                        <button onClick={() => updateClassLevel(cls.name, -10)} className="px-1 py-0.5 text-xs font-bold rounded bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)]">-10</button>
+                        <button onClick={() => updateClassLevel(cls.name, -1)} className="px-1 py-0.5 text-xs font-bold rounded bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)]">-1</button>
                         
-                        {/* MAX / MIN 토글 버튼 */}
                         {isMax ? (
-                          <button onClick={() => setMinLevel(cls.name)} className="px-1.5 py-0.5 text-[9px] font-black rounded bg-rose-500/20 text-rose-400 border border-rose-500/40 hover:bg-rose-500 hover:text-white transition whitespace-nowrap">MIN</button>
+                          <button onClick={() => setMinLevel(cls.name)} className="px-1 py-0.5 text-xs font-black rounded bg-rose-500/20 text-rose-400 border border-rose-500/40 hover:bg-rose-500 hover:text-white transition whitespace-nowrap">MIN</button>
                         ) : (
-                          <button onClick={() => setMaxLevel(cls.name)} className="px-1.5 py-0.5 text-[9px] font-bold rounded bg-[var(--accent-soft)] text-[var(--accent)] border border-[var(--accent)]/40 hover:bg-[var(--accent)] hover:text-[var(--accent-fg)] transition whitespace-nowrap">MAX</button>
+                          <button onClick={() => setMaxLevel(cls.name)} className="px-1 py-0.5 text-xs font-bold rounded bg-[var(--accent-soft)] text-[var(--accent)] border border-[var(--accent)]/40 hover:bg-[var(--accent)] hover:text-[var(--accent-fg)] transition whitespace-nowrap">MAX</button>
                         )}
 
-                        <button onClick={() => updateClassLevel(cls.name, 1)} className="px-1 py-0.5 text-[10px] font-bold rounded bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)]">+1</button>
-                        <button onClick={() => updateClassLevel(cls.name, 10)} className="px-1 py-0.5 text-[9px] font-bold rounded bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)]">+10</button>
+                        <button onClick={() => updateClassLevel(cls.name, 1)} className="px-1 py-0.5 text-xs font-bold rounded bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)]">+1</button>
+                        <button onClick={() => updateClassLevel(cls.name, 10)} className="px-1 py-0.5 text-xs font-bold rounded bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)]">+10</button>
                       </div>
                     </div>
                   );

@@ -200,20 +200,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     setIsThemeModalOpen(false);
   };
 
-  // 📱 모바일 알약 위젯 스무스 드래그 핸들러 (Pointer Capture 적용)
+  // 📱 모바일 알약 위젯 드래그 핸들러 (수정 완료: 클릭 먹통 및 손떨림 오류 해결)
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    const target = e.currentTarget;
-    try {
-      target.setPointerCapture(e.pointerId);
-    } catch (err) {}
-
     dragStartX.current = e.clientX;
     startFabX.current = fabPosition.x;
     hasMoved.current = false;
 
     const onPointerMove = (moveEvent: PointerEvent) => {
       const deltaX = dragStartX.current - moveEvent.clientX;
-      if (Math.abs(deltaX) > 3) {
+      // 터치 이동 범위가 10px 이상일 때만 '드래그'로 인식
+      if (Math.abs(deltaX) > 10) {
         hasMoved.current = true;
       }
       if (hasMoved.current) {
@@ -225,10 +221,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       }
     };
 
-    const onPointerUp = (upEvent: PointerEvent) => {
-      try {
-        target.releasePointerCapture(upEvent.pointerId);
-      } catch (err) {}
+    const onPointerUp = () => {
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerup', onPointerUp);
     };
@@ -273,7 +266,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
   const handleMenuClick = () => {
     if (hasMoved.current) return;
-    setIsFabOpen(!isFabOpen);
+    setIsFabOpen((prev) => !prev);
   };
 
   useEffect(() => {
@@ -338,7 +331,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
           <div className="max-w-[1600px] mx-auto px-4 w-full relative">
             <div className="flex items-center justify-between h-20">
-             
+              
               {/* 로고 영역 */}
               <div className="flex items-center gap-3 shrink-0">
                 <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity shrink-0">
@@ -518,7 +511,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </div>
         </nav>
 
-        {/* 📱 모바일 플로팅 FAB (touch-none 추가로 터치 드래그 스무스 해결) */}
+        {/* 📱 모바일 플로팅 FAB */}
         <div
           className="lg:hidden fixed bottom-6 z-[10000] flex items-center rounded-full shadow-[0_0_15px_rgba(0,0,0,0.7)] border-[1.5px] cursor-grab active:cursor-grabbing select-none bg-[var(--panel)] border-[var(--accent)] touch-none"
           style={{ right: `${fabPosition.x}px` }}
@@ -545,7 +538,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
         {/* 모바일 바텀시트 */}
         <div
-          className={`fixed inset-x-0 bottom-0 z-[9999] lg:hidden border-t-2 rounded-t-[28px] p-4 shadow-2xl flex flex-col bg-[var(--panel)] text-[var(--text-main)] border-[var(--accent)] ${isDraggingSheet ? '' : 'transition-transform duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)]'} ${isFabOpen ? 'translate-y-0' : 'translate-y-[120%]'}`}
+          className={`fixed inset-x-0 bottom-0 z-[9999] lg:hidden border-t-2 rounded-t-[28px] p-4 shadow-2xl flex flex-col bg-[var(--panel)] text-[var(--text-main)] border-[var(--accent)] ${isDraggingSheet ? '' : 'transition-transform duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)]'}`}
           style={{ 
             transform: isFabOpen ? `translateY(${sheetTranslateY}px)` : 'translateY(120%)' 
           }}
