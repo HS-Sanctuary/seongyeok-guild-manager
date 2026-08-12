@@ -200,25 +200,35 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     setIsThemeModalOpen(false);
   };
 
+  // 📱 모바일 알약 위젯 스무스 드래그 핸들러 (Pointer Capture 적용)
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    const target = e.currentTarget;
+    try {
+      target.setPointerCapture(e.pointerId);
+    } catch (err) {}
+
     dragStartX.current = e.clientX;
     startFabX.current = fabPosition.x;
     hasMoved.current = false;
 
     const onPointerMove = (moveEvent: PointerEvent) => {
       const deltaX = dragStartX.current - moveEvent.clientX;
-      if (Math.abs(deltaX) > 4) {
+      if (Math.abs(deltaX) > 3) {
         hasMoved.current = true;
       }
       if (hasMoved.current) {
         let newX = startFabX.current + deltaX;
-        if (newX < 20) newX = 20;
-        if (newX > window.innerWidth - 130) newX = window.innerWidth - 130;
+        const maxLeft = window.innerWidth - 110;
+        if (newX < 16) newX = 16;
+        if (newX > maxLeft) newX = maxLeft;
         setFabPosition({ x: newX });
       }
     };
 
-    const onPointerUp = () => {
+    const onPointerUp = (upEvent: PointerEvent) => {
+      try {
+        target.releasePointerCapture(upEvent.pointerId);
+      } catch (err) {}
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerup', onPointerUp);
     };
@@ -344,7 +354,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   </div>
                 </Link>
 
-                {/* 🪽 정령의 날개 버튼 (이모지 배지 적용) */}
+                {/* 🪽 정령의 날개 버튼 */}
                 <div className="relative z-[100] ml-1" ref={wingsRef}>
                   <button 
                     onClick={() => setIsWingsOpen(!isWingsOpen)}
@@ -441,7 +451,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               {/* 우측 유틸리티 버튼 */}
               <div className="hidden lg:flex items-center gap-2.5 relative shrink-0">
                 
-                {/* 🎨 테마 설정 버튼 (팔레트 이모지 적용) */}
+                {/* 🎨 테마 설정 버튼 */}
                 <button 
                   onClick={() => setIsThemeModalOpen(true)}
                   className="w-9 h-9 border rounded-xl transition cursor-pointer flex items-center justify-center shadow-sm bg-[var(--inner-box)] border-[var(--panel-border)] hover:border-[var(--accent)] hover:scale-105 text-base select-none"
@@ -508,9 +518,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </div>
         </nav>
 
-        {/* 모바일 플로팅 FAB */}
+        {/* 📱 모바일 플로팅 FAB (touch-none 추가로 터치 드래그 스무스 해결) */}
         <div
-          className="lg:hidden fixed bottom-6 z-[10000] flex items-center rounded-full shadow-[0_0_15px_rgba(0,0,0,0.7)] border-[1.5px] cursor-grab active:cursor-grabbing select-none bg-[var(--panel)] border-[var(--accent)]"
+          className="lg:hidden fixed bottom-6 z-[10000] flex items-center rounded-full shadow-[0_0_15px_rgba(0,0,0,0.7)] border-[1.5px] cursor-grab active:cursor-grabbing select-none bg-[var(--panel)] border-[var(--accent)] touch-none"
           style={{ right: `${fabPosition.x}px` }}
           onPointerDown={handlePointerDown}
         >
