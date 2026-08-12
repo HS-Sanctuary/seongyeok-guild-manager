@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase"; 
 
-// --- 아고라 칭호 연동을 위한 데이터 ---
+// --- 아고라 칭호 연동 데이터 ---
 const CATEGORY_THEMES: Record<string, any> = {
   TELOS: { tags: ['bg-purple-500/30 text-purple-300 border-purple-400', 'bg-purple-800/40 text-purple-400 border-purple-600/80', 'bg-purple-950/50 text-purple-500 border-purple-800/70'] },
   KRATOS: { tags: ['bg-red-500/30 text-red-300 border-red-400', 'bg-red-800/40 text-red-400 border-red-600/80', 'bg-red-950/50 text-red-500 border-red-800/70'] },
@@ -30,9 +30,14 @@ export default function CharacterPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [mounted, setMounted] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [syncing, setSyncing] = useState(false);
   
+  // 실시간 자동 저장 상태
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved');
+  const isInitialLoad = useRef(true);
+
+  // 모비라이프형 탭 메뉴 상태 ('daily' | 'weekly' | 'abyss_raid' | 'trades' | 'levels' | 'all')
+  const [activeTab, setActiveTab] = useState<'daily' | 'weekly' | 'abyss_raid' | 'trades' | 'levels' | 'all'>('daily');
+
   const [dbClasses, setDbClasses] = useState<any[]>([]);
   const [dbTasks, setDbTasks] = useState<any[]>([]);
   const [dbContents, setDbContents] = useState<any[]>([]);
@@ -52,11 +57,9 @@ export default function CharacterPage() {
   const [abyssChecks, setAbyssChecks] = useState<number[]>([]);
   const [raidChecks, setRaidChecks] = useState<number[]>([]);
   const [tradeProgress, setTradeProgress] = useState<Record<number, number>>({});
+  const [pinnedTrades, setPinnedTrades] = useState<number[]>([]);
 
-  const [isLevelOpen, setIsLevelOpen] = useState(false);
-  const [isTradeOpen, setIsTradeOpen] = useState(false);
   const [isTitleAccordionOpen, setIsTitleAccordionOpen] = useState(false);
-  
   const [isManageModalOpen, setIsManageModalOpen] = useState(false);
   const [manageList, setManageList] = useState<any[]>([]);
 
@@ -71,10 +74,6 @@ export default function CharacterPage() {
 
   const totalLevel = Object.values(levels).reduce((sum, lvl) => sum + lvl, 0);
 
-  const handleSync = async () => {
-    alert("모비라이프 서버는 강력한 보안 방화벽(Cloudflare)으로 외부 직접 접근이 차단되어 있습니다.\n\n각 항목(전투력, 생활력 등)의 숫자를 직접 입력 후 [서버에 저장]을 누르시면 아고라 랭킹에 곧바로 반영됩니다! ✨");
-  };
-
   useEffect(() => {
     setMounted(true);
     const savedUser = localStorage.getItem("nexus_user");
@@ -82,6 +81,12 @@ export default function CharacterPage() {
     
     const parsedUser = JSON.parse(savedUser);
     setUser(parsedUser);
+
+    const savedPins = localStorage.getItem("nexus_pinned_trades");
+    if (savedPins) {
+      try { setPinnedTrades(JSON.parse(savedPins)); } catch (e) {}
+    }
+
     fetchMasterData(parsedUser.nickname);
   }, [router]);
 
@@ -138,6 +143,7 @@ export default function CharacterPage() {
   };
 
   const loadCharacterData = async (charName: string, contentsList = dbContents) => {
+    isInitialLoad.current = true;
     try {
       const { data } = await supabase.from('characters').select('*').eq('nickname', charName).single();
       if (data) {
@@ -170,12 +176,19 @@ export default function CharacterPage() {
         setLevels({}); setDailyChecks([]); setWeeklyChecks([]); setRepeatChecks({});
         setAbyssChecks([]); setRaidChecks([]); setTradeProgress({});
       }
-    } catch (e) {}
+    } catch (e) {} finally {
+      setTimeout(() => {
+        isInitialLoad.current = false;
+        setSaveStatus('saved');
+      }, 150);
+    }
   };
 
+  // 실시간 오토 세이브
   const saveProgress = async () => {
-    if (!profile.nickname.trim()) { alert("캐릭터 닉네임을 입력해주세요!"); return; }
+    if (!profile.nickname.trim() || !user?.nickname) return;
     try {
+      setSaveStatus('saving');
       if (profile.isMain) {
         await supabase.from('characters').update({ is_main: false }).eq('owner', user.nickname).neq('nickname', profile.nickname);
       }
@@ -199,21 +212,50 @@ export default function CharacterPage() {
         setMyCharacters((prev: any[]) => [...prev, { nickname: profile.nickname, sort_order: currentSortOrder, job: profile.job }]);
       }
 
-      const allCharsRes = await supabase.from('characters').select('*');
-      setAllCharacters(allCharsRes.data || []);
-
-      setSaved(true); setTimeout(() => setSaved(false), 1500);
-    } catch (error) { alert("저장 실패"); }
+      setSaveStatus('saved');
+    } catch (error) { 
+      setSaveStatus('error');
+    }
   };
 
+  useEffect(() => {
+    if (isInitialLoad.current) return;
+    setSaveStatus('saving');
+    const timer = setTimeout(() => {
+      saveProgress();
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [profile, accountContribution, levels, dailyChecks, weeklyChecks, repeatChecks, abyssChecks, raidChecks, tradeProgress]);
+
   const switchCharacter = async (targetName: string) => { 
+    if (targetName === profile.nickname) return;
     await saveProgress(); 
     loadCharacterData(targetName, dbContents); 
     window.history.replaceState(null, '', `?char=${encodeURIComponent(targetName)}`);
   };
 
   const updateProfile = (field: string, value: any) => setProfile(prev => ({ ...prev, [field]: value }));
-  const setMaxLevel = (cls: string) => setLevels(prev => ({ ...prev, [cls]: 65 }));
+  
+  const updateClassLevel = (clsName: string, delta: number) => {
+    setLevels(prev => {
+      const current = prev[clsName] || 1;
+      let next = current + delta;
+      if (next < 1) next = 1;
+      if (next > 65) next = 65;
+      return { ...prev, [clsName]: next };
+    });
+  };
+
+  const setMaxLevel = (clsName: string) => setLevels(prev => ({ ...prev, [clsName]: 65 }));
+  const setMinLevel = (clsName: string) => setLevels(prev => ({ ...prev, [clsName]: 1 }));
+
+  const togglePinTrade = (id: number) => {
+    setPinnedTrades(prev => {
+      const next = prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id];
+      localStorage.setItem("nexus_pinned_trades", JSON.stringify(next));
+      return next;
+    });
+  };
 
   const updateRepeatCount = (id: number, delta: number, max: number) => {
     setRepeatChecks(prev => {
@@ -233,19 +275,42 @@ export default function CharacterPage() {
     });
   };
 
-  const handleToggleAll = (type: string, isCheckAll: boolean) => {
+  // 단일 스마트 토글 버튼 (완료 ➔ 해제)
+  const handleSmartToggle = (type: string) => {
     if (type === 'daily') {
       const normals = visibleDailyList.filter((t: any) => !t.type.startsWith('repeat')).map((t: any) => t.id);
-      setDailyChecks(isCheckAll ? normals : []);
-      setRepeatChecks(prev => { const next = { ...prev }; visibleDailyList.filter((t: any) => t.type.startsWith('repeat')).forEach((t: any) => { next[t.id] = isCheckAll ? Array(t.max_count).fill(true) : []; }); return next; });
+      const isAllChecked = normals.every(id => dailyChecks.includes(id));
+      setDailyChecks(isAllChecked ? [] : normals);
+      setRepeatChecks(prev => {
+        const next = { ...prev };
+        visibleDailyList.filter((t: any) => t.type.startsWith('repeat')).forEach((t: any) => {
+          next[t.id] = isAllChecked ? [] : Array(t.max_count).fill(true);
+        });
+        return next;
+      });
     }
     if (type === 'weekly') {
       const normals = visibleWeeklyList.filter((t: any) => !t.type.startsWith('repeat')).map((t: any) => t.id);
-      setWeeklyChecks(isCheckAll ? normals : []);
-      setRepeatChecks(prev => { const next = { ...prev }; visibleWeeklyList.filter((t: any) => t.type.startsWith('repeat')).forEach((t: any) => { next[t.id] = isCheckAll ? Array(t.max_count).fill(true) : []; }); return next; });
+      const isAllChecked = normals.every(id => weeklyChecks.includes(id));
+      setWeeklyChecks(isAllChecked ? [] : normals);
+      setRepeatChecks(prev => {
+        const next = { ...prev };
+        visibleWeeklyList.filter((t: any) => t.type.startsWith('repeat')).forEach((t: any) => {
+          next[t.id] = isAllChecked ? [] : Array(t.max_count).fill(true);
+        });
+        return next;
+      });
     }
-    if (type === 'abyss') setAbyssChecks(isCheckAll ? abyssList.map((t: any) => t.id) : []);
-    if (type === 'raid') setRaidChecks(isCheckAll ? raidList.map((t: any) => t.id) : []);
+    if (type === 'abyss') {
+      const allIds = abyssList.map((t: any) => t.id);
+      const isAllChecked = allIds.every(id => abyssChecks.includes(id));
+      setAbyssChecks(isAllChecked ? [] : allIds);
+    }
+    if (type === 'raid') {
+      const allIds = raidList.map((t: any) => t.id);
+      const isAllChecked = allIds.every(id => raidChecks.includes(id));
+      setRaidChecks(isAllChecked ? [] : allIds);
+    }
   };
 
   const openManageModal = () => {
@@ -340,23 +405,28 @@ export default function CharacterPage() {
     return titles;
   };
 
+  // 접두사("어비스 - ", "레이드 - ") 자동 제거 함수
+  const cleanItemName = (name: string) => name.replace(/^어비스\s*-\s*/, '').replace(/^레이드\s*-\s*/, '');
+
   const renderTask = (item: any, type: 'daily' | 'weekly' | 'abyss' | 'raid') => {
+    const displayName = cleanItemName(item.name);
+
     if (item.type?.startsWith('repeat')) {
       const currentCount = (repeatChecks[item.id] || []).filter(Boolean).length;
       const isMax = currentCount === item.max_count;
       const badgeText = item.type === 'repeat_daily' ? '일간' : item.type === 'repeat_weekend' ? '주말' : '주간';
       
       return (
-        <div key={item.id} className={`flex items-center justify-between p-2.5 rounded-lg border transition-all duration-300 ${isMax ? "bg-purple-900/10 border-purple-500/30 shadow-[inset_0_0_10px_rgba(168,85,247,0.05)]" : "bg-[#1c1c1e] border-zinc-800"}`}>
-          <div className="flex flex-col">
-            <span className={`text-[9px] w-fit px-1 rounded mb-0.5 ${isMax ? 'bg-purple-900/50 text-purple-300' : 'bg-zinc-800 text-zinc-500'}`}>{badgeText}</span>
-            <span className={`text-sm font-medium ${isMax ? "text-purple-300" : "text-zinc-300"}`}>{item.name}</span>
+        <div key={item.id} className={`flex items-center justify-between p-2 rounded-lg border transition-all ${isMax ? "bg-[var(--accent-soft)] border-[var(--accent)]" : "bg-[var(--inner-box)] border-[var(--panel-border)]"}`}>
+          <div className="flex flex-col min-w-0 pr-1.5">
+            <span className={`text-[9px] w-fit px-1 py-0.2 rounded font-bold ${isMax ? 'bg-[var(--accent)] text-[var(--accent-fg)]' : 'bg-[var(--panel)] text-[var(--text-sub)]'}`}>{badgeText}</span>
+            <span className={`text-xs md:text-sm font-medium truncate ${isMax ? "text-[var(--accent)]" : "text-[var(--text-main)]"}`}>{displayName}</span>
           </div>
-          <div className="flex items-center gap-2 bg-[#121212] px-1.5 py-1 rounded border border-zinc-700">
-            <span className={`text-xs font-bold min-w-[36px] text-center whitespace-nowrap ${isMax ? "text-purple-400" : "text-zinc-400"}`}>{currentCount} <span className="text-zinc-600">/</span> {item.max_count}</span>
-            <div className="flex gap-1 border-l border-zinc-700 pl-1.5">
-              <button onClick={() => updateRepeatCount(item.id, -1, item.max_count)} className="w-6 h-6 flex justify-center items-center rounded bg-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-700">-</button>
-              <button onClick={() => updateRepeatCount(item.id, 1, item.max_count)} className="w-6 h-6 flex justify-center items-center rounded bg-purple-900/40 text-purple-400 hover:text-white hover:bg-purple-700">+</button>
+          <div className="flex items-center gap-1 bg-[var(--panel)] px-1.5 py-0.5 rounded border border-[var(--panel-border)] shrink-0">
+            <span className={`text-xs font-bold min-w-[28px] text-center ${isMax ? "text-[var(--accent)]" : "text-[var(--text-sub)]"}`}>{currentCount}/{item.max_count}</span>
+            <div className="flex gap-0.5 border-l border-[var(--panel-border)] pl-1">
+              <button onClick={() => updateRepeatCount(item.id, -1, item.max_count)} className="w-4 h-4 flex justify-center items-center rounded bg-[var(--inner-box)] text-[var(--text-sub)] hover:text-[var(--text-main)] text-[10px]">-</button>
+              <button onClick={() => updateRepeatCount(item.id, 1, item.max_count)} className="w-4 h-4 flex justify-center items-center rounded bg-[var(--accent)] text-[var(--accent-fg)] font-bold text-[10px]">+</button>
             </div>
           </div>
         </div>
@@ -371,11 +441,11 @@ export default function CharacterPage() {
 
     const isChecked = checks.includes(item.id);
     const getColorTheme = () => {
-      if (!isChecked) return { wrapper: "bg-[#1c1c1e] border-zinc-800 hover:border-zinc-600", text: "text-zinc-300", box: "bg-zinc-800 border-zinc-600" };
-      if (type === 'daily') return { wrapper: "bg-amber-900/20 border-amber-500/50", text: "text-amber-400", box: "bg-amber-500 border-amber-500 text-white scale-110" };
-      if (type === 'weekly') return { wrapper: "bg-blue-900/20 border-blue-500/50", text: "text-blue-400", box: "bg-blue-500 border-blue-500 text-white scale-110" };
-      if (type === 'abyss') return { wrapper: "bg-emerald-900/20 border-emerald-500/50", text: "text-emerald-400", box: "bg-emerald-500 border-emerald-500 text-white scale-110" };
-      if (type === 'raid') return { wrapper: "bg-indigo-900/20 border-indigo-500/50", text: "text-indigo-400", box: "bg-indigo-500 border-indigo-500 text-white scale-110" };
+      if (!isChecked) return { wrapper: "bg-[var(--inner-box)] border-[var(--panel-border)] hover:border-[var(--accent)]", text: "text-[var(--text-main)]", box: "bg-[var(--panel)] border-[var(--panel-border)]" };
+      if (type === 'daily') return { wrapper: "bg-amber-500/10 border-amber-500/50", text: "text-amber-400 font-bold", box: "bg-amber-500 text-white" };
+      if (type === 'weekly') return { wrapper: "bg-blue-500/10 border-blue-500/50", text: "text-blue-400 font-bold", box: "bg-blue-500 text-white" };
+      if (type === 'abyss') return { wrapper: "bg-emerald-500/10 border-emerald-500/50", text: "text-emerald-400 font-bold", box: "bg-emerald-500 text-white" };
+      if (type === 'raid') return { wrapper: "bg-indigo-500/10 border-indigo-500/50", text: "text-indigo-400 font-bold", box: "bg-indigo-500 text-white" };
       return { wrapper: "", text: "", box: "" };
     };
 
@@ -383,10 +453,10 @@ export default function CharacterPage() {
 
     return (
       <div key={item.id} onClick={() => setChecks(isChecked ? checks.filter((i: number) => i !== item.id) : [...checks, item.id])}
-           className={`flex items-center justify-between p-3 rounded-lg cursor-pointer border transition-all duration-300 ${theme.wrapper}`}>
-        <span className={`text-sm font-medium transition-colors ${theme.text}`}>{item.name}</span>
-        <div className={`w-5 h-5 rounded flex items-center justify-center transition-all ${theme.box}`}>
-          {isChecked && <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
+           className={`flex items-center justify-between p-2 md:p-2.5 rounded-lg cursor-pointer border transition-all min-w-0 ${theme.wrapper}`}>
+        <span className={`text-xs md:text-sm truncate pr-1.5 ${theme.text}`}>{displayName}</span>
+        <div className={`w-4 h-4 rounded flex items-center justify-center transition-all shrink-0 ${theme.box}`}>
+          {isChecked && <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
         </div>
       </div>
     );
@@ -400,349 +470,468 @@ export default function CharacterPage() {
   const bhMaxCount = (blackHoleDaily ? 1 : 0) + (blackHoleWeekly?.max_count || 0);
   
   const earnedTitles = getMyEarnedTitles();
-  const dailyTrades = dbTrades.filter(t => t.reset_type === '일간');
-  const weeklyTrades = dbTrades.filter(t => t.reset_type === '주간');
+
+  // 즐겨찾기(핀) 적용 정렬
+  const dailyTrades = [...dbTrades.filter(t => t.reset_type === '일간')].sort((a, b) => {
+    const aPin = pinnedTrades.includes(a.id) ? 1 : 0;
+    const bPin = pinnedTrades.includes(b.id) ? 1 : 0;
+    return bPin - aPin;
+  });
+
+  const weeklyTrades = [...dbTrades.filter(t => t.reset_type === '주간')].sort((a, b) => {
+    const aPin = pinnedTrades.includes(a.id) ? 1 : 0;
+    const bPin = pinnedTrades.includes(b.id) ? 1 : 0;
+    return bPin - aPin;
+  });
+
+  // 스마트 토글 버튼 텍스트 판단
+  const isDailyAllChecked = visibleDailyList.filter((t: any) => !t.type.startsWith('repeat')).every((t: any) => dailyChecks.includes(t.id));
+  const isWeeklyAllChecked = visibleWeeklyList.filter((t: any) => !t.type.startsWith('repeat')).every((t: any) => weeklyChecks.includes(t.id));
+  const isAbyssAllChecked = abyssList.every((t: any) => abyssChecks.includes(t.id));
+  const isRaidAllChecked = raidList.every((t: any) => raidChecks.includes(t.id));
 
   return (
-    <main className="min-h-screen bg-[#1c1c1e] text-[#d4d4d8] font-sans pb-20 pt-6">
+    <main className="min-h-screen bg-[var(--background)] text-[var(--text-main)] font-sans pb-16 pt-2 md:pt-4">
       
+      {/* 캐릭터 관리 모달 (모바일 A+ 환경 반응형 방어) */}
       {isManageModalOpen && (
-        <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4">
-          <div className="bg-[#1c1c1e] border border-zinc-700 rounded-xl w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col shadow-2xl">
-            <div className="p-5 border-b border-zinc-800 flex justify-between items-center bg-[#151515]">
-              <h2 className="text-xl font-black text-[#e6c788]">⚙️ 캐릭터 관리</h2>
-              <button onClick={() => setIsManageModalOpen(false)} className="text-zinc-400 hover:text-white">✕</button>
+        <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-2.5">
+          <div className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-xl w-[96%] max-w-xl max-h-[88vh] overflow-hidden flex flex-col shadow-2xl">
+            <div className="p-3 md:p-4 border-b border-[var(--panel-border)] flex justify-between items-center bg-[var(--inner-box)]">
+              <h2 className="text-base md:text-lg font-black text-[var(--accent)]">⚙️ 캐릭터 관리</h2>
+              <button onClick={() => setIsManageModalOpen(false)} className="text-[var(--text-sub)] hover:text-[var(--text-main)] text-sm">✕</button>
             </div>
-            <div className="p-5 overflow-y-auto custom-scrollbar flex-1 space-y-3">
+            <div className="p-3 md:p-4 overflow-y-auto custom-scrollbar flex-1 space-y-2.5">
               {manageList.map((char, index) => !char.isDeleted && (
-                <div key={index} className="flex flex-col md:flex-row items-center gap-3 bg-[#252528] p-3 rounded-lg border border-zinc-700/50">
-                  <div className="flex flex-col gap-1 w-full md:w-auto md:flex-1">
-                    <label className="text-[10px] text-zinc-500 font-bold">닉네임</label>
-                    <input value={char.tempNickname} onChange={(e) => { const nw = [...manageList]; nw[index].tempNickname = e.target.value; setManageList(nw); }} className="bg-[#121212] border border-zinc-700 rounded px-3 py-1.5 text-sm text-white focus:border-[#e6c788] outline-none w-full" />
+                <div key={index} className="flex items-center gap-2 bg-[var(--inner-box)] p-2 rounded-lg border border-[var(--panel-border)]">
+                  <div className="flex flex-col gap-0.5 flex-1 min-w-0">
+                    <label className="text-[9px] text-[var(--text-sub)] font-bold">닉네임</label>
+                    <input value={char.tempNickname} onChange={(e) => { const nw = [...manageList]; nw[index].tempNickname = e.target.value; setManageList(nw); }} className="bg-[var(--panel)] border border-[var(--panel-border)] rounded px-2 py-1 text-xs text-[var(--text-main)] focus:border-[var(--accent)] outline-none w-full" />
                   </div>
-                  <div className="flex flex-col gap-1 w-full md:w-auto">
-                    <label className="text-[10px] text-zinc-500 font-bold">주 클래스</label>
-                    <select value={char.tempJob} onChange={(e) => { const nw = [...manageList]; nw[index].tempJob = e.target.value; setManageList(nw); }} className="bg-[#121212] border border-zinc-700 rounded px-3 py-1.5 text-sm text-white focus:border-[#e6c788] outline-none w-full">
+                  <div className="flex flex-col gap-0.5 w-24 shrink-0">
+                    <label className="text-[9px] text-[var(--text-sub)] font-bold">주 클래스</label>
+                    <select value={char.tempJob} onChange={(e) => { const nw = [...manageList]; nw[index].tempJob = e.target.value; setManageList(nw); }} className="bg-[var(--panel)] border border-[var(--panel-border)] rounded px-1.5 py-1 text-xs text-[var(--text-main)] focus:border-[var(--accent)] outline-none w-full">
                       {dbClasses.map((cls: any) => <option key={cls.name} value={cls.name}>{cls.name}</option>)}
                     </select>
                   </div>
-                  <div className="flex gap-2 items-end justify-center w-full md:w-auto pt-4 md:pt-0">
-                    <div className="flex bg-[#121212] border border-zinc-700 rounded overflow-hidden">
-                      <button onClick={() => moveManageCharacter(index, -1)} disabled={index === 0} className="px-3 py-1.5 hover:bg-zinc-800 disabled:opacity-30">▲</button>
-                      <div className="w-px bg-zinc-700"></div>
-                      <button onClick={() => moveManageCharacter(index, 1)} disabled={index === manageList.filter(c=>!c.isDeleted).length - 1} className="px-3 py-1.5 hover:bg-zinc-800 disabled:opacity-30">▼</button>
+                  <div className="flex gap-1 items-end shrink-0 pt-3">
+                    <div className="flex bg-[var(--panel)] border border-[var(--panel-border)] rounded overflow-hidden text-xs">
+                      <button onClick={() => moveManageCharacter(index, -1)} disabled={index === 0} className="px-2 py-1 hover:bg-[var(--panel-hover)] disabled:opacity-30">▲</button>
+                      <div className="w-px bg-[var(--panel-border)]"></div>
+                      <button onClick={() => moveManageCharacter(index, 1)} disabled={index === manageList.filter(c=>!c.isDeleted).length - 1} className="px-2 py-1 hover:bg-[var(--panel-hover)] disabled:opacity-30">▼</button>
                     </div>
-                    <button onClick={() => { if(confirm(`정말 [${char.tempNickname}] 캐릭터를 삭제하시겠습니까?`)) { const nw = [...manageList]; nw[index].isDeleted = true; setManageList(nw); } }} className="bg-red-950/40 text-red-400 border border-red-800/50 px-3 py-1.5 rounded hover:bg-red-900/60 text-sm font-bold">삭제</button>
+                    <button onClick={() => { if(confirm(`정말 [${char.tempNickname}] 캐릭터를 삭제하시겠습니까?`)) { const nw = [...manageList]; nw[index].isDeleted = true; setManageList(nw); } }} className="bg-red-950/40 text-red-400 border border-red-800/50 px-2 py-1 rounded text-xs font-bold">삭제</button>
                   </div>
                 </div>
               ))}
-              <button onClick={addManageCharacter} className="w-full border border-dashed border-[#e6c788]/50 text-[#e6c788] py-3 rounded-lg hover:bg-[#e6c788]/10 font-bold transition">+ 새 캐릭터 추가</button>
+              <button onClick={addManageCharacter} className="w-full border border-dashed border-[var(--accent)] text-[var(--accent)] py-2 rounded-lg hover:bg-[var(--accent-soft)] font-bold text-xs transition">+ 새 캐릭터 추가</button>
             </div>
-            <div className="p-5 border-t border-zinc-800 bg-[#151515] flex justify-end gap-3">
-              <button onClick={() => setIsManageModalOpen(false)} className="px-5 py-2 rounded-lg bg-zinc-800 text-zinc-300 hover:bg-zinc-700 font-bold transition">취소</button>
-              <button onClick={saveManageModal} className="px-5 py-2 rounded-lg bg-yellow-600 text-black hover:bg-yellow-500 font-black transition">변경사항 저장</button>
+            <div className="p-3 border-t border-[var(--panel-border)] bg-[var(--inner-box)] flex justify-end gap-2">
+              <button onClick={() => setIsManageModalOpen(false)} className="px-3 py-1.5 rounded-lg bg-[var(--panel)] text-[var(--text-sub)] text-xs font-bold transition">취소</button>
+              <button onClick={saveManageModal} className="px-4 py-1.5 rounded-lg bg-[var(--accent)] text-[var(--accent-fg)] text-xs font-black transition">변경사항 저장</button>
             </div>
           </div>
         </div>
       )}
 
-      <div className="max-w-[1400px] mx-auto p-4 md:p-8 space-y-6">
-        <header className="relative overflow-hidden rounded-xl bg-gradient-to-br from-[#1c1c1e] via-[#151515] to-[#1a1a1c] border border-zinc-800 py-3 px-6 shadow-xl mb-6">
-          <div className="absolute top-0 left-0 w-1.5 h-full bg-[#e6c788] shadow-[0_0_15px_#e6c788]"></div>
-          <div className="absolute bottom-0 right-0 w-32 h-32 bg-[#e6c788] opacity-5 blur-[60px] rounded-full pointer-events-none"></div>
-
-          <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-            <div className="flex flex-col items-start min-w-[200px]">
-              <h1 className="text-2xl font-black text-white tracking-widest drop-shadow-md leading-none">CHRONOS</h1>
-              <span className="text-[#e6c788] text-[13px] font-bold tracking-wide mt-1.5 leading-none">크 로 노 스 : 캐 릭 터 관 리</span>
+      <div className="max-w-[1400px] mx-auto p-2.5 md:p-6 space-y-3 md:space-y-4">
+        
+        {/* 헤더 & 가독성 최적화 */}
+        <header className="relative overflow-hidden rounded-xl bg-[var(--panel)] border border-[var(--panel-border)] py-2.5 px-3 md:px-5 shadow-xs">
+          <div className="absolute top-0 left-0 w-1.5 h-full bg-[var(--accent)]"></div>
+          <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <h1 className="text-lg md:text-xl font-black tracking-widest leading-none text-[var(--text-main)]">CHRONOS</h1>
+              <span className="text-[var(--accent)] text-xs font-bold tracking-wide whitespace-nowrap">크로노스 : 캐릭터 관리</span>
             </div>
-            
-            <div className="bg-zinc-900/40 border border-zinc-700/50 px-4 py-2 rounded-lg w-full max-w-[750px] backdrop-blur-sm flex items-start gap-2.5">
-              <span className="text-sm mt-0.5 opacity-80">⏳</span>
-              <div className="flex flex-col text-[11px] md:text-[12px] font-bold leading-tight w-full">
-                <span className="text-zinc-300 w-full truncate md:whitespace-normal">시간과 기록의 신, 크로노스. 이곳은 성역을 거쳐간 당신의 발자취와 땀방울이 기록되는 공간입니다.</span>
-                <span className="text-[#e6c788] mt-0.5">입력한 능력치는 AGORA(아고라) 명예의 전당으로 즉시 연결됩니다.</span>
-              </div>
+            <div className="bg-[var(--inner-box)] border border-[var(--panel-border)] px-2.5 py-1.5 rounded-lg w-full md:max-w-[650px] flex items-center gap-2">
+              <span className="text-xs shrink-0">⏳</span>
+              <p className="text-[10px] md:text-[11px] font-bold leading-tight break-keep text-[var(--text-sub)]">
+                시간과 기록의 신, 크로노스. 입력한 능력치는 <span className="text-[var(--accent)]">AGORA 명예의 전당</span>으로 즉시 연결됩니다.
+              </p>
             </div>
           </div>
         </header>
         
-        <div className="bg-[#252528] rounded-2xl border border-zinc-700/80 p-6 shadow-xl relative overflow-hidden">
-          <div className="flex flex-col md:flex-row gap-8 items-start relative z-10">
+        {/* 상단 프로필 & 슬림 아바타 바 */}
+        <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-3 md:p-4 shadow-xs space-y-3">
+          
+          <div className="flex items-center justify-between border-b border-[var(--panel-border)] pb-2.5 gap-2">
             
-            <div className="w-full md:w-72 flex-shrink-0 flex flex-col gap-4">
-              <div className="bg-[#121212] rounded-xl border border-zinc-700 p-5 flex flex-col items-center justify-center text-center relative overflow-hidden group h-44 shadow-inner">
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent z-0"></div>
-                <div className="relative z-10 flex flex-col items-center">
-                  <span className="text-4xl mb-2 filter drop-shadow-[0_0_10px_rgba(230,199,136,0.3)]">🎨</span>
-                  <span className="text-xs font-bold text-white tracking-wide">AI 캐리커처 준비 중</span>
-                  <span className="text-[10px] text-zinc-500 mt-1">추후 캐릭터 얼굴 코딩 생성 연동</span>
-                </div>
+            {/* 초상화 & 닉네임 & 주 클래스 */}
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-9 h-9 md:w-11 md:h-11 bg-[var(--inner-box)] rounded-xl border border-[var(--panel-border)] flex items-center justify-center text-lg shrink-0 shadow-inner" title="AI 캐리커처 연동 예정">
+                🎨
               </div>
-
-              <div className="bg-[#121212] rounded-xl border border-zinc-700 overflow-hidden shadow-md">
-                <button 
-                  onClick={() => setIsTitleAccordionOpen(!isTitleAccordionOpen)} 
-                  className="w-full flex items-center justify-between p-3.5 bg-[#1c1c1e] hover:bg-zinc-800 transition text-left"
-                >
-                  <span className="text-xs font-bold text-[#e6c788] tracking-widest flex items-center gap-1.5">
-                    ✨ 획득한 성역 칭호 <span className="text-[10px] bg-zinc-800 text-zinc-400 px-1.5 py-0.2 rounded-full border border-zinc-700">{earnedTitles.length}</span>
-                  </span>
-                  <span className="text-zinc-500 text-xs">{isTitleAccordionOpen ? "▲ 접기" : "▼ 보기"}</span>
-                </button>
-                {isTitleAccordionOpen && (
-                  <div className="p-3 border-t border-zinc-800 max-h-48 overflow-y-auto custom-scrollbar space-y-2 bg-[#121212]">
-                    {earnedTitles.length > 0 ? earnedTitles.map(t => (
-                      <div key={t.type} className={`text-[11px] font-black px-2 py-1.5 rounded-md border text-center break-keep w-full ${t.tagClass}`}>
-                        {t.name}
-                      </div>
-                    )) : (
-                      <div className="text-[11px] text-zinc-500 bg-zinc-900/60 border border-zinc-800 p-3 rounded-md text-center break-keep">
-                        아고라(AGORA) 랭킹을 달성해 칭호를 획득해 보세요.
-                      </div>
-                    )}
-                  </div>
-                )}
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-sm md:text-base font-black text-[var(--text-main)] truncate max-w-[130px] md:max-w-[200px]">{profile.nickname}</span>
+                  <span className="text-[10px] bg-[var(--inner-box)] border border-[var(--panel-border)] px-1.5 py-0.2 rounded font-bold text-[var(--accent)] whitespace-nowrap">{profile.job}</span>
+                </div>
+                <div className="text-[10px] text-[var(--text-sub)] font-mono mt-0.5">총 레벨 {totalLevel} LV</div>
               </div>
             </div>
 
-            <div className="flex-1 w-full space-y-5">
-              <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end border-b border-zinc-700/50 pb-4 gap-4">
-                <div className="flex gap-4 items-end flex-wrap w-full">
-                  <div>
-                    <label className="text-[10px] font-bold text-zinc-500 mb-1 block">닉네임</label>
-                    <input value={profile.nickname} readOnly className="bg-transparent text-2xl font-black text-white outline-none w-36 cursor-default" />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-zinc-500 mb-1 block">주 클래스</label>
-                    <div className="bg-[#1c1c1e] border border-zinc-700 rounded px-3 py-1.5 text-sm font-bold text-zinc-300">
-                      {profile.job}
-                    </div>
-                  </div>
-                </div>
+            {/* 자동 저장 상태 & 칭호 토글 */}
+            <div className="flex items-center gap-2 shrink-0">
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border transition-all whitespace-nowrap ${
+                saveStatus === 'saving' ? 'bg-amber-500/10 text-amber-400 border-amber-500/30 animate-pulse' :
+                saveStatus === 'error' ? 'bg-rose-500/10 text-rose-400 border-rose-500/30' :
+                'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+              }`}>
+                {saveStatus === 'saving' ? '⏳ 저장 중...' : saveStatus === 'error' ? '⚠️ 실패' : '✅ 저장됨'}
+              </span>
 
-                <div className="text-right bg-[#1c1c1e] px-4 py-2 rounded-lg border border-yellow-600/30 shrink-0 min-w-[120px]">
-                  <p className="text-[10px] text-[#e6c788] font-bold tracking-widest">누적 레벨</p>
-                  <p className="text-3xl font-black text-white leading-none mt-1">{totalLevel} <span className="text-sm font-normal text-zinc-500">LV</span></p>
-                </div>
-              </div>
+              <button onClick={() => setIsTitleAccordionOpen(!isTitleAccordionOpen)} className="bg-[var(--inner-box)] border border-[var(--panel-border)] text-[10px] font-bold text-[var(--accent)] px-2 py-1 rounded transition whitespace-nowrap">
+                ✨ 칭호 {earnedTitles.length}
+              </button>
+            </div>
 
-              <div className="bg-[#121212] border border-zinc-700/60 rounded-xl p-4 space-y-3">
-                <div className="flex justify-between items-center border-b border-zinc-800 pb-2">
-                  <span className="text-xs font-bold text-zinc-400">보유 캐릭터 목록</span>
-                  <button onClick={openManageModal} className="bg-zinc-800 hover:bg-zinc-700 text-[#e6c788] border border-zinc-600 text-[11px] font-bold px-3 py-1.5 rounded-lg transition">⚙️ 캐릭터 관리</button>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5">
-                  {myCharacters.map((char: any) => (
-                    <button 
-                      key={char.nickname} 
-                      onClick={() => switchCharacter(char.nickname)} 
-                      className={`flex flex-col items-center justify-center p-2.5 rounded-lg border transition text-center ${char.nickname === profile.nickname ? 'bg-[#e6c788]/20 border-[#e6c788] shadow-md' : 'bg-[#1c1c1e] border-zinc-700 hover:border-zinc-500'}`}
-                    >
-                      <span className={`text-xs font-black truncate max-w-full ${char.nickname === profile.nickname ? 'text-[#e6c788]' : 'text-zinc-200'}`}>{char.nickname}</span>
-                      <span className="text-[10px] text-zinc-500 mt-0.5">{char.job || '전사'}</span>
-                    </button>
+          </div>
+
+          {/* 칭호 아코디언 */}
+          {isTitleAccordionOpen && (
+            <div className="p-2.5 border rounded-lg border-[var(--panel-border)] bg-[var(--inner-box)] space-y-1.5 text-xs">
+              {earnedTitles.length > 0 ? (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                  {earnedTitles.map(t => (
+                    <div key={t.type} className={`text-[10px] font-black p-1 rounded border text-center truncate ${t.tagClass}`}>{t.name}</div>
                   ))}
                 </div>
-              </div>
-              
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                <div className="bg-[#1c1c1e] p-3 rounded-lg border border-zinc-700/50"><label className="text-[11px] font-bold text-red-400 mb-1 block">⚔️ 전투력 (KRATOS)</label><input type="number" value={profile.combatPower} onChange={e => updateProfile("combatPower", e.target.value)} placeholder="0" className="w-full bg-transparent text-lg font-bold text-white outline-none" /></div>
-                <div className="bg-[#1c1c1e] p-3 rounded-lg border border-zinc-700/50"><label className="text-[11px] font-bold text-purple-400 mb-1 block">🔮 마도저항</label><input type="number" value={profile.magicResistance} onChange={e => updateProfile("magicResistance", e.target.value)} placeholder="0" className="w-full bg-transparent text-lg font-bold text-white outline-none" /></div>
-                <div className="bg-[#1c1c1e] p-3 rounded-lg border border-zinc-700/50"><label className="text-[11px] font-bold text-emerald-400 mb-1 block">🌿 생활력 (TECHNĒ)</label><input type="number" value={profile.lifeEnergy} onChange={e => updateProfile("lifeEnergy", e.target.value)} placeholder="0" className="w-full bg-transparent text-lg font-bold text-white outline-none" /></div>
-                <div className="bg-[#1c1c1e] p-3 rounded-lg border border-zinc-700/50"><label className="text-[11px] font-bold text-pink-400 mb-1 block">✨ 매력 (HARMONIA)</label><input type="number" value={profile.charm} onChange={e => updateProfile("charm", e.target.value)} placeholder="0" className="w-full bg-transparent text-lg font-bold text-white outline-none" /></div>
-                <div className="bg-[#1c1c1e] p-3 rounded-lg border border-zinc-700/50">
-                  <label className="text-[11px] font-bold text-amber-500 mb-1 block">🛡️ 누적 길드 공헌도 (PIETAS)</label>
-                  <input type="number" value={accountContribution} onChange={e => setAccountContribution(e.target.value)} placeholder="0" className="w-full bg-transparent text-lg font-bold text-white outline-none" />
-                </div>
-              </div>
-              
-              <div className="flex flex-col xl:flex-row gap-3">
-                <input value={profile.intro} onChange={(e) => updateProfile("intro", e.target.value)} placeholder="길드원에게 보일 자기소개나 인삿말을 적어주세요!" className="flex-1 bg-[#1c1c1e] border border-zinc-700 rounded-lg p-3 text-sm text-white focus:border-[#e6c788] outline-none" />
-                
-                <div className="flex gap-3">
-                  <label className="flex items-center justify-center gap-2 bg-[#1c1c1e] border border-zinc-700 px-4 rounded-lg cursor-pointer hover:bg-zinc-800 transition min-w-[140px]">
-                    <input type="checkbox" checked={profile.isMain} onChange={e => updateProfile("isMain", e.target.checked)} className="accent-[#e6c788] w-4 h-4" />
-                    <span className="text-sm font-bold text-zinc-300">대표 캐릭터</span>
-                  </label>
-                  <button onClick={handleSync} className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-4 rounded-lg text-sm transition">🔄 랭킹 동기화</button>
-                  <button onClick={saveProgress} className="bg-yellow-600 hover:bg-yellow-500 text-black font-black px-6 rounded-lg text-sm transition-colors whitespace-nowrap min-w-[120px]">{saved ? "저장 완료!" : "서버에 저장"}</button>
-                </div>
-              </div>
+              ) : (
+                <div className="text-[10px] text-[var(--text-sub)] text-center py-1">아고라 랭킹을 달성해 칭호를 획득해 보세요.</div>
+              )}
+            </div>
+          )}
+
+          {/* 보유 캐릭터 스위처 바 */}
+          <div className="space-y-1.5">
+            <div className="flex justify-between items-center text-[11px] font-bold text-[var(--text-sub)]">
+              <span>캐릭터 선택</span>
+              <button onClick={openManageModal} className="text-[10px] text-[var(--accent)] hover:underline">⚙️ 캐릭터 관리</button>
+            </div>
+            <div className="flex gap-1.5 overflow-x-auto custom-scrollbar pb-1 touch-pan-x">
+              {myCharacters.map((char: any) => (
+                <button 
+                  key={char.nickname} 
+                  onClick={() => switchCharacter(char.nickname)} 
+                  className={`flex flex-col items-center justify-center px-3 py-1.5 rounded-lg border text-center transition shrink-0 min-w-[70px] ${char.nickname === profile.nickname ? 'bg-[var(--accent-soft)] border-[var(--accent)]' : 'bg-[var(--inner-box)] border-[var(--panel-border)]'}`}
+                >
+                  <span className={`text-xs font-black truncate max-w-[80px] ${char.nickname === profile.nickname ? 'text-[var(--accent)]' : 'text-[var(--text-main)]'}`}>{char.nickname}</span>
+                  <span className="text-[9px] text-[var(--text-sub)] truncate">{char.job || '전사'}</span>
+                </button>
+              ))}
             </div>
           </div>
+
+          {/* 5대 스탯 (순서: 전투력 ➔ 생활력 ➔ 매력 ➔ 마도저항 ➔ 길드 공헌도) */}
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+            <div className="bg-[var(--inner-box)] p-2 rounded-lg border border-[var(--panel-border)]">
+              <label className="text-[10px] font-black text-red-400 block whitespace-nowrap">⚔️ 전투력</label>
+              <input type="number" value={profile.combatPower} onChange={e => updateProfile("combatPower", e.target.value)} placeholder="0" className="w-full bg-transparent text-sm md:text-base font-black text-[var(--text-main)] outline-none" />
+            </div>
+            <div className="bg-[var(--inner-box)] p-2 rounded-lg border border-[var(--panel-border)]">
+              <label className="text-[10px] font-black text-emerald-400 block whitespace-nowrap">🌿 생활력</label>
+              <input type="number" value={profile.lifeEnergy} onChange={e => updateProfile("lifeEnergy", e.target.value)} placeholder="0" className="w-full bg-transparent text-sm md:text-base font-black text-[var(--text-main)] outline-none" />
+            </div>
+            <div className="bg-[var(--inner-box)] p-2 rounded-lg border border-[var(--panel-border)]">
+              <label className="text-[10px] font-black text-pink-400 block whitespace-nowrap">✨ 매력</label>
+              <input type="number" value={profile.charm} onChange={e => updateProfile("charm", e.target.value)} placeholder="0" className="w-full bg-transparent text-sm md:text-base font-black text-[var(--text-main)] outline-none" />
+            </div>
+            <div className="bg-[var(--inner-box)] p-2 rounded-lg border border-[var(--panel-border)]">
+              <label className="text-[10px] font-black text-purple-400 block whitespace-nowrap">🔮 마도저항</label>
+              <input type="number" value={profile.magicResistance} onChange={e => updateProfile("magicResistance", e.target.value)} placeholder="0" className="w-full bg-transparent text-sm md:text-base font-black text-[var(--text-main)] outline-none" />
+            </div>
+            <div className="bg-[var(--inner-box)] p-2 rounded-lg border border-[var(--panel-border)] col-span-2 sm:col-span-1">
+              <label className="text-[10px] font-black text-amber-400 block whitespace-nowrap">🛡️ 길드 공헌도</label>
+              <input type="number" value={accountContribution} onChange={e => setAccountContribution(e.target.value)} placeholder="0" className="w-full bg-transparent text-sm md:text-base font-black text-[var(--text-main)] outline-none" />
+            </div>
+          </div>
+          
+          {/* 자기소개 & 대표 캐릭터 체크 */}
+          <div className="flex gap-2">
+            <input value={profile.intro} onChange={(e) => updateProfile("intro", e.target.value)} placeholder="자기소개나 인삿말을 적어주세요!" className="flex-1 bg-[var(--inner-box)] border border-[var(--panel-border)] rounded-lg p-2 text-xs text-[var(--text-main)] focus:border-[var(--accent)] outline-none" />
+            <label className="flex items-center justify-center gap-1.5 bg-[var(--inner-box)] border border-[var(--panel-border)] px-3 rounded-lg cursor-pointer hover:bg-[var(--panel-hover)] transition shrink-0">
+              <input type="checkbox" checked={profile.isMain} onChange={e => updateProfile("isMain", e.target.checked)} className="accent-[var(--accent)] w-3.5 h-3.5" />
+              <span className="text-xs font-bold text-[var(--text-main)] whitespace-nowrap">대표</span>
+            </label>
+          </div>
+
         </div>
 
+        {/* 검은 구멍 탐험 슬림 상황판 */}
         {blackHoleDaily && blackHoleWeekly && (
-          <div className="bg-[#1f1a29] rounded-xl border border-purple-500/40 p-5 shadow-[0_0_20px_rgba(168,85,247,0.15)] flex flex-col gap-4 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-48 h-full bg-purple-600/10 blur-3xl pointer-events-none"></div>
-            <div className="flex justify-between items-end relative z-10">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-[#121212] rounded-full border border-purple-500 flex items-center justify-center text-xl shadow-[0_0_10px_rgba(168,85,247,0.3)]">🕳️</div>
-                <div>
-                  <h3 className="text-lg font-black text-purple-300 tracking-tight">검은 구멍 탐험 상황판</h3>
-                  <p className="text-xs text-purple-200/60 mt-0.5">매일 기본 1회를 우선 차감하며, 부족 시 초과 탐험(최대 7회)이 차감됩니다.</p>
-                </div>
+          <div className="bg-[var(--panel)] rounded-xl border border-purple-500/40 p-3 shadow-xs flex flex-col gap-2 relative overflow-hidden">
+            <div className="flex justify-between items-center gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-base shrink-0">🕳️</span>
+                <span className="text-xs font-black text-purple-300 truncate">검은 구멍 상황판</span>
               </div>
-              <div className="text-right">
-                <span className="text-[10px] text-purple-400/80 font-bold tracking-widest block mb-1">총 클리어 횟수</span>
-                <div className="text-white font-black text-2xl leading-none">{bhTotalCount} <span className="text-sm text-zinc-500 font-normal">/ {bhMaxCount}</span></div>
+              <div className="text-xs font-black text-[var(--text-main)] shrink-0">
+                {bhTotalCount} <span className="text-[10px] text-[var(--text-sub)] font-normal">/ {bhMaxCount}</span>
               </div>
             </div>
-            <div className="w-full bg-[#121212] h-2.5 rounded-full overflow-hidden border border-purple-900/50 relative z-10">
+            <div className="w-full bg-[var(--inner-box)] h-1.5 rounded-full overflow-hidden border border-purple-900/50">
               <div className="h-full bg-gradient-to-r from-purple-600 to-fuchsia-500 transition-all duration-500" style={{ width: `${(bhTotalCount / bhMaxCount) * 100}%` }}></div>
             </div>
-            <div className="flex flex-col md:flex-row gap-3 pt-2 relative z-10">
-              <div onClick={() => setDailyChecks(bhDailyDone ? dailyChecks.filter(i => i !== blackHoleDaily.id) : [...dailyChecks, blackHoleDaily.id])} className={`flex-1 flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all ${bhDailyDone ? "bg-purple-900/40 border-purple-500/60" : "bg-[#121212] border-zinc-700 hover:border-purple-500/40"}`}>
-                <span className={`text-sm font-bold ${bhDailyDone ? "text-purple-300" : "text-zinc-400"}`}>오늘의 기본 탐험 (1회)</span>
-                <div className={`w-5 h-5 rounded flex items-center justify-center transition-all ${bhDailyDone ? "bg-purple-500 text-white" : "bg-zinc-800 border border-zinc-600"}`}>
-                  {bhDailyDone && <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
-                </div>
+            <div className="flex gap-2 text-xs">
+              <div onClick={() => setDailyChecks(bhDailyDone ? dailyChecks.filter(i => i !== blackHoleDaily.id) : [...dailyChecks, blackHoleDaily.id])} className={`flex-1 flex items-center justify-between p-1.5 rounded-lg border cursor-pointer ${bhDailyDone ? "bg-purple-900/30 border-purple-500/60" : "bg-[var(--inner-box)] border-[var(--panel-border)]"}`}>
+                <span className={`text-[11px] font-bold ${bhDailyDone ? "text-purple-300" : "text-[var(--text-sub)]"}`}>기본 (1회)</span>
+                <span className={`text-[10px] font-bold ${bhDailyDone ? "text-purple-400" : "text-[var(--text-sub)]"}`}>{bhDailyDone ? "✓" : "미완료"}</span>
               </div>
-              <div className="flex-1 flex items-center justify-between p-3 rounded-lg bg-[#121212] border border-zinc-700">
-                <span className="text-sm font-bold text-zinc-400">이번주 초과 탐험 ({blackHoleWeekly.max_count}회)</span>
-                <div className="flex gap-1 bg-[#1c1c1e] p-1 rounded border border-zinc-800">
-                  <button onClick={() => updateRepeatCount(blackHoleWeekly.id, -1, blackHoleWeekly.max_count)} className="w-7 h-7 flex justify-center items-center rounded bg-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-700">-</button>
-                  <span className="w-8 text-center text-sm font-black text-purple-400 flex items-center justify-center">{bhWeeklyCount}</span>
-                  <button onClick={() => updateRepeatCount(blackHoleWeekly.id, 1, blackHoleWeekly.max_count)} className="w-7 h-7 flex justify-center items-center rounded bg-purple-900/40 text-purple-400 hover:text-white hover:bg-purple-700">+</button>
+              <div className="flex-1 flex items-center justify-between p-1.5 rounded-lg bg-[var(--inner-box)] border border-[var(--panel-border)]">
+                <span className="text-[11px] font-bold text-[var(--text-sub)]">초과 ({blackHoleWeekly.max_count}회)</span>
+                <div className="flex gap-1 items-center">
+                  <button onClick={() => updateRepeatCount(blackHoleWeekly.id, -1, blackHoleWeekly.max_count)} className="w-4 h-4 rounded bg-[var(--panel)] text-[10px] font-bold text-[var(--text-sub)]">-</button>
+                  <span className="text-xs font-black text-purple-400 min-w-[14px] text-center">{bhWeeklyCount}</span>
+                  <button onClick={() => updateRepeatCount(blackHoleWeekly.id, 1, blackHoleWeekly.max_count)} className="w-4 h-4 rounded bg-purple-900/40 text-[10px] font-bold text-purple-400">+</button>
                 </div>
               </div>
             </div>
           </div>
         )}
 
-        <div className="grid grid-cols-1 xl:grid-cols-4 lg:grid-cols-2 gap-6">
-          <div className="bg-[#252528] rounded-xl border border-zinc-800 p-5 shadow-md flex flex-col">
-            <div className="flex justify-between items-center mb-4 border-b border-zinc-700 pb-3"><h3 className="font-bold text-amber-500 text-base">☀️ 일일 컨텐츠</h3><div className="flex items-center gap-2"><button onClick={() => handleToggleAll('daily', true)} className="text-[10px] text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 px-2 py-1 rounded transition">✓ 전체</button><button onClick={() => handleToggleAll('daily', false)} className="text-[10px] text-zinc-500 hover:text-red-400 bg-zinc-800/50 hover:bg-zinc-800 px-2 py-1 rounded transition">✗ 해제</button></div></div>
-            <div className="space-y-2 flex-1 overflow-y-auto custom-scrollbar pr-2">{visibleDailyList.map((item: any) => renderTask(item, 'daily'))}</div>
-          </div>
-          <div className="bg-[#252528] rounded-xl border border-zinc-800 p-5 shadow-md flex flex-col">
-            <div className="flex justify-between items-center mb-4 border-b border-zinc-700 pb-3"><h3 className="font-bold text-blue-400 text-base">🌙 주간 컨텐츠</h3><div className="flex items-center gap-2"><button onClick={() => handleToggleAll('weekly', true)} className="text-[10px] text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 px-2 py-1 rounded transition">✓ 전체</button><button onClick={() => handleToggleAll('weekly', false)} className="text-[10px] text-zinc-500 hover:text-red-400 bg-zinc-800/50 hover:bg-zinc-800 px-2 py-1 rounded transition">✗ 해제</button></div></div>
-            <div className="space-y-2 flex-1 overflow-y-auto custom-scrollbar pr-2">{visibleWeeklyList.map((item: any) => renderTask(item, 'weekly'))}</div>
-          </div>
-          <div className="bg-[#252528] rounded-xl border border-zinc-800 p-5 shadow-md flex flex-col">
-            <div className="flex justify-between items-center mb-4 border-b border-zinc-700 pb-3"><h3 className="font-bold text-emerald-400 text-base">🌌 어비스 관리</h3><div className="flex items-center gap-2"><button onClick={() => handleToggleAll('abyss', true)} className="text-[10px] text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 px-2 py-1 rounded transition">✓ 전체</button><button onClick={() => handleToggleAll('abyss', false)} className="text-[10px] text-zinc-500 hover:text-red-400 bg-zinc-800/50 hover:bg-zinc-800 px-2 py-1 rounded transition">✗ 해제</button></div></div>
-            <div className="space-y-2 flex-1 overflow-y-auto custom-scrollbar pr-2">{abyssList.map((item: any) => renderTask(item, 'abyss'))}</div>
-          </div>
-          <div className="bg-[#252528] rounded-xl border border-zinc-800 p-5 shadow-md flex flex-col">
-            <div className="flex justify-between items-center mb-4 border-b border-zinc-700 pb-3"><h3 className="font-bold text-indigo-400 text-base">🐉 레이드 관리</h3><div className="flex items-center gap-2"><button onClick={() => handleToggleAll('raid', true)} className="text-[10px] text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 px-2 py-1 rounded transition">✓ 전체</button><button onClick={() => handleToggleAll('raid', false)} className="text-[10px] text-zinc-500 hover:text-red-400 bg-zinc-800/50 hover:bg-zinc-800 px-2 py-1 rounded transition">✗ 해제</button></div></div>
-            <div className="space-y-2 flex-1 overflow-y-auto custom-scrollbar pr-2">{raidList.map((item: any) => renderTask(item, 'raid'))}</div>
-          </div>
+        {/* ⭐️ 모비라이프형 상단 탭 메뉴 (스마트 스크롤 방지) */}
+        <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar bg-[var(--inner-box)] p-1.5 rounded-xl border border-[var(--panel-border)] touch-pan-x">
+          {[
+            { id: 'daily', label: '☀️ 일일' },
+            { id: 'weekly', label: '🌙 주간' },
+            { id: 'abyss_raid', label: '🌌 어비스/레이드' },
+            { id: 'trades', label: '⚖️ 물물교환' },
+            { id: 'levels', label: '⚡ 클래스' },
+            { id: 'all', label: '📋 전체보기' }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-black whitespace-nowrap transition shrink-0 ${
+                activeTab === tab.id 
+                  ? 'bg-[var(--accent)] text-[var(--accent-fg)] shadow-xs' 
+                  : 'text-[var(--text-sub)] hover:text-[var(--text-main)] hover:bg-[var(--panel)]'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
 
+        {/* 컨텐츠 그리드/탭 레이아웃 */}
         <div className="space-y-4">
-          <div className="bg-[#252528] rounded-xl border border-zinc-800 overflow-hidden shadow-lg">
-            <button onClick={() => setIsTradeOpen(!isTradeOpen)} className="w-full flex items-center justify-between p-5 hover:bg-[#2a2a2e] transition">
-              <h3 className="font-bold text-[#e6c788] text-lg flex items-center gap-2">⚖️ 주간 구매 및 물물 교환 관리</h3>
-              <span className="text-zinc-500">{isTradeOpen ? "▲" : "▼"}</span>
-            </button>
-            {isTradeOpen && (
-              <div className="p-0 sm:p-5 border-t border-zinc-800 bg-[#1c1c1e] space-y-8">
-                <div>
-                  <h4 className="text-amber-500 font-bold mb-3 flex items-center gap-2 text-sm px-3 md:px-0"><span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block"></span> 일일 갱신 (Daily)</h4>
-                  <div className="overflow-x-auto custom-scrollbar border border-zinc-800 rounded-lg">
-                    <table className="w-full text-left text-sm whitespace-nowrap min-w-[800px]">
-                      <thead className="bg-[#252528] text-zinc-400 border-b border-zinc-800">
-                        <tr>
-                          <th className="p-3 font-bold text-xs w-[15%]">맵 / NPC</th><th className="p-3 font-bold text-xs w-[25%]">획득 보상</th><th className="p-3 font-bold text-xs w-[25%]">소모 재화</th><th className="p-3 font-bold text-xs text-center w-[15%]">적용 범위</th><th className="p-3 font-bold text-xs text-center w-[20%]">목표 달성 진척도</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-zinc-800/50 bg-[#1c1c1e]">
-                        {dailyTrades.map((trade: any) => {
-                          const currentVal = tradeProgress[trade.id] || 0; const isMax = currentVal >= trade.limit;
-                          return (
-                            <tr key={trade.id} className={`transition-colors ${isMax ? 'bg-zinc-900/60' : 'hover:bg-[#202023]'}`}>
-                              <td className="p-3"><div className={`font-bold ${isMax ? 'text-zinc-500' : 'text-zinc-300'}`}>{trade.map || "-"}</div><div className="text-[10px] text-zinc-500">{trade.npc || "-"}</div></td>
-                              <td className="p-3"><div className={`font-bold ${isMax ? 'text-emerald-900' : 'text-emerald-400'}`}>{trade.reward}</div><div className="text-[10px] text-zinc-500">{trade.reward_cnt}개 획득</div></td>
-                              <td className="p-3"><div className={`font-bold ${isMax ? 'text-amber-900' : 'text-amber-400'}`}>{trade.cost}</div><div className="text-[10px] text-zinc-500">{trade.cost_cnt}개 소모</div></td>
-                              <td className="p-3 text-center"><span className={`text-[9px] px-1.5 py-0.5 rounded ${isMax ? 'bg-zinc-800 text-zinc-600' : trade.scope === '캐릭당' ? 'bg-zinc-800 text-zinc-300' : 'bg-rose-900/30 text-rose-400'}`}>{trade.scope}</span></td>
-                              <td className="p-3 text-center">
-                                <div className="flex items-center justify-center gap-3 bg-[#121212] px-2 py-1.5 rounded-lg border border-zinc-700/50 mx-auto w-fit">
-                                  <span className={`text-xs font-bold w-8 text-center tracking-wider ${isMax ? "text-emerald-500" : "text-zinc-300"}`}>{currentVal} <span className="text-zinc-600 font-normal">/</span> {trade.limit}</span>
-                                  <div className="flex gap-1 border-l border-zinc-700 pl-2">
-                                    <button onClick={() => updateTradeProgress(trade.id, -1, trade.limit)} className="w-7 h-7 flex justify-center items-center rounded bg-zinc-800 text-zinc-400 hover:text-white transition-colors">-</button>
-                                    <button onClick={() => updateTradeProgress(trade.id, 1, trade.limit)} className={`w-7 h-7 flex justify-center items-center rounded transition-colors ${isMax ? 'bg-emerald-900/20 text-emerald-500/50 cursor-not-allowed' : 'bg-[#e6c788]/20 text-[#e6c788] hover:bg-[#e6c788] hover:text-black'}`}>+</button>
-                                  </div>
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                        {dailyTrades.length === 0 && <tr><td colSpan={5} className="p-6 text-center text-zinc-500 text-xs">등록된 일간 갱신 목록이 없습니다.</td></tr>}
-                      </tbody>
-                    </table>
+          
+          {/* 일일 / 주간 / 어비스 / 레이드 관리 */}
+          {(activeTab === 'all' || activeTab === 'daily' || activeTab === 'weekly' || activeTab === 'abyss_raid') && (
+            <div className={`grid gap-3 ${activeTab === 'all' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4' : 'grid-cols-1 md:grid-cols-2'}`}>
+              
+              {/* 일일 컨텐츠 */}
+              {(activeTab === 'all' || activeTab === 'daily') && (
+                <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-3 shadow-xs flex flex-col">
+                  <div className="flex justify-between items-center mb-2.5 border-b border-[var(--panel-border)] pb-2 gap-2">
+                    <h3 className="font-bold text-amber-400 text-xs md:text-sm whitespace-nowrap">일일 컨텐츠</h3>
+                    <button 
+                      onClick={() => handleSmartToggle('daily')} 
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded transition shadow-xs whitespace-nowrap ${
+                        isDailyAllChecked 
+                          ? 'bg-[var(--inner-box)] text-[var(--text-sub)] hover:text-rose-400 border border-[var(--panel-border)]' 
+                          : 'bg-[var(--accent)] text-[var(--accent-fg)]'
+                      }`}
+                    >
+                      {isDailyAllChecked ? '전체 해제' : '전체 완료'}
+                    </button>
                   </div>
+                  <div className="space-y-1.5 flex-1 overflow-y-auto custom-scrollbar pr-0.5">{visibleDailyList.map((item: any) => renderTask(item, 'daily'))}</div>
                 </div>
-                <div>
-                  <h4 className="text-blue-400 font-bold mb-3 flex items-center gap-2 text-sm px-3 md:px-0"><span className="w-1.5 h-1.5 rounded-full bg-blue-400 inline-block"></span> 주간 갱신 (Weekly)</h4>
-                  <div className="overflow-x-auto custom-scrollbar border border-zinc-800 rounded-lg">
-                    <table className="w-full text-left text-sm whitespace-nowrap min-w-[800px]">
-                      <thead className="bg-[#252528] text-zinc-400 border-b border-zinc-800">
-                        <tr>
-                          <th className="p-3 font-bold text-xs w-[15%]">맵 / NPC</th><th className="p-3 font-bold text-xs w-[25%]">획득 보상</th><th className="p-3 font-bold text-xs w-[25%]">소모 재화</th><th className="p-3 font-bold text-xs text-center w-[15%]">적용 범위</th><th className="p-3 font-bold text-xs text-center w-[20%]">목표 달성 진척도</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-zinc-800/50 bg-[#1c1c1e]">
-                        {weeklyTrades.map((trade: any) => {
-                          const currentVal = tradeProgress[trade.id] || 0; const isMax = currentVal >= trade.limit;
-                          return (
-                            <tr key={trade.id} className={`transition-colors ${isMax ? 'bg-zinc-900/60' : 'hover:bg-[#202023]'}`}>
-                              <td className="p-3"><div className={`font-bold ${isMax ? 'text-zinc-500' : 'text-zinc-300'}`}>{trade.map || "-"}</div><div className="text-[10px] text-zinc-500">{trade.npc || "-"}</div></td>
-                              <td className="p-3"><div className={`font-bold ${isMax ? 'text-emerald-900' : 'text-emerald-400'}`}>{trade.reward}</div><div className="text-[10px] text-zinc-500">{trade.reward_cnt}개 획득</div></td>
-                              <td className="p-3"><div className={`font-bold ${isMax ? 'text-amber-900' : 'text-amber-400'}`}>{trade.cost}</div><div className="text-[10px] text-zinc-500">{trade.cost_cnt}개 소모</div></td>
-                              <td className="p-3 text-center"><span className={`text-[9px] px-1.5 py-0.5 rounded ${isMax ? 'bg-zinc-800 text-zinc-600' : trade.scope === '캐릭당' ? 'bg-zinc-800 text-zinc-300' : 'bg-rose-900/30 text-rose-400'}`}>{trade.scope}</span></td>
-                              <td className="p-3 text-center">
-                                <div className="flex items-center justify-center gap-3 bg-[#121212] px-2 py-1.5 rounded-lg border border-zinc-700/50 mx-auto w-fit">
-                                  <span className={`text-xs font-bold w-8 text-center tracking-wider ${isMax ? "text-emerald-500" : "text-zinc-300"}`}>{currentVal} <span className="text-zinc-600 font-normal">/</span> {trade.limit}</span>
-                                  <div className="flex gap-1 border-l border-zinc-700 pl-2">
-                                    <button onClick={() => updateTradeProgress(trade.id, -1, trade.limit)} className="w-7 h-7 flex justify-center items-center rounded bg-zinc-800 text-zinc-400 hover:text-white transition-colors">-</button>
-                                    <button onClick={() => updateTradeProgress(trade.id, 1, trade.limit)} className={`w-7 h-7 flex justify-center items-center rounded transition-colors ${isMax ? 'bg-emerald-900/20 text-emerald-500/50 cursor-not-allowed' : 'bg-[#e6c788]/20 text-[#e6c788] hover:bg-[#e6c788] hover:text-black'}`}>+</button>
-                                  </div>
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                        {weeklyTrades.length === 0 && <tr><td colSpan={5} className="p-6 text-center text-zinc-500 text-xs">등록된 주간 갱신 목록이 없습니다.</td></tr>}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
+              )}
 
-          <div className="bg-[#252528] rounded-xl border border-zinc-800 overflow-hidden">
-            <button onClick={() => setIsLevelOpen(!isLevelOpen)} className="w-full flex items-center justify-between p-5 hover:bg-[#2a2a2e] transition">
-              <h3 className="font-bold text-[#e6c788] text-lg flex items-center gap-2">⚡ 클래스 레벨관리</h3>
-              <span className="text-zinc-500">{isLevelOpen ? "▲" : "▼"}</span>
-            </button>
-            {isLevelOpen && (
-              <div className="p-5 border-t border-zinc-800 bg-[#1c1c1e]">
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-3">
-                  {dbClasses.map((cls: any) => {
-                    const currentLevel = levels[cls.name] || 1;
-                    const isMax = currentLevel === 65;
+              {/* 주간 컨텐츠 */}
+              {(activeTab === 'all' || activeTab === 'weekly') && (
+                <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-3 shadow-xs flex flex-col">
+                  <div className="flex justify-between items-center mb-2.5 border-b border-[var(--panel-border)] pb-2 gap-2">
+                    <h3 className="font-bold text-blue-400 text-xs md:text-sm whitespace-nowrap">주간 컨텐츠</h3>
+                    <button 
+                      onClick={() => handleSmartToggle('weekly')} 
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded transition shadow-xs whitespace-nowrap ${
+                        isWeeklyAllChecked 
+                          ? 'bg-[var(--inner-box)] text-[var(--text-sub)] hover:text-rose-400 border border-[var(--panel-border)]' 
+                          : 'bg-[var(--accent)] text-[var(--accent-fg)]'
+                      }`}
+                    >
+                      {isWeeklyAllChecked ? '전체 해제' : '전체 완료'}
+                    </button>
+                  </div>
+                  <div className="space-y-1.5 flex-1 overflow-y-auto custom-scrollbar pr-0.5">{visibleWeeklyList.map((item: any) => renderTask(item, 'weekly'))}</div>
+                </div>
+              )}
+
+              {/* 어비스 관리 */}
+              {(activeTab === 'all' || activeTab === 'abyss_raid') && (
+                <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-3 shadow-xs flex flex-col">
+                  <div className="flex justify-between items-center mb-2.5 border-b border-[var(--panel-border)] pb-2 gap-2">
+                    <h3 className="font-bold text-emerald-400 text-xs md:text-sm whitespace-nowrap">어비스 관리</h3>
+                    <button 
+                      onClick={() => handleSmartToggle('abyss')} 
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded transition shadow-xs whitespace-nowrap ${
+                        isAbyssAllChecked 
+                          ? 'bg-[var(--inner-box)] text-[var(--text-sub)] hover:text-rose-400 border border-[var(--panel-border)]' 
+                          : 'bg-[var(--accent)] text-[var(--accent-fg)]'
+                      }`}
+                    >
+                      {isAbyssAllChecked ? '전체 해제' : '전체 완료'}
+                    </button>
+                  </div>
+                  <div className="space-y-1.5 flex-1 overflow-y-auto custom-scrollbar pr-0.5">{abyssList.map((item: any) => renderTask(item, 'abyss'))}</div>
+                </div>
+              )}
+
+              {/* 레이드 관리 */}
+              {(activeTab === 'all' || activeTab === 'abyss_raid') && (
+                <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-3 shadow-xs flex flex-col">
+                  <div className="flex justify-between items-center mb-2.5 border-b border-[var(--panel-border)] pb-2 gap-2">
+                    <h3 className="font-bold text-indigo-400 text-xs md:text-sm whitespace-nowrap">레이드 관리</h3>
+                    <button 
+                      onClick={() => handleSmartToggle('raid')} 
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded transition shadow-xs whitespace-nowrap ${
+                        isRaidAllChecked 
+                          ? 'bg-[var(--inner-box)] text-[var(--text-sub)] hover:text-rose-400 border border-[var(--panel-border)]' 
+                          : 'bg-[var(--accent)] text-[var(--accent-fg)]'
+                      }`}
+                    >
+                      {isRaidAllChecked ? '전체 해제' : '전체 완료'}
+                    </button>
+                  </div>
+                  <div className="space-y-1.5 flex-1 overflow-y-auto custom-scrollbar pr-0.5">{raidList.map((item: any) => renderTask(item, 'raid'))}</div>
+                </div>
+              )}
+
+            </div>
+          )}
+
+          {/* 물물교환 & 주간상점 (모바일 카드 가로 콤팩트화) */}
+          {(activeTab === 'all' || activeTab === 'trades') && (
+            <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-3 md:p-4 shadow-xs space-y-4">
+              <h3 className="font-bold text-[var(--accent)] text-sm md:text-base whitespace-nowrap border-b border-[var(--panel-border)] pb-2">⚖️ 주간 구매 및 물물 교환 관리</h3>
+              
+              {/* 일일 갱신 카드 리스트 */}
+              <div className="space-y-2">
+                <h4 className="text-amber-400 font-bold text-xs flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span> 일일 갱신 (Daily)
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {dailyTrades.map((trade: any) => {
+                    const currentVal = tradeProgress[trade.id] || 0;
+                    const isMax = currentVal >= trade.limit;
+                    const isPinned = pinnedTrades.includes(trade.id);
                     return (
-                      <div key={cls.name} className={`relative flex flex-col items-center p-4 rounded-xl border transition-all ${isMax ? 'border-purple-500/50 bg-purple-900/10' : 'border-zinc-700/50 bg-[#121212]'}`}>
-                        {!isMax ? <button onClick={() => setMaxLevel(cls.name)} className="absolute top-2 right-2 text-[9px] font-bold bg-zinc-800 text-zinc-400 px-1.5 py-0.5 rounded border border-zinc-600">MAX</button> : <span className="absolute top-2 right-2 text-[10px] font-black text-purple-400">마스터</span>}
-                        <span className="text-2xl mb-2">{cls.icon || "🛡️"}</span>
-                        <span className={`text-xs font-bold mb-1 ${isMax ? 'text-purple-300' : 'text-zinc-300'}`}>{cls.name}</span>
-                        <div className="flex items-center gap-1">
-                          <span className="text-[10px] text-zinc-500 font-bold">Lv.</span>
-                          <input type="number" min={1} max={65} value={currentLevel} onChange={(e) => {
-                            let val = Number(e.target.value); if (val > 65) val = 65;
-                            setLevels(prev => ({...prev, [cls.name]: val}));
-                          }} className="w-8 bg-transparent text-white font-mono text-sm text-center outline-none border-b border-zinc-700 focus:border-yellow-500 [&::-webkit-inner-spin-button]:appearance-none" />
+                      <div key={trade.id} className={`flex flex-col justify-between p-2.5 rounded-lg border transition ${isPinned ? 'bg-[var(--accent-soft)]/20 border-[var(--accent)]' : 'bg-[var(--inner-box)] border-[var(--panel-border)]'}`}>
+                        <div className="flex items-center justify-between mb-1.5 min-w-0">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <button onClick={() => togglePinTrade(trade.id)} className={`text-xs ${isPinned ? 'opacity-100' : 'opacity-30'}`}>📌</button>
+                            <span className="font-bold text-xs text-[var(--text-main)] truncate">{trade.map || "-"} <span className="text-[10px] text-[var(--text-sub)] font-normal">({trade.npc || "-"})</span></span>
+                          </div>
+                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-[var(--panel)] text-[var(--text-sub)] shrink-0">{trade.scope}</span>
+                        </div>
+                        <div className="flex items-center justify-between gap-2 text-xs">
+                          <div className="min-w-0">
+                            <div className="text-[10px] font-bold text-emerald-400 truncate">보상: {trade.reward} ({trade.reward_cnt}개)</div>
+                            <div className="text-[10px] font-bold text-amber-400 truncate">소모: {trade.cost} ({trade.cost_cnt}개)</div>
+                          </div>
+                          <div className="flex items-center gap-1.5 bg-[var(--panel)] px-2 py-1 rounded border border-[var(--panel-border)] shrink-0">
+                            <span className={`text-xs font-bold w-8 text-center ${isMax ? "text-emerald-400" : "text-[var(--text-main)]"}`}>{currentVal}/{trade.limit}</span>
+                            <div className="flex gap-0.5 border-l border-[var(--panel-border)] pl-1">
+                              <button onClick={() => updateTradeProgress(trade.id, -1, trade.limit)} className="w-4 h-4 rounded bg-[var(--inner-box)] text-[10px] font-bold text-[var(--text-sub)]">-</button>
+                              <button onClick={() => updateTradeProgress(trade.id, 1, trade.limit)} className="w-4 h-4 rounded bg-[var(--accent)] text-[var(--accent-fg)] font-bold text-[10px]">+</button>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    )
+                    );
                   })}
                 </div>
               </div>
-            )}
-          </div>
+
+              {/* 주간 갱신 카드 리스트 */}
+              <div className="space-y-2 pt-2 border-t border-[var(--panel-border)]">
+                <h4 className="text-blue-400 font-bold text-xs flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span> 주간 갱신 (Weekly)
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {weeklyTrades.map((trade: any) => {
+                    const currentVal = tradeProgress[trade.id] || 0;
+                    const isMax = currentVal >= trade.limit;
+                    const isPinned = pinnedTrades.includes(trade.id);
+                    return (
+                      <div key={trade.id} className={`flex flex-col justify-between p-2.5 rounded-lg border transition ${isPinned ? 'bg-[var(--accent-soft)]/20 border-[var(--accent)]' : 'bg-[var(--inner-box)] border-[var(--panel-border)]'}`}>
+                        <div className="flex items-center justify-between mb-1.5 min-w-0">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <button onClick={() => togglePinTrade(trade.id)} className={`text-xs ${isPinned ? 'opacity-100' : 'opacity-30'}`}>📌</button>
+                            <span className="font-bold text-xs text-[var(--text-main)] truncate">{trade.map || "-"} <span className="text-[10px] text-[var(--text-sub)] font-normal">({trade.npc || "-"})</span></span>
+                          </div>
+                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-[var(--panel)] text-[var(--text-sub)] shrink-0">{trade.scope}</span>
+                        </div>
+                        <div className="flex items-center justify-between gap-2 text-xs">
+                          <div className="min-w-0">
+                            <div className="text-[10px] font-bold text-emerald-400 truncate">보상: {trade.reward} ({trade.reward_cnt}개)</div>
+                            <div className="text-[10px] font-bold text-amber-400 truncate">소모: {trade.cost} ({trade.cost_cnt}개)</div>
+                          </div>
+                          <div className="flex items-center gap-1.5 bg-[var(--panel)] px-2 py-1 rounded border border-[var(--panel-border)] shrink-0">
+                            <span className={`text-xs font-bold w-8 text-center ${isMax ? "text-emerald-400" : "text-[var(--text-main)]"}`}>{currentVal}/{trade.limit}</span>
+                            <div className="flex gap-0.5 border-l border-[var(--panel-border)] pl-1">
+                              <button onClick={() => updateTradeProgress(trade.id, -1, trade.limit)} className="w-4 h-4 rounded bg-[var(--inner-box)] text-[10px] font-bold text-[var(--text-sub)]">-</button>
+                              <button onClick={() => updateTradeProgress(trade.id, 1, trade.limit)} className="w-4 h-4 rounded bg-[var(--accent)] text-[var(--accent-fg)] font-bold text-[10px]">+</button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+            </div>
+          )}
+
+          {/* 클래스 레벨 관리 (가로 1줄 슬림 배치 & MAX/MIN 스위치) */}
+          {(activeTab === 'all' || activeTab === 'levels') && (
+            <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-3 md:p-4 shadow-xs space-y-3">
+              <h3 className="font-bold text-[var(--accent)] text-sm md:text-base whitespace-nowrap border-b border-[var(--panel-border)] pb-2">⚡ 클래스 레벨 관리</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                {dbClasses.map((cls: any) => {
+                  const currentLevel = levels[cls.name] || 1;
+                  const isMax = currentLevel === 65;
+                  return (
+                    <div key={cls.name} className={`flex items-center justify-between p-2 rounded-lg border transition min-w-0 ${isMax ? 'border-[var(--accent)] bg-[var(--accent-soft)]/20' : 'bg-[var(--inner-box)] border-[var(--panel-border)]'}`}>
+                      {/* 직업명 & 아이콘 */}
+                      <div className="flex items-center gap-1.5 min-w-0 pr-1">
+                        <span className="text-sm shrink-0">{cls.icon || "🛡️"}</span>
+                        <span className={`text-xs font-bold truncate ${isMax ? 'text-[var(--accent)]' : 'text-[var(--text-main)]'}`}>{cls.name}</span>
+                      </div>
+
+                      {/* 레벨 수치 & 컨트롤 버튼 그룹 */}
+                      <div className="flex items-center gap-1 shrink-0">
+                        <span className="text-xs font-black font-mono text-[var(--accent)] mr-0.5 whitespace-nowrap">Lv.{currentLevel}</span>
+                        
+                        <button onClick={() => updateClassLevel(cls.name, -10)} className="px-1 py-0.5 text-[9px] font-bold rounded bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)]">-10</button>
+                        <button onClick={() => updateClassLevel(cls.name, -1)} className="px-1 py-0.5 text-[10px] font-bold rounded bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)]">-1</button>
+                        
+                        {/* MAX / MIN 토글 버튼 */}
+                        {isMax ? (
+                          <button onClick={() => setMinLevel(cls.name)} className="px-1.5 py-0.5 text-[9px] font-black rounded bg-rose-500/20 text-rose-400 border border-rose-500/40 hover:bg-rose-500 hover:text-white transition whitespace-nowrap">MIN</button>
+                        ) : (
+                          <button onClick={() => setMaxLevel(cls.name)} className="px-1.5 py-0.5 text-[9px] font-bold rounded bg-[var(--accent-soft)] text-[var(--accent)] border border-[var(--accent)]/40 hover:bg-[var(--accent)] hover:text-[var(--accent-fg)] transition whitespace-nowrap">MAX</button>
+                        )}
+
+                        <button onClick={() => updateClassLevel(cls.name, 1)} className="px-1 py-0.5 text-[10px] font-bold rounded bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)]">+1</button>
+                        <button onClick={() => updateClassLevel(cls.name, 10)} className="px-1 py-0.5 text-[9px] font-bold rounded bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)]">+10</button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
         </div>
+
       </div>
     </main>
   );
