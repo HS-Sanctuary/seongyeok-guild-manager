@@ -459,123 +459,123 @@ export default function Home() {
 
         <div className="grid grid-cols-2 xl:grid-cols-6 gap-2 md:gap-3 items-stretch">
           
-          {/* 1. Sanctuary ASTRA */}
+          {/* 1. Sanctuary ASTRA (🟡 노란색 및 🩵 하늘색 부분 최적화) */}
           <div 
             onClick={() => router.push('/lounge/astra')}
-            className="rounded-xl border backdrop-blur p-3.5 flex flex-col justify-between relative overflow-hidden shadow-sm order-1 cursor-pointer transition group bg-[var(--panel)] border-[var(--panel-border)] hover:border-[var(--accent)]"
+            className="rounded-xl border backdrop-blur p-2.5 sm:p-3.5 flex flex-col justify-between relative overflow-hidden shadow-sm order-1 cursor-pointer transition group bg-[var(--panel)] border-[var(--panel-border)] hover:border-[var(--accent)]"
           >
             <div className="absolute -right-4 -bottom-4 text-5xl opacity-5 group-hover:scale-110 transition-transform pointer-events-none">✨</div>
             
-            <div className="mb-3">
-              <span className="text-[0.6rem] uppercase tracking-[0.15em] font-black block leading-tight whitespace-nowrap text-[var(--accent)]">Sanctuary ASTRA</span>
-              <p className="text-[0.65rem] font-bold mt-1 leading-tight whitespace-nowrap text-[var(--text-sub)]">성역에 새겨진 모든 별들</p>
+            <div className="mb-2">
+              <span className="text-[0.55rem] xs:text-[0.6rem] uppercase tracking-tight xs:tracking-wider font-black block leading-tight whitespace-nowrap text-[var(--accent)]">Sanctuary ASTRA</span>
+              <p className="text-[0.6rem] xs:text-[0.65rem] font-bold mt-0.5 leading-tight whitespace-nowrap text-[var(--text-sub)]">성역에 새겨진 모든 별들</p>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 pt-2.5 border-t mt-auto border-[var(--panel-border)]">
-              <div className="flex flex-col">
-                <span className="text-[0.6rem] uppercase font-bold tracking-wider text-[var(--accent)]">SOL</span>
-                <div className="flex items-baseline gap-1 mt-1 whitespace-nowrap">
-                  <span className="text-xl md:text-2xl font-black cursor-help leading-none text-[var(--text-main)]" title="등록된 계정 수">{uniqueAccountsCount}</span>
-                  <span className="text-[0.6rem] font-bold leading-none whitespace-nowrap text-[var(--text-sub)]">계정</span>
+            <div className="grid grid-cols-2 gap-1 xs:gap-2 pt-2 border-t mt-auto border-[var(--panel-border)]">
+              <div className="flex flex-col min-w-0">
+                <span className="text-[0.55rem] xs:text-[0.6rem] uppercase font-bold tracking-wider text-[var(--accent)] truncate">SOL</span>
+                <div className="flex items-baseline gap-0.5 xs:gap-1 mt-0.5 whitespace-nowrap">
+                  <span className="text-lg xs:text-xl md:text-2xl font-black cursor-help leading-none text-[var(--text-main)]" title="등록된 계정 수">{uniqueAccountsCount}</span>
+                  <span className="text-[0.55rem] xs:text-[0.6rem] font-bold leading-none whitespace-nowrap text-[var(--text-sub)]">계정</span>
                 </div>
               </div>
-              <div className="flex flex-col">
-                <span className="text-[0.6rem] uppercase font-bold text-blue-500 tracking-wider">LUNA</span>
-                <div className="flex items-baseline gap-1 mt-1 whitespace-nowrap">
-                  <span className="text-xl md:text-2xl font-black cursor-help leading-none text-[var(--text-main)]" title="등록된 캐릭터 수">{totalCharactersCount}</span>
-                  <span className="text-[0.6rem] font-bold leading-none whitespace-nowrap text-[var(--text-sub)]">캐릭터</span>
+              <div className="flex flex-col min-w-0">
+                <span className="text-[0.55rem] xs:text-[0.6rem] uppercase font-bold text-blue-500 tracking-wider truncate">LUNA</span>
+                <div className="flex items-baseline gap-0.5 xs:gap-1 mt-0.5 whitespace-nowrap">
+                  <span className="text-lg xs:text-xl md:text-2xl font-black cursor-help leading-none text-[var(--text-main)]" title="등록된 캐릭터 수">{totalCharactersCount}</span>
+                  <span className="text-[0.55rem] xs:text-[0.6rem] font-bold leading-none whitespace-nowrap text-[var(--text-sub)]">캐릭터</span>
                 </div>
               </div>
             </div>
           </div>
 
           {/* 2. 올라운더 달성률 */}
-          <div className="rounded-xl border backdrop-blur p-3.5 flex flex-col justify-between relative overflow-hidden shadow-sm order-2 bg-[var(--panel)] border-[var(--panel-border)]">
+          <div className="rounded-xl border backdrop-blur p-2.5 sm:p-3.5 flex flex-col justify-between relative overflow-hidden shadow-sm order-2 bg-[var(--panel)] border-[var(--panel-border)]">
             <div className="absolute -right-4 -bottom-4 text-5xl opacity-5 pointer-events-none">⚡</div>
-            <p className="text-[0.6rem] uppercase tracking-[0.1em] font-bold whitespace-nowrap text-[var(--text-sub)]">올라운더 달성률</p>
+            <p className="text-[0.55rem] xs:text-[0.6rem] uppercase tracking-[0.05em] xs:tracking-[0.1em] font-bold whitespace-nowrap text-[var(--text-sub)]">올라운더 달성률</p>
             <div className="my-auto py-1 flex items-baseline gap-1">
               <span className="text-2xl md:text-3xl font-black leading-none text-[var(--accent)]">{allRounderLevel}</span>
-              <span className="text-[0.7rem] font-bold leading-none text-[var(--text-sub)]">LV</span>
+              <span className="text-[0.65rem] xs:text-[0.7rem] font-bold leading-none text-[var(--text-sub)]">LV</span>
             </div>
-            <p className="text-[0.6rem] whitespace-nowrap text-[var(--text-sub)]">최대 1365 LV</p>
+            <p className="text-[0.55rem] xs:text-[0.6rem] whitespace-nowrap text-[var(--text-sub)]">최대 1365 LV</p>
           </div>
 
           {/* 3. 필드보스 알림 */}
-          <div className={`rounded-xl p-3.5 flex flex-col justify-between relative transition-all duration-500 order-3 backdrop-blur border bg-[var(--panel)] ${
+          <div className={`rounded-xl p-2.5 sm:p-3.5 flex flex-col justify-between relative transition-all duration-500 order-3 backdrop-blur border bg-[var(--panel)] ${
             fieldBossEvent.status === 'imminent' || fieldBossEvent.status === 'active' 
               ? 'border-yellow-500' 
               : 'border-[var(--panel-border)]'
           } ${fieldBossEvent.status === 'imminent' ? 'animate-pulse' : ''}`}>
-            <p className={`text-[0.6rem] font-bold whitespace-nowrap ${fieldBossEvent.status === 'imminent' || fieldBossEvent.status === 'active' ? 'text-yellow-500' : 'text-[var(--text-sub)]'}`}>필드보스 알림</p>
+            <p className={`text-[0.55rem] xs:text-[0.6rem] font-bold whitespace-nowrap ${fieldBossEvent.status === 'imminent' || fieldBossEvent.status === 'active' ? 'text-yellow-500' : 'text-[var(--text-sub)]'}`}>필드보스 알림</p>
             <div className="my-auto py-1 flex flex-col">
-              <span className="text-lg md:text-xl font-black leading-tight whitespace-nowrap text-[var(--text-main)]">
+              <span className="text-base xs:text-lg md:text-xl font-black leading-tight whitespace-nowrap text-[var(--text-main)]">
                 {fieldBossEvent.status === 'imminent' ? '출현 임박!' : fieldBossEvent.status === 'active' ? '출현중!' : formatTimeHM(fieldBossEvent.sec)}
               </span>
-              {fieldBossEvent.status === 'waiting' && <span className="text-[0.6rem] font-bold mt-1 whitespace-nowrap text-[var(--text-sub)]">다음 출현까지</span>}
+              {fieldBossEvent.status === 'waiting' && <span className="text-[0.55rem] xs:text-[0.6rem] font-bold mt-0.5 whitespace-nowrap text-[var(--text-sub)]">다음 출현까지</span>}
             </div>
-            <p className="text-[0.6rem] whitespace-nowrap text-[var(--text-sub)]">{fieldBossEvent.status === 'active' ? '지도에서 위치 확인' : '12, 18, 20, 22시'}</p>
+            <p className="text-[0.55rem] xs:text-[0.6rem] whitespace-nowrap text-[var(--text-sub)]">{fieldBossEvent.status === 'active' ? '지도에서 위치 확인' : '12, 18, 20, 22시'}</p>
           </div>
 
           {/* 4. 소환의 결계 알림 */}
-          <div className={`rounded-xl p-3.5 flex flex-col justify-between relative transition-all duration-500 order-4 backdrop-blur border bg-[var(--panel)] ${
+          <div className={`rounded-xl p-2.5 sm:p-3.5 flex flex-col justify-between relative transition-all duration-500 order-4 backdrop-blur border bg-[var(--panel)] ${
             barrierEvent.status === 'imminent' || barrierEvent.status === 'active' 
               ? 'border-red-500' 
               : 'border-[var(--panel-border)]'
           } ${barrierEvent.status === 'imminent' ? 'animate-pulse' : ''}`}>
-            <p className={`text-[0.6rem] font-bold whitespace-nowrap ${barrierEvent.status === 'imminent' || barrierEvent.status === 'active' ? 'text-red-500' : 'text-[var(--text-sub)]'}`}>소환의 결계 알림</p>
+            <p className={`text-[0.55rem] xs:text-[0.6rem] font-bold whitespace-nowrap ${barrierEvent.status === 'imminent' || barrierEvent.status === 'active' ? 'text-red-500' : 'text-[var(--text-sub)]'}`}>소환의 결계 알림</p>
             <div className="my-auto py-1 flex flex-col">
-              <span className="text-lg md:text-xl font-black leading-tight whitespace-nowrap text-[var(--text-main)]">
+              <span className="text-base xs:text-lg md:text-xl font-black leading-tight whitespace-nowrap text-[var(--text-main)]">
                 {barrierEvent.status === 'imminent' ? '곧 출현!' : barrierEvent.status === 'active' ? '출현중!' : formatTimeHM(barrierEvent.sec)}
               </span>
-              {barrierEvent.status === 'waiting' && <span className="text-[0.6rem] font-bold mt-1 whitespace-nowrap text-[var(--text-sub)]">다음 출현까지</span>}
+              {barrierEvent.status === 'waiting' && <span className="text-[0.55rem] xs:text-[0.6rem] font-bold mt-0.5 whitespace-nowrap text-[var(--text-sub)]">다음 출현까지</span>}
             </div>
-            <p className="text-[0.6rem] whitespace-nowrap text-[var(--text-sub)]">{barrierEvent.status === 'active' ? '몬스터 등장 중' : '매 정각 실시간 타이머'}</p>
+            <p className="text-[0.55rem] xs:text-[0.6rem] whitespace-nowrap text-[var(--text-sub)]">{barrierEvent.status === 'active' ? '몬스터 등장 중' : '매 정각 실시간 타이머'}</p>
           </div>
 
-          {/* 5. 어비스 구멍 알림 */}
-          <div className="rounded-xl p-3.5 flex flex-col justify-between relative backdrop-blur order-5 border bg-[var(--panel)] border-[var(--panel-border)]">
-            <div className="flex justify-between items-start mb-1 gap-2">
-              <p className="text-[0.6rem] font-bold whitespace-nowrap text-[var(--accent)]">어비스 구멍 알림</p>
+          {/* 5. 어비스 구멍 알림 (🔴 빨간색 부분 제보 버튼 이탈 수정) */}
+          <div className="rounded-xl p-2.5 sm:p-3.5 flex flex-col justify-between relative backdrop-blur order-5 border bg-[var(--panel)] border-[var(--panel-border)]">
+            <div className="flex justify-between items-center mb-1 gap-1">
+              <p className="text-[0.55rem] xs:text-[0.6rem] font-bold whitespace-nowrap text-[var(--accent)]">어비스 구멍 알림</p>
               <button 
                 onClick={() => setIsAbyssModalOpen(true)} 
-                className="text-[0.6rem] px-2 py-0.5 rounded border transition font-bold shadow shrink-0 whitespace-nowrap hover:opacity-80 bg-[var(--inner-box)] border-[var(--panel-border)] text-[var(--accent)]"
+                className="text-[0.55rem] xs:text-[0.6rem] px-1.5 py-0.5 rounded border transition font-bold shadow shrink-0 whitespace-nowrap hover:opacity-80 bg-[var(--inner-box)] border-[var(--panel-border)] text-[var(--accent)]"
               >
                 제보
               </button>
             </div>
             <div className="flex flex-col my-auto py-1">
-              <span className="text-lg md:text-xl font-black leading-tight whitespace-nowrap text-[var(--text-main)]">
+              <span className="text-base xs:text-lg md:text-xl font-black leading-tight whitespace-nowrap text-[var(--text-main)]">
                 {abyssDisplay.timeText}
               </span>
-              <span className="text-[0.6rem] font-bold mt-1 whitespace-nowrap text-[var(--text-sub)]">{abyssDisplay.subText}</span>
+              <span className="text-[0.55rem] xs:text-[0.6rem] font-bold mt-0.5 whitespace-nowrap text-[var(--text-sub)]">{abyssDisplay.subText}</span>
             </div>
           </div>
 
-          {/* 6. 심층 구멍 알림 */}
-          <div className="rounded-xl p-3.5 flex flex-col justify-between relative backdrop-blur order-6 border bg-[var(--panel)] border-[var(--panel-border)]">
-            <div className="flex flex-col mb-1.5">
-              <div className="flex justify-between items-center w-full gap-2">
-                <p className="text-[0.6rem] font-bold whitespace-nowrap text-red-400">심층 구멍 알림</p>
+          {/* 6. 심층 구멍 알림 (🔴 빨간색 제보 버튼 & 🩷 핑크색 사냥터 오버플로우 수정) */}
+          <div className="rounded-xl p-2.5 sm:p-3.5 flex flex-col justify-between relative backdrop-blur order-6 border bg-[var(--panel)] border-[var(--panel-border)]">
+            <div className="flex flex-col mb-1">
+              <div className="flex justify-between items-center w-full gap-1">
+                <p className="text-[0.55rem] xs:text-[0.6rem] font-bold whitespace-nowrap text-red-400">심층 구멍 알림</p>
                 <button 
                   onClick={() => setIsDeepModalOpen(true)} 
-                  className="text-[0.6rem] px-2.5 py-0.5 rounded border transition font-bold shadow shrink-0 whitespace-nowrap hover:opacity-80 bg-[var(--inner-box)] border-[var(--panel-border)] text-red-400"
+                  className="text-[0.55rem] xs:text-[0.6rem] px-1.5 py-0.5 rounded border transition font-bold shadow shrink-0 whitespace-nowrap hover:opacity-80 bg-[var(--inner-box)] border-[var(--panel-border)] text-red-400"
                 >
                   제보
                 </button>
               </div>
-              <span className="text-[0.55rem] font-mono mt-0.5 whitespace-nowrap text-[var(--text-sub)]">{deepTimer} 초기화</span>
+              <span className="text-[0.5rem] xs:text-[0.55rem] font-mono mt-0.5 whitespace-nowrap text-[var(--text-sub)]">{deepTimer} 초기화</span>
             </div>
-            <div className="grid grid-cols-2 gap-1.5 my-auto">
+            <div className="grid grid-cols-2 gap-1 my-auto">
               {HUNTING_ZONES.filter(z => z.isActive).map(zone => {
                 const activeHole = getActiveDeepHoles(zone.uid)[0];
                 return (
                   <div 
                     key={zone.uid} 
-                    className="flex flex-col justify-center items-center border p-1.5 rounded-lg text-center gap-0.5 whitespace-nowrap bg-[var(--inner-box)] border-[var(--panel-border)]"
+                    className="flex flex-col justify-center items-center border p-1 rounded-lg text-center gap-0.5 whitespace-nowrap bg-[var(--inner-box)] border-[var(--panel-border)] min-w-0"
                   >
-                    <span className="text-[0.6rem] font-bold leading-tight text-[var(--text-main)]">{zone.name}</span>
+                    <span className="text-[0.55rem] xs:text-[0.6rem] font-bold leading-tight truncate w-full text-[var(--text-main)]">{zone.name}</span>
                     <span 
-                      className={`text-[0.6rem] w-full py-0.5 rounded font-bold ${activeHole && activeHole.channel !== '0' ? 'bg-red-500 text-white' : 'bg-[var(--panel)] text-[var(--text-sub)]'}`}
+                      className={`text-[0.55rem] xs:text-[0.6rem] w-full py-0.5 rounded font-bold ${activeHole && activeHole.channel !== '0' ? 'bg-red-500 text-white' : 'bg-[var(--panel)] text-[var(--text-sub)]'}`}
                     >
                       {activeHole ? `${activeHole.channel}개` : '대기'}
                     </span>
@@ -588,7 +588,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 캐릭터 숙제 체크보드 (🔴 text-[var(--accent-fg)] 적용 완료) */}
+      {/* 캐릭터 숙제 체크보드 */}
       <section className="bg-transparent p-1">
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-4 md:mb-5 border-b pb-4 gap-4 border-[var(--panel-border)]">
           
@@ -608,7 +608,6 @@ export default function Home() {
                </div>
             </div>
             
-            {/* 🔴 캐릭터 관리 버튼 */}
             <button 
               onClick={() => router.push('/character')} 
               className="w-full sm:w-auto whitespace-nowrap shrink-0 text-[0.75rem] font-black px-4 py-2.5 rounded-lg transition shadow hover:opacity-90 bg-[var(--accent)] text-[var(--accent-fg)]"
@@ -681,7 +680,6 @@ export default function Home() {
                           const dName = a.short_name || formatName(a.name);
                           const isOddAndLast = (abyssList.length % 2 !== 0) && (idx === abyssList.length - 1);
                           return (
-                            /* 🔴 숙제 체크 완료 버튼 */
                             <span 
                               key={a.id} 
                               className={`w-full text-[0.6rem] px-1 md:px-1.5 py-1 rounded border font-bold text-center truncate transition-colors ${isOddAndLast ? 'col-span-2' : ''} ${isChecked ? 'bg-[var(--accent)] text-[var(--accent-fg)] border-[var(--accent)]' : 'bg-[var(--panel)] border-[var(--panel-border)] text-[var(--text-sub)]'}`}
@@ -726,7 +724,6 @@ export default function Home() {
             <h2 className="font-bold text-sm md:text-base whitespace-nowrap text-[var(--text-main)]">⚔️ 실시간 오토 파티 매칭</h2>
             <p className="text-[0.65rem] md:text-[0.7rem] mt-1 truncate sm:whitespace-normal break-keep text-[var(--text-sub)]">인원이 꽉 차면 시스템이 15분 단위 최적 출발 시간과 파티장을 자동 확정합니다.</p>
           </div>
-          {/* 🔴 전체 게시판 버튼 */}
           <button 
             onClick={() => router.push('/party')} 
             className="w-full sm:w-auto whitespace-nowrap shrink-0 text-[0.65rem] font-black px-4 py-2 rounded-lg transition shadow hover:opacity-90 bg-[var(--accent)] text-[var(--accent-fg)]"
@@ -756,7 +753,6 @@ export default function Home() {
                     <div className="flex flex-col flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 mb-1 flex-wrap">
                         {isCompleted ? (
-                          /* 🔴 매칭완료 배지 */
                           <span className="text-[0.6rem] font-black px-2 py-0.5 rounded shadow whitespace-nowrap bg-[var(--accent)] text-[var(--accent-fg)]">✅ 매칭완료</span>
                         ) : (
                           <span className="text-[0.6rem] font-black px-1.5 py-0.5 rounded border whitespace-nowrap bg-[var(--inner-box)] border-[var(--panel-border)] text-[var(--text-main)]">대기중</span>
@@ -949,7 +945,6 @@ export default function Home() {
                   />
                   <span className="absolute right-3 top-2.5 text-[0.75rem] font-bold whitespace-nowrap text-[var(--text-sub)]">분</span>
                 </div>
-                {/* 🔴 제보 버튼 */}
                 <button 
                   type="submit" 
                   className="text-[0.75rem] px-4 rounded font-bold transition shrink-0 whitespace-nowrap hover:opacity-90 bg-[var(--accent)] text-[var(--accent-fg)]"
@@ -978,7 +973,6 @@ export default function Home() {
                 <label className="text-[0.7rem] font-bold mb-2 block whitespace-nowrap text-[var(--text-sub)]">사냥터 선택</label>
                 <div className="flex gap-2 flex-wrap">
                   {HUNTING_ZONES.filter(z => z.isActive).map((zone) => (
-                    /* 🔴 사냥터 선택 버튼 */
                     <button 
                       type="button" 
                       key={zone.uid} 
@@ -1088,7 +1082,6 @@ export default function Home() {
                 <label className="text-[0.7rem] font-bold mb-1.5 block text-[var(--text-sub)]">수행 포지션 (역할)</label>
                 <div className="flex gap-2">
                   {['탱커', '딜러', '힐러'].map(r => (
-                    /* 🔴 포지션 선택 버튼 */
                     <label key={r} className={`flex-1 flex items-center justify-center gap-1.5 p-2 rounded border cursor-pointer transition ${joinSelectedRole === r ? 'bg-[var(--accent)] text-[var(--accent-fg)] border-[var(--accent)] font-bold' : 'bg-[var(--inner-box)] border-[var(--panel-border)] text-[var(--text-sub)]'}`}>
                       <input type="radio" name="role" value={r} checked={joinSelectedRole === r} onChange={(e) => setJoinSelectedRole(e.target.value)} className="hidden" />
                       <span className="text-[0.75rem]">{r}</span>
@@ -1109,7 +1102,6 @@ export default function Home() {
 
             <div className="p-4 border-t flex justify-end gap-2 bg-[var(--inner-box)] border-[var(--panel-border)]">
               <button onClick={() => setJoinPopupParty(null)} className="px-4 py-2 rounded text-[0.75rem] font-bold transition bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)]">취소</button>
-              {/* 🔴 신청 확정 버튼 */}
               <button onClick={executeJoinParty} className="px-4 py-2 rounded text-[0.75rem] font-black transition shadow hover:opacity-90 bg-[var(--accent)] text-[var(--accent-fg)]">신청 확정</button>
             </div>
           </div>
