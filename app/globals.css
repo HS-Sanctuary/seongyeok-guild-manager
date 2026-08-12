@@ -8,84 +8,124 @@
   --color-text-main: var(--text-main);
   --color-text-sub: var(--text-sub);
   --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-secondary: var(--accent-secondary);
 }
 
-/* 1. 오리지널 다크 */
-:root, [data-theme="dark"] {
-  --panel: rgba(28, 28, 30, 0.9);
-  --panel-hover: rgba(37, 37, 40, 0.9);
-  --panel-border: rgba(39, 39, 42, 1);
-  --inner-box: rgba(0, 0, 0, 0.4);
-  --text-main: #ffffff;
-  --text-sub: #a1a1aa;
-  --accent: #e6c788;
+/* 1. AUREUM (Dark - Default) */
+:root, [data-theme="dark"], [data-theme="aureum"] {
+  --background: #0A0A0A;
+  --foreground: #EDEDED;
+  --panel: #121212;
+  --panel-hover: #1C1C1E;
+  --panel-border: #2A2A2E;
+  --inner-box: #050505;
+  --text-main: #EDEDED;
+  --text-sub: #9CA3AF;
+  --accent: #E6C788;
+  --accent-fg: #000000;
+  --accent-strong: #D4AF37;
+  --accent-soft: #2E281A;
+  --accent-secondary: #C5A059;
 }
 
-/* 2. 클린 라이트 (화사한 배경 + 세련된 로얄 블루 포인트) */
-[data-theme="light"] {
-  --panel: rgba(255, 255, 255, 0.98);
-  --panel-hover: rgba(248, 250, 252, 0.98);
-  --panel-border: rgba(37, 99, 235, 0.3);      /* 테두리를 은은한 블루빛으로 */
-  --inner-box: rgba(255, 255, 255, 0.9);
-  --text-main: #0f172a;                       /* 아주 어두운 네이비/블랙 텍스트 */
-  --text-sub: #475569;                        /* 차분한 서브 텍스트 */
-  --accent: #2563eb;                          /* 💡 핵심 포인트 컬러를 세련된 로얄 블루로 변경! */
+/* 2. LUMEN (Light) */
+[data-theme="light"], [data-theme="lumen"] {
+  --background: #FFFFFF;
+  --foreground: #0F172A;
+  --panel: #FFFFFF;
+  --panel-hover: #F8FAFC;
+  --panel-border: #E2E8F0;
+  --inner-box: #F1F5F9;
+  --text-main: #0F172A;
+  --text-sub: #64748B;
+  --accent: #2563EB;
+  --accent-fg: #FFFFFF;
+  --accent-strong: #1D4ED8;
+  --accent-soft: #EFF6FF;
+  --accent-secondary: #0284C7;
 }
 
-/* 3. 민트바닐라 */
-[data-theme="mint"] {
-  --panel: rgba(15, 32, 24, 0.92);
-  --panel-hover: rgba(20, 43, 32, 0.95);
-  --panel-border: rgba(52, 211, 153, 0.35);
-  --inner-box: rgba(10, 22, 16, 0.6);
-  --text-main: #ecfdf5;
-  --text-sub: #6ee7b7;
-  --accent: #10b981;
+/* 3. NEMETON (Mint) */
+[data-theme="mint"], [data-theme="nemeton"] {
+  --background: #081914;
+  --foreground: #EDF9F4;
+  --panel: #112A23;
+  --panel-hover: #19382F;
+  --panel-border: #244A3E;
+  --inner-box: #06110D;
+  --text-main: #EDF9F4;
+  --text-sub: #A3C5B9;
+  --accent: #48C9A0;
+  --accent-fg: #000000;
+  --accent-strong: #2FAF86;
+  --accent-soft: #143D32;
+  --accent-secondary: #5EA7A0;
 }
 
-/* 4. 퍼플릿 */
-[data-theme="purple"] {
-  --panel: rgba(28, 20, 40, 0.85);
-  --panel-hover: rgba(38, 28, 54, 0.9);
-  --panel-border: rgba(168, 85, 247, 0.3);
-  --inner-box: rgba(0, 0, 0, 0.4);
-  --text-main: #ffffff;
-  --text-sub: #a78bfa;
-  --accent: #c084fc;
+/* 4. VESPER (Purple) */
+[data-theme="purple"], [data-theme="vesper"] {
+  --background: #0D0B18;
+  --foreground: #F5F0FF;
+  --panel: #19142C;
+  --panel-hover: #28203F;
+  --panel-border: #342B50;
+  --inner-box: #090712;
+  --text-main: #F5F0FF;
+  --text-sub: #B9AECF;
+  --accent: #B18AF3;
+  --accent-fg: #000000;
+  --accent-strong: #956AE0;
+  --accent-soft: #2D1F47;
+  --accent-secondary: #6E82D9;
 }
 
-/* 5. 로즈블룸 */
-[data-theme="rose"] {
-  --panel: rgba(37, 21, 26, 0.85);
-  --panel-hover: rgba(49, 28, 35, 0.9);
-  --panel-border: rgba(244, 63, 94, 0.3);
-  --inner-box: rgba(0, 0, 0, 0.4);
-  --text-main: #ffffff;
-  --text-sub: #fda4af;
-  --accent: #fb7185;
+/* 5. ROSARIUM (Rose) */
+[data-theme="rose"], [data-theme="rosarium"] {
+  --background: #1A1016;
+  --foreground: #FFF4F7;
+  --panel: #2B1922;
+  --panel-hover: #3C2530;
+  --panel-border: #4E2A38;
+  --inner-box: #120A0E;
+  --text-main: #FFF4F7;
+  --text-sub: #C7A9B5;
+  --accent: #E88DA8;
+  --accent-fg: #000000;
+  --accent-strong: #D96786;
+  --accent-soft: #421E2A;
+  --accent-secondary: #B89A72;
+}
+
+/* 6. ELYSIUM */
+[data-theme="elysium"] {
+  --background: #D2F4C0;
+  --foreground: #1A2030;
+  --panel: #EAF8E0;
+  --panel-hover: #F6FCEB;
+  --panel-border: #A7D79A;
+  --inner-box: #C3E8AF;
+  --text-main: #1A2030;
+  --text-sub: #5B665F;
+  --accent: #6262B8;
+  --accent-fg: #FFFFFF;
+  --accent-strong: #4B4BA0;
+  --accent-soft: #DADAFA;
+  --accent-secondary: #6BAA57;
 }
 
 * { box-sizing: border-box; }
 
-/* 💡 HTML과 BODY 전체 배경을 테마에 맞추어 완벽하게 제어합니다 */
 html, body {
   margin: 0; 
   padding: 0;
   font-family: Arial, Helvetica, sans-serif;
   overflow-x: hidden;
   transition: background-color 0.3s ease, color 0.3s ease;
-}
-
-/* 다크모드일 때 전체 배경 */
-html:not([data-theme="light"]), [data-theme="dark"] {
-  background-color: #0d0d0f;
-  color: #ffffff;
-}
-
-/* 라이트모드일 때 전체 배경을 완벽한 순백색(#ffffff)으로 고정 */
-html[data-theme="light"], [data-theme="light"] {
-  background-color: #ffffff !important;
-  color: #0f172a !important;
+  background-color: var(--background);
+  color: var(--foreground);
 }
 
 .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
