@@ -83,7 +83,7 @@ export default function CharacterPage() {
 
   const blackHoleMax = getBlackHoleMaxCount();
 
-  // 내장 주간 반복 타스크 (검은 구멍, 소환의 결계, 뱅가드 브리치)
+  // 내장 주간 반복 타스크
   const defaultExtraWeeklyTasks = [
     { id: 9900, name: "검은 구멍", type: "repeat_weekly", max_count: blackHoleMax },
     { id: 9901, name: "소환의 결계", type: "repeat_weekly", max_count: 7 },
@@ -520,12 +520,13 @@ export default function CharacterPage() {
     else if (type === 'raid') { checks = raidChecks; setChecks = setRaidChecks; }
 
     const isChecked = checks.includes(item.id);
+
+    // ⭐️ 어비스/레이드 강조 색상을 대표/노란색 노란 테마와 분리하여 동일한 초록/에메랄드 세트로 통일!
     const getColorTheme = () => {
       if (!isChecked) return { wrapper: "bg-[var(--inner-box)] border-[var(--panel-border)] hover:border-[var(--accent)]", text: "text-[var(--text-main)]", box: "bg-[var(--panel)] border-[var(--panel-border)]" };
       if (type === 'daily') return { wrapper: "bg-amber-500/10 border-amber-500/50", text: "text-amber-400 font-bold", box: "bg-amber-500 text-white" };
       if (type === 'weekly') return { wrapper: "bg-blue-500/10 border-blue-500/50", text: "text-blue-400 font-bold", box: "bg-blue-500 text-white" };
-      if (type === 'abyss') return { wrapper: "bg-emerald-500/10 border-emerald-500/50", text: "text-emerald-400 font-bold", box: "bg-emerald-500 text-white" };
-      if (type === 'raid') return { wrapper: "bg-indigo-500/10 border-indigo-500/50", text: "text-indigo-400 font-bold", box: "bg-indigo-500 text-white" };
+      if (type === 'abyss' || type === 'raid') return { wrapper: "bg-emerald-500/15 border-emerald-500/60", text: "text-emerald-400 font-bold", box: "bg-emerald-500 text-black font-bold" };
       return { wrapper: "", text: "", box: "" };
     };
 
@@ -585,7 +586,7 @@ export default function CharacterPage() {
         </div>
       )}
 
-      {/* ⭐️ 캐릭터 관리 모달 (삭제 버튼 이탈 방지 + 핸들 압축 + 문구 수정 완료) */}
+      {/* 캐릭터 관리 모달 */}
       {isManageModalOpen && (
         <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-2 md:p-4">
           <div className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-xl w-[98%] max-w-2xl max-h-[88vh] overflow-hidden flex flex-col shadow-2xl">
@@ -596,7 +597,6 @@ export default function CharacterPage() {
             
             <div className="p-1.5 md:p-3 overflow-y-auto custom-scrollbar flex-1 space-y-1.5">
               
-              {/* [사용 방법] 아코디언 버튼 */}
               <button 
                 onClick={() => setIsHowToOpen(!isHowToOpen)}
                 className="w-full text-left text-xs text-[var(--accent)] bg-[var(--inner-box)] border border-[var(--panel-border)] px-2 py-1 rounded-lg font-bold hover:bg-[var(--accent-soft)] transition flex justify-between items-center"
@@ -605,7 +605,6 @@ export default function CharacterPage() {
                 <span className="text-[10px]">{isHowToOpen ? '▲ 닫기' : '▼ 펼치기'}</span>
               </button>
 
-              {/* 사용 방법 안내 문구 (요청문구 수정 완료) */}
               {isHowToOpen && (
                 <div className="bg-[var(--inner-box)] border border-[var(--panel-border)] p-2 rounded-lg text-xs space-y-1 text-[var(--text-sub)]">
                   <p>● :: 핸들을 움직여 순서를 변경 할 수 있습니다!</p>
@@ -615,7 +614,6 @@ export default function CharacterPage() {
                 </div>
               )}
               
-              {/* 초슬림 캐릭터 행 (모바일 100% 한 줄 보장) */}
               {manageList.map((char, index) => !char.isDeleted && (
                 <div 
                   key={index} 
@@ -625,13 +623,11 @@ export default function CharacterPage() {
                   onDragOver={(e) => e.preventDefault()}
                   className="flex items-center gap-1 bg-[var(--inner-box)] p-1 rounded-lg border border-[var(--panel-border)] transition hover:border-[var(--accent)]/50 min-w-0"
                 >
-                  {/* :: 슬림 드래그 핸들 */}
                   <div className="flex items-center text-[var(--text-sub)] font-mono cursor-grab active:cursor-grabbing shrink-0 select-none text-[10px] leading-none">
                     <span className="font-bold text-[11px] text-[var(--text-sub)]">::</span>
                     <span className="font-bold text-[var(--accent)] min-w-[10px] text-center">{index + 1}</span>
                   </div>
 
-                  {/* 애칭 (최대 2자) */}
                   <input 
                     value={char.tempAlias} 
                     maxLength={2}
@@ -644,7 +640,6 @@ export default function CharacterPage() {
                     className="w-10 sm:w-12 bg-[var(--panel)] border border-[var(--panel-border)] rounded px-1 py-1 text-[11px] text-[var(--text-main)] focus:border-[var(--accent)] outline-none text-center shrink-0 font-bold" 
                   />
 
-                  {/* 정확한 닉네임 */}
                   <input 
                     value={char.tempNickname} 
                     placeholder="닉네임"
@@ -652,7 +647,6 @@ export default function CharacterPage() {
                     className="flex-1 min-w-[48px] bg-[var(--panel)] border border-[var(--panel-border)] rounded px-1 py-1 text-[11px] text-[var(--text-main)] focus:border-[var(--accent)] outline-none" 
                   />
 
-                  {/* 주 클래스 */}
                   <select 
                     value={char.tempJob} 
                     onChange={(e) => { const nw = [...manageList]; nw[index].tempJob = e.target.value; setManageList(nw); }} 
@@ -661,7 +655,6 @@ export default function CharacterPage() {
                     {dbClasses.map((cls: any) => <option key={cls.name} value={cls.name}>{cls.name}</option>)}
                   </select>
 
-                  {/* 대표 선택 */}
                   <button 
                     type="button"
                     onClick={() => handleSetMain(index)}
@@ -674,7 +667,6 @@ export default function CharacterPage() {
                     대표
                   </button>
 
-                  {/* 삭제 버튼 */}
                   <button 
                     onClick={() => { if(confirm(`정말 [${char.tempAlias || char.tempNickname}] 캐릭터를 삭제하시겠습니까?`)) { const nw = [...manageList]; nw[index].isDeleted = true; setManageList(nw); } }} 
                     className="bg-red-950/40 text-red-400 border border-red-800/50 px-1.5 py-1 rounded text-[10px] sm:text-xs font-bold hover:bg-red-900/60 shrink-0"
@@ -876,7 +868,7 @@ export default function CharacterPage() {
               {(activeTab === 'all' || activeTab === 'abyss_raid') && (
                 <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-2.5 shadow-xs flex flex-col">
                   <div className="flex justify-between items-center mb-2 border-b border-[var(--panel-border)] pb-1.5 gap-2">
-                    <h3 className="font-bold text-indigo-400 text-xs md:text-sm whitespace-nowrap">레이드 관리</h3>
+                    <h3 className="font-bold text-emerald-400 text-xs md:text-sm whitespace-nowrap">레이드 관리</h3>
                     <button onClick={() => handleSmartToggle('raid')} className={`text-xs font-bold px-2 py-0.5 rounded transition shadow-xs whitespace-nowrap ${isRaidAllChecked ? 'bg-[var(--inner-box)] text-[var(--text-sub)] border border-[var(--panel-border)]' : 'bg-[var(--accent)] text-[var(--accent-fg)]'}`}>{isRaidAllChecked ? '전체 해제' : '전체 완료'}</button>
                   </div>
                   <div className="space-y-1 flex-1 overflow-y-auto custom-scrollbar pr-0.5">{raidList.map((item: any) => renderTask(item, 'raid'))}</div>

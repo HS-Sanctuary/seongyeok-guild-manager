@@ -16,14 +16,14 @@
   --color-accent-secondary: var(--accent-secondary);
 }
 
-/* 1. AUREUM (Dark - Default) */
+/* 1. AUREUM (Dark - Default) - 사용자 커스텀 반영 */
 :root, [data-theme="dark"], [data-theme="aureum"] {
-  --background: #0A0A0A;
+  --background: #1b1b1b;
   --foreground: #EDEDED;
-  --panel: #121212;
-  --panel-hover: #1C1C1E;
+  --panel: #101011;
+  --panel-hover: #242426;
   --panel-border: #2A2A2E;
-  --inner-box: #050505;
+  --inner-box: #0D0D0E;
   --text-main: #EDEDED;
   --text-sub: #9CA3AF;
   --accent: #E6C788;
@@ -120,7 +120,6 @@
 
 * { 
   box-sizing: border-box; 
-  /* ✨ 모든 요소에 부드러운 테마 색상 전환 애니메이션 적용 (성능에 영향 없는 색상계열만) */
   transition: background-color 0.25s ease-in-out, border-color 0.25s ease-in-out, color 0.25s ease-in-out, fill 0.25s ease-in-out;
 }
 

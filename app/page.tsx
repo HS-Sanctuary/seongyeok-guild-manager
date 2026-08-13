@@ -446,7 +446,7 @@ export default function Home() {
   if (!mounted || !user) return null;
 
   return (
-    <div className="p-4 md:p-8 space-y-4 md:space-y-6 animate-in fade-in duration-300">
+    <div className="px-4 md:px-8 pt-1 md:pt-2 pb-6 md:pb-8 space-y-4 md:space-y-6 animate-in fade-in duration-300">
       
       {/* 상단 알리미 위젯 */}
       <section className="space-y-2">
@@ -459,7 +459,7 @@ export default function Home() {
 
         <div className="grid grid-cols-2 xl:grid-cols-6 gap-2 md:gap-3 items-stretch">
           
-          {/* 1. Sanctuary ASTRA (🟡 노란색 및 🩵 하늘색 부분 최적화) */}
+          {/* 1. Sanctuary ASTRA */}
           <div 
             onClick={() => router.push('/lounge/astra')}
             className="rounded-xl border backdrop-blur p-2.5 sm:p-3.5 flex flex-col justify-between relative overflow-hidden shadow-sm order-1 cursor-pointer transition group bg-[var(--panel)] border-[var(--panel-border)] hover:border-[var(--accent)]"
@@ -532,7 +532,7 @@ export default function Home() {
             <p className="text-[0.55rem] xs:text-[0.6rem] whitespace-nowrap text-[var(--text-sub)]">{barrierEvent.status === 'active' ? '몬스터 등장 중' : '매 정각 실시간 타이머'}</p>
           </div>
 
-          {/* 5. 어비스 구멍 알림 (🔴 빨간색 부분 제보 버튼 이탈 수정) */}
+          {/* 5. 어비스 구멍 알림 */}
           <div className="rounded-xl p-2.5 sm:p-3.5 flex flex-col justify-between relative backdrop-blur order-5 border bg-[var(--panel)] border-[var(--panel-border)]">
             <div className="flex justify-between items-center mb-1 gap-1">
               <p className="text-[0.55rem] xs:text-[0.6rem] font-bold whitespace-nowrap text-[var(--accent)]">어비스 구멍 알림</p>
@@ -551,7 +551,7 @@ export default function Home() {
             </div>
           </div>
 
-          {/* 6. 심층 구멍 알림 (🔴 빨간색 제보 버튼 & 🩷 핑크색 사냥터 오버플로우 수정) */}
+          {/* 6. 심층 구멍 알림 */}
           <div className="rounded-xl p-2.5 sm:p-3.5 flex flex-col justify-between relative backdrop-blur order-6 border bg-[var(--panel)] border-[var(--panel-border)]">
             <div className="flex flex-col mb-1">
               <div className="flex justify-between items-center w-full gap-1">
@@ -682,7 +682,9 @@ export default function Home() {
                           return (
                             <span 
                               key={a.id} 
-                              className={`w-full text-[0.6rem] px-1 md:px-1.5 py-1 rounded border font-bold text-center truncate transition-colors ${isOddAndLast ? 'col-span-2' : ''} ${isChecked ? 'bg-[var(--accent)] text-[var(--accent-fg)] border-[var(--accent)]' : 'bg-[var(--panel)] border-[var(--panel-border)] text-[var(--text-sub)]'}`}
+                              className={`w-full text-[0.6rem] px-1 md:px-1.5 py-1 rounded border font-bold text-center truncate transition-colors ${isOddAndLast ? 'col-span-2' : ''} ${
+                                isChecked ? 'bg-[var(--accent-secondary)] text-[var(--accent-fg)] border-[var(--accent-secondary)] shadow-xs' : 'bg-[var(--panel)] border-[var(--panel-border)] text-[var(--text-sub)]'
+                              }`}
                             >
                               {dName}
                             </span>
@@ -701,7 +703,9 @@ export default function Home() {
                           return (
                             <span 
                               key={r.id} 
-                              className={`w-full text-[0.6rem] px-1 md:px-1.5 py-1 rounded border font-bold text-center truncate transition-colors ${isOddAndLast ? 'col-span-2' : ''} ${isChecked ? 'bg-[var(--accent-strong)] text-white border-[var(--accent-strong)]' : 'bg-[var(--panel)] border-[var(--panel-border)] text-[var(--text-sub)]'}`}
+                              className={`w-full text-[0.6rem] px-1 md:px-1.5 py-1 rounded border font-bold text-center truncate transition-colors ${isOddAndLast ? 'col-span-2' : ''} ${
+                                isChecked ? 'bg-[var(--accent)] text-[var(--accent-fg)] border-[var(--accent)] shadow-xs' : 'bg-[var(--panel)] border-[var(--panel-border)] text-[var(--text-sub)]'
+                              }`}
                             >
                               {dName}
                             </span>

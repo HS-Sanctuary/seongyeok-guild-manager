@@ -97,11 +97,43 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     return () => window.removeEventListener("sanctum_account_changed", handleAccountChange);
   }, []);
 
+  // 테마 주입 효과
   useEffect(() => {
-    if (activeAccount?.theme) {
-      document.documentElement.setAttribute('data-theme', activeAccount.theme);
+    const root = document.documentElement;
+    const targetTheme = activeAccount?.theme || 'aureum';
+
+    if (targetTheme.startsWith('custom_')) {
+      root.setAttribute('data-theme', targetTheme);
+      const savedCustom = localStorage.getItem(`sanctum_theme_${targetTheme}`);
+      if (savedCustom) {
+        try {
+          const parsed = JSON.parse(savedCustom);
+          if (parsed.colors) {
+            root.style.setProperty("--background", parsed.colors.background);
+            root.style.setProperty("--panel", parsed.colors.panel);
+            root.style.setProperty("--panel-border", parsed.colors.panelBorder);
+            root.style.setProperty("--inner-box", parsed.colors.innerBox);
+            root.style.setProperty("--text-main", parsed.colors.textMain);
+            root.style.setProperty("--text-sub", parsed.colors.textSub);
+            root.style.setProperty("--accent", parsed.colors.accent);
+            root.style.setProperty("--accent-fg", parsed.colors.accentFg || "#000000");
+            root.style.setProperty("--accent-secondary", parsed.colors.accentSecondary);
+            root.style.setProperty("--accent-secondary-fg", parsed.colors.accentSecondaryFg || "#000000");
+          }
+        } catch (e) {}
+      }
     } else {
-      document.documentElement.setAttribute('data-theme', 'aureum');
+      root.setAttribute('data-theme', targetTheme);
+      root.style.removeProperty("--background");
+      root.style.removeProperty("--panel");
+      root.style.removeProperty("--panel-border");
+      root.style.removeProperty("--inner-box");
+      root.style.removeProperty("--text-main");
+      root.style.removeProperty("--text-sub");
+      root.style.removeProperty("--accent");
+      root.style.removeProperty("--accent-fg");
+      root.style.removeProperty("--accent-secondary");
+      root.style.removeProperty("--accent-secondary-fg");
     }
   }, [activeAccount]);
 
@@ -193,14 +225,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     const updatedCurrent = updatedAccounts.find(a => a.id === activeAccount.id) || null;
     setActiveAccount(updatedCurrent);
     if (updatedCurrent) {
-      document.documentElement.setAttribute('data-theme', updatedCurrent.theme || 'aureum');
       window.dispatchEvent(new CustomEvent("sanctum_account_changed", { detail: updatedCurrent }));
     }
 
     setIsThemeModalOpen(false);
   };
 
-  // 📱 모바일 알약 위젯 드래그 핸들러 (수정 완료: 클릭 먹통 및 손떨림 오류 해결)
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     dragStartX.current = e.clientX;
     startFabX.current = fabPosition.x;
@@ -208,7 +238,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
     const onPointerMove = (moveEvent: PointerEvent) => {
       const deltaX = dragStartX.current - moveEvent.clientX;
-      // 터치 이동 범위가 10px 이상일 때만 '드래그'로 인식
       if (Math.abs(deltaX) > 10) {
         hasMoved.current = true;
       }
@@ -332,7 +361,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <div className="max-w-[1600px] mx-auto px-4 w-full relative">
             <div className="flex items-center justify-between h-20">
               
-              {/* 로고 영역 */}
               <div className="flex items-center gap-3 shrink-0">
                 <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity shrink-0">
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg transition-colors border border-black/10 relative overflow-hidden shrink-0 bg-[var(--accent)] text-[var(--accent-fg)]">
@@ -347,7 +375,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   </div>
                 </Link>
 
-                {/* 🪽 정령의 날개 버튼 */}
                 <div className="relative z-[100] ml-1" ref={wingsRef}>
                   <button 
                     onClick={() => setIsWingsOpen(!isWingsOpen)}
@@ -430,7 +457,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     >
                       <div className="flex flex-col items-center transition-transform duration-300 transform group-hover:-translate-y-12">
                         <span className="font-black text-[0.7rem] xl:text-[0.75rem] leading-tight whitespace-nowrap text-[var(--text-main)]">{item.kr}</span>
-                        <span className="text-[0.5rem] font-bold mt-0.5 whitespace-nowrap text-[var(--accent)]">{item.sub}</span>
+                        <span className="text-[0.55rem] font-bold mt-0.5 whitespace-nowrap text-[var(--accent)]">{item.sub}</span>
                       </div>
                       
                       <div className="absolute inset-0 flex items-center justify-center transition-all duration-300 transform translate-y-12 opacity-0 group-hover:translate-y-0 group-hover:opacity-100">
@@ -444,17 +471,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               {/* 우측 유틸리티 버튼 */}
               <div className="hidden lg:flex items-center gap-2.5 relative shrink-0">
                 
-                {/* 🎨 테마 설정 버튼 */}
                 <button 
                   onClick={() => setIsThemeModalOpen(true)}
-                  className="w-9 h-9 border rounded-xl transition cursor-pointer flex items-center justify-center shadow-sm bg-[var(--inner-box)] border-[var(--panel-border)] hover:border-[var(--accent)] hover:scale-105 text-base select-none"
+                  className="w-9 h-9 border rounded-xl transition cursor-pointer flex items-center justify-center shadow-sm border-[var(--panel-border)] hover:border-[var(--accent)] hover:scale-105 text-base select-none bg-[var(--headerBtnBg,var(--inner-box))]"
                   title="생텀 테마 설정"
                 >
                   🎨
                 </button>
 
-                {/* 🩷 메일함 버튼 */}
-                <div className="w-9 h-9 border rounded-xl transition cursor-pointer flex items-center justify-center shadow-sm bg-[var(--inner-box)] border-[var(--panel-border)] hover:border-[var(--accent)] hover:scale-105 text-[var(--accent)]" title="메일함 (목업)">
+                <div className="w-9 h-9 border rounded-xl transition cursor-pointer flex items-center justify-center shadow-sm border-[var(--panel-border)] hover:border-[var(--accent)] hover:scale-105 text-[var(--accent)] bg-[var(--headerBtnBg,var(--inner-box))]" title="메일함 (목업)">
                   <svg className="w-4 h-4 text-[var(--accent)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
                   </svg>
@@ -655,7 +680,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <div className="p-6 space-y-6 max-h-[80vh] overflow-y-auto custom-scrollbar">
                 
                 <div className="space-y-3">
-                  <label className="text-xs font-bold text-[var(--text-sub)] uppercase tracking-wider block">생텀 테마 프리셋</label>
+                  <label className="text-xs font-bold text-[var(--text-sub)] uppercase tracking-wider block">기본 테마 프리셋</label>
                   
                   <div className="grid grid-cols-3 gap-2.5">
                     {[
@@ -666,12 +691,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                       { id: 'rosarium', name: 'ROSARIUM', bg: '#1A1016', accent: '#E88DA8' },
                       { id: 'elysium', name: 'ELYSIUM', bg: '#D2F4C0', accent: '#6262B8' },
                     ].map((item) => {
-                      const isSelected = tempTheme === item.id || 
-                        (tempTheme === 'dark' && item.id === 'aureum') || 
-                        (tempTheme === 'light' && item.id === 'lumen') || 
-                        (tempTheme === 'mint' && item.id === 'nemeton') || 
-                        (tempTheme === 'purple' && item.id === 'vesper') || 
-                        (tempTheme === 'rose' && item.id === 'rosarium');
+                      const isSelected = tempTheme === item.id;
 
                       return (
                         <button
@@ -694,6 +714,27 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   </div>
                 </div>
 
+                {/* 커스텀 테마 슬롯 1~3 빠른 선택 버튼 추가 */}
+                <div className="space-y-3 pt-3 border-t border-[var(--panel-border)]">
+                  <label className="text-xs font-bold text-[var(--accent)] uppercase tracking-wider block">나만의 커스텀 테마 슬롯</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {(["custom_1", "custom_2", "custom_3"] as const).map((cSlot, idx) => (
+                      <button
+                        key={cSlot}
+                        type="button"
+                        onClick={() => setTempTheme(cSlot)}
+                        className={`py-2 px-1 rounded-xl text-xs font-black border transition ${
+                          tempTheme === cSlot 
+                            ? 'bg-[var(--accent)] text-[var(--accent-fg)] border-[var(--accent)] shadow' 
+                            : 'bg-[var(--inner-box)] border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)]'
+                        }`}
+                      >
+                        Custom {idx + 1}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 <div className="pt-3 border-t border-[var(--panel-border)] flex items-center justify-between">
                   <span className="text-xs font-bold text-[var(--text-sub)]">화면 글자 크기</span>
                   <div className="flex items-center bg-[var(--inner-box)] border border-[var(--panel-border)] rounded-xl p-1 gap-1">
@@ -702,12 +743,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     <button onClick={() => setFontSizeLevel('large')} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${fontSizeLevel === 'large' ? 'bg-[var(--panel-hover)] text-[var(--text-main)] shadow' : 'text-[var(--text-sub)] hover:text-[var(--text-main)]'}`}>A+</button>
                   </div>
                 </div>
+
               </div>
 
-              <div className="bg-[var(--panel-hover)] p-4 border-t border-[var(--panel-border)] flex justify-between gap-2">
-                <button onClick={() => setIsThemeModalOpen(false)} className="px-5 py-2 rounded-lg bg-[var(--inner-box)] text-[var(--text-sub)] text-xs font-bold hover:text-[var(--text-main)] transition">취소</button>
-                <button onClick={handleSaveThemeSettings} className="px-5 py-2 rounded-lg bg-[var(--accent)] text-[var(--accent-fg)] text-xs font-black transition shadow hover:opacity-90">적용하기</button>
+              <div className="bg-[var(--panel-hover)] p-4 border-t border-[var(--panel-border)] flex flex-col sm:flex-row justify-between items-center gap-2">
+                <button 
+                  onClick={() => { setIsThemeModalOpen(false); router.push('/customize'); }} 
+                  className="w-full sm:w-auto px-4 py-2 rounded-lg bg-[var(--accent-soft)] text-[var(--accent)] border border-[var(--accent)]/40 text-xs font-black transition shadow hover:bg-[var(--accent)] hover:text-[var(--accent-fg)] flex items-center justify-center gap-1.5 whitespace-nowrap"
+                >
+                  <span>✨</span> 커스텀 테마 스튜디오 이동
+                </button>
+                <div className="flex gap-2 w-full sm:w-auto justify-end">
+                  <button onClick={() => setIsThemeModalOpen(false)} className="px-4 py-2 rounded-lg bg-[var(--inner-box)] text-[var(--text-sub)] text-xs font-bold hover:text-[var(--text-main)] transition">취소</button>
+                  <button onClick={handleSaveThemeSettings} className="px-4 py-2 rounded-lg bg-[var(--accent)] text-[var(--accent-fg)] text-xs font-black transition shadow hover:opacity-90">적용하기</button>
+                </div>
               </div>
+
             </div>
           </div>
         )}
