@@ -14,9 +14,12 @@
   --color-accent-strong: var(--accent-strong);
   --color-accent-soft: var(--accent-soft);
   --color-accent-secondary: var(--accent-secondary);
+  --color-accent-secondary-fg: var(--accent-secondary-fg);
+  --color-accent-secondary2: var(--accent-secondary2);
+  --color-accent-secondary2-fg: var(--accent-secondary2-fg);
 }
 
-/* 1. AUREUM (Dark - Default) - 사용자 커스텀 반영 */
+/* 1. AUREUM (Dark - Default) */
 :root, [data-theme="dark"], [data-theme="aureum"] {
   --background: #1b1b1b;
   --foreground: #EDEDED;
@@ -31,6 +34,9 @@
   --accent-strong: #D4AF37;
   --accent-soft: #2E281A;
   --accent-secondary: #C5A059;
+  --accent-secondary-fg: #000000;
+  --accent-secondary2: #34D399;
+  --accent-secondary2-fg: #000000;
 }
 
 /* 2. LUMEN (Light) */
@@ -48,6 +54,9 @@
   --accent-strong: #1D4ED8;
   --accent-soft: #EFF6FF;
   --accent-secondary: #0284C7;
+  --accent-secondary-fg: #FFFFFF;
+  --accent-secondary2: #10B981;
+  --accent-secondary2-fg: #FFFFFF;
 }
 
 /* 3. NEMETON (Mint) */
@@ -65,6 +74,9 @@
   --accent-strong: #2FAF86;
   --accent-soft: #143D32;
   --accent-secondary: #5EA7A0;
+  --accent-secondary-fg: #000000;
+  --accent-secondary2: #10B981;
+  --accent-secondary2-fg: #000000;
 }
 
 /* 4. VESPER (Purple) */
@@ -82,6 +94,9 @@
   --accent-strong: #956AE0;
   --accent-soft: #2D1F47;
   --accent-secondary: #6E82D9;
+  --accent-secondary-fg: #000000;
+  --accent-secondary2: #A7F3D0;
+  --accent-secondary2-fg: #000000;
 }
 
 /* 5. ROSARIUM (Rose) */
@@ -99,6 +114,9 @@
   --accent-strong: #D96786;
   --accent-soft: #421E2A;
   --accent-secondary: #B89A72;
+  --accent-secondary-fg: #000000;
+  --accent-secondary2: #F472B6;
+  --accent-secondary2-fg: #000000;
 }
 
 /* 6. ELYSIUM */
@@ -116,6 +134,9 @@
   --accent-strong: #4B4BA0;
   --accent-soft: #DADAFA;
   --accent-secondary: #6BAA57;
+  --accent-secondary-fg: #FFFFFF;
+  --accent-secondary2: #059669;
+  --accent-secondary2-fg: #FFFFFF;
 }
 
 * { 
@@ -132,7 +153,6 @@ html, body {
   color: var(--foreground);
 }
 
-/* 커스텀 스크롤바 정돈 */
 .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
 .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--panel-border); border-radius: 10px; }
