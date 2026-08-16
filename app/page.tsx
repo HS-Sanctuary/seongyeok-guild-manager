@@ -294,7 +294,8 @@ export default function Home() {
       setAbyssList(sortedContents.filter(c => c.type === 'abyss').sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)));
       setRaidList(sortedContents.filter(c => c.type === 'raid').sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)));
 
-      const myChars = allChars.filter(char => char.owner === currentUser?.nickname);
+      // 크로노스 페이지와의 캐릭터 소유권 조회 조건 동기화
+      const myChars = allChars.filter(char => char.owner === currentUser?.nickname || char.nickname === currentUser?.nickname);
       myChars.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
       setMyCharacters(myChars);
 
@@ -436,7 +437,13 @@ export default function Home() {
   let totalAccountCurrent = 0, totalAccountMax = 0;
   myCharacters.forEach(char => {
     const dChecks = Array.isArray(char.daily_checks) ? char.daily_checks.map(Number) : [];
-    const wChecks = Array.isArray(char.weekly_checks?.normal) ? char.weekly_checks.normal.map(Number) : [];
+    
+    // 주간 숙제 하위 호환 처리
+    const wNormals = Array.isArray(char.weekly_checks) 
+      ? char.weekly_checks 
+      : (Array.isArray(char.weekly_checks?.normal) ? char.weekly_checks.normal : []);
+    const wChecks = wNormals.map(Number);
+    
     const rChecks = Array.isArray(char.raid_checks) ? char.raid_checks.map(Number) : [];
     totalAccountCurrent += (dailyTasks.filter(t => dChecks.includes(t.id)).length + weeklyTasks.filter(t => wChecks.includes(t.id)).length + abyssList.filter(a => rChecks.includes(a.id)).length + raidList.filter(r => rChecks.includes(r.id)).length);
     totalAccountMax += (dailyTasks.length + weeklyTasks.length + abyssList.length + raidList.length);
@@ -624,7 +631,12 @@ export default function Home() {
           ) : (
             myCharacters.map((char) => {
               const dChecks = Array.isArray(char.daily_checks) ? char.daily_checks.map(Number) : [];
-              const wChecks = Array.isArray(char.weekly_checks?.normal) ? char.weekly_checks.normal.map(Number) : [];
+              
+              const wNormals = Array.isArray(char.weekly_checks) 
+                ? char.weekly_checks 
+                : (Array.isArray(char.weekly_checks?.normal) ? char.weekly_checks.normal : []);
+              const wChecks = wNormals.map(Number);
+              
               const rChecks = Array.isArray(char.raid_checks) ? char.raid_checks.map(Number) : [];
               const dRate = Math.round((dailyTasks.filter(t => dChecks.includes(t.id)).length / (dailyTasks.length || 1)) * 100);
               const wRate = Math.round((weeklyTasks.filter(t => wChecks.includes(t.id)).length / (weeklyTasks.length || 1)) * 100);
@@ -633,7 +645,7 @@ export default function Home() {
 
               return (
                 <div 
-                  key={char.id} 
+                  key={char.id || char.nickname} 
                   onClick={() => router.push(`/character?char=${encodeURIComponent(char.nickname)}`)} 
                   className="backdrop-blur border rounded-xl p-2.5 md:p-4 cursor-pointer transition shadow-sm flex flex-col gap-2 md:gap-3 group min-w-0 active:scale-[0.98] bg-[var(--panel)] border-[var(--panel-border)] hover:border-[var(--accent)]"
                 >
@@ -849,7 +861,7 @@ export default function Home() {
           <div className="space-y-3">
             {topRankers.map((ranker, idx) => (
               <div 
-                key={ranker.id} 
+                key={ranker.id || ranker.nickname} 
                 className="flex items-center gap-3 backdrop-blur p-3 rounded-xl border shadow-sm min-w-0 bg-[var(--panel)] border-[var(--panel-border)]"
               >
                 <div 
@@ -1076,7 +1088,7 @@ export default function Home() {
                   className="w-full text-[0.8rem] p-2.5 rounded border outline-none bg-[var(--inner-box)] border-[var(--panel-border)] text-[var(--text-main)]"
                 >
                   {myCharacters.map(c => (
-                    <option key={c.id} value={c.nickname}>{c.nickname} (Lv.{c.level || 1})</option>
+                    <option key={c.id || c.nickname} value={c.nickname}>{c.nickname} (Lv.{c.level || 1})</option>
                   ))}
                   {myCharacters.length === 0 && <option value="">등록된 캐릭터가 없습니다</option>}
                 </select>

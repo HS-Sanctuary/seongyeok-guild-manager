@@ -61,12 +61,8 @@ export default function AdminPage() {
     }
     const parsedUser = JSON.parse(savedUser);
     
-    // 핵심 관리자 닉네임이거나 관리자 역할이면 통과
-    const adminNicknames = ["한설", "수도사는수도사", "신파랑", "제스"];
-    const isAdmin = adminNicknames.includes(parsedUser.nickname) || 
-                    parsedUser.role === "길드마스터" || 
-                    parsedUser.role === "부마스터" || 
-                    parsedUser.role === "마스터";
+    // 🔓 임시: 모든 로그인된 계정이 관리자 페이지에 접근 가능하도록 제한 해제
+    const isAdmin = !!parsedUser;
 
     if (!isAdmin) {
       alert("관리자 권한이 없습니다."); 

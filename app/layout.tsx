@@ -61,7 +61,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const [fabPosition, setFabPosition] = useState<{ x: number }>({ x: 20 });
   const [fontSizeLevel, setFontSizeLevel] = useState('normal');
   
-  // 스티커 상태 및 활성 탭
   const [stickers, setStickers] = useState<Sticker[]>([]);
   const [selectedStickerId, setSelectedStickerId] = useState<string | null>(null);
   const [activeStickerTab, setActiveStickerTab] = useState<'scale' | 'rotation' | 'opacity'>('scale');
@@ -73,11 +72,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const dragStartX = useRef(0);
   const startFabX = useRef(0);
   const hasMoved = useRef(false);
-
-  const sheetDragStartY = useRef(0);
-  const sheetCurrentDeltaY = useRef(0);
-  const [sheetTranslateY, setSheetTranslateY] = useState(0);
-  const [isDraggingSheet, setIsDraggingSheet] = useState(false);
 
   const wingsRef = useRef<HTMLDivElement>(null);
   const accountMenuRef = useRef<HTMLDivElement>(null);
@@ -114,7 +108,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     return () => window.removeEventListener("sanctum_account_changed", handleAccountChange);
   }, []);
 
-  // 📌 페이지 경로별 스티커 세션 관리
   useEffect(() => {
     if (!pathname) return;
     const savedStickers = localStorage.getItem(`sanctum_stickers_${pathname}`);
@@ -126,7 +119,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     setSelectedStickerId(null);
   }, [pathname]);
 
-  // 📌 LocalStorage 용량 초과 방지 안전 저장
   const saveStickers = (newStickers: Sticker[]) => {
     setStickers(newStickers);
     if (pathname) {
@@ -138,7 +130,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     }
   };
 
-  // ✂️ 테두리 경계면 Flood-Fill 누끼 따기 엔진
   const processImageCutout = (file: File): Promise<string> => {
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -171,7 +162,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           const visited = new Uint8Array(width * height);
 
           const isWhite = (r: number, g: number, b: number) => r > 225 && g > 225 && b > 225;
-
           const queue: number[] = [];
 
           for (let x = 0; x < width; x++) {
@@ -252,7 +242,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     e.target.value = "";
   };
 
-  // 🎯 상하좌우(X, Y) 2차원 자유 이동 드래그 핸들러
   const handleStartMoveSticker = (stkId: string, e: React.PointerEvent) => {
     const targetTag = (e.target as HTMLElement).tagName;
     if (targetTag === 'INPUT' || targetTag === 'BUTTON') return;
@@ -284,7 +273,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     window.addEventListener('pointerup', onPointerUp);
   };
 
-  // 테마 변수 주입
   useEffect(() => {
     const root = document.documentElement;
     const targetTheme = activeAccount?.theme || 'aureum';
@@ -375,6 +363,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     } catch (e) {}
   };
 
+  // 🔄 계정 스위칭 즉시 동기화 로직 적용
   const switchAccount = (acc: AccountPreset) => {
     setActiveAccount(acc);
     setTempTheme(acc.theme || 'aureum');
@@ -389,7 +378,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     }));
     setIsAccountMenuOpen(false);
     setIsFabOpen(false);
+    
     window.dispatchEvent(new CustomEvent("sanctum_account_changed", { detail: acc }));
+    
+    // 💡 계정을 바꾼 즉시 전체 페이지가 해당 계정 데이터로 즉각 갱신되도록 새로고침 실행
+    window.location.reload();
   };
 
   const handleSaveThemeSettings = () => {
@@ -453,7 +446,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   };
 
   useEffect(() => {
-    if (activeAccount && (activeAccount.nickname === "한설" || activeAccount.role === "마스터")) {
+    if (activeAccount) {
       checkPendingInquiries();
       const interval = setInterval(checkPendingInquiries, 10000);
       return () => clearInterval(interval);
@@ -497,7 +490,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     }
   };
 
-  const isAdmin = activeAccount?.nickname === "한설" || activeAccount?.role === "마스터";
+  const isAdmin = !!activeAccount;
   const isLoginPage = pathname === '/login';
 
   return (
@@ -513,7 +506,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <input ref={globalStickerInputRef} type="file" accept="image/*" onChange={handleGlobalStickerUpload} className="hidden" />
             <input ref={changeStickerImageRef} type="file" accept="image/*" onChange={handleChangeStickerImage} className="hidden" />
 
-            {/* ✂️ 1. 스티커 렌더링 레이어 (초슬림 탭 슬라이더 패널) */}
             <div className="fixed inset-0 z-[800] pointer-events-none overflow-hidden">
               {stickers.map((stk) => {
                 const isSelected = selectedStickerId === stk.id;
@@ -542,7 +534,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                       top: `${stk.y}%`,
                     }}
                   >
-                    {/* 스티커 이미지 */}
                     <div 
                       style={{
                         transform: `scale(${stk.scale}) rotate(${stk.rotation}deg)`,
@@ -557,14 +548,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                       />
                     </div>
 
-                    {/* 🎛️ 초슬림 컴팩트 조작 패널 (시야 가림 최소화) */}
                     {isSelected && (
                       <div 
                         className="mt-2 flex flex-col gap-1.5 bg-black/80 backdrop-blur-md border border-amber-400/80 rounded-xl p-2 shadow-2xl z-[900] pointer-events-auto opacity-100 min-w-[170px] text-white text-xs font-bold"
                         onClick={(e) => e.stopPropagation()}
                         onPointerDown={(e) => e.stopPropagation()}
                       >
-                        {/* 활성 탭 버튼 행 */}
                         <div className="flex items-center justify-between gap-1 bg-zinc-900/90 rounded-lg p-1 border border-zinc-700">
                           <button 
                             onClick={() => setActiveStickerTab('scale')} 
@@ -592,7 +581,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                           </button>
                         </div>
 
-                        {/* 선택된 탭에 대한 슬라이더 1개 노출 */}
                         <div className="px-1 py-0.5">
                           {activeStickerTab === 'scale' && (
                             <div className="flex items-center gap-2">
@@ -646,7 +634,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               })}
             </div>
 
-            {/* ⚙️ 스티커 설정 모달 */}
             {configStickerId && (
               <div className="fixed inset-0 z-[12000] flex items-center justify-center p-4 bg-black/75 animate-in fade-in duration-150">
                 <div className="bg-[var(--panel)] border-2 border-[var(--accent)] rounded-2xl p-5 w-full max-w-xs shadow-2xl flex flex-col gap-3 text-[var(--text-main)]">
@@ -699,7 +686,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </div>
             )}
 
-            {/* 상단 네비게이션 */}
             <nav className="sticky top-0 z-[900] flex flex-col shadow-lg border-b backdrop-blur-md w-full transition-colors bg-[var(--panel)] border-[var(--panel-border)]">
               {banner && (
                 <div className="w-full py-2 bg-red-600 text-white text-center text-xs font-black flex items-center justify-center gap-2 border-b border-red-800">
@@ -774,7 +760,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     </div>
                   </div>
 
-                  {/* 네비게이션 메뉴 */}
                   <div className="hidden lg:flex items-center space-x-2 xl:space-x-3">
                     {navItems.map((item) => {
                       const isActive = pathname === item.path;
@@ -798,7 +783,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     })}
                   </div>
 
-                  {/* 우측 유틸리티 버튼 */}
                   <div className="hidden lg:flex items-center gap-2.5 relative shrink-0">
                     <button 
                       onClick={() => setIsThemeModalOpen(true)}
@@ -864,7 +848,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </div>
             </nav>
 
-            {/* 📱 모바일 알약 FAB */}
             <div
               className="lg:hidden fixed bottom-6 z-[10000] flex items-center rounded-full shadow-[0_0_15px_rgba(0,0,0,0.7)] border-[1.5px] cursor-grab active:cursor-grabbing select-none bg-[var(--panel)] border-[var(--accent)] touch-none"
               style={{ right: `${fabPosition.x}px` }}
@@ -884,11 +867,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </button>
             </div>
 
-            {/* 📱 모바일 바텀시트 (계정 정보, 생텀 테마 설정, 글자 크기 복구 완료) */}
             <div
-              className={`fixed inset-x-0 bottom-0 z-[9999] lg:hidden border-t-2 rounded-t-[28px] p-4 shadow-2xl flex flex-col bg-[var(--panel)] text-[var(--text-main)] border-[var(--accent)] ${isDraggingSheet ? '' : 'transition-transform duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)]'}`}
+              className={`fixed inset-x-0 bottom-0 z-[9999] lg:hidden border-t-2 rounded-t-[28px] p-4 shadow-2xl flex flex-col bg-[var(--panel)] text-[var(--text-main)] border-[var(--accent)] transition-transform duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)]`}
               style={{ 
-                transform: isFabOpen ? `translateY(${sheetTranslateY}px)` : 'translateY(120%)' 
+                transform: isFabOpen ? `translateY(0px)` : 'translateY(120%)' 
               }}
             >
               <div className="w-full py-2 flex items-center justify-center cursor-grab active:cursor-grabbing touch-none select-none">
@@ -897,7 +879,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
               <div className="overflow-y-auto custom-scrollbar flex flex-col gap-3 pb-12 max-h-[80vh]">
                 
-                {/* 1. 모바일 계정 스위칭 및 정보 카드 */}
                 {activeAccount && (
                   <div className="bg-[var(--inner-box)] border border-[var(--panel-border)] rounded-xl p-3 flex justify-between items-center">
                     <div className="flex items-center gap-2">
@@ -925,7 +906,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   </div>
                 )}
 
-                {/* 2. 유틸리티 버튼 행 (생텀 페이지 설정 + 글자 크기 조절) */}
                 <div className="flex items-center justify-between gap-2 border-y border-[var(--panel-border)] py-2.5">
                   <button 
                     onClick={() => { setIsFabOpen(false); setIsThemeModalOpen(true); }}
@@ -941,7 +921,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   </div>
                 </div>
 
-                {/* 3. 메뉴 이동 그리드 */}
                 <div className="grid grid-cols-2 gap-2">
                   {navItems.map((item) => {
                     const isActive = pathname === item.path;
@@ -964,7 +943,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </div>
             </div>
 
-            {/* 🎨 생텀 페이지 설정 모달 */}
             {isThemeModalOpen && (
               <div className="fixed inset-0 z-[11000] flex items-center justify-center p-4 bg-black/70 animate-in fade-in duration-200">
                 <div className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
@@ -977,7 +955,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
                   <div className="p-6 space-y-6 max-h-[80vh] overflow-y-auto custom-scrollbar">
                     
-                    {/* 기본 테마 프리셋 */}
                     <div className="space-y-3">
                       <label className="text-xs font-bold text-[var(--text-sub)] uppercase tracking-wider block">기본 테마 프리셋</label>
                       <div className="grid grid-cols-3 gap-2.5">
@@ -1008,7 +985,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                       </div>
                     </div>
 
-                    {/* 나만의 커스텀 테마 슬롯 */}
                     <div className="space-y-3 pt-3 border-t border-[var(--panel-border)]">
                       <label className="text-xs font-bold text-[var(--accent)] uppercase tracking-wider block">나만의 커스텀 테마 슬롯</label>
                       <div className="grid grid-cols-3 gap-2">
@@ -1029,7 +1005,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                       </div>
                     </div>
 
-                    {/* 📌 중간 영역: [ 🏷️ 커스텀 스티커 추가 (좌) ] + [ 글자크기 UIUX (우) ] */}
                     <div className="pt-3 border-t border-[var(--panel-border)] flex items-center justify-between gap-2">
                       <button 
                         onClick={() => globalStickerInputRef.current?.click()}
@@ -1047,7 +1022,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
                   </div>
 
-                  {/* 📌 하단 풋터: [ ✨ 커스텀 테마 스튜디오 (좌) ] + [ 취소 / 적용하기 (우) ] */}
                   <div className="bg-[var(--panel-hover)] p-4 border-t border-[var(--panel-border)] flex flex-col sm:flex-row items-center justify-between gap-2">
                     <button 
                       onClick={() => { setIsThemeModalOpen(false); router.push('/customize'); }} 

@@ -12,11 +12,22 @@ const CATEGORY_THEMES: Record<string, any> = {
   HARMONIA: { tags: ['bg-yellow-500/30 text-yellow-300 border-yellow-400', 'bg-yellow-700/40 text-yellow-400 border-yellow-600/80', 'bg-yellow-900/40 text-yellow-500 border-yellow-800/70'] },
   PIETAS: { tags: ['bg-emerald-500/30 text-emerald-300 border-emerald-400', 'bg-emerald-800/40 text-emerald-400 border-emerald-600/80', 'bg-emerald-950/50 text-emerald-500 border-emerald-800/70'] }
 };
+
 const RANKING_INFO = {
-  TELOS: { type: 'TELOS', stat: '종합' }, KRATOS: { type: 'KRATOS', stat: '전투력' }, 
-  TECHNE: { type: 'TECHNE', stat: '생활력' }, HARMONIA: { type: 'HARMONIA', stat: '매력' }, PIETAS: { type: 'PIETAS', stat: '공헌도' }
+  TELOS: { type: 'TELOS', stat: '종합' }, 
+  KRATOS: { type: 'KRATOS', stat: '전투력' }, 
+  TECHNE: { type: 'TECHNE', stat: '생활력' }, 
+  HARMONIA: { type: 'HARMONIA', stat: '매력' }, 
+  PIETAS: { type: 'PIETAS', stat: '공헌도' }
 };
-const TOP_TITLES = { TELOS: ['헬리오스', '셀레네', '에오스'], PIETAS: ['시리우스', '레굴루스', '알데바란'], TECHNE: ['폴리매스', '마이스터', '아르티장'], HARMONIA: ['아글라이아', '카리스', '칼로스'] };
+
+const TOP_TITLES = { 
+  TELOS: ['헬리오스', '셀레네', '에오스'], 
+  PIETAS: ['시리우스', '레굴루스', '알데바란'], 
+  TECHNE: ['폴리매스', '마이스터', '아르티장'], 
+  HARMONIA: ['아글라이아', '카리스', '칼로스'] 
+};
+
 const CLASS_TITLES: Record<string, string[]> = {
   "전사": ["검투신", "검투왕", "검투사", "전사"], "대검전사": ["파괴신", "파괴왕", "광전사", "대검전사"], "검술사": ["검신", "검왕", "검성", "검술사"], "기사": ["수호신", "수호왕", "수호기사", "기사"],
   "마법사": ["마신", "대현자", "현자", "마법사"], "화염술사": ["화신", "염왕", "염마", "화염술사"], "빙결술사": ["빙신", "빙왕", "빙마", "빙결술사"], "전격술사": ["뢰신", "뇌왕", "뇌마", "전격술사"],
@@ -71,7 +82,7 @@ export default function CharacterPage() {
 
   // 요일별 검은 구멍 최대치 계산 (월:8 ~ 일:14)
   const getBlackHoleMaxCount = () => {
-    const day = new Date().getDay(); // 0(일), 1(월)... 6(토)
+    const day = new Date().getDay();
     if (day === 1) return 8;
     if (day === 2) return 9;
     if (day === 3) return 10;
@@ -98,7 +109,17 @@ export default function CharacterPage() {
     ...rawWeeklyList.filter(r => !defaultExtraWeeklyTasks.some(e => e.name === r.name))
   ];
 
-  const totalLevel = Object.values(levels).reduce((sum, lvl) => sum + lvl, 0);
+  // 21개 클래스 기본 1레벨(최소 21LV)을 보장하는 누적 레벨 계산
+  const calculateTotalLevel = () => {
+    const classList = dbClasses.length > 0 ? dbClasses : Array(21).fill(null);
+    return classList.reduce((sum, cls) => {
+      const clsName = cls?.name;
+      const lvl = clsName && levels[clsName] !== undefined ? levels[clsName] : 1;
+      return sum + lvl;
+    }, 0);
+  };
+
+  const totalLevel = calculateTotalLevel();
 
   useEffect(() => {
     setMounted(true);
@@ -216,6 +237,9 @@ export default function CharacterPage() {
           const wNormals = Array.isArray(data.weekly_checks.normal) ? data.weekly_checks.normal : [];
           setWeeklyChecks(wNormals.map(Number).filter((n: any) => !isNaN(n)));
           setRepeatChecks(data.weekly_checks.repeat || {});
+        } else if (Array.isArray(data.weekly_checks)) {
+          setWeeklyChecks(data.weekly_checks.map(Number).filter((n: any) => !isNaN(n)));
+          setRepeatChecks({});
         } else {
           setWeeklyChecks([]); setRepeatChecks({});
         }
@@ -249,7 +273,7 @@ export default function CharacterPage() {
       const currentSortOrder = existingIndex !== -1 ? (myCharacters[existingIndex].sort_order ?? myCharacters.length) : myCharacters.length;
 
       const payload = {
-        nickname: profile.nickname, alias: profile.alias, owner: user.nickname, sort_order: currentSortOrder,
+        nickname: profile.nickname, alias: profile.alias.slice(0, 3), owner: user.nickname, sort_order: currentSortOrder,
         job: profile.job, combat_power: Number(profile.combatPower) || 0, magic_resistance: Number(profile.magicResistance) || 0,
         life_energy: Number(profile.lifeEnergy) || 0, charm: Number(profile.charm) || 0, contribution: Number(accountContribution) || 0,
         is_main: profile.isMain, levels: levels, 
@@ -375,9 +399,9 @@ export default function CharacterPage() {
     const editList = myCharacters.map((c, i) => ({
       ...c, 
       originalName: c.nickname, 
-      tempAlias: (c.alias || "").slice(0, 2),
+      tempAlias: (c.alias || "").slice(0, 3),
       tempNickname: c.nickname, 
-      tempJob: c.job, 
+      tempJob: c.job || "전사", 
       isMain: c.is_main || false,
       isDeleted: false, 
       sort_order: i
@@ -415,6 +439,12 @@ export default function CharacterPage() {
     if (activeChars.length === 0) {
       alert("최소 1개의 캐릭터는 유지되어야 합니다."); return;
     }
+
+    for (const char of activeChars) {
+      if (!char.tempNickname || !char.tempNickname.trim()) {
+        alert("캐릭터 닉네임은 빈 칸일 수 없습니다."); return;
+      }
+    }
     
     const toDelete = manageList.filter(c => c.isDeleted && !c.isNew);
     for (const char of toDelete) {
@@ -426,22 +456,22 @@ export default function CharacterPage() {
         owner: user.nickname, 
         sort_order: char.sort_order, 
         job: char.tempJob,
-        alias: char.tempAlias.slice(0, 2),
+        alias: char.tempAlias.slice(0, 3),
         is_main: char.isMain,
         contribution: Number(accountContribution) || 0
       };
       
       if (char.isNew) {
-        payload.nickname = char.tempNickname;
+        payload.nickname = char.tempNickname.trim();
         await supabase.from('characters').insert([payload]);
       } else {
-        if (char.originalName !== char.tempNickname) payload.nickname = char.tempNickname;
+        if (char.originalName !== char.tempNickname.trim()) payload.nickname = char.tempNickname.trim();
         await supabase.from('characters').update(payload).eq('nickname', char.originalName);
       }
     }
 
     setIsManageModalOpen(false);
-    const targetNick = activeChars.find(c => c.originalName === profile.nickname)?.tempNickname || activeChars[0].tempNickname;
+    const targetNick = activeChars.find(c => c.originalName === profile.nickname)?.tempNickname.trim() || activeChars[0].tempNickname.trim();
     await fetchMasterData(user.nickname); 
     window.history.replaceState(null, '', `?char=${encodeURIComponent(targetNick)}`);
   };
@@ -521,7 +551,6 @@ export default function CharacterPage() {
 
     const isChecked = checks.includes(item.id);
 
-    // ⭐️ 어비스/레이드 강조 색상을 대표/노란색 노란 테마와 분리하여 동일한 초록/에메랄드 세트로 통일!
     const getColorTheme = () => {
       if (!isChecked) return { wrapper: "bg-[var(--inner-box)] border-[var(--panel-border)] hover:border-[var(--accent)]", text: "text-[var(--text-main)]", box: "bg-[var(--panel)] border-[var(--panel-border)]" };
       if (type === 'daily') return { wrapper: "bg-amber-500/10 border-amber-500/50", text: "text-amber-400 font-bold", box: "bg-amber-500 text-white" };
@@ -564,8 +593,6 @@ export default function CharacterPage() {
   const isAbyssAllChecked = abyssList.every((t: any) => abyssChecks.includes(t.id));
   const isRaidAllChecked = raidList.every((t: any) => raidChecks.includes(t.id));
 
-  const displayName = (profile.alias || profile.nickname).slice(0, 2);
-
   return (
     <main className="min-h-screen bg-[var(--background)] text-[var(--text-main)] font-sans pb-16 pt-2 md:pt-4 relative">
       
@@ -596,7 +623,6 @@ export default function CharacterPage() {
             </div>
             
             <div className="p-1.5 md:p-3 overflow-y-auto custom-scrollbar flex-1 space-y-1.5">
-              
               <button 
                 onClick={() => setIsHowToOpen(!isHowToOpen)}
                 className="w-full text-left text-xs text-[var(--accent)] bg-[var(--inner-box)] border border-[var(--panel-border)] px-2 py-1 rounded-lg font-bold hover:bg-[var(--accent-soft)] transition flex justify-between items-center"
@@ -608,7 +634,7 @@ export default function CharacterPage() {
               {isHowToOpen && (
                 <div className="bg-[var(--inner-box)] border border-[var(--panel-border)] p-2 rounded-lg text-xs space-y-1 text-[var(--text-sub)]">
                   <p>● :: 핸들을 움직여 순서를 변경 할 수 있습니다!</p>
-                  <p>● 애칭은 최대 두글자 입니다. 필수 입력 해주세요!</p>
+                  <p>● 애칭은 최대 세글자(3자)까지 입력 가능합니다!</p>
                   <p>● 닉네임은 인게임 닉네임을 정확히 입력해주세요!</p>
                   <p>● 대표 캐릭터는 한 캐릭터만 지정할 수 있습니다!</p>
                 </div>
@@ -630,14 +656,14 @@ export default function CharacterPage() {
 
                   <input 
                     value={char.tempAlias} 
-                    maxLength={2}
-                    placeholder="애칭(2자)"
+                    maxLength={3}
+                    placeholder="애칭(3자)"
                     onChange={(e) => { 
                       const nw = [...manageList]; 
-                      nw[index].tempAlias = e.target.value.slice(0, 2); 
+                      nw[index].tempAlias = e.target.value.slice(0, 3); 
                       setManageList(nw); 
                     }} 
-                    className="w-10 sm:w-12 bg-[var(--panel)] border border-[var(--panel-border)] rounded px-1 py-1 text-[11px] text-[var(--text-main)] focus:border-[var(--accent)] outline-none text-center shrink-0 font-bold" 
+                    className="w-12 sm:w-14 bg-[var(--panel)] border border-[var(--panel-border)] rounded px-1 py-1 text-[11px] text-[var(--text-main)] focus:border-[var(--accent)] outline-none text-center shrink-0 font-bold" 
                   />
 
                   <input 
@@ -717,18 +743,47 @@ export default function CharacterPage() {
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5 flex-wrap leading-tight">
-                  <span className="text-sm md:text-base font-black text-[var(--text-main)] truncate max-w-[140px] md:max-w-[220px]">{displayName}</span>
-                  {profile.alias && <span className="text-xs text-[var(--text-sub)] font-mono">({profile.nickname})</span>}
-                  <span className="text-xs bg-[var(--inner-box)] border border-[var(--panel-border)] px-1.5 py-0.2 rounded font-bold text-[var(--accent)] whitespace-nowrap">{profile.job}</span>
-                  {profile.isMain && <span className="text-xs bg-[var(--accent)] text-[var(--accent-fg)] font-black px-1.5 py-0.2 rounded">대표</span>}
+                  {/* PC 뷰 (md 이상): 본 닉네임만 표시 */}
+                  <span className="hidden md:inline text-base font-black text-[var(--text-main)] truncate max-w-[220px]">
+                    {profile.nickname}
+                  </span>
+                  
+                  {/* 모바일 뷰 (md 미만): 애칭 (없으면 닉네임) 표시 */}
+                  <span className="md:hidden text-sm font-black text-[var(--text-main)] truncate max-w-[140px]">
+                    {profile.alias || profile.nickname}
+                  </span>
+
+                  {/* 주 클래스 */}
+                  <span className="text-xs bg-[var(--inner-box)] border border-[var(--panel-border)] px-1.5 py-0.2 rounded font-bold text-[var(--accent)] whitespace-nowrap">
+                    {profile.job}
+                  </span>
+
+                  {/* 대표 여부 */}
+                  {profile.isMain && (
+                    <span className="text-xs bg-[var(--accent)] text-[var(--accent-fg)] font-black px-1.5 py-0.2 rounded whitespace-nowrap">
+                      대표
+                    </span>
+                  )}
                 </div>
-                <div className="text-xs text-[var(--text-sub)] font-mono mt-0.5">총 레벨 {totalLevel} LV</div>
+                <div className="text-xs text-[var(--text-sub)] font-bold mt-0.5">누적 레벨 : {totalLevel}</div>
               </div>
             </div>
 
-            <button onClick={() => setIsTitleAccordionOpen(!isTitleAccordionOpen)} className="bg-[var(--inner-box)] border border-[var(--panel-border)] text-xs font-bold text-[var(--accent)] px-2 py-1 rounded transition whitespace-nowrap shrink-0">
-              ✨ 칭호 {earnedTitles.length}
-            </button>
+            {/* 초록색 상자 영역: 크기와 폭(w-24), 패딩(py-1.5)이 완벽히 일치하는 버튼 2개 */}
+            <div className="flex flex-col items-end gap-1.5 shrink-0">
+              <button 
+                onClick={() => router.push(`/character/detail?char=${encodeURIComponent(profile.nickname)}`)}
+                className="w-24 text-center bg-[var(--accent)] text-[var(--accent-fg)] text-xs font-black py-1.5 rounded-lg shadow transition hover:opacity-90 whitespace-nowrap"
+              >
+                🔍 상세관리
+              </button>
+              <button 
+                onClick={() => setIsTitleAccordionOpen(!isTitleAccordionOpen)} 
+                className="w-24 text-center bg-[var(--inner-box)] border border-[var(--panel-border)] text-xs font-bold text-[var(--accent)] py-1.5 rounded-lg transition whitespace-nowrap hover:bg-[var(--accent-soft)]"
+              >
+                ✨ 칭호보기
+              </button>
+            </div>
           </div>
 
           {/* 칭호 아코디언 */}
@@ -772,10 +827,13 @@ export default function CharacterPage() {
 
         </div>
 
-        {/* 보유 캐릭터 선택 바 */}
+        {/* 🎯 보유 캐릭터 선택 바 */}
         <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-2 shadow-xs space-y-1">
           <div className="flex justify-between items-center text-xs font-bold text-[var(--text-sub)] px-1">
-            <span>캐릭터 선택</span>
+            <span className="flex items-center gap-1">
+              캐릭터 선택
+              <span className="text-[10px] text-[var(--text-sub)] font-normal md:hidden">({myCharacters.length})</span>
+            </span>
             <button 
               onClick={openManageModal} 
               className="text-xs bg-[var(--inner-box)] border border-[var(--panel-border)] px-2 py-0.5 rounded text-[var(--accent)] hover:bg-[var(--accent-soft)] transition font-bold"
@@ -784,22 +842,37 @@ export default function CharacterPage() {
             </button>
           </div>
           
-          <div className="flex gap-1.5 overflow-x-auto custom-scrollbar pb-0.5 touch-pan-x">
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-1.5 w-full">
             {myCharacters.map((char: any) => {
-              const nameToShow = (char.alias || char.nickname).slice(0, 2);
+              const mobileAlias = (char.alias || char.nickname).slice(0, 3);
               const isSelected = char.nickname === profile.nickname;
+
               return (
                 <button 
                   key={char.nickname} 
                   onClick={() => switchCharacter(char.nickname)} 
-                  className={`flex flex-col items-center justify-center px-2 py-1 rounded-lg border text-center transition shrink-0 min-w-[52px] ${
+                  className={`flex flex-col items-center justify-center p-2 rounded-lg border transition cursor-pointer select-none w-full min-w-0 ${
                     isSelected 
                       ? 'bg-[var(--accent-soft)] border-[var(--accent)] shadow-xs' 
                       : 'bg-[var(--inner-box)] border-[var(--panel-border)] hover:border-[var(--accent)]/50'
                   }`}
                 >
-                  <span className={`text-xs font-black leading-tight ${isSelected ? 'text-[var(--accent)]' : 'text-[var(--text-main)]'}`}>{nameToShow}</span>
-                  <span className="text-[10px] text-[var(--text-sub)] truncate mt-0.5">{char.job || '전사'}</span>
+                  {/* 모바일 화면 노출 */}
+                  <span className="md:hidden text-xs font-black leading-none text-center truncate w-full">
+                    <span className={isSelected ? 'text-[var(--accent)]' : 'text-[var(--text-main)]'}>
+                      {mobileAlias}
+                    </span>
+                  </span>
+
+                  {/* PC 화면 노출 (가운데 정렬) */}
+                  <div className="hidden md:flex flex-col items-center justify-center w-full gap-0.5 min-w-0 text-center">
+                    <span className={`text-xs font-black truncate w-full text-center ${isSelected ? 'text-[var(--accent)]' : 'text-[var(--text-main)]'}`}>
+                      {char.nickname}
+                    </span>
+                    <span className="text-[10px] text-[var(--text-sub)] font-bold truncate w-full text-center">
+                      {char.job || '전사'}
+                    </span>
+                  </div>
                 </button>
               );
             })}
