@@ -25,12 +25,13 @@ interface AccountPreset {
 interface Sticker {
   id: string;
   url: string;
-  x: number;
-  y: number;
+  x: number; // % (0 ~ 100)
+  y: number; // % (0 ~ 100)
   scale: number;
   rotation: number;
   opacity: number;
   frameStyle: "none" | "gold" | "polaroid" | "neon" | "sticker";
+  zIndex?: number; // 30: 카드 앞으로, 2: 카드 뒤로
 }
 
 const navItems: NavItem[] = [
@@ -62,8 +63,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const [fontSizeLevel, setFontSizeLevel] = useState('normal');
   
   const [stickers, setStickers] = useState<Sticker[]>([]);
+  const stickersRef = useRef<Sticker[]>([]);
+  stickersRef.current = stickers;
+
   const [selectedStickerId, setSelectedStickerId] = useState<string | null>(null);
-  const [activeStickerTab, setActiveStickerTab] = useState<'scale' | 'rotation' | 'opacity'>('scale');
+  const [activeStickerTab, setActiveStickerTab] = useState<'scale' | 'rotation' | 'opacity' | 'layer'>('scale');
   const [configStickerId, setConfigStickerId] = useState<string | null>(null);
   
   const globalStickerInputRef = useRef<HTMLInputElement>(null);
@@ -78,6 +82,28 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
   const [pendingCount, setPendingCount] = useState(0);
   const [banner, setBanner] = useState<any>(null);
+
+  // 🎯 바깥 영역 어디를 클릭해도 스티커 설정창이 100% 즉시 닫히는 캡처링 전역 이벤트
+  useEffect(() => {
+    const handleGlobalClickOutside = (event: MouseEvent | TouchEvent) => {
+      const target = event.target as HTMLElement;
+      if (
+        target.closest('.sticker-item') || 
+        target.closest('.sticker-toolbar') || 
+        target.closest('.sticker-modal')
+      ) {
+        return;
+      }
+      setSelectedStickerId(null);
+    };
+
+    window.addEventListener('mousedown', handleGlobalClickOutside, true);
+    window.addEventListener('touchstart', handleGlobalClickOutside, true);
+    return () => {
+      window.removeEventListener('mousedown', handleGlobalClickOutside, true);
+      window.removeEventListener('touchstart', handleGlobalClickOutside, true);
+    };
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent | TouchEvent) => {
@@ -112,7 +138,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     if (!pathname) return;
     const savedStickers = localStorage.getItem(`sanctum_stickers_${pathname}`);
     if (savedStickers) {
-      try { setStickers(JSON.parse(savedStickers)); } catch (e) { setStickers([]); }
+      try { 
+        const parsed: Sticker[] = JSON.parse(savedStickers);
+        setStickers(parsed); 
+      } catch (e) { 
+        setStickers([]); 
+      }
     } else {
       setStickers([]);
     }
@@ -128,6 +159,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         console.warn("Storage Quota Exceeded handled safely:", e);
       }
     }
+  };
+
+  const handleResetStickerPositions = () => {
+    if (stickers.length === 0) {
+      alert("현재 페이지에 배치된 스티커가 없습니다.");
+      return;
+    }
+    const resetList = stickers.map((s, idx) => ({
+      ...s,
+      x: 35 + (idx % 4) * 6,
+      y: 25 + (idx % 4) * 6,
+      zIndex: 30
+    }));
+    saveStickers(resetList);
+    alert("🧹 모든 스티커 위치가 화면 중앙으로 즉시 구출되었습니다!");
   };
 
   const processImageCutout = (file: File): Promise<string> => {
@@ -209,12 +255,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     const newSticker: Sticker = {
       id: `stk_${Date.now()}`,
       url: processedUrl,
-      x: 35 + (stickers.length % 5) * 4,
-      y: 25 + (stickers.length % 5) * 4,
+      x: 35 + (stickers.length % 5) * 5,
+      y: 25 + (stickers.length % 5) * 5,
       scale: 1,
       rotation: 0,
       opacity: 1,
-      frameStyle: "sticker"
+      frameStyle: "sticker",
+      zIndex: 30
     };
     const updated = [...stickers, newSticker];
     saveStickers(updated);
@@ -251,22 +298,29 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     const stk = stickers.find(s => s.id === stkId);
     if (!stk) return;
 
-    const startX = e.clientX;
-    const startY = e.clientY;
+    const startMouseX = e.clientX;
+    const startMouseY = e.clientY;
     const startStkX = stk.x;
     const startStkY = stk.y;
 
+    const containerW = document.documentElement.scrollWidth || document.body.scrollWidth || window.innerWidth;
+    const containerH = document.documentElement.scrollHeight || document.body.scrollHeight || window.innerHeight;
+
     const onPointerMove = (moveEvt: PointerEvent) => {
       moveEvt.preventDefault();
-      const deltaXPercent = ((moveEvt.clientX - startX) / window.innerWidth) * 100;
-      const deltaYPercent = ((moveEvt.clientY - startY) / window.innerHeight) * 100;
-      updateSticker(stkId, 'x', Math.max(0, Math.min(92, startStkX + deltaXPercent)));
-      updateSticker(stkId, 'y', Math.max(0, Math.min(92, startStkY + deltaYPercent)));
+      const deltaXPercent = ((moveEvt.clientX - startMouseX) / containerW) * 100;
+      const deltaYPercent = ((moveEvt.clientY - startMouseY) / containerH) * 100;
+      
+      const newX = Math.max(0, Math.min(95, startStkX + deltaXPercent));
+      const newY = Math.max(0, Math.min(98, startStkY + deltaYPercent));
+
+      setStickers((prev) => prev.map(s => s.id === stkId ? { ...s, x: newX, y: newY } : s));
     };
 
     const onPointerUp = () => {
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerup', onPointerUp);
+      saveStickers(stickersRef.current);
     };
 
     window.addEventListener('pointermove', onPointerMove, { passive: false });
@@ -363,7 +417,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     } catch (e) {}
   };
 
-  // 🔄 계정 스위칭 즉시 동기화 로직 적용
   const switchAccount = (acc: AccountPreset) => {
     setActiveAccount(acc);
     setTempTheme(acc.theme || 'aureum');
@@ -380,8 +433,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     setIsFabOpen(false);
     
     window.dispatchEvent(new CustomEvent("sanctum_account_changed", { detail: acc }));
-    
-    // 💡 계정을 바꾼 즉시 전체 페이지가 해당 계정 데이터로 즉각 갱신되도록 새로고침 실행
     window.location.reload();
   };
 
@@ -495,10 +546,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <html lang="ko">
-      <body 
-        className="min-h-screen relative font-sans transition-colors duration-200 bg-[var(--background)] text-[var(--foreground)]"
-        onClick={() => setSelectedStickerId(null)}
-      >
+      <body className="min-h-screen relative font-sans transition-colors duration-200 bg-[var(--background)] text-[var(--foreground)] overflow-x-hidden">
         {isLoginPage ? (
           children
         ) : (
@@ -506,9 +554,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <input ref={globalStickerInputRef} type="file" accept="image/*" onChange={handleGlobalStickerUpload} className="hidden" />
             <input ref={changeStickerImageRef} type="file" accept="image/*" onChange={handleChangeStickerImage} className="hidden" />
 
-            <div className="fixed inset-0 z-[800] pointer-events-none overflow-hidden">
+            {/* 스티커 레이어 */}
+            <div className="absolute inset-0 pointer-events-none w-full h-full">
+              
+              {/* 1️⃣ 스티커 그림 본체 (stk.zIndex: 2는 카드 뒤, 30은 카드 앞으로 실시간 적용) */}
               {stickers.map((stk) => {
                 const isSelected = selectedStickerId === stk.id;
+                const layerZIndex = stk.zIndex ?? 30; // ⚡ 실시간 zIndex 즉시 반영
 
                 let frameClasses = "";
                 if (stk.frameStyle === "sticker") {
@@ -526,12 +578,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     key={stk.id}
                     onClick={(e) => { e.stopPropagation(); setSelectedStickerId(stk.id); }}
                     onPointerDown={(e) => handleStartMoveSticker(stk.id, e)}
-                    className={`absolute cursor-grab active:cursor-grabbing pointer-events-auto flex flex-col items-center select-none touch-none ${
-                      isSelected ? 'ring-2 ring-amber-400 ring-offset-2 ring-offset-black/50 rounded-lg z-[850]' : ''
+                    className={`sticker-item absolute cursor-grab active:cursor-grabbing pointer-events-auto flex flex-col items-center select-none touch-none ${
+                      isSelected ? 'ring-2 ring-amber-400 ring-offset-2 ring-offset-black/50 rounded-lg' : ''
                     }`}
                     style={{
                       left: `${stk.x}%`,
                       top: `${stk.y}%`,
+                      zIndex: layerZIndex
                     }}
                   >
                     <div 
@@ -544,101 +597,156 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                         src={stk.url} 
                         alt="스티커" 
                         style={{ opacity: stk.opacity }}
-                        className={`max-w-[120px] max-h-[120px] object-contain pointer-events-none ${frameClasses}`} 
+                        className={`max-w-[140px] max-h-[140px] object-contain pointer-events-none ${frameClasses}`} 
                       />
                     </div>
-
-                    {isSelected && (
-                      <div 
-                        className="mt-2 flex flex-col gap-1.5 bg-black/80 backdrop-blur-md border border-amber-400/80 rounded-xl p-2 shadow-2xl z-[900] pointer-events-auto opacity-100 min-w-[170px] text-white text-xs font-bold"
-                        onClick={(e) => e.stopPropagation()}
-                        onPointerDown={(e) => e.stopPropagation()}
-                      >
-                        <div className="flex items-center justify-between gap-1 bg-zinc-900/90 rounded-lg p-1 border border-zinc-700">
-                          <button 
-                            onClick={() => setActiveStickerTab('scale')} 
-                            className={`px-1.5 py-0.5 rounded text-[0.6rem] transition cursor-pointer ${activeStickerTab === 'scale' ? 'bg-amber-400 text-black font-black' : 'text-zinc-400 hover:text-white'}`}
-                          >
-                            🔍 크기
-                          </button>
-                          <button 
-                            onClick={() => setActiveStickerTab('rotation')} 
-                            className={`px-1.5 py-0.5 rounded text-[0.6rem] transition cursor-pointer ${activeStickerTab === 'rotation' ? 'bg-amber-400 text-black font-black' : 'text-zinc-400 hover:text-white'}`}
-                          >
-                            🔄 회전
-                          </button>
-                          <button 
-                            onClick={() => setActiveStickerTab('opacity')} 
-                            className={`px-1.5 py-0.5 rounded text-[0.6rem] transition cursor-pointer ${activeStickerTab === 'opacity' ? 'bg-amber-400 text-black font-black' : 'text-zinc-400 hover:text-white'}`}
-                          >
-                            👁️ 투명
-                          </button>
-                          <button 
-                            onClick={() => setConfigStickerId(stk.id)}
-                            className="px-1.5 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-amber-300 text-[0.6rem] font-bold cursor-pointer"
-                          >
-                            ⚙️
-                          </button>
-                        </div>
-
-                        <div className="px-1 py-0.5">
-                          {activeStickerTab === 'scale' && (
-                            <div className="flex items-center gap-2">
-                              <input 
-                                type="range" 
-                                min="0.3" 
-                                max="3.0" 
-                                step="0.05" 
-                                value={stk.scale} 
-                                onChange={(e) => updateSticker(stk.id, 'scale', parseFloat(e.target.value))}
-                                className="w-full h-1.5 accent-amber-400 cursor-pointer"
-                              />
-                              <span className="text-[0.6rem] text-amber-300 shrink-0 w-8 text-right">{Math.round(stk.scale * 100)}%</span>
-                            </div>
-                          )}
-
-                          {activeStickerTab === 'rotation' && (
-                            <div className="flex items-center gap-2">
-                              <input 
-                                type="range" 
-                                min="0" 
-                                max="360" 
-                                step="1" 
-                                value={stk.rotation} 
-                                onChange={(e) => updateSticker(stk.id, 'rotation', parseInt(e.target.value))}
-                                className="w-full h-1.5 accent-amber-400 cursor-pointer"
-                              />
-                              <span className="text-[0.6rem] text-amber-300 shrink-0 w-8 text-right">{stk.rotation}°</span>
-                            </div>
-                          )}
-
-                          {activeStickerTab === 'opacity' && (
-                            <div className="flex items-center gap-2">
-                              <input 
-                                type="range" 
-                                min="0.1" 
-                                max="1.0" 
-                                step="0.05" 
-                                value={stk.opacity} 
-                                onChange={(e) => updateSticker(stk.id, 'opacity', parseFloat(e.target.value))}
-                                className="w-full h-1.5 accent-amber-400 cursor-pointer"
-                              />
-                              <span className="text-[0.6rem] text-amber-300 shrink-0 w-8 text-right">{Math.round(stk.opacity * 100)}%</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
                   </div>
                 );
               })}
+
+              {/* 2️⃣ 선택된 스티커 조작 툴바 오버레이 (스티커가 카드 뒤로 가도 항상 맨 위 z-[950]에 떠서 조작 가능) */}
+              {selectedStickerId && (() => {
+                const stk = stickers.find(s => s.id === selectedStickerId);
+                if (!stk) return null;
+                const isBehind = (stk.zIndex ?? 30) < 10;
+
+                return (
+                  <div
+                    key={`toolbar_${stk.id}`}
+                    className="sticker-toolbar absolute pointer-events-auto flex flex-col items-center select-none touch-none z-[950]"
+                    style={{
+                      left: `${stk.x}%`,
+                      top: `${stk.y}%`,
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="w-[120px] h-[120px] pointer-events-none" />
+                    
+                    <div 
+                      className="mt-2 flex flex-col gap-1.5 bg-black/90 backdrop-blur-md border border-amber-400/80 rounded-xl p-2 shadow-2xl pointer-events-auto min-w-[210px] text-white text-xs font-bold"
+                      onPointerDown={(e) => e.stopPropagation()}
+                    >
+                      {isBehind && (
+                        <div className="text-[0.6rem] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded text-center font-bold">
+                          💡 카드 뒤 배치 상태 (모서리에 걸치게 드래그해 보세요!)
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between gap-1 bg-zinc-900/90 rounded-lg p-1 border border-zinc-700">
+                        <button 
+                          onClick={() => setActiveStickerTab('scale')} 
+                          className={`px-1.5 py-0.5 rounded text-[0.6rem] transition cursor-pointer ${activeStickerTab === 'scale' ? 'bg-amber-400 text-black font-black' : 'text-zinc-400 hover:text-white'}`}
+                        >
+                          🔍 크기
+                        </button>
+                        <button 
+                          onClick={() => setActiveStickerTab('rotation')} 
+                          className={`px-1.5 py-0.5 rounded text-[0.6rem] transition cursor-pointer ${activeStickerTab === 'rotation' ? 'bg-amber-400 text-black font-black' : 'text-zinc-400 hover:text-white'}`}
+                        >
+                          🔄 회전
+                        </button>
+                        <button 
+                          onClick={() => setActiveStickerTab('opacity')} 
+                          className={`px-1.5 py-0.5 rounded text-[0.6rem] transition cursor-pointer ${activeStickerTab === 'opacity' ? 'bg-amber-400 text-black font-black' : 'text-zinc-400 hover:text-white'}`}
+                        >
+                          👁️ 투명
+                        </button>
+                        <button 
+                          onClick={() => setActiveStickerTab('layer')} 
+                          className={`px-1.5 py-0.5 rounded text-[0.6rem] transition cursor-pointer ${activeStickerTab === 'layer' ? 'bg-amber-400 text-black font-black' : 'text-zinc-400 hover:text-white'}`}
+                        >
+                          🥞 순서
+                        </button>
+                        <button 
+                          onClick={() => setConfigStickerId(stk.id)}
+                          className="px-1.5 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-amber-300 text-[0.6rem] font-bold cursor-pointer"
+                        >
+                          ⚙️
+                        </button>
+                      </div>
+
+                      <div className="px-1 py-0.5">
+                        {activeStickerTab === 'scale' && (
+                          <div className="flex items-center gap-2">
+                            <input 
+                              type="range" 
+                              min="0.3" 
+                              max="3.0" 
+                              step="0.05" 
+                              value={stk.scale} 
+                              onChange={(e) => updateSticker(stk.id, 'scale', parseFloat(e.target.value))}
+                              className="w-full h-1.5 accent-amber-400 cursor-pointer"
+                            />
+                            <span className="text-[0.6rem] text-amber-300 shrink-0 w-8 text-right">{Math.round(stk.scale * 100)}%</span>
+                          </div>
+                        )}
+
+                        {activeStickerTab === 'rotation' && (
+                          <div className="flex items-center gap-2">
+                            <input 
+                              type="range" 
+                              min="0" 
+                              max="360" 
+                              step="1" 
+                              value={stk.rotation} 
+                              onChange={(e) => updateSticker(stk.id, 'rotation', parseInt(e.target.value))}
+                              className="w-full h-1.5 accent-amber-400 cursor-pointer"
+                            />
+                            <span className="text-[0.6rem] text-amber-300 shrink-0 w-8 text-right">{stk.rotation}°</span>
+                          </div>
+                        )}
+
+                        {activeStickerTab === 'opacity' && (
+                          <div className="flex items-center gap-2">
+                            <input 
+                              type="range" 
+                              min="0.1" 
+                              max="1.0" 
+                              step="0.05" 
+                              value={stk.opacity} 
+                              onChange={(e) => updateSticker(stk.id, 'opacity', parseFloat(e.target.value))}
+                              className="w-full h-1.5 accent-amber-400 cursor-pointer"
+                            />
+                            <span className="text-[0.6rem] text-amber-300 shrink-0 w-8 text-right">{Math.round(stk.opacity * 100)}%</span>
+                          </div>
+                        )}
+
+                        {activeStickerTab === 'layer' && (
+                          <div className="grid grid-cols-2 gap-1.5">
+                            <button 
+                              onClick={() => updateSticker(stk.id, 'zIndex', 30)}
+                              className={`py-1 px-2 rounded text-[0.65rem] font-bold border transition cursor-pointer ${
+                                (stk.zIndex ?? 30) >= 30 
+                                  ? 'bg-amber-400 text-black border-amber-400 font-black' 
+                                  : 'bg-zinc-800 text-zinc-300 border-zinc-700 hover:text-white'
+                              }`}
+                            >
+                              ⬆️ 카드 앞으로
+                            </button>
+                            <button 
+                              onClick={() => updateSticker(stk.id, 'zIndex', 2)}
+                              className={`py-1 px-2 rounded text-[0.65rem] font-bold border transition cursor-pointer ${
+                                (stk.zIndex ?? 30) < 10 
+                                  ? 'bg-amber-400 text-black border-amber-400 font-black' 
+                                  : 'bg-zinc-800 text-zinc-300 border-zinc-700 hover:text-white'
+                              }`}
+                            >
+                              ⬇️ 카드 뒤로
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
 
             {configStickerId && (
-              <div className="fixed inset-0 z-[12000] flex items-center justify-center p-4 bg-black/75 animate-in fade-in duration-150">
+              <div className="sticker-modal fixed inset-0 z-[12000] flex items-center justify-center p-4 bg-black/75 animate-in fade-in duration-150">
                 <div className="bg-[var(--panel)] border-2 border-[var(--accent)] rounded-2xl p-5 w-full max-w-xs shadow-2xl flex flex-col gap-3 text-[var(--text-main)]">
                   <div className="flex justify-between items-center border-b pb-2 border-[var(--panel-border)]">
-                    <h4 className="font-black text-xs text-[var(--accent)] flex items-center gap-1.5">⚙️ 스티커 설정</h4>
+                    <h4 className="font-black text-xs text-[var(--accent)] flex items-center gap-1.5">⚙️ 스티커 상세 설정</h4>
                     <button onClick={() => setConfigStickerId(null)} className="text-xs text-[var(--text-sub)] hover:text-white cursor-pointer">&times;</button>
                   </div>
 
@@ -648,6 +756,32 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   >
                     🖼️ 스티커 사진 변경
                   </button>
+
+                  <div className="space-y-1">
+                    <span className="text-[0.6rem] font-bold text-[var(--text-sub)] block">배치 순서 (카드 앞/뒤)</span>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      <button
+                        onClick={() => updateSticker(configStickerId, 'zIndex', 30)}
+                        className={`py-1.5 px-2 rounded-lg border text-[0.65rem] font-bold cursor-pointer ${
+                          (stickers.find(s => s.id === configStickerId)?.zIndex ?? 30) >= 30
+                            ? 'bg-[var(--accent)] text-[var(--accent-fg)] border-[var(--accent)] font-black'
+                            : 'bg-[var(--inner-box)] border-[var(--panel-border)] text-[var(--text-sub)]'
+                        }`}
+                      >
+                        ⬆️ 카드 앞으로
+                      </button>
+                      <button
+                        onClick={() => updateSticker(configStickerId, 'zIndex', 2)}
+                        className={`py-1.5 px-2 rounded-lg border text-[0.65rem] font-bold cursor-pointer ${
+                          (stickers.find(s => s.id === configStickerId)?.zIndex ?? 30) < 10
+                            ? 'bg-[var(--accent)] text-[var(--accent-fg)] border-[var(--accent)] font-black'
+                            : 'bg-[var(--inner-box)] border-[var(--panel-border)] text-[var(--text-sub)]'
+                        }`}
+                      >
+                        ⬇️ 카드 뒤로
+                      </button>
+                    </div>
+                  </div>
 
                   <div className="space-y-1">
                     <span className="text-[0.6rem] font-bold text-[var(--text-sub)] block">테두리 프레임 스타일</span>
@@ -944,7 +1078,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </div>
 
             {isThemeModalOpen && (
-              <div className="fixed inset-0 z-[11000] flex items-center justify-center p-4 bg-black/70 animate-in fade-in duration-200">
+              <div className="sticker-modal fixed inset-0 z-[11000] flex items-center justify-center p-4 bg-black/70 animate-in fade-in duration-200">
                 <div className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
                   <div className="bg-[var(--panel-hover)] p-4 border-b border-[var(--panel-border)] flex justify-between items-center">
                     <h3 className="text-[var(--text-main)] font-black text-base flex items-center gap-2">
@@ -1005,19 +1139,58 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                       </div>
                     </div>
 
-                    <div className="pt-3 border-t border-[var(--panel-border)] flex items-center justify-between gap-2">
-                      <button 
-                        onClick={() => globalStickerInputRef.current?.click()}
-                        className="py-2.5 px-4 rounded-xl bg-[var(--accent)] text-[var(--accent-fg)] hover:opacity-90 text-xs font-black shadow-md transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
-                      >
-                        🏷️ 커스텀 스티커 추가
-                      </button>
+                    <div className="pt-3 border-t border-[var(--panel-border)] space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <button 
+                          onClick={() => globalStickerInputRef.current?.click()}
+                          className="py-2.5 px-4 rounded-xl bg-[var(--accent)] text-[var(--accent-fg)] hover:opacity-90 text-xs font-black shadow-md transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
+                        >
+                          🏷️ 커스텀 스티커 추가
+                        </button>
 
-                      <div className="flex items-center bg-[var(--inner-box)] border border-[var(--panel-border)] rounded-xl p-1 gap-1">
-                        <button onClick={() => setFontSizeLevel('small')} className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${fontSizeLevel === 'small' ? 'bg-[var(--panel-hover)] text-[var(--text-main)] shadow' : 'text-[var(--text-sub)] hover:text-[var(--text-main)]'}`}>A-</button>
-                        <button onClick={() => setFontSizeLevel('normal')} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${fontSizeLevel === 'normal' ? 'bg-[var(--panel-hover)] text-[var(--text-main)] shadow' : 'text-[var(--text-sub)] hover:text-[var(--text-main)]'}`}>A</button>
-                        <button onClick={() => setFontSizeLevel('large')} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${fontSizeLevel === 'large' ? 'bg-[var(--panel-hover)] text-[var(--text-main)] shadow' : 'text-[var(--text-sub)] hover:text-[var(--text-main)]'}`}>A+</button>
+                        <button 
+                          onClick={handleResetStickerPositions}
+                          className="py-2.5 px-3 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer"
+                          title="구석에 박힌 스티커 구출"
+                        >
+                          🧹 스티커 위치 전체 리셋
+                        </button>
                       </div>
+
+                      {/* 📌 현재 페이지에 배치된 스티커 목록 및 레이어 관리 관리자 */}
+                      {stickers.length > 0 && (
+                        <div className="pt-3 border-t border-[var(--panel-border)] space-y-2">
+                          <label className="text-xs font-bold text-[var(--text-sub)] uppercase tracking-wider block">
+                            📌 현재 페이지 스티커 목록 ({stickers.length}개)
+                          </label>
+                          <div className="flex flex-col gap-2 max-h-36 overflow-y-auto custom-scrollbar p-1">
+                            {stickers.map((stk, idx) => (
+                              <div key={stk.id} className="flex items-center justify-between bg-[var(--inner-box)] p-2 rounded-xl border border-[var(--panel-border)]">
+                                <div className="flex items-center gap-2">
+                                  <img src={stk.url} alt="스티커" className="w-8 h-8 object-contain rounded bg-black/40" />
+                                  <span className="text-[0.65rem] font-bold text-[var(--text-main)]">
+                                    스티커 #{idx + 1} ({(stk.zIndex ?? 30) < 10 ? '카드 뒤' : '카드 앞'})
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    onClick={() => updateSticker(stk.id, 'zIndex', (stk.zIndex ?? 30) < 10 ? 30 : 2)}
+                                    className="px-2 py-1 rounded text-[0.6rem] font-bold bg-[var(--panel-hover)] text-[var(--accent)] border border-[var(--panel-border)] hover:border-[var(--accent)] cursor-pointer"
+                                  >
+                                    {(stk.zIndex ?? 30) < 10 ? '⬆️ 앞으로' : '⬇️ 뒤로'}
+                                  </button>
+                                  <button
+                                    onClick={() => deleteSticker(stk.id)}
+                                    className="px-2 py-1 rounded text-[0.6rem] font-bold bg-red-600/80 text-white hover:bg-red-600 cursor-pointer"
+                                  >
+                                    🗑️
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                   </div>
@@ -1040,7 +1213,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </div>
             )}
 
-            <main className="max-w-[1600px] mx-auto px-4 py-6 w-full relative">
+            {/* 본문 콘텐츠 레이어 (z-[10]) */}
+            <main className="max-w-[1600px] mx-auto px-4 py-6 w-full relative z-[10]">
               {children}
             </main>
           </>

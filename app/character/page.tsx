@@ -61,6 +61,9 @@ export default function CharacterPage() {
 
   const defaultProfile = { nickname: "", alias: "", job: "전사", combatPower: "", magicResistance: "", lifeEnergy: "", charm: "", isMain: false };
   const [profile, setProfile] = useState(defaultProfile);
+  const profileRef = useRef(profile);
+  profileRef.current = profile;
+
   const [levels, setLevels] = useState<Record<string, number>>({});
   
   const [dailyChecks, setDailyChecks] = useState<number[]>([]);
@@ -202,10 +205,17 @@ export default function CharacterPage() {
         setMyCharacters(data);
         const urlParams = new URLSearchParams(window.location.search);
         const targetChar = urlParams.get('char');
-        let target = data[0].nickname; 
         
-        if (targetChar && data.some((d: any) => d.nickname === targetChar)) target = targetChar;
-        else if (data.some((d: any) => d.nickname === loginUserNick)) target = loginUserNick;
+        let target = data[0].nickname; 
+        const currentNick = profileRef.current.nickname;
+
+        if (currentNick && data.some((d: any) => d.nickname === currentNick)) {
+          target = currentNick;
+        } else if (targetChar && data.some((d: any) => d.nickname === targetChar)) {
+          target = targetChar;
+        } else if (data.some((d: any) => d.nickname === loginUserNick)) {
+          target = loginUserNick;
+        }
         
         loadCharacterData(target, contentsList);
       } else {
@@ -222,9 +232,13 @@ export default function CharacterPage() {
       const { data } = await supabase.from('characters').select('*').eq('nickname', charName).single();
       if (data) {
         setProfile({
-          nickname: data.nickname, alias: data.alias || "", job: data.job || "전사",
-          combatPower: data.combat_power || "", magicResistance: data.magic_resistance || "",
-          lifeEnergy: data.life_energy || "", charm: data.charm || "", 
+          nickname: data.nickname, 
+          alias: data.alias || "", 
+          job: data.job || "전사",
+          combatPower: data.combat_power || "", 
+          magicResistance: data.magic_resistance || "",
+          lifeEnergy: data.life_energy || "", 
+          charm: data.charm || "", 
           isMain: data.is_main || false
         });
         if (data.contribution !== undefined && data.contribution !== null) setAccountContribution(data.contribution);
@@ -274,7 +288,7 @@ export default function CharacterPage() {
 
       const payload = {
         nickname: profile.nickname, alias: profile.alias.slice(0, 3), owner: user.nickname, sort_order: currentSortOrder,
-        job: profile.job, combat_power: Number(profile.combatPower) || 0, magic_resistance: Number(profile.magicResistance) || 0,
+        job: profile.job || "전사", combat_power: Number(profile.combatPower) || 0, magic_resistance: Number(profile.magicResistance) || 0,
         life_energy: Number(profile.lifeEnergy) || 0, charm: Number(profile.charm) || 0, contribution: Number(accountContribution) || 0,
         is_main: profile.isMain, levels: levels, 
         daily_checks: dailyChecks, weekly_checks: { normal: weeklyChecks, repeat: repeatChecks },
@@ -472,6 +486,19 @@ export default function CharacterPage() {
 
     setIsManageModalOpen(false);
     const targetNick = activeChars.find(c => c.originalName === profile.nickname)?.tempNickname.trim() || activeChars[0].tempNickname.trim();
+
+    // 💡 현재 작업 중인 프로필 상태를 스위칭 전 즉시 동기화
+    const updatedCurrentChar = activeChars.find(c => c.originalName === profile.nickname || c.tempNickname.trim() === targetNick);
+    if (updatedCurrentChar) {
+      setProfile(prev => ({
+        ...prev,
+        nickname: updatedCurrentChar.tempNickname.trim(),
+        alias: updatedCurrentChar.tempAlias.slice(0, 3),
+        job: updatedCurrentChar.tempJob,
+        isMain: updatedCurrentChar.isMain
+      }));
+    }
+
     await fetchMasterData(user.nickname); 
     window.history.replaceState(null, '', `?char=${encodeURIComponent(targetNick)}`);
   };
@@ -678,7 +705,11 @@ export default function CharacterPage() {
                     onChange={(e) => { const nw = [...manageList]; nw[index].tempJob = e.target.value; setManageList(nw); }} 
                     className="w-[62px] sm:w-20 bg-[var(--panel)] border border-[var(--panel-border)] rounded px-0.5 py-1 text-[10px] sm:text-xs text-[var(--text-main)] focus:border-[var(--accent)] outline-none shrink-0"
                   >
-                    {dbClasses.map((cls: any) => <option key={cls.name} value={cls.name}>{cls.name}</option>)}
+                    {dbClasses.length > 0 ? (
+                      dbClasses.map((cls: any) => <option key={cls.name} value={cls.name}>{cls.name}</option>)
+                    ) : (
+                      Object.keys(CLASS_TITLES).map((clsName) => <option key={clsName} value={clsName}>{clsName}</option>)
+                    )}
                   </select>
 
                   <button 
@@ -753,10 +784,26 @@ export default function CharacterPage() {
                     {profile.alias || profile.nickname}
                   </span>
 
-                  {/* 주 클래스 */}
-                  <span className="text-xs bg-[var(--inner-box)] border border-[var(--panel-border)] px-1.5 py-0.2 rounded font-bold text-[var(--accent)] whitespace-nowrap">
-                    {profile.job}
-                  </span>
+                  {/* 🎯 주 클래스 (메인 화면에서 클릭해 즉시 변경할 수 있는 셀렉트) */}
+                  <select 
+                    value={profile.job || "전사"} 
+                    onChange={(e) => updateProfile("job", e.target.value)}
+                    className="text-xs bg-[var(--inner-box)] border border-[var(--panel-border)] px-1.5 py-0.5 rounded font-bold text-[var(--accent)] outline-none cursor-pointer hover:border-[var(--accent)]"
+                  >
+                    {dbClasses.length > 0 ? (
+                      dbClasses.map((cls: any) => (
+                        <option key={cls.name} value={cls.name} className="bg-[var(--panel)] text-[var(--text-main)]">
+                          {cls.name}
+                        </option>
+                      ))
+                    ) : (
+                      Object.keys(CLASS_TITLES).map((clsName) => (
+                        <option key={clsName} value={clsName} className="bg-[var(--panel)] text-[var(--text-main)]">
+                          {clsName}
+                        </option>
+                      ))
+                    )}
+                  </select>
 
                   {/* 대표 여부 */}
                   {profile.isMain && (
@@ -769,17 +816,17 @@ export default function CharacterPage() {
               </div>
             </div>
 
-            {/* 초록색 상자 영역: 크기와 폭(w-24), 패딩(py-1.5)이 완벽히 일치하는 버튼 2개 */}
+            {/* 버튼 2개 */}
             <div className="flex flex-col items-end gap-1.5 shrink-0">
               <button 
                 onClick={() => router.push(`/character/detail?char=${encodeURIComponent(profile.nickname)}`)}
-                className="w-24 text-center bg-[var(--accent)] text-[var(--accent-fg)] text-xs font-black py-1.5 rounded-lg shadow transition hover:opacity-90 whitespace-nowrap"
+                className="w-24 text-center bg-[var(--accent)] text-[var(--accent-fg)] text-xs font-black py-1.5 rounded-lg shadow transition hover:opacity-90 whitespace-nowrap cursor-pointer"
               >
                 🔍 상세관리
               </button>
               <button 
                 onClick={() => setIsTitleAccordionOpen(!isTitleAccordionOpen)} 
-                className="w-24 text-center bg-[var(--inner-box)] border border-[var(--panel-border)] text-xs font-bold text-[var(--accent)] py-1.5 rounded-lg transition whitespace-nowrap hover:bg-[var(--accent-soft)]"
+                className="w-24 text-center bg-[var(--inner-box)] border border-[var(--panel-border)] text-xs font-bold text-[var(--accent)] py-1.5 rounded-lg transition whitespace-nowrap hover:bg-[var(--accent-soft)] cursor-pointer"
               >
                 ✨ 칭호보기
               </button>
@@ -836,7 +883,7 @@ export default function CharacterPage() {
             </span>
             <button 
               onClick={openManageModal} 
-              className="text-xs bg-[var(--inner-box)] border border-[var(--panel-border)] px-2 py-0.5 rounded text-[var(--accent)] hover:bg-[var(--accent-soft)] transition font-bold"
+              className="text-xs bg-[var(--inner-box)] border border-[var(--panel-border)] px-2 py-0.5 rounded text-[var(--accent)] hover:bg-[var(--accent-soft)] transition font-bold cursor-pointer"
             >
               ⚙️ 설정
             </button>
@@ -892,7 +939,7 @@ export default function CharacterPage() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`py-2 px-1 rounded-lg text-xs font-black text-center truncate transition ${
+              className={`py-2 px-1 rounded-lg text-xs font-black text-center truncate transition cursor-pointer ${
                 activeTab === tab.id 
                   ? 'bg-[var(--accent)] text-[var(--accent-fg)] shadow-xs' 
                   : 'text-[var(--text-sub)] hover:text-[var(--text-main)] hover:bg-[var(--panel)]'
@@ -912,7 +959,7 @@ export default function CharacterPage() {
                 <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-2.5 shadow-xs flex flex-col">
                   <div className="flex justify-between items-center mb-2 border-b border-[var(--panel-border)] pb-1.5 gap-2">
                     <h3 className="font-bold text-amber-400 text-xs md:text-sm whitespace-nowrap">일일 컨텐츠</h3>
-                    <button onClick={() => handleSmartToggle('daily')} className={`text-xs font-bold px-2 py-0.5 rounded transition shadow-xs whitespace-nowrap ${isDailyAllChecked ? 'bg-[var(--inner-box)] text-[var(--text-sub)] border border-[var(--panel-border)]' : 'bg-[var(--accent)] text-[var(--accent-fg)]'}`}>{isDailyAllChecked ? '전체 해제' : '전체 완료'}</button>
+                    <button onClick={() => handleSmartToggle('daily')} className={`text-xs font-bold px-2 py-0.5 rounded transition shadow-xs whitespace-nowrap cursor-pointer ${isDailyAllChecked ? 'bg-[var(--inner-box)] text-[var(--text-sub)] border border-[var(--panel-border)]' : 'bg-[var(--accent)] text-[var(--accent-fg)]'}`}>{isDailyAllChecked ? '전체 해제' : '전체 완료'}</button>
                   </div>
                   <div className="space-y-1 flex-1 overflow-y-auto custom-scrollbar pr-0.5">{visibleDailyList.map((item: any) => renderTask(item, 'daily'))}</div>
                 </div>
@@ -922,7 +969,7 @@ export default function CharacterPage() {
                 <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-2.5 shadow-xs flex flex-col">
                   <div className="flex justify-between items-center mb-2 border-b border-[var(--panel-border)] pb-1.5 gap-2">
                     <h3 className="font-bold text-blue-400 text-xs md:text-sm whitespace-nowrap">주간 컨텐츠</h3>
-                    <button onClick={() => handleSmartToggle('weekly')} className={`text-xs font-bold px-2 py-0.5 rounded transition shadow-xs whitespace-nowrap ${isWeeklyAllChecked ? 'bg-[var(--inner-box)] text-[var(--text-sub)] border border-[var(--panel-border)]' : 'bg-[var(--accent)] text-[var(--accent-fg)]'}`}>{isWeeklyAllChecked ? '전체 해제' : '전체 완료'}</button>
+                    <button onClick={() => handleSmartToggle('weekly')} className={`text-xs font-bold px-2 py-0.5 rounded transition shadow-xs whitespace-nowrap cursor-pointer ${isWeeklyAllChecked ? 'bg-[var(--inner-box)] text-[var(--text-sub)] border border-[var(--panel-border)]' : 'bg-[var(--accent)] text-[var(--accent-fg)]'}`}>{isWeeklyAllChecked ? '전체 해제' : '전체 완료'}</button>
                   </div>
                   <div className="space-y-1 flex-1 overflow-y-auto custom-scrollbar pr-0.5">{visibleWeeklyList.map((item: any) => renderTask(item, 'weekly'))}</div>
                 </div>
@@ -932,7 +979,7 @@ export default function CharacterPage() {
                 <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-2.5 shadow-xs flex flex-col">
                   <div className="flex justify-between items-center mb-2 border-b border-[var(--panel-border)] pb-1.5 gap-2">
                     <h3 className="font-bold text-emerald-400 text-xs md:text-sm whitespace-nowrap">어비스 관리</h3>
-                    <button onClick={() => handleSmartToggle('abyss')} className={`text-xs font-bold px-2 py-0.5 rounded transition shadow-xs whitespace-nowrap ${isAbyssAllChecked ? 'bg-[var(--inner-box)] text-[var(--text-sub)] border border-[var(--panel-border)]' : 'bg-[var(--accent)] text-[var(--accent-fg)]'}`}>{isAbyssAllChecked ? '전체 해제' : '전체 완료'}</button>
+                    <button onClick={() => handleSmartToggle('abyss')} className={`text-xs font-bold px-2 py-0.5 rounded transition shadow-xs whitespace-nowrap cursor-pointer ${isAbyssAllChecked ? 'bg-[var(--inner-box)] text-[var(--text-sub)] border border-[var(--panel-border)]' : 'bg-[var(--accent)] text-[var(--accent-fg)]'}`}>{isAbyssAllChecked ? '전체 해제' : '전체 완료'}</button>
                   </div>
                   <div className="space-y-1 flex-1 overflow-y-auto custom-scrollbar pr-0.5">{abyssList.map((item: any) => renderTask(item, 'abyss'))}</div>
                 </div>
@@ -942,7 +989,7 @@ export default function CharacterPage() {
                 <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-2.5 shadow-xs flex flex-col">
                   <div className="flex justify-between items-center mb-2 border-b border-[var(--panel-border)] pb-1.5 gap-2">
                     <h3 className="font-bold text-emerald-400 text-xs md:text-sm whitespace-nowrap">레이드 관리</h3>
-                    <button onClick={() => handleSmartToggle('raid')} className={`text-xs font-bold px-2 py-0.5 rounded transition shadow-xs whitespace-nowrap ${isRaidAllChecked ? 'bg-[var(--inner-box)] text-[var(--text-sub)] border border-[var(--panel-border)]' : 'bg-[var(--accent)] text-[var(--accent-fg)]'}`}>{isRaidAllChecked ? '전체 해제' : '전체 완료'}</button>
+                    <button onClick={() => handleSmartToggle('raid')} className={`text-xs font-bold px-2 py-0.5 rounded transition shadow-xs whitespace-nowrap cursor-pointer ${isRaidAllChecked ? 'bg-[var(--inner-box)] text-[var(--text-sub)] border border-[var(--panel-border)]' : 'bg-[var(--accent)] text-[var(--accent-fg)]'}`}>{isRaidAllChecked ? '전체 해제' : '전체 완료'}</button>
                   </div>
                   <div className="space-y-1 flex-1 overflow-y-auto custom-scrollbar pr-0.5">{raidList.map((item: any) => renderTask(item, 'raid'))}</div>
                 </div>
@@ -968,7 +1015,7 @@ export default function CharacterPage() {
                       <div key={trade.id} className={`flex flex-col justify-between p-2 rounded-lg border transition ${isPinned ? 'bg-[var(--accent-soft)]/20 border-[var(--accent)]' : 'bg-[var(--inner-box)] border-[var(--panel-border)]'}`}>
                         <div className="flex items-center justify-between mb-1 min-w-0">
                           <div className="flex items-center gap-1 min-w-0">
-                            <button onClick={() => togglePinTrade(trade.id)} className={`text-xs ${isPinned ? 'opacity-100' : 'opacity-30'}`}>📌</button>
+                            <button onClick={() => togglePinTrade(trade.id)} className={`text-xs cursor-pointer ${isPinned ? 'opacity-100' : 'opacity-30'}`}>📌</button>
                             <span className="font-bold text-xs text-[var(--text-main)] truncate">{trade.map || "-"} <span className="text-xs text-[var(--text-sub)] font-normal">({trade.npc || "-"})</span></span>
                           </div>
                           <span className="text-xs px-1 py-0.2 rounded bg-[var(--panel)] text-[var(--text-sub)] shrink-0">{trade.scope}</span>
@@ -981,8 +1028,8 @@ export default function CharacterPage() {
                           <div className="flex items-center gap-1 bg-[var(--panel)] px-1.5 py-0.5 rounded border border-[var(--panel-border)] shrink-0">
                             <span className={`text-xs font-bold w-7 text-center ${isMax ? "text-emerald-400" : "text-[var(--text-main)]"}`}>{currentVal}/{trade.limit}</span>
                             <div className="flex gap-0.5 border-l border-[var(--panel-border)] pl-1">
-                              <button onClick={() => updateTradeProgress(trade.id, -1, trade.limit)} className="w-4 h-4 rounded bg-[var(--inner-box)] text-xs font-bold text-[var(--text-sub)]">-</button>
-                              <button onClick={() => updateTradeProgress(trade.id, 1, trade.limit)} className="w-4 h-4 rounded bg-[var(--accent)] text-[var(--accent-fg)] font-bold text-xs">+</button>
+                              <button onClick={() => updateTradeProgress(trade.id, -1, trade.limit)} className="w-4 h-4 rounded bg-[var(--inner-box)] text-xs font-bold text-[var(--text-sub)] cursor-pointer">-</button>
+                              <button onClick={() => updateTradeProgress(trade.id, 1, trade.limit)} className="w-4 h-4 rounded bg-[var(--accent)] text-[var(--accent-fg)] font-bold text-xs cursor-pointer">+</button>
                             </div>
                           </div>
                         </div>
@@ -1005,7 +1052,7 @@ export default function CharacterPage() {
                       <div key={trade.id} className={`flex flex-col justify-between p-2 rounded-lg border transition ${isPinned ? 'bg-[var(--accent-soft)]/20 border-[var(--accent)]' : 'bg-[var(--inner-box)] border-[var(--panel-border)]'}`}>
                         <div className="flex items-center justify-between mb-1 min-w-0">
                           <div className="flex items-center gap-1 min-w-0">
-                            <button onClick={() => togglePinTrade(trade.id)} className={`text-xs ${isPinned ? 'opacity-100' : 'opacity-30'}`}>📌</button>
+                            <button onClick={() => togglePinTrade(trade.id)} className={`text-xs cursor-pointer ${isPinned ? 'opacity-100' : 'opacity-30'}`}>📌</button>
                             <span className="font-bold text-xs text-[var(--text-main)] truncate">{trade.map || "-"} <span className="text-xs text-[var(--text-sub)] font-normal">({trade.npc || "-"})</span></span>
                           </div>
                           <span className="text-xs px-1 py-0.2 rounded bg-[var(--panel)] text-[var(--text-sub)] shrink-0">{trade.scope}</span>
@@ -1018,8 +1065,8 @@ export default function CharacterPage() {
                           <div className="flex items-center gap-1 bg-[var(--panel)] px-1.5 py-0.5 rounded border border-[var(--panel-border)] shrink-0">
                             <span className={`text-xs font-bold w-7 text-center ${isMax ? "text-emerald-400" : "text-[var(--text-main)]"}`}>{currentVal}/{trade.limit}</span>
                             <div className="flex gap-0.5 border-l border-[var(--panel-border)] pl-1">
-                              <button onClick={() => updateTradeProgress(trade.id, -1, trade.limit)} className="w-4 h-4 rounded bg-[var(--inner-box)] text-xs font-bold text-[var(--text-sub)]">-</button>
-                              <button onClick={() => updateTradeProgress(trade.id, 1, trade.limit)} className="w-4 h-4 rounded bg-[var(--accent)] text-[var(--accent-fg)] font-bold text-xs">+</button>
+                              <button onClick={() => updateTradeProgress(trade.id, -1, trade.limit)} className="w-4 h-4 rounded bg-[var(--inner-box)] text-xs font-bold text-[var(--text-sub)] cursor-pointer">-</button>
+                              <button onClick={() => updateTradeProgress(trade.id, 1, trade.limit)} className="w-4 h-4 rounded bg-[var(--accent)] text-[var(--accent-fg)] font-bold text-xs cursor-pointer">+</button>
                             </div>
                           </div>
                         </div>
@@ -1050,17 +1097,17 @@ export default function CharacterPage() {
                       <div className="flex items-center gap-0.5 shrink-0">
                         <span className="text-xs font-black font-mono text-[var(--accent)] mr-0.5 whitespace-nowrap">Lv.{currentLevel}</span>
                         
-                        <button onClick={() => updateClassLevel(cls.name, -10)} className="px-1 py-0.5 text-xs font-bold rounded bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)]">-10</button>
-                        <button onClick={() => updateClassLevel(cls.name, -1)} className="px-1 py-0.5 text-xs font-bold rounded bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)]">-1</button>
+                        <button onClick={() => updateClassLevel(cls.name, -10)} className="px-1 py-0.5 text-xs font-bold rounded bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)] cursor-pointer">-10</button>
+                        <button onClick={() => updateClassLevel(cls.name, -1)} className="px-1 py-0.5 text-xs font-bold rounded bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)] cursor-pointer">-1</button>
                         
                         {isMax ? (
-                          <button onClick={() => setMinLevel(cls.name)} className="px-1 py-0.5 text-xs font-black rounded bg-rose-500/20 text-rose-400 border border-rose-500/40 hover:bg-rose-500 hover:text-white transition whitespace-nowrap">MIN</button>
+                          <button onClick={() => setMinLevel(cls.name)} className="px-1 py-0.5 text-xs font-black rounded bg-rose-500/20 text-rose-400 border border-rose-500/40 hover:bg-rose-500 hover:text-white transition whitespace-nowrap cursor-pointer">MIN</button>
                         ) : (
-                          <button onClick={() => setMaxLevel(cls.name)} className="px-1 py-0.5 text-xs font-bold rounded bg-[var(--accent-soft)] text-[var(--accent)] border border-[var(--accent)]/40 hover:bg-[var(--accent)] hover:text-[var(--accent-fg)] transition whitespace-nowrap">MAX</button>
+                          <button onClick={() => setMaxLevel(cls.name)} className="px-1 py-0.5 text-xs font-bold rounded bg-[var(--accent-soft)] text-[var(--accent)] border border-[var(--accent)]/40 hover:bg-[var(--accent)] hover:text-[var(--accent-fg)] transition whitespace-nowrap cursor-pointer">MAX</button>
                         )}
 
-                        <button onClick={() => updateClassLevel(cls.name, 1)} className="px-1 py-0.5 text-xs font-bold rounded bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)]">+1</button>
-                        <button onClick={() => updateClassLevel(cls.name, 10)} className="px-1 py-0.5 text-xs font-bold rounded bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)]">+10</button>
+                        <button onClick={() => updateClassLevel(cls.name, 1)} className="px-1 py-0.5 text-xs font-bold rounded bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)] cursor-pointer">+1</button>
+                        <button onClick={() => updateClassLevel(cls.name, 10)} className="px-1 py-0.5 text-xs font-bold rounded bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)] cursor-pointer">+10</button>
                       </div>
                     </div>
                   );
