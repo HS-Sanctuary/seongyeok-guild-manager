@@ -460,6 +460,9 @@ export default function CharacterPage() {
       }
     }
     
+    // 1. 저장 직후 자동 저장 타이머가 옛 상태로 DB를 덮어쓰지 않도록 즉시 차단
+    isInitialLoad.current = true;
+
     const toDelete = manageList.filter(c => c.isDeleted && !c.isNew);
     for (const char of toDelete) {
       await supabase.from('characters').delete().eq('nickname', char.originalName);
@@ -485,10 +488,11 @@ export default function CharacterPage() {
     }
 
     setIsManageModalOpen(false);
-    const targetNick = activeChars.find(c => c.originalName === profile.nickname)?.tempNickname.trim() || activeChars[0].tempNickname.trim();
 
-    // 💡 현재 작업 중인 프로필 상태를 스위칭 전 즉시 동기화
+    const targetNick = activeChars.find(c => c.originalName === profile.nickname)?.tempNickname.trim() || activeChars[0].tempNickname.trim();
     const updatedCurrentChar = activeChars.find(c => c.originalName === profile.nickname || c.tempNickname.trim() === targetNick);
+
+    // 2. 메인 프로필 상태 즉시 강제 업데이트
     if (updatedCurrentChar) {
       setProfile(prev => ({
         ...prev,
@@ -499,8 +503,21 @@ export default function CharacterPage() {
       }));
     }
 
+    // 3. 캐릭터 선택 바 목록도 즉시 업데이트
+    setMyCharacters(activeChars.map(c => ({
+      nickname: c.tempNickname.trim(),
+      alias: c.tempAlias.slice(0, 3),
+      job: c.tempJob,
+      is_main: c.isMain,
+      sort_order: c.sort_order
+    })));
+
     await fetchMasterData(user.nickname); 
     window.history.replaceState(null, '', `?char=${encodeURIComponent(targetNick)}`);
+
+    setTimeout(() => {
+      isInitialLoad.current = false;
+    }, 500);
   };
 
   const getScore = (c: any, type: string) => {
