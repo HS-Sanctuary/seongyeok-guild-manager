@@ -32,6 +32,7 @@ interface Sticker {
   opacity: number;
   frameStyle: "none" | "gold" | "polaroid" | "neon" | "sticker";
   zIndex?: number;
+  isLocked?: boolean;
 }
 
 const navItems: NavItem[] = [
@@ -63,7 +64,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const [fabPosition, setFabPosition] = useState<{ x: number }>({ x: 20 });
   const [fontSizeLevel, setFontSizeLevel] = useState('normal');
   
-  // 🎯 바텀 시트 슬라이드 드래그 애니메이션 상태 추가
   const [sheetDragY, setSheetDragY] = useState(0);
   const [isDraggingSheet, setIsDraggingSheet] = useState(false);
 
@@ -174,10 +174,62 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       ...s,
       x: 35 + (idx % 4) * 6,
       y: 25 + (idx % 4) * 6,
-      zIndex: 30
+      zIndex: 30,
+      isLocked: false
     }));
     saveStickers(resetList);
-    alert("🧹 모든 스티커 위치가 화면 중앙으로 즉시 구출되었습니다!");
+    alert("🧹 모든 스티커 위치가 화면 중앙으로 구출되었습니다!");
+  };
+
+  const autoTrimCanvas = (canvas: HTMLCanvasElement): HTMLCanvasElement => {
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return canvas;
+    const width = canvas.width;
+    const height = canvas.height;
+    const imageData = ctx.getImageData(0, 0, width, height);
+    const data = imageData.data;
+
+    let minX = width, minY = height, maxX = 0, maxY = 0;
+    let found = false;
+
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const alpha = data[(y * width + x) * 4 + 3];
+        if (alpha > 15) {
+          if (x < minX) minX = x;
+          if (x > maxX) maxX = x;
+          if (y < minY) minY = y;
+          if (y > maxY) maxY = y;
+          found = true;
+        }
+      }
+    }
+
+    if (!found) return canvas;
+
+    const p = 4;
+    minX = Math.max(0, minX - p);
+    minY = Math.max(0, minY - p);
+    maxX = Math.min(width - 1, maxX + p);
+    maxY = Math.min(height - 1, maxY + p);
+
+    const trimmedWidth = maxX - minX + 1;
+    const trimmedHeight = maxY - minY + 1;
+
+    const trimmedCanvas = document.createElement("canvas");
+    trimmedCanvas.width = trimmedWidth;
+    trimmedCanvas.height = trimmedHeight;
+    const trimmedCtx = trimmedCanvas.getContext("2d");
+
+    if (trimmedCtx) {
+      trimmedCtx.drawImage(
+        canvas,
+        minX, minY, trimmedWidth, trimmedHeight,
+        0, 0, trimmedWidth, trimmedHeight
+      );
+    }
+
+    return trimmedCanvas;
   };
 
   const processImageCutout = (file: File): Promise<string> => {
@@ -190,7 +242,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           const canvas = document.createElement("canvas");
           const ctx = canvas.getContext("2d");
           
-          const maxDim = 320;
+          const maxDim = 400;
           let width = img.width;
           let height = img.height;
           if (width > maxDim || height > maxDim) {
@@ -211,7 +263,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           const data = imageData.data;
           const visited = new Uint8Array(width * height);
 
-          const isWhite = (r: number, g: number, b: number) => r > 225 && g > 225 && b > 225;
+          const isWhite = (r: number, g: number, b: number) => r > 220 && g > 220 && b > 220;
           const queue: number[] = [];
 
           for (let x = 0; x < width; x++) {
@@ -243,7 +295,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }
 
           ctx.putImageData(imageData, 0, 0);
-          resolve(canvas.toDataURL("image/png", 0.85));
+          const trimmedCanvas = autoTrimCanvas(canvas);
+          resolve(trimmedCanvas.toDataURL("image/png", 0.9));
         };
         img.src = e.target?.result as string;
       };
@@ -265,11 +318,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       rotation: 0,
       opacity: 1,
       frameStyle: "sticker",
-      zIndex: 30
+      zIndex: 30,
+      isLocked: false
     };
     const updated = [...stickers, newSticker];
     saveStickers(updated);
     setSelectedStickerId(newSticker.id);
+    setIsThemeModalOpen(false);
     e.target.value = "";
   };
 
@@ -285,6 +340,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     setConfigStickerId(null);
   };
 
+  const moveStickerOrder = (realIndex: number, direction: 'up' | 'down') => {
+    const newStickers = [...stickers];
+    const targetIndex = direction === 'up' ? realIndex + 1 : realIndex - 1;
+    if (targetIndex < 0 || targetIndex >= newStickers.length) return;
+
+    const temp = newStickers[realIndex];
+    newStickers[realIndex] = newStickers[targetIndex];
+    newStickers[targetIndex] = temp;
+    saveStickers(newStickers);
+  };
+
   const handleChangeStickerImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !configStickerId) return;
@@ -297,18 +363,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     const targetTag = (e.target as HTMLElement).tagName;
     if (targetTag === 'INPUT' || targetTag === 'BUTTON') return;
 
+    const stk = stickers.find(s => s.id === stkId);
+    if (!stk || stk.isLocked) return;
+
     e.stopPropagation();
     e.preventDefault();
-    const stk = stickers.find(s => s.id === stkId);
-    if (!stk) return;
 
     const startMouseX = e.clientX;
     const startMouseY = e.clientY;
     const startStkX = stk.x;
     const startStkY = stk.y;
 
-    const containerW = document.documentElement.scrollWidth || document.body.scrollWidth || window.innerWidth;
-    const containerH = document.documentElement.scrollHeight || document.body.scrollHeight || window.innerHeight;
+    const mainElement = document.querySelector('main');
+    const containerW = mainElement ? mainElement.clientWidth : window.innerWidth;
+    const containerH = mainElement ? mainElement.clientHeight : window.innerHeight;
 
     const onPointerMove = (moveEvt: PointerEvent) => {
       moveEvt.preventDefault();
@@ -500,7 +568,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     setIsFabOpen((prev) => !prev);
   };
 
-  // 🎯 부드러운 1:1 라이브 손가락 제스처 및 슬라이드 다운 닫기
   const handleSheetDragStart = (e: React.PointerEvent) => {
     const startY = e.clientY;
     setIsDraggingSheet(true);
@@ -520,12 +587,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerup', onPointerUp);
 
-      // 80px 이상 쓸어내렸으면 부드럽게 완전 닫힘
       if (finalDeltaY > 80) {
         setIsFabOpen(false);
         setSheetDragY(0);
       } else {
-        // 임계값 미만이면 원래 위치로 자연스럽게 스냅백
         setSheetDragY(0);
       }
     };
@@ -582,6 +647,89 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const isAdmin = !!activeAccount;
   const isLoginPage = pathname === '/login';
 
+  const renderStickerItem = (stk: Sticker, arrayIndex: number) => {
+    const isSelected = selectedStickerId === stk.id;
+    const isLocked = stk.isLocked ?? false;
+    const isBehind = (stk.zIndex ?? 30) < 10;
+
+    let frameClasses = "";
+    if (stk.frameStyle === "sticker") {
+      frameClasses = "drop-shadow-[0_4px_12px_rgba(0,0,0,0.6)] [filter:drop-shadow(3px_0_0_#fff)_drop-shadow(-3px_0_0_#fff)_drop-shadow(0_3px_0_#fff)_drop-shadow(0_-3px_0_#fff)]";
+    } else if (stk.frameStyle === "gold") {
+      frameClasses = "border-4 border-amber-400 shadow-2xl rounded-lg p-1 bg-black/80";
+    } else if (stk.frameStyle === "polaroid") {
+      frameClasses = "bg-white p-2 pb-6 shadow-2xl rounded border text-black";
+    } else if (stk.frameStyle === "neon") {
+      frameClasses = "border-2 border-cyan-400 shadow-[0_0_20px_#00f0ff] rounded-xl p-1";
+    }
+
+    return (
+      <div
+        key={stk.id}
+        onClick={(e) => { 
+          if (isLocked) return;
+          e.stopPropagation(); 
+          setSelectedStickerId(stk.id); 
+        }}
+        onPointerDown={(e) => {
+          if (isLocked) return;
+          handleStartMoveSticker(stk.id, e);
+        }}
+        className={`sticker-item absolute flex flex-col items-center select-none touch-none transition-all ${
+          isLocked ? 'pointer-events-none' : 'pointer-events-auto cursor-grab active:cursor-grabbing'
+        } ${
+          isSelected && !isLocked ? 'ring-2 ring-amber-400 ring-offset-2 ring-offset-black/50 rounded-xl p-1 bg-amber-400/10' : ''
+        }`}
+        style={{
+          left: `${stk.x}%`,
+          top: `${stk.y}%`,
+          zIndex: isSelected ? 999 : arrayIndex + 1
+        }}
+      >
+        {isSelected && !isLocked && (
+          <>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                updateSticker(stk.id, 'zIndex', isBehind ? 30 : 5);
+              }}
+              className="absolute -top-3 -left-3 w-7 h-7 rounded-full bg-black/90 border-2 border-amber-400 text-white text-[0.65rem] font-black flex items-center justify-center shadow-xl cursor-pointer hover:scale-110 active:scale-95 transition z-[1000]"
+              title={isBehind ? "현재: 카드 뒤 설정 (클릭 시 카드 앞으로)" : "현재: 카드 앞 설정 (클릭 시 카드 뒤로)"}
+            >
+              {isBehind ? '⬇️' : '⬆️'}
+            </button>
+
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                deleteSticker(stk.id);
+              }}
+              className="absolute -top-3 -right-3 w-7 h-7 rounded-full bg-red-600 border-2 border-white text-white text-xs font-black flex items-center justify-center shadow-xl cursor-pointer hover:scale-110 active:scale-95 transition z-[1000]"
+              title="스티커 삭제"
+            >
+              ✕
+            </button>
+
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setConfigStickerId(stk.id);
+              }}
+              className="absolute -bottom-3 -right-3 w-7 h-7 rounded-full bg-zinc-900 border-2 border-amber-400 text-amber-300 text-xs font-black flex items-center justify-center shadow-xl cursor-pointer hover:scale-110 active:scale-95 transition z-[1000]"
+              title="상세 설정"
+            >
+              ⚙️
+            </button>
+          </>
+        )}
+
+        <div style={{ transform: `scale(${stk.scale}) rotate(${stk.rotation}deg)`, transition: 'transform 0.05s ease-out' }}>
+          <img src={stk.url} alt="스티커" style={{ opacity: stk.opacity }} className={`max-w-[140px] max-h-[140px] object-contain pointer-events-none ${frameClasses}`} />
+        </div>
+      </div>
+    );
+  };
+
   return (
     <html lang="ko">
       <body className="min-h-screen relative font-sans transition-colors duration-200 bg-[var(--background)] text-[var(--foreground)] overflow-x-hidden">
@@ -591,270 +739,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <>
             <input ref={globalStickerInputRef} type="file" accept="image/*" onChange={handleGlobalStickerUpload} className="hidden" />
             <input ref={changeStickerImageRef} type="file" accept="image/*" onChange={handleChangeStickerImage} className="hidden" />
-
-            {/* 스티커 레이어 */}
-            <div className="absolute inset-0 pointer-events-none w-full h-full">
-              {stickers.map((stk) => {
-                const isSelected = selectedStickerId === stk.id;
-                const layerZIndex = stk.zIndex ?? 30;
-
-                let frameClasses = "";
-                if (stk.frameStyle === "sticker") {
-                  frameClasses = "drop-shadow-[0_4px_12px_rgba(0,0,0,0.6)] [filter:drop-shadow(3px_0_0_#fff)_drop-shadow(-3px_0_0_#fff)_drop-shadow(0_3px_0_#fff)_drop-shadow(0_-3px_0_#fff)]";
-                } else if (stk.frameStyle === "gold") {
-                  frameClasses = "border-4 border-amber-400 shadow-2xl rounded-lg p-1 bg-black/80";
-                } else if (stk.frameStyle === "polaroid") {
-                  frameClasses = "bg-white p-2 pb-6 shadow-2xl rounded border text-black";
-                } else if (stk.frameStyle === "neon") {
-                  frameClasses = "border-2 border-cyan-400 shadow-[0_0_20px_#00f0ff] rounded-xl p-1";
-                }
-
-                return (
-                  <div
-                    key={stk.id}
-                    onClick={(e) => { e.stopPropagation(); setSelectedStickerId(stk.id); }}
-                    onPointerDown={(e) => handleStartMoveSticker(stk.id, e)}
-                    className={`sticker-item absolute cursor-grab active:cursor-grabbing pointer-events-auto flex flex-col items-center select-none touch-none ${
-                      isSelected ? 'ring-2 ring-amber-400 ring-offset-2 ring-offset-black/50 rounded-lg' : ''
-                    }`}
-                    style={{
-                      left: `${stk.x}%`,
-                      top: `${stk.y}%`,
-                      zIndex: layerZIndex
-                    }}
-                  >
-                    <div 
-                      style={{
-                        transform: `scale(${stk.scale}) rotate(${stk.rotation}deg)`,
-                        transition: 'transform 0.05s ease-out'
-                      }}
-                    >
-                      <img 
-                        src={stk.url} 
-                        alt="스티커" 
-                        style={{ opacity: stk.opacity }}
-                        className={`max-w-[140px] max-h-[140px] object-contain pointer-events-none ${frameClasses}`} 
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-
-              {/* 선택된 스티커 조작 툴바 오버레이 */}
-              {selectedStickerId && (() => {
-                const stk = stickers.find(s => s.id === selectedStickerId);
-                if (!stk) return null;
-                const isBehind = (stk.zIndex ?? 30) < 10;
-
-                return (
-                  <div
-                    key={`toolbar_${stk.id}`}
-                    className="sticker-toolbar absolute pointer-events-auto flex flex-col items-center select-none touch-none z-[950]"
-                    style={{
-                      left: `${stk.x}%`,
-                      top: `${stk.y}%`,
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <div className="w-[120px] h-[120px] pointer-events-none" />
-                    
-                    <div 
-                      className="mt-2 flex flex-col gap-1.5 bg-black/90 backdrop-blur-md border border-amber-400/80 rounded-xl p-2 shadow-2xl pointer-events-auto min-w-[210px] text-white text-xs font-bold"
-                      onPointerDown={(e) => e.stopPropagation()}
-                    >
-                      {isBehind && (
-                        <div className="text-[0.6rem] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded text-center font-bold">
-                          💡 카드 뒤 배치 상태 (모서리에 걸치게 드래그해 보세요!)
-                        </div>
-                      )}
-
-                      <div className="flex items-center justify-between gap-1 bg-zinc-900/90 rounded-lg p-1 border border-zinc-700">
-                        <button 
-                          onClick={() => setActiveStickerTab('scale')} 
-                          className={`px-1.5 py-0.5 rounded text-[0.6rem] transition cursor-pointer ${activeStickerTab === 'scale' ? 'bg-amber-400 text-black font-black' : 'text-zinc-400 hover:text-white'}`}
-                        >
-                          🔍 크기
-                        </button>
-                        <button 
-                          onClick={() => setActiveStickerTab('rotation')} 
-                          className={`px-1.5 py-0.5 rounded text-[0.6rem] transition cursor-pointer ${activeStickerTab === 'rotation' ? 'bg-amber-400 text-black font-black' : 'text-zinc-400 hover:text-white'}`}
-                        >
-                          🔄 회전
-                        </button>
-                        <button 
-                          onClick={() => setActiveStickerTab('opacity')} 
-                          className={`px-1.5 py-0.5 rounded text-[0.6rem] transition cursor-pointer ${activeStickerTab === 'opacity' ? 'bg-amber-400 text-black font-black' : 'text-zinc-400 hover:text-white'}`}
-                        >
-                          👁️ 투명
-                        </button>
-                        <button 
-                          onClick={() => setActiveStickerTab('layer')} 
-                          className={`px-1.5 py-0.5 rounded text-[0.6rem] transition cursor-pointer ${activeStickerTab === 'layer' ? 'bg-amber-400 text-black font-black' : 'text-zinc-400 hover:text-white'}`}
-                        >
-                          🥞 순서
-                        </button>
-                        <button 
-                          onClick={() => setConfigStickerId(stk.id)}
-                          className="px-1.5 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-amber-300 text-[0.6rem] font-bold cursor-pointer"
-                        >
-                          ⚙️
-                        </button>
-                      </div>
-
-                      <div className="px-1 py-0.5">
-                        {activeStickerTab === 'scale' && (
-                          <div className="flex items-center gap-2">
-                            <input 
-                              type="range" 
-                              min="0.3" 
-                              max="3.0" 
-                              step="0.05" 
-                              value={stk.scale} 
-                              onChange={(e) => updateSticker(stk.id, 'scale', parseFloat(e.target.value))}
-                              className="w-full h-1.5 accent-amber-400 cursor-pointer"
-                            />
-                            <span className="text-[0.6rem] text-amber-300 shrink-0 w-8 text-right">{Math.round(stk.scale * 100)}%</span>
-                          </div>
-                        )}
-
-                        {activeStickerTab === 'rotation' && (
-                          <div className="flex items-center gap-2">
-                            <input 
-                              type="range" 
-                              min="0" 
-                              max="360" 
-                              step="1" 
-                              value={stk.rotation} 
-                              onChange={(e) => updateSticker(stk.id, 'rotation', parseInt(e.target.value))}
-                              className="w-full h-1.5 accent-amber-400 cursor-pointer"
-                            />
-                            <span className="text-[0.6rem] text-amber-300 shrink-0 w-8 text-right">{stk.rotation}°</span>
-                          </div>
-                        )}
-
-                        {activeStickerTab === 'opacity' && (
-                          <div className="flex items-center gap-2">
-                            <input 
-                              type="range" 
-                              min="0.1" 
-                              max="1.0" 
-                              step="0.05" 
-                              value={stk.opacity} 
-                              onChange={(e) => updateSticker(stk.id, 'opacity', parseFloat(e.target.value))}
-                              className="w-full h-1.5 accent-amber-400 cursor-pointer"
-                            />
-                            <span className="text-[0.6rem] text-amber-300 shrink-0 w-8 text-right">{Math.round(stk.opacity * 100)}%</span>
-                          </div>
-                        )}
-
-                        {activeStickerTab === 'layer' && (
-                          <div className="grid grid-cols-2 gap-1.5">
-                            <button 
-                              onClick={() => updateSticker(stk.id, 'zIndex', 30)}
-                              className={`py-1 px-2 rounded text-[0.65rem] font-bold border transition cursor-pointer ${
-                                (stk.zIndex ?? 30) >= 30 
-                                  ? 'bg-amber-400 text-black border-amber-400 font-black' 
-                                  : 'bg-zinc-800 text-zinc-300 border-zinc-700 hover:text-white'
-                              }`}
-                            >
-                              ⬆️ 카드 앞으로
-                            </button>
-                            <button 
-                              onClick={() => updateSticker(stk.id, 'zIndex', 2)}
-                              className={`py-1 px-2 rounded text-[0.65rem] font-bold border transition cursor-pointer ${
-                                (stk.zIndex ?? 30) < 10 
-                                  ? 'bg-amber-400 text-black border-amber-400 font-black' 
-                                  : 'bg-zinc-800 text-zinc-300 border-zinc-700 hover:text-white'
-                              }`}
-                            >
-                              ⬇️ 카드 뒤로
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })()}
-            </div>
-
-            {configStickerId && (
-              <div className="sticker-modal fixed inset-0 z-[12000] flex items-center justify-center p-4 bg-black/75 animate-in fade-in duration-150">
-                <div className="bg-[var(--panel)] border-2 border-[var(--accent)] rounded-2xl p-5 w-full max-w-xs shadow-2xl flex flex-col gap-3 text-[var(--text-main)]">
-                  <div className="flex justify-between items-center border-b pb-2 border-[var(--panel-border)]">
-                    <h4 className="font-black text-xs text-[var(--accent)] flex items-center gap-1.5">⚙️ 스티커 상세 설정</h4>
-                    <button onClick={() => setConfigStickerId(null)} className="text-xs text-[var(--text-sub)] hover:text-white cursor-pointer">&times;</button>
-                  </div>
-
-                  <button 
-                    onClick={() => changeStickerImageRef.current?.click()}
-                    className="w-full py-2 rounded-xl bg-[var(--inner-box)] border border-[var(--panel-border)] text-xs font-bold hover:text-[var(--accent)] transition flex items-center justify-center gap-1.5 cursor-pointer"
-                  >
-                    🖼️ 스티커 사진 변경
-                  </button>
-
-                  <div className="space-y-1">
-                    <span className="text-[0.6rem] font-bold text-[var(--text-sub)] block">배치 순서 (카드 앞/뒤)</span>
-                    <div className="grid grid-cols-2 gap-1.5">
-                      <button
-                        onClick={() => updateSticker(configStickerId, 'zIndex', 30)}
-                        className={`py-1.5 px-2 rounded-lg border text-[0.65rem] font-bold cursor-pointer ${
-                          (stickers.find(s => s.id === configStickerId)?.zIndex ?? 30) >= 30
-                            ? 'bg-[var(--accent)] text-[var(--accent-fg)] border-[var(--accent)] font-black'
-                            : 'bg-[var(--inner-box)] border-[var(--panel-border)] text-[var(--text-sub)]'
-                        }`}
-                      >
-                        ⬆️ 카드 앞으로
-                      </button>
-                      <button
-                        onClick={() => updateSticker(configStickerId, 'zIndex', 2)}
-                        className={`py-1.5 px-2 rounded-lg border text-[0.65rem] font-bold cursor-pointer ${
-                          (stickers.find(s => s.id === configStickerId)?.zIndex ?? 30) < 10
-                            ? 'bg-[var(--accent)] text-[var(--accent-fg)] border-[var(--accent)] font-black'
-                            : 'bg-[var(--inner-box)] border-[var(--panel-border)] text-[var(--text-sub)]'
-                        }`}
-                      >
-                        ⬇️ 카드 뒤로
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1">
-                    <span className="text-[0.6rem] font-bold text-[var(--text-sub)] block">테두리 프레임 스타일</span>
-                    <div className="grid grid-cols-2 gap-1 text-[0.6rem] font-bold">
-                      {[
-                        { id: "sticker", label: "스티커 외각선" },
-                        { id: "gold", label: "골드 프레임" },
-                        { id: "polaroid", label: "폴라로이드" },
-                        { id: "neon", label: "네온 네온" },
-                        { id: "none", label: "프레임 없음" },
-                      ].map((f) => (
-                        <button
-                          key={f.id}
-                          onClick={() => updateSticker(configStickerId, 'frameStyle', f.id)}
-                          className={`py-1.5 px-1 rounded-lg border cursor-pointer ${
-                            stickers.find(s => s.id === configStickerId)?.frameStyle === f.id
-                              ? 'bg-[var(--accent)] text-[var(--accent-fg)] border-[var(--accent)] font-black'
-                              : 'bg-[var(--inner-box)] border-[var(--panel-border)] text-[var(--text-sub)]'
-                          }`}
-                        >
-                          {f.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="pt-2 border-t border-[var(--panel-border)] flex gap-2">
-                    <button 
-                      onClick={() => deleteSticker(configStickerId)}
-                      className="w-full py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-black cursor-pointer shadow"
-                    >
-                      🗑️ 스티커 삭제
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
 
             <nav className="sticky top-0 z-[900] flex flex-col shadow-lg border-b backdrop-blur-md w-full transition-colors bg-[var(--panel)] border-[var(--panel-border)]">
               {banner && (
@@ -866,7 +750,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <div className="max-w-[1600px] mx-auto px-3 xl:px-4 w-full relative">
                 <div className="flex items-center justify-between h-20">
                   
-                  {/* 모바일 포함 항상 로고 + 텍스트 노출 */}
                   <div className="flex items-center gap-2 xl:gap-3 shrink-0">
                     <Link href="/" className="flex items-center gap-2 xl:gap-3 hover:opacity-80 transition-opacity shrink-0">
                       <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shadow-lg transition-colors border border-black/10 relative overflow-hidden shrink-0 bg-[var(--accent)] text-[var(--accent-fg)]">
@@ -935,7 +818,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     </div>
                   </div>
 
-                  {/* 상단 네비게이션 메뉴 영역 */}
                   <div className="hidden lg:flex items-center space-x-0.5 xl:space-x-2">
                     {navItems.map((item) => {
                       const isActive = pathname === item.path;
@@ -1024,7 +906,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </div>
             </nav>
 
-            {/* 모바일 플로팅 메뉴 버튼 */}
             <div
               className="lg:hidden fixed bottom-6 z-[10000] flex items-center rounded-full shadow-[0_0_15px_rgba(0,0,0,0.7)] border-[1.5px] cursor-grab active:cursor-grabbing select-none bg-[var(--panel)] border-[var(--accent)] touch-none"
               style={{ right: `${fabPosition.x}px` }}
@@ -1044,32 +925,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </button>
             </div>
 
-            {/* 🎯 모바일 바텀 시트 (드래그 중에는 instant tracking, 놓으면 cubic-bezier 부드러운 애니메이션 적용) */}
             <div
               className={`fixed inset-x-0 bottom-0 z-[9999] lg:hidden border-t-2 rounded-t-[28px] p-4 shadow-2xl flex flex-col bg-[var(--panel)] text-[var(--text-main)] border-[var(--accent)] ${
                 isDraggingSheet ? '' : 'transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]'
               }`}
-              style={{ 
-                transform: isFabOpen 
-                  ? `translateY(${sheetDragY}px)` 
-                  : 'translateY(100%)' 
-              }}
+              style={{ transform: isFabOpen ? `translateY(${sheetDragY}px)` : 'translateY(100%)' }}
             >
-              {/* 상단 드래그 핸들 */}
-              <div 
-                onPointerDown={handleSheetDragStart}
-                className="w-full py-2.5 flex items-center justify-center cursor-grab active:cursor-grabbing touch-none select-none"
-                title="아래로 쓸어내려 닫기"
-              >
+              <div onPointerDown={handleSheetDragStart} className="w-full py-2.5 flex items-center justify-center cursor-grab active:cursor-grabbing touch-none select-none" title="아래로 쓸어내려 닫기">
                 <div className="w-12 h-1.5 bg-[var(--text-sub)] rounded-full opacity-60 hover:opacity-100 transition-opacity" />
               </div>
 
               <div className="overflow-y-auto custom-scrollbar flex flex-col gap-3 pb-12 max-h-[80vh]">
-                
-                {/* 로그인 정보 계정 아코디언 메뉴 */}
                 {activeAccount && (
                   <div className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl p-3 flex flex-col gap-2 shadow-sm transition-all duration-200">
-                    
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2.5">
                         <div className="w-8 h-8 rounded-full bg-[var(--inner-box)] border border-[var(--accent)] flex items-center justify-center text-xs shrink-0">👑</div>
@@ -1078,88 +946,41 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                           <span className="text-[0.6rem] text-[var(--accent)] mt-1">{activeAccount.role}</span>
                         </div>
                       </div>
-
-                      <button
-                        onClick={() => setIsAccountAccordionOpen(!isAccountAccordionOpen)}
-                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-[var(--inner-box)] border border-[var(--panel-border)] hover:border-[var(--accent)] text-[0.65rem] font-bold text-[var(--text-main)] transition cursor-pointer"
-                      >
-                        {isAccountAccordionOpen ? (
-                          <>
-                            <span className="bg-[var(--accent)]/20 text-[var(--accent)] px-1.5 py-0.5 rounded font-black text-[0.6rem]">선택됨</span>
-                            <span className="text-[0.6rem] text-[var(--text-sub)]">▲</span>
-                          </>
-                        ) : (
-                          <>
-                            <span className="text-sm">⚙️</span>
-                            <span className="text-[0.6rem] text-[var(--text-sub)]">▼</span>
-                          </>
-                        )}
+                      <button onClick={() => setIsAccountAccordionOpen(!isAccountAccordionOpen)} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-[var(--inner-box)] border border-[var(--panel-border)] hover:border-[var(--accent)] text-[0.65rem] font-bold text-[var(--text-main)] transition cursor-pointer">
+                        {isAccountAccordionOpen ? <><span className="bg-[var(--accent)]/20 text-[var(--accent)] px-1.5 py-0.5 rounded font-black text-[0.6rem]">선택됨</span><span className="text-[0.6rem] text-[var(--text-sub)]">▲</span></> : <><span className="text-sm">⚙️</span><span className="text-[0.6rem] text-[var(--text-sub)]">▼</span></>}
                       </button>
                     </div>
 
                     {isAccountAccordionOpen && (
                       <div className="flex flex-col gap-2 pt-2.5 border-t border-[var(--panel-border)] animate-in fade-in duration-200">
                         <div className="text-[0.6rem] font-bold text-[var(--text-sub)] px-1">현재 활성 계정</div>
-                        
                         <div className="flex items-center justify-between p-2.5 rounded-xl border-l-4 bg-[var(--inner-box)] border-[var(--accent)]">
                           <span className="text-xs font-black text-[var(--text-main)]">{activeAccount.alias || activeAccount.nickname}</span>
                           <span className="text-[0.6rem] bg-[var(--accent)]/20 text-[var(--accent)] px-2 py-0.5 rounded font-bold shrink-0">선택됨</span>
                         </div>
-
                         {accounts.filter(a => a.id !== activeAccount.id).length > 0 && (
                           <>
                             <div className="text-[0.6rem] font-bold text-[var(--text-sub)] px-1 border-t border-[var(--panel-border)] pt-2 mt-1">계정 빠른 스위칭</div>
                             {accounts.filter(a => a.id !== activeAccount.id).map(acc => (
-                              <button 
-                                key={acc.id} 
-                                onClick={() => switchAccount(acc)} 
-                                className="w-full flex items-center justify-between p-2.5 rounded-xl text-left transition bg-[var(--inner-box)] hover:bg-[var(--panel-hover)] border border-[var(--panel-border)] cursor-pointer"
-                              >
+                              <button key={acc.id} onClick={() => switchAccount(acc)} className="w-full flex items-center justify-between p-2.5 rounded-xl text-left transition bg-[var(--inner-box)] hover:bg-[var(--panel-hover)] border border-[var(--panel-border)] cursor-pointer">
                                 <span className="text-xs font-bold text-[var(--text-main)]">{acc.alias || acc.nickname}</span>
                                 <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: acc.borderColor }}></span>
                               </button>
                             ))}
                           </>
                         )}
-
                         <div className="border-t border-[var(--panel-border)] pt-2 mt-1 flex flex-col gap-1">
-                          <Link 
-                            href="/login" 
-                            onClick={() => setIsFabOpen(false)} 
-                            className="w-full text-center text-xs font-bold text-[var(--accent)] hover:bg-[var(--panel-hover)] py-2 rounded-lg transition"
-                          >
-                            ➕ 계정 추가 로그인
-                          </Link>
-                          {isAdmin && (
-                            <Link 
-                              href="/admin" 
-                              onClick={() => setIsFabOpen(false)} 
-                              className="w-full text-center text-xs font-bold text-[var(--text-sub)] hover:text-[var(--text-main)] hover:bg-[var(--panel-hover)] py-2 rounded-lg transition flex items-center justify-center gap-1"
-                            >
-                              ⚙️ SANCTUM 관리자 
-                              {pendingCount > 0 && (
-                                <span className="bg-red-500 text-white px-1.5 py-0.2 rounded-full text-[0.55rem]">{pendingCount}</span>
-                              )}
-                            </Link>
-                          )}
-                          <button 
-                            onClick={() => { handleLogout(); setIsFabOpen(false); }} 
-                            className="w-full text-center text-xs font-bold text-red-400 hover:bg-red-950/30 py-2 rounded-lg transition cursor-pointer"
-                          >
-                            🚪 현재 계정 로그아웃
-                          </button>
+                          <Link href="/login" onClick={() => setIsFabOpen(false)} className="w-full text-center text-xs font-bold text-[var(--accent)] hover:bg-[var(--panel-hover)] py-2 rounded-lg transition">➕ 계정 추가 로그인</Link>
+                          {isAdmin && <Link href="/admin" onClick={() => setIsFabOpen(false)} className="w-full text-center text-xs font-bold text-[var(--text-sub)] hover:text-[var(--text-main)] hover:bg-[var(--panel-hover)] py-2 rounded-lg transition flex items-center justify-center gap-1">⚙️ SANCTUM 관리자 {pendingCount > 0 && <span className="bg-red-500 text-white px-1.5 py-0.2 rounded-full text-[0.55rem]">{pendingCount}</span>}</Link>}
+                          <button onClick={() => { handleLogout(); setIsFabOpen(false); }} className="w-full text-center text-xs font-bold text-red-400 hover:bg-red-950/30 py-2 rounded-lg transition cursor-pointer">🚪 현재 계정 로그아웃</button>
                         </div>
                       </div>
                     )}
-
                   </div>
                 )}
 
                 <div className="border-y border-[var(--panel-border)] py-1.5">
-                  <button 
-                    onClick={() => { setIsFabOpen(false); setIsThemeModalOpen(true); }}
-                    className="w-full py-2.5 px-3 rounded-xl bg-[var(--inner-box)] border border-[var(--panel-border)] hover:border-[var(--accent)] text-xs font-bold text-[var(--text-main)] flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
-                  >
+                  <button onClick={() => { setIsFabOpen(false); setIsThemeModalOpen(true); }} className="w-full py-2.5 px-3 rounded-xl bg-[var(--inner-box)] border border-[var(--panel-border)] hover:border-[var(--accent)] text-xs font-bold text-[var(--text-main)] flex items-center justify-center gap-1.5 cursor-pointer shadow-sm">
                     <span>🎨</span> 생텀 페이지 설정
                   </button>
                 </div>
@@ -1168,37 +989,25 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   {navItems.map((item) => {
                     const isActive = pathname === item.path;
                     return (
-                      <Link
-                        key={item.en}
-                        href={item.path}
-                        onClick={() => setIsFabOpen(false)}
-                        className={`relative overflow-hidden flex flex-col justify-center px-4 py-3 rounded-xl border transition-colors ${
-                          isActive ? 'bg-[var(--panel-hover)] border-l-[3px] border-l-[var(--accent)] shadow-sm' : 'bg-[var(--inner-box)] border-[var(--panel-border)]'
-                        }`}
-                      >
+                      <Link key={item.en} href={item.path} onClick={() => setIsFabOpen(false)} className={`relative overflow-hidden flex flex-col justify-center px-4 py-3 rounded-xl border transition-colors ${isActive ? 'bg-[var(--panel-hover)] border-l-[3px] border-l-[var(--accent)] shadow-sm' : 'bg-[var(--inner-box)] border-[var(--panel-border)]'}`}>
                         <span className="font-black text-[0.75rem] tracking-wide leading-tight whitespace-nowrap text-[var(--accent)]">{item.kr}</span>
                         <span className="text-[0.55rem] font-bold mt-1 whitespace-nowrap text-[var(--text-sub)]">{item.sub}</span>
                       </Link>
                     );
                   })}
                 </div>
-
               </div>
             </div>
 
-            {/* 생텀 페이지 설정 모달 */}
             {isThemeModalOpen && (
               <div className="sticker-modal fixed inset-0 z-[11000] flex items-center justify-center p-4 bg-black/70 animate-in fade-in duration-200">
                 <div className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
                   <div className="bg-[var(--panel-hover)] p-4 border-b border-[var(--panel-border)] flex justify-between items-center">
-                    <h3 className="text-[var(--text-main)] font-black text-base flex items-center gap-2">
-                      <span>🎨</span> 생텀 페이지 설정 ({activeAccount?.nickname})
-                    </h3>
+                    <h3 className="text-[var(--text-main)] font-black text-base flex items-center gap-2"><span>🎨</span> 생텀 페이지 설정 ({activeAccount?.nickname})</h3>
                     <button onClick={() => setIsThemeModalOpen(false)} className="text-[var(--text-sub)] hover:text-[var(--text-main)] text-xl cursor-pointer">&times;</button>
                   </div>
 
                   <div className="p-6 space-y-6 max-h-[80vh] overflow-y-auto custom-scrollbar">
-                    
                     <div className="space-y-3">
                       <label className="text-xs font-bold text-[var(--text-sub)] uppercase tracking-wider block">기본 테마 프리셋</label>
                       <div className="grid grid-cols-3 gap-2.5">
@@ -1210,19 +1019,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                           { id: 'rosarium', name: 'ROSARIUM', bg: '#1A1016', accent: '#E88DA8' },
                           { id: 'elysium', name: 'ELYSIUM', bg: '#D2F4C0', accent: '#6262B8' },
                         ].map((item) => (
-                          <button
-                            key={item.id}
-                            type="button"
-                            onClick={() => setTempTheme(item.id)}
-                            className={`p-3 rounded-xl border text-xs font-black transition flex flex-col items-center justify-center gap-2 cursor-pointer ${
-                              tempTheme === item.id
-                                ? 'bg-[var(--panel-hover)] border-[var(--accent)] text-[var(--accent)] shadow-lg scale-[1.02]'
-                                : 'bg-[var(--inner-box)] border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)]'
-                            }`}
-                          >
-                            <span className="w-5 h-5 rounded-full flex items-center justify-center p-0.5 border shadow-inner" style={{ backgroundColor: item.bg, borderColor: item.accent }}>
-                              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.accent }}></span>
-                            </span>
+                          <button key={item.id} type="button" onClick={() => setTempTheme(item.id)} className={`p-3 rounded-xl border text-xs font-black transition flex flex-col items-center justify-center gap-2 cursor-pointer ${tempTheme === item.id ? 'bg-[var(--panel-hover)] border-[var(--accent)] text-[var(--accent)] shadow-lg scale-[1.02]' : 'bg-[var(--inner-box)] border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)]'}`}>
+                            <span className="w-5 h-5 rounded-full flex items-center justify-center p-0.5 border shadow-inner" style={{ backgroundColor: item.bg, borderColor: item.accent }}><span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.accent }}></span></span>
                             <span className="text-[0.65rem] tracking-wider">{item.name}</span>
                           </button>
                         ))}
@@ -1233,16 +1031,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                       <label className="text-xs font-bold text-[var(--accent)] uppercase tracking-wider block">나만의 커스텀 테마 슬롯</label>
                       <div className="grid grid-cols-3 gap-2">
                         {(["custom_1", "custom_2", "custom_3"] as const).map((cSlot, idx) => (
-                          <button
-                            key={cSlot}
-                            type="button"
-                            onClick={() => setTempTheme(cSlot)}
-                            className={`py-2 px-1 rounded-xl text-xs font-black border transition cursor-pointer ${
-                              tempTheme === cSlot 
-                                ? 'bg-[var(--accent)] text-[var(--accent-fg)] border-[var(--accent)] shadow' 
-                                : 'bg-[var(--inner-box)] border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)]'
-                            }`}
-                          >
+                          <button key={cSlot} type="button" onClick={() => setTempTheme(cSlot)} className={`py-2 px-1 rounded-xl text-xs font-black border transition cursor-pointer ${tempTheme === cSlot ? 'bg-[var(--accent)] text-[var(--accent-fg)] border-[var(--accent)] shadow' : 'bg-[var(--inner-box)] border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)]'}`}>
                             Custom {idx + 1}
                           </button>
                         ))}
@@ -1251,98 +1040,171 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
                     <div className="pt-3 border-t border-[var(--panel-border)] space-y-2">
                       <div className="grid grid-cols-2 gap-2">
-                        <button 
-                          onClick={() => globalStickerInputRef.current?.click()}
-                          className="py-2.5 px-2 rounded-xl bg-[var(--accent)] text-[var(--accent-fg)] hover:opacity-90 text-[0.7rem] font-black shadow-md transition flex items-center justify-center gap-1 cursor-pointer whitespace-nowrap"
-                        >
-                          🏷️ 커스텀 스티커 추가
-                        </button>
-
-                        <button 
-                          onClick={handleResetStickerPositions}
-                          className="py-2.5 px-2 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 text-[0.7rem] font-bold transition flex items-center justify-center gap-1 cursor-pointer whitespace-nowrap"
-                          title="구석에 박힌 스티커 구출"
-                        >
-                          🧹 스티커 위치 전체 리셋
-                        </button>
+                        <button onClick={() => globalStickerInputRef.current?.click()} className="py-2.5 px-2 rounded-xl bg-[var(--accent)] text-[var(--accent-fg)] hover:opacity-90 text-[0.7rem] font-black shadow-md transition flex items-center justify-center gap-1 cursor-pointer whitespace-nowrap">🏷️ 커스텀 스티커 추가</button>
+                        <button onClick={handleResetStickerPositions} className="py-2.5 px-2 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 text-[0.7rem] font-bold transition flex items-center justify-center gap-1 cursor-pointer whitespace-nowrap" title="구석에 박힌 스티커 구출">🧹 스티커 위치 전체 리셋</button>
                       </div>
 
                       {stickers.length > 0 && (
                         <div className="pt-3 border-t border-[var(--panel-border)] space-y-2">
-                          <label className="text-xs font-bold text-[var(--text-sub)] uppercase tracking-wider block">
-                            📌 현재 페이지 스티커 목록 ({stickers.length}개)
-                          </label>
-                          <div className="flex flex-col gap-2 max-h-36 overflow-y-auto custom-scrollbar p-1">
-                            {stickers.map((stk, idx) => (
-                              <div key={stk.id} className="flex items-center justify-between bg-[var(--inner-box)] p-2 rounded-xl border border-[var(--panel-border)]">
-                                <div className="flex items-center gap-2">
-                                  <img src={stk.url} alt="스티커" className="w-8 h-8 object-contain rounded bg-black/40" />
-                                  <span className="text-[0.65rem] font-bold text-[var(--text-main)]">
-                                    스티커 #{idx + 1} ({(stk.zIndex ?? 30) < 10 ? '카드 뒤' : '카드 앞'})
-                                  </span>
+                          <label className="text-xs font-bold text-[var(--text-sub)] uppercase tracking-wider block">📌 현재 페이지 스티커 목록 ({stickers.length}개)</label>
+                          <div className="flex flex-col gap-2 max-h-48 overflow-y-auto custom-scrollbar p-1">
+                            {stickers.slice().reverse().map((stk, displayIndex) => {
+                              const realIndex = stickers.length - 1 - displayIndex;
+                              const isLocked = stk.isLocked ?? false;
+                              const isBehind = (stk.zIndex ?? 30) < 10;
+
+                              return (
+                                <div key={stk.id} className="flex items-center justify-between bg-[var(--inner-box)] p-2 rounded-xl border border-[var(--panel-border)] gap-2">
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <img src={stk.url} alt="스티커" className="w-8 h-8 object-contain rounded bg-black/40 shrink-0" />
+                                    <div className="flex flex-col leading-none min-w-0">
+                                      <span className="text-[0.65rem] font-bold text-[var(--text-main)] truncate">스티커 #{realIndex + 1}</span>
+                                      <span className="text-[0.55rem] text-[var(--text-sub)] mt-0.5">{isLocked ? "📌 고정됨" : isBehind ? "⬇️ 카드 뒤" : "⬆️ 카드 앞"}</span>
+                                    </div>
+                                  </div>
+
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    <button onClick={() => { updateSticker(stk.id, 'isLocked', false); setSelectedStickerId(stk.id); setIsThemeModalOpen(false); }} className="px-2 py-1 rounded text-[0.6rem] font-bold bg-[var(--panel-hover)] text-amber-300 border border-[var(--panel-border)] hover:border-amber-400 cursor-pointer whitespace-nowrap">✏️ 편집</button>
+                                    <button onClick={() => updateSticker(stk.id, 'zIndex', isBehind ? 30 : 5)} className="px-2 py-1 rounded text-[0.6rem] font-bold bg-[var(--panel-hover)] text-[var(--accent)] border border-[var(--panel-border)] hover:border-[var(--accent)] cursor-pointer whitespace-nowrap">{isBehind ? '⬆️ 카드앞' : '⬇️ 카드뒤'}</button>
+                                    <button onClick={() => deleteSticker(stk.id)} className="px-1.5 py-1 rounded text-[0.6rem] font-bold bg-red-600/80 text-white hover:bg-red-600 cursor-pointer">🗑️</button>
+                                  </div>
                                 </div>
-                                <div className="flex items-center gap-1">
-                                  <button
-                                    onClick={() => updateSticker(stk.id, 'zIndex', (stk.zIndex ?? 30) < 10 ? 30 : 2)}
-                                    className="px-2 py-1 rounded text-[0.6rem] font-bold bg-[var(--panel-hover)] text-[var(--accent)] border border-[var(--panel-border)] hover:border-[var(--accent)] cursor-pointer"
-                                  >
-                                    {(stk.zIndex ?? 30) < 10 ? '⬆️ 앞으로' : '⬇️ 뒤로'}
-                                  </button>
-                                  <button
-                                    onClick={() => deleteSticker(stk.id)}
-                                    className="px-2 py-1 rounded text-[0.6rem] font-bold bg-red-600/80 text-white hover:bg-red-600 cursor-pointer"
-                                  >
-                                    🗑️
-                                  </button>
-                                </div>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         </div>
                       )}
                     </div>
-
                   </div>
 
                   <div className="bg-[var(--panel-hover)] p-3.5 md:p-4 border-t border-[var(--panel-border)] flex flex-col gap-2.5">
                     <div className="flex items-center justify-between gap-2 w-full">
-                      <button 
-                        onClick={() => { setIsThemeModalOpen(false); router.push('/customize'); }} 
-                        className="px-3.5 py-2 rounded-xl bg-[var(--inner-box)] border border-[var(--panel-border)] text-[var(--text-main)] hover:border-[var(--accent)] hover:text-[var(--accent)] text-xs font-black transition shadow flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer shrink-0"
-                      >
-                        <span>✨</span> 커스텀 테마 스튜디오
-                      </button>
-
+                      <button onClick={() => { setIsThemeModalOpen(false); router.push('/customize'); }} className="px-3.5 py-2 rounded-xl bg-[var(--inner-box)] border border-[var(--panel-border)] text-[var(--text-main)] hover:border-[var(--accent)] text-xs font-black transition shadow flex items-center justify-center gap-1.5 cursor-pointer"><span>✨</span> 테마 스튜디오</button>
                       <div className="flex items-center bg-[var(--inner-box)] border border-[var(--panel-border)] rounded-xl p-1 gap-1 shrink-0">
-                        <button onClick={() => setFontSizeLevel('small')} className={`px-2 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${fontSizeLevel === 'small' ? 'bg-[var(--panel-hover)] text-[var(--text-main)] shadow' : 'text-[var(--text-sub)]'}`}>A-</button>
-                        <button onClick={() => setFontSizeLevel('normal')} className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${fontSizeLevel === 'normal' ? 'bg-[var(--panel-hover)] text-[var(--text-main)] shadow' : 'text-[var(--text-sub)]'}`}>A</button>
-                        <button onClick={() => setFontSizeLevel('large')} className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${fontSizeLevel === 'large' ? 'bg-[var(--panel-hover)] text-[var(--text-main)] shadow' : 'text-[var(--text-sub)]'}`}>A+</button>
+                        <button onClick={() => setFontSizeLevel('small')} className={`px-2 py-1 rounded-lg text-xs font-bold cursor-pointer ${fontSizeLevel === 'small' ? 'bg-[var(--panel-hover)] text-[var(--text-main)]' : 'text-[var(--text-sub)]'}`}>A-</button>
+                        <button onClick={() => setFontSizeLevel('normal')} className={`px-2.5 py-1 rounded-lg text-xs font-bold cursor-pointer ${fontSizeLevel === 'normal' ? 'bg-[var(--panel-hover)] text-[var(--text-main)]' : 'text-[var(--text-sub)]'}`}>A</button>
+                        <button onClick={() => setFontSizeLevel('large')} className={`px-2.5 py-1 rounded-lg text-xs font-bold cursor-pointer ${fontSizeLevel === 'large' ? 'bg-[var(--panel-hover)] text-[var(--text-main)]' : 'text-[var(--text-sub)]'}`}>A+</button>
                       </div>
                     </div>
 
                     <div className="flex items-center justify-end gap-2 w-full pt-1.5 border-t border-[var(--panel-border)]/50">
-                      <button 
-                        onClick={() => setIsThemeModalOpen(false)} 
-                        className="px-4 py-2 rounded-lg bg-[var(--inner-box)] text-[var(--text-sub)] text-xs font-bold hover:text-[var(--text-main)] transition cursor-pointer whitespace-nowrap shrink-0"
-                      >
-                        취소
-                      </button>
-                      <button 
-                        onClick={handleSaveThemeSettings} 
-                        className="px-5 py-2 rounded-lg bg-[var(--accent)] text-[var(--accent-fg)] text-xs font-black transition shadow hover:opacity-90 cursor-pointer whitespace-nowrap shrink-0"
-                      >
-                        적용하기
-                      </button>
+                      <button onClick={() => setIsThemeModalOpen(false)} className="px-4 py-2 rounded-lg bg-[var(--inner-box)] text-[var(--text-sub)] text-xs font-bold hover:text-[var(--text-main)] cursor-pointer">취소</button>
+                      <button onClick={handleSaveThemeSettings} className="px-5 py-2 rounded-lg bg-[var(--accent)] text-[var(--accent-fg)] text-xs font-black shadow hover:opacity-90 cursor-pointer">적용하기</button>
                     </div>
                   </div>
-
                 </div>
               </div>
             )}
 
-            {/* 본문 콘텐츠 레이어 */}
-            <main className="max-w-[1600px] mx-auto px-4 py-6 w-full relative z-[10]">
-              {children}
+            {/* 메인 레이아웃 컨테이너 (3단계 레이어 완전 분리) */}
+            <main className="max-w-[1600px] mx-auto px-4 py-6 w-full relative bg-transparent min-h-[calc(100vh-80px)]">
+              
+              {/* [LAYER 0] 카드 뒤 스티커 레이어 (z-0) */}
+              <div className="absolute inset-0 pointer-events-none w-full h-full overflow-hidden z-0">
+                {stickers.filter(s => (s.zIndex ?? 30) < 10).map((stk, idx) => renderStickerItem(stk, idx))}
+              </div>
+
+              {/* [LAYER 10] 크로노스 및 메인 페이지 콘텐츠 레이어 (z-10) */}
+              <div className="relative z-[10] pointer-events-auto">
+                {children}
+              </div>
+
+              {/* [LAYER 20] 카드 앞 스티커 및 설정 툴바 레이어 (z-20) */}
+              <div className="absolute inset-0 pointer-events-none w-full h-full overflow-hidden z-[20]">
+                {stickers.filter(s => (s.zIndex ?? 30) >= 10).map((stk, idx) => renderStickerItem(stk, idx))}
+
+                {/* 선택된 스티커 컨트롤 툴바 */}
+                {selectedStickerId && (() => {
+                  const stk = stickers.find(s => s.id === selectedStickerId);
+                  if (!stk || stk.isLocked) return null;
+                  const isBehind = (stk.zIndex ?? 30) < 10;
+
+                  return (
+                    <div
+                      key={`toolbar_${stk.id}`}
+                      className="sticker-toolbar absolute pointer-events-auto flex flex-col items-center select-none touch-none z-[950]"
+                      style={{ left: `${stk.x}%`, top: `${stk.y}%` }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="w-[120px] h-[120px] pointer-events-none" />
+                      
+                      <div 
+                        className="mt-3 flex flex-col gap-1.5 bg-black/95 backdrop-blur-md border-2 border-amber-400 rounded-xl p-2.5 shadow-2xl pointer-events-auto min-w-[280px] text-white text-xs font-bold cursor-grab active:cursor-grabbing"
+                        onPointerDown={(e) => {
+                          const targetTag = (e.target as HTMLElement).tagName;
+                          if (targetTag === 'INPUT' || targetTag === 'BUTTON') {
+                            e.stopPropagation();
+                            return;
+                          }
+                          handleStartMoveSticker(stk.id, e);
+                        }}
+                      >
+                        <div className="w-full flex items-center justify-between pb-1.5 border-b border-zinc-800 text-[0.65rem] text-zinc-400 select-none">
+                          <span className="flex items-center gap-1 font-bold text-amber-300">✋ 드래그하여 이동</span>
+                          <button
+                            onClick={() => {
+                              updateSticker(stk.id, 'isLocked', true);
+                              setSelectedStickerId(null);
+                            }}
+                            className="px-2.5 py-1 rounded bg-amber-400 text-black font-black text-[0.65rem] hover:bg-amber-300 transition cursor-pointer flex items-center gap-1 shrink-0 whitespace-nowrap shadow"
+                          >
+                            📌 위치 고정하기
+                          </button>
+                        </div>
+
+                        {isBehind && (
+                          <div className="text-[0.6rem] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded text-center font-bold whitespace-nowrap">
+                            💡 카드 뒤 설정됨
+                          </div>
+                        )}
+
+                        <div className="flex items-center justify-between gap-1 bg-zinc-900/90 rounded-lg p-1 border border-zinc-700 whitespace-nowrap">
+                          <button onClick={() => setActiveStickerTab('scale')} className={`px-2 py-1 rounded text-[0.65rem] ${activeStickerTab === 'scale' ? 'bg-amber-400 text-black font-black' : 'text-zinc-400'}`}>🔍 크기</button>
+                          <button onClick={() => setActiveStickerTab('rotation')} className={`px-2 py-1 rounded text-[0.65rem] ${activeStickerTab === 'rotation' ? 'bg-amber-400 text-black font-black' : 'text-zinc-400'}`}>🔄 회전</button>
+                          <button onClick={() => setActiveStickerTab('opacity')} className={`px-2 py-1 rounded text-[0.65rem] ${activeStickerTab === 'opacity' ? 'bg-amber-400 text-black font-black' : 'text-zinc-400'}`}>👁️ 투명</button>
+                          <button onClick={() => setActiveStickerTab('layer')} className={`px-2 py-1 rounded text-[0.65rem] ${activeStickerTab === 'layer' ? 'bg-amber-400 text-black font-black' : 'text-zinc-400'}`}>🥞 순서</button>
+                          <button onClick={() => setConfigStickerId(stk.id)} className="px-2 py-1 rounded bg-zinc-800 text-amber-300 text-[0.65rem] font-bold">⚙️</button>
+                        </div>
+
+                        <div className="px-1 py-0.5">
+                          {activeStickerTab === 'scale' && (
+                            <div className="flex items-center gap-2">
+                              <button onClick={() => updateSticker(stk.id, 'scale', Math.max(0.2, stk.scale - 0.1))} className="px-2 py-0.5 bg-zinc-800 rounded font-black text-amber-300">-</button>
+                              <input type="range" min="0.2" max="3.0" step="0.05" value={stk.scale} onChange={(e) => updateSticker(stk.id, 'scale', parseFloat(e.target.value))} className="w-full h-1.5 accent-amber-400" />
+                              <button onClick={() => updateSticker(stk.id, 'scale', Math.min(3.0, stk.scale + 0.1))} className="px-2 py-0.5 bg-zinc-800 rounded font-black text-amber-300">+</button>
+                              <span className="text-[0.6rem] text-amber-300 shrink-0 w-7 text-right">{Math.round(stk.scale * 100)}%</span>
+                            </div>
+                          )}
+
+                          {activeStickerTab === 'rotation' && (
+                            <div className="flex items-center gap-2">
+                              <button onClick={() => updateSticker(stk.id, 'rotation', (stk.rotation - 15 + 360) % 360)} className="px-1.5 py-0.5 bg-zinc-800 rounded text-amber-300">-15°</button>
+                              <input type="range" min="0" max="360" step="1" value={stk.rotation} onChange={(e) => updateSticker(stk.id, 'rotation', parseInt(e.target.value))} className="w-full h-1.5 accent-amber-400" />
+                              <button onClick={() => updateSticker(stk.id, 'rotation', (stk.rotation + 15) % 360)} className="px-1.5 py-0.5 bg-zinc-800 rounded text-amber-300">+15°</button>
+                              <span className="text-[0.6rem] text-amber-300 shrink-0 w-7 text-right">{stk.rotation}°</span>
+                            </div>
+                          )}
+
+                          {activeStickerTab === 'opacity' && (
+                            <div className="flex items-center gap-2">
+                              <input type="range" min="0.1" max="1.0" step="0.05" value={stk.opacity} onChange={(e) => updateSticker(stk.id, 'opacity', parseFloat(e.target.value))} className="w-full h-1.5 accent-amber-400" />
+                              <span className="text-[0.6rem] text-amber-300 shrink-0 w-8 text-right">{Math.round(stk.opacity * 100)}%</span>
+                            </div>
+                          )}
+
+                          {activeStickerTab === 'layer' && (
+                            <div className="grid grid-cols-2 gap-1.5">
+                              <button onClick={() => updateSticker(stk.id, 'zIndex', 30)} className={`py-1 px-2 rounded text-[0.65rem] border ${ (stk.zIndex ?? 30) >= 10 ? 'bg-amber-400 text-black font-black' : 'bg-zinc-800 text-zinc-300' }`}>⬆️ 카드 앞으로</button>
+                              <button onClick={() => updateSticker(stk.id, 'zIndex', 5)} className={`py-1 px-2 rounded text-[0.65rem] border ${ (stk.zIndex ?? 30) < 10 ? 'bg-amber-400 text-black font-black' : 'bg-zinc-800 text-zinc-300' }`}>⬇️ 카드 뒤로</button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+
             </main>
           </>
         )}

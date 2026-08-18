@@ -226,6 +226,7 @@ export default function CharacterPage() {
     } catch (e) {}
   };
 
+  // ⚡ 속도 최적화: DB 쿼리를 1회로 단축하고 메모리에서 선택된 캐릭터를 탐색합니다.
   const loadCharacterData = async (charName: string, contentsList = dbContents, tradesList = dbTrades) => {
     isInitialLoad.current = true;
     try {
@@ -243,16 +244,8 @@ export default function CharacterPage() {
           Object.keys(rawTrade).forEach((kStr) => {
             const id = Number(kStr);
             const val = rawTrade[kStr];
-            let count = 0;
-            let buyer = "";
-
-            if (typeof val === 'object' && val !== null) {
-              count = Number(val.count || 0);
-              buyer = String(val.completed_by || c.nickname);
-            } else {
-              count = Number(val || 0);
-              buyer = c.nickname;
-            }
+            let count = typeof val === 'object' && val !== null ? Number(val.count || 0) : Number(val || 0);
+            let buyer = typeof val === 'object' && val !== null ? String(val.completed_by || c.nickname) : c.nickname;
 
             if (count > (accountWideProgress[id] || 0)) {
               accountWideProgress[id] = count;
@@ -262,7 +255,9 @@ export default function CharacterPage() {
         });
       }
 
-      const { data } = await supabase.from('characters').select('*').eq('nickname', charName).single();
+      // 추가 DB 쿼리 없이 전체 조회 결과에서 직접 캐릭터 추출
+      const data = allOwnedChars?.find((c: any) => c.nickname === charName);
+
       if (data) {
         setProfile({
           nickname: data.nickname, 
@@ -281,8 +276,7 @@ export default function CharacterPage() {
         setDailyChecks(dChecks.map(Number).filter((n: any) => !isNaN(n)));
         
         if (data.weekly_checks && !Array.isArray(data.weekly_checks)) {
-          const wNormals = Array.isArray(data.weekly_checks.normal) ? data.weekly_checks.normal : [];
-          setWeeklyChecks(wNormals.map(Number).filter((n: any) => !isNaN(n)));
+          setWeeklyChecks((data.weekly_checks.normal || []).map(Number).filter((n: any) => !isNaN(n)));
           setRepeatChecks(data.weekly_checks.repeat || {});
         } else if (Array.isArray(data.weekly_checks)) {
           setWeeklyChecks(data.weekly_checks.map(Number).filter((n: any) => !isNaN(n)));
@@ -310,11 +304,9 @@ export default function CharacterPage() {
         });
 
         tradesList.forEach((t: any) => {
-          if (t.scope === '계정당') {
-            if (accountWideProgress[t.id] !== undefined) {
-              parsedProgress[t.id] = accountWideProgress[t.id];
-              parsedNicknames[t.id] = accountWideBuyers[t.id] || charName;
-            }
+          if (t.scope === '계정당' && accountWideProgress[t.id] !== undefined) {
+            parsedProgress[t.id] = accountWideProgress[t.id];
+            parsedNicknames[t.id] = accountWideBuyers[t.id] || charName;
           }
         });
 
@@ -325,14 +317,16 @@ export default function CharacterPage() {
         setLevels({}); setDailyChecks([]); setWeeklyChecks([]); setRepeatChecks({});
         setAbyssChecks([]); setRaidChecks([]); setTradeProgress({}); setTradeCompletedBy({});
       }
-    } catch (e) {} finally {
+    } catch (e) {
+    } finally {
       setTimeout(() => {
         isInitialLoad.current = false;
         setSaveToast('idle');
-      }, 150);
+      }, 100);
     }
   };
 
+  // ⚡ 속도 최적화: Promise.all을 활용해 여러 캐릭터 업데이트를 동시(병렬) 처리합니다.
   const saveProgress = async () => {
     if (!profile.nickname.trim() || !user?.nickname) return;
     try {
@@ -378,12 +372,16 @@ export default function CharacterPage() {
       if (Object.keys(accountWidePayload).length > 0) {
         const { data: myChars } = await supabase.from('characters').select('nickname, trade_checks').eq('owner', user.nickname);
         if (myChars) {
-          for (const char of myChars) {
-            if (char.nickname !== profile.nickname) {
-              const mergedTrade = { ...(char.trade_checks || {}), ...accountWidePayload };
-              await supabase.from('characters').update({ trade_checks: mergedTrade }).eq('nickname', char.nickname);
-            }
-          }
+          // 기존 for문 개별 await 제거 후 Promise.all 병렬 처리
+          await Promise.all(
+            myChars
+              .filter(char => char.nickname !== profile.nickname)
+              .map(char => 
+                supabase.from('characters').update({
+                  trade_checks: { ...(char.trade_checks || {}), ...accountWidePayload }
+                }).eq('nickname', char.nickname)
+              )
+          );
         }
       }
 
@@ -397,7 +395,7 @@ export default function CharacterPage() {
       if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
       toastTimerRef.current = setTimeout(() => {
         setSaveToast('idle');
-      }, 1500);
+      }, 1000);
 
     } catch (error) { 
       setSaveToast('error');
@@ -413,9 +411,10 @@ export default function CharacterPage() {
     return () => clearTimeout(timer);
   }, [profile, accountContribution, levels, dailyChecks, weeklyChecks, repeatChecks, abyssChecks, raidChecks, tradeProgress, tradeCompletedBy]);
 
+  // ⚡ 속도 최적화: 저장을 백그라운드 비동기로 전환하여 캐릭터 전환 클릭 즉시 화면을 로드합니다.
   const switchCharacter = async (targetName: string) => { 
     if (targetName === profile.nickname) return;
-    await saveProgress(); 
+    saveProgress(); // await 제거로 UI 블로킹 방지
     loadCharacterData(targetName, dbContents, dbTrades); 
     window.history.replaceState(null, '', `?char=${encodeURIComponent(targetName)}`);
   };
@@ -844,7 +843,7 @@ export default function CharacterPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[var(--background)] text-[var(--text-main)] font-sans pb-16 pt-2 md:pt-4 relative">
+    <div className="w-full text-[var(--text-main)] font-sans pb-16 pt-2 md:pt-4 relative bg-transparent">
       
       {/* 플로팅 토스트 */}
       {saveToast !== 'idle' && (
@@ -1416,6 +1415,6 @@ export default function CharacterPage() {
         </div>
 
       </div>
-    </main>
+    </div>
   );
 }
