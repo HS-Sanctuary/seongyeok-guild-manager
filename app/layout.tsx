@@ -83,7 +83,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const [pendingCount, setPendingCount] = useState(0);
   const [banner, setBanner] = useState<any>(null);
 
-  // 🎯 바깥 영역 어디를 클릭해도 스티커 설정창이 100% 즉시 닫히는 캡처링 전역 이벤트
   useEffect(() => {
     const handleGlobalClickOutside = (event: MouseEvent | TouchEvent) => {
       const target = event.target as HTMLElement;
@@ -496,6 +495,23 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     setIsFabOpen((prev) => !prev);
   };
 
+  const handleSheetDragDown = (e: React.PointerEvent) => {
+    const startY = e.clientY;
+    const onPointerMove = (moveEvt: PointerEvent) => {
+      if (moveEvt.clientY - startY > 25) {
+        setIsFabOpen(false);
+        window.removeEventListener('pointermove', onPointerMove);
+        window.removeEventListener('pointerup', onPointerUp);
+      }
+    };
+    const onPointerUp = () => {
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+    };
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+  };
+
   useEffect(() => {
     if (activeAccount) {
       checkPendingInquiries();
@@ -557,10 +573,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             {/* 스티커 레이어 */}
             <div className="absolute inset-0 pointer-events-none w-full h-full">
               
-              {/* 1️⃣ 스티커 그림 본체 (stk.zIndex: 2는 카드 뒤, 30은 카드 앞으로 실시간 적용) */}
+              {/* 스티커 그림 본체 */}
               {stickers.map((stk) => {
                 const isSelected = selectedStickerId === stk.id;
-                const layerZIndex = stk.zIndex ?? 30; // ⚡ 실시간 zIndex 즉시 반영
+                const layerZIndex = stk.zIndex ?? 30;
 
                 let frameClasses = "";
                 if (stk.frameStyle === "sticker") {
@@ -604,7 +620,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 );
               })}
 
-              {/* 2️⃣ 선택된 스티커 조작 툴바 오버레이 (스티커가 카드 뒤로 가도 항상 맨 위 z-[950]에 떠서 조작 가능) */}
+              {/* 선택된 스티커 조작 툴바 오버레이 */}
               {selectedStickerId && (() => {
                 const stk = stickers.find(s => s.id === selectedStickerId);
                 if (!stk) return null;
@@ -982,6 +998,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </div>
             </nav>
 
+            {/* 모바일 플로팅 메뉴 버튼 */}
             <div
               className="lg:hidden fixed bottom-6 z-[10000] flex items-center rounded-full shadow-[0_0_15px_rgba(0,0,0,0.7)] border-[1.5px] cursor-grab active:cursor-grabbing select-none bg-[var(--panel)] border-[var(--accent)] touch-none"
               style={{ right: `${fabPosition.x}px` }}
@@ -1001,14 +1018,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </button>
             </div>
 
+            {/* 모바일 바텀 시트 메뉴 */}
             <div
               className={`fixed inset-x-0 bottom-0 z-[9999] lg:hidden border-t-2 rounded-t-[28px] p-4 shadow-2xl flex flex-col bg-[var(--panel)] text-[var(--text-main)] border-[var(--accent)] transition-transform duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)]`}
               style={{ 
                 transform: isFabOpen ? `translateY(0px)` : 'translateY(120%)' 
               }}
             >
-              <div className="w-full py-2 flex items-center justify-center cursor-grab active:cursor-grabbing touch-none select-none">
-                <div className="w-10 h-1.5 bg-[var(--text-sub)] rounded-full opacity-50" />
+              <div 
+                onClick={() => setIsFabOpen(false)}
+                onPointerDown={handleSheetDragDown}
+                className="w-full py-2.5 flex items-center justify-center cursor-grab active:cursor-grabbing touch-none select-none hover:opacity-80 active:opacity-100"
+                title="클릭하거나 아래로 쓸어내려 닫기"
+              >
+                <div className="w-12 h-1.5 bg-[var(--text-sub)] rounded-full opacity-60" />
               </div>
 
               <div className="overflow-y-auto custom-scrollbar flex flex-col gap-3 pb-12 max-h-[80vh]">
@@ -1040,19 +1063,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   </div>
                 )}
 
-                <div className="flex items-center justify-between gap-2 border-y border-[var(--panel-border)] py-2.5">
+                <div className="border-y border-[var(--panel-border)] py-1.5">
                   <button 
                     onClick={() => { setIsFabOpen(false); setIsThemeModalOpen(true); }}
-                    className="py-2 px-3 rounded-xl bg-[var(--inner-box)] border border-[var(--panel-border)] hover:border-[var(--accent)] text-xs font-bold text-[var(--text-main)] flex items-center gap-1.5 cursor-pointer shadow-sm"
+                    className="w-full py-2.5 px-3 rounded-xl bg-[var(--inner-box)] border border-[var(--panel-border)] hover:border-[var(--accent)] text-xs font-bold text-[var(--text-main)] flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
                   >
                     <span>🎨</span> 생텀 페이지 설정
                   </button>
-
-                  <div className="flex items-center bg-[var(--inner-box)] border border-[var(--panel-border)] rounded-xl p-1 gap-1">
-                    <button onClick={() => setFontSizeLevel('small')} className={`px-2 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${fontSizeLevel === 'small' ? 'bg-[var(--panel-hover)] text-[var(--text-main)] shadow' : 'text-[var(--text-sub)]'}`}>A-</button>
-                    <button onClick={() => setFontSizeLevel('normal')} className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${fontSizeLevel === 'normal' ? 'bg-[var(--panel-hover)] text-[var(--text-main)] shadow' : 'text-[var(--text-sub)]'}`}>A</button>
-                    <button onClick={() => setFontSizeLevel('large')} className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${fontSizeLevel === 'large' ? 'bg-[var(--panel-hover)] text-[var(--text-main)] shadow' : 'text-[var(--text-sub)]'}`}>A+</button>
-                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
@@ -1077,6 +1094,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </div>
             </div>
 
+            {/* 생텀 페이지 설정 모달 */}
             {isThemeModalOpen && (
               <div className="sticker-modal fixed inset-0 z-[11000] flex items-center justify-center p-4 bg-black/70 animate-in fade-in duration-200">
                 <div className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
@@ -1140,24 +1158,24 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     </div>
 
                     <div className="pt-3 border-t border-[var(--panel-border)] space-y-2">
-                      <div className="flex items-center justify-between gap-2">
+                      <div className="grid grid-cols-2 gap-2">
                         <button 
                           onClick={() => globalStickerInputRef.current?.click()}
-                          className="py-2.5 px-4 rounded-xl bg-[var(--accent)] text-[var(--accent-fg)] hover:opacity-90 text-xs font-black shadow-md transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
+                          className="py-2.5 px-2 rounded-xl bg-[var(--accent)] text-[var(--accent-fg)] hover:opacity-90 text-[0.7rem] font-black shadow-md transition flex items-center justify-center gap-1 cursor-pointer whitespace-nowrap"
                         >
                           🏷️ 커스텀 스티커 추가
                         </button>
 
                         <button 
                           onClick={handleResetStickerPositions}
-                          className="py-2.5 px-3 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer"
+                          className="py-2.5 px-2 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 text-[0.7rem] font-bold transition flex items-center justify-center gap-1 cursor-pointer whitespace-nowrap"
                           title="구석에 박힌 스티커 구출"
                         >
                           🧹 스티커 위치 전체 리셋
                         </button>
                       </div>
 
-                      {/* 📌 현재 페이지에 배치된 스티커 목록 및 레이어 관리 관리자 */}
+                      {/* 현재 페이지에 배치된 스티커 목록 및 레이어 관리자 */}
                       {stickers.length > 0 && (
                         <div className="pt-3 border-t border-[var(--panel-border)] space-y-2">
                           <label className="text-xs font-bold text-[var(--text-sub)] uppercase tracking-wider block">
@@ -1195,25 +1213,48 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
                   </div>
 
-                  <div className="bg-[var(--panel-hover)] p-4 border-t border-[var(--panel-border)] flex flex-col sm:flex-row items-center justify-between gap-2">
-                    <button 
-                      onClick={() => { setIsThemeModalOpen(false); router.push('/customize'); }} 
-                      className="w-full sm:w-auto px-4 py-2 rounded-xl bg-[var(--inner-box)] border border-[var(--panel-border)] text-[var(--text-main)] hover:border-[var(--accent)] hover:text-[var(--accent)] text-xs font-black transition shadow flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer"
-                    >
-                      <span>✨</span> 커스텀 테마 스튜디오
-                    </button>
+                  {/* 하단 영역 (2단 수평 레이아웃으로 개선) */}
+                  <div className="bg-[var(--panel-hover)] p-3.5 md:p-4 border-t border-[var(--panel-border)] flex flex-col gap-2.5">
+                    
+                    {/* 상단 1열: 스튜디오 버튼 + 글자 크기 조절 */}
+                    <div className="flex items-center justify-between gap-2 w-full">
+                      <button 
+                        onClick={() => { setIsThemeModalOpen(false); router.push('/customize'); }} 
+                        className="px-3.5 py-2 rounded-xl bg-[var(--inner-box)] border border-[var(--panel-border)] text-[var(--text-main)] hover:border-[var(--accent)] hover:text-[var(--accent)] text-xs font-black transition shadow flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer shrink-0"
+                      >
+                        <span>✨</span> 커스텀 테마 스튜디오
+                      </button>
 
-                    <div className="flex gap-2 w-full sm:w-auto justify-end">
-                      <button onClick={() => setIsThemeModalOpen(false)} className="px-4 py-2 rounded-lg bg-[var(--inner-box)] text-[var(--text-sub)] text-xs font-bold hover:text-[var(--text-main)] transition cursor-pointer">취소</button>
-                      <button onClick={handleSaveThemeSettings} className="px-4 py-2 rounded-lg bg-[var(--accent)] text-[var(--accent-fg)] text-xs font-black transition shadow hover:opacity-90 cursor-pointer">적용하기</button>
+                      <div className="flex items-center bg-[var(--inner-box)] border border-[var(--panel-border)] rounded-xl p-1 gap-1 shrink-0">
+                        <button onClick={() => setFontSizeLevel('small')} className={`px-2 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${fontSizeLevel === 'small' ? 'bg-[var(--panel-hover)] text-[var(--text-main)] shadow' : 'text-[var(--text-sub)]'}`}>A-</button>
+                        <button onClick={() => setFontSizeLevel('normal')} className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${fontSizeLevel === 'normal' ? 'bg-[var(--panel-hover)] text-[var(--text-main)] shadow' : 'text-[var(--text-sub)]'}`}>A</button>
+                        <button onClick={() => setFontSizeLevel('large')} className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${fontSizeLevel === 'large' ? 'bg-[var(--panel-hover)] text-[var(--text-main)] shadow' : 'text-[var(--text-sub)]'}`}>A+</button>
+                      </div>
                     </div>
+
+                    {/* 하단 2열: 취소 / 적용하기 버튼 */}
+                    <div className="flex items-center justify-end gap-2 w-full pt-1.5 border-t border-[var(--panel-border)]/50">
+                      <button 
+                        onClick={() => setIsThemeModalOpen(false)} 
+                        className="px-4 py-2 rounded-lg bg-[var(--inner-box)] text-[var(--text-sub)] text-xs font-bold hover:text-[var(--text-main)] transition cursor-pointer whitespace-nowrap shrink-0"
+                      >
+                        취소
+                      </button>
+                      <button 
+                        onClick={handleSaveThemeSettings} 
+                        className="px-5 py-2 rounded-lg bg-[var(--accent)] text-[var(--accent-fg)] text-xs font-black transition shadow hover:opacity-90 cursor-pointer whitespace-nowrap shrink-0"
+                      >
+                        적용하기
+                      </button>
+                    </div>
+
                   </div>
 
                 </div>
               </div>
             )}
 
-            {/* 본문 콘텐츠 레이어 (z-[10]) */}
+            {/* 본문 콘텐츠 레이어 */}
             <main className="max-w-[1600px] mx-auto px-4 py-6 w-full relative z-[10]">
               {children}
             </main>

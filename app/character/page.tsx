@@ -42,13 +42,11 @@ export default function CharacterPage() {
   const [user, setUser] = useState<any>(null);
   const [mounted, setMounted] = useState(false);
   
-  // 저장 알림 토스트
   const [saveToast, setSaveToast] = useState<string>('idle');
   const isInitialLoad = useRef(true);
   const toastTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // 탭 메뉴 상태
-  const [activeTab, setActiveTab] = useState<'all' | 'abyss_raid' | 'trades' | 'daily' | 'weekly' | 'levels'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'weekly_daily' | 'abyss_raid' | 'barter' | 'shop' | 'levels'>('all');
 
   const [dbClasses, setDbClasses] = useState<any[]>([]);
   const [dbTasks, setDbTasks] = useState<any[]>([]);
@@ -71,8 +69,13 @@ export default function CharacterPage() {
   const [repeatChecks, setRepeatChecks] = useState<Record<number, boolean[]>>({});
   const [abyssChecks, setAbyssChecks] = useState<number[]>([]);
   const [raidChecks, setRaidChecks] = useState<number[]>([]);
+  
   const [tradeProgress, setTradeProgress] = useState<Record<number, number>>({});
+  const [tradeCompletedBy, setTradeCompletedBy] = useState<Record<number, string>>({});
   const [pinnedTrades, setPinnedTrades] = useState<number[]>([]);
+
+  const [tradeSearch, setTradeSearch] = useState<string>("");
+  const [tradeSortOrder, setTradeSortOrder] = useState<'asc' | 'desc'>('asc');
 
   const [isTitleAccordionOpen, setIsTitleAccordionOpen] = useState(false);
   const [isManageModalOpen, setIsManageModalOpen] = useState(false);
@@ -83,7 +86,6 @@ export default function CharacterPage() {
   const abyssList = dbContents.filter((c: any) => c.type === 'abyss');
   const raidList = dbContents.filter((c: any) => c.type === 'raid');
 
-  // 요일별 검은 구멍 최대치 계산 (월:8 ~ 일:14)
   const getBlackHoleMaxCount = () => {
     const day = new Date().getDay();
     if (day === 1) return 8;
@@ -97,11 +99,10 @@ export default function CharacterPage() {
 
   const blackHoleMax = getBlackHoleMaxCount();
 
-  // 내장 주간 반복 타스크
   const defaultExtraWeeklyTasks = [
-    { id: 9900, name: "검은 구멍", type: "repeat_weekly", max_count: blackHoleMax },
-    { id: 9901, name: "소환의 결계", type: "repeat_weekly", max_count: 7 },
-    { id: 9902, name: "뱅가드 브리치", type: "repeat_weekly", max_count: 3 }
+    { id: 9900, name: "검은 구멍", mobile_name: "검은 구멍", type: "repeat_weekly", max_count: blackHoleMax },
+    { id: 9901, name: "소환의 결계", mobile_name: "소환의 결계", type: "repeat_weekly", max_count: 7 },
+    { id: 9902, name: "뱅가드 브리치", mobile_name: "뱅가드 브리치", type: "repeat_weekly", max_count: 3 }
   ];
 
   const visibleDailyList = dbTasks.filter((t: any) => (t.type === 'daily' || t.type === 'repeat_daily') && !t.name.includes("검은 구멍"));
@@ -112,7 +113,6 @@ export default function CharacterPage() {
     ...rawWeeklyList.filter(r => !defaultExtraWeeklyTasks.some(e => e.name === r.name))
   ];
 
-  // 21개 클래스 기본 1레벨(최소 21LV)을 보장하는 누적 레벨 계산
   const calculateTotalLevel = () => {
     const classList = dbClasses.length > 0 ? dbClasses : Array(21).fill(null);
     return classList.reduce((sum, cls) => {
@@ -171,7 +171,7 @@ export default function CharacterPage() {
     setAllCharacters(allCharsRes.data || []);
     
     await fetchAccountData(loginUserNick);
-    await fetchUserCharacters(loginUserNick, contRes.data || []);
+    await fetchUserCharacters(loginUserNick, contRes.data || [], tradeRes.data || []);
   };
 
   const fetchAccountData = async (loginUserNick: string) => {
@@ -181,7 +181,7 @@ export default function CharacterPage() {
     } catch (e) {}
   };
 
-  const fetchUserCharacters = async (loginUserNick: string, contentsList: any[]) => {
+  const fetchUserCharacters = async (loginUserNick: string, contentsList: any[], tradesList = dbTrades) => {
     try {
       let data = null;
       const res1 = await supabase
@@ -217,18 +217,51 @@ export default function CharacterPage() {
           target = loginUserNick;
         }
         
-        loadCharacterData(target, contentsList);
+        loadCharacterData(target, contentsList, tradesList);
       } else {
         const initialChar = { nickname: loginUserNick, alias: "", sort_order: 0, owner: loginUserNick, job: '전사', is_main: true };
         setMyCharacters([initialChar]);
-        loadCharacterData(loginUserNick, contentsList);
+        loadCharacterData(loginUserNick, contentsList, tradesList);
       }
     } catch (e) {}
   };
 
-  const loadCharacterData = async (charName: string, contentsList = dbContents) => {
+  const loadCharacterData = async (charName: string, contentsList = dbContents, tradesList = dbTrades) => {
     isInitialLoad.current = true;
     try {
+      const { data: allOwnedChars } = await supabase
+        .from('characters')
+        .select('*')
+        .or(`owner.eq.${user?.nickname || charName},nickname.eq.${charName}`);
+
+      const accountWideProgress: Record<number, number> = {};
+      const accountWideBuyers: Record<number, string> = {};
+
+      if (allOwnedChars) {
+        allOwnedChars.forEach((c: any) => {
+          const rawTrade = c.trade_checks || {};
+          Object.keys(rawTrade).forEach((kStr) => {
+            const id = Number(kStr);
+            const val = rawTrade[kStr];
+            let count = 0;
+            let buyer = "";
+
+            if (typeof val === 'object' && val !== null) {
+              count = Number(val.count || 0);
+              buyer = String(val.completed_by || c.nickname);
+            } else {
+              count = Number(val || 0);
+              buyer = c.nickname;
+            }
+
+            if (count > (accountWideProgress[id] || 0)) {
+              accountWideProgress[id] = count;
+              accountWideBuyers[id] = buyer;
+            }
+          });
+        });
+      }
+
       const { data } = await supabase.from('characters').select('*').eq('nickname', charName).single();
       if (data) {
         setProfile({
@@ -261,11 +294,36 @@ export default function CharacterPage() {
         const rChecks = Array.isArray(data.raid_checks) ? data.raid_checks.map(Number).filter((n: any) => !isNaN(n)) : [];
         setAbyssChecks(rChecks.filter((id: number) => contentsList.find((c: any) => c.id === id)?.type === 'abyss'));
         setRaidChecks(rChecks.filter((id: number) => contentsList.find((c: any) => c.id === id)?.type === 'raid'));
-        setTradeProgress(data.trade_checks || {});
+        
+        const rawTrade = data.trade_checks || {};
+        const parsedProgress: Record<number, number> = {};
+        const parsedNicknames: Record<number, string> = {};
+
+        Object.keys(rawTrade).forEach((k: any) => {
+          const val = rawTrade[k];
+          if (typeof val === 'object' && val !== null) {
+            parsedProgress[Number(k)] = Number(val.count || 0);
+            if (val.completed_by) parsedNicknames[Number(k)] = String(val.completed_by);
+          } else {
+            parsedProgress[Number(k)] = Number(val || 0);
+          }
+        });
+
+        tradesList.forEach((t: any) => {
+          if (t.scope === '계정당') {
+            if (accountWideProgress[t.id] !== undefined) {
+              parsedProgress[t.id] = accountWideProgress[t.id];
+              parsedNicknames[t.id] = accountWideBuyers[t.id] || charName;
+            }
+          }
+        });
+
+        setTradeProgress(parsedProgress);
+        setTradeCompletedBy(parsedNicknames);
       } else {
         setProfile({ ...defaultProfile, nickname: charName });
         setLevels({}); setDailyChecks([]); setWeeklyChecks([]); setRepeatChecks({});
-        setAbyssChecks([]); setRaidChecks([]); setTradeProgress({});
+        setAbyssChecks([]); setRaidChecks([]); setTradeProgress({}); setTradeCompletedBy({});
       }
     } catch (e) {} finally {
       setTimeout(() => {
@@ -286,17 +344,48 @@ export default function CharacterPage() {
       const existingIndex = myCharacters.findIndex((c: any) => c.nickname === profile.nickname);
       const currentSortOrder = existingIndex !== -1 ? (myCharacters[existingIndex].sort_order ?? myCharacters.length) : myCharacters.length;
 
+      const tradePayload: Record<number, any> = {};
+      Object.keys(tradeProgress).forEach((kStr) => {
+        const id = Number(kStr);
+        tradePayload[id] = {
+          count: tradeProgress[id] || 0,
+          completed_by: tradeCompletedBy[id] || null
+        };
+      });
+
       const payload = {
         nickname: profile.nickname, alias: profile.alias.slice(0, 3), owner: user.nickname, sort_order: currentSortOrder,
         job: profile.job || "전사", combat_power: Number(profile.combatPower) || 0, magic_resistance: Number(profile.magicResistance) || 0,
         life_energy: Number(profile.lifeEnergy) || 0, charm: Number(profile.charm) || 0, contribution: Number(accountContribution) || 0,
         is_main: profile.isMain, levels: levels, 
         daily_checks: dailyChecks, weekly_checks: { normal: weeklyChecks, repeat: repeatChecks },
-        raid_checks: [...abyssChecks, ...raidChecks], trade_checks: tradeProgress, updated_at: new Date()
+        raid_checks: [...abyssChecks, ...raidChecks], trade_checks: tradePayload, updated_at: new Date()
       };
       
       await supabase.from('characters').upsert(payload, { onConflict: 'nickname' }); 
       await supabase.from('characters').update({ contribution: Number(accountContribution) || 0 }).eq('owner', user.nickname);
+
+      const accountWidePayload: Record<number, any> = {};
+      dbTrades.filter((t: any) => t.scope === '계정당').forEach((t: any) => {
+        if (tradeProgress[t.id] !== undefined) {
+          accountWidePayload[t.id] = {
+            count: tradeProgress[t.id],
+            completed_by: tradeCompletedBy[t.id] || profile.nickname
+          };
+        }
+      });
+
+      if (Object.keys(accountWidePayload).length > 0) {
+        const { data: myChars } = await supabase.from('characters').select('nickname, trade_checks').eq('owner', user.nickname);
+        if (myChars) {
+          for (const char of myChars) {
+            if (char.nickname !== profile.nickname) {
+              const mergedTrade = { ...(char.trade_checks || {}), ...accountWidePayload };
+              await supabase.from('characters').update({ trade_checks: mergedTrade }).eq('nickname', char.nickname);
+            }
+          }
+        }
+      }
 
       if (existingIndex === -1) {
         setMyCharacters((prev: any[]) => [...prev, { nickname: profile.nickname, alias: profile.alias, sort_order: currentSortOrder, job: profile.job, is_main: profile.isMain }]);
@@ -322,12 +411,12 @@ export default function CharacterPage() {
       saveProgress();
     }, 800);
     return () => clearTimeout(timer);
-  }, [profile, accountContribution, levels, dailyChecks, weeklyChecks, repeatChecks, abyssChecks, raidChecks, tradeProgress]);
+  }, [profile, accountContribution, levels, dailyChecks, weeklyChecks, repeatChecks, abyssChecks, raidChecks, tradeProgress, tradeCompletedBy]);
 
   const switchCharacter = async (targetName: string) => { 
     if (targetName === profile.nickname) return;
     await saveProgress(); 
-    loadCharacterData(targetName, dbContents); 
+    loadCharacterData(targetName, dbContents, dbTrades); 
     window.history.replaceState(null, '', `?char=${encodeURIComponent(targetName)}`);
   };
 
@@ -363,11 +452,22 @@ export default function CharacterPage() {
     });
   };
 
-  const updateTradeProgress = (tradeId: number, delta: number, max: number) => {
+  const updateTradeProgress = (tradeId: number, delta: number, max: number, scope: string) => {
     setTradeProgress(prev => {
       const current = prev[tradeId] || 0;
       let next = current + delta;
       if (next < 0) next = 0; if (next > max) next = max;
+
+      if (next > 0 && scope === '계정당') {
+        setTradeCompletedBy(nicks => ({ ...nicks, [tradeId]: profile.nickname }));
+      } else if (next === 0 && scope === '계정당') {
+        setTradeCompletedBy(nicks => {
+          const nw = { ...nicks };
+          delete nw[tradeId];
+          return nw;
+        });
+      }
+
       return { ...prev, [tradeId]: next };
     });
   };
@@ -460,7 +560,6 @@ export default function CharacterPage() {
       }
     }
     
-    // 1. 저장 직후 자동 저장 타이머가 옛 상태로 DB를 덮어쓰지 않도록 즉시 차단
     isInitialLoad.current = true;
 
     const toDelete = manageList.filter(c => c.isDeleted && !c.isNew);
@@ -492,7 +591,6 @@ export default function CharacterPage() {
     const targetNick = activeChars.find(c => c.originalName === profile.nickname)?.tempNickname.trim() || activeChars[0].tempNickname.trim();
     const updatedCurrentChar = activeChars.find(c => c.originalName === profile.nickname || c.tempNickname.trim() === targetNick);
 
-    // 2. 메인 프로필 상태 즉시 강제 업데이트
     if (updatedCurrentChar) {
       setProfile(prev => ({
         ...prev,
@@ -503,7 +601,6 @@ export default function CharacterPage() {
       }));
     }
 
-    // 3. 캐릭터 선택 바 목록도 즉시 업데이트
     setMyCharacters(activeChars.map(c => ({
       nickname: c.tempNickname.trim(),
       alias: c.tempAlias.slice(0, 3),
@@ -562,7 +659,8 @@ export default function CharacterPage() {
   const cleanItemName = (name: string) => name.replace(/^어비스\s*-\s*/, '').replace(/^레이드\s*-\s*/, '');
 
   const renderTask = (item: any, type: 'daily' | 'weekly' | 'abyss' | 'raid') => {
-    const displayName = cleanItemName(item.name);
+    const pcName = cleanItemName(item.name);
+    const mobileDisplayName = (item.mobile_name && item.mobile_name.trim()) ? item.mobile_name : pcName;
 
     if (item.type?.startsWith('repeat')) {
       const currentCount = (repeatChecks[item.id] || []).filter(Boolean).length;
@@ -571,17 +669,34 @@ export default function CharacterPage() {
       const badgeText = item.type === 'repeat_daily' ? '일간' : '주말';
       
       return (
-        <div key={item.id} className={`flex items-center justify-between p-2 rounded-lg border transition-all ${isMax ? "bg-[var(--accent-soft)] border-[var(--accent)]" : "bg-[var(--inner-box)] border-[var(--panel-border)]"}`}>
-          <div className="flex flex-col min-w-0 pr-1.5">
-            {showBadge && <span className={`text-xs w-fit px-1 py-0.2 rounded font-bold ${isMax ? 'bg-[var(--accent)] text-[var(--accent-fg)]' : 'bg-[var(--panel)] text-[var(--text-sub)]'}`}>{badgeText}</span>}
-            <span className={`text-xs md:text-sm font-medium truncate ${isMax ? "text-[var(--accent)]" : "text-[var(--text-main)]"}`}>{displayName}</span>
+        <div key={item.id} className={`flex items-center justify-between p-1.5 md:p-2 rounded-lg border transition-all ${isMax ? "bg-[var(--accent-soft)] border-[var(--accent)]" : "bg-[var(--inner-box)] border-[var(--panel-border)]"}`}>
+          <div className="flex flex-col min-w-0 pr-1 flex-1">
+            {showBadge && <span className={`text-[9px] w-fit px-1 py-0.2 rounded font-bold mb-0.5 ${isMax ? 'bg-[var(--accent)] text-[var(--accent-fg)]' : 'bg-[var(--panel)] text-[var(--text-sub)]'}`}>{badgeText}</span>}
+            
+            <span className={`md:hidden text-xs font-black whitespace-nowrap truncate tracking-tight ${isMax ? "text-[var(--accent)]" : "text-[var(--text-main)]"}`}>
+              {mobileDisplayName}
+            </span>
+            <span className={`hidden md:block text-xs font-bold whitespace-nowrap truncate tracking-tighter ${isMax ? "text-[var(--accent)]" : "text-[var(--text-main)]"}`}>
+              {pcName}
+            </span>
           </div>
-          <div className="flex items-center gap-1 bg-[var(--panel)] px-1.5 py-0.5 rounded border border-[var(--panel-border)] shrink-0">
-            <span className={`text-xs font-bold min-w-[28px] text-center ${isMax ? "text-[var(--accent)]" : "text-[var(--text-sub)]"}`}>{currentCount}/{item.max_count}</span>
-            <div className="flex gap-0.5 border-l border-[var(--panel-border)] pl-1">
-              <button onClick={() => updateRepeatCount(item.id, -1, item.max_count)} className="w-5 h-5 flex justify-center items-center rounded bg-[var(--inner-box)] text-[var(--text-sub)] hover:text-[var(--text-main)] text-xs font-bold">-</button>
-              <button onClick={() => updateRepeatCount(item.id, 1, item.max_count)} className="w-5 h-5 flex justify-center items-center rounded bg-[var(--accent)] text-[var(--accent-fg)] font-bold text-xs">+</button>
-            </div>
+          
+          <div className="flex items-center gap-0.5 bg-[var(--panel)] px-1 py-0.5 rounded border border-[var(--panel-border)] shrink-0">
+            <button 
+              onClick={() => updateRepeatCount(item.id, -1, item.max_count)} 
+              className="w-4 h-4 flex justify-center items-center rounded bg-[var(--inner-box)] text-[var(--text-sub)] hover:text-[var(--text-main)] text-[10px] font-black cursor-pointer border border-[var(--panel-border)]"
+            >
+              -
+            </button>
+            <span className={`text-[10px] md:text-xs font-black min-w-[22px] text-center ${isMax ? "text-[var(--accent)]" : "text-[var(--text-sub)]"}`}>
+              {currentCount}/{item.max_count}
+            </span>
+            <button 
+              onClick={() => updateRepeatCount(item.id, 1, item.max_count)} 
+              className="w-4 h-4 flex justify-center items-center rounded bg-[var(--accent)] text-[var(--accent-fg)] font-black text-[10px] cursor-pointer"
+            >
+              +
+            </button>
           </div>
         </div>
       );
@@ -607,10 +722,17 @@ export default function CharacterPage() {
 
     return (
       <div key={item.id} onClick={() => setChecks(isChecked ? checks.filter((i: number) => i !== item.id) : [...checks, item.id])}
-           className={`flex items-center justify-between p-2 md:p-2.5 rounded-lg cursor-pointer border transition-all min-w-0 ${theme.wrapper}`}>
-        <span className={`text-xs md:text-sm truncate pr-1.5 ${theme.text}`}>{displayName}</span>
-        <div className={`w-4 h-4 rounded flex items-center justify-center transition-all shrink-0 ${theme.box}`}>
-          {isChecked && <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
+           className={`flex items-center justify-between p-1.5 md:p-2 rounded-lg cursor-pointer border transition-all min-w-0 ${theme.wrapper}`}>
+        
+        <span className={`md:hidden text-xs font-black whitespace-nowrap truncate tracking-tight pr-1 min-w-0 ${theme.text}`}>
+          {mobileDisplayName}
+        </span>
+        <span className={`hidden md:block text-xs font-bold whitespace-nowrap truncate tracking-tighter pr-1 min-w-0 ${theme.text}`}>
+          {pcName}
+        </span>
+
+        <div className={`w-3.5 h-3.5 md:w-4 md:h-4 rounded flex items-center justify-center transition-all shrink-0 ${theme.box}`}>
+          {isChecked && <svg className="w-2.5 h-2.5 md:w-3 md:h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
         </div>
       </div>
     );
@@ -620,22 +742,106 @@ export default function CharacterPage() {
 
   const earnedTitles = getMyEarnedTitles();
 
-  const dailyTrades = [...dbTrades.filter(t => t.reset_type === '일간')].sort((a, b) => {
-    const aPin = pinnedTrades.includes(a.id) ? 1 : 0;
-    const bPin = pinnedTrades.includes(b.id) ? 1 : 0;
-    return bPin - aPin;
-  });
+  const filterAndSortTrades = (categoryType: 'barter' | 'shop') => {
+    let list = dbTrades.filter(t => {
+      const itemCategory = t.category || 'barter';
+      return itemCategory === categoryType;
+    });
 
-  const weeklyTrades = [...dbTrades.filter(t => t.reset_type === '주간')].sort((a, b) => {
-    const aPin = pinnedTrades.includes(a.id) ? 1 : 0;
-    const bPin = pinnedTrades.includes(b.id) ? 1 : 0;
-    return bPin - aPin;
-  });
+    if (tradeSearch.trim()) {
+      const q = tradeSearch.trim().toLowerCase();
+      list = list.filter(t => 
+        (t.npc && t.npc.toLowerCase().includes(q)) ||
+        (t.map && t.map.toLowerCase().includes(q)) ||
+        (t.reward && t.reward.toLowerCase().includes(q)) ||
+        (t.cost && t.cost.toLowerCase().includes(q))
+      );
+    }
+
+    return list.sort((a, b) => {
+      const aPin = pinnedTrades.includes(a.id) ? 1 : 0;
+      const bPin = pinnedTrades.includes(b.id) ? 1 : 0;
+      if (aPin !== bPin) return bPin - aPin;
+
+      const mapCompare = (a.map || "").localeCompare(b.map || "", "ko-KR");
+      if (mapCompare !== 0) return tradeSortOrder === 'asc' ? mapCompare : -mapCompare;
+
+      const npcCompare = (a.npc || "").localeCompare(b.npc || "", "ko-KR");
+      if (npcCompare !== 0) return tradeSortOrder === 'asc' ? npcCompare : -npcCompare;
+
+      const rewardCompare = (a.reward || "").localeCompare(b.reward || "", "ko-KR");
+      return tradeSortOrder === 'asc' ? rewardCompare : -rewardCompare;
+    });
+  };
+
+  const barterTrades = filterAndSortTrades('barter');
+  const shopTrades = filterAndSortTrades('shop');
 
   const isDailyAllChecked = visibleDailyList.filter((t: any) => !t.type?.startsWith('repeat')).every((t: any) => dailyChecks.includes(t.id));
   const isWeeklyAllChecked = visibleWeeklyList.filter((t: any) => !t.type?.startsWith('repeat')).every((t: any) => weeklyChecks.includes(t.id));
   const isAbyssAllChecked = abyssList.every((t: any) => abyssChecks.includes(t.id));
   const isRaidAllChecked = raidList.every((t: any) => raidChecks.includes(t.id));
+
+  const mobileRepeatTasks = [
+    ...visibleWeeklyList.filter((t: any) => t.type?.startsWith('repeat')),
+    ...visibleDailyList.filter((t: any) => t.type?.startsWith('repeat'))
+  ];
+
+  const mobileDailyChecklists = visibleDailyList.filter((t: any) => !t.type?.startsWith('repeat'));
+  const mobileWeeklyChecklists = visibleWeeklyList.filter((t: any) => !t.type?.startsWith('repeat'));
+
+  const renderTradeCard = (trade: any) => {
+    const currentVal = tradeProgress[trade.id] || 0;
+    const limit = trade.limit || trade.max_count || 1;
+    const isMax = currentVal >= limit;
+    const isPinned = pinnedTrades.includes(trade.id);
+    const buyerNick = tradeCompletedBy[trade.id];
+
+    return (
+      <div key={trade.id} className={`flex flex-col justify-between p-2.5 rounded-lg border transition ${isPinned ? 'bg-[var(--accent-soft)]/20 border-[var(--accent)]' : 'bg-[var(--inner-box)] border-[var(--panel-border)]'}`}>
+        <div className="flex items-center justify-between mb-1.5 min-w-0">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <button onClick={() => togglePinTrade(trade.id)} className={`text-xs cursor-pointer ${isPinned ? 'opacity-100' : 'opacity-30'}`}>📌</button>
+            <span className="font-bold text-xs text-[var(--accent)] truncate">
+              {trade.npc || "NPC"} <span className="text-[var(--text-main)] font-normal">({trade.map || "맵"})</span>
+            </span>
+          </div>
+          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border shrink-0 ${trade.scope === '계정당' ? 'bg-purple-950/60 text-purple-300 border-purple-800' : 'bg-[var(--panel)] text-[var(--text-sub)] border-[var(--panel-border)]'}`}>{trade.scope || '캐릭당'}</span>
+        </div>
+
+        <div className="flex items-center justify-between gap-2 text-xs">
+          <div className="min-w-0 flex-1">
+            <div className="text-xs font-bold text-emerald-400 truncate">보상: {trade.reward} {trade.reward_cnt ? `(${trade.reward_cnt}개)` : ''}</div>
+            <div className="text-xs font-bold text-amber-400 truncate">소모: {trade.cost} {trade.cost_cnt ? `(${trade.cost_cnt}개)` : ''}</div>
+            
+            {trade.scope === '계정당' && buyerNick && (
+              <div className="text-[10px] text-purple-300 font-black mt-0.5 truncate bg-purple-900/30 px-1 py-0.2 rounded w-fit border border-purple-800/50">
+                👤 구매자: {buyerNick}
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-1 bg-[var(--panel)] px-1.5 py-0.5 rounded border border-[var(--panel-border)] shrink-0">
+            <button 
+              onClick={() => updateTradeProgress(trade.id, -1, limit, trade.scope)} 
+              className="w-4 h-4 flex justify-center items-center rounded bg-[var(--inner-box)] text-xs font-black text-[var(--text-sub)] hover:text-[var(--text-main)] cursor-pointer"
+            >
+              -
+            </button>
+            <span className={`text-xs font-black min-w-[28px] text-center ${isMax ? "text-emerald-400" : "text-[var(--text-main)]"}`}>
+              {currentVal}/{limit}
+            </span>
+            <button 
+              onClick={() => updateTradeProgress(trade.id, 1, limit, trade.scope)} 
+              className="w-4 h-4 flex justify-center items-center rounded bg-[var(--accent)] text-[var(--accent-fg)] font-black text-xs cursor-pointer"
+            >
+              +
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <main className="min-h-screen bg-[var(--background)] text-[var(--text-main)] font-sans pb-16 pt-2 md:pt-4 relative">
@@ -662,7 +868,7 @@ export default function CharacterPage() {
         <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-2 md:p-4">
           <div className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-xl w-[98%] max-w-2xl max-h-[88vh] overflow-hidden flex flex-col shadow-2xl">
             <div className="p-2.5 md:p-3 border-b border-[var(--panel-border)] flex justify-between items-center bg-[var(--inner-box)]">
-              <h2 className="text-xs md:text-base font-black text-[var(--accent)]">⚙️ 캐릭터 관리 & 순서 변경</h2>
+              <h2 className="text-xs md:text-base font-black text-[var(--accent)]">⚙️ 캐릭터 등록 및 관리</h2>
               <button onClick={() => setIsManageModalOpen(false)} className="text-[var(--text-sub)] hover:text-[var(--text-main)] text-sm">✕</button>
             </div>
             
@@ -791,17 +997,14 @@ export default function CharacterPage() {
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5 flex-wrap leading-tight">
-                  {/* PC 뷰 (md 이상): 본 닉네임만 표시 */}
                   <span className="hidden md:inline text-base font-black text-[var(--text-main)] truncate max-w-[220px]">
                     {profile.nickname}
                   </span>
                   
-                  {/* 모바일 뷰 (md 미만): 애칭 (없으면 닉네임) 표시 */}
                   <span className="md:hidden text-sm font-black text-[var(--text-main)] truncate max-w-[140px]">
                     {profile.alias || profile.nickname}
                   </span>
 
-                  {/* 🎯 주 클래스 (메인 화면에서 클릭해 즉시 변경할 수 있는 셀렉트) */}
                   <select 
                     value={profile.job || "전사"} 
                     onChange={(e) => updateProfile("job", e.target.value)}
@@ -822,7 +1025,6 @@ export default function CharacterPage() {
                     )}
                   </select>
 
-                  {/* 대표 여부 */}
                   {profile.isMain && (
                     <span className="text-xs bg-[var(--accent)] text-[var(--accent-fg)] font-black px-1.5 py-0.2 rounded whitespace-nowrap">
                       대표
@@ -833,17 +1035,16 @@ export default function CharacterPage() {
               </div>
             </div>
 
-            {/* 버튼 2개 */}
             <div className="flex flex-col items-end gap-1.5 shrink-0">
               <button 
                 onClick={() => router.push(`/character/detail?char=${encodeURIComponent(profile.nickname)}`)}
-                className="w-24 text-center bg-[var(--accent)] text-[var(--accent-fg)] text-xs font-black py-1.5 rounded-lg shadow transition hover:opacity-90 whitespace-nowrap cursor-pointer"
+                className="px-3 py-1.5 text-center bg-[var(--accent)] text-[var(--accent-fg)] text-xs font-black rounded-lg shadow transition hover:opacity-90 whitespace-nowrap cursor-pointer"
               >
                 🔍 상세관리
               </button>
               <button 
                 onClick={() => setIsTitleAccordionOpen(!isTitleAccordionOpen)} 
-                className="w-24 text-center bg-[var(--inner-box)] border border-[var(--panel-border)] text-xs font-bold text-[var(--accent)] py-1.5 rounded-lg transition whitespace-nowrap hover:bg-[var(--accent-soft)] cursor-pointer"
+                className="px-3 py-1.5 text-center bg-[var(--inner-box)] border border-[var(--panel-border)] text-xs font-bold text-[var(--accent)] rounded-lg transition whitespace-nowrap hover:bg-[var(--accent-soft)] cursor-pointer"
               >
                 ✨ 칭호보기
               </button>
@@ -891,7 +1092,7 @@ export default function CharacterPage() {
 
         </div>
 
-        {/* 🎯 보유 캐릭터 선택 바 */}
+        {/* 캐릭터 선택 바 */}
         <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-2 shadow-xs space-y-1">
           <div className="flex justify-between items-center text-xs font-bold text-[var(--text-sub)] px-1">
             <span className="flex items-center gap-1">
@@ -900,9 +1101,9 @@ export default function CharacterPage() {
             </span>
             <button 
               onClick={openManageModal} 
-              className="text-xs bg-[var(--inner-box)] border border-[var(--panel-border)] px-2 py-0.5 rounded text-[var(--accent)] hover:bg-[var(--accent-soft)] transition font-bold cursor-pointer"
+              className="text-xs bg-[var(--accent)] text-[var(--accent-fg)] font-black px-2.5 py-1 rounded-lg hover:opacity-90 transition shadow-xs cursor-pointer flex items-center gap-1"
             >
-              ⚙️ 설정
+              ⚙️ 캐릭터 등록 및 관리
             </button>
           </div>
           
@@ -921,14 +1122,12 @@ export default function CharacterPage() {
                       : 'bg-[var(--inner-box)] border-[var(--panel-border)] hover:border-[var(--accent)]/50'
                   }`}
                 >
-                  {/* 모바일 화면 노출 */}
                   <span className="md:hidden text-xs font-black leading-none text-center truncate w-full">
                     <span className={isSelected ? 'text-[var(--accent)]' : 'text-[var(--text-main)]'}>
                       {mobileAlias}
                     </span>
                   </span>
 
-                  {/* PC 화면 노출 (가운데 정렬) */}
                   <div className="hidden md:flex flex-col items-center justify-center w-full gap-0.5 min-w-0 text-center">
                     <span className={`text-xs font-black truncate w-full text-center ${isSelected ? 'text-[var(--accent)]' : 'text-[var(--text-main)]'}`}>
                       {char.nickname}
@@ -943,14 +1142,14 @@ export default function CharacterPage() {
           </div>
         </div>
 
-        {/* 2행 3열 탭 메뉴 */}
+        {/* 2행 3열 필터 버튼 그리드 */}
         <div className="grid grid-cols-3 gap-1.5 bg-[var(--inner-box)] p-1.5 rounded-xl border border-[var(--panel-border)]">
           {[
             { id: 'all', label: 'ALL' },
+            { id: 'weekly_daily', label: '주간/일일' },
             { id: 'abyss_raid', label: '어비스/레이드' },
-            { id: 'trades', label: '물교/구매' },
-            { id: 'daily', label: '일일' },
-            { id: 'weekly', label: '주간' },
+            { id: 'barter', label: '물물 교환' },
+            { id: 'shop', label: '상점 구매' },
             { id: 'levels', label: '클래스' }
           ].map((tab) => (
             <button
@@ -967,12 +1166,75 @@ export default function CharacterPage() {
           ))}
         </div>
 
-        {/* 컨텐츠 영역 */}
+        {/* ---------------- 컨텐츠 영역 ---------------- */}
         <div className="space-y-3">
-          {(activeTab === 'all' || activeTab === 'daily' || activeTab === 'weekly' || activeTab === 'abyss_raid') && (
-            <div className={`grid gap-2.5 ${activeTab === 'all' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4' : 'grid-cols-1 md:grid-cols-2'}`}>
+          
+          {/* 📱 1. 모바일 전용 뷰 (block md:hidden) */}
+          {(activeTab === 'all' || activeTab === 'weekly_daily' || activeTab === 'abyss_raid') && (
+            <div className="block md:hidden space-y-2.5">
               
-              {(activeTab === 'all' || activeTab === 'daily') && (
+              {/* 상단: 카운터형 반복 숙제 통합 (1열 Full-width) */}
+              {(activeTab === 'all' || activeTab === 'weekly_daily') && mobileRepeatTasks.length > 0 && (
+                <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-2 shadow-xs space-y-1.5">
+                  <h3 className="font-bold text-[var(--accent)] text-xs border-b border-[var(--panel-border)] pb-1">
+                    ⏳ 주간/일일 반복 컨텐츠
+                  </h3>
+                  <div className="space-y-1">
+                    {mobileRepeatTasks.map((item: any) => renderTask(item, item.type?.includes('daily') ? 'daily' : 'weekly'))}
+                  </div>
+                </div>
+              )}
+
+              {/* 하단: 체크박스형 숙제 (2열 Split-View) */}
+              {(activeTab === 'all' || activeTab === 'weekly_daily') && (
+                <div className="grid grid-cols-2 gap-1.5">
+                  <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-1.5 shadow-xs flex flex-col min-w-0">
+                    <div className="flex justify-between items-center mb-1 border-b border-[var(--panel-border)] pb-1">
+                      <h3 className="font-bold text-amber-400 text-xs">일일 숙제</h3>
+                      <button onClick={() => handleSmartToggle('daily')} className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[var(--accent)] text-[var(--accent-fg)]">{isDailyAllChecked ? '해제' : '완료'}</button>
+                    </div>
+                    <div className="space-y-1 flex-1 min-w-0">{mobileDailyChecklists.map((item: any) => renderTask(item, 'daily'))}</div>
+                  </div>
+
+                  <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-1.5 shadow-xs flex flex-col min-w-0">
+                    <div className="flex justify-between items-center mb-1 border-b border-[var(--panel-border)] pb-1">
+                      <h3 className="font-bold text-blue-400 text-xs">주간 숙제</h3>
+                      <button onClick={() => handleSmartToggle('weekly')} className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[var(--accent)] text-[var(--accent-fg)]">{isWeeklyAllChecked ? '해제' : '완료'}</button>
+                    </div>
+                    <div className="space-y-1 flex-1 min-w-0">{mobileWeeklyChecklists.map((item: any) => renderTask(item, 'weekly'))}</div>
+                  </div>
+                </div>
+              )}
+
+              {/* 어비스/레이드 관리 (모바일 2열) */}
+              {(activeTab === 'all' || activeTab === 'abyss_raid') && (
+                <div className="grid grid-cols-2 gap-1.5">
+                  <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-1.5 shadow-xs flex flex-col min-w-0">
+                    <div className="flex justify-between items-center mb-1 border-b border-[var(--panel-border)] pb-1">
+                      <h3 className="font-bold text-emerald-400 text-xs">어비스</h3>
+                      <button onClick={() => handleSmartToggle('abyss')} className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[var(--accent)] text-[var(--accent-fg)]">{isAbyssAllChecked ? '해제' : '완료'}</button>
+                    </div>
+                    <div className="space-y-1 flex-1 min-w-0">{abyssList.map((item: any) => renderTask(item, 'abyss'))}</div>
+                  </div>
+
+                  <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-1.5 shadow-xs flex flex-col min-w-0">
+                    <div className="flex justify-between items-center mb-1 border-b border-[var(--panel-border)] pb-1">
+                      <h3 className="font-bold text-emerald-400 text-xs">레이드</h3>
+                      <button onClick={() => handleSmartToggle('raid')} className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[var(--accent)] text-[var(--accent-fg)]">{isRaidAllChecked ? '해제' : '완료'}</button>
+                    </div>
+                    <div className="space-y-1 flex-1 min-w-0">{raidList.map((item: any) => renderTask(item, 'raid'))}</div>
+                  </div>
+                </div>
+              )}
+
+            </div>
+          )}
+
+          {/* 💻 2. PC 전용 와이드 뷰 (hidden md:block) */}
+          {(activeTab === 'all' || activeTab === 'weekly_daily' || activeTab === 'abyss_raid') && (
+            <div className="hidden md:grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+              
+              {(activeTab === 'all' || activeTab === 'weekly_daily') && (
                 <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-2.5 shadow-xs flex flex-col">
                   <div className="flex justify-between items-center mb-2 border-b border-[var(--panel-border)] pb-1.5 gap-2">
                     <h3 className="font-bold text-amber-400 text-xs md:text-sm whitespace-nowrap">일일 컨텐츠</h3>
@@ -982,7 +1244,7 @@ export default function CharacterPage() {
                 </div>
               )}
 
-              {(activeTab === 'all' || activeTab === 'weekly') && (
+              {(activeTab === 'all' || activeTab === 'weekly_daily') && (
                 <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-2.5 shadow-xs flex flex-col">
                   <div className="flex justify-between items-center mb-2 border-b border-[var(--panel-border)] pb-1.5 gap-2">
                     <h3 className="font-bold text-blue-400 text-xs md:text-sm whitespace-nowrap">주간 컨텐츠</h3>
@@ -1015,87 +1277,73 @@ export default function CharacterPage() {
             </div>
           )}
 
-          {(activeTab === 'all' || activeTab === 'trades') && (
-            <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-2.5 md:p-3 shadow-xs space-y-3">
-              <h3 className="font-bold text-[var(--accent)] text-xs md:text-sm whitespace-nowrap border-b border-[var(--panel-border)] pb-1.5">⚖️ 물교/구매 관리</h3>
-              
-              <div className="space-y-1.5">
-                <h4 className="text-amber-400 font-bold text-xs flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span> 일일 갱신 (Daily)
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5">
-                  {dailyTrades.map((trade: any) => {
-                    const currentVal = tradeProgress[trade.id] || 0;
-                    const isMax = currentVal >= trade.limit;
-                    const isPinned = pinnedTrades.includes(trade.id);
-                    return (
-                      <div key={trade.id} className={`flex flex-col justify-between p-2 rounded-lg border transition ${isPinned ? 'bg-[var(--accent-soft)]/20 border-[var(--accent)]' : 'bg-[var(--inner-box)] border-[var(--panel-border)]'}`}>
-                        <div className="flex items-center justify-between mb-1 min-w-0">
-                          <div className="flex items-center gap-1 min-w-0">
-                            <button onClick={() => togglePinTrade(trade.id)} className={`text-xs cursor-pointer ${isPinned ? 'opacity-100' : 'opacity-30'}`}>📌</button>
-                            <span className="font-bold text-xs text-[var(--text-main)] truncate">{trade.map || "-"} <span className="text-xs text-[var(--text-sub)] font-normal">({trade.npc || "-"})</span></span>
-                          </div>
-                          <span className="text-xs px-1 py-0.2 rounded bg-[var(--panel)] text-[var(--text-sub)] shrink-0">{trade.scope}</span>
-                        </div>
-                        <div className="flex items-center justify-between gap-2 text-xs">
-                          <div className="min-w-0">
-                            <div className="text-xs font-bold text-emerald-400 truncate">보상: {trade.reward} ({trade.reward_cnt}개)</div>
-                            <div className="text-xs font-bold text-amber-400 truncate">소모: {trade.cost} ({trade.cost_cnt}개)</div>
-                          </div>
-                          <div className="flex items-center gap-1 bg-[var(--panel)] px-1.5 py-0.5 rounded border border-[var(--panel-border)] shrink-0">
-                            <span className={`text-xs font-bold w-7 text-center ${isMax ? "text-emerald-400" : "text-[var(--text-main)]"}`}>{currentVal}/{trade.limit}</span>
-                            <div className="flex gap-0.5 border-l border-[var(--panel-border)] pl-1">
-                              <button onClick={() => updateTradeProgress(trade.id, -1, trade.limit)} className="w-4 h-4 rounded bg-[var(--inner-box)] text-xs font-bold text-[var(--text-sub)] cursor-pointer">-</button>
-                              <button onClick={() => updateTradeProgress(trade.id, 1, trade.limit)} className="w-4 h-4 rounded bg-[var(--accent)] text-[var(--accent-fg)] font-bold text-xs cursor-pointer">+</button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+          {/* ⚖️ 물물 교환 카테고리 */}
+          {(activeTab === 'all' || activeTab === 'barter') && (
+            <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-2.5 md:p-3 shadow-xs space-y-2.5">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-[var(--panel-border)] pb-2">
+                <h3 className="font-bold text-[var(--accent)] text-xs md:text-sm whitespace-nowrap">⚖️ 물물 교환 목록</h3>
+                
+                <div className="flex items-center gap-1.5 w-full sm:w-auto">
+                  <input
+                    type="text"
+                    value={tradeSearch}
+                    onChange={(e) => setTradeSearch(e.target.value)}
+                    placeholder="NPC / 맵 / 보상 / 소모품 검색..."
+                    className="flex-1 sm:w-56 bg-[var(--inner-box)] border border-[var(--panel-border)] rounded-lg px-2.5 py-1 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent)]"
+                  />
+                  <button
+                    onClick={() => setTradeSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+                    className="px-2.5 py-1 rounded-lg bg-[var(--inner-box)] border border-[var(--panel-border)] text-xs font-bold text-[var(--text-sub)] hover:text-[var(--text-main)] shrink-0 cursor-pointer"
+                  >
+                    {tradeSortOrder === 'asc' ? '▲ 오름차순' : '▼ 내림차순'}
+                  </button>
                 </div>
               </div>
 
-              <div className="space-y-1.5 pt-1.5 border-t border-[var(--panel-border)]">
-                <h4 className="text-blue-400 font-bold text-xs flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span> 주간 갱신 (Weekly)
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5">
-                  {weeklyTrades.map((trade: any) => {
-                    const currentVal = tradeProgress[trade.id] || 0;
-                    const isMax = currentVal >= trade.limit;
-                    const isPinned = pinnedTrades.includes(trade.id);
-                    return (
-                      <div key={trade.id} className={`flex flex-col justify-between p-2 rounded-lg border transition ${isPinned ? 'bg-[var(--accent-soft)]/20 border-[var(--accent)]' : 'bg-[var(--inner-box)] border-[var(--panel-border)]'}`}>
-                        <div className="flex items-center justify-between mb-1 min-w-0">
-                          <div className="flex items-center gap-1 min-w-0">
-                            <button onClick={() => togglePinTrade(trade.id)} className={`text-xs cursor-pointer ${isPinned ? 'opacity-100' : 'opacity-30'}`}>📌</button>
-                            <span className="font-bold text-xs text-[var(--text-main)] truncate">{trade.map || "-"} <span className="text-xs text-[var(--text-sub)] font-normal">({trade.npc || "-"})</span></span>
-                          </div>
-                          <span className="text-xs px-1 py-0.2 rounded bg-[var(--panel)] text-[var(--text-sub)] shrink-0">{trade.scope}</span>
-                        </div>
-                        <div className="flex items-center justify-between gap-2 text-xs">
-                          <div className="min-w-0">
-                            <div className="text-xs font-bold text-emerald-400 truncate">보상: {trade.reward} ({trade.reward_cnt}개)</div>
-                            <div className="text-xs font-bold text-amber-400 truncate">소모: {trade.cost} ({trade.cost_cnt}개)</div>
-                          </div>
-                          <div className="flex items-center gap-1 bg-[var(--panel)] px-1.5 py-0.5 rounded border border-[var(--panel-border)] shrink-0">
-                            <span className={`text-xs font-bold w-7 text-center ${isMax ? "text-emerald-400" : "text-[var(--text-main)]"}`}>{currentVal}/{trade.limit}</span>
-                            <div className="flex gap-0.5 border-l border-[var(--panel-border)] pl-1">
-                              <button onClick={() => updateTradeProgress(trade.id, -1, trade.limit)} className="w-4 h-4 rounded bg-[var(--inner-box)] text-xs font-bold text-[var(--text-sub)] cursor-pointer">-</button>
-                              <button onClick={() => updateTradeProgress(trade.id, 1, trade.limit)} className="w-4 h-4 rounded bg-[var(--accent)] text-[var(--accent-fg)] font-bold text-xs cursor-pointer">+</button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+              {barterTrades.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {barterTrades.map(renderTradeCard)}
                 </div>
-              </div>
-
+              ) : (
+                <div className="text-center py-6 text-xs text-[var(--text-sub)]">등록되거나 검색된 물물교환 품목이 없습니다.</div>
+              )}
             </div>
           )}
 
+          {/* 🛒 상점 구매 카테고리 */}
+          {(activeTab === 'all' || activeTab === 'shop') && (
+            <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-2.5 md:p-3 shadow-xs space-y-2.5">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-[var(--panel-border)] pb-2">
+                <h3 className="font-bold text-amber-400 text-xs md:text-sm whitespace-nowrap">🛒 상점 구매 목록</h3>
+                
+                <div className="flex items-center gap-1.5 w-full sm:w-auto">
+                  <input
+                    type="text"
+                    value={tradeSearch}
+                    onChange={(e) => setTradeSearch(e.target.value)}
+                    placeholder="NPC / 맵 / 보상 / 소모품 검색..."
+                    className="flex-1 sm:w-56 bg-[var(--inner-box)] border border-[var(--panel-border)] rounded-lg px-2.5 py-1 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent)]"
+                  />
+                  <button
+                    onClick={() => setTradeSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+                    className="px-2.5 py-1 rounded-lg bg-[var(--inner-box)] border border-[var(--panel-border)] text-xs font-bold text-[var(--text-sub)] hover:text-[var(--text-main)] shrink-0 cursor-pointer"
+                  >
+                    {tradeSortOrder === 'asc' ? '▲ 오름차순' : '▼ 내림차순'}
+                  </button>
+                </div>
+              </div>
+
+              {shopTrades.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {shopTrades.map(renderTradeCard)}
+                </div>
+              ) : (
+                <div className="text-center py-6 text-xs text-[var(--text-sub)]">등록되거나 검색된 상점 구매 품목이 없습니다.</div>
+              )}
+            </div>
+          )}
+
+          {/* ⚡ 클래스 레벨 관리 */}
           {(activeTab === 'all' || activeTab === 'levels') && (
             <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-2.5 md:p-3 shadow-xs space-y-2">
               <h3 className="font-bold text-[var(--accent)] text-xs md:text-sm whitespace-nowrap border-b border-[var(--panel-border)] pb-1.5">⚡ 클래스 레벨 관리</h3>
@@ -1112,19 +1360,51 @@ export default function CharacterPage() {
                       </div>
 
                       <div className="flex items-center gap-0.5 shrink-0">
-                        <span className="text-xs font-black font-mono text-[var(--accent)] mr-0.5 whitespace-nowrap">Lv.{currentLevel}</span>
+                        <span className="text-xs font-black font-mono text-[var(--accent)] mr-0.5 whitespace-nowrap">
+                          Lv.{currentLevel}
+                        </span>
                         
-                        <button onClick={() => updateClassLevel(cls.name, -10)} className="px-1 py-0.5 text-xs font-bold rounded bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)] cursor-pointer">-10</button>
-                        <button onClick={() => updateClassLevel(cls.name, -1)} className="px-1 py-0.5 text-xs font-bold rounded bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)] cursor-pointer">-1</button>
+                        <button 
+                          onClick={() => updateClassLevel(cls.name, -10)} 
+                          className="px-1 py-0.5 text-xs font-bold rounded bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)] cursor-pointer"
+                        >
+                          -10
+                        </button>
+                        <button 
+                          onClick={() => updateClassLevel(cls.name, -1)} 
+                          className="px-1 py-0.5 text-xs font-bold rounded bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)] cursor-pointer"
+                        >
+                          -1
+                        </button>
                         
                         {isMax ? (
-                          <button onClick={() => setMinLevel(cls.name)} className="px-1 py-0.5 text-xs font-black rounded bg-rose-500/20 text-rose-400 border border-rose-500/40 hover:bg-rose-500 hover:text-white transition whitespace-nowrap cursor-pointer">MIN</button>
+                          <button 
+                            onClick={() => setMinLevel(cls.name)} 
+                            className="px-1 py-0.5 text-xs font-black rounded bg-rose-500/20 text-rose-400 border border-rose-500/40 hover:bg-rose-500 hover:text-white transition whitespace-nowrap cursor-pointer"
+                          >
+                            MIN
+                          </button>
                         ) : (
-                          <button onClick={() => setMaxLevel(cls.name)} className="px-1 py-0.5 text-xs font-bold rounded bg-[var(--accent-soft)] text-[var(--accent)] border border-[var(--accent)]/40 hover:bg-[var(--accent)] hover:text-[var(--accent-fg)] transition whitespace-nowrap cursor-pointer">MAX</button>
+                          <button 
+                            onClick={() => setMaxLevel(cls.name)} 
+                            className="px-1 py-0.5 text-xs font-bold rounded bg-[var(--accent-soft)] text-[var(--accent)] border border-[var(--accent)]/40 hover:bg-[var(--accent)] hover:text-[var(--accent-fg)] transition whitespace-nowrap cursor-pointer"
+                          >
+                            MAX
+                          </button>
                         )}
 
-                        <button onClick={() => updateClassLevel(cls.name, 1)} className="px-1 py-0.5 text-xs font-bold rounded bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)] cursor-pointer">+1</button>
-                        <button onClick={() => updateClassLevel(cls.name, 10)} className="px-1 py-0.5 text-xs font-bold rounded bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)] cursor-pointer">+10</button>
+                        <button 
+                          onClick={() => updateClassLevel(cls.name, 1)} 
+                          className="px-1 py-0.5 text-xs font-bold rounded bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)] cursor-pointer"
+                        >
+                          +1
+                        </button>
+                        <button 
+                          onClick={() => updateClassLevel(cls.name, 10)} 
+                          className="px-1 py-0.5 text-xs font-bold rounded bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)] cursor-pointer"
+                        >
+                          +10
+                        </button>
                       </div>
                     </div>
                   );
