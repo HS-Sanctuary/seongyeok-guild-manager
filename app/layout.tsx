@@ -25,13 +25,13 @@ interface AccountPreset {
 interface Sticker {
   id: string;
   url: string;
-  x: number; // % (0 ~ 100)
-  y: number; // % (0 ~ 100)
+  x: number;
+  y: number;
   scale: number;
   rotation: number;
   opacity: number;
   frameStyle: "none" | "gold" | "polaroid" | "neon" | "sticker";
-  zIndex?: number; // 30: 카드 앞으로, 2: 카드 뒤로
+  zIndex?: number;
 }
 
 const navItems: NavItem[] = [
@@ -53,6 +53,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const [activeAccount, setActiveAccount] = useState<AccountPreset | null>(null);
 
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
+  const [isAccountAccordionOpen, setIsAccountAccordionOpen] = useState(false);
   const [isWingsOpen, setIsWingsOpen] = useState(false);
   
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
@@ -62,6 +63,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const [fabPosition, setFabPosition] = useState<{ x: number }>({ x: 20 });
   const [fontSizeLevel, setFontSizeLevel] = useState('normal');
   
+  // 🎯 바텀 시트 슬라이드 드래그 애니메이션 상태 추가
+  const [sheetDragY, setSheetDragY] = useState(0);
+  const [isDraggingSheet, setIsDraggingSheet] = useState(false);
+
   const [stickers, setStickers] = useState<Sticker[]>([]);
   const stickersRef = useRef<Sticker[]>([]);
   stickersRef.current = stickers;
@@ -495,19 +500,36 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     setIsFabOpen((prev) => !prev);
   };
 
-  const handleSheetDragDown = (e: React.PointerEvent) => {
+  // 🎯 부드러운 1:1 라이브 손가락 제스처 및 슬라이드 다운 닫기
+  const handleSheetDragStart = (e: React.PointerEvent) => {
     const startY = e.clientY;
+    setIsDraggingSheet(true);
+
     const onPointerMove = (moveEvt: PointerEvent) => {
-      if (moveEvt.clientY - startY > 25) {
-        setIsFabOpen(false);
-        window.removeEventListener('pointermove', onPointerMove);
-        window.removeEventListener('pointerup', onPointerUp);
+      const deltaY = moveEvt.clientY - startY;
+      if (deltaY > 0) {
+        setSheetDragY(deltaY);
+      } else {
+        setSheetDragY(0);
       }
     };
-    const onPointerUp = () => {
+
+    const onPointerUp = (upEvt: PointerEvent) => {
+      const finalDeltaY = upEvt.clientY - startY;
+      setIsDraggingSheet(false);
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerup', onPointerUp);
+
+      // 80px 이상 쓸어내렸으면 부드럽게 완전 닫힘
+      if (finalDeltaY > 80) {
+        setIsFabOpen(false);
+        setSheetDragY(0);
+      } else {
+        // 임계값 미만이면 원래 위치로 자연스럽게 스냅백
+        setSheetDragY(0);
+      }
     };
+
     window.addEventListener('pointermove', onPointerMove);
     window.addEventListener('pointerup', onPointerUp);
   };
@@ -572,8 +594,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
             {/* 스티커 레이어 */}
             <div className="absolute inset-0 pointer-events-none w-full h-full">
-              
-              {/* 스티커 그림 본체 */}
               {stickers.map((stk) => {
                 const isSelected = selectedStickerId === stk.id;
                 const layerZIndex = stk.zIndex ?? 30;
@@ -843,27 +863,32 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 </div>
               )}
 
-              <div className="max-w-[1600px] mx-auto px-4 w-full relative">
+              <div className="max-w-[1600px] mx-auto px-3 xl:px-4 w-full relative">
                 <div className="flex items-center justify-between h-20">
                   
-                  <div className="flex items-center gap-3 shrink-0">
-                    <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity shrink-0">
-                      <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg transition-colors border border-black/10 relative overflow-hidden shrink-0 bg-[var(--accent)] text-[var(--accent-fg)]">
+                  {/* 모바일 포함 항상 로고 + 텍스트 노출 */}
+                  <div className="flex items-center gap-2 xl:gap-3 shrink-0">
+                    <Link href="/" className="flex items-center gap-2 xl:gap-3 hover:opacity-80 transition-opacity shrink-0">
+                      <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shadow-lg transition-colors border border-black/10 relative overflow-hidden shrink-0 bg-[var(--accent)] text-[var(--accent-fg)]">
                         <div className="absolute inset-0 bg-gradient-to-br from-white/30 to-transparent"></div>
-                        <svg className="w-6 h-6 fill-current relative z-10 drop-shadow-sm text-[var(--accent-fg)]" viewBox="0 0 24 24">
+                        <svg className="w-5 h-5 sm:w-6 sm:h-6 fill-current relative z-10 drop-shadow-sm text-[var(--accent-fg)]" viewBox="0 0 24 24">
                           <path d="M12 1L15.39 8.26L23 9.27L17.5 14.14L18.81 21.02L12 17.77L5.19 21.02L6.5 14.14L1 9.27L8.61 8.26L12 1Z" />
                         </svg>
                       </div>
                       <div className="flex flex-col whitespace-nowrap">
-                        <span className="text-[0.55rem] font-bold tracking-tight text-[var(--text-sub)]">데이안 성역 길드 전용 플랫폼</span>
-                        <span className="font-black text-xl leading-tight tracking-wider mt-0.5 text-[var(--text-main)]">SANCTUM</span>
+                        <span className="text-[0.5rem] sm:text-[0.55rem] font-bold tracking-tight text-[var(--text-sub)]">
+                          데이안 성역 길드 전용 플랫폼
+                        </span>
+                        <span className="font-black text-base sm:text-xl leading-tight tracking-wider mt-0.5 text-[var(--text-main)]">
+                          SANCTUM
+                        </span>
                       </div>
                     </Link>
 
-                    <div className="relative z-[100] ml-1" ref={wingsRef}>
+                    <div className="relative z-[100] ml-0.5 xl:ml-1 shrink-0" ref={wingsRef}>
                       <button 
                         onClick={() => setIsWingsOpen(!isWingsOpen)}
-                        className="flex items-center justify-center w-9 h-9 rounded-xl border transition-all duration-200 hover:scale-110 active:scale-95 bg-[var(--inner-box)] border-[var(--panel-border)] hover:border-[var(--accent)] shadow-sm text-lg select-none cursor-pointer"
+                        className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-xl border transition-all duration-200 hover:scale-110 active:scale-95 bg-[var(--inner-box)] border-[var(--panel-border)] hover:border-[var(--accent)] shadow-sm text-base sm:text-lg select-none cursor-pointer"
                         title="정령의 날개 (빠른 이동)"
                       >
                         🪽
@@ -910,30 +935,31 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     </div>
                   </div>
 
-                  <div className="hidden lg:flex items-center space-x-2 xl:space-x-3">
+                  {/* 상단 네비게이션 메뉴 영역 */}
+                  <div className="hidden lg:flex items-center space-x-0.5 xl:space-x-2">
                     {navItems.map((item) => {
                       const isActive = pathname === item.path;
                       return (
                         <Link
                           key={item.en}
                           href={item.path}
-                          className={`group relative flex items-center justify-center rounded-md transition-all overflow-hidden h-12 px-3 lg:px-4 shrink-0 ${
+                          className={`group relative flex items-center justify-center rounded-md transition-all overflow-hidden h-12 px-2 xl:px-3.5 shrink-0 ${
                             isActive ? 'bg-[var(--panel-hover)] border-b-2 shadow-sm border-[var(--accent)]' : 'hover:bg-[var(--panel-hover)]/50'
                           }`}
                         >
                           <div className="flex flex-col items-center transition-transform duration-300 transform group-hover:-translate-y-12">
-                            <span className="font-black text-[0.7rem] xl:text-[0.75rem] leading-tight whitespace-nowrap text-[var(--text-main)]">{item.kr}</span>
-                            <span className="text-[0.55rem] font-bold mt-0.5 whitespace-nowrap text-[var(--accent)]">{item.sub}</span>
+                            <span className="font-black text-[0.68rem] xl:text-[0.75rem] leading-tight whitespace-nowrap text-[var(--text-main)]">{item.kr}</span>
+                            <span className="text-[0.52rem] xl:text-[0.55rem] font-bold mt-0.5 whitespace-nowrap text-[var(--accent)]">{item.sub}</span>
                           </div>
                           <div className="absolute inset-0 flex items-center justify-center transition-all duration-300 transform translate-y-12 opacity-0 group-hover:translate-y-0 group-hover:opacity-100">
-                            <span className="font-black tracking-widest text-[0.65rem] xl:text-[0.7rem] whitespace-nowrap text-[var(--accent)]">{item.en}</span>
+                            <span className="font-black tracking-widest text-[0.62rem] xl:text-[0.7rem] whitespace-nowrap text-[var(--accent)]">{item.en}</span>
                           </div>
                         </Link>
                       );
                     })}
                   </div>
 
-                  <div className="hidden lg:flex items-center gap-2.5 relative shrink-0">
+                  <div className="hidden lg:flex items-center gap-1.5 xl:gap-2.5 relative shrink-0">
                     <button 
                       onClick={() => setIsThemeModalOpen(true)}
                       className="w-9 h-9 border rounded-xl transition cursor-pointer flex items-center justify-center shadow-sm border-[var(--panel-border)] hover:border-[var(--accent)] hover:scale-105 text-base select-none bg-[var(--inner-box)]"
@@ -953,13 +979,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
                     {mounted && activeAccount ? (
                       <div className="relative" ref={accountMenuRef}>
-                        <button onClick={() => setIsAccountMenuOpen(!isAccountMenuOpen)} className="flex items-center gap-2 px-3.5 py-2 rounded-full border transition shadow-md whitespace-nowrap bg-[var(--panel)] hover:bg-[var(--panel-hover)] text-[var(--text-main)] border-[var(--accent)] cursor-pointer">
+                        <button onClick={() => setIsAccountMenuOpen(!isAccountMenuOpen)} className="flex items-center gap-2 px-3 py-2 rounded-full border transition shadow-md whitespace-nowrap bg-[var(--panel)] hover:bg-[var(--panel-hover)] text-[var(--text-main)] border-[var(--accent)] cursor-pointer">
                           <div className="w-6 h-6 rounded-full flex items-center justify-center text-[0.65rem] shrink-0 bg-[var(--inner-box)] text-[var(--text-main)]">👑</div>
                           <div className="flex flex-col text-left leading-none whitespace-nowrap">
                             <span className="text-[0.7rem] font-bold flex items-center gap-1 max-w-[120px] truncate text-[var(--text-main)]">{activeAccount.alias || activeAccount.nickname}</span>
                             <span className="text-[0.55rem] text-[var(--accent)] mt-0.5">{activeAccount.role}</span>
                           </div>
-                          <span className="text-[0.55rem] text-[var(--text-sub)] ml-1">▼</span>
+                          <span className="text-[0.55rem] text-[var(--text-sub)] ml-0.5">▼</span>
                         </button>
 
                         {isAccountMenuOpen && (
@@ -1018,48 +1044,114 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </button>
             </div>
 
-            {/* 모바일 바텀 시트 메뉴 */}
+            {/* 🎯 모바일 바텀 시트 (드래그 중에는 instant tracking, 놓으면 cubic-bezier 부드러운 애니메이션 적용) */}
             <div
-              className={`fixed inset-x-0 bottom-0 z-[9999] lg:hidden border-t-2 rounded-t-[28px] p-4 shadow-2xl flex flex-col bg-[var(--panel)] text-[var(--text-main)] border-[var(--accent)] transition-transform duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)]`}
+              className={`fixed inset-x-0 bottom-0 z-[9999] lg:hidden border-t-2 rounded-t-[28px] p-4 shadow-2xl flex flex-col bg-[var(--panel)] text-[var(--text-main)] border-[var(--accent)] ${
+                isDraggingSheet ? '' : 'transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]'
+              }`}
               style={{ 
-                transform: isFabOpen ? `translateY(0px)` : 'translateY(120%)' 
+                transform: isFabOpen 
+                  ? `translateY(${sheetDragY}px)` 
+                  : 'translateY(100%)' 
               }}
             >
+              {/* 상단 드래그 핸들 */}
               <div 
-                onClick={() => setIsFabOpen(false)}
-                onPointerDown={handleSheetDragDown}
-                className="w-full py-2.5 flex items-center justify-center cursor-grab active:cursor-grabbing touch-none select-none hover:opacity-80 active:opacity-100"
-                title="클릭하거나 아래로 쓸어내려 닫기"
+                onPointerDown={handleSheetDragStart}
+                className="w-full py-2.5 flex items-center justify-center cursor-grab active:cursor-grabbing touch-none select-none"
+                title="아래로 쓸어내려 닫기"
               >
-                <div className="w-12 h-1.5 bg-[var(--text-sub)] rounded-full opacity-60" />
+                <div className="w-12 h-1.5 bg-[var(--text-sub)] rounded-full opacity-60 hover:opacity-100 transition-opacity" />
               </div>
 
               <div className="overflow-y-auto custom-scrollbar flex flex-col gap-3 pb-12 max-h-[80vh]">
                 
+                {/* 로그인 정보 계정 아코디언 메뉴 */}
                 {activeAccount && (
-                  <div className="bg-[var(--inner-box)] border border-[var(--panel-border)] rounded-xl p-3 flex justify-between items-center">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-[var(--panel)] border border-[var(--accent)] flex items-center justify-center text-xs">👑</div>
-                      <div className="flex flex-col">
-                        <span className="text-xs font-black text-[var(--text-main)]">{activeAccount.alias || activeAccount.nickname}</span>
-                        <span className="text-[0.6rem] text-[var(--accent)]">{activeAccount.role}</span>
-                      </div>
-                    </div>
+                  <div className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl p-3 flex flex-col gap-2 shadow-sm transition-all duration-200">
                     
-                    {accounts.length > 1 && (
-                      <select 
-                        value={activeAccount.id} 
-                        onChange={(e) => {
-                          const target = accounts.find(a => a.id === e.target.value);
-                          if (target) switchAccount(target);
-                        }}
-                        className="bg-[var(--panel)] text-[0.65rem] font-bold text-[var(--text-main)] border border-[var(--panel-border)] rounded-lg px-2 py-1 outline-none"
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-full bg-[var(--inner-box)] border border-[var(--accent)] flex items-center justify-center text-xs shrink-0">👑</div>
+                        <div className="flex flex-col leading-none">
+                          <span className="text-xs font-black text-[var(--text-main)]">{activeAccount.alias || activeAccount.nickname}</span>
+                          <span className="text-[0.6rem] text-[var(--accent)] mt-1">{activeAccount.role}</span>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => setIsAccountAccordionOpen(!isAccountAccordionOpen)}
+                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-[var(--inner-box)] border border-[var(--panel-border)] hover:border-[var(--accent)] text-[0.65rem] font-bold text-[var(--text-main)] transition cursor-pointer"
                       >
-                        {accounts.map(acc => (
-                          <option key={acc.id} value={acc.id}>{acc.alias || acc.nickname}</option>
-                        ))}
-                      </select>
+                        {isAccountAccordionOpen ? (
+                          <>
+                            <span className="bg-[var(--accent)]/20 text-[var(--accent)] px-1.5 py-0.5 rounded font-black text-[0.6rem]">선택됨</span>
+                            <span className="text-[0.6rem] text-[var(--text-sub)]">▲</span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="text-sm">⚙️</span>
+                            <span className="text-[0.6rem] text-[var(--text-sub)]">▼</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                    {isAccountAccordionOpen && (
+                      <div className="flex flex-col gap-2 pt-2.5 border-t border-[var(--panel-border)] animate-in fade-in duration-200">
+                        <div className="text-[0.6rem] font-bold text-[var(--text-sub)] px-1">현재 활성 계정</div>
+                        
+                        <div className="flex items-center justify-between p-2.5 rounded-xl border-l-4 bg-[var(--inner-box)] border-[var(--accent)]">
+                          <span className="text-xs font-black text-[var(--text-main)]">{activeAccount.alias || activeAccount.nickname}</span>
+                          <span className="text-[0.6rem] bg-[var(--accent)]/20 text-[var(--accent)] px-2 py-0.5 rounded font-bold shrink-0">선택됨</span>
+                        </div>
+
+                        {accounts.filter(a => a.id !== activeAccount.id).length > 0 && (
+                          <>
+                            <div className="text-[0.6rem] font-bold text-[var(--text-sub)] px-1 border-t border-[var(--panel-border)] pt-2 mt-1">계정 빠른 스위칭</div>
+                            {accounts.filter(a => a.id !== activeAccount.id).map(acc => (
+                              <button 
+                                key={acc.id} 
+                                onClick={() => switchAccount(acc)} 
+                                className="w-full flex items-center justify-between p-2.5 rounded-xl text-left transition bg-[var(--inner-box)] hover:bg-[var(--panel-hover)] border border-[var(--panel-border)] cursor-pointer"
+                              >
+                                <span className="text-xs font-bold text-[var(--text-main)]">{acc.alias || acc.nickname}</span>
+                                <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: acc.borderColor }}></span>
+                              </button>
+                            ))}
+                          </>
+                        )}
+
+                        <div className="border-t border-[var(--panel-border)] pt-2 mt-1 flex flex-col gap-1">
+                          <Link 
+                            href="/login" 
+                            onClick={() => setIsFabOpen(false)} 
+                            className="w-full text-center text-xs font-bold text-[var(--accent)] hover:bg-[var(--panel-hover)] py-2 rounded-lg transition"
+                          >
+                            ➕ 계정 추가 로그인
+                          </Link>
+                          {isAdmin && (
+                            <Link 
+                              href="/admin" 
+                              onClick={() => setIsFabOpen(false)} 
+                              className="w-full text-center text-xs font-bold text-[var(--text-sub)] hover:text-[var(--text-main)] hover:bg-[var(--panel-hover)] py-2 rounded-lg transition flex items-center justify-center gap-1"
+                            >
+                              ⚙️ SANCTUM 관리자 
+                              {pendingCount > 0 && (
+                                <span className="bg-red-500 text-white px-1.5 py-0.2 rounded-full text-[0.55rem]">{pendingCount}</span>
+                              )}
+                            </Link>
+                          )}
+                          <button 
+                            onClick={() => { handleLogout(); setIsFabOpen(false); }} 
+                            className="w-full text-center text-xs font-bold text-red-400 hover:bg-red-950/30 py-2 rounded-lg transition cursor-pointer"
+                          >
+                            🚪 현재 계정 로그아웃
+                          </button>
+                        </div>
+                      </div>
                     )}
+
                   </div>
                 )}
 
@@ -1175,7 +1267,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                         </button>
                       </div>
 
-                      {/* 현재 페이지에 배치된 스티커 목록 및 레이어 관리자 */}
                       {stickers.length > 0 && (
                         <div className="pt-3 border-t border-[var(--panel-border)] space-y-2">
                           <label className="text-xs font-bold text-[var(--text-sub)] uppercase tracking-wider block">
@@ -1213,10 +1304,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
                   </div>
 
-                  {/* 하단 영역 (2단 수평 레이아웃으로 개선) */}
                   <div className="bg-[var(--panel-hover)] p-3.5 md:p-4 border-t border-[var(--panel-border)] flex flex-col gap-2.5">
-                    
-                    {/* 상단 1열: 스튜디오 버튼 + 글자 크기 조절 */}
                     <div className="flex items-center justify-between gap-2 w-full">
                       <button 
                         onClick={() => { setIsThemeModalOpen(false); router.push('/customize'); }} 
@@ -1232,7 +1320,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                       </div>
                     </div>
 
-                    {/* 하단 2열: 취소 / 적용하기 버튼 */}
                     <div className="flex items-center justify-end gap-2 w-full pt-1.5 border-t border-[var(--panel-border)]/50">
                       <button 
                         onClick={() => setIsThemeModalOpen(false)} 
@@ -1247,7 +1334,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                         적용하기
                       </button>
                     </div>
-
                   </div>
 
                 </div>
