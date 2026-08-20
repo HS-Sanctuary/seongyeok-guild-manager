@@ -294,7 +294,6 @@ export default function Home() {
       setAbyssList(sortedContents.filter(c => c.type === 'abyss').sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)));
       setRaidList(sortedContents.filter(c => c.type === 'raid').sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)));
 
-      // 크로노스 페이지와의 캐릭터 소유권 조회 조건 동기화
       const myChars = allChars.filter(char => char.owner === currentUser?.nickname || char.nickname === currentUser?.nickname);
       myChars.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
       setMyCharacters(myChars);
@@ -438,7 +437,6 @@ export default function Home() {
   myCharacters.forEach(char => {
     const dChecks = Array.isArray(char.daily_checks) ? char.daily_checks.map(Number) : [];
     
-    // 주간 숙제 하위 호환 처리
     const wNormals = Array.isArray(char.weekly_checks) 
       ? char.weekly_checks 
       : (Array.isArray(char.weekly_checks?.normal) ? char.weekly_checks.normal : []);
@@ -453,7 +451,8 @@ export default function Home() {
   if (!mounted || !user) return null;
 
   return (
-    <div className="px-4 md:px-8 pt-1 md:pt-2 pb-6 md:pb-8 space-y-4 md:space-y-6 animate-in fade-in duration-300">
+    /* 최상위 컨테이너에 max-w-[1400px] mx-auto 적용 */
+    <div className="max-w-[1400px] mx-auto px-2 md:px-6 pt-1 md:pt-2 pb-6 md:pb-8 space-y-4 md:space-y-6 animate-in fade-in duration-300">
       
       {/* 상단 알리미 위젯 */}
       <section className="space-y-2">

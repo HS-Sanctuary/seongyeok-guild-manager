@@ -1,63 +1,73 @@
 "use client";
 
-import '../globals.css'
+import '../globals.css';
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase"; 
 
 // ==========================================
-// 1. 카테고리 컬러 테마 정의 (순위별 3단계 색상)
+// 1. 카테고리 컬러 테마 정의 (활성화 시 고대비 선명한 텍스트 & 순위별 테두리 차별화)
 // ==========================================
 const CATEGORY_THEMES: Record<string, any> = {
-  TELOS: { // 🟣 텔로스 (보라색 계열)
-    tab: 'bg-zinc-800/80 border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.2)]', 
-    text: 'text-purple-400', 
+  TELOS: { // 🟣 텔로스 (보라)
+    tabActive: 'bg-purple-600 text-white border-2 border-purple-800 shadow-md dark:bg-purple-600 dark:text-white dark:border-purple-300',
+    titleActiveText: 'text-white font-black',
+    subActiveText: 'text-purple-100 font-bold',
+    text: 'text-purple-900 dark:text-purple-300 font-black', 
     tags: [
-      'bg-purple-500/30 text-purple-300 border-purple-400 shadow-[0_0_10px_rgba(168,85,247,0.3)]', // 1위 (쨍하게)
-      'bg-purple-800/40 text-purple-400 border-purple-600/80', // 2위 (조금 죽게)
-      'bg-purple-950/50 text-purple-500 border-purple-800/70', // 3위 (더 죽게)
+      'bg-purple-600 text-white border-2 border-purple-800 ring-2 ring-purple-400/40 font-black shadow-sm dark:bg-purple-600 dark:text-white dark:border-purple-300', // 1위
+      'bg-purple-200 text-purple-950 border-2 border-purple-600 font-extrabold dark:bg-purple-900/90 dark:text-purple-100 dark:border-purple-400', // 2위
+      'bg-purple-100 text-purple-950 border-[1.5px] border-purple-500 font-black dark:bg-purple-950/80 dark:text-purple-200 dark:border-purple-500', // 3위 (선명도 대폭 강화)
     ],
-    borders: ['border-purple-400', 'border-purple-600/80', 'border-purple-800/70']
+    borders: ['border-purple-600 dark:border-purple-400', 'border-purple-500 dark:border-purple-500', 'border-purple-400 dark:border-purple-700']
   },
-  KRATOS: { // 🔴 크라토스 (빨간색 계열)
-    tab: 'bg-zinc-800/80 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.2)]', 
-    text: 'text-red-400', 
+  KRATOS: { // 🔴 크라토스 (빨강)
+    tabActive: 'bg-red-600 text-white border-2 border-red-800 shadow-md dark:bg-red-600 dark:text-white dark:border-red-300',
+    titleActiveText: 'text-white font-black',
+    subActiveText: 'text-red-100 font-bold',
+    text: 'text-red-900 dark:text-red-300 font-black', 
     tags: [
-      'bg-red-500/30 text-red-300 border-red-400 shadow-[0_0_10px_rgba(239,68,68,0.3)]',
-      'bg-red-800/40 text-red-400 border-red-600/80',
-      'bg-red-950/50 text-red-500 border-red-800/70',
+      'bg-red-600 text-white border-2 border-red-800 ring-2 ring-red-400/40 font-black shadow-sm dark:bg-red-600 dark:text-white dark:border-red-300',
+      'bg-red-200 text-red-950 border-2 border-red-600 font-extrabold dark:bg-red-900/90 dark:text-red-100 dark:border-red-400',
+      'bg-red-100 text-red-950 border-[1.5px] border-red-500 font-black dark:bg-red-950/80 dark:text-red-200 dark:border-red-500',
     ],
-    borders: ['border-red-400', 'border-red-600/80', 'border-red-800/70']
+    borders: ['border-red-600 dark:border-red-400', 'border-red-500 dark:border-red-500', 'border-red-400 dark:border-red-700']
   },
-  TECHNE: { // 🔵 테크네 (파란색 계열)
-    tab: 'bg-zinc-800/80 border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.2)]', 
-    text: 'text-blue-400', 
+  TECHNE: { // 🔵 테크네 (파랑)
+    tabActive: 'bg-blue-600 text-white border-2 border-blue-800 shadow-md dark:bg-blue-600 dark:text-white dark:border-blue-300',
+    titleActiveText: 'text-white font-black',
+    subActiveText: 'text-blue-100 font-bold',
+    text: 'text-blue-900 dark:text-blue-300 font-black', 
     tags: [
-      'bg-blue-500/30 text-blue-300 border-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.3)]',
-      'bg-blue-800/40 text-blue-400 border-blue-600/80',
-      'bg-blue-950/50 text-blue-500 border-blue-800/70',
+      'bg-blue-600 text-white border-2 border-blue-800 ring-2 ring-blue-400/40 font-black shadow-sm dark:bg-blue-600 dark:text-white dark:border-blue-300',
+      'bg-blue-200 text-blue-950 border-2 border-blue-600 font-extrabold dark:bg-blue-900/90 dark:text-blue-100 dark:border-blue-400',
+      'bg-blue-100 text-blue-950 border-[1.5px] border-blue-500 font-black dark:bg-blue-950/80 dark:text-blue-200 dark:border-blue-500',
     ],
-    borders: ['border-blue-400', 'border-blue-600/80', 'border-blue-800/70']
+    borders: ['border-blue-600 dark:border-blue-400', 'border-blue-500 dark:border-blue-500', 'border-blue-400 dark:border-blue-700']
   },
-  HARMONIA: { // 🟡 하르모니아 (노란색 계열)
-    tab: 'bg-zinc-800/80 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.2)]', 
-    text: 'text-yellow-400', 
+  HARMONIA: { // 🟡 하르모니아 (황동/노랑)
+    tabActive: 'bg-amber-500 text-slate-950 border-2 border-amber-700 shadow-md dark:bg-yellow-500 dark:text-slate-950 dark:border-yellow-300',
+    titleActiveText: 'text-slate-950 font-black',
+    subActiveText: 'text-amber-950 font-bold',
+    text: 'text-amber-900 dark:text-yellow-300 font-black', 
     tags: [
-      'bg-yellow-500/30 text-yellow-300 border-yellow-400 shadow-[0_0_10px_rgba(234,179,8,0.3)]',
-      'bg-yellow-700/40 text-yellow-400 border-yellow-600/80', 
-      'bg-yellow-900/40 text-yellow-500 border-yellow-800/70',
+      'bg-amber-500 text-slate-950 border-2 border-amber-700 ring-2 ring-amber-400/40 font-black shadow-sm dark:bg-yellow-500 dark:text-slate-950 dark:border-yellow-300',
+      'bg-amber-200 text-amber-950 border-2 border-amber-600 font-extrabold dark:bg-yellow-900/90 dark:text-yellow-100 dark:border-yellow-400',
+      'bg-amber-100 text-amber-950 border-[1.5px] border-amber-500 font-black dark:bg-yellow-950/80 dark:text-yellow-200 dark:border-yellow-500',
     ],
-    borders: ['border-yellow-400', 'border-yellow-600/80', 'border-yellow-800/70']
+    borders: ['border-amber-600 dark:border-yellow-400', 'border-amber-500 dark:border-yellow-500', 'border-amber-400 dark:border-yellow-700']
   },
-  PIETAS: { // 🟢 피에타스 (짙은 녹색 계열)
-    tab: 'bg-zinc-800/80 border-emerald-600 shadow-[0_0_15px_rgba(16,185,129,0.2)]', 
-    text: 'text-emerald-500', 
+  PIETAS: { // 🟢 피에타스 (녹색)
+    tabActive: 'bg-emerald-600 text-white border-2 border-emerald-800 shadow-md dark:bg-emerald-600 dark:text-white dark:border-emerald-300',
+    titleActiveText: 'text-white font-black',
+    subActiveText: 'text-emerald-100 font-bold',
+    text: 'text-emerald-900 dark:text-emerald-300 font-black', 
     tags: [
-      'bg-emerald-500/30 text-emerald-300 border-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.3)]',
-      'bg-emerald-800/40 text-emerald-400 border-emerald-600/80',
-      'bg-emerald-950/50 text-emerald-500 border-emerald-800/70',
+      'bg-emerald-600 text-white border-2 border-emerald-800 ring-2 ring-emerald-400/40 font-black shadow-sm dark:bg-emerald-600 dark:text-white dark:border-emerald-300',
+      'bg-emerald-200 text-emerald-950 border-2 border-emerald-600 font-extrabold dark:bg-emerald-900/90 dark:text-emerald-100 dark:border-emerald-400',
+      'bg-emerald-100 text-emerald-950 border-[1.5px] border-emerald-500 font-black dark:bg-emerald-950/80 dark:text-emerald-200 dark:border-emerald-500',
     ],
-    borders: ['border-emerald-400', 'border-emerald-600/80', 'border-emerald-800/70']
+    borders: ['border-emerald-600 dark:border-emerald-400', 'border-emerald-500 dark:border-emerald-500', 'border-emerald-400 dark:border-emerald-700']
   }
 };
 
@@ -220,7 +230,9 @@ export default function AgoraLoungePage() {
   const [selectedClass, setSelectedClass] = useState<string>("전체"); 
   const [isClassFilterOpen, setIsClassFilterOpen] = useState(false);
   const [showLoreGuide, setShowLoreGuide] = useState(false);
-  
+  const [showInfoModal, setShowInfoModal] = useState(false); // 모바일 (i) 아고라 소개 모달
+  const [isMobileFilterModalOpen, setIsMobileFilterModalOpen] = useState(false); // 모바일 클래스 필터 모달
+
   const [openHoverTooltipId, setOpenHoverTooltipId] = useState<string | null>(null);
   const [openClickTooltipId, setOpenClickTooltipId] = useState<string | null>(null);
 
@@ -287,11 +299,14 @@ export default function AgoraLoungePage() {
       if(kratosRank >= 0 && kratosRank < 3) {
         titles.push({ type: 'KRATOS', name: kTitles[kratosRank], rank: kratosRank + 1, theme: CATEGORY_THEMES.KRATOS });
       } else {
-        // 크라토스 4위 이하 (일반 칭호)는 무채색 기본값 적용
         titles.push({ type: 'KRATOS', name: kTitles[3], rank: 4, theme: {
-          tags: ['bg-zinc-800 text-zinc-400 border-zinc-700', 'bg-zinc-800 text-zinc-400 border-zinc-700', 'bg-zinc-800 text-zinc-400 border-zinc-700', 'bg-zinc-800 text-zinc-400 border-zinc-700'],
-          borders: ['border-zinc-700', 'border-zinc-700', 'border-zinc-700', 'border-zinc-700'],
-          text: 'text-zinc-400'
+          tags: [
+            'bg-zinc-100 text-zinc-950 border-zinc-400 font-bold dark:bg-[var(--inner-box)] dark:text-[var(--text-sub)] dark:border-[var(--panel-border)]',
+            'bg-zinc-100 text-zinc-950 border-zinc-400 font-bold dark:bg-[var(--inner-box)] dark:text-[var(--text-sub)] dark:border-[var(--panel-border)]',
+            'bg-zinc-100 text-zinc-950 border-zinc-400 font-bold dark:bg-[var(--inner-box)] dark:text-[var(--text-sub)] dark:border-[var(--panel-border)]'
+          ],
+          borders: ['border-zinc-400 dark:border-[var(--panel-border)]'],
+          text: 'text-zinc-950 dark:text-[var(--text-sub)]'
         } });
       }
     }
@@ -302,6 +317,30 @@ export default function AgoraLoungePage() {
     return titles;
   };
 
+  const renderRankButton = (key: keyof typeof RANKING_INFO) => {
+    const info = RANKING_INFO[key];
+    const isActive = activeRankTab === key;
+    const theme = CATEGORY_THEMES[key];
+    
+    return (
+      <button 
+        key={key} 
+        onClick={() => setActiveRankTab(key)} 
+        className={`group relative h-10 sm:h-12 rounded-xl border transition-all overflow-hidden cursor-pointer ${
+          isActive ? theme.tabActive : 'bg-[var(--panel)] border-[var(--panel-border)] hover:border-[var(--accent)] opacity-85 hover:opacity-100'
+        }`}
+      >
+        <div className={`absolute inset-0 flex items-center justify-center transition-all duration-300 group-hover:-translate-y-full group-hover:opacity-0 ${isActive ? '-translate-y-full opacity-0' : 'translate-y-0 opacity-100'}`}>
+          <span className={`font-black tracking-wider ${isActive ? theme.titleActiveText : 'text-[var(--text-main)]'} text-[0.65rem] sm:text-xs`}>{info.en}</span>
+        </div>
+        <div className={`absolute inset-0 flex flex-col items-center justify-center transition-all duration-300 translate-y-full opacity-0 group-hover:translate-y-0 group-hover:opacity-100 ${isActive ? '!translate-y-0 !opacity-100' : ''}`}>
+          <span className={`font-black ${isActive ? theme.titleActiveText : theme.text} text-[0.7rem] sm:text-xs leading-tight`}>{info.kr}</span>
+          <span className={`text-[0.48rem] sm:text-[0.5rem] font-bold ${isActive ? theme.subActiveText : 'text-[var(--text-sub)]'}`}>{info.sub}</span>
+        </div>
+      </button>
+    );
+  };
+
   if (!mounted) return null;
 
   const allSortedCharacters = getAllSortedCharacters();
@@ -309,65 +348,98 @@ export default function AgoraLoungePage() {
   const mainCharacters = dbCharacters.filter(c => c.isMain).sort((a, b) => b.combatPower - a.combatPower);
 
   return (
-    <main className="min-h-screen bg-[#121212] text-[#d4d4d8] font-sans pb-10 relative">
+    <div className="w-full text-[var(--text-main)] font-sans pb-10 relative">
       
       {openClickTooltipId && (
         <div className="fixed inset-0 z-[80]" onClick={() => setOpenClickTooltipId(null)}></div>
       )}
 
-      <div className="p-4 md:p-8 max-w-[1200px] mx-auto space-y-8 pt-8 relative z-10">
+      <div className="max-w-[1400px] mx-auto space-y-3 sm:space-y-5 relative z-10">
         
-        <header className="relative overflow-hidden rounded-xl bg-gradient-to-br from-[#1c1c1e] via-[#151515] to-[#1a1a1c] border border-zinc-800 py-3 px-6 shadow-xl mb-6">
-          <div className="absolute top-0 left-0 w-1.5 h-full bg-[#e6c788] shadow-[0_0_15px_#e6c788]"></div>
-          <div className="absolute bottom-0 right-0 w-32 h-32 bg-[#e6c788] opacity-5 blur-[60px] rounded-full pointer-events-none"></div>
+        {/* 슬림 헤더 */}
+        <header className="relative overflow-hidden rounded-xl bg-[var(--panel)] border border-[var(--panel-border)] py-2.5 px-3.5 sm:px-5 shadow-sm transition-colors flex flex-row items-center justify-between gap-2 mb-2">
+          <div className="absolute top-0 left-0 w-1.5 h-full bg-[var(--accent)]"></div>
           
-          <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-            <div className="flex items-center gap-4 min-w-[200px]">
-              <div className="flex flex-col items-start">
-                <h1 className="text-2xl font-black text-white tracking-widest drop-shadow-md leading-none">
-                  AGORA
-                </h1>
-                <span className="text-[#e6c788] text-[13px] font-bold tracking-wide mt-1.5 leading-none">
-                  아고라 : 길드 라운지
-                </span>
-              </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <h1 className="text-base sm:text-lg font-black text-[var(--text-main)] tracking-wider leading-none flex items-center gap-2">
+              <span>AGORA</span>
+              <span className="text-xs sm:text-sm font-bold text-[var(--accent)] tracking-normal">
+                아고라 : 길드 라운지
+              </span>
+            </h1>
+
+            <div className="flex items-center gap-1 ml-1">
               <button 
                 onClick={() => setShowLoreGuide(true)} 
-                className="w-7 h-7 flex items-center justify-center rounded-full bg-zinc-800/80 border border-zinc-700 text-zinc-400 hover:text-[#e6c788] hover:bg-zinc-800 hover:border-[#e6c788] transition-all ml-2" 
+                className="w-5 h-5 flex items-center justify-center rounded-full bg-[var(--inner-box)] border border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--accent)] hover:border-[var(--accent)] transition cursor-pointer text-[0.65rem] font-bold shrink-0" 
                 title="명칭 가이드 보기"
               >
                 ?
               </button>
+
+              <button 
+                onClick={() => setShowInfoModal(true)} 
+                className="md:hidden w-5 h-5 flex items-center justify-center rounded-full bg-[var(--inner-box)] border border-[var(--accent)] text-[var(--accent)] hover:bg-[var(--accent)] hover:text-[var(--accent-fg)] transition cursor-pointer text-[0.65rem] font-black italic shrink-0" 
+                title="아고라 소개 보기"
+              >
+                i
+              </button>
             </div>
-            
-            <div className="bg-zinc-900/40 border border-zinc-700/50 px-4 py-2 rounded-lg w-full max-w-[750px] backdrop-blur-sm flex items-start gap-2.5">
-              <div className="flex flex-col text-[11px] md:text-[12px] font-bold leading-tight w-full mt-1">
-                <span className="text-zinc-300 w-full truncate md:whitespace-normal">
-                  고대 그리스의 대광장, 아고라. 이곳은 성역의 모든 캐릭터들이 교류하고 증명하는 중심 공간입니다.
-                </span>
-                <span className="text-[#e6c788] mt-0.5">
-                  성역의 모든 별을 아스트라에 새기고, 빛나는 결실을 판테온에 기립니다.
-                </span>
-              </div>
+          </div>
+          
+          {/* 데스크톱 전용 소개글 */}
+          <div className="hidden md:flex bg-[var(--inner-box)] border border-[var(--panel-border)] px-3 py-1.5 rounded-lg text-xs text-[var(--text-sub)] font-medium items-start gap-2 shrink-0">
+            <span className="text-sm shrink-0 leading-none mt-0.5">🏛️</span>
+            <div className="flex flex-col gap-0.5 leading-snug">
+              <span>고대 그리스의 대광장 아고라. 성역의 모든 캐릭터들이 교류하고 증명하는 중심 공간입니다.</span>
+              <span className="text-[var(--accent)] font-semibold">성역의 모든 별을 아스트라에 새기고, 빛나는 결실을 판테온에 기립니다.</span>
             </div>
           </div>
         </header>
 
+        {/* 모바일전용 (i) 아고라 소개 모달 */}
+        {showInfoModal && (
+          <div className="fixed inset-0 bg-black/75 z-[10000] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setShowInfoModal(false)}>
+            <div className="bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-main)] rounded-xl max-w-xs w-full p-4 shadow-2xl relative" onClick={e => e.stopPropagation()}>
+              <button onClick={() => setShowInfoModal(false)} className="absolute top-3 right-3 text-[var(--text-sub)] hover:text-[var(--text-main)] text-sm font-bold cursor-pointer">✕</button>
+              <h3 className="text-sm font-black text-[var(--accent)] mb-2 flex items-center gap-1.5">
+                <span>🏛️</span> 아고라 안내
+              </h3>
+              <div className="space-y-1.5 text-xs text-[var(--text-main)] leading-relaxed font-medium border-t border-[var(--panel-border)] pt-2.5">
+                <p>고대 그리스의 대광장 아고라.</p>
+                <p>성역의 모든 캐릭터들이 교류하고 증명하는 중심 공간입니다.</p>
+                <p className="text-[var(--accent)] font-bold pt-1 border-t border-[var(--panel-border)]/50">성역의 모든 별을 아스트라에 새기고, 빛나는 결실을 판테온에 기립니다.</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* SANCTUM 명칭 가이드 모달 */}
         {showLoreGuide && (
-          <div className="fixed inset-0 bg-black/80 z-[10000] flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setShowLoreGuide(false)}>
-            <div className="bg-[#1c1c1e] border border-zinc-700 rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto p-8 shadow-2xl relative" onClick={e => e.stopPropagation()}>
-              <button onClick={() => setShowLoreGuide(false)} className="absolute top-6 right-6 text-zinc-400 hover:text-white text-xl">✕</button>
-              <h2 className="text-2xl font-black text-[#e6c788] mb-6 border-b border-zinc-800 pb-4">SANCTUM 명칭 가이드</h2>
-              <div className="space-y-6 text-sm text-zinc-300">
-                <div><h3 className="text-lg font-bold text-white mb-1">AGORA (아고라 / 길드 라운지)</h3><p>성역의 모든 구성원이 함께 모이고 소통하는 중심 공간입니다.</p></div>
-                <div><h3 className="text-lg font-bold text-white mb-1">ASTRA (아스트라 / 길드원 현황)</h3><p>한 명 한 명이 하나의 별이며, 모두가 함께 성역을 이룹니다. 길드원의 정보와 성장 기록을 확인합니다.</p></div>
-                <div><h3 className="text-lg font-bold text-white mb-1">PANTHEON (판테온 / 성역 랭킹)</h3><p>성역의 모두와 그중 빛나는 이들을 기록하는 명예의 전당입니다. 5개의 철학적 기록으로 나뉩니다.</p>
-                  <ul className="mt-3 space-y-2 pl-4 border-l-2 border-zinc-700">
-                    <li><strong className="text-purple-400">TELOS (텔로스)</strong>: 종합 랭킹. 도달과 완성의 기록.</li>
-                    <li><strong className="text-red-400">KRATOS (크라토스)</strong>: 전투력 랭킹. 힘과 권능의 기록.</li>
-                    <li><strong className="text-blue-400">TECHNĒ (테크네)</strong>: 생활력 랭킹. 기술과 숙련의 기록.</li>
-                    <li><strong className="text-yellow-400">HARMONIA (하르모니아)</strong>: 매력 랭킹. 아름다움과 조화의 기록.</li>
-                    <li><strong className="text-emerald-500">PIETAS (피에타스)</strong>: 공헌도 랭킹. 헌신과 공헌의 기록.</li>
+          <div className="fixed inset-0 bg-black/80 z-[10000] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setShowLoreGuide(false)}>
+            <div className="bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-main)] rounded-2xl max-w-xl w-full max-h-[85vh] overflow-y-auto p-5 shadow-2xl relative custom-scrollbar" onClick={e => e.stopPropagation()}>
+              <button onClick={() => setShowLoreGuide(false)} className="absolute top-4 right-4 text-[var(--text-sub)] hover:text-[var(--text-main)] text-lg font-bold cursor-pointer">✕</button>
+              <h2 className="text-base sm:text-lg font-black text-[var(--accent)] mb-3 border-b border-[var(--panel-border)] pb-2 flex items-center gap-2">
+                <span>🏛️</span> SANCTUM 명칭 가이드
+              </h2>
+              <div className="space-y-3 text-xs sm:text-sm text-[var(--text-main)] leading-relaxed">
+                <div>
+                  <h3 className="font-bold text-sm text-[var(--accent)] mb-0.5">AGORA (아고라 / 길드 라운지)</h3>
+                  <p className="text-[var(--text-sub)] text-xs">성역의 모든 구성원이 함께 모이고 소통하는 중심 공간입니다.</p>
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-[var(--accent)] mb-0.5">ASTRA (아스트라 / 길드원 현황)</h3>
+                  <p className="text-[var(--text-sub)] text-xs">한 명 한 명이 하나의 별이며, 모두가 함께 성역을 이룹니다.</p>
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-[var(--accent)] mb-0.5">PANTHEON (판테온 / 성역 랭킹)</h3>
+                  <p className="text-[var(--text-sub)] text-xs mb-1">성역의 명예의 전당입니다. 5개의 기록으로 나뉩니다.</p>
+                  <ul className="space-y-1 pl-2.5 border-l-2 border-[var(--accent)] text-xs">
+                    <li><strong className="text-purple-700 dark:text-purple-400">TELOS (텔로스)</strong>: 종합 랭킹</li>
+                    <li><strong className="text-red-700 dark:text-red-400">KRATOS (크라토스)</strong>: 전투력 랭킹</li>
+                    <li><strong className="text-blue-700 dark:text-blue-400">TECHNĒ (테크네)</strong>: 생활력 랭킹</li>
+                    <li><strong className="text-amber-800 dark:text-yellow-400">HARMONIA (하르모니아)</strong>: 매력 랭킹</li>
+                    <li><strong className="text-emerald-800 dark:text-emerald-400">PIETAS (피에타스)</strong>: 공헌도 랭킹</li>
                   </ul>
                 </div>
               </div>
@@ -375,54 +447,159 @@ export default function AgoraLoungePage() {
           </div>
         )}
 
-        <div className="flex gap-4 justify-center">
-          <button onClick={() => setActiveMainTab('PANTHEON')} className={`group relative w-64 h-14 rounded-xl font-black text-sm transition-all overflow-hidden border ${activeMainTab === 'PANTHEON' ? 'bg-[#e6c788] border-[#e6c788] text-black shadow-[0_0_20px_rgba(230,199,136,0.4)] scale-105' : 'bg-[#1c1c1e] border-zinc-800 text-zinc-400 hover:border-zinc-600'}`}>
-            <div className={`absolute inset-0 flex items-center justify-center transition-all duration-300 group-hover:-translate-y-full group-hover:opacity-0 ${activeMainTab === 'PANTHEON' ? '-translate-y-full opacity-0' : 'translate-y-0 opacity-100'}`}><span className="tracking-widest text-lg">PANTHEON</span></div>
-            <div className={`absolute inset-0 flex flex-col items-center justify-center transition-all duration-300 translate-y-full opacity-0 group-hover:translate-y-0 group-hover:opacity-100 ${activeMainTab === 'PANTHEON' ? '!translate-y-0 !opacity-100' : ''}`}><span className="text-[15px]">판테온</span><span className={`text-[10px] ${activeMainTab === 'PANTHEON' ? 'text-black/70' : 'text-[#e6c788]'}`}>성역 랭킹</span></div>
+        {/* 모바일 전용 클래스 필터 선택 모달 */}
+        {isMobileFilterModalOpen && (
+          <div className="fixed inset-0 bg-black/80 z-[10000] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200 md:hidden" onClick={() => setIsMobileFilterModalOpen(false)}>
+            <div className="bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-main)] rounded-2xl max-w-sm w-full max-h-[80vh] overflow-y-auto p-4 shadow-2xl relative" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between border-b border-[var(--panel-border)] pb-2 mb-3">
+                <h3 className="text-sm font-black text-[var(--accent)] flex items-center gap-1.5">
+                  <span>🔍</span> 클래스 필터링 선택
+                </h3>
+                <button onClick={() => setIsMobileFilterModalOpen(false)} className="text-[var(--text-sub)] text-sm font-bold">✕</button>
+              </div>
+
+              <button 
+                onClick={() => { setSelectedClass("전체"); setIsMobileFilterModalOpen(false); }}
+                className={`w-full py-1.5 rounded-lg text-xs font-bold mb-3 border transition ${selectedClass === "전체" ? 'bg-[var(--accent)] text-[var(--accent-fg)] border-[var(--accent)]' : 'bg-[var(--inner-box)] border-[var(--panel-border)] text-[var(--text-sub)]'}`}
+              >
+                ✨ 전체 클래스 통합 보기
+              </button>
+
+              <div className="grid grid-cols-2 gap-2">
+                {CLASS_GROUPS.map((group) => (
+                  <div key={group.name} className="bg-[var(--inner-box)] p-2 rounded-xl border border-[var(--panel-border)] flex flex-col gap-1">
+                    <div className="text-[0.6rem] font-black text-[var(--text-sub)]">{group.name}</div>
+                    <div className="flex flex-col gap-0.5">
+                      {group.classes.map(cls => (
+                        <button 
+                          key={cls} 
+                          onClick={() => { setSelectedClass(cls); setIsMobileFilterModalOpen(false); }} 
+                          className={`px-2 py-1 rounded text-[0.65rem] font-bold text-left transition ${
+                            selectedClass === cls 
+                              ? 'bg-[var(--accent)] text-[var(--accent-fg)] font-black' 
+                              : 'text-[var(--text-sub)] hover:text-[var(--text-main)]'
+                          }`}
+                        >
+                          {cls}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 최상위 카테고리 세그먼트 컨트롤 바 (판테온 vs 아스트라) - 하위 버튼과 차별화 */}
+        <div className="bg-[var(--inner-box)] border-2 border-[var(--panel-border)] p-1 rounded-2xl flex gap-1.5 shadow-sm">
+          <button 
+            onClick={() => setActiveMainTab('PANTHEON')} 
+            className={`flex-1 h-11 sm:h-12 rounded-xl font-black text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer ${
+              activeMainTab === 'PANTHEON' 
+                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md ring-2 ring-blue-500/30 scale-[1.01]' 
+                : 'text-[var(--text-sub)] hover:text-[var(--text-main)] hover:bg-[var(--panel)]'
+            }`}
+          >
+            <span className="text-base sm:text-lg">🏛️</span>
+            <div className="flex flex-col items-start leading-none">
+              <span className="text-xs sm:text-sm font-black tracking-wider">PANTHEON</span>
+              <span className={`text-[0.55rem] font-bold ${activeMainTab === 'PANTHEON' ? 'text-blue-100' : 'text-[var(--text-sub)]'}`}>판테온 (성역 랭킹)</span>
+            </div>
           </button>
-          <button onClick={() => setActiveMainTab('ASTRA')} className={`group relative w-64 h-14 rounded-xl font-black text-sm transition-all overflow-hidden border ${activeMainTab === 'ASTRA' ? 'bg-[#e6c788] border-[#e6c788] text-black shadow-[0_0_20px_rgba(230,199,136,0.4)] scale-105' : 'bg-[#1c1c1e] border-zinc-800 text-zinc-400 hover:border-zinc-600'}`}>
-            <div className={`absolute inset-0 flex items-center justify-center transition-all duration-300 group-hover:-translate-y-full group-hover:opacity-0 ${activeMainTab === 'ASTRA' ? '-translate-y-full opacity-0' : 'translate-y-0 opacity-100'}`}><span className="tracking-widest text-lg">ASTRA</span></div>
-            <div className={`absolute inset-0 flex flex-col items-center justify-center transition-all duration-300 translate-y-full opacity-0 group-hover:translate-y-0 group-hover:opacity-100 ${activeMainTab === 'ASTRA' ? '!translate-y-0 !opacity-100' : ''}`}><span className="text-[15px]">아스트라</span><span className={`text-[10px] ${activeMainTab === 'ASTRA' ? 'text-black/70' : 'text-[#e6c788]'}`}>길드원 현황</span></div>
+
+          <button 
+            onClick={() => setActiveMainTab('ASTRA')} 
+            className={`flex-1 h-11 sm:h-12 rounded-xl font-black text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer ${
+              activeMainTab === 'ASTRA' 
+                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md ring-2 ring-blue-500/30 scale-[1.01]' 
+                : 'text-[var(--text-sub)] hover:text-[var(--text-main)] hover:bg-[var(--panel)]'
+            }`}
+          >
+            <span className="text-base sm:text-lg">✦</span>
+            <div className="flex flex-col items-start leading-none">
+              <span className="text-xs sm:text-sm font-black tracking-wider">ASTRA</span>
+              <span className={`text-[0.55rem] font-bold ${activeMainTab === 'ASTRA' ? 'text-blue-100' : 'text-[var(--text-sub)]'}`}>아스트라 (길드원 현황)</span>
+            </div>
           </button>
         </div>
 
+        {/* 1. PANTHEON (성역 랭킹) 뷰 */}
         {activeMainTab === 'PANTHEON' && (
-          <section className="space-y-8 animate-in fade-in duration-300">
-            <div className="flex flex-wrap justify-center gap-3">
-              {(Object.keys(RANKING_INFO) as Array<keyof typeof RANKING_INFO>).map((key) => {
-                const info = RANKING_INFO[key];
-                const isActive = activeRankTab === key;
-                const theme = CATEGORY_THEMES[key];
-                
-                return (
-                  <button key={key} onClick={() => setActiveRankTab(key)} className={`group relative w-28 md:w-36 h-16 md:h-20 rounded-2xl border transition-all overflow-hidden ${isActive ? theme.tab : 'bg-[#1c1c1e] border-zinc-800 hover:border-zinc-600 opacity-60 hover:opacity-100'}`}>
-                    <div className={`absolute inset-0 flex items-center justify-center transition-all duration-300 group-hover:-translate-y-full group-hover:opacity-0 ${isActive ? '-translate-y-full opacity-0' : 'translate-y-0 opacity-100'}`}><span className="font-black tracking-widest text-zinc-400 text-sm md:text-base">{info.en}</span></div>
-                    <div className={`absolute inset-0 flex flex-col items-center justify-center transition-all duration-300 translate-y-full opacity-0 group-hover:translate-y-0 group-hover:opacity-100 ${isActive ? '!translate-y-0 !opacity-100' : ''}`}><span className={`font-black ${isActive ? theme.text : 'text-white'} text-[13px] md:text-[15px] leading-tight`}>{info.kr}</span><span className={`text-[9px] font-bold ${isActive ? theme.text : 'text-zinc-500'}`}>{info.sub}</span></div>
-                  </button>
-                );
-              })}
+          <section className="space-y-3 animate-in fade-in duration-200">
+            
+            {/* 5대 카테고리 셀렉터 - 모바일 2줄 [텔로스/피에타스], [크라토스/테크네/하르모니아] 구조 */}
+            <div className="flex flex-col gap-1.5 md:hidden">
+              <div className="grid grid-cols-2 gap-1.5">
+                {['TELOS', 'PIETAS'].map(k => renderRankButton(k as any))}
+              </div>
+              <div className="grid grid-cols-3 gap-1.5">
+                {['KRATOS', 'TECHNE', 'HARMONIA'].map(k => renderRankButton(k as any))}
+              </div>
             </div>
 
-            <div className="text-center py-2">
-              <h2 className={`text-3xl font-black tracking-widest flex justify-center items-center gap-3 ${CATEGORY_THEMES[activeRankTab].text}`}>
+            {/* 와이드 뷰(Desktop) - 기존 1행 5열 레이아웃 보존 */}
+            <div className="hidden md:grid grid-cols-5 gap-2">
+              {(Object.keys(RANKING_INFO) as Array<keyof typeof RANKING_INFO>).map((key) => renderRankButton(key))}
+            </div>
+
+            {/* 모바일 전용 컴팩트 타이틀 & 모달 필터 버튼 헤더 (좌측 배치) */}
+            <div className="md:hidden flex items-center justify-between bg-[var(--panel)] border border-[var(--panel-border)] rounded-xl px-3 py-1.5 shadow-sm">
+              <div className="flex items-center gap-1.5">
+                <span className={`text-sm font-black ${CATEGORY_THEMES[activeRankTab].text}`}>
+                  {RANKING_INFO[activeRankTab].en}
+                </span>
+                <span className="text-[0.62rem] font-bold text-[var(--text-sub)]">
+                  「 {RANKING_INFO[activeRankTab].desc} 」
+                </span>
+              </div>
+              <button 
+                onClick={() => setIsMobileFilterModalOpen(true)}
+                className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[var(--accent)] text-[var(--accent-fg)] font-black text-[0.65rem] shadow-sm cursor-pointer shrink-0"
+              >
+                <span>🔍</span>
+                {selectedClass !== "전체" ? <span>[{selectedClass}]</span> : <span>필터</span>}
+              </button>
+            </div>
+
+            {/* 데스크톱 전용 타이틀 & 기존 필터 드로어 */}
+            <div className="hidden md:block text-center py-0.5">
+              <h2 className={`text-2xl font-black tracking-widest flex justify-center items-center gap-2 ${CATEGORY_THEMES[activeRankTab].text}`}>
                 {RANKING_INFO[activeRankTab].en}
               </h2>
-              <p className="text-zinc-400 text-sm mt-2 font-bold">「 {RANKING_INFO[activeRankTab].desc} 」</p>
+              <p className="text-[var(--text-sub)] text-xs mt-0.5 font-bold">「 {RANKING_INFO[activeRankTab].desc} 」</p>
             </div>
 
-            <div className="bg-[#1c1c1e] border border-zinc-800 rounded-2xl p-4 shadow-xl">
-              <button onClick={() => { if (selectedClass === "전체" && !isClassFilterOpen) setIsClassFilterOpen(true); else { setSelectedClass("전체"); setIsClassFilterOpen(false); } }} className={`w-full py-2.5 rounded-lg text-sm font-bold transition border flex items-center justify-center gap-2 ${selectedClass === "전체" && !isClassFilterOpen ? 'bg-zinc-800/50 text-zinc-400 border-zinc-700 hover:text-white' : 'bg-zinc-800 text-[#e6c788] border-[#e6c788]/50 shadow-md'}`}>
-                {selectedClass === "전체" && !isClassFilterOpen ? '클래스별 랭킹 검색 ▼' : '전체 클래스 통합 랭킹 보기 ↺'}
+            <div className="hidden md:block bg-[var(--panel)] border border-[var(--panel-border)] rounded-xl p-2 shadow-sm">
+              <button 
+                onClick={() => { if (selectedClass === "전체" && !isClassFilterOpen) setIsClassFilterOpen(true); else { setSelectedClass("전체"); setIsClassFilterOpen(false); } }} 
+                className={`w-full py-1.5 rounded-lg text-xs font-bold transition border flex items-center justify-center gap-1.5 cursor-pointer ${
+                  selectedClass === "전체" && !isClassFilterOpen 
+                    ? 'bg-[var(--inner-box)] text-[var(--text-sub)] border-[var(--panel-border)] hover:text-[var(--text-main)]' 
+                    : 'bg-[var(--accent)] text-[var(--accent-fg)] border-[var(--accent)] shadow-sm'
+                }`}
+              >
+                {selectedClass === "전체" && !isClassFilterOpen ? '🔍 클래스별 필터링 펼치기 ▼' : '✨ 전체 클래스 통합 랭킹 보기 ↺'}
               </button>
 
               {isClassFilterOpen && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4 animate-in slide-in-from-top-4 fade-in duration-300">
+                <div className="grid grid-cols-6 gap-1.5 pt-2 animate-in slide-in-from-top-2 fade-in duration-200">
                   {CLASS_GROUPS.map((group) => (
-                    <div key={group.name} className="bg-[#121212] p-3 rounded-xl border border-zinc-800/50">
-                      <div className="text-[10px] font-black text-zinc-500 mb-2 px-1">{group.name}</div>
-                      <div className="flex flex-wrap gap-1.5">
+                    <div key={group.name} className="bg-[var(--inner-box)] p-1.5 rounded-lg border border-[var(--panel-border)] flex flex-col gap-1">
+                      <div className="text-[0.55rem] font-black text-[var(--text-sub)] px-1">{group.name}</div>
+                      <div className="flex flex-col gap-0.5">
                         {group.classes.map(cls => (
-                          <button key={cls} onClick={() => setSelectedClass(cls)} className={`px-3 py-1.5 rounded-md text-xs font-bold transition ${selectedClass === cls ? 'bg-zinc-700 text-white shadow-md' : 'text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300'}`}>{cls}</button>
+                          <button 
+                            key={cls} 
+                            onClick={() => setSelectedClass(cls)} 
+                            className={`px-2 py-0.5 rounded text-[0.65rem] font-bold text-left transition cursor-pointer ${
+                              selectedClass === cls 
+                                ? 'bg-[var(--accent)] text-[var(--accent-fg)] font-black' 
+                                : 'text-[var(--text-sub)] hover:bg-[var(--panel-hover)] hover:text-[var(--text-main)]'
+                            }`}
+                          >
+                            {cls}
+                          </button>
                         ))}
                       </div>
                     </div>
@@ -431,7 +608,8 @@ export default function AgoraLoungePage() {
               )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* 랭킹 카드 그리드 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 md:gap-4">
               {rankedCharacters.map((char) => {
                 const earnedTitles = getAllEarnedTitles(char);
                 const currentRankTitleInfo = earnedTitles.find(t => t.type === activeRankTab);
@@ -452,67 +630,52 @@ export default function AgoraLoungePage() {
                 const topTheme = CATEGORY_THEMES[activeRankTab];
                 
                 const isTopRanked = rankToUse <= 3;
-                const topTagClass = isTopRanked ? topTheme.tags[rankToUse - 1] : 'bg-zinc-800 text-zinc-400 border-zinc-700';
-                const topBorderClass = isTopRanked ? topTheme.borders[rankToUse - 1] : 'border-zinc-700';
+                const topTagClass = isTopRanked ? topTheme.tags[rankToUse - 1] : 'bg-zinc-100 text-zinc-950 border-zinc-400 font-bold dark:bg-[var(--inner-box)] dark:text-[var(--text-sub)] dark:border-[var(--panel-border)]';
+                const topBorderClass = isTopRanked ? topTheme.borders[rankToUse - 1] : 'border-zinc-400 dark:border-[var(--panel-border)]';
 
                 return (
-                  <div key={char.id} className={`relative bg-gradient-to-b from-[#1c1c1e] to-[#121212] border ${isTop3 ? 'border-[#e6c788]/40 shadow-[0_5px_20px_rgba(230,199,136,0.1)]' : 'border-zinc-800'} rounded-2xl p-6 group hover:border-zinc-500 transition-all ${isTooltipActiveOnCard ? 'z-50' : 'z-10'}`}>
-                    
-                    <div className={`absolute right-0 top-0 w-16 h-16 rounded-bl-3xl rounded-tr-2xl flex items-center justify-center font-black text-2xl shadow-bl ${
-                      categoryRank === 1 ? 'bg-gradient-to-br from-yellow-300 to-yellow-600 text-black' :
-                      categoryRank === 2 ? 'bg-gradient-to-br from-slate-200 to-slate-400 text-black' :
-                      categoryRank === 3 ? 'bg-gradient-to-br from-amber-600 to-amber-800 text-white' : 'bg-zinc-800 text-zinc-500'
-                    }`}>
-                      #{categoryRank}
-                    </div>
+                  <div 
+                    key={char.id} 
+                    className={`relative bg-[var(--panel)] border ${
+                      isTop3 ? 'border-[var(--accent)] shadow-sm' : 'border-[var(--panel-border)]'
+                    } rounded-xl p-2.5 md:p-4 transition-all hover:border-[var(--accent)] ${
+                      isTooltipActiveOnCard ? 'z-[60]' : 'z-10'
+                    }`}
+                  >
+                    {/* 모바일 초슬림 카드 레이아웃 */}
+                    <div className="md:hidden flex flex-col gap-1.5">
+                      <div className="flex items-center justify-between gap-1.5">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className={`px-1.5 py-0.2 rounded text-[0.6rem] font-black shrink-0 ${
+                            categoryRank === 1 ? 'bg-amber-400 text-black' :
+                            categoryRank === 2 ? 'bg-slate-300 text-black' :
+                            categoryRank === 3 ? 'bg-amber-700 text-white' : 'bg-[var(--inner-box)] text-[var(--text-sub)]'
+                          }`}>
+                            #{categoryRank}
+                          </span>
 
-                    <div className="flex flex-col gap-4">
-                      <div className="pr-12">
-                        {currentRankTitle && rankToUse <= 3 ? (
-                          <div 
-                            className="relative inline-block mb-2"
-                            onMouseEnter={() => setOpenHoverTooltipId(hoverTooltipId)}
-                            onMouseLeave={() => setOpenHoverTooltipId(null)}
-                          >
-                            <span className={`text-[11px] font-black px-2 py-1 rounded-md inline-flex items-center gap-1 transition-transform cursor-help border ${topTagClass}`}>
+                          {currentRankTitle && (
+                            <span className={`text-[0.55rem] px-1 py-0.2 rounded shrink-0 border ${topTagClass}`}>
                               {currentRankTitle}
                             </span>
+                          )}
 
-                            {isHoverTooltipOpen && (
-                              <div className={`absolute top-[calc(100%+8px)] left-0 w-[300px] bg-[#1a1a1c] border ${topBorderClass} rounded-xl p-4 shadow-2xl animate-in fade-in zoom-in-95 duration-150 z-[100] cursor-default`} onClick={e => e.stopPropagation()}>
-                                <div className={`absolute -top-1.5 left-6 w-3 h-3 bg-[#1a1a1c] border-t border-l ${topBorderClass} transform rotate-45`}></div>
-                                <div className="relative z-10 flex flex-col gap-3">
-                                  <div className="flex items-center gap-1.5">
-                                    <span className={`font-black ${topTheme.text} text-[15px] tracking-wide`}>[{topLoreData.title}]</span>
-                                  </div>
-                                  <p className="text-[13px] font-bold text-zinc-300 leading-snug break-keep">{topLoreData.meaning}</p>
-                                  <div className="w-full h-px bg-zinc-700/60"></div>
-                                  <p className="text-[13px] font-bold text-zinc-200 leading-relaxed break-keep">{topLoreData.tribute}</p>
-                                  <div className="mt-1 bg-black/40 border border-zinc-800/80 rounded-md p-2">
-                                    <p className="text-[10px] font-bold text-zinc-400 text-center break-keep">{topLoreData.sourceText}</p>
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          currentRankTitle && (
-                            <span className={`text-[11px] font-black px-2 py-1 rounded-md mb-2 inline-flex items-center gap-1 border ${topTagClass}`}>
-                              {currentRankTitle}
-                            </span>
-                          )
-                        )}
+                          <span className="font-black text-sm text-[var(--text-main)] truncate">{char.name}</span>
+                          <span className="text-[0.6rem] text-[var(--text-sub)] shrink-0 font-bold">{char.job}</span>
+                        </div>
 
-                        <h3 className="text-2xl font-black text-white flex items-center gap-2">{char.name}</h3>
-                        <div className="text-xs text-zinc-400 font-bold mt-1">{char.job}</div>
+                        <div className="text-right shrink-0">
+                          <span className="text-[0.55rem] text-[var(--text-sub)] font-bold block leading-none">{RANKING_INFO[activeRankTab].stat}</span>
+                          <span className="text-xs font-black text-[var(--accent)] leading-tight">{score.toLocaleString()}</span>
+                        </div>
                       </div>
 
-                      <div className="flex flex-wrap gap-1.5 mt-1 relative">
+                      {/* 보유 칭호 스몰 뱃지 가로 정렬 */}
+                      <div className="flex flex-wrap gap-1 relative">
                         {earnedTitles.map(t => {
                           const clickId = `click-${char.id}-${t.type}-PANTHEON`;
                           const isClicked = openClickTooltipId === clickId;
                           const loreData = generateLore(t.name, t.rank, char.job, t.type as any);
-                          
                           const isRankedTitle = t.rank <= 3;
                           const tagClass = isRankedTitle ? t.theme.tags[t.rank - 1] : t.theme.tags[0];
                           const borderClass = isRankedTitle ? t.theme.borders[t.rank - 1] : t.theme.borders[0];
@@ -521,24 +684,18 @@ export default function AgoraLoungePage() {
                             <div key={t.type} className="relative inline-block">
                               <button 
                                 onClick={(e) => { e.stopPropagation(); setOpenClickTooltipId(isClicked ? null : clickId); }}
-                                className={`text-[10px] px-1.5 py-0.5 rounded border flex items-center gap-1 cursor-pointer transition-all hover:scale-105 ${tagClass} ${isClicked ? 'ring-2 ring-white/50 z-10 opacity-100' : 'opacity-80 hover:opacity-100'}`}
+                                className={`text-[0.55rem] px-1 py-0.2 rounded border flex items-center gap-1 cursor-pointer transition-all ${tagClass} ${isClicked ? 'ring-2 ring-black/30 dark:ring-white/50 z-10' : 'opacity-95'}`}
                               >
                                 {t.name}
                               </button>
 
                               {isClicked && (
-                                <div className={`absolute top-[calc(100%+8px)] left-0 w-[280px] bg-[#1a1a1c] border ${borderClass} rounded-xl p-4 shadow-2xl animate-in fade-in zoom-in-95 duration-150 z-[100] cursor-default`} onClick={e => e.stopPropagation()}>
-                                  <div className={`absolute -top-1.5 left-4 w-3 h-3 bg-[#1a1a1c] border-t border-l ${borderClass} transform rotate-45`}></div>
-                                  <div className="relative z-10 flex flex-col gap-2.5 text-left">
-                                    <div className="flex items-center gap-1.5">
-                                      <span className={`font-black ${t.theme.text} text-[14px] tracking-wide`}>[{loreData.title}]</span>
-                                    </div>
-                                    <p className="text-[12px] font-bold text-zinc-300 leading-snug break-keep">{loreData.meaning}</p>
-                                    <div className="w-full h-px bg-zinc-700/60"></div>
-                                    <p className="text-[12px] font-bold text-zinc-200 leading-relaxed break-keep">{loreData.tribute}</p>
-                                    <div className="mt-1 bg-black/40 border border-zinc-800/80 rounded-md p-2">
-                                      <p className="text-[9px] font-bold text-zinc-400 text-center break-keep">{loreData.sourceText}</p>
-                                    </div>
+                                <div className={`absolute top-[calc(100%+4px)] left-0 w-[210px] bg-[var(--panel)] border-2 ${borderClass} rounded-xl p-2 shadow-2xl animate-in fade-in zoom-in-95 duration-150 z-[100] cursor-default text-[var(--text-main)]`} onClick={e => e.stopPropagation()}>
+                                  <div className={`absolute -top-1.5 left-3 w-2 h-2 bg-[var(--panel)] border-t-2 border-l-2 ${borderClass} transform rotate-45`}></div>
+                                  <div className="relative z-10 flex flex-col gap-1 text-left">
+                                    <span className={`font-black ${t.theme.text} text-[0.62rem]`}>[{loreData.title}]</span>
+                                    <p className="text-[0.58rem] font-bold text-[var(--text-main)] leading-snug break-keep">{loreData.meaning}</p>
+                                    <p className="text-[0.58rem] font-bold text-[var(--text-sub)] leading-relaxed break-keep border-t border-[var(--panel-border)] pt-1">{loreData.tribute}</p>
                                   </div>
                                 </div>
                               )}
@@ -547,18 +704,104 @@ export default function AgoraLoungePage() {
                         })}
                       </div>
 
-                      <div className="bg-[#121212] p-4 rounded-xl border border-zinc-800/80 mt-2 space-y-3">
-                        <div className="flex justify-between items-end border-b border-zinc-800 pb-2">
-                          <span className="text-zinc-500 text-xs font-bold">{RANKING_INFO[activeRankTab].stat}</span>
-                          <span className="font-black text-[#e6c788] text-xl leading-none">{score.toLocaleString()}</span>
+                      {/* 모바일 1줄 서빙 순위 박스 */}
+                      <div className="flex items-center justify-between text-[0.55rem] font-bold text-[var(--text-sub)] bg-[var(--inner-box)] px-2 py-0.5 rounded border border-[var(--panel-border)]">
+                        <span>전체 순위: <strong className="text-[var(--text-main)]">{char.serverRankOverall ? `#${char.serverRankOverall.toLocaleString()}` : '집계중'}</strong></span>
+                        <span>데이안 순위: <strong className="text-[var(--text-main)]">{char.serverRankDeian ? `#${char.serverRankDeian.toLocaleString()}` : '집계중'}</strong></span>
+                      </div>
+                    </div>
+
+                    {/* 데스크톱(Desktop) 카드 레이아웃 */}
+                    <div className="hidden md:flex flex-col gap-2">
+                      <div className={`absolute right-0 top-0 w-10 h-10 rounded-bl-xl rounded-tr-xl flex items-center justify-center font-black text-sm shadow-sm ${
+                        categoryRank === 1 ? 'bg-amber-400 text-black' :
+                        categoryRank === 2 ? 'bg-slate-300 text-black' :
+                        categoryRank === 3 ? 'bg-amber-700 text-white' : 'bg-[var(--inner-box)] text-[var(--text-sub)]'
+                      }`}>
+                        #{categoryRank}
+                      </div>
+
+                      <div className="pr-10">
+                        {currentRankTitle && rankToUse <= 3 ? (
+                          <div 
+                            className="relative inline-block mb-1"
+                            onMouseEnter={() => setOpenHoverTooltipId(hoverTooltipId)}
+                            onMouseLeave={() => setOpenHoverTooltipId(null)}
+                          >
+                            <span className={`text-[0.62rem] px-1.5 py-0.5 rounded inline-flex items-center gap-1 cursor-help border ${topTagClass}`}>
+                              {currentRankTitle}
+                            </span>
+
+                            {isHoverTooltipOpen && (
+                              <div className={`absolute top-[calc(100%+4px)] left-0 w-[240px] bg-[var(--panel)] border-2 ${topBorderClass} rounded-xl p-3 shadow-2xl animate-in fade-in zoom-in-95 duration-150 z-[100] cursor-default text-[var(--text-main)]`} onClick={e => e.stopPropagation()}>
+                                <div className={`absolute -top-1.5 left-4 w-3 h-3 bg-[var(--panel)] border-t-2 border-l-2 ${topBorderClass} transform rotate-45`}></div>
+                                <div className="relative z-10 flex flex-col gap-1.5">
+                                  <span className={`font-black ${topTheme.text} text-xs tracking-wide`}>[{topLoreData.title}]</span>
+                                  <p className="text-[0.65rem] font-bold text-[var(--text-main)] leading-snug break-keep">{topLoreData.meaning}</p>
+                                  <div className="w-full h-px bg-[var(--panel-border)]"></div>
+                                  <p className="text-[0.65rem] font-bold text-[var(--text-sub)] leading-relaxed break-keep">{topLoreData.tribute}</p>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          currentRankTitle && (
+                            <span className={`text-[0.62rem] px-1.5 py-0.5 rounded mb-1 inline-flex items-center gap-1 border ${topTagClass}`}>
+                              {currentRankTitle}
+                            </span>
+                          )
+                        )}
+
+                        <h3 className="text-lg font-black text-[var(--text-main)] flex items-center gap-1.5">{char.name}</h3>
+                        <div className="text-[0.65rem] text-[var(--text-sub)] font-bold mt-0.5">{char.job}</div>
+                      </div>
+
+                      <div className="flex flex-wrap gap-1 relative">
+                        {earnedTitles.map(t => {
+                          const clickId = `click-${char.id}-${t.type}-PANTHEON`;
+                          const isClicked = openClickTooltipId === clickId;
+                          const loreData = generateLore(t.name, t.rank, char.job, t.type as any);
+                          const isRankedTitle = t.rank <= 3;
+                          const tagClass = isRankedTitle ? t.theme.tags[t.rank - 1] : t.theme.tags[0];
+                          const borderClass = isRankedTitle ? t.theme.borders[t.rank - 1] : t.theme.borders[0];
+
+                          return (
+                            <div key={t.type} className="relative inline-block">
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); setOpenClickTooltipId(isClicked ? null : clickId); }}
+                                className={`text-[0.6rem] px-1.5 py-0.2 rounded border flex items-center gap-1 cursor-pointer transition-all hover:scale-105 ${tagClass} ${isClicked ? 'ring-2 ring-black/30 dark:ring-white/50 z-10 opacity-100' : 'opacity-95 hover:opacity-100'}`}
+                              >
+                                {t.name}
+                              </button>
+
+                              {isClicked && (
+                                <div className={`absolute top-[calc(100%+4px)] left-0 w-[230px] bg-[var(--panel)] border-2 ${borderClass} rounded-xl p-2.5 shadow-2xl animate-in fade-in zoom-in-95 duration-150 z-[100] cursor-default text-[var(--text-main)]`} onClick={e => e.stopPropagation()}>
+                                  <div className={`absolute -top-1.5 left-3 w-2.5 h-2.5 bg-[var(--panel)] border-t-2 border-l-2 ${borderClass} transform rotate-45`}></div>
+                                  <div className="relative z-10 flex flex-col gap-1.5 text-left">
+                                    <span className={`font-black ${t.theme.text} text-[0.68rem] tracking-wide`}>[{loreData.title}]</span>
+                                    <p className="text-[0.6rem] font-bold text-[var(--text-main)] leading-snug break-keep">{loreData.meaning}</p>
+                                    <div className="w-full h-px bg-[var(--panel-border)]"></div>
+                                    <p className="text-[0.6rem] font-bold text-[var(--text-sub)] leading-relaxed break-keep">{loreData.tribute}</p>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      <div className="bg-[var(--inner-box)] p-2.5 rounded-lg border border-[var(--panel-border)] mt-0.5 space-y-1">
+                        <div className="flex justify-between items-end border-b border-[var(--panel-border)] pb-1">
+                          <span className="text-[var(--text-sub)] text-[0.65rem] font-bold">{RANKING_INFO[activeRankTab].stat}</span>
+                          <span className="font-black text-[var(--accent)] text-base leading-none">{score.toLocaleString()}</span>
                         </div>
-                        <div className="flex justify-between text-[10px] font-bold">
-                          <span className="text-zinc-600">서버 전체 순위</span>
-                          <span className="text-zinc-400">{char.serverRankOverall ? `#${char.serverRankOverall.toLocaleString()}` : '집계 중'}</span>
+                        <div className="flex justify-between text-[0.6rem] font-bold">
+                          <span className="text-[var(--text-sub)]">서버 전체 순위</span>
+                          <span className="text-[var(--text-main)]">{char.serverRankOverall ? `#${char.serverRankOverall.toLocaleString()}` : '집계 중'}</span>
                         </div>
-                        <div className="flex justify-between text-[10px] font-bold">
-                          <span className="text-zinc-600">데이안 서버 순위</span>
-                          <span className="text-zinc-400">{char.serverRankDeian ? `#${char.serverRankDeian.toLocaleString()}` : '집계 중'}</span>
+                        <div className="flex justify-between text-[0.6rem] font-bold">
+                          <span className="text-[var(--text-sub)]">데이안 서버 순위</span>
+                          <span className="text-[var(--text-main)]">{char.serverRankDeian ? `#${char.serverRankDeian.toLocaleString()}` : '집계 중'}</span>
                         </div>
                       </div>
                     </div>
@@ -569,50 +812,54 @@ export default function AgoraLoungePage() {
           </section>
         )}
 
+        {/* 2. ASTRA (길드원 현황) 뷰 */}
         {activeMainTab === 'ASTRA' && (
-          <section className="space-y-4 animate-in fade-in duration-300">
-            <div className="flex gap-4 mb-6">
-              <div className="bg-[#1c1c1e] border border-zinc-800 rounded-xl p-4 flex-1 flex flex-col items-center justify-center">
-                <span className="text-zinc-500 text-xs font-bold mb-1">성역에 등록된 전체 캐릭터</span>
-                <span className="text-2xl font-black text-white">{dbCharacters.length}</span>
+          <section className="space-y-3 animate-in fade-in duration-200">
+            <div className="grid grid-cols-2 gap-2.5">
+              <div className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-xl p-2.5 flex flex-col items-center justify-center shadow-sm">
+                <span className="text-[var(--text-sub)] text-[0.65rem] font-bold mb-0.5">성역 전체 캐릭터</span>
+                <span className="text-base sm:text-lg font-black text-[var(--text-main)]">{dbCharacters.length}</span>
               </div>
-              <div className="bg-[#1c1c1e] border border-zinc-800 rounded-xl p-4 flex-1 flex flex-col items-center justify-center">
-                <span className="text-zinc-500 text-xs font-bold mb-1">성역의 대표 (가문 대표)</span>
-                <span className="text-2xl font-black text-[#e6c788]">{mainCharacters.length}</span>
+              <div className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-xl p-2.5 flex flex-col items-center justify-center shadow-sm">
+                <span className="text-[var(--text-sub)] text-[0.65rem] font-bold mb-0.5">성역 가문 대표</span>
+                <span className="text-base sm:text-lg font-black text-[var(--accent)]">{mainCharacters.length}</span>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-4">
+            <div className="grid grid-cols-1 gap-2.5">
               {mainCharacters.map((mainChar, idx) => {
                 const mainTitles = getAllEarnedTitles(mainChar);
                 const isClickTooltipOpenForThisCard = openClickTooltipId?.includes(`-${mainChar.id}-`) && openClickTooltipId?.includes('-ASTRA');
                 
                 return (
-                  <div key={idx} className={`relative bg-gradient-to-r from-[#1c1c1e] to-[#121212] border border-zinc-800 rounded-2xl p-5 flex flex-col xl:flex-row justify-between xl:items-center gap-6 hover:border-zinc-600 transition-colors ${isClickTooltipOpenForThisCard ? 'z-50' : 'z-10'}`}>
-                    <div className="flex items-center gap-5 min-w-[280px]">
-                      <div className="flex flex-col items-center justify-center min-w-[70px]">
-                        {mainChar.status === '생텀 접속중' && <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)] mb-1"></div>}
-                        {mainChar.status === '인게임' && <div className="w-3 h-3 bg-blue-500 rounded-full mb-1 shadow-[0_0_10px_rgba(59,130,246,0.5)]"></div>}
-                        {mainChar.status === '오프라인' && <div className="w-3 h-3 bg-zinc-600 rounded-full mb-1"></div>}
-                        <span className={`text-[10px] font-black ${mainChar.status === '생텀 접속중' ? 'text-emerald-500' : mainChar.status === '인게임' ? 'text-blue-400' : 'text-zinc-500'}`}>{mainChar.status}</span>
-                        {mainChar.status === '오프라인' && <span className="text-[9px] text-zinc-600 mt-0.5">{mainChar.lastSeen}</span>}
+                  <div 
+                    key={idx} 
+                    className={`relative bg-[var(--panel)] border border-[var(--panel-border)] rounded-xl p-3 flex flex-col lg:flex-row justify-between lg:items-center gap-3 hover:border-[var(--accent)] transition-colors ${
+                      isClickTooltipOpenForThisCard ? 'z-[60]' : 'z-10'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 min-w-[200px]">
+                      <div className="flex flex-col items-center justify-center min-w-[50px] shrink-0">
+                        {mainChar.status === '생텀 접속중' && <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_6px_rgba(16,185,129,0.8)] mb-0.5"></div>}
+                        {mainChar.status === '인게임' && <div className="w-2 h-2 bg-blue-500 rounded-full mb-0.5 shadow-[0_0_6px_rgba(59,130,246,0.8)]"></div>}
+                        {mainChar.status === '오프라인' && <div className="w-2 h-2 bg-[var(--text-sub)] rounded-full mb-0.5"></div>}
+                        <span className={`text-[0.55rem] font-black ${mainChar.status === '생텀 접속중' ? 'text-emerald-500' : mainChar.status === '인게임' ? 'text-blue-400' : 'text-[var(--text-sub)]'}`}>{mainChar.status}</span>
                       </div>
 
-                      <div className="w-px h-16 bg-zinc-800 hidden xl:block"></div>
+                      <div className="w-px h-10 bg-[var(--panel-border)] hidden lg:block"></div>
 
                       <div className="flex flex-col">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-[10px] bg-[#e6c788] text-black font-black px-1.5 py-0.5 rounded">대표 캐릭터</span>
-                          <span className="text-xs text-zinc-400 font-bold">{mainChar.job}</span>
+                        <div className="flex items-center gap-1 mb-0.5">
+                          <span className="text-[0.5rem] bg-[var(--accent)] text-[var(--accent-fg)] font-black px-1 py-0.2 rounded">대표 캐릭터</span>
+                          <span className="text-[0.65rem] text-[var(--text-sub)] font-bold">{mainChar.job}</span>
                         </div>
-                        <h4 className="text-2xl font-black text-white">{mainChar.name}</h4>
+                        <h4 className="text-base font-black text-[var(--text-main)]">{mainChar.name}</h4>
                         
-                        <div className="flex flex-wrap gap-1.5 mt-2 relative">
+                        <div className="flex flex-wrap gap-1 mt-1 relative">
                           {mainTitles.length > 0 ? mainTitles.map(t => {
                             const clickId = `click-${mainChar.id}-${t.type}-ASTRA`;
                             const isClicked = openClickTooltipId === clickId;
                             const loreData = generateLore(t.name, t.rank, mainChar.job, t.type as any);
-                            
                             const isRankedTitle = t.rank <= 3;
                             const tagClass = isRankedTitle ? t.theme.tags[t.rank - 1] : t.theme.tags[0];
                             const borderClass = isRankedTitle ? t.theme.borders[t.rank - 1] : t.theme.borders[0];
@@ -621,41 +868,36 @@ export default function AgoraLoungePage() {
                               <div key={t.type} className="relative inline-block">
                                 <button 
                                   onClick={(e) => { e.stopPropagation(); setOpenClickTooltipId(isClicked ? null : clickId); }}
-                                  className={`text-[10px] px-1.5 py-0.5 rounded border flex items-center gap-1 cursor-pointer transition-all hover:scale-105 ${tagClass} ${isClicked ? 'ring-2 ring-white/50 z-10 opacity-100' : 'opacity-80 hover:opacity-100'}`}
+                                  className={`text-[0.58rem] px-1.5 py-0.2 rounded border flex items-center gap-1 cursor-pointer transition-all hover:scale-105 ${tagClass} ${isClicked ? 'ring-2 ring-black/30 dark:ring-white/50 z-10 opacity-100' : 'opacity-95 hover:opacity-100'}`}
                                 >
                                   {t.name}
                                 </button>
 
                                 {isClicked && (
-                                  <div className={`absolute top-[calc(100%+8px)] left-0 w-[280px] bg-[#1a1a1c] border ${borderClass} rounded-xl p-4 shadow-2xl animate-in fade-in zoom-in-95 duration-150 z-[100] cursor-default`} onClick={e => e.stopPropagation()}>
-                                    <div className={`absolute -top-1.5 left-4 w-3 h-3 bg-[#1a1a1c] border-t border-l ${borderClass} transform rotate-45`}></div>
-                                    <div className="relative z-10 flex flex-col gap-2.5 text-left">
-                                      <div className="flex items-center gap-1.5">
-                                        <span className={`font-black ${t.theme.text} text-[14px] tracking-wide`}>[{loreData.title}]</span>
-                                      </div>
-                                      <p className="text-[12px] font-bold text-zinc-300 leading-snug break-keep">{loreData.meaning}</p>
-                                      <div className="w-full h-px bg-zinc-700/60"></div>
-                                      <p className="text-[12px] font-bold text-zinc-200 leading-relaxed break-keep">{loreData.tribute}</p>
-                                      <div className="mt-1 bg-black/40 border border-zinc-800/80 rounded-md p-2">
-                                        <p className="text-[9px] font-bold text-zinc-400 text-center break-keep">{loreData.sourceText}</p>
-                                      </div>
+                                  <div className={`absolute top-[calc(100%+4px)] left-0 w-[220px] bg-[var(--panel)] border-2 ${borderClass} rounded-xl p-2.5 shadow-2xl animate-in fade-in zoom-in-95 duration-150 z-[100] cursor-default text-[var(--text-main)]`} onClick={e => e.stopPropagation()}>
+                                    <div className={`absolute -top-1.5 left-3 w-2.5 h-2.5 bg-[var(--panel)] border-t-2 border-l-2 ${borderClass} transform rotate-45`}></div>
+                                    <div className="relative z-10 flex flex-col gap-1 text-left">
+                                      <span className={`font-black ${t.theme.text} text-[0.65rem] tracking-wide`}>[{loreData.title}]</span>
+                                      <p className="text-[0.58rem] font-bold text-[var(--text-main)] leading-snug break-keep">{loreData.meaning}</p>
+                                      <div className="w-full h-px bg-[var(--panel-border)]"></div>
+                                      <p className="text-[0.58rem] font-bold text-[var(--text-sub)] leading-relaxed break-keep">{loreData.tribute}</p>
                                     </div>
                                   </div>
                                 )}
                               </div>
                             );
-                          }) : <span className="text-[9px] text-zinc-600">획득한 칭호 없음</span>}
+                          }) : <span className="text-[0.6rem] text-[var(--text-sub)]">획득한 칭호 없음</span>}
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex flex-col xl:items-end justify-center min-w-[250px]">
-                      <span className="text-[10px] text-[#e6c788] font-bold mb-2 tracking-widest">대표 스탯 현황</span>
-                      <div className="grid grid-cols-2 gap-2 text-xs w-full xl:w-auto">
-                        <div className="bg-zinc-800/50 px-3 py-1.5 rounded border border-zinc-700/50 flex justify-between xl:gap-4"><span className="text-zinc-500">전투력</span> <span className="text-white font-black">{mainChar.combatPower.toLocaleString()}</span></div>
-                        <div className="bg-zinc-800/50 px-3 py-1.5 rounded border border-zinc-700/50 flex justify-between xl:gap-4"><span className="text-zinc-500">생활력</span> <span className="text-white font-black">{mainChar.lifePower.toLocaleString()}</span></div>
-                        <div className="bg-zinc-800/50 px-3 py-1.5 rounded border border-zinc-700/50 flex justify-between xl:gap-4"><span className="text-zinc-500">매력도</span> <span className="text-white font-black">{mainChar.charm.toLocaleString()}</span></div>
-                        <div className="bg-zinc-800/50 px-3 py-1.5 rounded border border-zinc-700/50 flex justify-between xl:gap-4"><span className="text-zinc-500">공헌도</span> <span className="text-white font-black">{mainChar.contribution.toLocaleString()}</span></div>
+                    <div className="flex flex-col lg:items-end justify-center min-w-[200px]">
+                      <span className="text-[0.55rem] text-[var(--accent)] font-bold mb-1 tracking-widest">대표 스탯 현황</span>
+                      <div className="grid grid-cols-2 gap-1 text-[0.65rem] w-full lg:w-auto">
+                        <div className="bg-[var(--inner-box)] px-2 py-0.5 rounded border border-[var(--panel-border)] flex justify-between lg:gap-2"><span className="text-[var(--text-sub)]">전투력</span> <span className="text-[var(--text-main)] font-black">{mainChar.combatPower.toLocaleString()}</span></div>
+                        <div className="bg-[var(--inner-box)] px-2 py-0.5 rounded border border-[var(--panel-border)] flex justify-between lg:gap-2"><span className="text-[var(--text-sub)]">생활력</span> <span className="text-[var(--text-main)] font-black">{mainChar.lifePower.toLocaleString()}</span></div>
+                        <div className="bg-[var(--inner-box)] px-2 py-0.5 rounded border border-[var(--panel-border)] flex justify-between lg:gap-2"><span className="text-[var(--text-sub)]">매력도</span> <span className="text-[var(--text-main)] font-black">{mainChar.charm.toLocaleString()}</span></div>
+                        <div className="bg-[var(--inner-box)] px-2 py-0.5 rounded border border-[var(--panel-border)] flex justify-between lg:gap-2"><span className="text-[var(--text-sub)]">공헌도</span> <span className="text-[var(--text-main)] font-black">{mainChar.contribution.toLocaleString()}</span></div>
                       </div>
                     </div>
                   </div>
@@ -665,6 +907,6 @@ export default function AgoraLoungePage() {
           </section>
         )}
       </div>
-    </main>
+    </div>
   );
 }
