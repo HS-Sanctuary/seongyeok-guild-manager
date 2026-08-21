@@ -467,7 +467,7 @@ export default function Home() {
           
           {/* 1. Sanctuary ASTRA */}
           <div 
-            onClick={() => router.push('/lounge/astra')}
+           onClick={() => router.push('/lounge?tab=ASTRA')}
             className="rounded-xl border backdrop-blur p-2.5 sm:p-3.5 flex flex-col justify-between relative overflow-hidden shadow-sm order-1 cursor-pointer transition group bg-[var(--panel)] border-[var(--panel-border)] hover:border-[var(--accent)]"
           >
             <div className="absolute -right-4 -bottom-4 text-5xl opacity-5 group-hover:scale-110 transition-transform pointer-events-none">✨</div>

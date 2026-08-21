@@ -1,73 +1,73 @@
 "use client";
 
 import '../globals.css';
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "../../lib/supabase"; 
 
 // ==========================================
-// 1. 카테고리 컬러 테마 정의 (활성화 시 고대비 선명한 텍스트 & 순위별 테두리 차별화)
+// 1. 카테고리 파스텔 테마 정의
 // ==========================================
 const CATEGORY_THEMES: Record<string, any> = {
-  TELOS: { // 🟣 텔로스 (보라)
-    tabActive: 'bg-purple-600 text-white border-2 border-purple-800 shadow-md dark:bg-purple-600 dark:text-white dark:border-purple-300',
+  TELOS: { // 🟣 텔로스 (파스텔 바이올렛)
+    tabActive: 'bg-purple-600/90 text-white border-2 border-purple-400 shadow-md dark:bg-purple-800/80 dark:text-purple-100 dark:border-purple-400',
     titleActiveText: 'text-white font-black',
     subActiveText: 'text-purple-100 font-bold',
-    text: 'text-purple-900 dark:text-purple-300 font-black', 
+    text: 'text-purple-700 dark:text-purple-300 font-black', 
     tags: [
-      'bg-purple-600 text-white border-2 border-purple-800 ring-2 ring-purple-400/40 font-black shadow-sm dark:bg-purple-600 dark:text-white dark:border-purple-300', // 1위
-      'bg-purple-200 text-purple-950 border-2 border-purple-600 font-extrabold dark:bg-purple-900/90 dark:text-purple-100 dark:border-purple-400', // 2위
-      'bg-purple-100 text-purple-950 border-[1.5px] border-purple-500 font-black dark:bg-purple-950/80 dark:text-purple-200 dark:border-purple-500', // 3위 (선명도 대폭 강화)
+      'bg-purple-500/85 text-white border-2 border-purple-300 ring-2 ring-purple-300/30 font-black shadow-sm dark:bg-purple-700/80 dark:text-purple-100 dark:border-purple-400', 
+      'bg-purple-100 text-purple-900 border-2 border-purple-400 font-extrabold dark:bg-purple-900/60 dark:text-purple-200 dark:border-purple-400', 
+      'bg-purple-50/90 text-purple-900 border-[1.5px] border-purple-300 font-black dark:bg-purple-950/60 dark:text-purple-200 dark:border-purple-500', 
     ],
-    borders: ['border-purple-600 dark:border-purple-400', 'border-purple-500 dark:border-purple-500', 'border-purple-400 dark:border-purple-700']
+    borders: ['border-purple-400 dark:border-purple-400', 'border-purple-300 dark:border-purple-500', 'border-purple-300 dark:border-purple-600']
   },
-  KRATOS: { // 🔴 크라토스 (빨강)
-    tabActive: 'bg-red-600 text-white border-2 border-red-800 shadow-md dark:bg-red-600 dark:text-white dark:border-red-300',
+  KRATOS: { // 🔴 크라토스 (파스텔 로즈/인디핑크)
+    tabActive: 'bg-rose-600/90 text-white border-2 border-rose-400 shadow-md dark:bg-rose-800/80 dark:text-rose-100 dark:border-rose-400',
     titleActiveText: 'text-white font-black',
-    subActiveText: 'text-red-100 font-bold',
-    text: 'text-red-900 dark:text-red-300 font-black', 
+    subActiveText: 'text-rose-100 font-bold',
+    text: 'text-rose-700 dark:text-rose-300 font-black', 
     tags: [
-      'bg-red-600 text-white border-2 border-red-800 ring-2 ring-red-400/40 font-black shadow-sm dark:bg-red-600 dark:text-white dark:border-red-300',
-      'bg-red-200 text-red-950 border-2 border-red-600 font-extrabold dark:bg-red-900/90 dark:text-red-100 dark:border-red-400',
-      'bg-red-100 text-red-950 border-[1.5px] border-red-500 font-black dark:bg-red-950/80 dark:text-red-200 dark:border-red-500',
+      'bg-rose-500/85 text-white border-2 border-rose-300 ring-2 ring-rose-300/30 font-black shadow-sm dark:bg-rose-700/80 dark:text-rose-100 dark:border-rose-400',
+      'bg-rose-100 text-rose-900 border-2 border-rose-400 font-extrabold dark:bg-rose-900/60 dark:text-rose-200 dark:border-rose-400',
+      'bg-rose-50/90 text-rose-900 border-[1.5px] border-rose-300 font-black dark:bg-rose-950/60 dark:text-rose-200 dark:border-rose-500',
     ],
-    borders: ['border-red-600 dark:border-red-400', 'border-red-500 dark:border-red-500', 'border-red-400 dark:border-red-700']
+    borders: ['border-rose-400 dark:border-rose-400', 'border-rose-300 dark:border-rose-500', 'border-rose-300 dark:border-rose-600']
   },
-  TECHNE: { // 🔵 테크네 (파랑)
-    tabActive: 'bg-blue-600 text-white border-2 border-blue-800 shadow-md dark:bg-blue-600 dark:text-white dark:border-blue-300',
+  TECHNE: { // 🔵 테크네 (파스텔 소프트 블루)
+    tabActive: 'bg-sky-600/90 text-white border-2 border-sky-400 shadow-md dark:bg-sky-800/80 dark:text-sky-100 dark:border-sky-400',
     titleActiveText: 'text-white font-black',
-    subActiveText: 'text-blue-100 font-bold',
-    text: 'text-blue-900 dark:text-blue-300 font-black', 
+    subActiveText: 'text-sky-100 font-bold',
+    text: 'text-sky-700 dark:text-sky-300 font-black', 
     tags: [
-      'bg-blue-600 text-white border-2 border-blue-800 ring-2 ring-blue-400/40 font-black shadow-sm dark:bg-blue-600 dark:text-white dark:border-blue-300',
-      'bg-blue-200 text-blue-950 border-2 border-blue-600 font-extrabold dark:bg-blue-900/90 dark:text-blue-100 dark:border-blue-400',
-      'bg-blue-100 text-blue-950 border-[1.5px] border-blue-500 font-black dark:bg-blue-950/80 dark:text-blue-200 dark:border-blue-500',
+      'bg-sky-500/85 text-white border-2 border-sky-300 ring-2 ring-sky-300/30 font-black shadow-sm dark:bg-sky-700/80 dark:text-sky-100 dark:border-sky-400',
+      'bg-sky-100 text-sky-900 border-2 border-sky-400 font-extrabold dark:bg-sky-900/60 dark:text-sky-200 dark:border-sky-400',
+      'bg-sky-50/90 text-sky-900 border-[1.5px] border-sky-300 font-black dark:bg-sky-950/60 dark:text-sky-200 dark:border-sky-500',
     ],
-    borders: ['border-blue-600 dark:border-blue-400', 'border-blue-500 dark:border-blue-500', 'border-blue-400 dark:border-blue-700']
+    borders: ['border-sky-400 dark:border-sky-400', 'border-sky-300 dark:border-sky-500', 'border-sky-300 dark:border-sky-600']
   },
-  HARMONIA: { // 🟡 하르모니아 (황동/노랑)
-    tabActive: 'bg-amber-500 text-slate-950 border-2 border-amber-700 shadow-md dark:bg-yellow-500 dark:text-slate-950 dark:border-yellow-300',
-    titleActiveText: 'text-slate-950 font-black',
-    subActiveText: 'text-amber-950 font-bold',
-    text: 'text-amber-900 dark:text-yellow-300 font-black', 
+  HARMONIA: { // 🟡 하르모니아 (파스텔 앰버/골드)
+    tabActive: 'bg-amber-500/90 text-slate-950 border-2 border-amber-300 shadow-md dark:bg-amber-600/80 dark:text-amber-100 dark:border-amber-300',
+    titleActiveText: 'text-slate-950 dark:text-white font-black',
+    subActiveText: 'text-amber-950 dark:text-amber-100 font-bold',
+    text: 'text-amber-700 dark:text-amber-300 font-black', 
     tags: [
-      'bg-amber-500 text-slate-950 border-2 border-amber-700 ring-2 ring-amber-400/40 font-black shadow-sm dark:bg-yellow-500 dark:text-slate-950 dark:border-yellow-300',
-      'bg-amber-200 text-amber-950 border-2 border-amber-600 font-extrabold dark:bg-yellow-900/90 dark:text-yellow-100 dark:border-yellow-400',
-      'bg-amber-100 text-amber-950 border-[1.5px] border-amber-500 font-black dark:bg-yellow-950/80 dark:text-yellow-200 dark:border-yellow-500',
+      'bg-amber-400/90 text-slate-950 border-2 border-amber-500 ring-2 ring-amber-300/30 font-black shadow-sm dark:bg-amber-600/80 dark:text-amber-100 dark:border-amber-300',
+      'bg-amber-100 text-amber-950 border-2 border-amber-400 font-extrabold dark:bg-amber-900/60 dark:text-amber-200 dark:border-amber-400',
+      'bg-amber-50/90 text-amber-950 border-[1.5px] border-amber-300 font-black dark:bg-amber-950/60 dark:text-amber-200 dark:border-amber-500',
     ],
-    borders: ['border-amber-600 dark:border-yellow-400', 'border-amber-500 dark:border-yellow-500', 'border-amber-400 dark:border-yellow-700']
+    borders: ['border-amber-400 dark:border-amber-400', 'border-amber-300 dark:border-amber-500', 'border-amber-300 dark:border-amber-600']
   },
-  PIETAS: { // 🟢 피에타스 (녹색)
-    tabActive: 'bg-emerald-600 text-white border-2 border-emerald-800 shadow-md dark:bg-emerald-600 dark:text-white dark:border-emerald-300',
+  PIETAS: { // 🟢 피에타스 (파스텔 에메랄드/세이지)
+    tabActive: 'bg-emerald-600/90 text-white border-2 border-emerald-400 shadow-md dark:bg-emerald-800/80 dark:text-emerald-100 dark:border-emerald-400',
     titleActiveText: 'text-white font-black',
     subActiveText: 'text-emerald-100 font-bold',
-    text: 'text-emerald-900 dark:text-emerald-300 font-black', 
+    text: 'text-emerald-700 dark:text-emerald-300 font-black', 
     tags: [
-      'bg-emerald-600 text-white border-2 border-emerald-800 ring-2 ring-emerald-400/40 font-black shadow-sm dark:bg-emerald-600 dark:text-white dark:border-emerald-300',
-      'bg-emerald-200 text-emerald-950 border-2 border-emerald-600 font-extrabold dark:bg-emerald-900/90 dark:text-emerald-100 dark:border-emerald-400',
-      'bg-emerald-100 text-emerald-950 border-[1.5px] border-emerald-500 font-black dark:bg-emerald-950/80 dark:text-emerald-200 dark:border-emerald-500',
+      'bg-emerald-500/85 text-white border-2 border-emerald-300 ring-2 ring-emerald-300/30 font-black shadow-sm dark:bg-emerald-700/80 dark:text-emerald-100 dark:border-emerald-400',
+      'bg-emerald-100 text-emerald-900 border-2 border-emerald-400 font-extrabold dark:bg-emerald-900/60 dark:text-emerald-200 dark:border-emerald-400',
+      'bg-emerald-50/90 text-emerald-900 border-[1.5px] border-emerald-300 font-black dark:bg-emerald-950/60 dark:text-emerald-200 dark:border-emerald-500',
     ],
-    borders: ['border-emerald-600 dark:border-emerald-400', 'border-emerald-500 dark:border-emerald-500', 'border-emerald-400 dark:border-emerald-700']
+    borders: ['border-emerald-400 dark:border-emerald-400', 'border-emerald-300 dark:border-emerald-500', 'border-emerald-300 dark:border-emerald-600']
   }
 };
 
@@ -120,7 +120,7 @@ const TOP_TITLES = {
 };
 
 // ==========================================
-// 2. 서사(Lore) 사전
+// 2. 서사(Lore) 사전 및 획득 출처 영문 표기
 // ==========================================
 const LORE_DICTIONARY: Record<string, string> = {
   '헬리오스': '그리스 신화의 태양신. 모든 것을 비추는 태양처럼 최고의 경지에 도달한 존재를 상징합니다.',
@@ -202,9 +202,11 @@ const generateLore = (title: string, rank: number, job: string, category: keyof 
     tribute = (TRIBUTE_MESSAGES as any)[category]?.[rank] || "꾸준한 노력과 의지로 성역의 발전에 이바지하는 자입니다.";
   }
 
+  const categoryEn = RANKING_INFO[category]?.en || category;
+
   const sourceText = category === 'KRATOS' 
-    ? `성역 ${RANKING_INFO[category].kr} [${job}] ${rank <= 3 ? rank + '위' : '랭커'}에게 부여되는 칭호`
-    : `성역 ${RANKING_INFO[category].kr} ${rank <= 3 ? rank + '위' : '랭커'}에게 부여되는 칭호`;
+    ? `『${categoryEn}』 [${job}] ${rank <= 3 ? rank + '위' : '랭커'} 칭호`
+    : `『${categoryEn}』 ${rank <= 3 ? rank + '위' : '랭커'} 칭호`;
 
   return { title, meaning, tribute, rank, sourceText };
 };
@@ -219,8 +221,10 @@ interface Character {
   pendingTasks?: string[]; serverRankOverall?: number; serverRankDeian?: number;
 }
 
-export default function AgoraLoungePage() {
+function AgoraLoungeContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [mounted, setMounted] = useState(false);
   const [dbCharacters, setDbCharacters] = useState<Character[]>([]);
 
@@ -230,8 +234,8 @@ export default function AgoraLoungePage() {
   const [selectedClass, setSelectedClass] = useState<string>("전체"); 
   const [isClassFilterOpen, setIsClassFilterOpen] = useState(false);
   const [showLoreGuide, setShowLoreGuide] = useState(false);
-  const [showInfoModal, setShowInfoModal] = useState(false); // 모바일 (i) 아고라 소개 모달
-  const [isMobileFilterModalOpen, setIsMobileFilterModalOpen] = useState(false); // 모바일 클래스 필터 모달
+  const [showInfoModal, setShowInfoModal] = useState(false);
+  const [isMobileFilterModalOpen, setIsMobileFilterModalOpen] = useState(false);
 
   const [openHoverTooltipId, setOpenHoverTooltipId] = useState<string | null>(null);
   const [openClickTooltipId, setOpenClickTooltipId] = useState<string | null>(null);
@@ -240,6 +244,20 @@ export default function AgoraLoungePage() {
     setMounted(true); 
     fetchServerData();
   }, []);
+
+  useEffect(() => {
+    const tabParam = searchParams.get("tab");
+    if (tabParam === "ASTRA") {
+      setActiveMainTab("ASTRA");
+    } else if (tabParam === "PANTHEON") {
+      setActiveMainTab("PANTHEON");
+    }
+  }, [searchParams]);
+
+  const handleTabChange = (tab: 'PANTHEON' | 'ASTRA') => {
+    setActiveMainTab(tab);
+    router.replace(`/lounge?tab=${tab}`, { scroll: false });
+  };
 
   const fetchServerData = async () => {
     try {
@@ -356,7 +374,7 @@ export default function AgoraLoungePage() {
 
       <div className="max-w-[1400px] mx-auto space-y-3 sm:space-y-5 relative z-10">
         
-        {/* 슬림 헤더 */}
+        {/* 헤더 */}
         <header className="relative overflow-hidden rounded-xl bg-[var(--panel)] border border-[var(--panel-border)] py-2.5 px-3.5 sm:px-5 shadow-sm transition-colors flex flex-row items-center justify-between gap-2 mb-2">
           <div className="absolute top-0 left-0 w-1.5 h-full bg-[var(--accent)]"></div>
           
@@ -436,9 +454,9 @@ export default function AgoraLoungePage() {
                   <p className="text-[var(--text-sub)] text-xs mb-1">성역의 명예의 전당입니다. 5개의 기록으로 나뉩니다.</p>
                   <ul className="space-y-1 pl-2.5 border-l-2 border-[var(--accent)] text-xs">
                     <li><strong className="text-purple-700 dark:text-purple-400">TELOS (텔로스)</strong>: 종합 랭킹</li>
-                    <li><strong className="text-red-700 dark:text-red-400">KRATOS (크라토스)</strong>: 전투력 랭킹</li>
-                    <li><strong className="text-blue-700 dark:text-blue-400">TECHNĒ (테크네)</strong>: 생활력 랭킹</li>
-                    <li><strong className="text-amber-800 dark:text-yellow-400">HARMONIA (하르모니아)</strong>: 매력 랭킹</li>
+                    <li><strong className="text-rose-700 dark:text-rose-400">KRATOS (크라토스)</strong>: 전투력 랭킹</li>
+                    <li><strong className="text-sky-700 dark:text-sky-400">TECHNĒ (테크네)</strong>: 생활력 랭킹</li>
+                    <li><strong className="text-amber-800 dark:text-amber-400">HARMONIA (하르모니아)</strong>: 매력 랭킹</li>
                     <li><strong className="text-emerald-800 dark:text-emerald-400">PIETAS (피에타스)</strong>: 공헌도 랭킹</li>
                   </ul>
                 </div>
@@ -491,35 +509,35 @@ export default function AgoraLoungePage() {
           </div>
         )}
 
-        {/* 최상위 카테고리 세그먼트 컨트롤 바 (판테온 vs 아스트라) - 하위 버튼과 차별화 */}
+        {/* 최상위 카테고리 세그먼트 컨트롤 바 (판테온 vs 아스트라) */}
         <div className="bg-[var(--inner-box)] border-2 border-[var(--panel-border)] p-1 rounded-2xl flex gap-1.5 shadow-sm">
           <button 
-            onClick={() => setActiveMainTab('PANTHEON')} 
+            onClick={() => handleTabChange('PANTHEON')} 
             className={`flex-1 h-11 sm:h-12 rounded-xl font-black text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer ${
               activeMainTab === 'PANTHEON' 
-                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md ring-2 ring-blue-500/30 scale-[1.01]' 
+                ? 'bg-[var(--accent)] text-[var(--accent-fg)] shadow-md border border-[var(--accent)] scale-[1.01]' 
                 : 'text-[var(--text-sub)] hover:text-[var(--text-main)] hover:bg-[var(--panel)]'
             }`}
           >
             <span className="text-base sm:text-lg">🏛️</span>
             <div className="flex flex-col items-start leading-none">
               <span className="text-xs sm:text-sm font-black tracking-wider">PANTHEON</span>
-              <span className={`text-[0.55rem] font-bold ${activeMainTab === 'PANTHEON' ? 'text-blue-100' : 'text-[var(--text-sub)]'}`}>판테온 (성역 랭킹)</span>
+              <span className={`text-[0.55rem] font-bold ${activeMainTab === 'PANTHEON' ? 'text-[var(--accent-fg)] opacity-90' : 'text-[var(--text-sub)]'}`}>판테온 (성역 랭킹)</span>
             </div>
           </button>
 
           <button 
-            onClick={() => setActiveMainTab('ASTRA')} 
+            onClick={() => handleTabChange('ASTRA')} 
             className={`flex-1 h-11 sm:h-12 rounded-xl font-black text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer ${
               activeMainTab === 'ASTRA' 
-                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md ring-2 ring-blue-500/30 scale-[1.01]' 
+                ? 'bg-[var(--accent)] text-[var(--accent-fg)] shadow-md border border-[var(--accent)] scale-[1.01]' 
                 : 'text-[var(--text-sub)] hover:text-[var(--text-main)] hover:bg-[var(--panel)]'
             }`}
           >
             <span className="text-base sm:text-lg">✦</span>
             <div className="flex flex-col items-start leading-none">
               <span className="text-xs sm:text-sm font-black tracking-wider">ASTRA</span>
-              <span className={`text-[0.55rem] font-bold ${activeMainTab === 'ASTRA' ? 'text-blue-100' : 'text-[var(--text-sub)]'}`}>아스트라 (길드원 현황)</span>
+              <span className={`text-[0.55rem] font-bold ${activeMainTab === 'ASTRA' ? 'text-[var(--accent-fg)] opacity-90' : 'text-[var(--text-sub)]'}`}>아스트라 (길드원 현황)</span>
             </div>
           </button>
         </div>
@@ -528,7 +546,7 @@ export default function AgoraLoungePage() {
         {activeMainTab === 'PANTHEON' && (
           <section className="space-y-3 animate-in fade-in duration-200">
             
-            {/* 5대 카테고리 셀렉터 - 모바일 2줄 [텔로스/피에타스], [크라토스/테크네/하르모니아] 구조 */}
+            {/* 5대 카테고리 셀렉터 - 모바일 2줄 */}
             <div className="flex flex-col gap-1.5 md:hidden">
               <div className="grid grid-cols-2 gap-1.5">
                 {['TELOS', 'PIETAS'].map(k => renderRankButton(k as any))}
@@ -538,12 +556,12 @@ export default function AgoraLoungePage() {
               </div>
             </div>
 
-            {/* 와이드 뷰(Desktop) - 기존 1행 5열 레이아웃 보존 */}
+            {/* 와이드 뷰(Desktop) - 1행 5열 레이아웃 */}
             <div className="hidden md:grid grid-cols-5 gap-2">
               {(Object.keys(RANKING_INFO) as Array<keyof typeof RANKING_INFO>).map((key) => renderRankButton(key))}
             </div>
 
-            {/* 모바일 전용 컴팩트 타이틀 & 모달 필터 버튼 헤더 (좌측 배치) */}
+            {/* 모바일 전용 타이틀 & 필터 버튼 */}
             <div className="md:hidden flex items-center justify-between bg-[var(--panel)] border border-[var(--panel-border)] rounded-xl px-3 py-1.5 shadow-sm">
               <div className="flex items-center gap-1.5">
                 <span className={`text-sm font-black ${CATEGORY_THEMES[activeRankTab].text}`}>
@@ -562,7 +580,7 @@ export default function AgoraLoungePage() {
               </button>
             </div>
 
-            {/* 데스크톱 전용 타이틀 & 기존 필터 드로어 */}
+            {/* 데스크톱 전용 타이틀 & 필터 */}
             <div className="hidden md:block text-center py-0.5">
               <h2 className={`text-2xl font-black tracking-widest flex justify-center items-center gap-2 ${CATEGORY_THEMES[activeRankTab].text}`}>
                 {RANKING_INFO[activeRankTab].en}
@@ -642,7 +660,7 @@ export default function AgoraLoungePage() {
                       isTooltipActiveOnCard ? 'z-[60]' : 'z-10'
                     }`}
                   >
-                    {/* 모바일 초슬림 카드 레이아웃 */}
+                    {/* 모바일 카드 레이아웃 */}
                     <div className="md:hidden flex flex-col gap-1.5">
                       <div className="flex items-center justify-between gap-1.5">
                         <div className="flex items-center gap-1.5 min-w-0">
@@ -690,12 +708,17 @@ export default function AgoraLoungePage() {
                               </button>
 
                               {isClicked && (
-                                <div className={`absolute top-[calc(100%+4px)] left-0 w-[210px] bg-[var(--panel)] border-2 ${borderClass} rounded-xl p-2 shadow-2xl animate-in fade-in zoom-in-95 duration-150 z-[100] cursor-default text-[var(--text-main)]`} onClick={e => e.stopPropagation()}>
+                                <div className={`absolute top-[calc(100%+4px)] left-0 w-[260px] bg-[var(--panel)] border-2 ${borderClass} rounded-xl p-2.5 shadow-2xl animate-in fade-in zoom-in-95 duration-150 z-[100] cursor-default text-[var(--text-main)]`} onClick={e => e.stopPropagation()}>
                                   <div className={`absolute -top-1.5 left-3 w-2 h-2 bg-[var(--panel)] border-t-2 border-l-2 ${borderClass} transform rotate-45`}></div>
-                                  <div className="relative z-10 flex flex-col gap-1 text-left">
-                                    <span className={`font-black ${t.theme.text} text-[0.62rem]`}>[{loreData.title}]</span>
+                                  <div className="relative z-10 flex flex-col gap-1.5 text-left">
+                                    <span className={`font-black ${t.theme.text} text-[0.7rem] tracking-wide whitespace-nowrap`}>[{loreData.title}]</span>
                                     <p className="text-[0.58rem] font-bold text-[var(--text-main)] leading-snug break-keep">{loreData.meaning}</p>
                                     <p className="text-[0.58rem] font-bold text-[var(--text-sub)] leading-relaxed break-keep border-t border-[var(--panel-border)] pt-1">{loreData.tribute}</p>
+                                    
+                                    {/* 깔끔하게 정렬된 출처 영문 박스 */}
+                                    <div className="mt-1 py-1 px-2 bg-[var(--inner-box)] border border-[var(--panel-border)]/60 rounded-lg text-center text-[0.58rem] font-black text-[var(--accent)] whitespace-nowrap">
+                                      {loreData.sourceText}
+                                    </div>
                                   </div>
                                 </div>
                               )}
@@ -733,13 +756,18 @@ export default function AgoraLoungePage() {
                             </span>
 
                             {isHoverTooltipOpen && (
-                              <div className={`absolute top-[calc(100%+4px)] left-0 w-[240px] bg-[var(--panel)] border-2 ${topBorderClass} rounded-xl p-3 shadow-2xl animate-in fade-in zoom-in-95 duration-150 z-[100] cursor-default text-[var(--text-main)]`} onClick={e => e.stopPropagation()}>
+                              <div className={`absolute top-[calc(100%+4px)] left-0 w-[260px] bg-[var(--panel)] border-2 ${topBorderClass} rounded-xl p-3 shadow-2xl animate-in fade-in zoom-in-95 duration-150 z-[100] cursor-default text-[var(--text-main)]`} onClick={e => e.stopPropagation()}>
                                 <div className={`absolute -top-1.5 left-4 w-3 h-3 bg-[var(--panel)] border-t-2 border-l-2 ${topBorderClass} transform rotate-45`}></div>
                                 <div className="relative z-10 flex flex-col gap-1.5">
-                                  <span className={`font-black ${topTheme.text} text-xs tracking-wide`}>[{topLoreData.title}]</span>
+                                  <span className={`font-black ${topTheme.text} text-xs tracking-wide whitespace-nowrap`}>[{topLoreData.title}]</span>
                                   <p className="text-[0.65rem] font-bold text-[var(--text-main)] leading-snug break-keep">{topLoreData.meaning}</p>
                                   <div className="w-full h-px bg-[var(--panel-border)]"></div>
                                   <p className="text-[0.65rem] font-bold text-[var(--text-sub)] leading-relaxed break-keep">{topLoreData.tribute}</p>
+                                  
+                                  {/* 깔끔하게 정렬된 출처 영문 박스 */}
+                                  <div className="mt-1 py-1.5 px-2 bg-[var(--inner-box)] border border-[var(--panel-border)]/60 rounded-lg text-center text-[0.6rem] font-black text-[var(--accent)] whitespace-nowrap">
+                                    {topLoreData.sourceText}
+                                  </div>
                                 </div>
                               </div>
                             )}
@@ -775,13 +803,18 @@ export default function AgoraLoungePage() {
                               </button>
 
                               {isClicked && (
-                                <div className={`absolute top-[calc(100%+4px)] left-0 w-[230px] bg-[var(--panel)] border-2 ${borderClass} rounded-xl p-2.5 shadow-2xl animate-in fade-in zoom-in-95 duration-150 z-[100] cursor-default text-[var(--text-main)]`} onClick={e => e.stopPropagation()}>
+                                <div className={`absolute top-[calc(100%+4px)] left-0 w-[260px] bg-[var(--panel)] border-2 ${borderClass} rounded-xl p-2.5 shadow-2xl animate-in fade-in zoom-in-95 duration-150 z-[100] cursor-default text-[var(--text-main)]`} onClick={e => e.stopPropagation()}>
                                   <div className={`absolute -top-1.5 left-3 w-2.5 h-2.5 bg-[var(--panel)] border-t-2 border-l-2 ${borderClass} transform rotate-45`}></div>
                                   <div className="relative z-10 flex flex-col gap-1.5 text-left">
-                                    <span className={`font-black ${t.theme.text} text-[0.68rem] tracking-wide`}>[{loreData.title}]</span>
+                                    <span className={`font-black ${t.theme.text} text-[0.7rem] tracking-wide whitespace-nowrap`}>[{loreData.title}]</span>
                                     <p className="text-[0.6rem] font-bold text-[var(--text-main)] leading-snug break-keep">{loreData.meaning}</p>
                                     <div className="w-full h-px bg-[var(--panel-border)]"></div>
                                     <p className="text-[0.6rem] font-bold text-[var(--text-sub)] leading-relaxed break-keep">{loreData.tribute}</p>
+                                    
+                                    {/* 깔끔하게 정렬된 출처 영문 박스 */}
+                                    <div className="mt-1 py-1.5 px-2 bg-[var(--inner-box)] border border-[var(--panel-border)]/60 rounded-lg text-center text-[0.6rem] font-black text-[var(--accent)] whitespace-nowrap">
+                                      {loreData.sourceText}
+                                    </div>
                                   </div>
                                 </div>
                               )}
@@ -874,13 +907,18 @@ export default function AgoraLoungePage() {
                                 </button>
 
                                 {isClicked && (
-                                  <div className={`absolute top-[calc(100%+4px)] left-0 w-[220px] bg-[var(--panel)] border-2 ${borderClass} rounded-xl p-2.5 shadow-2xl animate-in fade-in zoom-in-95 duration-150 z-[100] cursor-default text-[var(--text-main)]`} onClick={e => e.stopPropagation()}>
+                                  <div className={`absolute top-[calc(100%+4px)] left-0 w-[260px] bg-[var(--panel)] border-2 ${borderClass} rounded-xl p-2.5 shadow-2xl animate-in fade-in zoom-in-95 duration-150 z-[100] cursor-default text-[var(--text-main)]`} onClick={e => e.stopPropagation()}>
                                     <div className={`absolute -top-1.5 left-3 w-2.5 h-2.5 bg-[var(--panel)] border-t-2 border-l-2 ${borderClass} transform rotate-45`}></div>
-                                    <div className="relative z-10 flex flex-col gap-1 text-left">
-                                      <span className={`font-black ${t.theme.text} text-[0.65rem] tracking-wide`}>[{loreData.title}]</span>
+                                    <div className="relative z-10 flex flex-col gap-1.5 text-left">
+                                      <span className={`font-black ${t.theme.text} text-[0.7rem] tracking-wide whitespace-nowrap`}>[{loreData.title}]</span>
                                       <p className="text-[0.58rem] font-bold text-[var(--text-main)] leading-snug break-keep">{loreData.meaning}</p>
                                       <div className="w-full h-px bg-[var(--panel-border)]"></div>
                                       <p className="text-[0.58rem] font-bold text-[var(--text-sub)] leading-relaxed break-keep">{loreData.tribute}</p>
+                                      
+                                      {/* 깔끔하게 정렬된 출처 영문 박스 */}
+                                      <div className="mt-1 py-1.5 px-2 bg-[var(--inner-box)] border border-[var(--panel-border)]/60 rounded-lg text-center text-[0.58rem] font-black text-[var(--accent)] whitespace-nowrap">
+                                        {loreData.sourceText}
+                                      </div>
                                     </div>
                                   </div>
                                 )}
@@ -908,5 +946,13 @@ export default function AgoraLoungePage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function AgoraLoungePage() {
+  return (
+    <Suspense fallback={<div className="w-full text-center py-10 font-bold text-[var(--text-sub)]">아고라 데이터를 불러오는 중...</div>}>
+      <AgoraLoungeContent />
+    </Suspense>
   );
 }
