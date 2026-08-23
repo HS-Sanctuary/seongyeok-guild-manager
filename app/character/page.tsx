@@ -1419,23 +1419,23 @@ export default function CharacterPage() {
             </div>
           )}
 
-          {/* ⚖️ 물물 교환 카테고리 (💡 items-start 추가로 세로 공백 제거) */}
+          {/* ⚖️ 물물 교환 카테고리 */}
           {(activeTab === 'all' || activeTab === 'barter') && (
             <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-2.5 md:p-4 shadow-xs space-y-2.5">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-[var(--panel-border)] pb-2">
-                <h3 className="font-bold text-[var(--accent)] text-xs md:text-sm whitespace-nowrap">⚖️ 물물 교환 목록</h3>
+              <div className="flex justify-between items-center gap-2 border-b border-[var(--panel-border)] pb-2 min-w-0">
+                <h3 className="font-bold text-[var(--accent)] text-xs md:text-sm whitespace-nowrap shrink-0">⚖️ 물물 교환 목록</h3>
                 
-                <div className="flex items-center gap-1.5 w-full sm:w-auto">
+                <div className="flex items-center gap-1.5 flex-1 min-w-0 justify-end">
                   <input
                     type="text"
                     value={tradeSearch}
                     onChange={(e) => setTradeSearch(e.target.value)}
                     placeholder="NPC / 맵 / 보상 / 소모품 검색..."
-                    className="flex-1 min-w-0 sm:w-64 bg-[var(--inner-box)] border border-[var(--panel-border)] rounded-lg px-3 py-1.5 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent)]"
+                    className="flex-1 min-w-0 sm:max-w-xs bg-[var(--inner-box)] border border-[var(--panel-border)] rounded-lg px-2.5 sm:px-3 py-1.5 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent)]"
                   />
                   <button
                     onClick={() => setTradeSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
-                    className="px-3 py-1.5 rounded-lg bg-[var(--inner-box)] border border-[var(--panel-border)] text-xs font-bold text-[var(--text-sub)] hover:text-[var(--text-main)] shrink-0 cursor-pointer whitespace-nowrap"
+                    className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-[var(--inner-box)] border border-[var(--panel-border)] text-xs font-bold text-[var(--text-sub)] hover:text-[var(--text-main)] shrink-0 cursor-pointer whitespace-nowrap"
                   >
                     {tradeSortOrder === 'asc' ? '▲ 오름차순' : '▼ 내림차순'}
                   </button>
@@ -1452,23 +1452,23 @@ export default function CharacterPage() {
             </div>
           )}
 
-          {/* 🛒 상점 구매 카테고리 (💡 items-start 추가로 세로 공백 제거) */}
+          {/* 🛒 상점 구매 카테고리 */}
           {(activeTab === 'all' || activeTab === 'shop') && (
             <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-2.5 md:p-4 shadow-xs space-y-2.5">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-[var(--panel-border)] pb-2">
-                <h3 className="font-bold text-amber-400 text-xs md:text-sm whitespace-nowrap">🛒 상점 구매 목록</h3>
+              <div className="flex justify-between items-center gap-2 border-b border-[var(--panel-border)] pb-2 min-w-0">
+                <h3 className="font-bold text-amber-400 text-xs md:text-sm whitespace-nowrap shrink-0">🛒 상점 구매 목록</h3>
                 
-                <div className="flex items-center gap-1.5 w-full sm:w-auto">
+                <div className="flex items-center gap-1.5 flex-1 min-w-0 justify-end">
                   <input
                     type="text"
                     value={tradeSearch}
                     onChange={(e) => setTradeSearch(e.target.value)}
                     placeholder="NPC / 맵 / 보상 / 소모품 검색..."
-                    className="flex-1 min-w-0 sm:w-64 bg-[var(--inner-box)] border border-[var(--panel-border)] rounded-lg px-3 py-1.5 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent)]"
+                    className="flex-1 min-w-0 sm:max-w-xs bg-[var(--inner-box)] border border-[var(--panel-border)] rounded-lg px-2.5 sm:px-3 py-1.5 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent)]"
                   />
                   <button
                     onClick={() => setTradeSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
-                    className="px-3 py-1.5 rounded-lg bg-[var(--inner-box)] border border-[var(--panel-border)] text-xs font-bold text-[var(--text-sub)] hover:text-[var(--text-main)] shrink-0 cursor-pointer whitespace-nowrap"
+                    className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-[var(--inner-box)] border border-[var(--panel-border)] text-xs font-bold text-[var(--text-sub)] hover:text-[var(--text-main)] shrink-0 cursor-pointer whitespace-nowrap"
                   >
                     {tradeSortOrder === 'asc' ? '▲ 오름차순' : '▼ 내림차순'}
                   </button>
@@ -1485,7 +1485,7 @@ export default function CharacterPage() {
             </div>
           )}
 
-          {/* ⚡ 클래스 레벨 관리 (💡 3열 구조 md:grid-cols-3으로 직업명 복구) */}
+          {/* ⚡ 클래스 레벨 관리 */}
           {(activeTab === 'all' || activeTab === 'levels') && (
             <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-2.5 md:p-4 shadow-xs space-y-3">
               <h3 className="font-bold text-[var(--accent)] text-xs md:text-sm whitespace-nowrap border-b border-[var(--panel-border)] pb-2">⚡ 클래스 레벨 관리</h3>

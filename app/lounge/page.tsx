@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "../../lib/supabase"; 
 
 // ==========================================
-// 1. 카테고리 파스텔 테마 정의
+// 1. 6대 카테고리 파스텔 & 네온 테마 정의
 // ==========================================
 const CATEGORY_THEMES: Record<string, any> = {
   TELOS: { // 🟣 텔로스 (파스텔 바이올렛)
@@ -21,7 +21,19 @@ const CATEGORY_THEMES: Record<string, any> = {
     ],
     borders: ['border-purple-400 dark:border-purple-400', 'border-purple-300 dark:border-purple-500', 'border-purple-300 dark:border-purple-600']
   },
-  KRATOS: { // 🔴 크라토스 (파스텔 로즈/인디핑크)
+  SYMPHONIA: { // 🟧 심포니아 (오렌지)
+    tabActive: 'bg-orange-600/90 text-white border-2 border-orange-400 shadow-md dark:bg-orange-700/80 dark:text-orange-100 dark:border-orange-400',
+    titleActiveText: 'text-white font-black',
+    subActiveText: 'text-orange-100 font-bold',
+    text: 'text-orange-600 dark:text-orange-400 font-black',
+    tags: [
+      'bg-orange-500/85 text-white border-2 border-orange-300 ring-2 ring-orange-300/30 font-black shadow-sm dark:bg-orange-700/80 dark:text-orange-100 dark:border-orange-400',
+      'bg-orange-100 text-orange-900 border-2 border-orange-400 font-extrabold dark:bg-orange-900/60 dark:text-orange-200 dark:border-orange-400',
+      'bg-orange-50/90 text-orange-900 border-[1.5px] border-orange-300 font-black dark:bg-orange-950/60 dark:text-orange-200 dark:border-orange-500',
+    ],
+    borders: ['border-orange-400 dark:border-orange-400', 'border-orange-300 dark:border-orange-500', 'border-orange-300 dark:border-orange-600']
+  },
+  KRATOS: { // 🔴 크라토스 (파스텔 로즈)
     tabActive: 'bg-rose-600/90 text-white border-2 border-rose-400 shadow-md dark:bg-rose-800/80 dark:text-rose-100 dark:border-rose-400',
     titleActiveText: 'text-white font-black',
     subActiveText: 'text-rose-100 font-bold',
@@ -33,7 +45,7 @@ const CATEGORY_THEMES: Record<string, any> = {
     ],
     borders: ['border-rose-400 dark:border-rose-400', 'border-rose-300 dark:border-rose-500', 'border-rose-300 dark:border-rose-600']
   },
-  TECHNE: { // 🔵 테크네 (파스텔 소프트 블루)
+  TECHNE: { // 🔵 테크네 (소프트 블루)
     tabActive: 'bg-sky-600/90 text-white border-2 border-sky-400 shadow-md dark:bg-sky-800/80 dark:text-sky-100 dark:border-sky-400',
     titleActiveText: 'text-white font-black',
     subActiveText: 'text-sky-100 font-bold',
@@ -45,7 +57,7 @@ const CATEGORY_THEMES: Record<string, any> = {
     ],
     borders: ['border-sky-400 dark:border-sky-400', 'border-sky-300 dark:border-sky-500', 'border-sky-300 dark:border-sky-600']
   },
-  HARMONIA: { // 🟡 하르모니아 (파스텔 앰버/골드)
+  HARMONIA: { // 🟡 하르모니아 (골드)
     tabActive: 'bg-amber-500/90 text-slate-950 border-2 border-amber-300 shadow-md dark:bg-amber-600/80 dark:text-amber-100 dark:border-amber-300',
     titleActiveText: 'text-slate-950 dark:text-white font-black',
     subActiveText: 'text-amber-950 dark:text-amber-100 font-bold',
@@ -57,7 +69,7 @@ const CATEGORY_THEMES: Record<string, any> = {
     ],
     borders: ['border-amber-400 dark:border-amber-400', 'border-amber-300 dark:border-amber-500', 'border-amber-300 dark:border-amber-600']
   },
-  PIETAS: { // 🟢 피에타스 (파스텔 에메랄드/세이지)
+  PIETAS: { // 🟢 피에타스 (에메랄드)
     tabActive: 'bg-emerald-600/90 text-white border-2 border-emerald-400 shadow-md dark:bg-emerald-800/80 dark:text-emerald-100 dark:border-emerald-400',
     titleActiveText: 'text-white font-black',
     subActiveText: 'text-emerald-100 font-bold',
@@ -73,6 +85,7 @@ const CATEGORY_THEMES: Record<string, any> = {
 
 const RANKING_INFO = {
   TELOS: { en: 'TELOS', kr: '텔로스', desc: '도달과 완성의 기록', sub: '종합 랭킹', stat: '종합 점수' },
+  SYMPHONIA: { en: 'SYMPHONIA', kr: '심포니아', desc: '끈기와 노력의 기록', sub: '계정 랭킹', stat: '계정 총점' },
   KRATOS: { en: 'KRATOS', kr: '크라토스', desc: '힘과 권능의 기록', sub: '전투력 랭킹', stat: '전투력' },
   TECHNE: { en: 'TECHNĒ', kr: '테크네', desc: '기술과 숙련의 기록', sub: '생활력 랭킹', stat: '생활력' },
   HARMONIA: { en: 'HARMONIA', kr: '하르모니아', desc: '아름다움과 조화의 기록', sub: '매력 랭킹', stat: '매력' },
@@ -114,18 +127,19 @@ const CLASS_TITLES: Record<string, string[]> = {
 
 const TOP_TITLES = {
   TELOS: ['헬리오스', '셀레네', '에오스'],
+  SYMPHONIA: ['아르콘', '헬릭스', '메로스'],
   PIETAS: ['시리우스', '레굴루스', '알데바란'],
   TECHNE: ['폴리매스', '마이스터', '아르티장'],
   HARMONIA: ['아글라이아', '카리스', '칼로스'],
 };
 
-// ==========================================
-// 2. 서사(Lore) 사전 및 획득 출처 영문 표기
-// ==========================================
 const LORE_DICTIONARY: Record<string, string> = {
   '헬리오스': '그리스 신화의 태양신. 모든 것을 비추는 태양처럼 최고의 경지에 도달한 존재를 상징합니다.',
   '셀레네': '그리스 신화의 달의 여신. 밤하늘을 밝히는 달처럼 뛰어난 완성과 품격을 상징합니다.',
   '에오스': '그리스 신화의 새벽의 여신. 새로운 시작과 가능성을 여는 존재를 상징합니다.',
+  '아르콘': '계정 전체를 찬란히 빛내며 성역 최고 통합 점수를 달성한 위대한 통치자를 상징합니다.',
+  '헬릭스': '모든 영웅을 고르게 육성하여 아름다운 조화를 이룬 계정을 상징합니다.',
+  '메로스': '성역에 깊이 뿌리내려 든든한 화합을 일군 영예로운 계정을 상징합니다.',
   '시리우스': '밤하늘에서 가장 밝게 빛나는 항성. 성역을 가장 밝게 비추며 공동체를 이끄는 존재를 상징합니다.',
   '레굴루스': "사자자리의 '작은 왕(Little King)'. 명예와 품격으로 공동체를 받치는 존재를 상징합니다.",
   '알데바란': "황소자리의 '뒤따르는 자(Follower)'. 꾸준한 헌신과 책임감을 상징합니다.",
@@ -142,6 +156,11 @@ const TRIBUTE_MESSAGES = {
     1: "모든 시련을 극복하고 만물의 이치를 깨우친 절대자여. 완벽한 밸런스로 도달한 그대의 궁극적인 경지는 성역의 영원한 신화로 기록될 것입니다.",
     2: "정상의 옥좌를 턱밑까지 추격한 초월자. 다방면으로 갈고닦은 그대의 끈질긴 집념은 차기 성역의 지배자를 예고하고 있습니다.",
     3: "균형과 완성의 길을 걷는 위대한 선구자. 다방면에서 이룩한 눈부신 성취는 숱한 별들에게 성역이 나아가야 할 궁극의 길을 제시합니다."
+  },
+  SYMPHONIA: {
+    1: "변함없는 끈기와 피나는 노력으로 모든 영웅을 완벽하게 다듬어낸 계정의 정점. 그대의 거대한 결실은 성역 전체의 굵직한 이정표입니다.",
+    2: "포기하지 않는 집념으로 계정 내 모든 영웅을 훌륭하게 성숙시킨 노력의 화신. 그대의 묵묵한 행보는 성역의 귀감이 됩니다.",
+    3: "시간과 열정을 쏟아부어 견고하게 계정을 다져낸 헌신자. 끊임없는 노력으로 세운 성취는 그 어떤 풍파에도 흔들리지 않습니다."
   },
   TECHNE: {
     1: "무에서 유를 창조하는 창조신이여. 굳은살 박인 손끝에서 탄생한 걸작들과 막대한 부는 성역의 거대한 경제를 홀로 떠받치고 있습니다.",
@@ -211,14 +230,25 @@ const generateLore = (title: string, rank: number, job: string, category: keyof 
   return { title, meaning, tribute, rank, sourceText };
 };
 
-// ==========================================
-// 3. 데이터 모델
-// ==========================================
 interface Character {
-  id: string; name: string; job: string;
+  id: string; name: string; owner: string; job: string;
   combatPower: number; magicResist: number; lifePower: number; charm: number; contribution: number;
   isMain: boolean; status: '생텀 접속중' | '인게임' | '오프라인'; lastSeen?: string;
-  pendingTasks?: string[]; serverRankOverall?: number; serverRankDeian?: number;
+  pendingTasks?: string[];
+  // 각 카테고리별 서버 순위 데이터 구조
+  rankings?: Record<string, { overall: number; deian: number }>;
+  serverRankOverall?: number; serverRankDeian?: number;
+}
+
+interface AccountRankItem {
+  owner: string;
+  charCount: number;
+  totalScore: number;
+  totalCombat: number;
+  totalLife: number;
+  totalCharm: number;
+  mainCharName: string;
+  mainCharJob: string;
 }
 
 function AgoraLoungeContent() {
@@ -264,11 +294,14 @@ function AgoraLoungeContent() {
       const { data, error } = await supabase.from('characters').select('*');
       if (data && !error) {
         const mappedData: Character[] = data.map((c: any) => ({
-          id: c.nickname, name: c.nickname, job: c.job || '전사',
+          id: c.nickname, name: c.nickname, owner: c.owner || c.nickname, job: c.job || '전사',
           combatPower: Number(c.combat_power) || 0, magicResist: Number(c.magic_resistance) || 0,
           lifePower: Number(c.life_energy) || 0, charm: Number(c.charm) || 0,
           contribution: Number(c.contribution) || 0, isMain: c.is_main || false,
-          status: '오프라인', lastSeen: '최근 업데이트 됨', pendingTasks: [] 
+          status: '오프라인', lastSeen: '최근 업데이트 됨', pendingTasks: [],
+          rankings: c.rankings || {},
+          serverRankOverall: c.rankings?.[activeRankTab]?.overall ?? c.server_rank_overall ?? 0,
+          serverRankDeian: c.rankings?.[activeRankTab]?.deian ?? c.server_rank_deian ?? 0
         }));
         setDbCharacters(mappedData);
       }
@@ -288,6 +321,46 @@ function AgoraLoungeContent() {
     }
   };
 
+  const getAccountRankings = (): AccountRankItem[] => {
+    const accountMap: Record<string, AccountRankItem> = {};
+
+    dbCharacters.forEach(c => {
+      const ownerKey = (c.owner && c.owner.trim() !== "") ? c.owner.trim() : c.name;
+      const cCombat = Number(c.combatPower) || 0;
+      const cLife = Number(c.lifePower) || 0;
+      const cCharm = Number(c.charm) || 0;
+      const charTotalScore = cCombat + cLife + cCharm;
+
+      if (!accountMap[ownerKey]) {
+        accountMap[ownerKey] = {
+          owner: ownerKey,
+          charCount: 0,
+          totalScore: 0,
+          totalCombat: 0,
+          totalLife: 0,
+          totalCharm: 0,
+          mainCharName: c.name,
+          mainCharJob: c.job
+        };
+      }
+
+      const acc = accountMap[ownerKey];
+      acc.charCount += 1;
+      
+      acc.totalCombat += cCombat;
+      acc.totalLife += cLife;
+      acc.totalCharm += cCharm;
+      acc.totalScore += charTotalScore;
+
+      if (c.isMain) {
+        acc.mainCharName = c.name;
+        acc.mainCharJob = c.job;
+      }
+    });
+
+    return Object.values(accountMap).sort((a, b) => b.totalScore - a.totalScore);
+  };
+
   const getAllSortedCharacters = () => {
     return [...dbCharacters].sort((a, b) => getScore(b, activeRankTab) - getScore(a, activeRankTab));
   };
@@ -302,6 +375,15 @@ function AgoraLoungeContent() {
     const titles: { type: string, name: string, rank: number, theme: any }[] = [];
     
     const pushIfTop3 = (type: keyof typeof RANKING_INFO, titleArr: string[]) => {
+      if (type === 'SYMPHONIA') {
+        const accList = getAccountRankings();
+        const rank = accList.findIndex(a => a.owner === (char.owner || char.name));
+        if (rank >= 0 && rank < 3) {
+          titles.push({ type: 'SYMPHONIA', name: TOP_TITLES.SYMPHONIA[rank], rank: rank + 1, theme: CATEGORY_THEMES.SYMPHONIA });
+        }
+        return;
+      }
+
       const rank = [...dbCharacters].sort((a,b) => getScore(b, type) - getScore(a, type)).findIndex(c => c.id === char.id);
       if(rank >= 0 && rank < 3) {
         titles.push({ type, name: titleArr[rank], rank: rank + 1, theme: CATEGORY_THEMES[type] });
@@ -309,6 +391,7 @@ function AgoraLoungeContent() {
     };
 
     pushIfTop3('TELOS', TOP_TITLES.TELOS);
+    pushIfTop3('SYMPHONIA', TOP_TITLES.SYMPHONIA);
     pushIfTop3('PIETAS', TOP_TITLES.PIETAS);
 
     const kratosRank = [...dbCharacters].filter(c => c.job === char.job).sort((a,b) => b.combatPower - a.combatPower).findIndex(c => c.id === char.id);
@@ -335,6 +418,13 @@ function AgoraLoungeContent() {
     return titles;
   };
 
+  const getTop3BorderClass = (rank: number) => {
+    if (rank === 1) return 'border-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.5)]';
+    if (rank === 2) return 'border-slate-300 shadow-[0_0_8px_rgba(203,213,225,0.4)]';
+    if (rank === 3) return 'border-amber-700 shadow-[0_0_6px_rgba(180,83,9,0.3)]';
+    return 'border-[var(--panel-border)]';
+  };
+
   const renderRankButton = (key: keyof typeof RANKING_INFO) => {
     const info = RANKING_INFO[key];
     const isActive = activeRankTab === key;
@@ -348,12 +438,13 @@ function AgoraLoungeContent() {
           isActive ? theme.tabActive : 'bg-[var(--panel)] border-[var(--panel-border)] hover:border-[var(--accent)] opacity-85 hover:opacity-100'
         }`}
       >
-        <div className={`absolute inset-0 flex items-center justify-center transition-all duration-300 group-hover:-translate-y-full group-hover:opacity-0 ${isActive ? '-translate-y-full opacity-0' : 'translate-y-0 opacity-100'}`}>
-          <span className={`font-black tracking-wider ${isActive ? theme.titleActiveText : 'text-[var(--text-main)]'} text-[0.65rem] sm:text-xs`}>{info.en}</span>
+        <div className={`absolute inset-0 flex flex-col items-center justify-center transition-all duration-300 group-hover:-translate-y-full group-hover:opacity-0 ${isActive ? '-translate-y-full opacity-0' : 'translate-y-0 opacity-100'}`}>
+          <span className={`font-black ${theme.text} text-[0.7rem] sm:text-xs leading-tight`}>{info.kr}</span>
+          <span className={`text-[0.48rem] sm:text-[0.5rem] font-bold text-[var(--text-sub)]`}>{info.sub}</span>
         </div>
-        <div className={`absolute inset-0 flex flex-col items-center justify-center transition-all duration-300 translate-y-full opacity-0 group-hover:translate-y-0 group-hover:opacity-100 ${isActive ? '!translate-y-0 !opacity-100' : ''}`}>
-          <span className={`font-black ${isActive ? theme.titleActiveText : theme.text} text-[0.7rem] sm:text-xs leading-tight`}>{info.kr}</span>
-          <span className={`text-[0.48rem] sm:text-[0.5rem] font-bold ${isActive ? theme.subActiveText : 'text-[var(--text-sub)]'}`}>{info.sub}</span>
+
+        <div className={`absolute inset-0 flex items-center justify-center transition-all duration-300 translate-y-full opacity-0 group-hover:translate-y-0 group-hover:opacity-100 ${isActive ? '!translate-y-0 !opacity-100' : ''}`}>
+          <span className={`font-black tracking-wider ${isActive ? theme.titleActiveText : 'text-[var(--text-main)]'} text-[0.68rem] sm:text-xs`}>{info.en}</span>
         </div>
       </button>
     );
@@ -363,6 +454,7 @@ function AgoraLoungeContent() {
 
   const allSortedCharacters = getAllSortedCharacters();
   const rankedCharacters = getRankedCharacters();
+  const accountRankings = getAccountRankings();
   const mainCharacters = dbCharacters.filter(c => c.isMain).sort((a, b) => b.combatPower - a.combatPower);
 
   return (
@@ -405,7 +497,6 @@ function AgoraLoungeContent() {
             </div>
           </div>
           
-          {/* 데스크톱 전용 소개글 */}
           <div className="hidden md:flex bg-[var(--inner-box)] border border-[var(--panel-border)] px-3 py-1.5 rounded-lg text-xs text-[var(--text-sub)] font-medium items-start gap-2 shrink-0">
             <span className="text-sm shrink-0 leading-none mt-0.5">🏛️</span>
             <div className="flex flex-col gap-0.5 leading-snug">
@@ -415,7 +506,7 @@ function AgoraLoungeContent() {
           </div>
         </header>
 
-        {/* 모바일전용 (i) 아고라 소개 모달 */}
+        {/* 모바일전용 (i) 모달 */}
         {showInfoModal && (
           <div className="fixed inset-0 bg-black/75 z-[10000] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setShowInfoModal(false)}>
             <div className="bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-main)] rounded-xl max-w-xs w-full p-4 shadow-2xl relative" onClick={e => e.stopPropagation()}>
@@ -451,9 +542,10 @@ function AgoraLoungeContent() {
                 </div>
                 <div>
                   <h3 className="font-bold text-sm text-[var(--accent)] mb-0.5">PANTHEON (판테온 / 성역 랭킹)</h3>
-                  <p className="text-[var(--text-sub)] text-xs mb-1">성역의 명예의 전당입니다. 5개의 기록으로 나뉩니다.</p>
+                  <p className="text-[var(--text-sub)] text-xs mb-1">성역의 명예의 전당입니다. 6개의 명예 기록으로 나뉩니다.</p>
                   <ul className="space-y-1 pl-2.5 border-l-2 border-[var(--accent)] text-xs">
-                    <li><strong className="text-purple-700 dark:text-purple-400">TELOS (텔로스)</strong>: 종합 랭킹</li>
+                    <li><strong className="text-purple-700 dark:text-purple-400">TELOS (텔로스)</strong>: 캐릭터 종합 랭킹</li>
+                    <li><strong className="text-orange-600 dark:text-orange-400">SYMPHONIA (심포니아)</strong>: 계정 통합 랭킹</li>
                     <li><strong className="text-rose-700 dark:text-rose-400">KRATOS (크라토스)</strong>: 전투력 랭킹</li>
                     <li><strong className="text-sky-700 dark:text-sky-400">TECHNĒ (테크네)</strong>: 생활력 랭킹</li>
                     <li><strong className="text-amber-800 dark:text-amber-400">HARMONIA (하르모니아)</strong>: 매력 랭킹</li>
@@ -465,51 +557,7 @@ function AgoraLoungeContent() {
           </div>
         )}
 
-        {/* 모바일 전용 클래스 필터 선택 모달 */}
-        {isMobileFilterModalOpen && (
-          <div className="fixed inset-0 bg-black/80 z-[10000] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200 md:hidden" onClick={() => setIsMobileFilterModalOpen(false)}>
-            <div className="bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-main)] rounded-2xl max-w-sm w-full max-h-[80vh] overflow-y-auto p-4 shadow-2xl relative" onClick={e => e.stopPropagation()}>
-              <div className="flex items-center justify-between border-b border-[var(--panel-border)] pb-2 mb-3">
-                <h3 className="text-sm font-black text-[var(--accent)] flex items-center gap-1.5">
-                  <span>🔍</span> 클래스 필터링 선택
-                </h3>
-                <button onClick={() => setIsMobileFilterModalOpen(false)} className="text-[var(--text-sub)] text-sm font-bold">✕</button>
-              </div>
-
-              <button 
-                onClick={() => { setSelectedClass("전체"); setIsMobileFilterModalOpen(false); }}
-                className={`w-full py-1.5 rounded-lg text-xs font-bold mb-3 border transition ${selectedClass === "전체" ? 'bg-[var(--accent)] text-[var(--accent-fg)] border-[var(--accent)]' : 'bg-[var(--inner-box)] border-[var(--panel-border)] text-[var(--text-sub)]'}`}
-              >
-                ✨ 전체 클래스 통합 보기
-              </button>
-
-              <div className="grid grid-cols-2 gap-2">
-                {CLASS_GROUPS.map((group) => (
-                  <div key={group.name} className="bg-[var(--inner-box)] p-2 rounded-xl border border-[var(--panel-border)] flex flex-col gap-1">
-                    <div className="text-[0.6rem] font-black text-[var(--text-sub)]">{group.name}</div>
-                    <div className="flex flex-col gap-0.5">
-                      {group.classes.map(cls => (
-                        <button 
-                          key={cls} 
-                          onClick={() => { setSelectedClass(cls); setIsMobileFilterModalOpen(false); }} 
-                          className={`px-2 py-1 rounded text-[0.65rem] font-bold text-left transition ${
-                            selectedClass === cls 
-                              ? 'bg-[var(--accent)] text-[var(--accent-fg)] font-black' 
-                              : 'text-[var(--text-sub)] hover:text-[var(--text-main)]'
-                          }`}
-                        >
-                          {cls}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* 최상위 카테고리 세그먼트 컨트롤 바 (판테온 vs 아스트라) */}
+        {/* 세그먼트 버튼 */}
         <div className="bg-[var(--inner-box)] border-2 border-[var(--panel-border)] p-1 rounded-2xl flex gap-1.5 shadow-sm">
           <button 
             onClick={() => handleTabChange('PANTHEON')} 
@@ -546,22 +594,15 @@ function AgoraLoungeContent() {
         {activeMainTab === 'PANTHEON' && (
           <section className="space-y-3 animate-in fade-in duration-200">
             
-            {/* 5대 카테고리 셀렉터 - 모바일 2줄 */}
-            <div className="flex flex-col gap-1.5 md:hidden">
-              <div className="grid grid-cols-2 gap-1.5">
-                {['TELOS', 'PIETAS'].map(k => renderRankButton(k as any))}
-              </div>
-              <div className="grid grid-cols-3 gap-1.5">
-                {['KRATOS', 'TECHNE', 'HARMONIA'].map(k => renderRankButton(k as any))}
-              </div>
+            <div className="grid md:hidden grid-cols-3 gap-1.5">
+              {['TELOS', 'SYMPHONIA', 'PIETAS', 'KRATOS', 'TECHNE', 'HARMONIA'].map(k => renderRankButton(k as any))}
             </div>
 
-            {/* 와이드 뷰(Desktop) - 1행 5열 레이아웃 */}
-            <div className="hidden md:grid grid-cols-5 gap-2">
-              {(Object.keys(RANKING_INFO) as Array<keyof typeof RANKING_INFO>).map((key) => renderRankButton(key))}
+            <div className="hidden md:grid grid-cols-6 gap-2">
+              {['TELOS', 'SYMPHONIA', 'KRATOS', 'TECHNE', 'HARMONIA', 'PIETAS'].map(k => renderRankButton(k as any))}
             </div>
 
-            {/* 모바일 전용 타이틀 & 필터 버튼 */}
+            {/* 모바일 타이틀 */}
             <div className="md:hidden flex items-center justify-between bg-[var(--panel)] border border-[var(--panel-border)] rounded-xl px-3 py-1.5 shadow-sm">
               <div className="flex items-center gap-1.5">
                 <span className={`text-sm font-black ${CATEGORY_THEMES[activeRankTab].text}`}>
@@ -571,16 +612,18 @@ function AgoraLoungeContent() {
                   「 {RANKING_INFO[activeRankTab].desc} 」
                 </span>
               </div>
-              <button 
-                onClick={() => setIsMobileFilterModalOpen(true)}
-                className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[var(--accent)] text-[var(--accent-fg)] font-black text-[0.65rem] shadow-sm cursor-pointer shrink-0"
-              >
-                <span>🔍</span>
-                {selectedClass !== "전체" ? <span>[{selectedClass}]</span> : <span>필터</span>}
-              </button>
+              {activeRankTab !== 'SYMPHONIA' && (
+                <button 
+                  onClick={() => setIsMobileFilterModalOpen(true)}
+                  className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[var(--accent)] text-[var(--accent-fg)] font-black text-[0.65rem] shadow-sm cursor-pointer shrink-0"
+                >
+                  <span>🔍</span>
+                  {selectedClass !== "전체" ? <span>[{selectedClass}]</span> : <span>필터</span>}
+                </button>
+              )}
             </div>
 
-            {/* 데스크톱 전용 타이틀 & 필터 */}
+            {/* 데스크톱 타이틀 */}
             <div className="hidden md:block text-center py-0.5">
               <h2 className={`text-2xl font-black tracking-widest flex justify-center items-center gap-2 ${CATEGORY_THEMES[activeRankTab].text}`}>
                 {RANKING_INFO[activeRankTab].en}
@@ -588,260 +631,359 @@ function AgoraLoungeContent() {
               <p className="text-[var(--text-sub)] text-xs mt-0.5 font-bold">「 {RANKING_INFO[activeRankTab].desc} 」</p>
             </div>
 
-            <div className="hidden md:block bg-[var(--panel)] border border-[var(--panel-border)] rounded-xl p-2 shadow-sm">
-              <button 
-                onClick={() => { if (selectedClass === "전체" && !isClassFilterOpen) setIsClassFilterOpen(true); else { setSelectedClass("전체"); setIsClassFilterOpen(false); } }} 
-                className={`w-full py-1.5 rounded-lg text-xs font-bold transition border flex items-center justify-center gap-1.5 cursor-pointer ${
-                  selectedClass === "전체" && !isClassFilterOpen 
-                    ? 'bg-[var(--inner-box)] text-[var(--text-sub)] border-[var(--panel-border)] hover:text-[var(--text-main)]' 
-                    : 'bg-[var(--accent)] text-[var(--accent-fg)] border-[var(--accent)] shadow-sm'
-                }`}
-              >
-                {selectedClass === "전체" && !isClassFilterOpen ? '🔍 클래스별 필터링 펼치기 ▼' : '✨ 전체 클래스 통합 랭킹 보기 ↺'}
-              </button>
+            {activeRankTab !== 'SYMPHONIA' && (
+              <div className="hidden md:block bg-[var(--panel)] border border-[var(--panel-border)] rounded-xl p-2 shadow-sm">
+                <button 
+                  onClick={() => { if (selectedClass === "전체" && !isClassFilterOpen) setIsClassFilterOpen(true); else { setSelectedClass("전체"); setIsClassFilterOpen(false); } }} 
+                  className={`w-full py-1.5 rounded-lg text-xs font-bold transition border flex items-center justify-center gap-1.5 cursor-pointer ${
+                    selectedClass === "전체" && !isClassFilterOpen 
+                      ? 'bg-[var(--inner-box)] text-[var(--text-sub)] border-[var(--panel-border)] hover:text-[var(--text-main)]' 
+                      : 'bg-[var(--accent)] text-[var(--accent-fg)] border-[var(--accent)] shadow-sm'
+                  }`}
+                >
+                  {selectedClass === "전체" && !isClassFilterOpen ? '🔍 클래스별 필터링 펼치기 ▼' : '✨ 전체 클래스 통합 랭킹 보기 ↺'}
+                </button>
 
-              {isClassFilterOpen && (
-                <div className="grid grid-cols-6 gap-1.5 pt-2 animate-in slide-in-from-top-2 fade-in duration-200">
-                  {CLASS_GROUPS.map((group) => (
-                    <div key={group.name} className="bg-[var(--inner-box)] p-1.5 rounded-lg border border-[var(--panel-border)] flex flex-col gap-1">
-                      <div className="text-[0.55rem] font-black text-[var(--text-sub)] px-1">{group.name}</div>
-                      <div className="flex flex-col gap-0.5">
-                        {group.classes.map(cls => (
-                          <button 
-                            key={cls} 
-                            onClick={() => setSelectedClass(cls)} 
-                            className={`px-2 py-0.5 rounded text-[0.65rem] font-bold text-left transition cursor-pointer ${
-                              selectedClass === cls 
-                                ? 'bg-[var(--accent)] text-[var(--accent-fg)] font-black' 
-                                : 'text-[var(--text-sub)] hover:bg-[var(--panel-hover)] hover:text-[var(--text-main)]'
-                            }`}
-                          >
-                            {cls}
-                          </button>
-                        ))}
+                {isClassFilterOpen && (
+                  <div className="grid grid-cols-6 gap-1.5 pt-2 animate-in slide-in-from-top-2 fade-in duration-200">
+                    {CLASS_GROUPS.map((group) => (
+                      <div key={group.name} className="bg-[var(--inner-box)] p-1.5 rounded-lg border border-[var(--panel-border)] flex flex-col gap-1">
+                        <div className="text-[0.55rem] font-black text-[var(--text-sub)] px-1">{group.name}</div>
+                        <div className="flex flex-col gap-0.5">
+                          {group.classes.map(cls => (
+                            <button 
+                              key={cls} 
+                              onClick={() => setSelectedClass(cls)} 
+                              className={`px-2 py-0.5 rounded text-[0.65rem] font-bold text-left transition cursor-pointer ${
+                                selectedClass === cls 
+                                  ? 'bg-[var(--accent)] text-[var(--accent-fg)] font-black' 
+                                  : 'text-[var(--text-sub)] hover:bg-[var(--panel-hover)] hover:text-[var(--text-main)]'
+                              }`}
+                            >
+                              {cls}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 🟧 SYMPHONIA (계정 통합 랭킹) */}
+            {activeRankTab === 'SYMPHONIA' ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 md:gap-4">
+                {accountRankings.map((acc, index) => {
+                  const rank = index + 1;
+                  const isTop3 = rank <= 3;
+                  const titleName = isTop3 ? TOP_TITLES.SYMPHONIA[rank - 1] : '';
+                  const theme = CATEGORY_THEMES.SYMPHONIA;
+                  const tagClass = isTop3 ? theme.tags[rank - 1] : 'bg-[var(--inner-box)] text-[var(--text-sub)] border-[var(--panel-border)]';
+                  const top3Border = getTop3BorderClass(rank);
+
+                  return (
+                    <div key={acc.owner} className={`relative bg-[var(--panel)] border ${top3Border} rounded-xl p-2.5 md:p-4 transition-all hover:border-[var(--accent)] z-10`}>
+                      <div className="md:hidden flex flex-col gap-2">
+                        <div className="flex items-center justify-between gap-1.5">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className={`px-1.5 py-0.2 rounded text-[0.6rem] font-black shrink-0 ${
+                              rank === 1 ? 'bg-amber-400 text-black' :
+                              rank === 2 ? 'bg-slate-300 text-black' :
+                              rank === 3 ? 'bg-amber-700 text-white' : 'bg-[var(--inner-box)] text-[var(--text-sub)]'
+                            }`}>
+                              #{rank}
+                            </span>
+                            {titleName && <span className={`text-[0.55rem] px-1.5 py-0.2 rounded shrink-0 border ${tagClass}`}>{titleName}</span>}
+                            <span className="font-black text-sm text-[var(--text-main)] truncate">{acc.owner}</span>
+                            <span className="text-[0.6rem] text-orange-500 dark:text-orange-400 shrink-0 font-bold">[{acc.charCount}캐릭]</span>
+                          </div>
+
+                          <div className="text-right shrink-0">
+                            <span className="text-[0.55rem] text-[var(--text-sub)] font-bold block leading-none">계정 총점</span>
+                            <span className="text-xs sm:text-sm font-black text-[var(--accent)] leading-tight">{acc.totalScore.toLocaleString()}</span>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-1.5 text-[0.62rem] sm:text-xs font-bold text-center bg-[var(--inner-box)] p-1.5 rounded-lg border border-[var(--panel-border)]">
+                          <div>
+                            <span className="text-red-400 block font-semibold leading-tight">계정 총 전투력</span>
+                            <span className="text-[var(--text-main)] font-black text-[0.7rem] sm:text-xs">{acc.totalCombat.toLocaleString()}</span>
+                          </div>
+                          <div>
+                            <span className="text-emerald-400 block font-semibold leading-tight">계정 총 생활력</span>
+                            <span className="text-[var(--text-main)] font-black text-[0.7rem] sm:text-xs">{acc.totalLife.toLocaleString()}</span>
+                          </div>
+                          <div>
+                            <span className="text-pink-400 block font-semibold leading-tight">계정 총 매력</span>
+                            <span className="text-[var(--text-main)] font-black text-[0.7rem] sm:text-xs">{acc.totalCharm.toLocaleString()}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="hidden md:flex flex-col gap-2">
+                        <div className={`absolute right-0 top-0 w-10 h-10 rounded-bl-xl rounded-tr-xl flex items-center justify-center font-black text-sm shadow-sm ${
+                          rank === 1 ? 'bg-amber-400 text-black' :
+                          rank === 2 ? 'bg-slate-300 text-black' :
+                          rank === 3 ? 'bg-amber-700 text-white' : 'bg-[var(--inner-box)] text-[var(--text-sub)]'
+                        }`}>
+                          #{rank}
+                        </div>
+
+                        <div className="pr-10">
+                          {titleName && <span className={`text-[0.62rem] px-1.5 py-0.5 rounded mb-1 inline-flex items-center gap-1 border ${tagClass}`}>{titleName}</span>}
+                          <h3 className="text-lg font-black text-[var(--text-main)] flex items-center gap-1.5">{acc.owner}</h3>
+                          <div className="text-[0.65rem] text-[var(--text-sub)] font-bold mt-0.5">
+                            대표: {acc.mainCharName} ({acc.mainCharJob}) · 총 {acc.charCount}개 캐릭터
+                          </div>
+                        </div>
+
+                        <div className="bg-[var(--inner-box)] p-2.5 rounded-lg border border-[var(--panel-border)] mt-0.5 space-y-1.5">
+                          <div className="flex justify-between items-end border-b border-[var(--panel-border)] pb-1">
+                            <span className="text-[var(--text-sub)] text-[0.65rem] font-bold">계정 통합 총점</span>
+                            <span className="font-black text-[var(--accent)] text-base leading-none">{acc.totalScore.toLocaleString()}</span>
+                          </div>
+
+                          <div className="grid grid-cols-3 gap-1 text-[0.6rem] font-bold text-center">
+                            <div className="bg-[var(--panel)] p-1 rounded border border-[var(--panel-border)]">
+                              <span className="text-red-400 block text-[0.55rem]">계정 총 전투력</span>
+                              <span className="font-black text-[var(--text-main)]">{acc.totalCombat.toLocaleString()}</span>
+                            </div>
+                            <div className="bg-[var(--panel)] p-1 rounded border border-[var(--panel-border)]">
+                              <span className="text-emerald-400 block text-[0.55rem]">계정 총 생활력</span>
+                              <span className="font-black text-[var(--text-main)]">{acc.totalLife.toLocaleString()}</span>
+                            </div>
+                            <div className="bg-[var(--panel)] p-1 rounded border border-[var(--panel-border)]">
+                              <span className="text-pink-400 block text-[0.55rem]">계정 총 매력</span>
+                              <span className="font-black text-[var(--text-main)]">{acc.totalCharm.toLocaleString()}</span>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                  );
+                })}
+              </div>
+            ) : (
+              /* 2. 일반 캐릭터 랭킹 */
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 md:gap-4">
+                {rankedCharacters.map((char) => {
+                  const earnedTitles = getAllEarnedTitles(char);
+                  const currentRankTitleInfo = earnedTitles.find(t => t.type === activeRankTab);
+                  const currentRankTitle = currentRankTitleInfo?.name || '';
+                  const score = getScore(char, activeRankTab);
+                  
+                  const categoryRank = allSortedCharacters.findIndex(c => c.id === char.id) + 1;
+                  const classRank = activeRankTab === 'KRATOS' ? [...dbCharacters].filter(c => c.job === char.job).sort((a,b) => b.combatPower - a.combatPower).findIndex(c => c.id === char.id) + 1 : categoryRank;
+                  const rankToUse = activeRankTab === 'KRATOS' ? classRank : categoryRank;
+                  
+                  const hoverTooltipId = `hover-${char.id}-${activeRankTab}`;
+                  const isHoverTooltipOpen = openHoverTooltipId === hoverTooltipId;
+                  const isClickTooltipOpenForThisCard = openClickTooltipId?.includes(`-${char.id}-`) && openClickTooltipId?.includes('-PANTHEON');
+                  const isTooltipActiveOnCard = isHoverTooltipOpen || isClickTooltipOpenForThisCard;
+                  
+                  const topLoreData = generateLore(currentRankTitle, rankToUse, char.job, activeRankTab);
+                  const topTheme = CATEGORY_THEMES[activeRankTab];
+                  
+                  const isTopRanked = rankToUse <= 3;
+                  const topTagClass = isTopRanked ? topTheme.tags[rankToUse - 1] : 'bg-zinc-100 text-zinc-950 border-zinc-400 font-bold dark:bg-[var(--inner-box)] dark:text-[var(--text-sub)] dark:border-[var(--panel-border)]';
+                  const top3Border = getTop3BorderClass(categoryRank);
 
-            {/* 랭킹 카드 그리드 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 md:gap-4">
-              {rankedCharacters.map((char) => {
-                const earnedTitles = getAllEarnedTitles(char);
-                const currentRankTitleInfo = earnedTitles.find(t => t.type === activeRankTab);
-                const currentRankTitle = currentRankTitleInfo?.name || '';
-                const score = getScore(char, activeRankTab);
-                
-                const categoryRank = allSortedCharacters.findIndex(c => c.id === char.id) + 1;
-                const classRank = activeRankTab === 'KRATOS' ? [...dbCharacters].filter(c => c.job === char.job).sort((a,b) => b.combatPower - a.combatPower).findIndex(c => c.id === char.id) + 1 : categoryRank;
-                const rankToUse = activeRankTab === 'KRATOS' ? classRank : categoryRank;
-                const isTop3 = categoryRank <= 3;
-                
-                const hoverTooltipId = `hover-${char.id}-${activeRankTab}`;
-                const isHoverTooltipOpen = openHoverTooltipId === hoverTooltipId;
-                const isClickTooltipOpenForThisCard = openClickTooltipId?.includes(`-${char.id}-`) && openClickTooltipId?.includes('-PANTHEON');
-                const isTooltipActiveOnCard = isHoverTooltipOpen || isClickTooltipOpenForThisCard;
-                
-                const topLoreData = generateLore(currentRankTitle, rankToUse, char.job, activeRankTab);
-                const topTheme = CATEGORY_THEMES[activeRankTab];
-                
-                const isTopRanked = rankToUse <= 3;
-                const topTagClass = isTopRanked ? topTheme.tags[rankToUse - 1] : 'bg-zinc-100 text-zinc-950 border-zinc-400 font-bold dark:bg-[var(--inner-box)] dark:text-[var(--text-sub)] dark:border-[var(--panel-border)]';
-                const topBorderClass = isTopRanked ? topTheme.borders[rankToUse - 1] : 'border-zinc-400 dark:border-[var(--panel-border)]';
+                  // 해당 탭에 맞는 서버 순위 데이터 추출
+                  const rankData = char.rankings?.[activeRankTab] || { overall: char.serverRankOverall, deian: char.serverRankDeian };
 
-                return (
-                  <div 
-                    key={char.id} 
-                    className={`relative bg-[var(--panel)] border ${
-                      isTop3 ? 'border-[var(--accent)] shadow-sm' : 'border-[var(--panel-border)]'
-                    } rounded-xl p-2.5 md:p-4 transition-all hover:border-[var(--accent)] ${
-                      isTooltipActiveOnCard ? 'z-[60]' : 'z-10'
-                    }`}
-                  >
-                    {/* 모바일 카드 레이아웃 */}
-                    <div className="md:hidden flex flex-col gap-1.5">
-                      <div className="flex items-center justify-between gap-1.5">
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          <span className={`px-1.5 py-0.2 rounded text-[0.6rem] font-black shrink-0 ${
-                            categoryRank === 1 ? 'bg-amber-400 text-black' :
-                            categoryRank === 2 ? 'bg-slate-300 text-black' :
-                            categoryRank === 3 ? 'bg-amber-700 text-white' : 'bg-[var(--inner-box)] text-[var(--text-sub)]'
-                          }`}>
-                            #{categoryRank}
-                          </span>
-
-                          {currentRankTitle && (
-                            <span className={`text-[0.55rem] px-1 py-0.2 rounded shrink-0 border ${topTagClass}`}>
-                              {currentRankTitle}
+                  return (
+                    <div 
+                      key={char.id} 
+                      className={`relative bg-[var(--panel)] border ${top3Border} rounded-xl p-2.5 md:p-4 transition-all hover:border-[var(--accent)] ${
+                        isTooltipActiveOnCard ? 'z-[60]' : 'z-10'
+                      }`}
+                    >
+                      {/* 모바일 카드 */}
+                      <div className="md:hidden flex flex-col gap-1.5">
+                        <div className="flex items-center justify-between gap-1.5">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className={`px-1.5 py-0.2 rounded text-[0.6rem] font-black shrink-0 ${
+                              categoryRank === 1 ? 'bg-amber-400 text-black' :
+                              categoryRank === 2 ? 'bg-slate-300 text-black' :
+                              categoryRank === 3 ? 'bg-amber-700 text-white' : 'bg-[var(--inner-box)] text-[var(--text-sub)]'
+                            }`}>
+                              #{categoryRank}
                             </span>
+
+                            {currentRankTitle && (
+                              <span className={`text-[0.55rem] px-1 py-0.2 rounded shrink-0 border ${topTagClass}`}>
+                                {currentRankTitle}
+                              </span>
+                            )}
+
+                            <span className="font-black text-sm text-[var(--text-main)] truncate">{char.name}</span>
+                            <span className="text-[0.6rem] text-[var(--text-sub)] shrink-0 font-bold">{char.job}</span>
+                          </div>
+
+                          <div className="text-right shrink-0">
+                            <span className="text-[0.55rem] text-[var(--text-sub)] font-bold block leading-none">{RANKING_INFO[activeRankTab].stat}</span>
+                            <span className="text-xs font-black text-[var(--accent)] leading-tight">{score.toLocaleString()}</span>
+                          </div>
+                        </div>
+
+                        {/* 칭호 목록 */}
+                        <div className="flex flex-wrap gap-1 relative">
+                          {earnedTitles.map(t => {
+                            const clickId = `click-${char.id}-${t.type}-PANTHEON`;
+                            const isClicked = openClickTooltipId === clickId;
+                            const loreData = generateLore(t.name, t.rank, char.job, t.type as any);
+                            const isRankedTitle = t.rank <= 3;
+                            const tagClass = isRankedTitle ? t.theme.tags[t.rank - 1] : t.theme.tags[0];
+                            const borderClass = isRankedTitle ? t.theme.borders[t.rank - 1] : t.theme.borders[0];
+
+                            return (
+                              <div key={t.type} className="relative inline-block">
+                                <button 
+                                  onClick={(e) => { e.stopPropagation(); setOpenClickTooltipId(isClicked ? null : clickId); }}
+                                  className={`text-[0.55rem] px-1 py-0.2 rounded border flex items-center gap-1 cursor-pointer transition-all ${tagClass} ${isClicked ? 'ring-2 ring-black/30 dark:ring-white/50 z-10' : 'opacity-95'}`}
+                                >
+                                  {t.name}
+                                </button>
+
+                                {isClicked && (
+                                  <div className={`absolute top-[calc(100%+4px)] left-0 w-[260px] bg-[var(--panel)] border-2 ${borderClass} rounded-xl p-2.5 shadow-2xl animate-in fade-in zoom-in-95 duration-150 z-[100] cursor-default text-[var(--text-main)]`} onClick={e => e.stopPropagation()}>
+                                    <div className={`absolute -top-1.5 left-3 w-2 h-2 bg-[var(--panel)] border-t-2 border-l-2 ${borderClass} transform rotate-45`}></div>
+                                    <div className="relative z-10 flex flex-col gap-1.5 text-left">
+                                      <span className={`font-black ${t.theme.text} text-[0.7rem] tracking-wide whitespace-nowrap`}>[{loreData.title}]</span>
+                                      <p className="text-[0.58rem] font-bold text-[var(--text-main)] leading-snug break-keep">{loreData.meaning}</p>
+                                      <p className="text-[0.58rem] font-bold text-[var(--text-sub)] leading-relaxed break-keep border-t border-[var(--panel-border)] pt-1">{loreData.tribute}</p>
+                                      <div className="mt-1 py-1 px-2 bg-[var(--inner-box)] border border-[var(--panel-border)]/60 rounded-lg text-center text-[0.58rem] font-black text-[var(--accent)] whitespace-nowrap">
+                                        {loreData.sourceText}
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* 📌 모바일 순위 명칭 수정: 통합 순위 & 데이안 순위 */}
+                        {activeRankTab !== 'PIETAS' && (
+                          <div className="flex items-center justify-between text-[0.55rem] font-bold text-[var(--text-sub)] bg-[var(--inner-box)] px-2 py-0.5 rounded border border-[var(--panel-border)]">
+                            <span>통합 순위: <strong className="text-[var(--text-main)]">{rankData.overall ? `#${rankData.overall.toLocaleString()}` : '집계중'}</strong></span>
+                            <span>데이안 순위: <strong className="text-[var(--text-main)]">{rankData.deian ? `#${rankData.deian.toLocaleString()}` : '집계중'}</strong></span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* 데스크톱 카드 */}
+                      <div className="hidden md:flex flex-col gap-2">
+                        <div className={`absolute right-0 top-0 w-10 h-10 rounded-bl-xl rounded-tr-xl flex items-center justify-center font-black text-sm shadow-sm ${
+                          categoryRank === 1 ? 'bg-amber-400 text-black' :
+                          categoryRank === 2 ? 'bg-slate-300 text-black' :
+                          categoryRank === 3 ? 'bg-amber-700 text-white' : 'bg-[var(--inner-box)] text-[var(--text-sub)]'
+                        }`}>
+                          #{categoryRank}
+                        </div>
+
+                        <div className="pr-10">
+                          {currentRankTitle && rankToUse <= 3 ? (
+                            <div 
+                              className="relative inline-block mb-1"
+                              onMouseEnter={() => setOpenHoverTooltipId(hoverTooltipId)}
+                              onMouseLeave={() => setOpenHoverTooltipId(null)}
+                            >
+                              <span className={`text-[0.62rem] px-1.5 py-0.5 rounded inline-flex items-center gap-1 cursor-help border ${topTagClass}`}>
+                                {currentRankTitle}
+                              </span>
+
+                              {isHoverTooltipOpen && (
+                                <div className={`absolute top-[calc(100%+4px)] left-0 w-[260px] bg-[var(--panel)] border-2 ${getTop3BorderClass(rankToUse)} rounded-xl p-3 shadow-2xl animate-in fade-in zoom-in-95 duration-150 z-[100] cursor-default text-[var(--text-main)]`} onClick={e => e.stopPropagation()}>
+                                  <div className={`absolute -top-1.5 left-4 w-3 h-3 bg-[var(--panel)] border-t-2 border-l-2 ${getTop3BorderClass(rankToUse)} transform rotate-45`}></div>
+                                  <div className="relative z-10 flex flex-col gap-1.5">
+                                    <span className={`font-black ${topTheme.text} text-xs tracking-wide whitespace-nowrap`}>[{topLoreData.title}]</span>
+                                    <p className="text-[0.65rem] font-bold text-[var(--text-main)] leading-snug break-keep">{topLoreData.meaning}</p>
+                                    <div className="w-full h-px bg-[var(--panel-border)]"></div>
+                                    <p className="text-[0.65rem] font-bold text-[var(--text-sub)] leading-relaxed break-keep">{topLoreData.tribute}</p>
+                                    <div className="mt-1 py-1.5 px-2 bg-[var(--inner-box)] border border-[var(--panel-border)]/60 rounded-lg text-center text-[0.6rem] font-black text-[var(--accent)] whitespace-nowrap">
+                                      {topLoreData.sourceText}
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            currentRankTitle && (
+                              <span className={`text-[0.62rem] px-1.5 py-0.5 rounded mb-1 inline-flex items-center gap-1 border ${topTagClass}`}>
+                                {currentRankTitle}
+                              </span>
+                            )
                           )}
 
-                          <span className="font-black text-sm text-[var(--text-main)] truncate">{char.name}</span>
-                          <span className="text-[0.6rem] text-[var(--text-sub)] shrink-0 font-bold">{char.job}</span>
+                          <h3 className="text-lg font-black text-[var(--text-main)] flex items-center gap-1.5">{char.name}</h3>
+                          <div className="text-[0.65rem] text-[var(--text-sub)] font-bold mt-0.5">{char.job}</div>
                         </div>
 
-                        <div className="text-right shrink-0">
-                          <span className="text-[0.55rem] text-[var(--text-sub)] font-bold block leading-none">{RANKING_INFO[activeRankTab].stat}</span>
-                          <span className="text-xs font-black text-[var(--accent)] leading-tight">{score.toLocaleString()}</span>
-                        </div>
-                      </div>
+                        <div className="flex flex-wrap gap-1 relative">
+                          {earnedTitles.map(t => {
+                            const clickId = `click-${char.id}-${t.type}-PANTHEON`;
+                            const isClicked = openClickTooltipId === clickId;
+                            const loreData = generateLore(t.name, t.rank, char.job, t.type as any);
+                            const isRankedTitle = t.rank <= 3;
+                            const tagClass = isRankedTitle ? t.theme.tags[t.rank - 1] : t.theme.tags[0];
+                            const borderClass = isRankedTitle ? t.theme.borders[t.rank - 1] : t.theme.borders[0];
 
-                      {/* 보유 칭호 스몰 뱃지 가로 정렬 */}
-                      <div className="flex flex-wrap gap-1 relative">
-                        {earnedTitles.map(t => {
-                          const clickId = `click-${char.id}-${t.type}-PANTHEON`;
-                          const isClicked = openClickTooltipId === clickId;
-                          const loreData = generateLore(t.name, t.rank, char.job, t.type as any);
-                          const isRankedTitle = t.rank <= 3;
-                          const tagClass = isRankedTitle ? t.theme.tags[t.rank - 1] : t.theme.tags[0];
-                          const borderClass = isRankedTitle ? t.theme.borders[t.rank - 1] : t.theme.borders[0];
+                            return (
+                              <div key={t.type} className="relative inline-block">
+                                <button 
+                                  onClick={(e) => { e.stopPropagation(); setOpenClickTooltipId(isClicked ? null : clickId); }}
+                                  className={`text-[0.6rem] px-1.5 py-0.2 rounded border flex items-center gap-1 cursor-pointer transition-all hover:scale-105 ${tagClass} ${isClicked ? 'ring-2 ring-black/30 dark:ring-white/50 z-10 opacity-100' : 'opacity-95 hover:opacity-100'}`}
+                                >
+                                  {t.name}
+                                </button>
 
-                          return (
-                            <div key={t.type} className="relative inline-block">
-                              <button 
-                                onClick={(e) => { e.stopPropagation(); setOpenClickTooltipId(isClicked ? null : clickId); }}
-                                className={`text-[0.55rem] px-1 py-0.2 rounded border flex items-center gap-1 cursor-pointer transition-all ${tagClass} ${isClicked ? 'ring-2 ring-black/30 dark:ring-white/50 z-10' : 'opacity-95'}`}
-                              >
-                                {t.name}
-                              </button>
-
-                              {isClicked && (
-                                <div className={`absolute top-[calc(100%+4px)] left-0 w-[260px] bg-[var(--panel)] border-2 ${borderClass} rounded-xl p-2.5 shadow-2xl animate-in fade-in zoom-in-95 duration-150 z-[100] cursor-default text-[var(--text-main)]`} onClick={e => e.stopPropagation()}>
-                                  <div className={`absolute -top-1.5 left-3 w-2 h-2 bg-[var(--panel)] border-t-2 border-l-2 ${borderClass} transform rotate-45`}></div>
-                                  <div className="relative z-10 flex flex-col gap-1.5 text-left">
-                                    <span className={`font-black ${t.theme.text} text-[0.7rem] tracking-wide whitespace-nowrap`}>[{loreData.title}]</span>
-                                    <p className="text-[0.58rem] font-bold text-[var(--text-main)] leading-snug break-keep">{loreData.meaning}</p>
-                                    <p className="text-[0.58rem] font-bold text-[var(--text-sub)] leading-relaxed break-keep border-t border-[var(--panel-border)] pt-1">{loreData.tribute}</p>
-                                    
-                                    {/* 깔끔하게 정렬된 출처 영문 박스 */}
-                                    <div className="mt-1 py-1 px-2 bg-[var(--inner-box)] border border-[var(--panel-border)]/60 rounded-lg text-center text-[0.58rem] font-black text-[var(--accent)] whitespace-nowrap">
-                                      {loreData.sourceText}
+                                {isClicked && (
+                                  <div className={`absolute top-[calc(100%+4px)] left-0 w-[260px] bg-[var(--panel)] border-2 ${borderClass} rounded-xl p-2.5 shadow-2xl animate-in fade-in zoom-in-95 duration-150 z-[100] cursor-default text-[var(--text-main)]`} onClick={e => e.stopPropagation()}>
+                                    <div className={`absolute -top-1.5 left-3 w-2.5 h-2.5 bg-[var(--panel)] border-t-2 border-l-2 ${borderClass} transform rotate-45`}></div>
+                                    <div className="relative z-10 flex flex-col gap-1.5 text-left">
+                                      <span className={`font-black ${t.theme.text} text-[0.7rem] tracking-wide whitespace-nowrap`}>[{loreData.title}]</span>
+                                      <p className="text-[0.6rem] font-bold text-[var(--text-main)] leading-snug break-keep">{loreData.meaning}</p>
+                                      <div className="w-full h-px bg-[var(--panel-border)]"></div>
+                                      <p className="text-[0.6rem] font-bold text-[var(--text-sub)] leading-relaxed break-keep">{loreData.tribute}</p>
+                                      <div className="mt-1 py-1.5 px-2 bg-[var(--inner-box)] border border-[var(--panel-border)]/60 rounded-lg text-center text-[0.6rem] font-black text-[var(--accent)] whitespace-nowrap">
+                                        {loreData.sourceText}
+                                      </div>
                                     </div>
                                   </div>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-
-                      {/* 모바일 1줄 서빙 순위 박스 */}
-                      <div className="flex items-center justify-between text-[0.55rem] font-bold text-[var(--text-sub)] bg-[var(--inner-box)] px-2 py-0.5 rounded border border-[var(--panel-border)]">
-                        <span>전체 순위: <strong className="text-[var(--text-main)]">{char.serverRankOverall ? `#${char.serverRankOverall.toLocaleString()}` : '집계중'}</strong></span>
-                        <span>데이안 순위: <strong className="text-[var(--text-main)]">{char.serverRankDeian ? `#${char.serverRankDeian.toLocaleString()}` : '집계중'}</strong></span>
-                      </div>
-                    </div>
-
-                    {/* 데스크톱(Desktop) 카드 레이아웃 */}
-                    <div className="hidden md:flex flex-col gap-2">
-                      <div className={`absolute right-0 top-0 w-10 h-10 rounded-bl-xl rounded-tr-xl flex items-center justify-center font-black text-sm shadow-sm ${
-                        categoryRank === 1 ? 'bg-amber-400 text-black' :
-                        categoryRank === 2 ? 'bg-slate-300 text-black' :
-                        categoryRank === 3 ? 'bg-amber-700 text-white' : 'bg-[var(--inner-box)] text-[var(--text-sub)]'
-                      }`}>
-                        #{categoryRank}
-                      </div>
-
-                      <div className="pr-10">
-                        {currentRankTitle && rankToUse <= 3 ? (
-                          <div 
-                            className="relative inline-block mb-1"
-                            onMouseEnter={() => setOpenHoverTooltipId(hoverTooltipId)}
-                            onMouseLeave={() => setOpenHoverTooltipId(null)}
-                          >
-                            <span className={`text-[0.62rem] px-1.5 py-0.5 rounded inline-flex items-center gap-1 cursor-help border ${topTagClass}`}>
-                              {currentRankTitle}
-                            </span>
-
-                            {isHoverTooltipOpen && (
-                              <div className={`absolute top-[calc(100%+4px)] left-0 w-[260px] bg-[var(--panel)] border-2 ${topBorderClass} rounded-xl p-3 shadow-2xl animate-in fade-in zoom-in-95 duration-150 z-[100] cursor-default text-[var(--text-main)]`} onClick={e => e.stopPropagation()}>
-                                <div className={`absolute -top-1.5 left-4 w-3 h-3 bg-[var(--panel)] border-t-2 border-l-2 ${topBorderClass} transform rotate-45`}></div>
-                                <div className="relative z-10 flex flex-col gap-1.5">
-                                  <span className={`font-black ${topTheme.text} text-xs tracking-wide whitespace-nowrap`}>[{topLoreData.title}]</span>
-                                  <p className="text-[0.65rem] font-bold text-[var(--text-main)] leading-snug break-keep">{topLoreData.meaning}</p>
-                                  <div className="w-full h-px bg-[var(--panel-border)]"></div>
-                                  <p className="text-[0.65rem] font-bold text-[var(--text-sub)] leading-relaxed break-keep">{topLoreData.tribute}</p>
-                                  
-                                  {/* 깔끔하게 정렬된 출처 영문 박스 */}
-                                  <div className="mt-1 py-1.5 px-2 bg-[var(--inner-box)] border border-[var(--panel-border)]/60 rounded-lg text-center text-[0.6rem] font-black text-[var(--accent)] whitespace-nowrap">
-                                    {topLoreData.sourceText}
-                                  </div>
-                                </div>
+                                )}
                               </div>
-                            )}
+                            );
+                          })}
+                        </div>
+
+                        {/* 📌 데스크톱 순위 명칭 수정: 통합 순위 & 데이안 순위 */}
+                        <div className="bg-[var(--inner-box)] p-2.5 rounded-lg border border-[var(--panel-border)] mt-0.5 space-y-1">
+                          <div className="flex justify-between items-end border-b border-[var(--panel-border)] pb-1">
+                            <span className="text-[var(--text-sub)] text-[0.65rem] font-bold">{RANKING_INFO[activeRankTab].stat}</span>
+                            <span className="font-black text-[var(--accent)] text-base leading-none">{score.toLocaleString()}</span>
                           </div>
-                        ) : (
-                          currentRankTitle && (
-                            <span className={`text-[0.62rem] px-1.5 py-0.5 rounded mb-1 inline-flex items-center gap-1 border ${topTagClass}`}>
-                              {currentRankTitle}
-                            </span>
-                          )
-                        )}
-
-                        <h3 className="text-lg font-black text-[var(--text-main)] flex items-center gap-1.5">{char.name}</h3>
-                        <div className="text-[0.65rem] text-[var(--text-sub)] font-bold mt-0.5">{char.job}</div>
-                      </div>
-
-                      <div className="flex flex-wrap gap-1 relative">
-                        {earnedTitles.map(t => {
-                          const clickId = `click-${char.id}-${t.type}-PANTHEON`;
-                          const isClicked = openClickTooltipId === clickId;
-                          const loreData = generateLore(t.name, t.rank, char.job, t.type as any);
-                          const isRankedTitle = t.rank <= 3;
-                          const tagClass = isRankedTitle ? t.theme.tags[t.rank - 1] : t.theme.tags[0];
-                          const borderClass = isRankedTitle ? t.theme.borders[t.rank - 1] : t.theme.borders[0];
-
-                          return (
-                            <div key={t.type} className="relative inline-block">
-                              <button 
-                                onClick={(e) => { e.stopPropagation(); setOpenClickTooltipId(isClicked ? null : clickId); }}
-                                className={`text-[0.6rem] px-1.5 py-0.2 rounded border flex items-center gap-1 cursor-pointer transition-all hover:scale-105 ${tagClass} ${isClicked ? 'ring-2 ring-black/30 dark:ring-white/50 z-10 opacity-100' : 'opacity-95 hover:opacity-100'}`}
-                              >
-                                {t.name}
-                              </button>
-
-                              {isClicked && (
-                                <div className={`absolute top-[calc(100%+4px)] left-0 w-[260px] bg-[var(--panel)] border-2 ${borderClass} rounded-xl p-2.5 shadow-2xl animate-in fade-in zoom-in-95 duration-150 z-[100] cursor-default text-[var(--text-main)]`} onClick={e => e.stopPropagation()}>
-                                  <div className={`absolute -top-1.5 left-3 w-2.5 h-2.5 bg-[var(--panel)] border-t-2 border-l-2 ${borderClass} transform rotate-45`}></div>
-                                  <div className="relative z-10 flex flex-col gap-1.5 text-left">
-                                    <span className={`font-black ${t.theme.text} text-[0.7rem] tracking-wide whitespace-nowrap`}>[{loreData.title}]</span>
-                                    <p className="text-[0.6rem] font-bold text-[var(--text-main)] leading-snug break-keep">{loreData.meaning}</p>
-                                    <div className="w-full h-px bg-[var(--panel-border)]"></div>
-                                    <p className="text-[0.6rem] font-bold text-[var(--text-sub)] leading-relaxed break-keep">{loreData.tribute}</p>
-                                    
-                                    {/* 깔끔하게 정렬된 출처 영문 박스 */}
-                                    <div className="mt-1 py-1.5 px-2 bg-[var(--inner-box)] border border-[var(--panel-border)]/60 rounded-lg text-center text-[0.6rem] font-black text-[var(--accent)] whitespace-nowrap">
-                                      {loreData.sourceText}
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-
-                      <div className="bg-[var(--inner-box)] p-2.5 rounded-lg border border-[var(--panel-border)] mt-0.5 space-y-1">
-                        <div className="flex justify-between items-end border-b border-[var(--panel-border)] pb-1">
-                          <span className="text-[var(--text-sub)] text-[0.65rem] font-bold">{RANKING_INFO[activeRankTab].stat}</span>
-                          <span className="font-black text-[var(--accent)] text-base leading-none">{score.toLocaleString()}</span>
-                        </div>
-                        <div className="flex justify-between text-[0.6rem] font-bold">
-                          <span className="text-[var(--text-sub)]">서버 전체 순위</span>
-                          <span className="text-[var(--text-main)]">{char.serverRankOverall ? `#${char.serverRankOverall.toLocaleString()}` : '집계 중'}</span>
-                        </div>
-                        <div className="flex justify-between text-[0.6rem] font-bold">
-                          <span className="text-[var(--text-sub)]">데이안 서버 순위</span>
-                          <span className="text-[var(--text-main)]">{char.serverRankDeian ? `#${char.serverRankDeian.toLocaleString()}` : '집계 중'}</span>
+                          
+                          {activeRankTab !== 'PIETAS' && (
+                            <>
+                              <div className="flex justify-between text-[0.6rem] font-bold">
+                                <span className="text-[var(--text-sub)]">통합 순위</span>
+                                <span className="text-[var(--text-main)]">{rankData.overall ? `#${rankData.overall.toLocaleString()}` : '집계 중'}</span>
+                              </div>
+                              <div className="flex justify-between text-[0.6rem] font-bold">
+                                <span className="text-[var(--text-sub)]">데이안 순위</span>
+                                <span className="text-[var(--text-main)]">{rankData.deian ? `#${rankData.deian.toLocaleString()}` : '집계 중'}</span>
+                              </div>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </section>
         )}
 
@@ -914,8 +1056,6 @@ function AgoraLoungeContent() {
                                       <p className="text-[0.58rem] font-bold text-[var(--text-main)] leading-snug break-keep">{loreData.meaning}</p>
                                       <div className="w-full h-px bg-[var(--panel-border)]"></div>
                                       <p className="text-[0.58rem] font-bold text-[var(--text-sub)] leading-relaxed break-keep">{loreData.tribute}</p>
-                                      
-                                      {/* 깔끔하게 정렬된 출처 영문 박스 */}
                                       <div className="mt-1 py-1.5 px-2 bg-[var(--inner-box)] border border-[var(--panel-border)]/60 rounded-lg text-center text-[0.58rem] font-black text-[var(--accent)] whitespace-nowrap">
                                         {loreData.sourceText}
                                       </div>

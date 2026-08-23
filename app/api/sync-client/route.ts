@@ -15,10 +15,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: '유효한 데이터가 없습니다.' }, { status: 400 });
     }
 
-    // 1. 기존 DB 데이터 조회 (스탯 오염 방지 및 비교용)
+    // 1. 기존 DB 데이터 조회 (스탯 오염 방지 및 기존 rankings 조회)
     const { data: currentChars } = await supabase
       .from('characters')
-      .select('nickname, combat_power, life_energy, charm');
+      .select('nickname, combat_power, life_energy, charm, rankings');
 
     const charMap = new Map();
     currentChars?.forEach((c) => charMap.set(c.nickname, c));
@@ -26,7 +26,12 @@ export async function POST(req: Request) {
     const growthReport: any[] = [];
 
     for (const item of items) {
-      const oldData = charMap.get(item.nickname) || { combat_power: '0', life_energy: '0', charm: '0' };
+      const oldData = charMap.get(item.nickname) || { 
+        combat_power: '0', 
+        life_energy: '0', 
+        charm: '0',
+        rankings: {} 
+      };
       
       const oldCombat = Number(oldData.combat_power) || 0;
       const oldLife = Number(oldData.life_energy) || 0;
@@ -37,10 +42,15 @@ export async function POST(req: Request) {
       let newLife = Number(item.life_energy ?? item.life ?? item.living ?? 0);
       let newCharm = Number(item.charm ?? 0);
 
-      // 🛡️ [0으로 오염 방지 로직] 새로 수집된 값이 0이고 기존 DB 값이 있다면, 0으로 덮어씌우지 않고 기존값 유지
+      // 🛡️ [0으로 오염 방지 로직] 새로 수집된 값이 0이고 기존 DB 값이 있다면 기존값 유지
       if (newCombat === 0 && oldCombat > 0) newCombat = oldCombat;
       if (newLife === 0 && oldLife > 0) newLife = oldLife;
       if (newCharm === 0 && oldCharm > 0) newCharm = oldCharm;
+
+      // 📌 카테고리별 순위(통합/데이안) 데이터 병합
+      const newRankings = item.rankings 
+        ? { ...(oldData.rankings || {}), ...item.rankings } 
+        : (oldData.rankings || {});
 
       growthReport.push({
         nickname: item.nickname,
@@ -53,13 +63,14 @@ export async function POST(req: Request) {
         },
       });
 
-      // DB 업데이트
+      // DB 업데이트 (스탯 + 4대 랭킹 jsonb)
       await supabase
         .from('characters')
         .update({
           combat_power: String(newCombat),
           life_energy: String(newLife),
           charm: String(newCharm),
+          rankings: newRankings, // 📌 카테고리별 통합/데이안 순위 업데이트
           updated_at: new Date().toISOString(),
         })
         .eq('nickname', item.nickname);
@@ -67,7 +78,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
-      message: `${items.length}명 최신 스탯 업데이트 및 성장 비교 완료!`,
+      message: `${items.length}명 최신 스탯 및 4대 랭킹 순위 업데이트 완료!`,
       growthReport,
     });
   } catch (err: any) {
