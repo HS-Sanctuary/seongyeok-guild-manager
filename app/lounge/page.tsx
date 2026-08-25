@@ -87,9 +87,9 @@ const RANKING_INFO = {
   TELOS: { en: 'TELOS', kr: '텔로스', desc: '도달과 완성의 기록', sub: '종합 랭킹', stat: '종합 점수' },
   SYMPHONIA: { en: 'SYMPHONIA', kr: '심포니아', desc: '끈기와 노력의 기록', sub: '계정 랭킹', stat: '계정 총점' },
   KRATOS: { en: 'KRATOS', kr: '크라토스', desc: '힘과 권능의 기록', sub: '전투력 랭킹', stat: '전투력' },
-  TECHNE: { en: 'TECHNĒ', kr: '테크네', desc: '기술과 숙련의 기록', sub: '생활력 랭킹', stat: '생활력' },
+  TECHNE: { en: 'TECHNĒ', kr: '테크네', desc: '기술과 숙련의 기록', sub: '대표 생활력 랭킹', stat: '최고 생활력' },
   HARMONIA: { en: 'HARMONIA', kr: '하르모니아', desc: '아름다움과 조화의 기록', sub: '매력 랭킹', stat: '매력' },
-  PIETAS: { en: 'PIETAS', kr: '피에타스', desc: '헌신과 공헌의 기록', sub: '공헌도 랭킹', stat: '공헌도' },
+  PIETAS: { en: 'PIETAS', kr: '피에타스', desc: '헌신과 공헌의 기록', sub: '대표 공헌도 랭킹', stat: '공헌도' },
 };
 
 const CLASS_GROUPS = [
@@ -235,7 +235,6 @@ interface Character {
   combatPower: number; magicResist: number; lifePower: number; charm: number; contribution: number;
   isMain: boolean; status: '생텀 접속중' | '인게임' | '오프라인'; lastSeen?: string;
   pendingTasks?: string[];
-  // 각 카테고리별 서버 순위 데이터 구조
   rankings?: Record<string, { overall: number; deian: number }>;
   serverRankOverall?: number; serverRankDeian?: number;
 }
@@ -361,7 +360,56 @@ function AgoraLoungeContent() {
     return Object.values(accountMap).sort((a, b) => b.totalScore - a.totalScore);
   };
 
+  // 📌 [카테고리별 정렬 및 계정 중복 필터링 로직 개선]
   const getAllSortedCharacters = () => {
+    // 1. PIETAS (피에타스: 1계정당 대표 캐릭터 1개만 노출)
+    if (activeRankTab === 'PIETAS') {
+      const ownerMap = new Map<string, Character>();
+      
+      // 먼저 대표캐릭터(isMain) 우선 선점
+      dbCharacters.forEach(c => {
+        const ownerKey = c.owner?.trim() || c.name;
+        if (c.isMain) {
+          ownerMap.set(ownerKey, c);
+        }
+      });
+
+      // 대표캐릭터가 설정 안 된 계정은 공헌도가 가장 높은 캐릭터 선택
+      dbCharacters.forEach(c => {
+        const ownerKey = c.owner?.trim() || c.name;
+        if (!ownerMap.has(ownerKey)) {
+          ownerMap.set(ownerKey, c);
+        } else {
+          const current = ownerMap.get(ownerKey)!;
+          if (!current.isMain && c.contribution > current.contribution) {
+            ownerMap.set(ownerKey, c);
+          }
+        }
+      });
+
+      return Array.from(ownerMap.values()).sort((a, b) => b.contribution - a.contribution);
+    }
+
+    // 2. TECHNE (테크네: 1계정당 생활력이 가장 높은 캐릭터 1개만 노출)
+    if (activeRankTab === 'TECHNE') {
+      const ownerMap = new Map<string, Character>();
+
+      dbCharacters.forEach(c => {
+        const ownerKey = c.owner?.trim() || c.name;
+        if (!ownerMap.has(ownerKey)) {
+          ownerMap.set(ownerKey, c);
+        } else {
+          const existing = ownerMap.get(ownerKey)!;
+          if (c.lifePower > existing.lifePower) {
+            ownerMap.set(ownerKey, c);
+          }
+        }
+      });
+
+      return Array.from(ownerMap.values()).sort((a, b) => b.lifePower - a.lifePower);
+    }
+
+    // 3. 기타 (TELOS, KRATOS, HARMONIA: 캐릭터별 개별 노출)
     return [...dbCharacters].sort((a, b) => getScore(b, activeRankTab) - getScore(a, activeRankTab));
   };
 
@@ -384,7 +432,29 @@ function AgoraLoungeContent() {
         return;
       }
 
-      const rank = [...dbCharacters].sort((a,b) => getScore(b, type) - getScore(a, type)).findIndex(c => c.id === char.id);
+      // TECHNE, PIETAS는 1계정 1캐릭터 기준 랭킹으로 계산
+      let targetList = [...dbCharacters];
+      if (type === 'TECHNE') {
+        const ownerMap = new Map<string, Character>();
+        dbCharacters.forEach(c => {
+          const ownerKey = c.owner?.trim() || c.name;
+          if (!ownerMap.has(ownerKey) || c.lifePower > ownerMap.get(ownerKey)!.lifePower) {
+            ownerMap.set(ownerKey, c);
+          }
+        });
+        targetList = Array.from(ownerMap.values());
+      } else if (type === 'PIETAS') {
+        const ownerMap = new Map<string, Character>();
+        dbCharacters.forEach(c => {
+          const ownerKey = c.owner?.trim() || c.name;
+          if (c.isMain || !ownerMap.has(ownerKey)) {
+            ownerMap.set(ownerKey, c);
+          }
+        });
+        targetList = Array.from(ownerMap.values());
+      }
+
+      const rank = targetList.sort((a,b) => getScore(b, type) - getScore(a, type)).findIndex(c => c.id === char.id);
       if(rank >= 0 && rank < 3) {
         titles.push({ type, name: titleArr[rank], rank: rank + 1, theme: CATEGORY_THEMES[type] });
       }
@@ -547,9 +617,9 @@ function AgoraLoungeContent() {
                     <li><strong className="text-purple-700 dark:text-purple-400">TELOS (텔로스)</strong>: 캐릭터 종합 랭킹</li>
                     <li><strong className="text-orange-600 dark:text-orange-400">SYMPHONIA (심포니아)</strong>: 계정 통합 랭킹</li>
                     <li><strong className="text-rose-700 dark:text-rose-400">KRATOS (크라토스)</strong>: 전투력 랭킹</li>
-                    <li><strong className="text-sky-700 dark:text-sky-400">TECHNĒ (테크네)</strong>: 생활력 랭킹</li>
+                    <li><strong className="text-sky-700 dark:text-sky-400">TECHNĒ (테크네)</strong>: 대표 생활력 랭킹 (가문당 최고 1캐릭)</li>
                     <li><strong className="text-amber-800 dark:text-amber-400">HARMONIA (하르모니아)</strong>: 매력 랭킹</li>
-                    <li><strong className="text-emerald-800 dark:text-emerald-400">PIETAS (피에타스)</strong>: 공헌도 랭킹</li>
+                    <li><strong className="text-emerald-800 dark:text-emerald-400">PIETAS (피에타스)</strong>: 대표 공헌도 랭킹 (대표 캐릭터)</li>
                   </ul>
                 </div>
               </div>
@@ -612,7 +682,7 @@ function AgoraLoungeContent() {
                   「 {RANKING_INFO[activeRankTab].desc} 」
                 </span>
               </div>
-              {activeRankTab !== 'SYMPHONIA' && (
+              {activeRankTab !== 'SYMPHONIA' && activeRankTab !== 'PIETAS' && activeRankTab !== 'TECHNE' && (
                 <button 
                   onClick={() => setIsMobileFilterModalOpen(true)}
                   className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[var(--accent)] text-[var(--accent-fg)] font-black text-[0.65rem] shadow-sm cursor-pointer shrink-0"
@@ -631,7 +701,7 @@ function AgoraLoungeContent() {
               <p className="text-[var(--text-sub)] text-xs mt-0.5 font-bold">「 {RANKING_INFO[activeRankTab].desc} 」</p>
             </div>
 
-            {activeRankTab !== 'SYMPHONIA' && (
+            {activeRankTab !== 'SYMPHONIA' && activeRankTab !== 'PIETAS' && activeRankTab !== 'TECHNE' && (
               <div className="hidden md:block bg-[var(--panel)] border border-[var(--panel-border)] rounded-xl p-2 shadow-sm">
                 <button 
                   onClick={() => { if (selectedClass === "전체" && !isClassFilterOpen) setIsClassFilterOpen(true); else { setSelectedClass("전체"); setIsClassFilterOpen(false); } }} 
@@ -765,7 +835,7 @@ function AgoraLoungeContent() {
                 })}
               </div>
             ) : (
-              /* 2. 일반 캐릭터 랭킹 */
+              /* 2. 일반 및 필터링된 대표 캐릭터 랭킹 */
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 md:gap-4">
                 {rankedCharacters.map((char) => {
                   const earnedTitles = getAllEarnedTitles(char);
@@ -789,7 +859,6 @@ function AgoraLoungeContent() {
                   const topTagClass = isTopRanked ? topTheme.tags[rankToUse - 1] : 'bg-zinc-100 text-zinc-950 border-zinc-400 font-bold dark:bg-[var(--inner-box)] dark:text-[var(--text-sub)] dark:border-[var(--panel-border)]';
                   const top3Border = getTop3BorderClass(categoryRank);
 
-                  // 해당 탭에 맞는 서버 순위 데이터 추출
                   const rankData = char.rankings?.[activeRankTab] || { overall: char.serverRankOverall, deian: char.serverRankDeian };
 
                   return (
@@ -864,7 +933,6 @@ function AgoraLoungeContent() {
                           })}
                         </div>
 
-                        {/* 📌 모바일 순위 명칭 수정: 통합 순위 & 데이안 순위 */}
                         {activeRankTab !== 'PIETAS' && (
                           <div className="flex items-center justify-between text-[0.55rem] font-bold text-[var(--text-sub)] bg-[var(--inner-box)] px-2 py-0.5 rounded border border-[var(--panel-border)]">
                             <span>통합 순위: <strong className="text-[var(--text-main)]">{rankData.overall ? `#${rankData.overall.toLocaleString()}` : '집계중'}</strong></span>
@@ -958,7 +1026,6 @@ function AgoraLoungeContent() {
                           })}
                         </div>
 
-                        {/* 📌 데스크톱 순위 명칭 수정: 통합 순위 & 데이안 순위 */}
                         <div className="bg-[var(--inner-box)] p-2.5 rounded-lg border border-[var(--panel-border)] mt-0.5 space-y-1">
                           <div className="flex justify-between items-end border-b border-[var(--panel-border)] pb-1">
                             <span className="text-[var(--text-sub)] text-[0.65rem] font-bold">{RANKING_INFO[activeRankTab].stat}</span>
