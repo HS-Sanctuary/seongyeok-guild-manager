@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../../lib/supabase";
 
+// --- 타입 정의 ---
 interface Character {
   id: string | number;
   nickname: string;
@@ -17,17 +18,75 @@ interface Character {
   contribution: number;
   is_main: boolean;
   sort_order?: number;
+  last_seen_at?: string;
   homework_status?: any;
   raid_checks?: any;
 }
 
+interface PartyInfo {
+  id: string | number;
+  content_name: string;
+  difficulty: string;
+  status: string;
+  time_start: string;
+  time_end: string;
+  final_start_time?: string;
+  members?: Array<{ name: string }>;
+}
+
+const HOMEWORK_ITEMS = [
+  { label: "허상", keys: ['abyss_1', 'abyss1', 'abyss_illusion', 'illusion', '허상', '허상의 정박지'] },
+  { label: "동굴", keys: ['abyss_2', 'abyss2', 'abyss_cave', 'cave', '동굴', '광기의 동굴', '광기'] },
+  { label: "물길", keys: ['abyss_3', 'abyss3', 'abyss_waterway', 'waterway', '물길', '흩어진 물길'] },
+  { label: "카브", keys: ['raid_kavrak', 'raid1', 'kavrak', '카브', '카브락'] },
+  { label: "에렐", keys: ['raid_eirel', 'raid3', 'eirel', '에렐', '에이렐'] },
+  { label: "화석", keys: ['raid_succubus', 'succubus', '화석', '서큐', '서큐버스', '화이트 서큐', '화이트서큐'] },
+];
+
+const ROLE_MAP: Record<string, string[]> = {
+  "탱커": ["전사", "기사", "빙결술사"],
+  "원딜": ["마법사", "전격술사", "화염술사", "궁수", "장궁병", "석궁사수", "악사", "암흑술사"],
+  "근딜": ["대검전사", "검술사", "댄서", "도적", "격투가", "듀얼블레이드"],
+  "힐러": ["사제", "수도사", "힐러"],
+  "서포터": ["음유시인"]
+};
+
+const ALL_CLASSES = [
+  "전사", "대검전사", "검술사", "기사", 
+  "마법사", "화염술사", "빙결술사", "전격술사", 
+  "궁수", "장궁병", "석궁사수", 
+  "힐러", "사제", "수도사", "암흑술사", 
+  "음유시인", "댄서", "악사", 
+  "도적", "격투가", "듀얼블레이드"
+];
+
+const formatLastSeen = (dateString?: string) => {
+  if (!dateString) return "접속 기록 없음";
+  const now = new Date();
+  const past = new Date(dateString);
+  const diffSec = Math.floor((now.getTime() - past.getTime()) / 1000);
+  
+  if (diffSec < 60) return "방금 전";
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}분 전`;
+  const diffHour = Math.floor(diffMin / 60);
+  if (diffHour < 24) return `${diffHour}시간 전`;
+  const diffDay = Math.floor(diffHour / 24);
+  if (diffDay === 1) return "어제";
+  return `${diffDay}일 전`;
+};
+
 export default function AstraView() {
   const router = useRouter();
   const [characters, setCharacters] = useState<Character[]>([]);
-  const [parties, setParties] = useState<any[]>([]);
+  const [parties, setParties] = useState<PartyInfo[]>([]);
   const [homeworkMap, setHomeworkMap] = useState<Record<string, any>>({});
   const [nexusContents, setNexusContents] = useState<any[]>([]);
   const [currentUser, setCurrentUser] = useState<string>("");
+  const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
+
+  // 토스트 알림 상태
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // 필터 상태
   const [showDetailSearch, setShowDetailSearch] = useState(false);
@@ -38,46 +97,69 @@ export default function AstraView() {
   const [homeworkFilter, setHomeworkFilter] = useState<string>("전체");
   const [partyFilter, setPartyFilter] = useState<string>("전체");
   const [roleFilter, setRoleFilter] = useState<string>("전체");
+  const [onlyOnline, setOnlyOnline] = useState<boolean>(false);
 
-  const [selectedCharDetail, setSelectedCharDetail] = useState<any | null>(null);
+  const [selectedCharDetail, setSelectedCharDetail] = useState<{ char: Character; partyInfo?: PartyInfo } | null>(null);
 
-  const HOMEWORK_ITEMS = [
-    { label: "허상", keys: ['abyss_1', 'abyss1', 'abyss_illusion', 'illusion', '허상', '허상의 정박지'] },
-    { label: "동굴", keys: ['abyss_2', 'abyss2', 'abyss_cave', 'cave', '동굴', '광기의 동굴', '광기'] },
-    { label: "물길", keys: ['abyss_3', 'abyss3', 'abyss_waterway', 'waterway', '물길', '흩어진 물길'] },
-    { label: "카브", keys: ['raid_kavrak', 'raid1', 'kavrak', '카브', '카브락'] },
-    { label: "에렐", keys: ['raid_eirel', 'raid3', 'eirel', '에렐', '에이렐'] },
-    { label: "화석", keys: ['raid_succubus', 'succubus', '화석', '서큐', '서큐버스', '화이트 서큐', '화이트서큐'] },
-  ];
-
-  // 보내주신 정확한 클래스 역할군 분류 매핑
-  const ROLE_MAP: Record<string, string[]> = {
-    "탱커": ["전사", "기사", "빙결술사"],
-    "원딜": ["마법사", "전격술사", "화염술사", "궁수", "장궁병", "석궁사수", "악사", "암흑술사"],
-    "근딜": ["대검전사", "검술사", "댄서", "도적", "격투가", "듀얼블레이드"],
-    "힐러": ["사제", "수도사", "힐러"],
-    "서포터": ["음유시인"]
-  };
-
-  const ALL_CLASSES = [
-    "전사", "대검전사", "검술사", "기사", 
-    "마법사", "화염술사", "빙결술사", "전격술사", 
-    "궁수", "장궁병", "석궁사수", 
-    "힐러", "사제", "수도사", "암흑술사", 
-    "음유시인", "댄서", "악사", 
-    "도적", "격투가", "듀얼블레이드"
-  ];
+  const showToast = useCallback((msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3500);
+  }, []);
 
   useEffect(() => {
     const saved = localStorage.getItem("nexus_user");
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        setCurrentUser(parsed.username || parsed.nickname || parsed.owner || "한설");
+        const name = parsed.username || parsed.nickname || parsed.owner || "한설";
+        setCurrentUser(name);
+        updateUserLastSeen(name);
       } catch(e) {}
+    } else {
+      setCurrentUser("한설");
     }
     fetchAstraData();
   }, []);
+
+  const updateUserLastSeen = async (username: string) => {
+    try {
+      await supabase
+        .from('characters')
+        .update({ last_seen_at: new Date().toISOString() })
+        .eq('owner', username);
+    } catch (e) {
+      console.error("접속 시간 업데이트 실패", e);
+    }
+  };
+
+  // Supabase Realtime Presence
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const channel = supabase.channel('sanctum_presence', {
+      config: { presence: { key: currentUser } },
+    });
+
+    channel
+      .on('presence', { event: 'sync' }, () => {
+        const state = channel.presenceState();
+        const onlineSet = new Set<string>();
+        Object.keys(state).forEach((key) => onlineSet.add(key));
+        setOnlineUsers(onlineSet);
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await channel.track({
+            user: currentUser,
+            online_at: new Date().toISOString(),
+          });
+        }
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentUser]);
 
   const fetchAstraData = async () => {
     try {
@@ -107,7 +189,7 @@ export default function AstraView() {
     }
   };
 
-  const checkCompleted = (c: Character, itemKeys: string[]) => {
+  const checkCompleted = useCallback((c: Character, itemKeys: string[]) => {
     if (!c) return false;
     let raidChecks: any[] = [];
     if (Array.isArray(c.raid_checks)) {
@@ -160,15 +242,27 @@ export default function AstraView() {
     }
 
     return false;
-  };
+  }, [homeworkMap, nexusContents]);
 
   const totalLuna = characters.length;
-  const uniqueOwners = Array.from(new Set(characters.map(c => c.owner?.trim() || c.nickname)));
+  const uniqueOwners = useMemo(() => Array.from(new Set(characters.map(c => c.owner?.trim() || c.nickname))), [characters]);
   const totalSol = uniqueOwners.length;
 
-  const getCharPartyInfo = (nickname: string) => {
+  const checkAccountOnline = useCallback((ownerKey: string, ownerChars: Character[]) => {
+    if (onlineUsers.has(ownerKey)) return true;
+    return ownerChars.some(c => onlineUsers.has(c.nickname) || onlineUsers.has(c.owner));
+  }, [onlineUsers]);
+
+  const onlineSolCount = useMemo(() => {
+    return uniqueOwners.filter(ownerKey => {
+      const ownerChars = characters.filter(c => (c.owner?.trim() || c.nickname) === ownerKey);
+      return checkAccountOnline(ownerKey, ownerChars);
+    }).length;
+  }, [uniqueOwners, characters, checkAccountOnline]);
+
+  const getCharPartyInfo = useCallback((nickname: string) => {
     return parties.find(p => p.members?.some((m: any) => m.name === nickname));
-  };
+  }, [parties]);
 
   const handleResetFilters = () => {
     setSearchTerm("");
@@ -178,31 +272,46 @@ export default function AstraView() {
     setHomeworkFilter("전체");
     setPartyFilter("전체");
     setRoleFilter("전체");
+    setOnlyOnline(false);
   };
 
-  const groupedByOwner = uniqueOwners.map(ownerKey => {
-    const ownerChars = characters.filter(c => (c.owner?.trim() || c.nickname) === ownerKey);
-    ownerChars.sort((a, b) => {
-      if (a.is_main) return -1;
-      if (b.is_main) return 1;
-      return (a.sort_order ?? 0) - (b.sort_order ?? 0);
+  const groupedByOwner = useMemo(() => {
+    const list = uniqueOwners.map(ownerKey => {
+      const ownerChars = characters.filter(c => (c.owner?.trim() || c.nickname) === ownerKey);
+      ownerChars.sort((a, b) => {
+        if (a.is_main) return -1;
+        if (b.is_main) return 1;
+        return (a.sort_order ?? 0) - (b.sort_order ?? 0);
+      });
+
+      const mainChar = ownerChars.find(c => c.is_main) || ownerChars[0];
+      const isOnline = checkAccountOnline(ownerKey, ownerChars);
+
+      const latestSeen = ownerChars
+        .map(c => c.last_seen_at)
+        .filter(Boolean)
+        .sort((a, b) => new Date(b!).getTime() - new Date(a!).getTime())[0];
+
+      return { ownerKey, mainChar, characters: ownerChars, isOnline, latestSeen };
     });
 
-    const mainChar = ownerChars.find(c => c.is_main) || ownerChars[0];
-    return { ownerKey, mainChar, characters: ownerChars };
-  });
+    list.sort((a, b) => {
+      if (currentUser) {
+        const isAUser = a.ownerKey === currentUser || a.characters.some(c => c.nickname === currentUser || c.owner === currentUser);
+        const isBUser = b.ownerKey === currentUser || b.characters.some(c => c.nickname === currentUser || c.owner === currentUser);
+        if (isAUser && !isBUser) return -1;
+        if (!isAUser && isBUser) return 1;
+      }
+      if (a.isOnline && !b.isOnline) return -1;
+      if (!a.isOnline && b.isOnline) return 1;
 
-  groupedByOwner.sort((a, b) => {
-    if (currentUser) {
-      const isAUser = a.ownerKey === currentUser || a.characters.some(c => c.nickname === currentUser || c.owner === currentUser);
-      const isBUser = b.ownerKey === currentUser || b.characters.some(c => c.nickname === currentUser || c.owner === currentUser);
-      if (isAUser && !isBUser) return -1;
-      if (!isAUser && isBUser) return 1;
-    }
-    return a.ownerKey.localeCompare(b.ownerKey, "ko");
-  });
+      return a.ownerKey.localeCompare(b.ownerKey, "ko");
+    });
 
-  const isCharacterMatched = (c: Character, ownerKey: string) => {
+    return list;
+  }, [uniqueOwners, characters, checkAccountOnline, currentUser]);
+
+  const isCharacterMatched = useCallback((c: Character, ownerKey: string) => {
     const partyInfo = getCharPartyInfo(c.nickname);
 
     if (searchTerm) {
@@ -236,22 +345,48 @@ export default function AstraView() {
     }
 
     return true;
+  }, [searchTerm, selectedClass, roleFilter, minCombat, minMagicResist, partyFilter, homeworkFilter, getCharPartyInfo, checkCompleted]);
+
+  const filteredAccounts = useMemo(() => {
+    return groupedByOwner.filter(acc => {
+      if (onlyOnline && !acc.isOnline) return false;
+      return acc.characters.some(c => isCharacterMatched(c, acc.ownerKey));
+    });
+  }, [groupedByOwner, onlyOnline, isCharacterMatched]);
+
+  // 다이렉트 파티 이동 핸들러
+  const handleNavigateToParty = (partyId?: string | number) => {
+    if (partyId) {
+      router.push(`/party?id=${partyId}`);
+    } else {
+      router.push('/party');
+    }
   };
 
-  const filteredAccounts = groupedByOwner.filter(acc => {
-    return acc.characters.some(c => isCharacterMatched(c, acc.ownerKey));
-  });
-
   return (
-    <section className="space-y-4 animate-in fade-in duration-200 select-none">
+    <section className="space-y-4 animate-in fade-in duration-200 select-none relative">
       
+      {/* 토스트 알림 팝업 */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-[10000] bg-[var(--panel)] border border-[var(--accent)] text-[var(--text-main)] px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2 text-xs font-black animate-in slide-in-from-bottom-5 duration-300">
+          <span>✨</span>
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
       {/* 🔍 검색 및 세부 검색 제어바 */}
       <div className="bg-[var(--panel)] border border-[var(--panel-border)] p-2.5 sm:p-3 rounded-2xl shadow-sm space-y-2.5">
         <div className="flex flex-col lg:flex-row items-center justify-between gap-2.5">
+          
           <div className="flex items-center gap-2 bg-[var(--inner-box)] px-3 py-1.5 rounded-xl border border-[var(--panel-border)] shrink-0 w-full lg:w-auto justify-between lg:justify-start">
             <div className="flex items-center gap-1.5">
               <span className="text-amber-400 font-black text-xs">SOL</span>
-              <span className="text-xs font-black text-[var(--text-main)]">{totalSol} <span className="text-[0.65rem] text-[var(--text-sub)]">계정</span></span>
+              <span className="text-xs font-black text-[var(--text-main)]">
+                {totalSol} <span className="text-[0.65rem] text-[var(--text-sub)]">계정</span>
+              </span>
+              <span className="text-[0.6rem] bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 font-black px-1.5 py-0.2 rounded-full ml-1">
+                🟢 {onlineSolCount}명 접속 중
+              </span>
             </div>
             <span className="text-[var(--panel-border)]">|</span>
             <div className="flex items-center gap-1.5">
@@ -292,7 +427,17 @@ export default function AstraView() {
         {showDetailSearch && (
           <div className="flex flex-wrap items-center gap-2 pt-2.5 border-t border-[var(--panel-border)] text-xs animate-in fade-in duration-150">
             
-            {/* 역할군 필터 */}
+            <button
+              onClick={() => setOnlyOnline(!onlyOnline)}
+              className={`px-2.5 py-1.5 rounded-lg font-black text-xs transition cursor-pointer flex items-center gap-1 ${
+                onlyOnline 
+                  ? 'bg-emerald-600 text-white border border-emerald-400 shadow-sm' 
+                  : 'bg-[var(--inner-box)] text-[var(--text-sub)] border border-[var(--panel-border)]'
+              }`}
+            >
+              🟢 온라인 유저만
+            </button>
+
             <div className="flex items-center bg-[var(--inner-box)] rounded-lg p-0.5 border border-[var(--panel-border)]">
               {["전체", "탱커", "원딜", "근딜", "힐러", "서포터"].map(role => (
                 <button
@@ -307,7 +452,6 @@ export default function AstraView() {
               ))}
             </div>
 
-            {/* 개별 클래스 선택 */}
             <select 
               value={selectedClass} 
               onChange={e => setSelectedClass(e.target.value)}
@@ -319,7 +463,6 @@ export default function AstraView() {
               ))}
             </select>
 
-            {/* 시낙시스 파티 상태 */}
             <select 
               value={partyFilter} 
               onChange={e => setPartyFilter(e.target.value)}
@@ -331,7 +474,6 @@ export default function AstraView() {
               <option value="미참여">💤 파티 미참여만</option>
             </select>
 
-            {/* 숙제 미완료 선택 */}
             <select 
               value={homeworkFilter} 
               onChange={e => setHomeworkFilter(e.target.value)}
@@ -343,7 +485,6 @@ export default function AstraView() {
               ))}
             </select>
 
-            {/* 최소 스펙 수치 (글자 잘림 방지 너비 확보) */}
             <div className="flex items-center gap-1.5 sm:ml-auto flex-wrap">
               <input 
                 type="number" 
@@ -385,9 +526,22 @@ export default function AstraView() {
                       내 계정
                     </span>
                   )}
+                  
                   <span className="font-black text-base text-[var(--text-main)] truncate max-w-[140px] sm:max-w-[220px]" title={acc.ownerKey}>
                     {acc.ownerKey}
                   </span>
+
+                  <div className="flex items-center gap-1 shrink-0">
+                    <span className={`w-2 h-2 rounded-full ${acc.isOnline ? 'bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]' : 'bg-gray-500/50'}`}></span>
+                    <span className={`text-[0.58rem] font-black px-1.5 py-0.2 rounded border ${
+                      acc.isOnline 
+                        ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' 
+                        : 'bg-gray-800/50 text-gray-400 border-gray-700/50'
+                    }`}>
+                      {acc.isOnline ? '🟢 생텀 접속 중' : `⚪ ${formatLastSeen(acc.latestSeen)}`}
+                    </span>
+                  </div>
+
                   <span className="text-[0.6rem] bg-[var(--accent)] text-[var(--accent-fg)] font-black px-1.5 py-0.5 rounded truncate max-w-[130px] sm:max-w-[200px] shrink-0" title={`대표: ${acc.mainChar?.nickname} (${acc.mainChar?.job})`}>
                     대표: {acc.mainChar?.nickname} ({acc.mainChar?.job})
                   </span>
@@ -538,11 +692,14 @@ export default function AstraView() {
                 <div className="text-[0.65rem] text-[var(--text-sub)] font-mono">
                   시간: {selectedCharDetail.partyInfo.time_start} ~ {selectedCharDetail.partyInfo.time_end}
                 </div>
+                
+                {/* 🎯 개선: 파티 ID 파라미터를 들고 파티룸으로 직행 다이렉트 연동 */}
                 <button 
-                  onClick={() => router.push('/party')}
-                  className="w-full py-2 bg-rose-600 hover:bg-rose-500 text-white font-black text-xs rounded-lg transition shadow cursor-pointer mt-1"
+                  onClick={() => handleNavigateToParty(selectedCharDetail.partyInfo?.id)}
+                  className="w-full py-2 bg-rose-600 hover:bg-rose-500 text-white font-black text-xs rounded-lg transition shadow cursor-pointer mt-1 flex items-center justify-center gap-1.5"
                 >
-                  ⚔️ 시낙시스 파티룸으로 이동
+                  <span>⚔️</span>
+                  <span>해당 시낙시스 파티룸으로 직행</span>
                 </button>
               </div>
             ) : (
