@@ -29,6 +29,16 @@ const CLASS_TITLES: Record<string, string[]> = {
   "도적": ["독왕", "트릭스터", "땅거미", "도적"], "격투가": ["권신", "권왕", "권호", "격투가"], "듀얼블레이드": ["유성천침", "쌍극난무", "질풍쌍화", "듀얼블레이드"],
 };
 
+// 🗓️ 안전한 월요일 타임스탬프 계산 함수 (날짜 객체 변형 방지)
+const getMonday = (d: Date) => {
+  const dClone = new Date(d.getTime());
+  const day = dClone.getDay();
+  const diff = dClone.getDate() - day + (day === 0 ? -6 : 1);
+  dClone.setDate(diff);
+  dClone.setHours(0, 0, 0, 0);
+  return dClone.getTime();
+};
+
 export default function CharacterPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
@@ -118,7 +128,6 @@ export default function CharacterPage() {
 
   const totalLevel = calculateTotalLevel();
 
-  // 계정 전체 합산 스탯 계산
   const accountTotals = allCharacters
     .filter((c: any) => c.owner === user?.nickname)
     .reduce(
@@ -245,19 +254,37 @@ export default function CharacterPage() {
         .select('*')
         .or(`owner.eq.${user?.nickname || charName},nickname.eq.${charName}`);
 
+      const now = new Date();
+      const mondayNow = getMonday(now);
+      const todayStr = now.toDateString();
+
       const accountWideProgress: Record<number, number> = {};
       const accountWideBuyers: Record<number, string> = {};
 
       if (allOwnedChars) {
         allOwnedChars.forEach((c: any) => {
           const rawTrade = c.trade_checks || {};
+          const charUpdatedAt = c.updated_at ? new Date(c.updated_at) : new Date(0);
+          const charMonday = getMonday(charUpdatedAt);
+          const charDateStr = charUpdatedAt.toDateString();
+
           Object.keys(rawTrade).forEach((kStr) => {
             const id = Number(kStr);
+            const tradeMeta = tradesList.find((t: any) => t.id === id);
+            const resetType = tradeMeta?.reset_type || '주간';
+
             const val = rawTrade[kStr];
             let count = typeof val === 'object' && val !== null ? Number(val.count || 0) : Number(val || 0);
             let buyer = typeof val === 'object' && val !== null ? String(val.completed_by || c.nickname) : c.nickname;
 
-            if (count > (accountWideProgress[id] || 0)) {
+            let isExpired = false;
+            if (resetType === '일간' && charDateStr !== todayStr) {
+              isExpired = true;
+            } else if (resetType === '주간' && charMonday < mondayNow) {
+              isExpired = true;
+            }
+
+            if (!isExpired && count > (accountWideProgress[id] || 0)) {
               accountWideProgress[id] = count;
               accountWideBuyers[id] = buyer;
             }
@@ -302,13 +329,29 @@ export default function CharacterPage() {
         const parsedProgress: Record<number, number> = {};
         const parsedNicknames: Record<number, string> = {};
 
+        const lastUpdated = data.updated_at ? new Date(data.updated_at) : new Date(0);
+        const lastMonday = getMonday(lastUpdated);
+        const isDifferentDay = now.toDateString() !== lastUpdated.toDateString();
+        const isDifferentWeek = lastMonday < mondayNow;
+
         Object.keys(rawTrade).forEach((k: any) => {
+          const tradeId = Number(k);
+          const tradeMeta = tradesList.find((t: any) => t.id === tradeId);
+          const resetType = tradeMeta?.reset_type || '주간';
+
           const val = rawTrade[k];
-          if (typeof val === 'object' && val !== null) {
-            parsedProgress[Number(k)] = Number(val.count || 0);
-            if (val.completed_by) parsedNicknames[Number(k)] = String(val.completed_by);
-          } else {
-            parsedProgress[Number(k)] = Number(val || 0);
+          let count = typeof val === 'object' && val !== null ? Number(val.count || 0) : Number(val || 0);
+          let buyer = typeof val === 'object' && val !== null ? String(val.completed_by || charName) : charName;
+
+          if (resetType === '일간' && isDifferentDay) {
+            count = 0;
+          } else if (resetType === '주간' && isDifferentWeek) {
+            count = 0;
+          }
+
+          if (count > 0) {
+            parsedProgress[tradeId] = count;
+            if (buyer) parsedNicknames[tradeId] = buyer;
           }
         });
 
@@ -648,7 +691,7 @@ export default function CharacterPage() {
     const myData = allCharacters.find(c => c.nickname === profile.nickname);
     if (!myData) return [];
 
-    const pushIfTop3 = (type: keyof typeof RANKING_INFO, titleArr: string[]) => {
+    const pushIfTop3 = (type: any, titleArr: string[]) => {
       const rank = [...allCharacters].sort((a,b) => getScore(b, type) - getScore(a, type)).findIndex(c => c.nickname === profile.nickname);
       if(rank >= 0 && rank < 3) titles.push({ type, name: titleArr[rank], rank: rank + 1, tagClass: CATEGORY_THEMES[type].tags[rank] });
     };
@@ -821,11 +864,16 @@ export default function CharacterPage() {
           </div>
 
           <div className="flex items-center gap-1 shrink-0">
+            <span className="text-[11px] sm:text-xs font-black px-1.5 py-0.5 rounded border bg-[var(--panel)] text-[var(--text-sub)] border-[var(--panel-border)]">
+              {trade.reset_type || '주간'}
+            </span>
+
             {trade.scope === '계정당' && buyerNick && (
               <span className="text-[10px] font-bold text-purple-200 bg-purple-900/80 px-1.5 py-0.5 rounded border border-purple-700/80">
                 {buyerNick}
               </span>
             )}
+            
             <span className={`text-[11px] sm:text-xs font-black px-2 py-0.5 rounded border ${
               trade.scope === '계정당' 
                 ? 'bg-purple-600 text-white border-purple-700 shadow-xs' 
@@ -871,7 +919,6 @@ export default function CharacterPage() {
   return (
     <div className="max-w-[1400px] mx-auto text-[var(--text-main)] font-sans pb-16 pt-1 md:pt-4 px-2 md:px-6 relative bg-transparent">
       
-      {/* 플로팅 토스트 */}
       {saveToast !== 'idle' && (
         <div className={`fixed top-4 right-4 z-[110] px-3.5 py-1.5 rounded-full border shadow-lg text-xs font-bold transition-all duration-300 flex items-center gap-1.5 backdrop-blur-md ${
           saveToast === 'saving' ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 animate-pulse' :
@@ -888,7 +935,6 @@ export default function CharacterPage() {
         </div>
       )}
 
-      {/* 캐릭터 관리 모달 */}
       {isManageModalOpen && (
         <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-2 md:p-4">
           <div className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-xl w-[98%] max-w-2xl max-h-[88vh] overflow-hidden flex flex-col shadow-2xl">
@@ -994,7 +1040,6 @@ export default function CharacterPage() {
 
       <div className="space-y-2 md:space-y-4">
         
-        {/* CHRONOS 헤더 */}
         <header className="relative overflow-hidden rounded-xl bg-[var(--panel)] border border-[var(--panel-border)] py-1.5 px-3 md:py-2.5 md:px-4 shadow-xs">
           <div className="absolute top-0 left-0 w-1.5 h-full bg-[var(--accent)]"></div>
           <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-1.5">
@@ -1003,7 +1048,6 @@ export default function CharacterPage() {
               <span className="text-[var(--accent)] text-xs font-bold tracking-wide leading-none whitespace-nowrap">
                 크로노스 : 캐릭터 관리
               </span>
-              {/* 모바일 뷰 전용 (i) 툴팁 버튼 */}
               <button 
                 onClick={() => setShowInfo(!showInfo)}
                 className="md:hidden w-4 h-4 rounded-full bg-[var(--inner-box)] border border-[var(--panel-border)] text-[10px] font-black text-[var(--accent)] flex items-center justify-center hover:bg-[var(--accent-soft)] transition cursor-pointer shrink-0 ml-0.5"
@@ -1013,7 +1057,6 @@ export default function CharacterPage() {
               </button>
             </div>
 
-            {/* 모바일 뷰 툴팁 내용 */}
             {showInfo && (
               <div className="md:hidden bg-[var(--inner-box)] border border-[var(--panel-border)] p-2 rounded-lg w-full text-xs font-bold text-[var(--text-sub)] leading-snug animate-in fade-in duration-200">
                 <p>⏳ 시간과 기록의 신, 크로노스.</p>
@@ -1021,7 +1064,6 @@ export default function CharacterPage() {
               </div>
             )}
             
-            {/* PC 뷰 전용 가로 설명 박스 */}
             <div className="hidden md:block border border-[var(--panel-border)] bg-[var(--inner-box)] px-3 py-1.5 rounded-lg text-[11px] font-bold text-[var(--text-sub)] leading-snug ml-auto w-fit">
               <p>⏳ 시간과 기록의 신, 크로노스.</p>
               <p>입력한 능력치는 <span className="text-[var(--accent)]">AGORA 명예의 전당</span>으로 즉시 연결됩니다.</p>
@@ -1029,11 +1071,9 @@ export default function CharacterPage() {
           </div>
         </header>
         
-        {/* 상단 프로필 카드 */}
         <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-2.5 md:p-4 shadow-xs space-y-2 md:space-y-4">
           
           <div className="flex items-center justify-between border-b border-[var(--panel-border)] pb-2 gap-2">
-            {/* 좌측 캐릭터 핵심 프로필 */}
             <div className="flex items-center gap-2 min-w-0">
               <div className="w-9 h-9 md:w-10 md:h-10 bg-[var(--inner-box)] rounded-xl border border-[var(--panel-border)] flex items-center justify-center text-base shrink-0 shadow-inner">
                 🎨
@@ -1081,7 +1121,6 @@ export default function CharacterPage() {
               </div>
             </div>
 
-            {/* 우측 상단 버튼 */}
             <div className="flex flex-col gap-2 shrink-0">
               <button 
                 onClick={() => router.push(`/character/detail?char=${encodeURIComponent(profile.nickname)}`)}
@@ -1098,7 +1137,6 @@ export default function CharacterPage() {
             </div>
           </div>
 
-          {/* 칭호 아코디언 */}
           {isTitleAccordionOpen && (
             <div className="p-2 border rounded-lg border-[var(--panel-border)] bg-[var(--inner-box)] space-y-1 text-xs">
               {earnedTitles.length > 0 ? (
@@ -1113,7 +1151,6 @@ export default function CharacterPage() {
             </div>
           )}
 
-          {/* 선택 캐릭터 / 계정 총합 토글 버튼 */}
           <div className="grid grid-cols-2 bg-[var(--inner-box)] p-0.5 rounded-lg border border-[var(--panel-border)] gap-0.5 shadow-inner my-2 md:max-w-[300px]">
             <button 
               onClick={() => setStatViewMode('character')} 
@@ -1139,105 +1176,98 @@ export default function CharacterPage() {
             </button>
           </div>
 
-          {/* 스탯 6칸 */}
-          <div className="grid grid-cols-2 md:grid-cols-6 gap-1.5 md:gap-2">
+          {/* 💡 완전 모바일뷰일땐 1번 사진처럼 가로 정렬(flex-row), 태블릿/PC(md:)에선 세로 정렬(md:flex-col) 유지 */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-1.5 md:gap-2">
             
-            {/* 1. 전투력 */}
-            <div className="bg-[var(--inner-box)] px-2.5 py-1.5 md:px-2.5 md:py-2.5 rounded-lg border border-[var(--panel-border)] flex flex-row md:flex-col items-center md:items-start justify-between md:justify-center gap-1 md:gap-1.5 min-w-0">
-              <label className="text-[13px] md:text-[15px] font-bold text-red-400 whitespace-nowrap shrink-0">⚔️ 전투력</label>
+            <div className="bg-[var(--inner-box)] px-2.5 py-1.5 md:px-2.5 md:py-2.5 rounded-lg border border-[var(--panel-border)] flex flex-row md:flex-col items-center md:items-start justify-between md:justify-center gap-1 min-w-0">
+              <label className="text-[13px] md:text-sm font-bold text-red-400 whitespace-nowrap shrink-0">⚔️ 전투력</label>
               {statViewMode === 'character' ? (
                 <input 
                   type="number" 
                   value={profile.combatPower} 
                   onChange={e => updateProfile("combatPower", e.target.value)} 
                   placeholder="0" 
-                  className="w-full text-right md:text-left bg-transparent text-sm md:text-m font-black font-mono text-[var(--text-main)] outline-none min-w-0 pr-0.5 md:pr-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
+                  className="w-full text-right md:text-left bg-transparent text-sm md:text-base font-black font-mono text-[var(--text-main)] outline-none min-w-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
                 />
               ) : (
-                <span className="text-sm md:text-[15px] font-black font-mono text-[var(--accent)] text-right md:text-left flex-1 md:flex-none w-full min-w-0 pr-0.5 md:pr-0">
+                <span className="text-sm md:text-base font-black font-mono text-[var(--accent)] text-right md:text-left w-full truncate">
                   {accountTotals.combatPower.toLocaleString()}
                 </span>
               )}
             </div>
 
-            {/* 2. 생활력 */}
-            <div className="bg-[var(--inner-box)] px-2.5 py-1.5 md:px-2.5 md:py-2.5 rounded-lg border border-[var(--panel-border)] flex flex-row md:flex-col items-center md:items-start justify-between md:justify-center gap-1 md:gap-1.5 min-w-0">
-              <label className="text-[13px] md:text-[15px] font-bold text-emerald-400 whitespace-nowrap shrink-0">🌿 생활력</label>
+            <div className="bg-[var(--inner-box)] px-2.5 py-1.5 md:px-2.5 md:py-2.5 rounded-lg border border-[var(--panel-border)] flex flex-row md:flex-col items-center md:items-start justify-between md:justify-center gap-1 min-w-0">
+              <label className="text-[13px] md:text-sm font-bold text-emerald-400 whitespace-nowrap shrink-0">🌿 생활력</label>
               {statViewMode === 'character' ? (
                 <input 
                   type="number" 
                   value={profile.lifeEnergy} 
                   onChange={e => updateProfile("lifeEnergy", e.target.value)} 
                   placeholder="0" 
-                  className="w-full text-right md:text-left bg-transparent text-sm md:text-m font-black font-mono text-[var(--text-main)] outline-none min-w-0 pr-0.5 md:pr-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
+                  className="w-full text-right md:text-left bg-transparent text-sm md:text-base font-black font-mono text-[var(--text-main)] outline-none min-w-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
                 />
               ) : (
-                <span className="text-sm md:text-[15px] font-black font-mono text-[var(--accent)] text-right md:text-left flex-1 md:flex-none w-full min-w-0 pr-0.5 md:pr-0">
+                <span className="text-sm md:text-base font-black font-mono text-[var(--accent)] text-right md:text-left w-full truncate">
                   {accountTotals.lifeEnergy.toLocaleString()}
                 </span>
               )}
             </div>
 
-            {/* 3. 매력 */}
-            <div className="bg-[var(--inner-box)] px-2.5 py-1.5 md:px-2.5 md:py-2.5 rounded-lg border border-[var(--panel-border)] flex flex-row md:flex-col items-center md:items-start justify-between md:justify-center gap-1 md:gap-1.5 min-w-0">
-              <label className="text-[13px] md:text-[15px] font-bold text-pink-400 whitespace-nowrap shrink-0">✨ 매력</label>
+            <div className="bg-[var(--inner-box)] px-2.5 py-1.5 md:px-2.5 md:py-2.5 rounded-lg border border-[var(--panel-border)] flex flex-row md:flex-col items-center md:items-start justify-between md:justify-center gap-1 min-w-0">
+              <label className="text-[13px] md:text-sm font-bold text-pink-400 whitespace-nowrap shrink-0">✨ 매력</label>
               {statViewMode === 'character' ? (
                 <input 
                   type="number" 
                   value={profile.charm} 
                   onChange={e => updateProfile("charm", e.target.value)} 
                   placeholder="0" 
-                  className="w-full text-right md:text-left bg-transparent text-sm md:text-m font-black font-mono text-[var(--text-main)] outline-none min-w-0 pr-0.5 md:pr-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
+                  className="w-full text-right md:text-left bg-transparent text-sm md:text-base font-black font-mono text-[var(--text-main)] outline-none min-w-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
                 />
               ) : (
-                <span className="text-sm md:text-[15px] font-black font-mono text-[var(--accent)] text-right md:text-left flex-1 md:flex-none w-full min-w-0 pr-0.5 md:pr-0">
+                <span className="text-sm md:text-base font-black font-mono text-[var(--accent)] text-right md:text-left w-full truncate">
                   {accountTotals.charm.toLocaleString()}
                 </span>
               )}
             </div>
 
-            {/* 4. 종합 점수 */}
-            <div className="bg-[var(--inner-box)] px-2.5 py-1.5 md:px-2.5 md:py-2.5 rounded-lg border border-[var(--accent)]/50 bg-[var(--accent-soft)]/10 flex flex-row md:flex-col items-center md:items-start justify-between md:justify-center gap-1 md:gap-1.5 min-w-0">
-              <label className="text-[13px] md:text-[15px] font-bold text-[var(--accent)] whitespace-nowrap shrink-0">🏆 종합점수</label>
-              <span className="text-sm md:text-m font-black font-mono text-[var(--accent)] text-right md:text-left flex-1 md:flex-none w-full min-w-0 pr-0.5 md:pr-0">
+            <div className="bg-[var(--inner-box)] px-2.5 py-1.5 md:px-2.5 md:py-2.5 rounded-lg border border-[var(--accent)]/50 bg-[var(--accent-soft)]/10 flex flex-row md:flex-col items-center md:items-start justify-between md:justify-center gap-1 min-w-0">
+              <label className="text-[13px] md:text-sm font-bold text-[var(--accent)] whitespace-nowrap shrink-0">🏆 종합점수</label>
+              <span className="text-sm md:text-base font-black font-mono text-[var(--accent)] text-right md:text-left w-full truncate">
                 {statViewMode === 'character' ? charTotalScore.toLocaleString() : accountTotalScore.toLocaleString()}
               </span>
             </div>
 
-            {/* 5. 마도저항 */}
-            <div className="bg-[var(--inner-box)] px-2.5 py-1.5 md:px-2.5 md:py-2.5 rounded-lg border border-[var(--panel-border)] flex flex-row md:flex-col items-center md:items-start justify-between md:justify-center gap-1 md:gap-1.5 min-w-0">
-              <label className="text-[13px] md:text-[15px] font-bold text-purple-400 whitespace-nowrap shrink-0">🔮 마도저항</label>
+            <div className="bg-[var(--inner-box)] px-2.5 py-1.5 md:px-2.5 md:py-2.5 rounded-lg border border-[var(--panel-border)] flex flex-row md:flex-col items-center md:items-start justify-between md:justify-center gap-1 min-w-0">
+              <label className="text-[13px] md:text-sm font-bold text-purple-400 whitespace-nowrap shrink-0">🔮 마도저항</label>
               {statViewMode === 'character' ? (
                 <input 
                   type="number" 
                   value={profile.magicResistance} 
                   onChange={e => updateProfile("magicResistance", e.target.value)} 
                   placeholder="0" 
-                  className="w-full text-right md:text-left bg-transparent text-sm md:text-m font-black font-mono text-[var(--text-main)] outline-none min-w-0 pr-0.5 md:pr-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
+                  className="w-full text-right md:text-left bg-transparent text-sm md:text-base font-black font-mono text-[var(--text-main)] outline-none min-w-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
                 />
               ) : (
-                <span className="text-sm md:text-[15px] font-black font-mono text-[var(--accent)] text-right md:text-left flex-1 md:flex-none w-full min-w-0 pr-0.5 md:pr-0">
+                <span className="text-sm md:text-base font-black font-mono text-[var(--accent)] text-right md:text-left w-full truncate">
                   {accountTotals.magicResistance.toLocaleString()}
                 </span>
               )}
             </div>
 
-            {/* 6. 길드 공헌도 */}
-            <div className="bg-[var(--inner-box)] px-2.5 py-1.5 md:px-2.5 md:py-2.5 rounded-lg border border-[var(--panel-border)] flex flex-row md:flex-col items-center md:items-start justify-between md:justify-center gap-1 md:gap-1.5 min-w-0">
-              <label className="text-[13px] md:text-[15px] font-bold text-amber-400 whitespace-nowrap shrink-0">🛡️ 길드공헌도</label>
+            <div className="bg-[var(--inner-box)] px-2.5 py-1.5 md:px-2.5 md:py-2.5 rounded-lg border border-[var(--panel-border)] flex flex-row md:flex-col items-center md:items-start justify-between md:justify-center gap-1 min-w-0">
+              <label className="text-[13px] md:text-sm font-bold text-amber-400 whitespace-nowrap shrink-0">🛡️ 길드공헌도</label>
               <input 
                 type="number" 
                 value={accountContribution} 
                 onChange={e => setAccountContribution(e.target.value)} 
                 placeholder="0" 
-                className="w-full text-right md:text-left bg-transparent text-sm md:text-m font-black font-mono text-[var(--text-main)] outline-none min-w-0 pr-0.5 md:pr-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
+                className="w-full text-right md:text-left bg-transparent text-sm md:text-base font-black font-mono text-[var(--text-main)] outline-none min-w-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
               />
             </div>
 
           </div>
         </div>
 
-        {/* 캐릭터 선택 바 */}
         <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-1.5 md:p-2.5 shadow-xs space-y-2 md:space-y-3">
           <div className="flex items-center justify-between gap-1 text-xs font-bold text-[var(--text-sub)] px-1">
             <span className="flex items-center gap-1 whitespace-nowrap shrink-0 text-xs md:text-sm">
@@ -1287,7 +1317,6 @@ export default function CharacterPage() {
           </div>
         </div>
 
-        {/* 2행 3열 필터 버튼 그리드 */}
         <div className="grid grid-cols-3 gap-1 bg-[var(--inner-box)] p-1 rounded-xl border border-[var(--panel-border)]">
           {[
             { id: 'all', label: 'ALL' },
@@ -1311,10 +1340,8 @@ export default function CharacterPage() {
           ))}
         </div>
 
-        {/* ---------------- 컨텐츠 영역 ---------------- */}
         <div className="space-y-3 md:space-y-4">
           
-          {/* 📱 1. 모바일 전용 뷰 */}
           {(activeTab === 'all' || activeTab === 'weekly_daily' || activeTab === 'abyss_raid') && (
             <div className="block md:hidden space-y-2.5">
               
@@ -1372,7 +1399,6 @@ export default function CharacterPage() {
             </div>
           )}
 
-          {/* 💻 2. PC 전용 와이드 뷰 */}
           {(activeTab === 'all' || activeTab === 'weekly_daily' || activeTab === 'abyss_raid') && (
             <div className="hidden md:grid grid-cols-2 lg:grid-cols-4 gap-2.5">
               
@@ -1419,7 +1445,6 @@ export default function CharacterPage() {
             </div>
           )}
 
-          {/* ⚖️ 물물 교환 카테고리 */}
           {(activeTab === 'all' || activeTab === 'barter') && (
             <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-2.5 md:p-4 shadow-xs space-y-2.5">
               <div className="flex justify-between items-center gap-2 border-b border-[var(--panel-border)] pb-2 min-w-0">
@@ -1452,7 +1477,6 @@ export default function CharacterPage() {
             </div>
           )}
 
-          {/* 🛒 상점 구매 카테고리 */}
           {(activeTab === 'all' || activeTab === 'shop') && (
             <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-2.5 md:p-4 shadow-xs space-y-2.5">
               <div className="flex justify-between items-center gap-2 border-b border-[var(--panel-border)] pb-2 min-w-0">
@@ -1485,36 +1509,35 @@ export default function CharacterPage() {
             </div>
           )}
 
-          {/* ⚡ 클래스 레벨 관리 */}
           {(activeTab === 'all' || activeTab === 'levels') && (
             <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-2.5 md:p-4 shadow-xs space-y-3">
               <h3 className="font-bold text-[var(--accent)] text-xs md:text-sm whitespace-nowrap border-b border-[var(--panel-border)] pb-2">⚡ 클래스 레벨 관리</h3>
               
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2">
                 {dbClasses.map((cls: any) => {
                   const currentLevel = levels[cls.name] || 1;
                   const isMax = currentLevel === 65;
                   return (
-                    <div key={cls.name} className={`flex items-center justify-between p-1.5 md:p-2.5 rounded-lg border transition min-w-0 ${isMax ? 'border-[var(--accent)] bg-[var(--accent-soft)]/20' : 'bg-[var(--inner-box)] border-[var(--panel-border)]'}`}>
+                    <div key={cls.name} className={`flex items-center justify-between p-1.5 md:p-2 rounded-lg border transition min-w-0 ${isMax ? 'border-[var(--accent)] bg-[var(--accent-soft)]/20' : 'bg-[var(--inner-box)] border-[var(--panel-border)]'}`}>
                       <div className="flex items-center gap-1.5 min-w-0 pr-1 flex-1">
                         <span className="text-xs md:text-sm shrink-0">{cls.icon || "🛡️"}</span>
                         <span className={`text-xs md:text-sm font-bold truncate ${isMax ? 'text-[var(--accent)]' : 'text-[var(--text-main)]'}`}>{cls.name}</span>
                       </div>
 
                       <div className="flex items-center gap-1 shrink-0">
-                        <span className="text-xs md:text-sm font-black font-mono text-[var(--accent)] mr-1 whitespace-nowrap">
+                        <span className="text-xs md:text-sm font-black font-mono text-[var(--accent)] mr-0.5 whitespace-nowrap">
                           Lv.{currentLevel}
                         </span>
                         
                         <button 
                           onClick={() => updateClassLevel(cls.name, -10)} 
-                          className="px-1.5 py-0.5 text-[11px] font-bold rounded bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)] cursor-pointer"
+                          className="px-1 py-0.5 text-[10px] font-bold rounded bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)] cursor-pointer"
                         >
                           -10
                         </button>
                         <button 
                           onClick={() => updateClassLevel(cls.name, -1)} 
-                          className="px-1.5 py-0.5 text-[11px] font-bold rounded bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)] cursor-pointer"
+                          className="px-1 py-0.5 text-[10px] font-bold rounded bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)] cursor-pointer"
                         >
                           -1
                         </button>
@@ -1522,14 +1545,14 @@ export default function CharacterPage() {
                         {isMax ? (
                           <button 
                             onClick={() => setMinLevel(cls.name)} 
-                            className="px-2 py-0.5 text-[11px] font-black rounded bg-rose-500/20 text-rose-400 border border-rose-500/40 hover:bg-rose-500 hover:text-white transition whitespace-nowrap cursor-pointer"
+                            className="px-1.5 py-0.5 text-[10px] font-black rounded bg-rose-500/20 text-rose-400 border border-rose-500/40 hover:bg-rose-500 hover:text-white transition whitespace-nowrap cursor-pointer"
                           >
                             MIN
                           </button>
                         ) : (
                           <button 
                             onClick={() => setMaxLevel(cls.name)} 
-                            className="px-2 py-0.5 text-[11px] font-bold rounded bg-[var(--accent-soft)] text-[var(--accent)] border border-[var(--accent)]/40 hover:bg-[var(--accent)] hover:text-[var(--accent-fg)] transition whitespace-nowrap cursor-pointer"
+                            className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-[var(--accent-soft)] text-[var(--accent)] border border-[var(--accent)]/40 hover:bg-[var(--accent)] hover:text-[var(--accent-fg)] transition whitespace-nowrap cursor-pointer"
                           >
                             MAX
                           </button>
@@ -1537,13 +1560,13 @@ export default function CharacterPage() {
 
                         <button 
                           onClick={() => updateClassLevel(cls.name, 1)} 
-                          className="px-1.5 py-0.5 text-[11px] font-bold rounded bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)] cursor-pointer"
+                          className="px-1 py-0.5 text-[10px] font-bold rounded bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)] cursor-pointer"
                         >
                           +1
                         </button>
                         <button 
                           onClick={() => updateClassLevel(cls.name, 10)} 
-                          className="px-1.5 py-0.5 text-[11px] font-bold rounded bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)] cursor-pointer"
+                          className="px-1 py-0.5 text-[10px] font-bold rounded bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)] cursor-pointer"
                         >
                           +10
                         </button>

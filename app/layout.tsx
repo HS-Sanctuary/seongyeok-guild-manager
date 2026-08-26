@@ -54,7 +54,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const [activeAccount, setActiveAccount] = useState<AccountPreset | null>(null);
 
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
-  const [isAccountAccordionOpen, setIsAccountAccordionOpen] = useState(false);
   const [isWingsOpen, setIsWingsOpen] = useState(false);
   
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
@@ -66,6 +65,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   
   const [sheetDragY, setSheetDragY] = useState(0);
   const [isDraggingSheet, setIsDraggingSheet] = useState(false);
+
+  // 🚀 스마트 스크롤 네비게이션바 상태 (모바일 & 데스크톱 공용, 즉각 반응형)
+  const [showNavbar, setShowNavbar] = useState(true);
+  const lastScrollY = useRef(0);
 
   const [stickers, setStickers] = useState<Sticker[]>([]);
   const stickersRef = useRef<Sticker[]>([]);
@@ -87,6 +90,29 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
   const [pendingCount, setPendingCount] = useState(0);
   const [banner, setBanner] = useState<any>(null);
+
+  // 🚀 requestAnimationFrame을 이용해 딜레이 없는 부드러운 스크롤 감지
+  useEffect(() => {
+    let ticking = false;
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const currentScrollY = window.scrollY;
+          if (currentScrollY > lastScrollY.current && currentScrollY > 50) {
+            setShowNavbar(false);
+          } else if (currentScrollY < lastScrollY.current || currentScrollY <= 10) {
+            setShowNavbar(true);
+          }
+          lastScrollY.current = currentScrollY;
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   useEffect(() => {
     const handleGlobalClickOutside = (event: MouseEvent | TouchEvent) => {
@@ -338,17 +364,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     saveStickers(updated);
     if (selectedStickerId === id) setSelectedStickerId(null);
     setConfigStickerId(null);
-  };
-
-  const moveStickerOrder = (realIndex: number, direction: 'up' | 'down') => {
-    const newStickers = [...stickers];
-    const targetIndex = direction === 'up' ? realIndex + 1 : realIndex - 1;
-    if (targetIndex < 0 || targetIndex >= newStickers.length) return;
-
-    const temp = newStickers[realIndex];
-    newStickers[realIndex] = newStickers[targetIndex];
-    newStickers[targetIndex] = temp;
-    saveStickers(newStickers);
   };
 
   const handleChangeStickerImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -740,7 +755,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <input ref={globalStickerInputRef} type="file" accept="image/*" onChange={handleGlobalStickerUpload} className="hidden" />
             <input ref={changeStickerImageRef} type="file" accept="image/*" onChange={handleChangeStickerImage} className="hidden" />
 
-            <nav className="sticky top-0 z-[900] flex flex-col shadow-lg border-b backdrop-blur-md w-full transition-colors bg-[var(--panel)] border-[var(--panel-border)]">
+            {/* 🚀 스마트 스크롤 효과 적용된 상단 네비게이션바 (모바일 & 데스크톱 공용) */}
+            <nav className={`sticky top-0 z-[900] flex flex-col shadow-lg border-b backdrop-blur-md w-full transition-transform duration-300 bg-[var(--panel)] border-[var(--panel-border)] ${
+              showNavbar ? 'translate-y-0' : '-translate-y-full'
+            }`}>
               {banner && (
                 <div className="w-full py-2 bg-red-600 text-white text-center text-xs font-black flex items-center justify-center gap-2 border-b border-red-800">
                   <span>🚨</span><span>{banner.message}</span><span>🚨</span>
@@ -768,6 +786,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                       </div>
                     </Link>
 
+                    {/* 정령의 날개 팝업 */}
                     <div className="relative z-[100] ml-0.5 xl:ml-1 shrink-0" ref={wingsRef}>
                       <button 
                         onClick={() => setIsWingsOpen(!isWingsOpen)}
@@ -781,9 +800,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                         <div className="fixed sm:absolute top-20 left-4 right-4 sm:right-auto sm:left-0 sm:top-full mt-2 sm:w-[260px] max-w-[calc(100vw-32px)] bg-[var(--panel)] p-1 rounded-xl shadow-[0_0_20px_rgba(0,0,0,0.8)] border border-[var(--panel-border)] animate-in fade-in slide-in-from-top-2 z-[9999]">
                           <div className="relative border border-[var(--accent)] rounded-lg h-full w-full flex flex-col bg-[var(--panel)]">
                             <div className="p-3 border-b border-[var(--panel-border)] flex justify-between items-start">
-                              <div>
+                              <div className="flex flex-col items-start">
                                 <h3 className="font-black text-[1.1rem] tracking-tight text-[var(--accent)] flex items-center gap-1">
-                                  🪽 정령의 날개
+                                  정령의 날개
                                 </h3>
                                 <p className="text-[var(--text-sub)] text-[0.7rem] font-bold mt-1"><span className="text-[var(--accent)]">고급</span> 재화</p>
                               </div>
@@ -811,18 +830,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                                   <span className="text-[var(--text-sub)] group-hover:text-[var(--accent)] transition text-[0.6rem]">↗</span>
                                 </a>
                                 <a href="https://arca.live/b/mabimobile" target="_blank" rel="noreferrer" className="bg-[var(--panel-hover)] hover:opacity-90 text-[var(--text-main)] text-[0.7rem] font-bold py-2 px-2.5 rounded flex justify-between items-center transition border border-[var(--panel-border)] group">
-                                  <div className="flex items-center gap-2">
-                                    <img src="https://www.google.com/s2/favicons?domain=arca.live&sz=32" alt="로고" className="w-4 h-4 rounded-sm" />
-                                    모비 채널 (아카라이브)
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <img src="https://www.google.com/s2/favicons?domain=arca.live&sz=32" alt="로고" className="w-4 h-4 rounded-sm shrink-0" />
+                                    <span className="truncate">모비 채널 <span className="text-[0.6rem] text-[var(--text-sub)]">(아카라이브)</span></span>
                                   </div>
-                                  <span className="text-[var(--text-sub)] group-hover:text-[var(--accent)] transition text-[0.6rem]">↗</span>
+                                  <span className="text-[var(--text-sub)] group-hover:text-[var(--accent)] transition text-[0.6rem] shrink-0">↗</span>
                                 </a>
                                 <a href="https://gall.dcinside.com/mgallery/board/lists/?id=enban" target="_blank" rel="noreferrer" className="bg-[var(--panel-hover)] hover:opacity-90 text-[var(--text-main)] text-[0.7rem] font-bold py-2 px-2.5 rounded flex justify-between items-center transition border border-[var(--panel-border)] group">
-                                  <div className="flex items-center gap-2">
-                                    <img src="https://www.google.com/s2/favicons?domain=gall.dcinside.com&sz=32" alt="로고" className="w-4 h-4 rounded-sm" />
-                                    에반 갤러리 (디시)
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <img src="https://www.google.com/s2/favicons?domain=gall.dcinside.com&sz=32" alt="로고" className="w-4 h-4 rounded-sm shrink-0" />
+                                    <span className="truncate">에반 갤러리 <span className="text-[0.6rem] text-[var(--text-sub)]">(디시)</span></span>
                                   </div>
-                                  <span className="text-[var(--text-sub)] group-hover:text-[var(--accent)] transition text-[0.6rem]">↗</span>
+                                  <span className="text-[var(--text-sub)] group-hover:text-[var(--accent)] transition text-[0.6rem] shrink-0">↗</span>
                                 </a>
                               </div>
                             </div>
@@ -855,33 +874,34 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     })}
                   </div>
 
-                  <div className="hidden lg:flex items-center gap-1.5 xl:gap-2.5 relative shrink-0">
+                  {/* 🚀 상단 우측 영역 (모바일 & 데스크톱 공용 노출로 변경하여 로그인/계정 환경 배치) */}
+                  <div className="flex items-center gap-1.5 xl:gap-2.5 relative shrink-0">
                     <button 
                       onClick={() => setIsThemeModalOpen(true)}
-                      className="w-9 h-9 border rounded-xl transition cursor-pointer flex items-center justify-center shadow-sm border-[var(--panel-border)] hover:border-[var(--accent)] hover:scale-105 text-base select-none bg-[var(--inner-box)]"
+                      className="w-8 h-8 sm:w-9 sm:h-9 border rounded-xl transition cursor-pointer flex items-center justify-center shadow-sm border-[var(--panel-border)] hover:border-[var(--accent)] hover:scale-105 text-sm sm:text-base select-none bg-[var(--inner-box)]"
                       title="생텀 페이지 설정"
                     >
                       🎨
                     </button>
 
                     <div 
-                      className="w-9 h-9 border rounded-xl transition cursor-pointer flex items-center justify-center shadow-sm border-[var(--panel-border)] hover:border-[var(--accent)] hover:scale-105 text-[var(--accent)] bg-[var(--inner-box)]" 
+                      className="w-8 h-8 sm:w-9 sm:h-9 border rounded-xl transition cursor-pointer flex items-center justify-center shadow-sm border-[var(--panel-border)] hover:border-[var(--accent)] hover:scale-105 text-[var(--accent)] bg-[var(--inner-box)]" 
                       title="메일함"
                     >
-                      <svg className="w-4 h-4 text-[var(--accent)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[var(--accent)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
                       </svg>
                     </div>
 
                     {mounted && activeAccount ? (
                       <div className="relative" ref={accountMenuRef}>
-                        <button onClick={() => setIsAccountMenuOpen(!isAccountMenuOpen)} className="flex items-center gap-2 px-3 py-2 rounded-full border transition shadow-md whitespace-nowrap bg-[var(--panel)] hover:bg-[var(--panel-hover)] text-[var(--text-main)] border-[var(--accent)] cursor-pointer">
-                          <div className="w-6 h-6 rounded-full flex items-center justify-center text-[0.65rem] shrink-0 bg-[var(--inner-box)] text-[var(--text-main)]">👑</div>
+                        <button onClick={() => setIsAccountMenuOpen(!isAccountMenuOpen)} className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-full border transition shadow-md whitespace-nowrap bg-[var(--panel)] hover:bg-[var(--panel-hover)] text-[var(--text-main)] border-[var(--accent)] cursor-pointer">
+                          <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center text-[0.6rem] sm:text-[0.65rem] shrink-0 bg-[var(--inner-box)] text-[var(--text-main)]">👑</div>
                           <div className="flex flex-col text-left leading-none whitespace-nowrap">
-                            <span className="text-[0.7rem] font-bold flex items-center gap-1 max-w-[120px] truncate text-[var(--text-main)]">{activeAccount.alias || activeAccount.nickname}</span>
-                            <span className="text-[0.55rem] text-[var(--accent)] mt-0.5">{activeAccount.role}</span>
+                            <span className="text-[0.65rem] sm:text-[0.7rem] font-bold flex items-center gap-1 max-w-[90px] sm:max-w-[120px] truncate text-[var(--text-main)]">{activeAccount.alias || activeAccount.nickname}</span>
+                            <span className="text-[0.5rem] sm:text-[0.55rem] text-[var(--accent)] mt-0.5">{activeAccount.role}</span>
                           </div>
-                          <span className="text-[0.55rem] text-[var(--text-sub)] ml-0.5">▼</span>
+                          <span className="text-[0.5rem] sm:text-[0.55rem] text-[var(--text-sub)] ml-0.5">▼</span>
                         </button>
 
                         {isAccountMenuOpen && (
@@ -913,7 +933,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                         )}
                       </div>
                     ) : (
-                      <Link href="/login" className="text-[0.7rem] font-bold text-[var(--accent)] hover:opacity-80 whitespace-nowrap">로그인</Link>
+                      <Link href="/login" className="text-[0.65rem] sm:text-[0.7rem] font-bold text-[var(--accent)] hover:opacity-80 whitespace-nowrap">로그인</Link>
                     )}
                   </div>
                 </div>
@@ -939,6 +959,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </button>
             </div>
 
+            {/* 🚀 모바일 바텀 시트 (계정 영역을 상단으로 옮겼으므로 순수 설정 및 메뉴바로 깔끔하게 유지) */}
             <div
               className={`fixed inset-x-0 bottom-0 z-[9999] lg:hidden border-t-2 rounded-t-[28px] p-4 shadow-2xl flex flex-col bg-[var(--panel)] text-[var(--text-main)] border-[var(--accent)] ${
                 isDraggingSheet ? '' : 'transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]'
@@ -950,50 +971,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </div>
 
               <div className="overflow-y-auto custom-scrollbar flex flex-col gap-3 pb-12 max-h-[80vh]">
-                {activeAccount && (
-                  <div className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl p-3 flex flex-col gap-2 shadow-sm transition-all duration-200">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-full bg-[var(--inner-box)] border border-[var(--accent)] flex items-center justify-center text-xs shrink-0">👑</div>
-                        <div className="flex flex-col leading-none">
-                          <span className="text-xs font-black text-[var(--text-main)]">{activeAccount.alias || activeAccount.nickname}</span>
-                          <span className="text-[0.6rem] text-[var(--accent)] mt-1">{activeAccount.role}</span>
-                        </div>
-                      </div>
-                      <button onClick={() => setIsAccountAccordionOpen(!isAccountAccordionOpen)} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-[var(--inner-box)] border border-[var(--panel-border)] hover:border-[var(--accent)] text-[0.65rem] font-bold text-[var(--text-main)] transition cursor-pointer">
-                        {isAccountAccordionOpen ? <><span className="bg-[var(--accent)]/20 text-[var(--accent)] px-1.5 py-0.5 rounded font-black text-[0.6rem]">선택됨</span><span className="text-[0.6rem] text-[var(--text-sub)]">▲</span></> : <><span className="text-sm">⚙️</span><span className="text-[0.6rem] text-[var(--text-sub)]">▼</span></>}
-                      </button>
-                    </div>
-
-                    {isAccountAccordionOpen && (
-                      <div className="flex flex-col gap-2 pt-2.5 border-t border-[var(--panel-border)] animate-in fade-in duration-200">
-                        <div className="text-[0.6rem] font-bold text-[var(--text-sub)] px-1">현재 활성 계정</div>
-                        <div className="flex items-center justify-between p-2.5 rounded-xl border-l-4 bg-[var(--inner-box)] border-[var(--accent)]">
-                          <span className="text-xs font-black text-[var(--text-main)]">{activeAccount.alias || activeAccount.nickname}</span>
-                          <span className="text-[0.6rem] bg-[var(--accent)]/20 text-[var(--accent)] px-2 py-0.5 rounded font-bold shrink-0">선택됨</span>
-                        </div>
-                        {accounts.filter(a => a.id !== activeAccount.id).length > 0 && (
-                          <>
-                            <div className="text-[0.6rem] font-bold text-[var(--text-sub)] px-1 border-t border-[var(--panel-border)] pt-2 mt-1">계정 빠른 스위칭</div>
-                            {accounts.filter(a => a.id !== activeAccount.id).map(acc => (
-                              <button key={acc.id} onClick={() => switchAccount(acc)} className="w-full flex items-center justify-between p-2.5 rounded-xl text-left transition bg-[var(--inner-box)] hover:bg-[var(--panel-hover)] border border-[var(--panel-border)] cursor-pointer">
-                                <span className="text-xs font-bold text-[var(--text-main)]">{acc.alias || acc.nickname}</span>
-                                <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: acc.borderColor }}></span>
-                              </button>
-                            ))}
-                          </>
-                        )}
-                        <div className="border-t border-[var(--panel-border)] pt-2 mt-1 flex flex-col gap-1">
-                          <Link href="/login" onClick={() => setIsFabOpen(false)} className="w-full text-center text-xs font-bold text-[var(--accent)] hover:bg-[var(--panel-hover)] py-2 rounded-lg transition">➕ 계정 추가 로그인</Link>
-                          {isAdmin && <Link href="/admin" onClick={() => setIsFabOpen(false)} className="w-full text-center text-xs font-bold text-[var(--text-sub)] hover:text-[var(--text-main)] hover:bg-[var(--panel-hover)] py-2 rounded-lg transition flex items-center justify-center gap-1">⚙️ SANCTUM 관리자 {pendingCount > 0 && <span className="bg-red-500 text-white px-1.5 py-0.2 rounded-full text-[0.55rem]">{pendingCount}</span>}</Link>}
-                          <button onClick={() => { handleLogout(); setIsFabOpen(false); }} className="w-full text-center text-xs font-bold text-red-400 hover:bg-red-950/30 py-2 rounded-lg transition cursor-pointer">🚪 현재 계정 로그아웃</button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                <div className="border-y border-[var(--panel-border)] py-1.5">
+                <div className="border-b border-[var(--panel-border)] pb-1.5">
                   <button onClick={() => { setIsFabOpen(false); setIsThemeModalOpen(true); }} className="w-full py-2.5 px-3 rounded-xl bg-[var(--inner-box)] border border-[var(--panel-border)] hover:border-[var(--accent)] text-xs font-bold text-[var(--text-main)] flex items-center justify-center gap-1.5 cursor-pointer shadow-sm">
                     <span>🎨</span> 생텀 페이지 설정
                   </button>
@@ -1216,7 +1194,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                       </div>
                     </div>
                   );
-                })()}
+                })}
               </div>
 
             </main>
