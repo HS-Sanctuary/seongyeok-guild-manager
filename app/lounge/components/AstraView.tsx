@@ -18,7 +18,7 @@ interface Character {
   contribution: number;
   is_main: boolean;
   sort_order?: number;
-  last_seen_at?: string;
+  updated_at?: string; // 🔑 접속 기록용 컬럼 (updated_at 활용)
   homework_status?: any;
   raid_checks?: any;
 }
@@ -121,11 +121,12 @@ export default function AstraView() {
     fetchAstraData();
   }, []);
 
+  // 🔑 접속 시각 갱신 (updated_at 컬럼 활용)
   const updateUserLastSeen = async (username: string) => {
     try {
       await supabase
         .from('characters')
-        .update({ last_seen_at: new Date().toISOString() })
+        .update({ updated_at: new Date().toISOString() })
         .eq('owner', username);
     } catch (e) {
       console.error("접속 시간 업데이트 실패", e);
@@ -288,7 +289,7 @@ export default function AstraView() {
       const isOnline = checkAccountOnline(ownerKey, ownerChars);
 
       const latestSeen = ownerChars
-        .map(c => c.last_seen_at)
+        .map(c => c.updated_at)
         .filter(Boolean)
         .sort((a, b) => new Date(b!).getTime() - new Date(a!).getTime())[0];
 
@@ -354,7 +355,6 @@ export default function AstraView() {
     });
   }, [groupedByOwner, onlyOnline, isCharacterMatched]);
 
-  // 다이렉트 파티 이동 핸들러
   const handleNavigateToParty = (partyId?: string | number) => {
     if (partyId) {
       router.push(`/party?id=${partyId}`);
@@ -366,7 +366,6 @@ export default function AstraView() {
   return (
     <section className="space-y-4 animate-in fade-in duration-200 select-none relative">
       
-      {/* 토스트 알림 팝업 */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-[10000] bg-[var(--panel)] border border-[var(--accent)] text-[var(--text-main)] px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2 text-xs font-black animate-in slide-in-from-bottom-5 duration-300">
           <span>✨</span>
@@ -423,7 +422,6 @@ export default function AstraView() {
           </div>
         </div>
 
-        {/* 세부 검색 펼침 패널 */}
         {showDetailSearch && (
           <div className="flex flex-wrap items-center gap-2 pt-2.5 border-t border-[var(--panel-border)] text-xs animate-in fade-in duration-150">
             
@@ -693,7 +691,6 @@ export default function AstraView() {
                   시간: {selectedCharDetail.partyInfo.time_start} ~ {selectedCharDetail.partyInfo.time_end}
                 </div>
                 
-                {/* 🎯 개선: 파티 ID 파라미터를 들고 파티룸으로 직행 다이렉트 연동 */}
                 <button 
                   onClick={() => handleNavigateToParty(selectedCharDetail.partyInfo?.id)}
                   className="w-full py-2 bg-rose-600 hover:bg-rose-500 text-white font-black text-xs rounded-lg transition shadow cursor-pointer mt-1 flex items-center justify-center gap-1.5"
