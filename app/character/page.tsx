@@ -2,9 +2,15 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "../../lib/supabase"; 
+import { supabase } from "../../lib/supabase";
 
-// --- 아고라 칭호 연동 데이터 ---
+import CharacterStats from "@/components/layout/character/CharacterStats";
+import ClassLevelManager from "@/components/layout/character/ClassLevelManager";
+import ContentChecklist from "@/components/layout/character/ContentChecklist";
+import TradeList from "@/components/layout/character/TradeList";
+import CharacterSelector from "@/components/layout/character/CharacterSelector";
+import CharacterManageModal from "@/components/layout/character/CharacterManageModal";
+
 const CATEGORY_THEMES: Record<string, any> = {
   TELOS: { tags: ['bg-purple-500/30 text-purple-300 border-purple-400', 'bg-purple-800/40 text-purple-400 border-purple-600/80', 'bg-purple-950/50 text-purple-500 border-purple-800/70'] },
   KRATOS: { tags: ['bg-red-500/30 text-red-300 border-red-400', 'bg-red-800/40 text-red-400 border-red-600/80', 'bg-red-950/50 text-red-500 border-red-800/70'] },
@@ -29,7 +35,6 @@ const CLASS_TITLES: Record<string, string[]> = {
   "도적": ["독왕", "트릭스터", "땅거미", "도적"], "격투가": ["권신", "권왕", "권호", "격투가"], "듀얼블레이드": ["유성천침", "쌍극난무", "질풍쌍화", "듀얼블레이드"],
 };
 
-// 🗓️ 안전한 월요일 타임스탬프 계산 함수 (날짜 객체 변형 방지)
 const getMonday = (d: Date) => {
   const dClone = new Date(d.getTime());
   const day = dClone.getDay();
@@ -43,7 +48,7 @@ export default function CharacterPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [mounted, setMounted] = useState(false);
-  
+
   const [saveToast, setSaveToast] = useState<string>('idle');
   const isInitialLoad = useRef(true);
   const toastTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -55,6 +60,7 @@ export default function CharacterPage() {
   const [dbTasks, setDbTasks] = useState<any[]>([]);
   const [dbContents, setDbContents] = useState<any[]>([]);
   const [dbTrades, setDbTrades] = useState<any[]>([]); 
+  const [dbPurchases, setDbPurchases] = useState<any[]>([]);
   const [allCharacters, setAllCharacters] = useState<any[]>([]);
 
   const [myCharacters, setMyCharacters] = useState<any[]>([]);
@@ -66,13 +72,13 @@ export default function CharacterPage() {
   profileRef.current = profile;
 
   const [levels, setLevels] = useState<Record<string, number>>({});
-  
+
   const [dailyChecks, setDailyChecks] = useState<number[]>([]);
   const [weeklyChecks, setWeeklyChecks] = useState<number[]>([]);
   const [repeatChecks, setRepeatChecks] = useState<Record<number, boolean[]>>({});
   const [abyssChecks, setAbyssChecks] = useState<number[]>([]);
   const [raidChecks, setRaidChecks] = useState<number[]>([]);
-  
+
   const [tradeProgress, setTradeProgress] = useState<Record<number, number>>({});
   const [tradeCompletedBy, setTradeCompletedBy] = useState<Record<number, string>>({});
   const [pinnedTrades, setPinnedTrades] = useState<number[]>([]);
@@ -83,9 +89,7 @@ export default function CharacterPage() {
   const [showInfo, setShowInfo] = useState(false);
   const [isTitleAccordionOpen, setIsTitleAccordionOpen] = useState(false);
   const [isManageModalOpen, setIsManageModalOpen] = useState(false);
-  const [isHowToOpen, setIsHowToOpen] = useState(false);
   const [manageList, setManageList] = useState<any[]>([]);
-  const dragItemIndex = useRef<number | null>(null);
 
   const abyssList = dbContents.filter((c: any) => c.type === 'abyss');
   const raidList = dbContents.filter((c: any) => c.type === 'raid');
@@ -110,7 +114,6 @@ export default function CharacterPage() {
   ];
 
   const visibleDailyList = dbTasks.filter((t: any) => (t.type === 'daily' || t.type === 'repeat_daily') && !t.name.includes("검은 구멍"));
-  
   const rawWeeklyList = dbTasks.filter((t: any) => (t.type === 'weekly' || t.type === 'repeat_weekly' || t.type === 'repeat_weekend') && !t.name.includes("검은 구멍"));
   const visibleWeeklyList = [
     ...defaultExtraWeeklyTasks,
@@ -169,29 +172,31 @@ export default function CharacterPage() {
     if (lastCheck !== todayStr) {
       localStorage.setItem("chronos_last_reset_check", todayStr);
       const isMonday = now.getDay() === 1;
-      
       setSaveToast(isMonday ? 'reset_weekly' : 'reset_daily');
       setTimeout(() => setSaveToast('idle'), 3000);
     }
   };
 
   const fetchMasterData = async (loginUserNick: string) => {
-    const [clsRes, taskRes, contRes, tradeRes, allCharsRes] = await Promise.all([
+    const [clsRes, taskRes, contRes, tradeRes, purchRes, allCharsRes] = await Promise.all([
       supabase.from('nexus_classes').select('*').eq('is_active', true).order('id'),
       supabase.from('nexus_tasks').select('*').eq('is_active', true).order('id'),
       supabase.from('nexus_contents').select('*').eq('is_active', true).order('id'),
       supabase.from('nexus_trades').select('*').order('id'),
+      supabase.from('nexus_purchases').select('*').order('id'),
       supabase.from('characters').select('*')
     ]);
     
+    const loadedTrades = tradeRes.data || [];
     setDbClasses(clsRes.data || []);
     setDbTasks(taskRes.data || []);
     setDbContents(contRes.data || []);
-    setDbTrades(tradeRes.data || []);
+    setDbTrades(loadedTrades);
+    setDbPurchases(purchRes.data || []);
     setAllCharacters(allCharsRes.data || []);
     
     await fetchAccountData(loginUserNick);
-    await fetchUserCharacters(loginUserNick, contRes.data || [], tradeRes.data || []);
+    await fetchUserCharacters(loginUserNick, contRes.data || [], loadedTrades);
   };
 
   const fetchAccountData = async (loginUserNick: string) => {
@@ -270,7 +275,7 @@ export default function CharacterPage() {
 
           Object.keys(rawTrade).forEach((kStr) => {
             const id = Number(kStr);
-            const tradeMeta = tradesList.find((t: any) => t.id === id);
+            const tradeMeta = (tradesList || []).find((t: any) => t.id === id);
             const resetType = tradeMeta?.reset_type || '주간';
 
             const val = rawTrade[kStr];
@@ -336,7 +341,7 @@ export default function CharacterPage() {
 
         Object.keys(rawTrade).forEach((k: any) => {
           const tradeId = Number(k);
-          const tradeMeta = tradesList.find((t: any) => t.id === tradeId);
+          const tradeMeta = (tradesList || []).find((t: any) => t.id === tradeId);
           const resetType = tradeMeta?.reset_type || '주간';
 
           const val = rawTrade[k];
@@ -355,7 +360,7 @@ export default function CharacterPage() {
           }
         });
 
-        tradesList.forEach((t: any) => {
+        (tradesList || []).forEach((t: any) => {
           if (t.scope === '계정당' && accountWideProgress[t.id] !== undefined) {
             parsedProgress[t.id] = accountWideProgress[t.id];
             parsedNicknames[t.id] = accountWideBuyers[t.id] || charName;
@@ -419,7 +424,7 @@ export default function CharacterPage() {
       });
 
       const accountWidePayload: Record<number, any> = {};
-      dbTrades.filter((t: any) => t.scope === '계정당').forEach((t: any) => {
+      (dbTrades || []).filter((t: any) => t.scope === '계정당').forEach((t: any) => {
         if (tradeProgress[t.id] !== undefined) {
           accountWidePayload[t.id] = {
             count: tradeProgress[t.id],
@@ -580,30 +585,6 @@ export default function CharacterPage() {
     setIsManageModalOpen(true);
   };
 
-  const addManageCharacter = () => {
-    setManageList([...manageList, { 
-      originalName: "", tempAlias: "", tempNickname: "새캐릭", tempJob: "전사", isMain: false, isDeleted: false, sort_order: manageList.length, isNew: true 
-    }]);
-  };
-
-  const handleDragStart = (e: React.DragEvent, index: number) => {
-    dragItemIndex.current = index;
-  };
-
-  const handleDragEnter = (e: React.DragEvent, index: number) => {
-    if (dragItemIndex.current === null || dragItemIndex.current === index) return;
-    const newList = [...manageList];
-    const draggedItem = newList[dragItemIndex.current];
-    newList.splice(dragItemIndex.current, 1);
-    newList.splice(index, 0, draggedItem);
-    dragItemIndex.current = index;
-    setManageList(newList.map((item, idx) => ({ ...item, sort_order: idx })));
-  };
-
-  const handleSetMain = (index: number) => {
-    setManageList(prev => prev.map((item, idx) => ({ ...item, isMain: idx === index })));
-  };
-
   const saveManageModal = async () => {
     const activeChars = manageList.filter(c => !c.isDeleted);
     if (activeChars.length === 0) {
@@ -620,7 +601,7 @@ export default function CharacterPage() {
 
     const toDelete = manageList.filter(c => c.isDeleted && !c.isNew);
     for (const char of toDelete) {
-      await supabase.from('characters').delete().eq('nickname', char.originalName);
+      await supabase.from('characters').delete().eq('originalName', char.originalName);
     }
 
     for (const char of activeChars) {
@@ -712,213 +693,19 @@ export default function CharacterPage() {
     return titles;
   };
 
-  const cleanItemName = (name: string) => name.replace(/^어비스\s*-\s*/, '').replace(/^레이드\s*-\s*/, '');
-
-  const renderTask = (item: any, type: 'daily' | 'weekly' | 'abyss' | 'raid') => {
-    const pcName = cleanItemName(item.name);
-    const mobileDisplayName = (item.mobile_name && item.mobile_name.trim()) ? item.mobile_name : pcName;
-
-    if (item.type?.startsWith('repeat')) {
-      const currentCount = (repeatChecks[item.id] || []).filter(Boolean).length;
-      const isMax = currentCount === item.max_count;
-      const showBadge = item.type === 'repeat_daily' || item.type === 'repeat_weekend';
-      const badgeText = item.type === 'repeat_daily' ? '일간' : '주말';
-      
-      return (
-        <div key={item.id} className={`flex items-center justify-between p-1.5 md:p-2 rounded-lg border transition-all ${isMax ? "bg-[var(--accent-soft)] border-[var(--accent)]" : "bg-[var(--inner-box)] border-[var(--panel-border)]"}`}>
-          <div className="flex flex-col min-w-0 pr-1 flex-1">
-            {showBadge && <span className={`text-[10px] w-fit px-1 py-0.2 rounded font-bold mb-0.5 ${isMax ? 'bg-[var(--accent)] text-[var(--accent-fg)]' : 'bg-[var(--panel)] text-[var(--text-sub)]'}`}>{badgeText}</span>}
-            
-            <span className={`md:hidden text-xs sm:text-sm font-black leading-snug break-keep ${isMax ? "text-[var(--accent)]" : "text-[var(--text-main)]"}`}>
-              {mobileDisplayName}
-            </span>
-            <span className={`hidden md:block text-xs md:text-sm font-bold leading-snug break-keep ${isMax ? "text-[var(--accent)]" : "text-[var(--text-main)]"}`}>
-              {pcName}
-            </span>
-          </div>
-          
-          <div className="flex items-center gap-1 bg-[var(--panel)] px-1.5 py-0.5 rounded border border-[var(--panel-border)] shrink-0">
-            <button 
-              onClick={() => updateRepeatCount(item.id, -1, item.max_count)} 
-              className="w-4 h-4 flex justify-center items-center rounded bg-[var(--inner-box)] text-[var(--text-sub)] hover:text-[var(--text-main)] text-xs font-black cursor-pointer border border-[var(--panel-border)]"
-            >
-              -
-            </button>
-            <span className={`text-xs font-black min-w-[24px] text-center ${isMax ? "text-[var(--accent)]" : "text-[var(--text-sub)]"}`}>
-              {currentCount}/{item.max_count}
-            </span>
-            <button 
-              onClick={() => updateRepeatCount(item.id, 1, item.max_count)} 
-              className="w-4 h-4 flex justify-center items-center rounded bg-[var(--accent)] text-[var(--accent-fg)] font-black text-xs cursor-pointer"
-            >
-              +
-            </button>
-          </div>
-        </div>
-      );
-    } 
-    
-    let checks: number[] = []; let setChecks: any;
-    if (type === 'daily') { checks = dailyChecks; setChecks = setDailyChecks; }
-    else if (type === 'weekly') { checks = weeklyChecks; setChecks = setWeeklyChecks; }
-    else if (type === 'abyss') { checks = abyssChecks; setChecks = setAbyssChecks; }
-    else if (type === 'raid') { checks = raidChecks; setChecks = setRaidChecks; }
-
-    const isChecked = checks.includes(item.id);
-
-    const getColorTheme = () => {
-      if (!isChecked) return { wrapper: "bg-[var(--inner-box)] border-[var(--panel-border)] hover:border-[var(--accent)]", text: "text-[var(--text-main)]", box: "bg-[var(--panel)] border-[var(--panel-border)]" };
-      if (type === 'daily') return { wrapper: "bg-amber-500/10 border-amber-500/50", text: "text-amber-400 font-bold", box: "bg-amber-500 text-white" };
-      if (type === 'weekly') return { wrapper: "bg-blue-500/10 border-blue-500/50", text: "text-blue-400 font-bold", box: "bg-blue-500 text-white" };
-      if (type === 'abyss' || type === 'raid') return { wrapper: "bg-emerald-500/15 border-emerald-500/60", text: "text-emerald-400 font-bold", box: "bg-emerald-500 text-black font-bold" };
-      return { wrapper: "", text: "", box: "" };
-    };
-
-    const theme = getColorTheme();
-
-    return (
-      <div key={item.id} onClick={() => setChecks(isChecked ? checks.filter((i: number) => i !== item.id) : [...checks, item.id])}
-           className={`flex items-center justify-between p-1.5 md:p-2 rounded-lg cursor-pointer border transition-all min-w-0 ${theme.wrapper}`}>
-        
-        <span className={`md:hidden text-xs sm:text-sm font-black leading-tight break-keep pr-1 min-w-0 ${theme.text}`}>
-          {mobileDisplayName}
-        </span>
-        <span className={`hidden md:block text-xs md:text-sm font-bold leading-tight break-keep pr-1 min-w-0 ${theme.text}`}>
-          {pcName}
-        </span>
-
-        <div className={`w-4 h-4 md:w-4 md:h-4 rounded flex items-center justify-center transition-all shrink-0 ${theme.box}`}>
-          {isChecked && <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
-        </div>
-      </div>
-    );
-  };
-
   if (!mounted || !user) return null;
 
   const earnedTitles = getMyEarnedTitles();
-
-  const filterAndSortTrades = (categoryType: 'barter' | 'shop') => {
-    let list = dbTrades.filter(t => {
-      const itemCategory = t.category || 'barter';
-      return itemCategory === categoryType;
-    });
-
-    if (tradeSearch.trim()) {
-      const q = tradeSearch.trim().toLowerCase();
-      list = list.filter(t => 
-        (t.npc && t.npc.toLowerCase().includes(q)) ||
-        (t.map && t.map.toLowerCase().includes(q)) ||
-        (t.reward && t.reward.toLowerCase().includes(q)) ||
-        (t.cost && t.cost.toLowerCase().includes(q))
-      );
-    }
-
-    return list.sort((a, b) => {
-      const aPin = pinnedTrades.includes(a.id) ? 1 : 0;
-      const bPin = pinnedTrades.includes(b.id) ? 1 : 0;
-      if (aPin !== bPin) return bPin - aPin;
-
-      const mapCompare = (a.map || "").localeCompare(b.map || "", "ko-KR");
-      if (mapCompare !== 0) return tradeSortOrder === 'asc' ? mapCompare : -mapCompare;
-
-      const npcCompare = (a.npc || "").localeCompare(b.npc || "", "ko-KR");
-      if (npcCompare !== 0) return tradeSortOrder === 'asc' ? npcCompare : -npcCompare;
-
-      const rewardCompare = (a.reward || "").localeCompare(b.reward || "", "ko-KR");
-      return tradeSortOrder === 'asc' ? rewardCompare : -rewardCompare;
-    });
-  };
-
-  const barterTrades = filterAndSortTrades('barter');
-  const shopTrades = filterAndSortTrades('shop');
 
   const isDailyAllChecked = visibleDailyList.filter((t: any) => !t.type?.startsWith('repeat')).every((t: any) => dailyChecks.includes(t.id));
   const isWeeklyAllChecked = visibleWeeklyList.filter((t: any) => !t.type?.startsWith('repeat')).every((t: any) => weeklyChecks.includes(t.id));
   const isAbyssAllChecked = abyssList.every((t: any) => abyssChecks.includes(t.id));
   const isRaidAllChecked = raidList.every((t: any) => raidChecks.includes(t.id));
 
-  const mobileRepeatTasks = [
-    ...visibleWeeklyList.filter((t: any) => t.type?.startsWith('repeat')),
-    ...visibleDailyList.filter((t: any) => t.type?.startsWith('repeat'))
-  ];
-
-  const mobileDailyChecklists = visibleDailyList.filter((t: any) => !t.type?.startsWith('repeat'));
-  const mobileWeeklyChecklists = visibleWeeklyList.filter((t: any) => !t.type?.startsWith('repeat'));
-
-  const renderTradeCard = (trade: any) => {
-    const currentVal = tradeProgress[trade.id] || 0;
-    const limit = trade.limit || trade.max_count || 1;
-    const isMax = currentVal >= limit;
-    const isPinned = pinnedTrades.includes(trade.id);
-    const buyerNick = tradeCompletedBy[trade.id];
-
-    return (
-      <div key={trade.id} className={`flex flex-col justify-between p-2.5 sm:p-3 rounded-lg border transition ${isPinned ? 'bg-[var(--accent-soft)]/20 border-[var(--accent)]' : 'bg-[var(--inner-box)] border-[var(--panel-border)]'}`}>
-        <div className="flex items-center justify-between mb-1.5 min-w-0">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <button onClick={() => togglePinTrade(trade.id)} className={`text-xs cursor-pointer ${isPinned ? 'opacity-100' : 'opacity-30'}`}>📌</button>
-            <span className="font-bold text-xs sm:text-sm text-[var(--accent)] truncate">
-              {trade.npc || "NPC"} <span className="text-[var(--text-main)] font-normal">({trade.map || "맵"})</span>
-            </span>
-          </div>
-
-          <div className="flex items-center gap-1 shrink-0">
-            <span className="text-[11px] sm:text-xs font-black px-1.5 py-0.5 rounded border bg-[var(--panel)] text-[var(--text-sub)] border-[var(--panel-border)]">
-              {trade.reset_type || '주간'}
-            </span>
-
-            {trade.scope === '계정당' && buyerNick && (
-              <span className="text-[10px] font-bold text-purple-200 bg-purple-900/80 px-1.5 py-0.5 rounded border border-purple-700/80">
-                {buyerNick}
-              </span>
-            )}
-            
-            <span className={`text-[11px] sm:text-xs font-black px-2 py-0.5 rounded border ${
-              trade.scope === '계정당' 
-                ? 'bg-purple-600 text-white border-purple-700 shadow-xs' 
-                : 'bg-[var(--panel)] text-[var(--text-sub)] border-[var(--panel-border)]'
-            }`}>
-              {trade.scope || '캐릭당'}
-            </span>
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between gap-2 text-xs">
-          <div className="min-w-0 flex-1">
-            <div className="text-xs sm:text-sm font-bold text-emerald-500 dark:text-emerald-400 leading-snug break-keep">
-              보상: {trade.reward} {trade.reward_cnt ? `(${trade.reward_cnt}개)` : ''}
-            </div>
-            <div className="text-xs sm:text-sm font-bold text-amber-500 dark:text-amber-400 leading-snug break-keep">
-              소모: {trade.cost} {trade.cost_cnt ? `(${trade.cost_cnt}개)` : ''}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-1 bg-[var(--panel)] px-1.5 py-0.5 rounded border border-[var(--panel-border)] shrink-0">
-            <button 
-              onClick={() => updateTradeProgress(trade.id, -1, limit, trade.scope)} 
-              className="w-4 h-4 flex justify-center items-center rounded bg-[var(--inner-box)] text-xs font-black text-[var(--text-sub)] hover:text-[var(--text-main)] cursor-pointer"
-            >
-              -
-            </button>
-            <span className={`text-xs font-black min-w-[28px] text-center ${isMax ? "text-emerald-500 dark:text-emerald-400" : "text-[var(--text-main)]"}`}>
-              {currentVal}/{limit}
-            </span>
-            <button 
-              onClick={() => updateTradeProgress(trade.id, 1, limit, trade.scope)} 
-              className="w-4 h-4 flex justify-center items-center rounded bg-[var(--accent)] text-[var(--accent-fg)] font-black text-xs cursor-pointer"
-            >
-              +
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   return (
-    <div className="max-w-[1400px] mx-auto text-[var(--text-main)] font-sans pb-16 pt-1 md:pt-4 px-2 md:px-6 relative bg-transparent">
+    <div className="max-w-[1400px] mx-auto text-[var(--text-main)] font-sans pb-28 md:pb-16 pt-1 md:pt-4 px-2 md:px-6 relative bg-transparent [-webkit-text-size-adjust:100%]">
       
+      {/* 토스트 알림 */}
       {saveToast !== 'idle' && (
         <div className={`fixed top-4 right-4 z-[110] px-3.5 py-1.5 rounded-full border shadow-lg text-xs font-bold transition-all duration-300 flex items-center gap-1.5 backdrop-blur-md ${
           saveToast === 'saving' ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 animate-pulse' :
@@ -935,120 +722,32 @@ export default function CharacterPage() {
         </div>
       )}
 
-      {isManageModalOpen && (
-        <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-2 md:p-4">
-          <div className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-xl w-[98%] max-w-2xl max-h-[88vh] overflow-hidden flex flex-col shadow-2xl">
-            <div className="p-2.5 md:p-3 border-b border-[var(--panel-border)] flex justify-between items-center bg-[var(--inner-box)]">
-              <h2 className="text-xs md:text-base font-black text-[var(--accent)]">⚙️ 캐릭터 등록 및 관리</h2>
-              <button onClick={() => setIsManageModalOpen(false)} className="text-[var(--text-sub)] hover:text-[var(--text-main)] text-sm">✕</button>
-            </div>
-            
-            <div className="p-1.5 md:p-3 overflow-y-auto custom-scrollbar flex-1 space-y-1.5">
-              <button 
-                onClick={() => setIsHowToOpen(!isHowToOpen)}
-                className="w-full text-left text-xs text-[var(--accent)] bg-[var(--inner-box)] border border-[var(--panel-border)] px-2 py-1 rounded-lg font-bold hover:bg-[var(--accent-soft)] transition flex justify-between items-center"
-              >
-                <span>📖 [사용 방법]</span>
-                <span className="text-[10px]">{isHowToOpen ? '▲ 닫기' : '▼ 펼치기'}</span>
-              </button>
+      {/* 캐릭터 등록 및 관리 모달 */}
+      <CharacterManageModal
+        isOpen={isManageModalOpen}
+        onClose={() => setIsManageModalOpen(false)}
+        manageList={manageList}
+        setManageList={setManageList}
+        dbClasses={dbClasses}
+        CLASS_TITLES={CLASS_TITLES}
+        saveManageModal={saveManageModal}
+      />
 
-              {isHowToOpen && (
-                <div className="bg-[var(--inner-box)] border border-[var(--panel-border)] p-2 rounded-lg text-xs space-y-1 text-[var(--text-sub)]">
-                  <p>● :: 핸들을 움직여 순서를 변경 할 수 있습니다!</p>
-                  <p>● 애칭은 최대 세글자(3자)까지 입력 가능합니다!</p>
-                  <p>● 닉네임은 인게임 닉네임을 정확히 입력해주세요!</p>
-                  <p>● 대표 캐릭터는 한 캐릭터만 지정할 수 있습니다!</p>
-                </div>
-              )}
-              
-              {manageList.map((char, index) => !char.isDeleted && (
-                <div 
-                  key={index} 
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, index)}
-                  onDragEnter={(e) => handleDragEnter(e, index)}
-                  onDragOver={(e) => e.preventDefault()}
-                  className="flex items-center gap-1 bg-[var(--inner-box)] p-1 rounded-lg border border-[var(--panel-border)] transition hover:border-[var(--accent)]/50 min-w-0"
-                >
-                  <div className="flex items-center text-[var(--text-sub)] font-mono cursor-grab active:cursor-grabbing shrink-0 select-none text-[10px] leading-none">
-                    <span className="font-bold text-[11px] text-[var(--text-sub)]">::</span>
-                    <span className="font-bold text-[var(--accent)] min-w-[10px] text-center">{index + 1}</span>
-                  </div>
-
-                  <input 
-                    value={char.tempAlias} 
-                    maxLength={3}
-                    placeholder="애칭(3자)"
-                    onChange={(e) => { 
-                      const nw = [...manageList]; 
-                      nw[index].tempAlias = e.target.value.slice(0, 3); 
-                      setManageList(nw); 
-                    }} 
-                    className="w-12 sm:w-14 bg-[var(--panel)] border border-[var(--panel-border)] rounded px-1 py-1 text-[11px] text-[var(--text-main)] focus:border-[var(--accent)] outline-none text-center shrink-0 font-bold" 
-                  />
-
-                  <input 
-                    value={char.tempNickname} 
-                    placeholder="닉네임"
-                    onChange={(e) => { const nw = [...manageList]; nw[index].tempNickname = e.target.value; setManageList(nw); }} 
-                    className="flex-1 min-w-[48px] bg-[var(--panel)] border border-[var(--panel-border)] rounded px-1 py-1 text-[11px] text-[var(--text-main)] focus:border-[var(--accent)] outline-none" 
-                  />
-
-                  <select 
-                    value={char.tempJob} 
-                    onChange={(e) => { const nw = [...manageList]; nw[index].tempJob = e.target.value; setManageList(nw); }} 
-                    className="w-[62px] sm:w-20 bg-[var(--panel)] border border-[var(--panel-border)] rounded px-0.5 py-1 text-[10px] sm:text-xs text-[var(--text-main)] focus:border-[var(--accent)] outline-none shrink-0"
-                  >
-                    {dbClasses.length > 0 ? (
-                      dbClasses.map((cls: any) => <option key={cls.name} value={cls.name}>{cls.name}</option>)
-                    ) : (
-                      Object.keys(CLASS_TITLES).map((clsName) => <option key={clsName} value={clsName}>{clsName}</option>)
-                    )}
-                  </select>
-
-                  <button 
-                    type="button"
-                    onClick={() => handleSetMain(index)}
-                    className={`px-1.5 py-1 rounded text-[10px] sm:text-xs font-bold shrink-0 transition ${
-                      char.isMain 
-                        ? 'bg-[var(--accent)] text-[var(--accent-fg)]' 
-                        : 'bg-[var(--panel)] text-[var(--text-sub)] border border-[var(--panel-border)] hover:text-[var(--text-main)]'
-                    }`}
-                  >
-                    대표
-                  </button>
-
-                  <button 
-                    onClick={() => { if(confirm(`정말 [${char.tempAlias || char.tempNickname}] 캐릭터를 삭제하시겠습니까?`)) { const nw = [...manageList]; nw[index].isDeleted = true; setManageList(nw); } }} 
-                    className="bg-red-950/40 text-red-400 border border-red-800/50 px-1.5 py-1 rounded text-[10px] sm:text-xs font-bold hover:bg-red-900/60 shrink-0"
-                  >
-                    삭제
-                  </button>
-                </div>
-              ))}
-
-              <button onClick={addManageCharacter} className="w-full border border-dashed border-[var(--accent)] text-[var(--accent)] py-1.5 rounded-lg hover:bg-[var(--accent-soft)] font-bold text-xs transition">+ 새 캐릭터 추가</button>
-            </div>
-
-            <div className="p-2 border-t border-[var(--panel-border)] bg-[var(--inner-box)] flex justify-end gap-1.5">
-              <button onClick={() => setIsManageModalOpen(false)} className="px-3 py-1 rounded-lg bg-[var(--panel)] text-[var(--text-sub)] text-xs font-bold transition">취소</button>
-              <button onClick={saveManageModal} className="px-4 py-1 rounded-lg bg-[var(--accent)] text-[var(--accent-fg)] text-xs font-black transition">변경사항 저장</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className="space-y-2 md:space-y-4">
+      <div className="space-y-3 md:space-y-4">
         
-        <header className="relative overflow-hidden rounded-xl bg-[var(--panel)] border border-[var(--panel-border)] py-1.5 px-3 md:py-2.5 md:px-4 shadow-xs">
+        {/* 🔴 상단 헤더: 요청하신 문구 적용 및 "크로노스." 기준 줄바꿈 디자인 */}
+        <header className="relative overflow-hidden rounded-xl bg-[var(--panel)] border border-[var(--panel-border)] py-2.5 px-3 md:py-3.5 md:px-5 shadow-xs">
           <div className="absolute top-0 left-0 w-1.5 h-full bg-[var(--accent)]"></div>
-          <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-1.5">
-            <div className="flex items-center gap-1.5 flex-wrap w-full md:w-auto">
-              <h1 className="text-base md:text-lg font-black tracking-widest leading-none text-[var(--text-main)]">CHRONOS</h1>
-              <span className="text-[var(--accent)] text-xs font-bold tracking-wide leading-none whitespace-nowrap">
+          <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-2 md:gap-4">
+            
+            {/* 타이틀 영역 */}
+            <div className="flex items-center gap-2 flex-nowrap shrink-0">
+              <h1 className="text-base md:text-xl font-black tracking-widest leading-none text-[var(--text-main)] shrink-0">CHRONOS</h1>
+              <span className="text-[var(--accent)] text-xs md:text-sm font-bold tracking-wide leading-none whitespace-nowrap shrink-0">
                 크로노스 : 캐릭터 관리
               </span>
               <button 
+                type="button"
                 onClick={() => setShowInfo(!showInfo)}
                 className="md:hidden w-4 h-4 rounded-full bg-[var(--inner-box)] border border-[var(--panel-border)] text-[10px] font-black text-[var(--accent)] flex items-center justify-center hover:bg-[var(--accent-soft)] transition cursor-pointer shrink-0 ml-0.5"
                 title="도움말"
@@ -1057,267 +756,59 @@ export default function CharacterPage() {
               </button>
             </div>
 
+            {/* 모바일 토글 안내 */}
             {showInfo && (
-              <div className="md:hidden bg-[var(--inner-box)] border border-[var(--panel-border)] p-2 rounded-lg w-full text-xs font-bold text-[var(--text-sub)] leading-snug animate-in fade-in duration-200">
+              <div className="md:hidden bg-[var(--inner-box)] border border-[var(--panel-border)] p-2.5 rounded-lg w-full text-xs font-bold text-[var(--text-sub)] leading-relaxed animate-in fade-in duration-200">
                 <p>⏳ 시간과 기록의 신, 크로노스.</p>
-                <p>입력한 능력치는 <span className="text-[var(--accent)]">AGORA 명예의 전당</span>으로 즉시 연결됩니다.</p>
+                <p>성역과 함께 성장하는 모든 별들의 기록을 관리하는 곳입니다.</p>
               </div>
             )}
             
-            <div className="hidden md:block border border-[var(--panel-border)] bg-[var(--inner-box)] px-3 py-1.5 rounded-lg text-[11px] font-bold text-[var(--text-sub)] leading-snug ml-auto w-fit">
-              <p>⏳ 시간과 기록의 신, 크로노스.</p>
-              <p>입력한 능력치는 <span className="text-[var(--accent)]">AGORA 명예의 전당</span>으로 즉시 연결됩니다.</p>
+            {/* 🔴 와이드 전용 안내 박스: 글자 크기를 약 9~10포인트(text-[11px])로 정밀 조절 */}
+            <div className="hidden md:flex flex-1 max-w-3xl border border-[var(--panel-border)] bg-[var(--inner-box)] px-4 py-2 rounded-lg text-[14px] font-bold text-[var(--text-sub)] leading-tight flex-col justify-center gap-0.5 transition-all">
+              <div className="flex items-center gap-1.5">
+                <span>⏳</span>
+                <span>시간과 기록의 신, 크로노스.</span>
+              </div>
+              <div className="pl-5 text-[var(--text-main)]/90 font-medium">
+                성역과 함께 성장하는 모든 별들의 기록을 관리하는 곳입니다.
+              </div>
             </div>
+
           </div>
         </header>
         
+        {/* 캐릭터 선택 & 스탯 카운터 */}
         <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-2.5 md:p-4 shadow-xs space-y-2 md:space-y-4">
-          
-          <div className="flex items-center justify-between border-b border-[var(--panel-border)] pb-2 gap-2">
-            <div className="flex items-center gap-2 min-w-0">
-              <div className="w-9 h-9 md:w-10 md:h-10 bg-[var(--inner-box)] rounded-xl border border-[var(--panel-border)] flex items-center justify-center text-base shrink-0 shadow-inner">
-                🎨
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5 flex-wrap leading-tight">
-                  <span className="hidden md:inline text-base font-black text-[var(--text-main)] truncate max-w-[180px]">
-                    {profile.nickname}
-                  </span>
-                  
-                  <span className="md:hidden text-sm font-black text-[var(--text-main)] truncate max-w-[100px]">
-                    {profile.alias || profile.nickname}
-                  </span>
+          <CharacterSelector
+            profile={profile}
+            myCharacters={myCharacters}
+            switchCharacter={switchCharacter}
+            openManageModal={openManageModal}
+            dbClasses={dbClasses}
+            CLASS_TITLES={CLASS_TITLES}
+            updateProfile={updateProfile}
+            totalLevel={totalLevel}
+            isTitleAccordionOpen={isTitleAccordionOpen}
+            setIsTitleAccordionOpen={setIsTitleAccordionOpen}
+            earnedTitles={earnedTitles}
+          />
 
-                  <select 
-                    value={profile.job || "전사"} 
-                    onChange={(e) => updateProfile("job", e.target.value)}
-                    className="text-xs bg-[var(--inner-box)] border border-[var(--panel-border)] px-1.5 py-0.5 rounded font-bold text-[var(--accent)] outline-none cursor-pointer hover:border-[var(--accent)]"
-                  >
-                    {dbClasses.length > 0 ? (
-                      dbClasses.map((cls: any) => (
-                        <option key={cls.name} value={cls.name} className="bg-[var(--panel)] text-[var(--text-main)]">
-                          {cls.name}
-                        </option>
-                      ))
-                    ) : (
-                      Object.keys(CLASS_TITLES).map((clsName) => (
-                        <option key={clsName} value={clsName} className="bg-[var(--panel)] text-[var(--text-main)]">
-                          {clsName}
-                        </option>
-                      ))
-                    )}
-                  </select>
-
-                  {profile.isMain && (
-                    <span className="text-[10px] sm:text-xs bg-[var(--accent)] text-[var(--accent-fg)] font-black px-1.5 py-0.5 rounded whitespace-nowrap">
-                      대표
-                    </span>
-                  )}
-                </div>
-
-                <div className="text-xs text-[var(--text-sub)] font-bold mt-0.5 whitespace-nowrap">
-                  누적 레벨 : {totalLevel}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-2 shrink-0">
-              <button 
-                onClick={() => router.push(`/character/detail?char=${encodeURIComponent(profile.nickname)}`)}
-                className="px-2 py-0.5 md:px-2 md:py-1 text-center bg-[var(--accent)] text-[var(--accent-fg)] text-[15px] md:text-xs font-black rounded-md shadow-xs transition hover:opacity-90 whitespace-nowrap cursor-pointer"
-              >
-                🔍 장비상세
-              </button>
-              <button 
-                onClick={() => setIsTitleAccordionOpen(!isTitleAccordionOpen)} 
-                className="px-2 py-0.5 md:px-2 md:py-1 text-center bg-[var(--inner-box)] border border-[var(--panel-border)] text-[15px] md:text-xs font-bold text-[var(--accent)] rounded-md transition whitespace-nowrap hover:bg-[var(--accent-soft)] cursor-pointer"
-              >
-                ✨ 칭호보기
-              </button>
-            </div>
-          </div>
-
-          {isTitleAccordionOpen && (
-            <div className="p-2 border rounded-lg border-[var(--panel-border)] bg-[var(--inner-box)] space-y-1 text-xs">
-              {earnedTitles.length > 0 ? (
-                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-1.5">
-                  {earnedTitles.map(t => (
-                    <div key={t.type} className={`text-xs font-black p-1.5 rounded border text-center truncate ${t.tagClass}`}>{t.name}</div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-xs text-[var(--text-sub)] text-center py-0.5">아고라 랭킹을 달성해 칭호를 획득해 보세요.</div>
-              )}
-            </div>
-          )}
-
-          <div className="grid grid-cols-2 bg-[var(--inner-box)] p-0.5 rounded-lg border border-[var(--panel-border)] gap-0.5 shadow-inner my-2 md:max-w-[300px]">
-            <button 
-              onClick={() => setStatViewMode('character')} 
-              className={`py-1 md:py-1 text-[11px] md:text-[11px] font-black rounded-md md:rounded-md transition cursor-pointer flex items-center justify-center gap-1 ${
-                statViewMode === 'character' 
-                  ? 'bg-[var(--accent)] text-[var(--accent-fg)] shadow-xs' 
-                  : 'text-[var(--text-sub)] hover:text-[var(--text-main)]'
-              }`}
-            >
-              <span className="text-[13px] md:text-xs">👤</span>
-              <span>선택 캐릭터</span>
-            </button>
-            <button 
-              onClick={() => setStatViewMode('account')} 
-              className={`py-1 md:py-1 text-[11px] md:text-[11px] font-black rounded-md md:rounded-md transition cursor-pointer flex items-center justify-center gap-1 ${
-                statViewMode === 'account' 
-                  ? 'bg-[var(--accent)] text-[var(--accent-fg)] shadow-xs' 
-                  : 'text-[var(--text-sub)] hover:text-[var(--text-main)]'
-              }`}
-            >
-              <span className="text-[13px] md:text-xs">📊</span>
-              <span>계정 총합</span>
-            </button>
-          </div>
-
-          {/* 💡 완전 모바일뷰일땐 1번 사진처럼 가로 정렬(flex-row), 태블릿/PC(md:)에선 세로 정렬(md:flex-col) 유지 */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-1.5 md:gap-2">
-            
-            <div className="bg-[var(--inner-box)] px-2.5 py-1.5 md:px-2.5 md:py-2.5 rounded-lg border border-[var(--panel-border)] flex flex-row md:flex-col items-center md:items-start justify-between md:justify-center gap-1 min-w-0">
-              <label className="text-[13px] md:text-sm font-bold text-red-400 whitespace-nowrap shrink-0">⚔️ 전투력</label>
-              {statViewMode === 'character' ? (
-                <input 
-                  type="number" 
-                  value={profile.combatPower} 
-                  onChange={e => updateProfile("combatPower", e.target.value)} 
-                  placeholder="0" 
-                  className="w-full text-right md:text-left bg-transparent text-sm md:text-base font-black font-mono text-[var(--text-main)] outline-none min-w-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
-                />
-              ) : (
-                <span className="text-sm md:text-base font-black font-mono text-[var(--accent)] text-right md:text-left w-full truncate">
-                  {accountTotals.combatPower.toLocaleString()}
-                </span>
-              )}
-            </div>
-
-            <div className="bg-[var(--inner-box)] px-2.5 py-1.5 md:px-2.5 md:py-2.5 rounded-lg border border-[var(--panel-border)] flex flex-row md:flex-col items-center md:items-start justify-between md:justify-center gap-1 min-w-0">
-              <label className="text-[13px] md:text-sm font-bold text-emerald-400 whitespace-nowrap shrink-0">🌿 생활력</label>
-              {statViewMode === 'character' ? (
-                <input 
-                  type="number" 
-                  value={profile.lifeEnergy} 
-                  onChange={e => updateProfile("lifeEnergy", e.target.value)} 
-                  placeholder="0" 
-                  className="w-full text-right md:text-left bg-transparent text-sm md:text-base font-black font-mono text-[var(--text-main)] outline-none min-w-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
-                />
-              ) : (
-                <span className="text-sm md:text-base font-black font-mono text-[var(--accent)] text-right md:text-left w-full truncate">
-                  {accountTotals.lifeEnergy.toLocaleString()}
-                </span>
-              )}
-            </div>
-
-            <div className="bg-[var(--inner-box)] px-2.5 py-1.5 md:px-2.5 md:py-2.5 rounded-lg border border-[var(--panel-border)] flex flex-row md:flex-col items-center md:items-start justify-between md:justify-center gap-1 min-w-0">
-              <label className="text-[13px] md:text-sm font-bold text-pink-400 whitespace-nowrap shrink-0">✨ 매력</label>
-              {statViewMode === 'character' ? (
-                <input 
-                  type="number" 
-                  value={profile.charm} 
-                  onChange={e => updateProfile("charm", e.target.value)} 
-                  placeholder="0" 
-                  className="w-full text-right md:text-left bg-transparent text-sm md:text-base font-black font-mono text-[var(--text-main)] outline-none min-w-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
-                />
-              ) : (
-                <span className="text-sm md:text-base font-black font-mono text-[var(--accent)] text-right md:text-left w-full truncate">
-                  {accountTotals.charm.toLocaleString()}
-                </span>
-              )}
-            </div>
-
-            <div className="bg-[var(--inner-box)] px-2.5 py-1.5 md:px-2.5 md:py-2.5 rounded-lg border border-[var(--accent)]/50 bg-[var(--accent-soft)]/10 flex flex-row md:flex-col items-center md:items-start justify-between md:justify-center gap-1 min-w-0">
-              <label className="text-[13px] md:text-sm font-bold text-[var(--accent)] whitespace-nowrap shrink-0">🏆 종합점수</label>
-              <span className="text-sm md:text-base font-black font-mono text-[var(--accent)] text-right md:text-left w-full truncate">
-                {statViewMode === 'character' ? charTotalScore.toLocaleString() : accountTotalScore.toLocaleString()}
-              </span>
-            </div>
-
-            <div className="bg-[var(--inner-box)] px-2.5 py-1.5 md:px-2.5 md:py-2.5 rounded-lg border border-[var(--panel-border)] flex flex-row md:flex-col items-center md:items-start justify-between md:justify-center gap-1 min-w-0">
-              <label className="text-[13px] md:text-sm font-bold text-purple-400 whitespace-nowrap shrink-0">🔮 마도저항</label>
-              {statViewMode === 'character' ? (
-                <input 
-                  type="number" 
-                  value={profile.magicResistance} 
-                  onChange={e => updateProfile("magicResistance", e.target.value)} 
-                  placeholder="0" 
-                  className="w-full text-right md:text-left bg-transparent text-sm md:text-base font-black font-mono text-[var(--text-main)] outline-none min-w-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
-                />
-              ) : (
-                <span className="text-sm md:text-base font-black font-mono text-[var(--accent)] text-right md:text-left w-full truncate">
-                  {accountTotals.magicResistance.toLocaleString()}
-                </span>
-              )}
-            </div>
-
-            <div className="bg-[var(--inner-box)] px-2.5 py-1.5 md:px-2.5 md:py-2.5 rounded-lg border border-[var(--panel-border)] flex flex-row md:flex-col items-center md:items-start justify-between md:justify-center gap-1 min-w-0">
-              <label className="text-[13px] md:text-sm font-bold text-amber-400 whitespace-nowrap shrink-0">🛡️ 길드공헌도</label>
-              <input 
-                type="number" 
-                value={accountContribution} 
-                onChange={e => setAccountContribution(e.target.value)} 
-                placeholder="0" 
-                className="w-full text-right md:text-left bg-transparent text-sm md:text-base font-black font-mono text-[var(--text-main)] outline-none min-w-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
-              />
-            </div>
-
-          </div>
+          <CharacterStats
+            statViewMode={statViewMode}
+            setStatViewMode={setStatViewMode}
+            profile={profile}
+            accountTotals={accountTotals}
+            charTotalScore={charTotalScore}
+            accountTotalScore={accountTotalScore}
+            accountContribution={accountContribution}
+            updateProfile={updateProfile}
+            setAccountContribution={setAccountContribution}
+          />
         </div>
 
-        <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-1.5 md:p-2.5 shadow-xs space-y-2 md:space-y-3">
-          <div className="flex items-center justify-between gap-1 text-xs font-bold text-[var(--text-sub)] px-1">
-            <span className="flex items-center gap-1 whitespace-nowrap shrink-0 text-xs md:text-sm">
-              캐릭터 선택
-              <span className="text-[14px] text-[var(--text-sub)] font-normal md:hidden">({myCharacters.length})</span>
-            </span>
-            <button 
-              onClick={openManageModal} 
-              className="text-[12px] md:text-[14px] bg-[var(--inner-box)] md:bg-[var(--panel)] text-[var(--text-main)] font-bold px-2 py-1 md:px-2.5 md:py-1.5 rounded-md border border-[var(--panel-border)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent)] transition shadow-xs cursor-pointer flex items-center gap-1 whitespace-nowrap shrink-0"
-            >
-              ⚙️ 캐릭터 등록 및 관리
-            </button>
-          </div>
-          
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-1.5 md:gap-2 w-full">
-            {myCharacters.map((char: any) => {
-              const mobileAlias = (char.alias || char.nickname).slice(0, 3);
-              const isSelected = char.nickname === profile.nickname;
-
-              return (
-                <button 
-                  key={char.nickname} 
-                  onClick={() => switchCharacter(char.nickname)} 
-                  className={`flex flex-col items-center justify-center p-1.5 md:p-1.5 rounded-lg md:rounded-lg border transition cursor-pointer select-none w-full min-w-0 ${
-                    isSelected 
-                      ? 'bg-[var(--accent-soft)] border-[var(--accent)] shadow-xs' 
-                      : 'bg-[var(--inner-box)] border-[var(--panel-border)] hover:border-[var(--accent)]/50'
-                  }`}
-                >
-                  <span className="md:hidden text-xs font-black leading-none text-center truncate w-full">
-                    <span className={isSelected ? 'text-[var(--accent)]' : 'text-[var(--text-main)]'}>
-                      {mobileAlias}
-                    </span>
-                  </span>
-
-                  <div className="hidden md:flex flex-col items-center justify-center w-full gap-0.5 min-w-0 text-center">
-                    <span className={`text-[13px] md:text-xs font-black truncate w-full text-center ${isSelected ? 'text-[var(--accent)]' : 'text-[var(--text-main)]'}`}>
-                      {char.nickname}
-                    </span>
-                    <span className="text-[10px] md:text-[10px] text-[var(--text-sub)] font-bold truncate w-full text-center">
-                      {char.job || '전사'}
-                    </span>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-3 gap-1 bg-[var(--inner-box)] p-1 rounded-xl border border-[var(--panel-border)]">
+        {/* 🟡 탭 메뉴: 3x2 그리드 배열 유지 및 와이드 폰트 반응형 적용 */}
+        <div className="grid grid-cols-3 md:grid-cols-6 gap-1 md:gap-1.5 bg-[var(--inner-box)] p-1 md:p-1.5 rounded-xl border border-[var(--panel-border)]">
           {[
             { id: 'all', label: 'ALL' },
             { id: 'weekly_daily', label: '주간/일일' },
@@ -1328,8 +819,9 @@ export default function CharacterPage() {
           ].map((tab) => (
             <button
               key={tab.id}
+              type="button"
               onClick={() => setActiveTab(tab.id as any)}
-              className={`py-1.5 md:py-2 px-1 rounded-lg text-xs md:text-sm font-black text-center transition cursor-pointer whitespace-nowrap leading-tight ${
+              className={`py-2 px-1.5 md:py-2.5 rounded-lg text-xs md:text-sm font-black text-center transition cursor-pointer whitespace-nowrap leading-none ${
                 activeTab === tab.id 
                   ? 'bg-[var(--accent)] text-[var(--accent-fg)] shadow-xs' 
                   : 'text-[var(--text-sub)] hover:text-[var(--text-main)] hover:bg-[var(--panel)]'
@@ -1340,242 +832,80 @@ export default function CharacterPage() {
           ))}
         </div>
 
+        {/* 메인 콘텐츠 영역 */}
         <div className="space-y-3 md:space-y-4">
           
           {(activeTab === 'all' || activeTab === 'weekly_daily' || activeTab === 'abyss_raid') && (
-            <div className="block md:hidden space-y-2.5">
-              
-              {(activeTab === 'all' || activeTab === 'weekly_daily') && mobileRepeatTasks.length > 0 && (
-                <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-2 shadow-xs space-y-1.5">
-                  <h3 className="font-bold text-[var(--accent)] text-xs border-b border-[var(--panel-border)] pb-1">
-                    ⏳ 주간/일일 반복 컨텐츠
-                  </h3>
-                  <div className="space-y-1">
-                    {mobileRepeatTasks.map((item: any) => renderTask(item, item.type?.includes('daily') ? 'daily' : 'weekly'))}
-                  </div>
-                </div>
-              )}
-
-              {(activeTab === 'all' || activeTab === 'weekly_daily') && (
-                <div className="grid grid-cols-2 gap-1.5">
-                  <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-1.5 shadow-xs flex flex-col min-w-0">
-                    <div className="flex justify-between items-center mb-1 border-b border-[var(--panel-border)] pb-1">
-                      <h3 className="font-bold text-amber-400 text-xs">일일 숙제</h3>
-                      <button onClick={() => handleSmartToggle('daily')} className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[var(--accent)] text-[var(--accent-fg)]">{isDailyAllChecked ? '전체 해제' : '전체 완료'}</button>
-                    </div>
-                    <div className="space-y-1 flex-1 min-w-0">{mobileDailyChecklists.map((item: any) => renderTask(item, 'daily'))}</div>
-                  </div>
-
-                  <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-1.5 shadow-xs flex flex-col min-w-0">
-                    <div className="flex justify-between items-center mb-1 border-b border-[var(--panel-border)] pb-1">
-                      <h3 className="font-bold text-blue-400 text-xs">주간 숙제</h3>
-                      <button onClick={() => handleSmartToggle('weekly')} className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[var(--accent)] text-[var(--accent-fg)]">{isWeeklyAllChecked ? '전체 해제' : '전체 완료'}</button>
-                    </div>
-                    <div className="space-y-1 flex-1 min-w-0">{mobileWeeklyChecklists.map((item: any) => renderTask(item, 'weekly'))}</div>
-                  </div>
-                </div>
-              )}
-
-              {(activeTab === 'all' || activeTab === 'abyss_raid') && (
-                <div className="grid grid-cols-2 gap-1.5">
-                  <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-1.5 shadow-xs flex flex-col min-w-0">
-                    <div className="flex justify-between items-center mb-1 border-b border-[var(--panel-border)] pb-1">
-                      <h3 className="font-bold text-emerald-400 text-xs">어비스</h3>
-                      <button onClick={() => handleSmartToggle('abyss')} className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[var(--accent)] text-[var(--accent-fg)]">{isAbyssAllChecked ? '전체 해제' : '전체 완료'}</button>
-                    </div>
-                    <div className="space-y-1 flex-1 min-w-0">{abyssList.map((item: any) => renderTask(item, 'abyss'))}</div>
-                  </div>
-
-                  <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-1.5 shadow-xs flex flex-col min-w-0">
-                    <div className="flex justify-between items-center mb-1 border-b border-[var(--panel-border)] pb-1">
-                      <h3 className="font-bold text-emerald-400 text-xs">레이드</h3>
-                      <button onClick={() => handleSmartToggle('raid')} className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[var(--accent)] text-[var(--accent-fg)]">{isRaidAllChecked ? '전체 해제' : '전체 완료'}</button>
-                    </div>
-                    <div className="space-y-1 flex-1 min-w-0">{raidList.map((item: any) => renderTask(item, 'raid'))}</div>
-                  </div>
-                </div>
-              )}
-
-            </div>
-          )}
-
-          {(activeTab === 'all' || activeTab === 'weekly_daily' || activeTab === 'abyss_raid') && (
-            <div className="hidden md:grid grid-cols-2 lg:grid-cols-4 gap-2.5">
-              
-              {(activeTab === 'all' || activeTab === 'weekly_daily') && (
-                <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-3 shadow-xs flex flex-col">
-                  <div className="flex justify-between items-center mb-3 border-b border-[var(--panel-border)] pb-2 gap-2">
-                    <h3 className="font-bold text-amber-400 text-sm whitespace-nowrap">일일 컨텐츠</h3>
-                    <button onClick={() => handleSmartToggle('daily')} className={`text-xs font-bold px-2.5 py-1 rounded transition shadow-xs whitespace-nowrap cursor-pointer ${isDailyAllChecked ? 'bg-[var(--inner-box)] text-[var(--text-sub)] border border-[var(--panel-border)]' : 'bg-[var(--accent)] text-[var(--accent-fg)]'}`}>{isDailyAllChecked ? '전체 해제' : '전체 완료'}</button>
-                  </div>
-                  <div className="space-y-1.5 flex-1 overflow-y-auto custom-scrollbar pr-1">{visibleDailyList.map((item: any) => renderTask(item, 'daily'))}</div>
-                </div>
-              )}
-
-              {(activeTab === 'all' || activeTab === 'weekly_daily') && (
-                <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-3 shadow-xs flex flex-col">
-                  <div className="flex justify-between items-center mb-3 border-b border-[var(--panel-border)] pb-2 gap-2">
-                    <h3 className="font-bold text-blue-400 text-sm whitespace-nowrap">주간 컨텐츠</h3>
-                    <button onClick={() => handleSmartToggle('weekly')} className={`text-xs font-bold px-2.5 py-1 rounded transition shadow-xs whitespace-nowrap cursor-pointer ${isWeeklyAllChecked ? 'bg-[var(--inner-box)] text-[var(--text-sub)] border border-[var(--panel-border)]' : 'bg-[var(--accent)] text-[var(--accent-fg)]'}`}>{isWeeklyAllChecked ? '전체 해제' : '전체 완료'}</button>
-                  </div>
-                  <div className="space-y-1.5 flex-1 overflow-y-auto custom-scrollbar pr-1">{visibleWeeklyList.map((item: any) => renderTask(item, 'weekly'))}</div>
-                </div>
-              )}
-
-              {(activeTab === 'all' || activeTab === 'abyss_raid') && (
-                <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-3 shadow-xs flex flex-col">
-                  <div className="flex justify-between items-center mb-3 border-b border-[var(--panel-border)] pb-2 gap-2">
-                    <h3 className="font-bold text-emerald-400 text-sm whitespace-nowrap">어비스 관리</h3>
-                    <button onClick={() => handleSmartToggle('abyss')} className={`text-xs font-bold px-2.5 py-1 rounded transition shadow-xs whitespace-nowrap cursor-pointer ${isAbyssAllChecked ? 'bg-[var(--inner-box)] text-[var(--text-sub)] border border-[var(--panel-border)]' : 'bg-[var(--accent)] text-[var(--accent-fg)]'}`}>{isAbyssAllChecked ? '전체 해제' : '전체 완료'}</button>
-                  </div>
-                  <div className="space-y-1.5 flex-1 overflow-y-auto custom-scrollbar pr-1">{abyssList.map((item: any) => renderTask(item, 'abyss'))}</div>
-                </div>
-              )}
-
-              {(activeTab === 'all' || activeTab === 'abyss_raid') && (
-                <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-3 shadow-xs flex flex-col">
-                  <div className="flex justify-between items-center mb-3 border-b border-[var(--panel-border)] pb-2 gap-2">
-                    <h3 className="font-bold text-emerald-400 text-sm whitespace-nowrap">레이드 관리</h3>
-                    <button onClick={() => handleSmartToggle('raid')} className={`text-xs font-bold px-2.5 py-1 rounded transition shadow-xs whitespace-nowrap cursor-pointer ${isRaidAllChecked ? 'bg-[var(--inner-box)] text-[var(--text-sub)] border border-[var(--panel-border)]' : 'bg-[var(--accent)] text-[var(--accent-fg)]'}`}>{isRaidAllChecked ? '전체 해제' : '전체 완료'}</button>
-                  </div>
-                  <div className="space-y-1.5 flex-1 overflow-y-auto custom-scrollbar pr-1">{raidList.map((item: any) => renderTask(item, 'raid'))}</div>
-                </div>
-              )}
-
-            </div>
+            <ContentChecklist
+              activeTab={activeTab}
+              visibleDailyList={visibleDailyList}
+              visibleWeeklyList={visibleWeeklyList}
+              abyssList={abyssList}
+              raidList={raidList}
+              dailyChecks={dailyChecks}
+              setDailyChecks={setDailyChecks}
+              weeklyChecks={weeklyChecks}
+              setWeeklyChecks={setWeeklyChecks}
+              repeatChecks={repeatChecks}
+              updateRepeatCount={updateRepeatCount}
+              abyssChecks={abyssChecks}
+              setAbyssChecks={setAbyssChecks}
+              raidChecks={raidChecks}
+              setRaidChecks={setRaidChecks}
+              handleSmartToggle={handleSmartToggle}
+              isDailyAllChecked={isDailyAllChecked}
+              isWeeklyAllChecked={isWeeklyAllChecked}
+              isAbyssAllChecked={isAbyssAllChecked}
+              isRaidAllChecked={isRaidAllChecked}
+            />
           )}
 
           {(activeTab === 'all' || activeTab === 'barter') && (
-            <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-2.5 md:p-4 shadow-xs space-y-2.5">
-              <div className="flex justify-between items-center gap-2 border-b border-[var(--panel-border)] pb-2 min-w-0">
-                <h3 className="font-bold text-[var(--accent)] text-xs md:text-sm whitespace-nowrap shrink-0">⚖️ 물물 교환 목록</h3>
-                
-                <div className="flex items-center gap-1.5 flex-1 min-w-0 justify-end">
-                  <input
-                    type="text"
-                    value={tradeSearch}
-                    onChange={(e) => setTradeSearch(e.target.value)}
-                    placeholder="NPC / 맵 / 보상 / 소모품 검색..."
-                    className="flex-1 min-w-0 sm:max-w-xs bg-[var(--inner-box)] border border-[var(--panel-border)] rounded-lg px-2.5 sm:px-3 py-1.5 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent)]"
-                  />
-                  <button
-                    onClick={() => setTradeSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
-                    className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-[var(--inner-box)] border border-[var(--panel-border)] text-xs font-bold text-[var(--text-sub)] hover:text-[var(--text-main)] shrink-0 cursor-pointer whitespace-nowrap"
-                  >
-                    {tradeSortOrder === 'asc' ? '▲ 오름차순' : '▼ 내림차순'}
-                  </button>
-                </div>
-              </div>
-
-              {barterTrades.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2 md:gap-3 items-start">
-                  {barterTrades.map(renderTradeCard)}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-sm text-[var(--text-sub)]">등록되거나 검색된 물물교환 품목이 없습니다.</div>
-              )}
-            </div>
+            <TradeList
+              categoryType="barter"
+              title="⚖️ 물물 교환 목록"
+              items={Array.isArray(dbTrades) ? dbTrades : []}
+              tradeProgress={tradeProgress}
+              tradeCompletedBy={tradeCompletedBy}
+              pinnedTrades={pinnedTrades}
+              togglePinTrade={togglePinTrade}
+              updateTradeProgress={updateTradeProgress}
+              tradeSearch={tradeSearch}
+              setTradeSearch={setTradeSearch}
+              tradeSortOrder={tradeSortOrder}
+              setTradeSortOrder={setTradeSortOrder}
+            />
           )}
 
           {(activeTab === 'all' || activeTab === 'shop') && (
-            <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-2.5 md:p-4 shadow-xs space-y-2.5">
-              <div className="flex justify-between items-center gap-2 border-b border-[var(--panel-border)] pb-2 min-w-0">
-                <h3 className="font-bold text-amber-400 text-xs md:text-sm whitespace-nowrap shrink-0">🛒 상점 구매 목록</h3>
-                
-                <div className="flex items-center gap-1.5 flex-1 min-w-0 justify-end">
-                  <input
-                    type="text"
-                    value={tradeSearch}
-                    onChange={(e) => setTradeSearch(e.target.value)}
-                    placeholder="NPC / 맵 / 보상 / 소모품 검색..."
-                    className="flex-1 min-w-0 sm:max-w-xs bg-[var(--inner-box)] border border-[var(--panel-border)] rounded-lg px-2.5 sm:px-3 py-1.5 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent)]"
-                  />
-                  <button
-                    onClick={() => setTradeSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
-                    className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-[var(--inner-box)] border border-[var(--panel-border)] text-xs font-bold text-[var(--text-sub)] hover:text-[var(--text-main)] shrink-0 cursor-pointer whitespace-nowrap"
-                  >
-                    {tradeSortOrder === 'asc' ? '▲ 오름차순' : '▼ 내림차순'}
-                  </button>
-                </div>
-              </div>
-
-              {shopTrades.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2 md:gap-3 items-start">
-                  {shopTrades.map(renderTradeCard)}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-sm text-[var(--text-sub)]">등록되거나 검색된 상점 구매 품목이 없습니다.</div>
-              )}
-            </div>
+            <TradeList
+              categoryType="shop"
+              title="🛒 주간 상점 구매 목록"
+              items={
+                Array.isArray(dbPurchases) && dbPurchases.length > 0
+                  ? dbPurchases
+                  : (Array.isArray(dbTrades) ? dbTrades : []).filter((t: any) => t.category === 'shop')
+              }
+              tradeProgress={tradeProgress}
+              tradeCompletedBy={tradeCompletedBy}
+              pinnedTrades={pinnedTrades}
+              togglePinTrade={togglePinTrade}
+              updateTradeProgress={updateTradeProgress}
+              tradeSearch={tradeSearch}
+              setTradeSearch={setTradeSearch}
+              tradeSortOrder={tradeSortOrder}
+              setTradeSortOrder={setTradeSortOrder}
+            />
           )}
 
           {(activeTab === 'all' || activeTab === 'levels') && (
-            <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-2.5 md:p-4 shadow-xs space-y-3">
-              <h3 className="font-bold text-[var(--accent)] text-xs md:text-sm whitespace-nowrap border-b border-[var(--panel-border)] pb-2">⚡ 클래스 레벨 관리</h3>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2">
-                {dbClasses.map((cls: any) => {
-                  const currentLevel = levels[cls.name] || 1;
-                  const isMax = currentLevel === 65;
-                  return (
-                    <div key={cls.name} className={`flex items-center justify-between p-1.5 md:p-2 rounded-lg border transition min-w-0 ${isMax ? 'border-[var(--accent)] bg-[var(--accent-soft)]/20' : 'bg-[var(--inner-box)] border-[var(--panel-border)]'}`}>
-                      <div className="flex items-center gap-1.5 min-w-0 pr-1 flex-1">
-                        <span className="text-xs md:text-sm shrink-0">{cls.icon || "🛡️"}</span>
-                        <span className={`text-xs md:text-sm font-bold truncate ${isMax ? 'text-[var(--accent)]' : 'text-[var(--text-main)]'}`}>{cls.name}</span>
-                      </div>
-
-                      <div className="flex items-center gap-1 shrink-0">
-                        <span className="text-xs md:text-sm font-black font-mono text-[var(--accent)] mr-0.5 whitespace-nowrap">
-                          Lv.{currentLevel}
-                        </span>
-                        
-                        <button 
-                          onClick={() => updateClassLevel(cls.name, -10)} 
-                          className="px-1 py-0.5 text-[10px] font-bold rounded bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)] cursor-pointer"
-                        >
-                          -10
-                        </button>
-                        <button 
-                          onClick={() => updateClassLevel(cls.name, -1)} 
-                          className="px-1 py-0.5 text-[10px] font-bold rounded bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)] cursor-pointer"
-                        >
-                          -1
-                        </button>
-                        
-                        {isMax ? (
-                          <button 
-                            onClick={() => setMinLevel(cls.name)} 
-                            className="px-1.5 py-0.5 text-[10px] font-black rounded bg-rose-500/20 text-rose-400 border border-rose-500/40 hover:bg-rose-500 hover:text-white transition whitespace-nowrap cursor-pointer"
-                          >
-                            MIN
-                          </button>
-                        ) : (
-                          <button 
-                            onClick={() => setMaxLevel(cls.name)} 
-                            className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-[var(--accent-soft)] text-[var(--accent)] border border-[var(--accent)]/40 hover:bg-[var(--accent)] hover:text-[var(--accent-fg)] transition whitespace-nowrap cursor-pointer"
-                          >
-                            MAX
-                          </button>
-                        )}
-
-                        <button 
-                          onClick={() => updateClassLevel(cls.name, 1)} 
-                          className="px-1 py-0.5 text-[10px] font-bold rounded bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)] cursor-pointer"
-                        >
-                          +1
-                        </button>
-                        <button 
-                          onClick={() => updateClassLevel(cls.name, 10)} 
-                          className="px-1 py-0.5 text-[10px] font-bold rounded bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)] cursor-pointer"
-                        >
-                          +10
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+            <ClassLevelManager
+              dbClasses={dbClasses}
+              levels={levels}
+              updateClassLevel={updateClassLevel}
+              setMaxLevel={setMaxLevel}
+              setMinLevel={setMinLevel}
+            />
           )}
 
         </div>
