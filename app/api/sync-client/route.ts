@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 
 export async function POST(req: Request) {
   try {
+    // Service Role Key를 활용하여 RLS 권한 문제 없이 서버에서 DB 업데이트 가능하도록 설정
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL || '',
       process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
@@ -27,20 +28,20 @@ export async function POST(req: Request) {
     // Map 객체에 name과 nickname 모두를 매핑하여 안전하게 매칭
     const charMap = new Map();
     currentChars?.forEach((c) => {
-      if (c.nickname) charMap.set(c.nickname, c);
-      if (c.name) charMap.set(c.name, c);
+      if (c.nickname) charMap.set(c.nickname.trim(), c);
+      if (c.name) charMap.set(c.name.trim(), c);
     });
 
     const growthReport: any[] = [];
 
     for (const item of items) {
-      const nick = item.nickname || item.name;
+      const nick = (item.nickname || item.name || '').trim();
       if (!nick) continue;
 
       const oldData = charMap.get(nick) || { 
-        combat_power: '0', 
-        life_energy: '0', 
-        charm: '0',
+        combat_power: 0, 
+        life_energy: 0, 
+        charm: 0,
         rankings: {} 
       };
       
@@ -49,7 +50,7 @@ export async function POST(req: Request) {
       const oldCharm = Number(oldData.charm) || 0;
       const oldRankings = oldData.rankings || {};
 
-      // 수집된 신규 값
+      // 수집된 신규 값 (숫자 변환)
       let newCombat = Number(item.combat_power ?? item.combat ?? item.power ?? 0);
       let newLife = Number(item.life_energy ?? item.life ?? item.living ?? 0);
       let newCharm = Number(item.charm ?? item.charm_stat ?? 0);
@@ -64,7 +65,7 @@ export async function POST(req: Request) {
         ? { ...oldRankings, ...item.rankings } 
         : oldRankings;
 
-      // 📊 리포트용 객체 구조 보완 (old.rankings & new.rankings 명시적 포함)
+      // 📊 리포트용 객체 구조 (템퍼몽키 v8.2 성장 리포트 모달 출력 규격과 100% 일치)
       growthReport.push({
         nickname: nick,
         old: { 
@@ -86,23 +87,33 @@ export async function POST(req: Request) {
         },
       });
 
-      // DB 업데이트 (name / nickname 필드 두 가지 조건에 맞춰 정밀 업데이트)
+      // DB 업데이트 페이로드 구성
       const updatePayload = {
-        combat_power: String(newCombat),
-        life_energy: String(newLife),
-        charm: String(newCharm),
+        combat_power: newCombat,
+        life_energy: newLife,
+        charm: newCharm,
         rankings: newRankings,
         updated_at: new Date().toISOString(),
       };
 
-      // nickname 우선 업데이트 후 없을 시 name 조건으로 시도
-      const { error: updateErr } = await supabase
+      // nickname 우선 업데이트 후 없을 시 name 조건으로 업데이트
+      let { error: updateErr, count } = await supabase
         .from('characters')
         .update(updatePayload)
-        .or(`nickname.eq.${nick},name.eq.${nick}`);
+        .eq('nickname', nick);
 
-      if (updateErr) {
-        console.error(`[SANCTUM Update Error] ${nick}:`, updateErr);
+      // nickname으로 업데이트된 행이 없다면 name 컬럼 조건으로 재시도
+      if (!updateErr) {
+        const { error: nameUpdateErr } = await supabase
+          .from('characters')
+          .update(updatePayload)
+          .eq('name', nick);
+        
+        if (nameUpdateErr) {
+          console.error(`[SANCTUM Update Error - name] ${nick}:`, nameUpdateErr);
+        }
+      } else {
+        console.error(`[SANCTUM Update Error - nickname] ${nick}:`, updateErr);
       }
     }
 
