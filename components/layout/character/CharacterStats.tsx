@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 interface CharacterStatsProps {
   statViewMode: 'character' | 'account';
   setStatViewMode: (mode: 'character' | 'account') => void;
@@ -33,6 +35,8 @@ export default function CharacterStats({
   updateProfile,
   setAccountContribution
 }: CharacterStatsProps) {
+  const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
+
   const formatComma = (val: string | number) => {
     if (val === "" || val === null || val === undefined) return "";
     const numStr = String(val).replace(/[^0-9]/g, "");
@@ -47,37 +51,63 @@ export default function CharacterStats({
 
   return (
     <div className="space-y-2">
-      {/* 뷰 모드 전환 버튼 */}
-      <div className="grid grid-cols-2 bg-[var(--inner-box)] p-0.5 rounded-lg border border-[var(--panel-border)] gap-0.5 shadow-inner md:max-w-[300px]">
+      {/* 상단 컨트롤러 레이아웃 */}
+      <div className="flex items-center justify-between gap-2 md:gap-4">
+        
+        {/* RED: 모바일 '캐릭터/계정' 축소 & PC 비율 상향 버튼 그룹 */}
+        <div className="inline-flex bg-[var(--inner-box)] p-0.5 md:p-1 rounded-lg border border-[var(--panel-border)] gap-0.5 md:gap-1 shadow-inner shrink-0">
+          <button
+            type="button"
+            onClick={() => setStatViewMode('character')}
+            className={`px-2 py-1 md:px-3 md:py-1.5 text-xs md:text-sm font-black rounded-md transition cursor-pointer flex items-center gap-1 whitespace-nowrap ${
+              statViewMode === 'character'
+                ? 'bg-[var(--accent)] text-[var(--accent-fg)] shadow-xs'
+                : 'text-[var(--text-sub)] hover:text-[var(--text-main)]'
+            }`}
+          >
+            <span>👤</span>
+            <span>
+              <span className="hidden sm:inline">선택 </span>캐릭터
+            </span>
+          </button>
+          
+          <button
+            type="button"
+            onClick={() => setStatViewMode('account')}
+            className={`px-2 py-1 md:px-3 md:py-1.5 text-xs md:text-sm font-black rounded-md transition cursor-pointer flex items-center gap-1 whitespace-nowrap ${
+              statViewMode === 'account'
+                ? 'bg-[var(--accent)] text-[var(--accent-fg)] shadow-xs'
+                : 'text-[var(--text-sub)] hover:text-[var(--text-main)]'
+            }`}
+          >
+            <span>📊</span>
+            <span>
+              계정<span className="hidden sm:inline"> 총합</span>
+            </span>
+          </button>
+        </div>
+
+        {/* GREEN: 업데이트 박스 (ℹ️ 아이콘 좌측 배치 & 우측 정렬 완료) */}
         <button
           type="button"
-          onClick={() => setStatViewMode('character')}
-          className={`py-1 text-[11px] font-black rounded-md transition cursor-pointer flex items-center justify-center gap-1 ${
-            statViewMode === 'character'
-              ? 'bg-[var(--accent)] text-[var(--accent-fg)] shadow-xs'
-              : 'text-[var(--text-sub)] hover:text-[var(--text-main)]'
-          }`}
+          onClick={() => setIsUpdateModalOpen(true)}
+          className="flex items-center gap-1.5 px-2.5 py-1 md:px-3.5 md:py-1.5 rounded-lg bg-[var(--inner-box)] border border-[var(--panel-border)] hover:border-[var(--accent)] text-[var(--text-sub)] hover:text-[var(--accent)] transition cursor-pointer shrink-0"
         >
-          <span>👤</span>
-          <span>선택 캐릭터</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setStatViewMode('account')}
-          className={`py-1 text-[11px] font-black rounded-md transition cursor-pointer flex items-center justify-center gap-1 ${
-            statViewMode === 'account'
-              ? 'bg-[var(--accent)] text-[var(--accent-fg)] shadow-xs'
-              : 'text-[var(--text-sub)] hover:text-[var(--text-main)]'
-          }`}
-        >
-          <span>📊</span>
-          <span>계정 총합</span>
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
+          <div className="flex flex-col items-end leading-tight">
+            <div className="flex items-center gap-1 text-[10px] md:text-xs font-bold text-[var(--text-sub)]">
+              <span>ℹ️</span>
+              <span>최신 업데이트</span>
+            </div>
+            <span className="text-[11px] md:text-xs font-black font-mono text-[var(--accent)]">
+              08/28 16:24
+            </span>
+          </div>
         </button>
       </div>
 
       {/* 스탯 카드 그리드 */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-1.5 md:gap-2">
-        
         {/* ⚔️ 전투력 */}
         <div className="bg-[var(--inner-box)] px-2.5 py-1.5 md:py-2.5 rounded-lg border border-[var(--panel-border)] flex flex-col justify-between gap-0.5 min-w-0">
           <label className="text-[11px] md:text-xs font-bold text-red-400 whitespace-nowrap shrink-0">⚔️ 전투력</label>
@@ -174,8 +204,57 @@ export default function CharacterStats({
             className="w-full text-left bg-transparent text-sm md:text-base font-black font-mono text-[var(--text-main)] outline-none min-w-0"
           />
         </div>
-
       </div>
+
+      {/* 🔄 데이터 동기화 안내 모달 */}
+      {isUpdateModalOpen && (
+        <div className="fixed inset-0 z-[120] bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl max-w-md w-full p-5 space-y-4 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
+            
+            <div className="flex items-center justify-between border-b border-[var(--panel-border)] pb-3">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">🔄</span>
+                <h3 className="text-sm md:text-base font-black text-[var(--accent)]">
+                  데이터 동기화 안내
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsUpdateModalOpen(false)}
+                className="w-7 h-7 rounded-lg bg-[var(--inner-box)] text-[var(--text-sub)] hover:text-[var(--text-main)] border border-[var(--panel-border)] flex items-center justify-center font-bold text-xs cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs leading-relaxed text-[var(--text-main)]">
+              <p className="bg-[var(--inner-box)] p-3 rounded-xl border border-[var(--panel-border)] text-[var(--text-sub)]">
+                현재 인게임 데이터의 실시간 자동 동기화가 불가능하여, <strong className="text-[var(--accent)] font-bold">관리자가 직접 주기적으로 갱신</strong>하고 있습니다.
+              </p>
+
+              <div className="space-y-1.5">
+                <span className="text-[11px] font-bold text-[var(--text-sub)]">📋 반자동 동기화 대상 항목</span>
+                <div className="grid grid-cols-2 gap-1.5 bg-[var(--inner-box)] p-2.5 rounded-xl border border-[var(--panel-border)] font-bold">
+                  <div className="flex items-center gap-1.5"><span className="text-[var(--accent)]">1.</span> 전투력</div>
+                  <div className="flex items-center gap-1.5"><span className="text-[var(--accent)]">2.</span> 생활력</div>
+                  <div className="flex items-center gap-1.5"><span className="text-[var(--accent)]">3.</span> 매력</div>
+                  <div className="flex items-center gap-1.5"><span className="text-[var(--accent)]">4.</span> 종합점수</div>
+                  <div className="flex items-center gap-1.5"><span className="text-[var(--accent)]">5.</span> 서버 랭킹</div>
+                  <div className="flex items-center gap-1.5"><span className="text-[var(--accent)]">6.</span> 통합 랭킹</div>
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsUpdateModalOpen(false)}
+              className="w-full py-2.5 bg-[var(--accent)] text-[var(--accent-fg)] font-black text-xs rounded-xl hover:opacity-90 transition cursor-pointer shadow-xs"
+            >
+              확인했습니다
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -151,6 +151,12 @@ html, body {
   overflow-x: hidden;
   background-color: var(--background);
   color: var(--foreground);
+
+  /* 모바일 브라우저 임의 폰트 조정 완벽 차단 */
+  -webkit-text-size-adjust: 100% !important;
+  -moz-text-size-adjust: 100% !important;
+  -ms-text-size-adjust: 100% !important;
+  text-size-adjust: 100% !important;
 }
 
 .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
