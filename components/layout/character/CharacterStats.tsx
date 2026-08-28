@@ -33,7 +33,6 @@ export default function CharacterStats({
   updateProfile,
   setAccountContribution
 }: CharacterStatsProps) {
-  // 숫자에 세 자리마다 콤마(,) 붙이기
   const formatComma = (val: string | number) => {
     if (val === "" || val === null || val === undefined) return "";
     const numStr = String(val).replace(/[^0-9]/g, "");
@@ -41,7 +40,6 @@ export default function CharacterStats({
     return Number(numStr).toLocaleString();
   };
 
-  // 입력 처리 (콤마 제거 후 숫자만 상태에 저장)
   const handleInputChange = (field: string, rawVal: string) => {
     const digitsOnly = rawVal.replace(/[^0-9]/g, "");
     updateProfile(field, digitsOnly);
@@ -77,7 +75,7 @@ export default function CharacterStats({
         </button>
       </div>
 
-      {/* 스탯 카드 그리드 (모바일 상/하 2단 구조 + 세 자리 콤마) */}
+      {/* 스탯 카드 그리드 */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-1.5 md:gap-2">
         
         {/* ⚔️ 전투력 */}

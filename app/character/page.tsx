@@ -735,15 +735,15 @@ export default function CharacterPage() {
 
       <div className="space-y-3 md:space-y-4">
         
-        {/* 🔴 상단 헤더: 요청하신 문구 적용 및 "크로노스." 기준 줄바꿈 디자인 */}
+        {/* 상단 헤더: 글자 짤림 방지 정밀 보완 */}
         <header className="relative overflow-hidden rounded-xl bg-[var(--panel)] border border-[var(--panel-border)] py-2.5 px-3 md:py-3.5 md:px-5 shadow-xs">
           <div className="absolute top-0 left-0 w-1.5 h-full bg-[var(--accent)]"></div>
           <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-2 md:gap-4">
             
-            {/* 타이틀 영역 */}
-            <div className="flex items-center gap-2 flex-nowrap shrink-0">
-              <h1 className="text-base md:text-xl font-black tracking-widest leading-none text-[var(--text-main)] shrink-0">CHRONOS</h1>
-              <span className="text-[var(--accent)] text-xs md:text-sm font-bold tracking-wide leading-none whitespace-nowrap shrink-0">
+            {/* 타이틀 영역: 모바일 글자 짤림 완벽 방지 */}
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap shrink-0">
+              <h1 className="text-sm sm:text-base md:text-xl font-black tracking-widest leading-none text-[var(--text-main)] shrink-0">CHRONOS</h1>
+              <span className="text-[var(--accent)] text-xs sm:text-sm font-bold tracking-wide leading-none whitespace-nowrap shrink-0">
                 크로노스 : 캐릭터 관리
               </span>
               <button 
@@ -764,8 +764,8 @@ export default function CharacterPage() {
               </div>
             )}
             
-            {/* 🔴 와이드 전용 안내 박스: 글자 크기를 약 9~10포인트(text-[11px])로 정밀 조절 */}
-            <div className="hidden md:flex flex-1 max-w-3xl border border-[var(--panel-border)] bg-[var(--inner-box)] px-4 py-2 rounded-lg text-[14px] font-bold text-[var(--text-sub)] leading-tight flex-col justify-center gap-0.5 transition-all">
+            {/* 데스크톱 안내 박스 */}
+            <div className="hidden md:flex flex-1 max-w-3xl border border-[var(--panel-border)] bg-[var(--inner-box)] px-4 py-2 rounded-lg text-xs font-bold text-[var(--text-sub)] leading-tight flex-col justify-center gap-0.5 transition-all">
               <div className="flex items-center gap-1.5">
                 <span>⏳</span>
                 <span>시간과 기록의 신, 크로노스.</span>
@@ -778,8 +778,23 @@ export default function CharacterPage() {
           </div>
         </header>
         
-        {/* 캐릭터 선택 & 스탯 카운터 */}
-        <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-2.5 md:p-4 shadow-xs space-y-2 md:space-y-4">
+        {/* 🟡 노란색 영역(스탯)을 위로, 🔴 빨간색 영역(선택기)을 아래로 순서 변경 */}
+        <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-2.5 md:p-4 shadow-xs space-y-3 md:space-y-4">
+          
+          {/* 1. 수치 스탯 카운터 (위쪽배치) */}
+          <CharacterStats
+            statViewMode={statViewMode}
+            setStatViewMode={setStatViewMode}
+            profile={profile}
+            accountTotals={accountTotals}
+            charTotalScore={charTotalScore}
+            accountTotalScore={accountTotalScore}
+            accountContribution={accountContribution}
+            updateProfile={updateProfile}
+            setAccountContribution={setAccountContribution}
+          />
+
+          {/* 2. 캐릭터 선택기 (아래쪽배치) */}
           <CharacterSelector
             profile={profile}
             myCharacters={myCharacters}
@@ -794,20 +809,9 @@ export default function CharacterPage() {
             earnedTitles={earnedTitles}
           />
 
-          <CharacterStats
-            statViewMode={statViewMode}
-            setStatViewMode={setStatViewMode}
-            profile={profile}
-            accountTotals={accountTotals}
-            charTotalScore={charTotalScore}
-            accountTotalScore={accountTotalScore}
-            accountContribution={accountContribution}
-            updateProfile={updateProfile}
-            setAccountContribution={setAccountContribution}
-          />
         </div>
 
-        {/* 🟡 탭 메뉴: 3x2 그리드 배열 유지 및 와이드 폰트 반응형 적용 */}
+        {/* 🟡 탭 메뉴: "어비스/레이드" 글자 짤림 방지 패딩 및 폰트 크기 미세 조정 */}
         <div className="grid grid-cols-3 md:grid-cols-6 gap-1 md:gap-1.5 bg-[var(--inner-box)] p-1 md:p-1.5 rounded-xl border border-[var(--panel-border)]">
           {[
             { id: 'all', label: 'ALL' },
@@ -821,7 +825,7 @@ export default function CharacterPage() {
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id as any)}
-              className={`py-2 px-1.5 md:py-2.5 rounded-lg text-xs md:text-sm font-black text-center transition cursor-pointer whitespace-nowrap leading-none ${
+              className={`py-2 px-1 text-[10.5px] sm:text-xs md:text-sm font-black text-center transition cursor-pointer whitespace-nowrap leading-none truncate ${
                 activeTab === tab.id 
                   ? 'bg-[var(--accent)] text-[var(--accent-fg)] shadow-xs' 
                   : 'text-[var(--text-sub)] hover:text-[var(--text-main)] hover:bg-[var(--panel)]'

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import ClassIcon from "@/components/common/ClassIcon";
 
 interface CharacterSelectorProps {
   profile: any;
@@ -34,24 +35,32 @@ export default function CharacterSelector({
   return (
     <div className="space-y-2">
       {/* 캐릭터 헤더 프로필 */}
-      <div className="flex items-center justify-between border-b border-[var(--panel-border)] pb-2 gap-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="w-9 h-9 md:w-10 md:h-10 bg-[var(--inner-box)] rounded-xl border border-[var(--panel-border)] flex items-center justify-center text-base shrink-0 shadow-inner">
-            🎨
+      <div className="flex items-center justify-between border-b border-[var(--panel-border)] pb-2 gap-2 min-w-0">
+        
+        {/* 좌측: 주클래스 SVG + 닉네임 + 직업 선택 드롭다운 */}
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          {/* 🎨 팔레트 아이콘 대신 주클래스 SVG 동적 반영 */}
+          <div className="w-9 h-9 md:w-10 md:h-10 bg-[var(--inner-box)] rounded-xl border border-[var(--panel-border)] flex items-center justify-center shrink-0 shadow-inner">
+            <ClassIcon job={profile.job || "전사"} className="w-5 h-5 md:w-6 md:h-6" />
           </div>
+
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5 flex-wrap leading-tight">
-              <span className="hidden md:inline text-base font-black text-[var(--text-main)] truncate max-w-[180px]">
+            {/* 모바일/데스크톱 겹침 방지 Flex 레이아웃 */}
+            <div className="flex items-center gap-1.5 flex-wrap sm:flex-nowrap leading-tight min-w-0">
+              {/* 닉네임 (데스크톱) */}
+              <span className="hidden md:inline text-base font-black text-[var(--text-main)] truncate max-w-[150px]">
                 {profile.nickname}
               </span>
-              <span className="md:hidden text-sm font-black text-[var(--text-main)] truncate max-w-[100px]">
+              {/* 닉네임 (모바일) */}
+              <span className="md:hidden text-xs sm:text-sm font-black text-[var(--text-main)] truncate max-w-[75px] sm:max-w-[100px]">
                 {profile.alias || profile.nickname}
               </span>
 
+              {/* 직업 선택 드롭다운 (너비 초과 방지 max-w 설정) */}
               <select
                 value={profile.job || "전사"}
                 onChange={(e) => updateProfile("job", e.target.value)}
-                className="text-xs bg-[var(--inner-box)] border border-[var(--panel-border)] px-1.5 py-0.5 rounded font-bold text-[var(--accent)] outline-none cursor-pointer hover:border-[var(--accent)]"
+                className="text-[11px] sm:text-xs bg-[var(--inner-box)] border border-[var(--panel-border)] px-1 py-0.5 rounded font-bold text-[var(--accent)] outline-none cursor-pointer hover:border-[var(--accent)] shrink-0 max-w-[90px] sm:max-w-none truncate"
               >
                 {dbClasses.length > 0
                   ? dbClasses.map((cls: any) => (
@@ -74,20 +83,22 @@ export default function CharacterSelector({
                     ))}
               </select>
 
+              {/* 대표 캐릭터 태그 */}
               {profile.isMain && (
-                <span className="text-[10px] sm:text-xs bg-[var(--accent)] text-[var(--accent-fg)] font-black px-1.5 py-0.5 rounded whitespace-nowrap">
+                <span className="text-[9px] sm:text-[10px] bg-[var(--accent)] text-[var(--accent-fg)] font-black px-1.5 py-0.5 rounded whitespace-nowrap shrink-0">
                   대표
                 </span>
               )}
             </div>
 
-            <div className="text-xs text-[var(--text-sub)] font-bold mt-0.5 whitespace-nowrap">
+            <div className="text-[11px] sm:text-xs text-[var(--text-sub)] font-bold mt-0.5 whitespace-nowrap">
               누적 레벨 : {totalLevel}
             </div>
           </div>
         </div>
 
-        <div className="flex flex-col gap-1 shrink-0">
+        {/* 우측: 장비상세 / 칭호보기 버튼 (너비 고정 shrink-0) */}
+        <div className="flex flex-col gap-1 shrink-0 ml-1">
           <button
             type="button"
             onClick={() =>
@@ -97,7 +108,7 @@ export default function CharacterSelector({
                 )}`
               )
             }
-            className="px-2 py-0.5 text-center bg-[var(--accent)] text-[var(--accent-fg)] text-[11px] md:text-xs font-black rounded-md shadow-xs transition hover:opacity-90 whitespace-nowrap cursor-pointer"
+            className="px-2 py-0.5 text-center bg-[var(--accent)] text-[var(--accent-fg)] text-[10px] sm:text-[11px] md:text-xs font-black rounded-md shadow-xs transition hover:opacity-90 whitespace-nowrap cursor-pointer"
           >
             🔍 장비상세
           </button>
@@ -106,7 +117,7 @@ export default function CharacterSelector({
             onClick={() =>
               setIsTitleAccordionOpen(!isTitleAccordionOpen)
             }
-            className="px-2 py-0.5 text-center bg-[var(--inner-box)] border border-[var(--panel-border)] text-[11px] md:text-xs font-bold text-[var(--accent)] rounded-md transition whitespace-nowrap hover:bg-[var(--accent-soft)] cursor-pointer"
+            className="px-2 py-0.5 text-center bg-[var(--inner-box)] border border-[var(--panel-border)] text-[10px] sm:text-[11px] md:text-xs font-bold text-[var(--accent)] rounded-md transition whitespace-nowrap hover:bg-[var(--accent-soft)] cursor-pointer"
           >
             ✨ 칭호보기
           </button>

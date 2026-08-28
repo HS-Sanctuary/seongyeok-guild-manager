@@ -1,6 +1,7 @@
 "use client";
 
 import { usePressAndHold } from "@/hooks/usePressAndHold";
+import ClassIcon from "@/components/common/ClassIcon";
 
 interface ClassItemProps {
   cls: any;
@@ -31,7 +32,8 @@ function MobileClassRow({
       }`}
     >
       <div className="flex items-center gap-1.5 min-w-0 pr-1 flex-1">
-        <span className="text-xs shrink-0">{cls.icon || "🛡️"}</span>
+        {/* 이모지 대신 ClassIcon 적용 */}
+        <ClassIcon job={cls.name} className="w-4 h-4 shrink-0" />
         <span
           className={`text-xs font-bold truncate ${
             isMax ? "text-[var(--accent)]" : "text-[var(--text-main)]"
@@ -101,10 +103,10 @@ export default function ClassLevelManager({
 }: ClassLevelManagerProps) {
   return (
     <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-2.5 md:p-4 shadow-xs space-y-3">
-      {/* 모바일에서 도움말 이탈 방지 2줄 레이아웃 */}
       <div className="border-b border-[var(--panel-border)] pb-2 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-        <h3 className="font-bold text-[var(--accent)] text-xs md:text-sm whitespace-nowrap">
-          ⚡ 클래스 레벨 관리
+        <h3 className="font-bold text-[var(--accent)] text-xs md:text-sm whitespace-nowrap flex items-center gap-1.5">
+          <span>⚡</span>
+          <span>클래스 레벨 관리</span>
         </h3>
         <p className="text-[10px] text-[var(--text-sub)] font-normal md:hidden leading-tight">
           💡 + / - 버튼을 꾹 누르면 레벨이 연속 변경됩니다.
@@ -139,7 +141,8 @@ export default function ClassLevelManager({
               }`}
             >
               <div className="flex items-center gap-1.5 min-w-0 pr-1 flex-1">
-                <span className="text-sm shrink-0">{cls.icon || "🛡️"}</span>
+                {/* 데스크톱 그리드도 ClassIcon 적용 */}
+                <ClassIcon job={cls.name} className="w-5 h-5 shrink-0" />
                 <span
                   className={`text-sm font-bold truncate ${
                     isMax ? "text-[var(--accent)]" : "text-[var(--text-main)]"
