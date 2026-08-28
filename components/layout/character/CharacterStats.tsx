@@ -22,6 +22,7 @@ interface CharacterStatsProps {
   accountContribution: string;
   updateProfile: (field: string, value: any) => void;
   setAccountContribution: (value: string) => void;
+  lastUpdatedAt?: string | Date | null; // 👈 DB 최신 업데이트 시각 props 추가
 }
 
 export default function CharacterStats({
@@ -33,7 +34,8 @@ export default function CharacterStats({
   accountTotalScore,
   accountContribution,
   updateProfile,
-  setAccountContribution
+  setAccountContribution,
+  lastUpdatedAt
 }: CharacterStatsProps) {
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
 
@@ -42,6 +44,18 @@ export default function CharacterStats({
     const numStr = String(val).replace(/[^0-9]/g, "");
     if (!numStr) return "";
     return Number(numStr).toLocaleString();
+  };
+
+  // 날짜 포맷팅 함수 (MM/DD HH:mm)
+  const formatLastUpdated = (dateVal?: string | Date | null) => {
+    if (!dateVal) return "기록 없음";
+    const d = new Date(dateVal);
+    if (isNaN(d.getTime())) return "기록 없음";
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const hours = String(d.getHours()).padStart(2, '0');
+    const mins = String(d.getMinutes()).padStart(2, '0');
+    return `${month}/${day} ${hours}:${mins}`;
   };
 
   const handleInputChange = (field: string, rawVal: string) => {
@@ -54,7 +68,7 @@ export default function CharacterStats({
       {/* 상단 컨트롤러 레이아웃 */}
       <div className="flex items-center justify-between gap-2 md:gap-4">
         
-        {/* RED: 모바일 '캐릭터/계정' 축소 & PC 비율 상향 버튼 그룹 */}
+        {/* RED: 뷰 모드 전환 버튼 */}
         <div className="inline-flex bg-[var(--inner-box)] p-0.5 md:p-1 rounded-lg border border-[var(--panel-border)] gap-0.5 md:gap-1 shadow-inner shrink-0">
           <button
             type="button"
@@ -87,7 +101,7 @@ export default function CharacterStats({
           </button>
         </div>
 
-        {/* GREEN: 업데이트 박스 (ℹ️ 아이콘 좌측 배치 & 우측 정렬 완료) */}
+        {/* GREEN: 동적 시각 출력 업데이트 박스 */}
         <button
           type="button"
           onClick={() => setIsUpdateModalOpen(true)}
@@ -99,8 +113,9 @@ export default function CharacterStats({
               <span>ℹ️</span>
               <span>최신 업데이트</span>
             </div>
+            {/* DB에서 가져온 실제 시각 자동 반영 */}
             <span className="text-[11px] md:text-xs font-black font-mono text-[var(--accent)]">
-              08/28 16:24
+              {formatLastUpdated(lastUpdatedAt)}
             </span>
           </div>
         </button>

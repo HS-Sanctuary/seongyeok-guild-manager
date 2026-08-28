@@ -65,6 +65,7 @@ export default function CharacterPage() {
 
   const [myCharacters, setMyCharacters] = useState<any[]>([]);
   const [accountContribution, setAccountContribution] = useState<string>("");
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(null);
 
   const defaultProfile = { nickname: "", alias: "", job: "전사", combatPower: "", magicResistance: "", lifeEnergy: "", charm: "", isMain: false };
   const [profile, setProfile] = useState(defaultProfile);
@@ -211,7 +212,7 @@ export default function CharacterPage() {
       let data = null;
       const res1 = await supabase
         .from('characters')
-        .select('nickname, alias, sort_order, owner, job, is_main')
+        .select('nickname, alias, sort_order, owner, job, is_main, updated_at')
         .or(`owner.eq.${loginUserNick},nickname.eq.${loginUserNick}`)
         .order('sort_order', { ascending: true });
 
@@ -220,7 +221,7 @@ export default function CharacterPage() {
       } else {
         const res2 = await supabase
           .from('characters')
-          .select('nickname, sort_order, owner, job, is_main')
+          .select('nickname, sort_order, owner, job, is_main, updated_at')
           .or(`owner.eq.${loginUserNick},nickname.eq.${loginUserNick}`)
           .order('sort_order', { ascending: true });
         data = res2.data;
@@ -300,6 +301,7 @@ export default function CharacterPage() {
       const data = allOwnedChars?.find((c: any) => c.nickname === charName);
 
       if (data) {
+        setLastUpdatedAt(data.updated_at || null);
         setProfile({
           nickname: data.nickname, 
           alias: data.alias || "", 
@@ -370,6 +372,7 @@ export default function CharacterPage() {
         setTradeProgress(parsedProgress);
         setTradeCompletedBy(parsedNicknames);
       } else {
+        setLastUpdatedAt(null);
         setProfile({ ...defaultProfile, nickname: charName });
         setLevels({}); setDailyChecks([]); setWeeklyChecks([]); setRepeatChecks({});
         setAbyssChecks([]); setRaidChecks([]); setTradeProgress({}); setTradeCompletedBy({});
@@ -403,17 +406,20 @@ export default function CharacterPage() {
         };
       });
 
+      const now = new Date();
       const payload = {
         nickname: profile.nickname, alias: profile.alias.slice(0, 3), owner: user.nickname, sort_order: currentSortOrder,
         job: profile.job || "전사", combat_power: Number(profile.combatPower) || 0, magic_resistance: Number(profile.magicResistance) || 0,
         life_energy: Number(profile.lifeEnergy) || 0, charm: Number(profile.charm) || 0, contribution: Number(accountContribution) || 0,
         is_main: profile.isMain, levels: levels, 
         daily_checks: dailyChecks, weekly_checks: { normal: weeklyChecks, repeat: repeatChecks },
-        raid_checks: [...abyssChecks, ...raidChecks], trade_checks: tradePayload, updated_at: new Date()
+        raid_checks: [...abyssChecks, ...raidChecks], trade_checks: tradePayload, updated_at: now
       };
       
       await supabase.from('characters').upsert(payload, { onConflict: 'nickname' }); 
       await supabase.from('characters').update({ contribution: Number(accountContribution) || 0 }).eq('owner', user.nickname);
+
+      setLastUpdatedAt(now.toISOString());
 
       setAllCharacters(prev => {
         const exists = prev.some(c => c.nickname === profile.nickname);
@@ -792,6 +798,7 @@ export default function CharacterPage() {
             accountContribution={accountContribution}
             updateProfile={updateProfile}
             setAccountContribution={setAccountContribution}
+            lastUpdatedAt={lastUpdatedAt}
           />
 
           {/* 2. 캐릭터 선택기 (아래쪽배치) */}
