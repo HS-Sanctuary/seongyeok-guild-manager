@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Fragment } from "react";
 import { supabase } from "../../../lib/supabase";
+import ClassIcon from "../../components/ClassIcon";
 
 const CATEGORY_THEMES: Record<string, any> = {
   TELOS: {
@@ -196,8 +197,12 @@ export default function PantheonView() {
   const [selectedClass, setSelectedClass] = useState<string>("전체"); 
   const [isClassFilterOpen, setIsClassFilterOpen] = useState(false);
 
-  const [openHoverTooltipId, setOpenHoverTooltipId] = useState<string | null>(null);
+  // 💡 마우스 호버 상태 완벽 제거 -> 클릭 팝업 전용으로 일원화
   const [openClickTooltipId, setOpenClickTooltipId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setSelectedClass("전체");
+  }, [activeRankTab]);
 
   useEffect(() => {
     fetchServerData();
@@ -219,6 +224,15 @@ export default function PantheonView() {
         setDbCharacters(mappedData);
       }
     } catch (err) { console.error("판테온 로딩 실패", err); }
+  };
+
+  const getKratosClassRank = (char: Character): number => {
+    const sameJobChars = dbCharacters
+      .filter(c => c.job === char.job)
+      .sort((a, b) => b.combatPower - a.combatPower);
+    
+    const index = sameJobChars.findIndex(c => c.id === char.id);
+    return index >= 0 ? index + 1 : 0;
   };
 
   const getScore = (c: Character, type: keyof typeof RANKING_INFO) => {
@@ -326,15 +340,16 @@ export default function PantheonView() {
   };
 
   const getRankBadgeColor = (rank: number) => {
-    if (rank === 1) return 'bg-amber-500 text-black';
-    if (rank === 2) return 'bg-slate-300 text-black';
-    if (rank === 3) return 'bg-amber-700 text-white';
-    return 'text-[var(--text-sub)] bg-transparent';
+    if (rank === 1) return 'bg-amber-500 text-black font-black';
+    if (rank === 2) return 'bg-slate-300 text-black font-black';
+    if (rank === 3) return 'bg-amber-700 text-white font-black';
+    return 'text-[var(--text-sub)] bg-transparent font-bold';
   };
 
+  {/* 🌟 100% 클릭 방식 툴팁 렌더링 & overflow 상위 잘림 현상 방지 */}
   const renderTitleTag = (t: { type: string; name: string; rank: number; theme: any }, char: Character) => {
     const tooltipId = `${char.id}-${t.type}-${t.name}`;
-    const isOpen = openHoverTooltipId === tooltipId || openClickTooltipId === tooltipId;
+    const isOpen = openClickTooltipId === tooltipId;
     const lore = generateLore(t.name, t.rank, char.job, t.type as keyof typeof RANKING_INFO);
     const tagStyle = t.rank <= 3 ? t.theme.tags[t.rank - 1] : t.theme.tags[0];
 
@@ -342,39 +357,44 @@ export default function PantheonView() {
       <div key={tooltipId} className="relative inline-block">
         <button
           type="button"
-          onMouseEnter={() => setOpenHoverTooltipId(tooltipId)}
-          onMouseLeave={() => setOpenHoverTooltipId(null)}
           onClick={(e) => {
             e.stopPropagation();
-            setOpenClickTooltipId(openClickTooltipId === tooltipId ? null : tooltipId);
+            setOpenClickTooltipId(isOpen ? null : tooltipId);
           }}
           className={`text-[0.6rem] px-1.5 py-0.5 rounded border transition-all hover:scale-105 cursor-pointer font-bold ${tagStyle}`}
         >
           {t.name}
         </button>
 
+        {/* 🌟 클릭 시에만 최상위 z-[9999] 팝업 렌더링 */}
         {isOpen && (
           <div 
-            className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 bg-zinc-950/95 border border-amber-500/50 rounded-xl shadow-2xl text-left z-[100] text-xs backdrop-blur-md animate-in fade-in zoom-in-95 duration-150 pointer-events-none"
+            className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 sm:w-80 p-3.5 bg-zinc-950/95 border border-amber-500/60 rounded-xl shadow-2xl text-left z-[9999] text-xs backdrop-blur-md animate-in fade-in zoom-in-95 duration-150"
             onClick={e => e.stopPropagation()}
           >
-            <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-amber-500/50"></div>
+            <div className="absolute top-full left-1/2 -translate-x-1/2 border-6 border-transparent border-t-amber-500/60"></div>
             <div className="flex items-center justify-between border-b border-zinc-800 pb-1.5 mb-2">
               <span className="font-black text-amber-400 text-sm flex items-center gap-1">
                 <span>👑</span> {lore.title}
               </span>
-              <span className="text-[0.55rem] font-bold text-zinc-400 bg-zinc-800 px-1.5 py-0.5 rounded">
-                {lore.sourceText}
-              </span>
+              <button 
+                onClick={() => setOpenClickTooltipId(null)} 
+                className="text-zinc-400 hover:text-white text-xs font-bold px-1"
+              >
+                ✕
+              </button>
             </div>
-            <div className="space-y-1.5 text-[0.68rem]">
+            <div className="text-[0.58rem] font-bold text-zinc-400 bg-zinc-900 px-2 py-0.5 rounded mb-2 w-fit border border-zinc-800">
+              {lore.sourceText}
+            </div>
+            <div className="space-y-2 text-[0.68rem]">
               <div>
-                <span className="text-amber-300 font-bold block text-[0.6rem]">📖 세계관 / 설명</span>
+                <span className="text-amber-300 font-bold block text-[0.6rem] mb-0.5">📖 세계관 / 설명</span>
                 <p className="text-zinc-200 font-medium leading-relaxed">{lore.meaning}</p>
               </div>
               {lore.tribute && (
-                <div className="pt-1 border-t border-zinc-800/80">
-                  <span className="text-amber-400 font-bold block text-[0.6rem]">📜 성역의 헌사</span>
+                <div className="pt-1.5 border-t border-zinc-800/80">
+                  <span className="text-amber-400 font-bold block text-[0.6rem] mb-0.5">📜 성역의 헌사</span>
                   <p className="text-zinc-300 italic font-medium leading-relaxed">"{lore.tribute}"</p>
                 </div>
               )}
@@ -416,6 +436,7 @@ export default function PantheonView() {
 
   return (
     <section className="space-y-3 animate-in fade-in duration-200">
+      {/* 바깥 영역 클릭 시 팝업 닫기 백드롭 */}
       {openClickTooltipId && <div className="fixed inset-0 z-[80]" onClick={() => setOpenClickTooltipId(null)}></div>}
       
       <div className="grid md:hidden grid-cols-3 gap-1.5">{['TELOS', 'SYMPHONIA', 'PIETAS', 'KRATOS', 'TECHNE', 'HARMONIA'].map(k => renderRankButton(k as any))}</div>
@@ -435,7 +456,7 @@ export default function PantheonView() {
             onClick={() => setIsClassFilterOpen(!isClassFilterOpen)}
             className={`px-3 py-1.5 rounded-lg text-[0.68rem] font-bold transition flex items-center gap-1 border shadow-sm ${isClassFilterOpen ? 'bg-[var(--accent)] text-[var(--accent-fg)] border-[var(--accent)]' : 'bg-[var(--inner-box)] text-[var(--text-sub)] hover:text-[var(--text-main)] border-[var(--panel-border)]'}`}
           >
-            🔍 필터
+            🔍 필터 {selectedClass !== "전체" && `(${selectedClass})`}
           </button>
         )}
       </div>
@@ -455,13 +476,21 @@ export default function PantheonView() {
             onClick={() => setIsClassFilterOpen(!isClassFilterOpen)}
             className={`w-full py-1.5 rounded-lg text-[0.75rem] font-bold transition flex items-center justify-center gap-1.5 ${isClassFilterOpen ? 'bg-[var(--inner-box)] text-[var(--accent)] border border-[var(--panel-border)]' : 'text-[var(--text-sub)] hover:text-[var(--text-main)]'}`}
           >
-            🔍 클래스별 필터링 펼치기 ▼
+            🔍 클래스별 필터링 {selectedClass !== "전체" ? `[선택: ${selectedClass}]` : "펼치기 ▼"}
           </button>
         </div>
       )}
 
       {isClassFilterOpen && activeRankTab !== 'SYMPHONIA' && activeRankTab !== 'PIETAS' && activeRankTab !== 'TECHNE' && (
-        <div className="bg-[var(--panel)] border border-[var(--panel-border)] p-2 rounded-xl mt-1 mb-3">
+        <div className="bg-[var(--panel)] border border-[var(--panel-border)] p-2.5 rounded-xl mt-1 mb-3">
+          <div className="flex justify-between items-center mb-2 px-1">
+            <span className="text-[0.68rem] font-black text-[var(--accent)]">클래스 필터링</span>
+            {selectedClass !== "전체" && (
+              <button onClick={() => setSelectedClass("전체")} className="text-[0.62rem] text-rose-400 font-bold hover:underline cursor-pointer">
+                필터 해제 (전체 보기)
+              </button>
+            )}
+          </div>
           <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
             {CLASS_GROUPS.map((group) => (
               <div key={group.name} className="bg-[var(--inner-box)] p-2 rounded-lg border border-[var(--panel-border)] flex flex-col gap-1">
@@ -473,13 +502,14 @@ export default function PantheonView() {
                     <button 
                       key={cls} 
                       onClick={() => setSelectedClass(cls)} 
-                      className={`px-2 py-1.5 rounded text-left transition font-bold text-[0.65rem] border ${
+                      className={`px-2 py-1.5 rounded text-left transition font-bold text-[0.65rem] border flex items-center gap-1.5 cursor-pointer ${
                         selectedClass === cls 
                           ? 'bg-[var(--accent)] text-[var(--accent-fg)] font-black border-[var(--accent)]' 
                           : 'bg-[var(--panel)] text-[var(--text-main)] border-[var(--panel-border)] hover:border-[var(--accent)]'
                       }`}
                     >
-                      {cls}
+                      <ClassIcon job={cls} kratosClassRank={0} size="sm" />
+                      <span>{cls}</span>
                     </button>
                   ))}
                 </div>
@@ -489,17 +519,19 @@ export default function PantheonView() {
         </div>
       )}
 
-      {/* 🏆 랭킹 리스트 그리드 (React Fragment key 적용) */}
+      {/* 🏆 랭킹 메인 영역 */}
       {activeRankTab === 'SYMPHONIA' ? (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-4">
-          {accountRankings.map((acc, index) => {
-            const rank = index + 1;
-            const isTop3 = rank <= 3;
-            const titleName = isTop3 ? TOP_TITLES.SYMPHONIA[rank - 1] : '';
-            
-            return (
-              <Fragment key={acc.owner}>
-                <div className={`md:hidden relative bg-[var(--panel)] border ${getTop3BorderClass(rank)} rounded-xl p-3 hover:border-[var(--accent)] transition-all z-10`}>
+        
+        <div className="space-y-3">
+          {/* 모바일 뷰 */}
+          <div className="grid md:hidden grid-cols-1 gap-2">
+            {accountRankings.map((acc, index) => {
+              const rank = index + 1;
+              const isTop3 = rank <= 3;
+              const titleName = isTop3 ? TOP_TITLES.SYMPHONIA[rank - 1] : '';
+              
+              return (
+                <div key={acc.owner} className={`relative bg-[var(--panel)] border ${getTop3BorderClass(rank)} rounded-xl p-3 hover:border-[var(--accent)] transition-all z-10`}>
                   <div className="flex justify-between items-start mb-2 gap-2">
                     <div className="flex items-center gap-1.5 flex-wrap min-w-0 flex-1">
                       <span className={`px-1.5 py-0.5 rounded font-black text-[0.65rem] shrink-0 ${getRankBadgeColor(rank)}`}>#{rank}</span>
@@ -518,53 +550,96 @@ export default function PantheonView() {
                     <div><span className="text-pink-400 mr-1">매력</span>{acc.totalCharm.toLocaleString()}</div>
                   </div>
                 </div>
+              );
+            })}
+          </div>
 
-                <div className={`hidden md:flex relative bg-[var(--panel)] border ${getTop3BorderClass(rank)} rounded-xl p-4 flex-col overflow-hidden hover:border-[var(--accent)] transition-all z-10`}>
-                  <div className={`absolute top-0 right-0 px-3 py-1.5 font-black text-sm ${rank <= 3 ? getRankBadgeColor(rank) + ' rounded-bl-xl' : 'text-[var(--text-sub)]'}`}>
-                    #{rank}
-                  </div>
-                  {isTop3 && (
-                    <div className="mb-1">
-                       <span className={`text-[0.65rem] px-1.5 py-0.5 rounded border font-black ${CATEGORY_THEMES.SYMPHONIA.tags[rank-1]}`}>{titleName}</span>
+          {/* PC 뷰 */}
+          <div className="hidden md:block space-y-3">
+            <div className="grid grid-cols-3 gap-3">
+              {accountRankings.slice(0, 3).map((acc, index) => {
+                const rank = index + 1;
+                const titleName = TOP_TITLES.SYMPHONIA[index];
+                return (
+                  <div key={acc.owner} className={`relative bg-[var(--panel)] border ${getTop3BorderClass(rank)} rounded-xl p-3.5 flex flex-col justify-between hover:border-[var(--accent)] transition-all`}>
+                    <div className="flex justify-between items-start mb-2">
+                      <span className={`px-2 py-0.5 rounded text-xs ${getRankBadgeColor(rank)}`}>#{rank}</span>
+                      <span className={`text-[0.62rem] px-1.5 py-0.5 rounded border font-black ${CATEGORY_THEMES.SYMPHONIA.tags[index]}`}>{titleName}</span>
                     </div>
-                  )}
-                  <div className="mb-2 pr-8">
-                    <h3 className="text-[1.1rem] font-black text-[var(--text-main)] truncate">{acc.owner}</h3>
-                    <span className="text-[0.7rem] text-[var(--text-sub)] font-bold">대표: {acc.mainCharName} ({acc.mainCharJob}) · {acc.charCount}캐릭</span>
-                  </div>
-                  
-                  <div className="mt-auto border-t border-[var(--panel-border)] pt-2 grid grid-cols-1 gap-1">
-                    <div className="flex justify-between items-center text-[0.65rem] font-bold">
-                      <span className="text-[var(--text-sub)]">종합 점수</span>
-                      <span className="text-amber-500 font-black text-base">{acc.totalScore.toLocaleString()}</span>
+                    <div className="mb-2">
+                      <h3 className="text-lg font-black text-[var(--text-main)] truncate">{acc.owner}</h3>
+                      <span className="text-xs text-[var(--text-sub)] font-bold">대표: {acc.mainCharName} ({acc.mainCharJob}) · {acc.charCount}캐릭</span>
                     </div>
-                    <div className="grid grid-cols-3 gap-1 mt-1 text-[0.55rem] font-bold text-center">
-                      <div className="bg-[var(--inner-box)] p-1 rounded border border-[var(--panel-border)]"><span className="text-red-400 block mb-0.5">총 전투력</span>{acc.totalCombat.toLocaleString()}</div>
-                      <div className="bg-[var(--inner-box)] p-1 rounded border border-[var(--panel-border)]"><span className="text-emerald-400 block mb-0.5">총 생활력</span>{acc.totalLife.toLocaleString()}</div>
-                      <div className="bg-[var(--inner-box)] p-1 rounded border border-[var(--panel-border)]"><span className="text-pink-400 block mb-0.5">총 매력</span>{acc.totalCharm.toLocaleString()}</div>
+                    <div className="border-t border-[var(--panel-border)] pt-2 space-y-1.5">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs text-[var(--text-sub)] font-bold">계정 총점</span>
+                        <span className="text-amber-400 font-black text-base">{acc.totalScore.toLocaleString()}</span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-1 text-[0.6rem] font-bold text-center bg-[var(--inner-box)] p-1 rounded border border-[var(--panel-border)]">
+                        <div><span className="text-red-400 block">전투력</span>{acc.totalCombat.toLocaleString()}</div>
+                        <div><span className="text-emerald-400 block">생활력</span>{acc.totalLife.toLocaleString()}</div>
+                        <div><span className="text-pink-400 block">매력</span>{acc.totalCharm.toLocaleString()}</div>
+                      </div>
                     </div>
                   </div>
+                );
+              })}
+            </div>
+
+            {accountRankings.length > 3 && (
+              <div className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-xl shadow-xs">
+                <div className="px-3 py-2 bg-[var(--inner-box)] border-b border-[var(--panel-border)] text-xs font-black text-[var(--text-sub)] flex justify-between">
+                  <span>순위 / 계정 명칭</span>
+                  <span>세부 스탯 / 계정 총점</span>
                 </div>
-              </Fragment>
-            );
-          })}
+                <div className="divide-y divide-[var(--panel-border)]">
+                  {accountRankings.slice(3).map((acc, index) => {
+                    const rank = index + 4;
+                    return (
+                      <div key={acc.owner} className="p-2.5 flex items-center justify-between hover:bg-[var(--inner-box)] transition-colors">
+                        <div className="flex items-center gap-3">
+                          <span className="font-black text-xs text-[var(--text-sub)] w-6 text-center">#{rank}</span>
+                          <div>
+                            <span className="font-black text-xs text-[var(--text-main)]">{acc.owner}</span>
+                            <span className="text-[0.6rem] text-[var(--text-sub)] font-bold ml-2">대표: {acc.mainCharName} ({acc.mainCharJob}) · {acc.charCount}캐릭</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <div className="flex gap-2 text-[0.6rem] font-bold text-[var(--text-sub)]">
+                            <span>전 <strong className="text-red-400">{acc.totalCombat.toLocaleString()}</strong></span>
+                            <span>생 <strong className="text-emerald-400">{acc.totalLife.toLocaleString()}</strong></span>
+                            <span>매 <strong className="text-pink-400">{acc.totalCharm.toLocaleString()}</strong></span>
+                          </div>
+                          <span className="font-black text-xs text-amber-400 w-20 text-right">{acc.totalScore.toLocaleString()}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
       ) : (
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-4">
-          {rankedCharacters.map((char) => {
-            const earnedTitles = getAllEarnedTitles(char);
-            const score = getScore(char, activeRankTab);
-            const categoryRank = allSortedCharacters.findIndex(c => c.id === char.id) + 1;
-            
-            return (
-              <Fragment key={char.id}>
-                <div className={`md:hidden relative bg-[var(--panel)] border ${getTop3BorderClass(categoryRank)} rounded-xl p-3 hover:border-[var(--accent)] transition-all z-10`}>
+        <div className="space-y-3">
+          
+          {/* 모바일 뷰 */}
+          <div className="grid md:hidden grid-cols-1 gap-2">
+            {rankedCharacters.map((char) => {
+              const earnedTitles = getAllEarnedTitles(char);
+              const score = getScore(char, activeRankTab);
+              const categoryRank = allSortedCharacters.findIndex(c => c.id === char.id) + 1;
+              const kratosClassRank = getKratosClassRank(char);
+              
+              return (
+                <div key={char.id} className={`relative bg-[var(--panel)] border ${getTop3BorderClass(categoryRank)} rounded-xl p-3 hover:border-[var(--accent)] transition-all z-10`}>
                   <div className="flex justify-between items-start mb-2 gap-2">
                     <div className="flex items-center gap-1.5 flex-wrap min-w-0 flex-1">
                       <span className={`px-1.5 py-0.5 rounded font-black text-[0.65rem] shrink-0 ${getRankBadgeColor(categoryRank)}`}>#{categoryRank}</span>
                       {categoryRank <= 3 && renderSpecificTitleTag(char, activeRankTab, categoryRank)}
+                      <ClassIcon job={char.job} kratosClassRank={kratosClassRank} size="sm" />
                       <span className="font-black text-[0.95rem] text-[var(--text-main)] truncate shrink-0">{char.name}</span>
                       <span className="text-[0.65rem] text-[var(--text-sub)] font-bold shrink-0">{char.job}</span>
                     </div>
@@ -583,45 +658,99 @@ export default function PantheonView() {
                     <span>데이안 순위: <strong className="text-[var(--text-main)] font-black">#{char.serverRankDeian?.toLocaleString() || '-'}</strong></span>
                   </div>
                 </div>
+              );
+            })}
+          </div>
 
-                <div className={`hidden md:flex relative bg-[var(--panel)] border ${getTop3BorderClass(categoryRank)} rounded-xl p-4 flex-col overflow-hidden hover:border-[var(--accent)] transition-all z-10`}>
-                  <div className={`absolute top-0 right-0 px-3 py-1.5 font-black text-sm ${categoryRank <= 3 ? getRankBadgeColor(categoryRank) + ' rounded-bl-xl' : 'text-[var(--text-sub)]'}`}>
-                    #{categoryRank}
-                  </div>
-                  
-                  {categoryRank <= 3 && (
-                    <div className="mb-1">
-                      {renderSpecificTitleTag(char, activeRankTab, categoryRank)}
-                    </div>
-                  )}
+          {/* PC 뷰 (overflow 제거 및 z-index 상승 구조) */}
+          <div className="hidden md:block space-y-3">
+            <div className="grid grid-cols-3 gap-3">
+              {rankedCharacters.slice(0, 3).map((char, index) => {
+                const earnedTitles = getAllEarnedTitles(char);
+                const score = getScore(char, activeRankTab);
+                const displayRank = index + 1;
+                const kratosClassRank = getKratosClassRank(char);
 
-                  <div className="mb-2 pr-8">
-                    <h3 className="text-[1.1rem] font-black text-[var(--text-main)] truncate">{char.name}</h3>
-                    <span className="text-[0.7rem] text-[var(--text-sub)] font-bold">{char.job}</span>
-                  </div>
-                  
-                  <div className="flex flex-wrap gap-1 mb-4 flex-1">
-                    {earnedTitles.map(t => renderTitleTag(t, char))}
-                  </div>
+                return (
+                  <div key={char.id} className={`relative bg-[var(--panel)] border ${getTop3BorderClass(displayRank)} rounded-xl p-4 flex flex-col justify-between hover:border-[var(--accent)] transition-all`}>
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2 py-0.5 rounded text-xs ${getRankBadgeColor(displayRank)}`}>#{displayRank}</span>
+                        <ClassIcon job={char.job} kratosClassRank={kratosClassRank} />
+                      </div>
+                      {renderSpecificTitleTag(char, activeRankTab, displayRank)}
+                    </div>
 
-                  <div className="border-t border-[var(--panel-border)] pt-2 space-y-1 mt-auto">
-                    <div className="flex justify-between items-center text-[0.65rem] font-bold">
-                      <span className="text-[var(--text-sub)]">{RANKING_INFO[activeRankTab].stat}</span>
-                      <span className="text-[var(--accent)] font-black text-base">{score.toLocaleString()}</span>
+                    <div className="mb-2">
+                      <h3 className="text-lg font-black text-[var(--text-main)] truncate">{char.name}</h3>
+                      <span className="text-xs text-[var(--text-sub)] font-bold">{char.job}</span>
                     </div>
-                    <div className="flex justify-between items-center text-[0.6rem] font-bold">
-                      <span className="text-[var(--text-sub)]">통합 순위</span>
-                      <span className="text-[var(--text-main)] font-black">#{char.serverRankOverall?.toLocaleString() || '-'}</span>
+
+                    <div className="flex flex-wrap gap-1 mb-4 min-h-[24px]">
+                      {earnedTitles.map(t => renderTitleTag(t, char))}
                     </div>
-                    <div className="flex justify-between items-center text-[0.6rem] font-bold">
-                      <span className="text-[var(--text-sub)]">데이안 순위</span>
-                      <span className="text-[var(--text-main)] font-black">#{char.serverRankDeian?.toLocaleString() || '-'}</span>
+
+                    <div className="border-t border-[var(--panel-border)] pt-2 space-y-1 text-xs font-bold">
+                      <div className="flex justify-between items-center">
+                        <span className="text-[var(--text-sub)]">{RANKING_INFO[activeRankTab].stat}</span>
+                        <span className="text-[var(--accent)] font-black text-sm">{score.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-[0.62rem]">
+                        <span className="text-[var(--text-sub)]">통합 / 데이안 순위</span>
+                        <span className="text-[var(--text-main)] font-black">#{char.serverRankOverall?.toLocaleString() || '-'} / #{char.serverRankDeian?.toLocaleString() || '-'}</span>
+                      </div>
                     </div>
                   </div>
+                );
+              })}
+            </div>
+
+            {/* 4위 이하 리스트 (각 행의 overflow 제한 완화 및 클릭 팝업 가독성 보장) */}
+            {rankedCharacters.length > 3 && (
+              <div className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-xl shadow-xs">
+                <div className="px-3 py-2 bg-[var(--inner-box)] border-b border-[var(--panel-border)] text-xs font-black text-[var(--text-sub)] flex justify-between items-center">
+                  <span>순위 / 영웅</span>
+                  <span>보유 칭호 / {RANKING_INFO[activeRankTab].stat}</span>
                 </div>
-              </Fragment>
-            );
-          })}
+                <div className="divide-y divide-[var(--panel-border)]">
+                  {rankedCharacters.slice(3).map((char, index) => {
+                    const earnedTitles = getAllEarnedTitles(char);
+                    const score = getScore(char, activeRankTab);
+                    const rankNum = index + 4;
+                    const kratosClassRank = getKratosClassRank(char);
+                    const hasOpenTooltip = earnedTitles.some(t => `${char.id}-${t.type}-${t.name}` === openClickTooltipId);
+
+                    return (
+                      <div 
+                        key={char.id} 
+                        className={`p-2.5 flex items-center justify-between hover:bg-[var(--inner-box)] transition-colors relative ${hasOpenTooltip ? 'z-50' : 'z-0'}`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="font-black text-xs text-[var(--text-sub)] w-6 text-center shrink-0">#{rankNum}</span>
+                          <ClassIcon job={char.job} kratosClassRank={kratosClassRank} />
+                          <div>
+                            <span className="font-black text-xs text-[var(--text-main)]">{char.name}</span>
+                            <span className="text-[0.62rem] text-[var(--text-sub)] font-bold ml-2">{char.job}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <div className="flex flex-wrap gap-1 justify-end max-w-[280px]">
+                            {earnedTitles.map(t => renderTitleTag(t, char))}
+                          </div>
+                          <div className="text-right shrink-0 min-w-[80px]">
+                            <span className="text-xs font-black text-[var(--accent)] block">{score.toLocaleString()}</span>
+                            <span className="text-[0.55rem] text-[var(--text-sub)]">#{char.serverRankDeian?.toLocaleString() || '-'}위</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+
         </div>
       )}
     </section>

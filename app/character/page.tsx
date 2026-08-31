@@ -4,12 +4,12 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 
-import CharacterStats from "@/components/layout/character/CharacterStats";
-import ClassLevelManager from "@/components/layout/character/ClassLevelManager";
-import ContentChecklist from "@/components/layout/character/ContentChecklist";
-import TradeList from "@/components/layout/character/TradeList";
-import CharacterSelector from "@/components/layout/character/CharacterSelector";
-import CharacterManageModal from "@/components/layout/character/CharacterManageModal";
+import CharacterStats from "@/components/character/CharacterStats";
+import ClassLevelManager from "@/components/character/ClassLevelManager";
+import ContentChecklist from "@/components/character/ContentChecklist";
+import TradeList from "@/components/character/TradeList";
+import CharacterSelector from "@/components/character/CharacterSelector";
+import CharacterManageModal from "@/components/character/CharacterManageModal";
 
 const CATEGORY_THEMES: Record<string, any> = {
   TELOS: { tags: ['bg-purple-500/30 text-purple-300 border-purple-400', 'bg-purple-800/40 text-purple-400 border-purple-600/80', 'bg-purple-950/50 text-purple-500 border-purple-800/70'] },
@@ -741,12 +741,12 @@ export default function CharacterPage() {
 
       <div className="space-y-3 md:space-y-4">
         
-        {/* 상단 헤더: 글자 짤림 방지 정밀 보완 */}
+        {/* 상단 헤더: lg(1024px) 이상에서만 1~2줄 표시, 미만에서는 (i) 버튼으로 자동 전환 */}
         <header className="relative overflow-hidden rounded-xl bg-[var(--panel)] border border-[var(--panel-border)] py-2.5 px-3 md:py-3.5 md:px-5 shadow-xs">
           <div className="absolute top-0 left-0 w-1.5 h-full bg-[var(--accent)]"></div>
           <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-2 md:gap-4">
             
-            {/* 타이틀 영역: 모바일 글자 짤림 완벽 방지 */}
+            {/* 타이틀 및 모바일/태블릿 전용 (i) 버튼 */}
             <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap shrink-0">
               <h1 className="text-sm sm:text-base md:text-xl font-black tracking-widest leading-none text-[var(--text-main)] shrink-0">CHRONOS</h1>
               <span className="text-[var(--accent)] text-xs sm:text-sm font-bold tracking-wide leading-none whitespace-nowrap shrink-0">
@@ -755,28 +755,28 @@ export default function CharacterPage() {
               <button 
                 type="button"
                 onClick={() => setShowInfo(!showInfo)}
-                className="md:hidden w-4 h-4 rounded-full bg-[var(--inner-box)] border border-[var(--panel-border)] text-[10px] font-black text-[var(--accent)] flex items-center justify-center hover:bg-[var(--accent-soft)] transition cursor-pointer shrink-0 ml-0.5"
+                className="lg:hidden w-4.5 h-4.5 rounded-full bg-[var(--inner-box)] border border-[var(--panel-border)] text-[11px] font-black text-[var(--accent)] flex items-center justify-center hover:bg-[var(--accent-soft)] transition cursor-pointer shrink-0 ml-0.5"
                 title="도움말"
               >
                 i
               </button>
             </div>
 
-            {/* 모바일 토글 안내 */}
+            {/* lg(1024px) 미만에서 (i) 클릭 시 출력되는 안내 창 */}
             {showInfo && (
-              <div className="md:hidden bg-[var(--inner-box)] border border-[var(--panel-border)] p-2.5 rounded-lg w-full text-xs font-bold text-[var(--text-sub)] leading-relaxed animate-in fade-in duration-200">
+              <div className="lg:hidden bg-[var(--inner-box)] border border-[var(--panel-border)] p-2.5 rounded-lg w-full text-xs font-bold text-[var(--text-sub)] leading-relaxed animate-in fade-in duration-200">
                 <p>⏳ 시간과 기록의 신, 크로노스.</p>
                 <p>성역과 함께 성장하는 모든 별들의 기록을 관리하는 곳입니다.</p>
               </div>
             )}
             
-            {/* 데스크톱 안내 박스 */}
-            <div className="hidden md:flex flex-1 max-w-3xl border border-[var(--panel-border)] bg-[var(--inner-box)] px-4 py-2 rounded-lg text-xs font-bold text-[var(--text-sub)] leading-tight flex-col justify-center gap-0.5 transition-all">
-              <div className="flex items-center gap-1.5">
+            {/* 데스크톱 안내 박스: lg(1024px) 이상 완벽한 1~2줄 보장, 3줄 불가 구조 */}
+            <div className="hidden lg:flex flex-1 max-w-2xl border border-[var(--panel-border)] bg-[var(--inner-box)] px-4 py-2 rounded-lg text-xs font-bold text-[var(--text-sub)] flex-col justify-center gap-0.5 shadow-xs shrink-0">
+              <div className="flex items-center gap-1.5 whitespace-nowrap">
                 <span>⏳</span>
                 <span>시간과 기록의 신, 크로노스.</span>
               </div>
-              <div className="pl-5 text-[var(--text-main)]/90 font-medium">
+              <div className="pl-5 text-[var(--text-main)]/90 font-medium whitespace-nowrap">
                 성역과 함께 성장하는 모든 별들의 기록을 관리하는 곳입니다.
               </div>
             </div>
@@ -784,10 +784,9 @@ export default function CharacterPage() {
           </div>
         </header>
         
-        {/* 🟡 노란색 영역(스탯)을 위로, 🔴 빨간색 영역(선택기)을 아래로 순서 변경 */}
+        {/* 수치 스탯 및 캐릭터 선택 영역 */}
         <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-2.5 md:p-4 shadow-xs space-y-3 md:space-y-4">
           
-          {/* 1. 수치 스탯 카운터 (위쪽배치) */}
           <CharacterStats
             statViewMode={statViewMode}
             setStatViewMode={setStatViewMode}
@@ -801,7 +800,6 @@ export default function CharacterPage() {
             lastUpdatedAt={lastUpdatedAt}
           />
 
-          {/* 2. 캐릭터 선택기 (아래쪽배치) */}
           <CharacterSelector
             profile={profile}
             myCharacters={myCharacters}
@@ -818,7 +816,7 @@ export default function CharacterPage() {
 
         </div>
 
-        {/* 🟡 탭 메뉴: "어비스/레이드" 글자 짤림 방지 패딩 및 폰트 크기 미세 조정 */}
+        {/* 🟡 탭 메뉴: 모서리 라운딩(rounded-lg) 적용 */}
         <div className="grid grid-cols-3 md:grid-cols-6 gap-1 md:gap-1.5 bg-[var(--inner-box)] p-1 md:p-1.5 rounded-xl border border-[var(--panel-border)]">
           {[
             { id: 'all', label: 'ALL' },
@@ -832,7 +830,7 @@ export default function CharacterPage() {
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id as any)}
-              className={`py-2 px-1 text-[10.5px] sm:text-xs md:text-sm font-black text-center transition cursor-pointer whitespace-nowrap leading-none truncate ${
+              className={`py-2 px-1 text-[10.5px] sm:text-xs md:text-sm font-black text-center transition cursor-pointer whitespace-nowrap leading-none truncate rounded-lg ${
                 activeTab === tab.id 
                   ? 'bg-[var(--accent)] text-[var(--accent-fg)] shadow-xs' 
                   : 'text-[var(--text-sub)] hover:text-[var(--text-main)] hover:bg-[var(--panel)]'

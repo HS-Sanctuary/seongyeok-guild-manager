@@ -14,7 +14,9 @@ function AgoraLoungeContent() {
   const [activeMainTab, setActiveMainTab] = useState<'PANTHEON' | 'ASTRA'>('PANTHEON');
   const [showLoreGuide, setShowLoreGuide] = useState(false);
 
-  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => { 
+    setMounted(true); 
+  }, []);
 
   useEffect(() => {
     const tabParam = searchParams.get("tab");
@@ -31,35 +33,85 @@ function AgoraLoungeContent() {
 
   return (
     <div className="w-full text-[var(--text-main)] font-sans pb-10 relative">
-      <div className="max-w-[1400px] mx-auto space-y-3 sm:space-y-4 relative z-10">
+      <div className="max-w-[1400px] mx-auto space-y-3 relative z-10">
         
-        {/* AGORA 헤더 */}
-        <header className="relative overflow-hidden rounded-xl bg-[var(--panel)] border border-[var(--panel-border)] py-1.5 px-3 md:py-2.5 md:px-4 shadow-xs transition-colors flex flex-col md:flex-row justify-between items-start md:items-center gap-1.5">
-          <div className="absolute top-0 left-0 w-1.5 h-full bg-[var(--accent)]"></div>
+        {/* 상단 레이아웃 */}
+        <div className="flex flex-row items-center justify-between gap-2">
           
-          <div className="flex items-center gap-1.5 flex-wrap w-full md:w-auto">
-            <h1 className="text-base md:text-lg font-black tracking-widest leading-none text-[var(--text-main)]">AGORA</h1>
-            <span className="text-[var(--accent)] text-xs font-bold tracking-wide leading-none whitespace-nowrap">
-              아고라 : 길드 라운지
-            </span>
-
-            {/* 명칭 가이드 버튼 */}
-            <button 
-              onClick={() => setShowLoreGuide(true)} 
-              className="w-4 h-4 rounded-full bg-[var(--inner-box)] border border-[var(--panel-border)] text-[10px] font-black text-[var(--text-sub)] hover:text-[var(--accent)] hover:border-[var(--accent)] transition cursor-pointer flex items-center justify-center shrink-0 ml-0.5" 
-              title="명칭 가이드 보기"
-            >
-              ?
-            </button>
-          </div>
-
-          <div className="hidden md:flex bg-[var(--inner-box)] border border-[var(--panel-border)] px-2.5 py-1 rounded-lg text-xs text-[var(--text-sub)] font-medium items-center gap-2 shrink-0">
-            <span className="text-sm shrink-0 leading-none">🏛️</span>
-            <div className="flex flex-col gap-0.5 leading-snug text-[0.72rem]">
-              <span>성역의 모든 캐릭터들이 교류하고 증명하는 중심 공간입니다.</span>
+          {/* 좌측: AGORA 헤더 박스 */}
+          <header className="relative overflow-hidden rounded-xl bg-[var(--panel)] border border-[var(--panel-border)] px-2.5 sm:px-3 h-[52px] flex flex-row items-center justify-start gap-2 sm:gap-3">
+            <div className="absolute top-0 left-0 w-1.5 h-full bg-[var(--accent)]"></div>
+            
+            <div className="flex flex-col pl-1 sm:pl-1 shrink-0">
+              <div className="flex items-center gap-1.5">
+                <h1 className="text-sm sm:text-base font-black tracking-widest leading-none text-[var(--text-main)]">AGORA</h1>
+                <button 
+                  onClick={() => setShowLoreGuide(true)} 
+                  className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full bg-[var(--inner-box)] border border-[var(--panel-border)] text-[9px] sm:text-[10px] font-black text-[var(--text-sub)] hover:text-[var(--accent)] hover:border-[var(--accent)] transition cursor-pointer flex items-center justify-center shrink-0" 
+                  title="명칭 가이드 보기"
+                >
+                  ?
+                </button>
+              </div>
+              <span className="text-[var(--accent)] text-[0.6rem] sm:text-[0.65rem] font-bold tracking-wide leading-tight mt-0.5 whitespace-nowrap">
+                아고라 : 길드 라운지
+              </span>
             </div>
+
+            <div className="hidden md:flex bg-[var(--inner-box)] border border-[var(--panel-border)] px-3 py-1.5 rounded-lg text-xs text-[var(--text-sub)] font-medium items-center gap-2.5 flex-grow max-w-[500px] ml-1">
+              <span className="text-xs shrink-0 leading-none">🏛️</span>
+              <span className="text-[0.68rem] font-semibold whitespace-nowrap overflow-hidden text-ellipsis">성역의 모든 캐릭터들이 교류하고 증명하는 중심 공간입니다.</span>
+            </div>
+          </header>
+
+          {/* 우측: PANTHEON / ASTRA 탭 스위처 (전역 테마 완벽 적용) */}
+          <div className="bg-[var(--panel)] border border-[var(--panel-border)] p-1 rounded-xl flex items-center gap-1 shrink-0 h-[52px] w-auto flex-grow sm:flex-grow-0 sm:w-auto md:basis-[400px]">
+            
+            <button 
+              onClick={() => handleTabChange('PANTHEON')} 
+              className={`flex-1 h-full rounded-lg flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-3 md:px-4 transition-all cursor-pointer ${
+                activeMainTab === 'PANTHEON' 
+                  ? 'bg-[var(--accent)] text-[var(--accent-fg)] shadow-md font-black' 
+                  : 'bg-[var(--inner-box)] text-[var(--text-sub)] hover:text-[var(--text-main)] border border-[var(--panel-border)]'
+              }`}
+            >
+              <span className="text-base sm:text-lg shrink-0">🏛️</span>
+              <div className="flex flex-col items-start leading-tight">
+                <span className="text-[0.68rem] sm:text-xs font-black tracking-wider whitespace-nowrap">
+                  {activeMainTab === 'PANTHEON' ? 'PANTHEON' : '판테온'}
+                </span>
+                <span className={`text-[0.52rem] sm:text-[0.55rem] font-extrabold tracking-tight whitespace-nowrap ${
+                  activeMainTab === 'PANTHEON' ? 'opacity-80' : 'text-[var(--text-sub)]'
+                }`}>
+                  {activeMainTab === 'PANTHEON' ? 'HALL OF FAME' : '성역 랭킹'}
+                </span>
+              </div>
+            </button>
+
+            <button 
+              onClick={() => handleTabChange('ASTRA')} 
+              className={`flex-1 h-full rounded-lg flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-3 md:px-4 transition-all cursor-pointer ${
+                activeMainTab === 'ASTRA' 
+                  ? 'bg-[var(--accent)] text-[var(--accent-fg)] shadow-md font-black' 
+                  : 'bg-[var(--inner-box)] text-[var(--text-sub)] hover:text-[var(--text-main)] border border-[var(--panel-border)]'
+              }`}
+            >
+              <span className="text-base sm:text-lg shrink-0">✦</span>
+              <div className="flex flex-col items-start leading-tight">
+                <span className="text-[0.68rem] sm:text-xs font-black tracking-wider whitespace-nowrap">
+                  {activeMainTab === 'ASTRA' ? 'ASTRA' : '아스트라'}
+                </span>
+                <span className={`text-[0.52rem] sm:text-[0.55rem] font-extrabold tracking-tight whitespace-nowrap ${
+                  activeMainTab === 'ASTRA' ? 'opacity-80' : 'text-[var(--text-sub)]'
+                }`}>
+                  {activeMainTab === 'ASTRA' ? 'GUILD ROSTER' : '길드원 현황'}
+                </span>
+              </div>
+            </button>
+
           </div>
-        </header>
+
+        </div>
 
         {/* SANCTUM 명칭 가이드 모달 */}
         {showLoreGuide && (
@@ -76,79 +128,6 @@ function AgoraLoungeContent() {
           </div>
         )}
 
-        {/* 🌟 메이저 UI: 슬라이딩 캡슐 세그먼트 탭 */}
-        <div className="relative p-1.5 rounded-[1.25rem] bg-[var(--panel)] border border-[var(--panel-border)] shadow-inner flex w-full max-w-[800px] mx-auto h-[4.5rem]">
-          
-          {/* 부드럽게 이동하는 활성화 배경 (Sliding Indicator) */}
-          <div 
-            className="absolute top-1.5 bottom-1.5 rounded-xl bg-[var(--accent)] shadow-[0_4px_20px_rgba(212,163,89,0.3)] transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1)"
-            style={{ 
-              width: 'calc(50% - 6px)',
-              left: activeMainTab === 'PANTHEON' ? '6px' : 'calc(50% + 0px)' 
-            }}
-          />
-
-          {/* PANTHEON 탭 버튼 */}
-          <button 
-            onClick={() => handleTabChange('PANTHEON')} 
-            className="relative z-10 flex-1 flex items-center justify-center gap-2.5 cursor-pointer outline-none group"
-          >
-            <span className={`text-xl sm:text-2xl transition-transform duration-300 ${
-              activeMainTab === 'PANTHEON' ? 'scale-110 drop-shadow-md' : 'grayscale opacity-50 group-hover:opacity-80'
-            }`}>
-              🏛️
-            </span>
-            {/* 텍스트 컨테이너 가운데 정렬(items-center) 적용 */}
-            <div className="flex flex-col items-center justify-center leading-tight mt-0.5">
-              <span className={`font-black tracking-[0.1em] sm:tracking-[0.15em] transition-all duration-300 ${
-                activeMainTab === 'PANTHEON' 
-                  ? 'text-sm sm:text-base text-[var(--accent-fg)] drop-shadow-sm' 
-                  : 'text-sm sm:text-base text-[var(--text-main)] group-hover:text-[var(--text-main)]'
-              }`}>
-                {activeMainTab === 'PANTHEON' ? 'PANTHEON' : '판테온'}
-              </span>
-              <span className={`text-[0.6rem] sm:text-[0.65rem] font-bold transition-all duration-300 ${
-                activeMainTab === 'PANTHEON'
-                  ? 'text-[var(--accent-fg)] opacity-80 tracking-widest'
-                  : 'text-[var(--text-sub)] opacity-70 tracking-widest'
-              }`}>
-                {activeMainTab === 'PANTHEON' ? 'HALL OF FAME' : '성역 랭킹'}
-              </span>
-            </div>
-          </button>
-
-          {/* ASTRA 탭 버튼 */}
-          <button 
-            onClick={() => handleTabChange('ASTRA')} 
-            className="relative z-10 flex-1 flex items-center justify-center gap-2.5 cursor-pointer outline-none group"
-          >
-            <span className={`text-xl sm:text-2xl transition-transform duration-300 ${
-              activeMainTab === 'ASTRA' ? 'scale-110 drop-shadow-md' : 'grayscale opacity-50 group-hover:opacity-80'
-            }`}>
-              ✦
-            </span>
-            {/* 텍스트 컨테이너 가운데 정렬(items-center) 적용 */}
-            <div className="flex flex-col items-center justify-center leading-tight mt-0.5">
-              <span className={`font-black tracking-[0.1em] sm:tracking-[0.15em] transition-all duration-300 ${
-                activeMainTab === 'ASTRA' 
-                  ? 'text-sm sm:text-base text-[var(--accent-fg)] drop-shadow-sm' 
-                  : 'text-sm sm:text-base text-[var(--text-main)] group-hover:text-[var(--text-main)]'
-              }`}>
-                {activeMainTab === 'ASTRA' ? 'ASTRA' : '아스트라'}
-              </span>
-              <span className={`text-[0.6rem] sm:text-[0.65rem] font-bold transition-all duration-300 ${
-                activeMainTab === 'ASTRA'
-                  ? 'text-[var(--accent-fg)] opacity-80 tracking-widest'
-                  : 'text-[var(--text-sub)] opacity-70 tracking-widest'
-              }`}>
-                {activeMainTab === 'ASTRA' ? 'GUILD ROSTER' : '길드원 현황'}
-              </span>
-            </div>
-          </button>
-
-        </div>
-
-        {/* 메인 탭 뷰 전환 */}
         {activeMainTab === 'PANTHEON' ? <PantheonView /> : <AstraView />}
 
       </div>

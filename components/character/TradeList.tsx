@@ -74,34 +74,37 @@ export default function TradeList({
 
   return (
     <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-3 md:p-5 shadow-xs space-y-3">
-      {/* 🟡 헤더 및 검색창: 와이드 뷰 전역 폰트 스케일 적용 */}
-      <div className="space-y-2 border-b border-[var(--panel-border)] pb-3">
-        <div className="flex items-center justify-between gap-2">
-          <h3 className="font-bold text-[var(--accent)] text-sm md:text-base whitespace-nowrap">
+      {/* 🟡 헤더 및 검색창: 여백 양끝(초록선)까지 유동적 확장 및 글자 가림 시 2줄 전환 */}
+      <div className="border-b border-[var(--panel-border)] pb-3">
+        <div className="flex flex-wrap items-center justify-between gap-2 md:gap-4">
+          <h3 className="font-bold text-[var(--accent)] text-sm md:text-base whitespace-nowrap shrink-0">
             {title}
           </h3>
+
+          {/* flex-1로 양끝 여백을 가득 채우며 min-w-[280px] 이하 감지 시 2줄로 이동 */}
+          <div className="flex-1 min-w-[280px] order-3 sm:order-2 w-full sm:w-auto">
+            <input
+              type="text"
+              value={tradeSearch}
+              onChange={(e) => setTradeSearch(e.target.value)}
+              placeholder="NPC / 맵 / 보상 / 소모품 검색..."
+              className="w-full bg-[var(--inner-box)] border border-[var(--panel-border)] rounded-lg px-3 py-1.5 text-xs md:text-sm text-[var(--text-main)] outline-none focus:border-[var(--accent)] placeholder:text-[var(--text-sub)]/70 transition-all"
+            />
+          </div>
+
           <button
             type="button"
             onClick={() =>
               setTradeSortOrder((prev) => (prev === "asc" ? "desc" : "asc"))
             }
-            className="px-2.5 py-1 md:px-3 md:py-1.5 rounded-lg bg-[var(--inner-box)] border border-[var(--panel-border)] text-xs md:text-sm font-bold text-[var(--text-sub)] hover:text-[var(--text-main)] cursor-pointer whitespace-nowrap transition-colors"
+            className="order-2 sm:order-3 px-2.5 py-1 md:px-3 md:py-1.5 rounded-lg bg-[var(--inner-box)] border border-[var(--panel-border)] text-xs md:text-sm font-bold text-[var(--text-sub)] hover:text-[var(--text-main)] cursor-pointer whitespace-nowrap transition-colors shrink-0"
           >
             {tradeSortOrder === "asc" ? "▲ 오름차순" : "▼ 내림차순"}
           </button>
         </div>
-
-        {/* 🟡 노란 영역: 검색창 글자 크기 및 패딩 가독성 상향 */}
-        <input
-          type="text"
-          value={tradeSearch}
-          onChange={(e) => setTradeSearch(e.target.value)}
-          placeholder="NPC / 맵 / 보상 / 소모품 검색..."
-          className="w-full bg-[var(--inner-box)] border border-[var(--panel-border)] rounded-lg px-3 py-2 text-xs md:text-sm text-[var(--text-main)] outline-none focus:border-[var(--accent)] placeholder:text-[var(--text-sub)]/70 transition-all"
-        />
       </div>
 
-      {/* 카드 그리드: 전역 스케일 반영 */}
+      {/* 카드 그리드 */}
       {filteredItems.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2.5 md:gap-3.5 items-start">
           {filteredItems.map((trade: any) => {
