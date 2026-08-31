@@ -197,8 +197,25 @@ export default function PantheonView() {
   const [selectedClass, setSelectedClass] = useState<string>("전체"); 
   const [isClassFilterOpen, setIsClassFilterOpen] = useState(false);
 
-  // 💡 마우스 호버 상태 완벽 제거 -> 클릭 팝업 전용으로 일원화
-  const [openClickTooltipId, setOpenClickTooltipId] = useState<string | null>(null);
+  // 🌟 전역 모달 상태 관리
+  const [activeModalData, setActiveModalData] = useState<{ t: any; char: Character } | null>(null);
+
+  // ⌨️ ESC 키 입력 시 모달 닫기 이벤트 리스너 추가
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setActiveModalData(null);
+      }
+    };
+
+    if (activeModalData) {
+      window.addEventListener("keydown", handleKeyDown);
+    }
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [activeModalData]);
 
   useEffect(() => {
     setSelectedClass("전체");
@@ -346,62 +363,21 @@ export default function PantheonView() {
     return 'text-[var(--text-sub)] bg-transparent font-bold';
   };
 
-  {/* 🌟 100% 클릭 방식 툴팁 렌더링 & overflow 상위 잘림 현상 방지 */}
   const renderTitleTag = (t: { type: string; name: string; rank: number; theme: any }, char: Character) => {
-    const tooltipId = `${char.id}-${t.type}-${t.name}`;
-    const isOpen = openClickTooltipId === tooltipId;
-    const lore = generateLore(t.name, t.rank, char.job, t.type as keyof typeof RANKING_INFO);
     const tagStyle = t.rank <= 3 ? t.theme.tags[t.rank - 1] : t.theme.tags[0];
 
     return (
-      <div key={tooltipId} className="relative inline-block">
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            setOpenClickTooltipId(isOpen ? null : tooltipId);
-          }}
-          className={`text-[0.6rem] px-1.5 py-0.5 rounded border transition-all hover:scale-105 cursor-pointer font-bold ${tagStyle}`}
-        >
-          {t.name}
-        </button>
-
-        {/* 🌟 클릭 시에만 최상위 z-[9999] 팝업 렌더링 */}
-        {isOpen && (
-          <div 
-            className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 sm:w-80 p-3.5 bg-zinc-950/95 border border-amber-500/60 rounded-xl shadow-2xl text-left z-[9999] text-xs backdrop-blur-md animate-in fade-in zoom-in-95 duration-150"
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="absolute top-full left-1/2 -translate-x-1/2 border-6 border-transparent border-t-amber-500/60"></div>
-            <div className="flex items-center justify-between border-b border-zinc-800 pb-1.5 mb-2">
-              <span className="font-black text-amber-400 text-sm flex items-center gap-1">
-                <span>👑</span> {lore.title}
-              </span>
-              <button 
-                onClick={() => setOpenClickTooltipId(null)} 
-                className="text-zinc-400 hover:text-white text-xs font-bold px-1"
-              >
-                ✕
-              </button>
-            </div>
-            <div className="text-[0.58rem] font-bold text-zinc-400 bg-zinc-900 px-2 py-0.5 rounded mb-2 w-fit border border-zinc-800">
-              {lore.sourceText}
-            </div>
-            <div className="space-y-2 text-[0.68rem]">
-              <div>
-                <span className="text-amber-300 font-bold block text-[0.6rem] mb-0.5">📖 세계관 / 설명</span>
-                <p className="text-zinc-200 font-medium leading-relaxed">{lore.meaning}</p>
-              </div>
-              {lore.tribute && (
-                <div className="pt-1.5 border-t border-zinc-800/80">
-                  <span className="text-amber-400 font-bold block text-[0.6rem] mb-0.5">📜 성역의 헌사</span>
-                  <p className="text-zinc-300 italic font-medium leading-relaxed">"{lore.tribute}"</p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
+      <button
+        key={`${char.id}-${t.type}-${t.name}`}
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          setActiveModalData({ t, char });
+        }}
+        className={`text-[0.6rem] px-1.5 py-0.5 rounded border transition-all hover:scale-105 cursor-pointer font-bold ${tagStyle}`}
+      >
+        {t.name}
+      </button>
     );
   };
 
@@ -436,8 +412,6 @@ export default function PantheonView() {
 
   return (
     <section className="space-y-3 animate-in fade-in duration-200">
-      {/* 바깥 영역 클릭 시 팝업 닫기 백드롭 */}
-      {openClickTooltipId && <div className="fixed inset-0 z-[80]" onClick={() => setOpenClickTooltipId(null)}></div>}
       
       <div className="grid md:hidden grid-cols-3 gap-1.5">{['TELOS', 'SYMPHONIA', 'PIETAS', 'KRATOS', 'TECHNE', 'HARMONIA'].map(k => renderRankButton(k as any))}</div>
       <div className="hidden md:grid grid-cols-6 gap-2">{['TELOS', 'SYMPHONIA', 'KRATOS', 'TECHNE', 'HARMONIA', 'PIETAS'].map(k => renderRankButton(k as any))}</div>
@@ -662,7 +636,7 @@ export default function PantheonView() {
             })}
           </div>
 
-          {/* PC 뷰 (overflow 제거 및 z-index 상승 구조) */}
+          {/* PC 뷰 */}
           <div className="hidden md:block space-y-3">
             <div className="grid grid-cols-3 gap-3">
               {rankedCharacters.slice(0, 3).map((char, index) => {
@@ -705,7 +679,7 @@ export default function PantheonView() {
               })}
             </div>
 
-            {/* 4위 이하 리스트 (각 행의 overflow 제한 완화 및 클릭 팝업 가독성 보장) */}
+            {/* 4위 이하 리스트 */}
             {rankedCharacters.length > 3 && (
               <div className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-xl shadow-xs">
                 <div className="px-3 py-2 bg-[var(--inner-box)] border-b border-[var(--panel-border)] text-xs font-black text-[var(--text-sub)] flex justify-between items-center">
@@ -718,12 +692,11 @@ export default function PantheonView() {
                     const score = getScore(char, activeRankTab);
                     const rankNum = index + 4;
                     const kratosClassRank = getKratosClassRank(char);
-                    const hasOpenTooltip = earnedTitles.some(t => `${char.id}-${t.type}-${t.name}` === openClickTooltipId);
 
                     return (
                       <div 
                         key={char.id} 
-                        className={`p-2.5 flex items-center justify-between hover:bg-[var(--inner-box)] transition-colors relative ${hasOpenTooltip ? 'z-50' : 'z-0'}`}
+                        className="p-2.5 flex items-center justify-between hover:bg-[var(--inner-box)] transition-colors"
                       >
                         <div className="flex items-center gap-3">
                           <span className="font-black text-xs text-[var(--text-sub)] w-6 text-center shrink-0">#{rankNum}</span>
@@ -753,6 +726,56 @@ export default function PantheonView() {
 
         </div>
       )}
+
+      {/* 🌟 최상단 고정 모달 */}
+      {activeModalData && (() => {
+        const { t, char } = activeModalData;
+        const lore = generateLore(t.name, t.rank, char.job, t.type as keyof typeof RANKING_INFO);
+        return (
+          <div 
+            className="fixed inset-0 bg-black/80 z-[99999] flex items-center justify-center p-4 backdrop-blur-xs animate-in fade-in duration-150"
+            onClick={(e) => {
+              e.stopPropagation();
+              setActiveModalData(null);
+            }}
+          >
+            <div 
+              className="bg-zinc-950 border border-amber-500/60 text-zinc-100 rounded-2xl max-w-sm w-full p-4 shadow-2xl relative animate-in zoom-in-95 duration-150"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between border-b border-zinc-800 pb-2 mb-2.5">
+                <span className="font-black text-amber-400 text-sm flex items-center gap-1.5">
+                  <span>👑</span> {lore.title}
+                </span>
+                <button 
+                  onClick={() => setActiveModalData(null)} 
+                  className="text-zinc-400 hover:text-white text-sm font-black p-1 rounded-md hover:bg-zinc-800 transition cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+              
+              <div className="text-[0.62rem] font-bold text-zinc-400 bg-zinc-900 px-2 py-0.5 rounded mb-2.5 w-fit border border-zinc-800">
+                {lore.sourceText}
+              </div>
+
+              <div className="space-y-2.5 text-xs">
+                <div>
+                  <span className="text-amber-300 font-bold block text-[0.65rem] mb-0.5">📖 세계관 / 설명</span>
+                  <p className="text-zinc-200 font-medium leading-relaxed text-[0.72rem]">{lore.meaning}</p>
+                </div>
+                {lore.tribute && (
+                  <div className="pt-2 border-t border-zinc-800/80">
+                    <span className="text-amber-400 font-bold block text-[0.65rem] mb-0.5">📜 성역의 헌사</span>
+                    <p className="text-zinc-300 italic font-medium leading-relaxed text-[0.72rem]">"{lore.tribute}"</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
     </section>
   );
 }
