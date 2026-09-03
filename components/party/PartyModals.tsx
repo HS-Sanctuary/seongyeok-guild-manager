@@ -3,6 +3,7 @@
 import { ClassIcon } from "@/components/common/ClassIcon";
 import CustomTimePicker from "./CustomTimePicker";
 import { CONTENT_DB, ContentItem, Party } from "./types";
+import { getFormattedDateWithDDay } from "@/app/party/page";
 
 interface PartyModalsProps {
   // 안내 모달
@@ -140,6 +141,16 @@ export default function PartyModals({
   setJoinTimeEnd,
   executeJoinParty
 }: PartyModalsProps) {
+  // 🛡️ [방어적 디자인] 안전 대치 객체 및 배열
+  const safeBusContent = busCreateContent || CONTENT_DB[0];
+  const safeBusDifficulties = safeBusContent?.diffs || safeBusContent?.difficulties || ["어려움"];
+
+  const safeTempContent = tempContent || CONTENT_DB[0];
+  const safeTempDifficulties = safeTempContent?.diffs || safeTempContent?.difficulties || ["어려움"];
+
+  const safeCalendarDays = calendarDays || [];
+  const safeMyCharacters = myCharacters || [];
+
   return (
     <>
       {/* 1. SYNAXIS 정보 모달 */}
@@ -226,8 +237,8 @@ export default function PartyModals({
             <div className="space-y-1.5">
               <label className="text-xs font-black text-[var(--accent)] block">1. 컨텐츠 선택</label>
               <div className="grid grid-cols-1 gap-1.5 max-h-48 overflow-y-auto custom-scrollbar pr-1">
-                {CONTENT_DB.filter(c => c.category === tempContentCategory).map(item => {
-                  const isSelected = tempContent.id === item.id;
+                {(CONTENT_DB || []).filter(c => c.category === tempContentCategory).map(item => {
+                  const isSelected = safeTempContent.id === item.id;
                   return (
                     <button
                       key={item.id}
@@ -253,7 +264,7 @@ export default function PartyModals({
             <div className="space-y-1.5 border-t border-[var(--panel-border)] pt-3">
               <label className="text-xs font-black text-[var(--accent)] block">2. 입장 난이도 선택</label>
               <div className="flex flex-wrap gap-1.5 pt-1">
-                {tempContent.diffs.map(diff => {
+                {safeTempDifficulties.map(diff => {
                   const isSelected = tempDiff === diff;
                   return (
                     <button
@@ -325,7 +336,7 @@ export default function PartyModals({
                 {["일", "월", "화", "수", "목", "금", "토"].map((w, idx) => (
                   <div key={idx} className={`text-[10px] font-bold pb-1 ${idx === 0 ? "text-rose-400" : idx === 6 ? "text-sky-400" : "text-[var(--text-sub)]"}`}>{w}</div>
                 ))}
-                {calendarDays.map((item, idx) => {
+                {safeCalendarDays.map((item, idx) => {
                   if (!item) return <div key={idx} className="h-8"></div>;
                   const isSelected = selectedDate === item.dateStr;
                   return (
@@ -347,9 +358,10 @@ export default function PartyModals({
             </div>
 
             <div className="space-y-1.5 border-t border-[var(--panel-border)] pt-3">
-              <label className="text-xs font-bold text-[var(--accent)] flex items-center gap-1">
+              <label className="text-xs font-bold text-[var(--accent)] flex items-center gap-1 mb-1">
                 <span>⏰</span> 플레이 가능 시간대
               </label>
+              {/* 🌟 CustomTimePicker 적용 */}
               <div className="flex items-center gap-2 bg-[var(--inner-box)] p-2 rounded-xl border border-[var(--panel-border)]">
                 <CustomTimePicker value={timeStart} onChange={setTimeStart} />
                 <span className="text-[var(--text-sub)] font-bold text-xs shrink-0">~</span>
@@ -401,7 +413,7 @@ export default function PartyModals({
               {["일", "월", "화", "수", "목", "금", "토"].map((w, idx) => (
                 <div key={idx} className={`text-[10px] font-bold pb-1 ${idx === 0 ? "text-rose-400" : idx === 6 ? "text-sky-400" : "text-[var(--text-sub)]"}`}>{w}</div>
               ))}
-              {calendarDays.map((item, idx) => {
+              {safeCalendarDays.map((item, idx) => {
                 if (!item) return <div key={idx} className="h-9"></div>;
                 const stats = datePartyCounts[item.dateStr] || { total: 0, recruiting: 0, completed: 0 };
                 const isSelected = activeDateFilter === item.dateStr;
@@ -468,15 +480,15 @@ export default function PartyModals({
               <div>
                 <label className="text-[var(--text-sub)] font-bold mb-1 block">목표 컨텐츠</label>
                 <select 
-                  value={busCreateContent.id} 
+                  value={safeBusContent.id || safeBusContent.name} 
                   onChange={e => {
-                    const content = CONTENT_DB.find(c => c.id === e.target.value) || CONTENT_DB[0];
+                    const content = CONTENT_DB.find(c => c.id === e.target.value || c.name === e.target.value) || CONTENT_DB[0];
                     setBusCreateContent(content);
-                    setBusCreateDiff(content.defaultDiff);
+                    setBusCreateDiff(content.defaultDiff || content.diffs?.[0] || "어려움");
                   }} 
                   className="w-full bg-[var(--inner-box)] border border-[var(--panel-border)] rounded-xl px-3 py-2 font-bold text-[var(--text-main)] outline-none focus:border-[var(--accent)] cursor-pointer"
                 >
-                  {CONTENT_DB.map(c => <option key={c.id} value={c.id}>{c.name} ({c.size}인)</option>)}
+                  {(CONTENT_DB || []).map(c => <option key={c.id || c.name} value={c.id || c.name}>{c.name} ({c.size}인)</option>)}
                 </select>
               </div>
 
@@ -487,20 +499,40 @@ export default function PartyModals({
                   onChange={e => setBusCreateDiff(e.target.value)} 
                   className="w-full bg-[var(--inner-box)] border border-[var(--panel-border)] rounded-xl px-3 py-2 font-bold text-[var(--text-main)] outline-none focus:border-[var(--accent)] cursor-pointer"
                 >
-                  {busCreateContent.diffs.map(d => <option key={d} value={d}>{d}</option>)}
+                  {safeBusDifficulties.map(d => <option key={d} value={d}>{d}</option>)}
                 </select>
               </div>
 
+              {/* 🌟 1번 사진 개선: 모바일/iOS/Android/Mac/PC 전 영역 100% 클릭 가능 달력 박스 */}
               <div>
                 <label className="text-[var(--text-sub)] font-bold mb-1 block">운행 시작일</label>
-                <input 
-                  type="date" 
-                  value={busCreateDate} 
-                  onChange={e => setBusCreateDate(e.target.value)} 
-                  className="w-full bg-[var(--inner-box)] border border-[var(--panel-border)] rounded-xl px-3 py-2 font-bold text-[var(--text-main)] outline-none focus:border-[var(--accent)] cursor-pointer"
-                />
+                <div 
+                  className="relative w-full cursor-pointer"
+                  onClick={(e) => {
+                    const input = e.currentTarget.querySelector('input[type="date"]') as HTMLInputElement;
+                    if (input) {
+                      if ('showPicker' in input) {
+                        try { input.showPicker(); } catch (err) {}
+                      } else {
+                        input.focus();
+                      }
+                    }
+                  }}
+                >
+                  <div className="w-full bg-[var(--inner-box)] border border-amber-500/60 rounded-xl px-3 py-2 text-xs font-black text-amber-400 flex items-center justify-between shadow-xs hover:border-amber-400 transition cursor-pointer">
+                    <span className="pointer-events-none">{getFormattedDateWithDDay(busCreateDate)}</span>
+                    <span className="text-sm pointer-events-none">📅</span>
+                  </div>
+                  <input 
+                    type="date" 
+                    value={busCreateDate} 
+                    onChange={e => setBusCreateDate(e.target.value)} 
+                    className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10 block"
+                  />
+                </div>
               </div>
 
+              {/* 🌟 2번 사진 개선: 고도화된 CustomTimePicker 복원 */}
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="text-[var(--text-sub)] font-bold mb-1 block">시작 시간</label>
@@ -576,8 +608,8 @@ export default function PartyModals({
               </div>
               <div>
                 <label className="font-bold text-[var(--text-sub)] mb-1 block">1. 합류할 캐릭터 선택</label>
-                <div className="flex flex-wrap gap-1.5">
-                  {myCharacters.map(char => (
+                <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto custom-scrollbar p-1">
+                  {safeMyCharacters.map(char => (
                     <button type="button" key={char.id || char.nickname} onClick={() => setJoinSelectedChar(char.nickname)} className={`text-xs font-bold px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 cursor-pointer ${joinSelectedChar === char.nickname ? "bg-[var(--accent)] text-[var(--accent-fg)] font-black shadow-xs" : "bg-[var(--inner-box)] text-[var(--text-sub)] border border-[var(--panel-border)]"}`}>
                       <ClassIcon job={char.job || "전사"} className="w-3.5 h-3.5 shrink-0" />
                       <span className="truncate max-w-[100px]">{char.nickname}</span>
@@ -596,7 +628,8 @@ export default function PartyModals({
                 </div>
               </div>
               <div className="bg-[var(--inner-box)] border border-[var(--panel-border)] p-3 rounded-xl space-y-1">
-                <label className="font-black text-[var(--accent)] block">3. 플레이 가능 시간대</label>
+                <label className="font-black text-[var(--accent)] block mb-1">3. 플레이 가능 시간대</label>
+                {/* 🌟 CustomTimePicker 복원 */}
                 <div className="flex items-center gap-2 pt-1">
                   <CustomTimePicker value={joinTimeStart} onChange={setJoinTimeStart} />
                   <span className="text-[var(--text-sub)] font-bold shrink-0">~</span>

@@ -22,6 +22,16 @@ function minutesToTime(mins: number): string {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
+// ⏰ 시간 구간 실충돌 검사 (구간 [s1, e1)과 [s2, e2)가 실제 오버랩되는지 판별)
+function isTimeOverlapping(start1: string, end1: string, start2: string, end2: string): boolean {
+  if (!start1 || !end1 || !start2 || !end2) return false;
+  const s1 = timeToMinutes(start1);
+  const e1 = timeToMinutes(end1);
+  const s2 = timeToMinutes(start2);
+  const e2 = timeToMinutes(end2);
+  return !(e1 <= s2 || s1 >= e2);
+}
+
 function calculateMidpointStartTime(timeRanges: { start: string; end: string }[]): string | null {
   if (!timeRanges || timeRanges.length === 0) return null;
   let maxStart = Math.max(...timeRanges.map(r => timeToMinutes(r.start)));
@@ -44,6 +54,36 @@ function getDayOfWeekKorean(dateStr: string): string {
   const days = ["일", "월", "화", "수", "목", "금", "토"];
   const d = new Date(dateStr);
   return days[d.getDay()] || "월";
+}
+
+export function getFormattedDateWithDDay(dateStr: string): string {
+  if (!dateStr) return "";
+  const cleanStr = dateStr.replace(/\./g, "-").trim();
+  const targetDate = new Date(cleanStr + "T00:00:00");
+  if (isNaN(targetDate.getTime())) return dateStr;
+
+  const year = targetDate.getFullYear();
+  const month = String(targetDate.getMonth() + 1).padStart(2, "0");
+  const day = String(targetDate.getDate()).padStart(2, "0");
+  const daysOfWeek = ["일", "월", "화", "수", "목", "금", "토"];
+  const dayOfWeek = daysOfWeek[targetDate.getDay()];
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const targetMidnight = new Date(targetDate);
+  targetMidnight.setHours(0, 0, 0, 0);
+
+  const diffTime = targetMidnight.getTime() - today.getTime();
+  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+  let dDayText = "";
+  if (diffDays === 0) dDayText = "[오늘]";
+  else if (diffDays === 1) dDayText = "[내일]";
+  else if (diffDays > 1) dDayText = `[${diffDays}일 후]`;
+  else if (diffDays === -1) dDayText = "[어제]";
+  else dDayText = `[${Math.abs(diffDays)}일 전]`;
+
+  return `${year}.${month}.${day} (${dayOfWeek}) ${dDayText}`;
 }
 
 function getMabinogiWeekRange(dateStr: string) {
@@ -100,7 +140,6 @@ function SynaxisContent() {
     return { year: d.getFullYear(), month: d.getMonth() };
   });
 
-  // 로컬스토리지 Draft 연동 상태
   const [selectedChar, setSelectedChar] = useState("");
   const [selectedContent, setSelectedContent] = useState<ContentItem>(CONTENT_DB[0]);
   const [selectedDiff, setSelectedDiff] = useState(CONTENT_DB[0].defaultDiff);
@@ -140,7 +179,6 @@ function SynaxisContent() {
   const [joinTimeEnd, setJoinTimeEnd] = useState<string>("24:00");
   const [inspectCharacter, setInspectCharacter] = useState<any>(null);
 
-  // 로컬스토리지 Draft 불러오기
   useEffect(() => {
     const savedDraft = localStorage.getItem("sanctum_party_draft");
     if (savedDraft) {
@@ -155,7 +193,6 @@ function SynaxisContent() {
     }
   }, []);
 
-  // 로컬스토리지 Draft 자동 저장
   useEffect(() => {
     if (!mounted) return;
     const draft = { partyType, matchingMode, partyMemo, timeStart, timeEnd };
@@ -317,7 +354,7 @@ function SynaxisContent() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // 🛡️ 계정 및 캐릭터 중복 매칭 방어 완벽 구현
+  // 🎯 스마트 파티 매칭 등록 처리 (기존 동일 매칭 파티 자동 합류 + 신규 생성)
   const handleReservation = async () => {
     if (!selectedChar) return alert("참여할 캐릭터를 선택해주세요!");
     if (matchingMode === "조합우선" && myRoles.length === 0) {
@@ -326,41 +363,138 @@ function SynaxisContent() {
 
     const targetDate = selectedDate;
     const candidateOwner = ownerAccountMap[selectedChar] || selectedChar;
+    const dbPartyType = partyType === "반복 뺑이" ? "연속 뺑이" : "1회 클리어";
 
-    // 동일 계정 내 다른 캐릭터가 이미 해당 날짜에 파티에 등록되어 있는지 교차 검증
-    const conflictingParty = activeParties.find(p => {
+    // 1) 내 계정 타 캐릭터들의 동시간대 다른 파티 참여 여부 검사 (일정 충돌 방지)
+    const timeConflictingParty = activeParties.find(p => {
       const pDate = p.party_date || getTodayString();
       if (pDate !== targetDate) return false;
+
+      const pStart = p.final_start_time || p.time_start;
+      const pEnd = p.time_end;
+      const overlap = isTimeOverlapping(timeStart, timeEnd, pStart, pEnd);
+      if (!overlap) return false;
+
       return p.members.some((m: any) => {
         const memOwner = ownerAccountMap[m.name] || m.name;
         return memOwner === candidateOwner;
       });
     });
 
-    if (conflictingParty) {
-      const matchedMem = conflictingParty.members.find((m: any) => (ownerAccountMap[m.name] || m.name) === candidateOwner);
-      return alert(`⚠️ [계정 중복 매칭 차단]\n이미 해당 계정의 캐릭터 '${matchedMem?.name || "소속 캐릭터"}'가 ${targetDate} 날짜에 파티에 참여 중입니다!`);
+    if (timeConflictingParty) {
+      const matchedMem = timeConflictingParty.members.find((m: any) => (ownerAccountMap[m.name] || m.name) === candidateOwner);
+      const pStart = timeConflictingParty.final_start_time || timeConflictingParty.time_start;
+      return alert(
+        `⚠️ [시간대 일정 충돌 차단]\n` +
+        `해당 계정의 캐릭터 '${matchedMem?.name}'가 이미 ${targetDate} [${pStart} ~ ${timeConflictingParty.time_end}] 시간대 파티에 참여 중입니다!\n` +
+        `시간대가 겹치지 않는 다른 시간에 매칭을 등록해 주세요.`
+      );
     }
 
-    const myExistingParties = activeParties.filter(p => 
-      (p.party_date || getTodayString()) === targetDate && 
-      p.members.some((m: any) => m.name === selectedChar)
-    );
-    const newDur = selectedContent.name.includes("통합") || selectedContent.name.includes("3종") ? 45 : 15;
-    const existingSchedules = myExistingParties.map(p => {
-      const myMem = p.members.find((m: any) => m.name === selectedChar);
-      const st = p.final_start_time || myMem?.time_start || p.time_start;
-      return { start: st, duration: newDur };
+    // 2) 🌟 [스마트 자동 매칭 핵심] 동일 날짜/컨텐츠/난이도/스타일에 시간대가 겹치는 "모집중" 파티가 이미 존재하는지 검색!
+    const matchingCandidates = activeParties.filter(p => {
+      if (p.status !== "모집중") return false;
+      
+      const pDate = p.party_date || getTodayString();
+      if (pDate !== targetDate) return false;
+      if (p.content_name !== selectedContent.name) return false;
+      if (p.difficulty !== selectedDiff) return false;
+
+      // 파티 타입 일치 ("1회 클리어" / "연속 뺑이")
+      if (p.party_type !== dbPartyType) return false;
+
+      // 길드버스는 자동 합류 대상 제외 (독립 개설)
+      const isBus = p.party_type === "GUILD_BUS" || p.party_type === "길드 버스" || p.party_type === "길드버스" || p.sub_content?.includes("길드 버스");
+      if (isBus) return false;
+
+      // 정원 초과 파티 제외
+      if (p.members.length >= p.max_members) return false;
+
+      // 동일 계정 소속 캐릭터가 이미 해당 파티에 들어가 있다면 제외
+      const hasSameAccount = p.members.some((m: any) => {
+        const memOwner = ownerAccountMap[m.name] || m.name;
+        return memOwner === candidateOwner;
+      });
+      if (hasSameAccount) return false;
+
+      // 시간대 오버랩 확인
+      const pStart = p.time_start;
+      const pEnd = p.time_end;
+      return isTimeOverlapping(timeStart, timeEnd, pStart, pEnd);
     });
 
-    if (isScheduleConflict(timeStart, newDur, existingSchedules)) {
-      return alert(`⚠️ [일정 충돌 경고]\n'${selectedChar}' 캐릭터는 ${targetDate} 해당 시간대에 이미 다른 파티 일정이 존재합니다!`);
+    // 매칭 후보 중 인원이 가장 많은 파티 우선 선택 (빠른 파티 완성 목적)
+    const existingMatchingParty = matchingCandidates.sort((a, b) => b.members.length - a.members.length)[0];
+
+    if (existingMatchingParty) {
+      // 🤝 기존 모집 파티에 자동 합류 처리!
+      const existingMembers = existingMatchingParty.members;
+      const myCharObj = allCharactersMap[selectedChar];
+      const myJob = myCharObj?.job || "전사";
+
+      const newMember = {
+        name: selectedChar,
+        job: myJob,
+        roles: myRoles.length > 0 ? myRoles : ["딜러"],
+        time_start: timeStart,
+        time_end: timeEnd
+      };
+
+      const updatedMembers = [...existingMembers, newMember];
+      
+      // 구하는 포지션 차감 업데이트
+      let updatedWanted = [...(existingMatchingParty.wanted_roles || [])];
+      if (myRoles.length > 0) {
+        myRoles.forEach(r => {
+          const idx = updatedWanted.indexOf(r);
+          if (idx > -1) updatedWanted.splice(idx, 1);
+        });
+      }
+
+      let updatePayload: any = {
+        members: updatedMembers,
+        wanted_roles: updatedWanted
+      };
+
+      // 만약 이번 합류로 파티 정원이 가득 찬 경우 -> 자동 출발 시간 도출 & 매칭 완료 전환
+      if (updatedMembers.length === existingMatchingParty.max_members) {
+        const timeRanges = updatedMembers.map(m => ({ start: m.time_start, end: m.time_end }));
+        const optimalTime = calculateMidpointStartTime(timeRanges);
+        updatePayload.final_start_time = optimalTime || existingMatchingParty.members[0].time_start;
+        updatePayload.status = "매칭 완료";
+        updatePayload.leader_name = pickRandomLeader(updatedMembers);
+      } else {
+        updatePayload.status = "모집중";
+      }
+
+      const { error } = await supabase.from("parties").update(updatePayload).eq("id", existingMatchingParty.id);
+      if (!error) {
+        if (updatePayload.status === "매칭 완료") {
+          alert(
+            `🎉 [스마트 자동 매칭 성공 & 파티 완성!]\n` +
+            `기존 '${existingMatchingParty.leader_name}' 님의 파티(${selectedContent.name})에 '${selectedChar}' 캐릭터가 자동 합류되어 파티가 완성되었습니다!\n` +
+            `⏰ 확정 출발 시간: ${updatePayload.final_start_time}`
+          );
+        } else {
+          alert(
+            `✨ [스마트 자동 매칭 성공!]\n` +
+            `동일 컨텐츠/시간대의 기존 '${existingMatchingParty.leader_name}' 님 파티(${selectedContent.name})에 '${selectedChar}' 캐릭터가 자동으로 합류되었습니다!\n` +
+            `👥 파티 현황: (${updatedMembers.length}/${existingMatchingParty.max_members}명)`
+          );
+        }
+        setPartyMemo("");
+        localStorage.removeItem("sanctum_party_draft");
+        setIsMobileFormOpen(false);
+        const ownerName = user?.username || user?.nickname || user?.owner || "한설";
+        fetchData(ownerName);
+        return;
+      } else {
+        alert("자동 매칭 합류 실패: " + error.message);
+        return;
+      }
     }
 
-    const myCharObj = allCharactersMap[selectedChar];
-    const myJob = myCharObj?.job || "전사"; 
-    const dbPartyType = partyType === "반복 뺑이" ? "연속 뺑이" : "1회 클리어";
-
+    // 3) 조건에 부합하는 기존 파티가 없는 경우 -> 신규 파티 생성!
     let defaultMemo = "";
     if (partyType === "반복 뺑이") {
       if (loopSubMode === "회차") {
@@ -373,6 +507,9 @@ function SynaxisContent() {
     }
 
     const finalSubContent = partyMemo.trim() || defaultMemo;
+
+    const myCharObj = allCharactersMap[selectedChar];
+    const myJob = myCharObj?.job || "전사";
 
     const newParty: any = {
       content_name: selectedContent.name,
@@ -392,7 +529,7 @@ function SynaxisContent() {
 
     const { error } = await supabase.from("parties").insert([newParty]);
     if (!error) {
-      alert(`[${targetDate} / ${selectedChar}] 파티 매칭이 성공적으로 등록되었습니다!`);
+      alert(`[${getFormattedDateWithDDay(targetDate)} / ${selectedChar}] 매칭 대기 파티가 신규 개설되었습니다!`);
       setPartyMemo("");
       localStorage.removeItem("sanctum_party_draft");
       setIsMobileFormOpen(false);
@@ -409,11 +546,15 @@ function SynaxisContent() {
     const adminCharObj = allCharactersMap[adminCharName];
     const adminJob = adminCharObj?.job || "전사";
 
+    const busMemoFinal = busCreateMemo.trim() 
+      ? `[성역 길드 버스] ${busCreateMemo.trim()}` 
+      : "[성역 길드 버스] 성역 정기 길드 버스 운행";
+
     const busPartyPayload = {
       content_name: busCreateContent.name,
-      sub_content: busCreateMemo,
+      sub_content: busMemoFinal,
       difficulty: busCreateDiff,
-      party_type: "GUILD_BUS",
+      party_type: "1회 클리어",
       party_date: busCreateDate,
       time_start: busCreateTimeStart,
       time_end: busCreateTimeEnd,
@@ -436,7 +577,7 @@ function SynaxisContent() {
 
     const { error } = await supabase.from("parties").insert([busPartyPayload]);
     if (!error) {
-      alert(`🚌 [${busCreateDate}] 성역 길드 버스 파티가 성공적으로 개설되었습니다!`);
+      alert(`🚌 ${getFormattedDateWithDDay(busCreateDate)}\n성역 길드 버스 파티가 성공적으로 개설되었습니다!`);
       setShowBusCreateModal(false);
       const ownerName = user?.username || user?.nickname || user?.owner || "한설";
       fetchData(ownerName);
@@ -454,7 +595,7 @@ function SynaxisContent() {
   };
 
   const handleLeaveParty = async (party: Party, charName: string) => {
-    if (!confirm(`'${charName}' 캐릭터를 이 파티에서 탈퇴 처리하시겠습니까부턴?`)) return;
+    if (!confirm(`'${charName}' 캐릭터를 이 파티에서 탈퇴 처리하시겠습니까?`)) return;
     try {
       const leavingMember = party.members.find((m: any) => m.name === charName);
       const remainingMembers = party.members.filter((m: any) => m.name !== charName);
@@ -493,7 +634,7 @@ function SynaxisContent() {
     setJoinTimeEnd(party.time_end);
   };
 
-  // 🛡️ Race Condition 방어 및 계정 중복 참여 방어 적용 합류 로직
+  // 🤝 기존 파티 합류 실행 (시간대 실충돌 정밀 검사)
   const executeJoinParty = async () => {
     if (!joinPopupParty || !joinSelectedChar || !joinSelectedRole) return alert("캐릭터와 포지션을 선택해주세요!");
     try {
@@ -505,28 +646,55 @@ function SynaxisContent() {
       if (!latestParty || latestParty.members.length >= latestParty.max_members) {
         return alert("이미 모집이 마감되었거나 정원이 초과된 파티입니다.");
       }
+
       if (latestParty.members.some((m: any) => m.name === joinSelectedChar)) {
         return alert(`이미 '${joinSelectedChar}' 캐릭터가 이 파티에 참여 중입니다!`);
       }
 
       const candidateOwner = ownerAccountMap[joinSelectedChar] || joinSelectedChar;
-      const alreadyJoinedOwner = latestParty.members.some((m: any) => {
-        const memOwner = ownerAccountMap[m.name] || m.name;
-        return memOwner === candidateOwner;
-      });
-      if (alreadyJoinedOwner) {
-        return alert(`⚠️ [계정 중복 참여 제한]\n이미 해당 계정의 다른 캐릭터가 이 파티에 참여 중입니다!`);
+      
+      const isBus = latestParty.party_type === "GUILD_BUS" || 
+                    latestParty.party_type === "길드 버스" || 
+                    latestParty.party_type === "길드버스" || 
+                    latestParty.sub_content?.includes("길드 버스") ||
+                    latestParty.content_name?.includes("버스");
+
+      // 1) 신청하려는 '해당 파티 내' 계정 중복 검사 (일반 파티인 경우에만 제한)
+      if (!isBus) {
+        const alreadyJoinedOwner = latestParty.members.some((m: any) => {
+          const memOwner = ownerAccountMap[m.name] || m.name;
+          return memOwner === candidateOwner;
+        });
+        if (alreadyJoinedOwner) {
+          return alert(`⚠️ [계정 중복 참여 제한]\n이미 해당 계정의 다른 캐릭터가 이 파티에 참여 중입니다!`);
+        }
       }
 
+      // 2) 신청하려는 파티의 시간대와 내 계정의 다른 파티들의 '실제 시간대 겹침' 검사
       const partyDate = latestParty.party_date || getTodayString();
-      const conflictingAccountParty = allActivePartiesRes.data?.find(p => {
+      const timeConflictingParty = allActivePartiesRes.data?.find((p: any) => {
+        if (p.id === latestParty.id) return false; // 현재 신청 파티 제외
         const pDate = p.party_date || getTodayString();
         if (pDate !== partyDate) return false;
-        return p.members.some((m: any) => (ownerAccountMap[m.name] || m.name) === candidateOwner);
+
+        const pStart = p.final_start_time || p.time_start;
+        const pEnd = p.time_end;
+        const overlap = isTimeOverlapping(joinTimeStart, joinTimeEnd, pStart, pEnd);
+        if (!overlap) return false;
+
+        return p.members.some((m: any) => {
+          const memOwner = ownerAccountMap[m.name] || m.name;
+          return memOwner === candidateOwner;
+        });
       });
 
-      if (conflictingAccountParty) {
-        return alert(`⚠️ [계정 일정 충돌]\n해당 계정의 다른 캐릭터가 ${partyDate} 날짜에 이미 다른 파티에 소속되어 있습니다!`);
+      if (timeConflictingParty) {
+        const matchedMem = timeConflictingParty.members.find((m: any) => (ownerAccountMap[m.name] || m.name) === candidateOwner);
+        const pStart = timeConflictingParty.final_start_time || timeConflictingParty.time_start;
+        return alert(
+          `⚠️ [시간대 일정 충돌 경고]\n` +
+          `내 계정 캐릭터 '${matchedMem?.name}'가 이미 동시간대 [${pStart} ~ ${timeConflictingParty.time_end}] 다른 파티에 참여 중입니다!`
+        );
       }
 
       const existingMembers = latestParty.members;
@@ -572,12 +740,12 @@ function SynaxisContent() {
 
     activeParties.forEach(p => {
       const pDate = p.party_date || todayStr;
-      // 🛡️ 지난 날짜 파티 자동 제외 (데이터 라이프사이클 관리)
       if (pDate < todayStr) return;
 
       const isCompleted = p.status === "매칭 완료" || p.status === "모집완료";
+      const isBus = p.party_type === "GUILD_BUS" || p.party_type === "길드 버스" || p.party_type === "길드버스" || p.sub_content?.includes("길드 버스");
       
-      if (p.party_type === "GUILD_BUS") {
+      if (isBus) {
         const week = getMabinogiWeekRange(pDate);
         let curr = new Date(week.start);
         const endD = new Date(week.end);
@@ -635,11 +803,12 @@ function SynaxisContent() {
 
     const filtered = activeParties.filter(party => {
       const pDate = party.party_date || todayStr;
-      // 🛡️ 지난 날짜 파티 자동 필터링 (아카이빙 정책)
       if (pDate < todayStr) return false;
       
+      const isBus = party.party_type === "GUILD_BUS" || party.party_type === "길드 버스" || party.party_type === "길드버스" || party.sub_content?.includes("길드 버스");
+
       if (activeDateFilter !== "전체") {
-        if (party.party_type === "GUILD_BUS") {
+        if (isBus) {
           const week = getMabinogiWeekRange(pDate);
           if (activeDateFilter < week.start || activeDateFilter > week.end) return false;
         } else {
@@ -647,7 +816,6 @@ function SynaxisContent() {
         }
       }
 
-      const isBus = party.party_type === "GUILD_BUS";
       const isCompleted = party.status === "매칭 완료" || party.status === "모집완료";
       const isRecruiting = party.status === "모집중";
 
@@ -666,8 +834,8 @@ function SynaxisContent() {
     });
 
     return filtered.sort((a, b) => {
-      const aIsBus = a.party_type === "GUILD_BUS" ? 1 : 0;
-      const bIsBus = b.party_type === "GUILD_BUS" ? 1 : 0;
+      const aIsBus = (a.party_type === "GUILD_BUS" || a.sub_content?.includes("길드 버스")) ? 1 : 0;
+      const bIsBus = (b.party_type === "GUILD_BUS" || b.sub_content?.includes("길드 버스")) ? 1 : 0;
       if (aIsBus !== bIsBus) return bIsBus - aIsBus;
 
       const aIsCompleted = a.status === "매칭 완료" || a.status === "모집완료" ? 1 : 0;
@@ -806,7 +974,6 @@ function SynaxisContent() {
                 statusFilter={statusFilter}
               />
 
-              {/* 파티 카드 리스트 */}
               <div className="space-y-3 max-h-[680px] overflow-y-auto custom-scrollbar pr-1 min-w-0">
                 {filteredParties.length === 0 ? (
                   <div className="text-center py-20 text-[var(--text-sub)] font-bold text-xs sm:text-sm bg-[var(--inner-box)] rounded-2xl border border-[var(--panel-border)]">

@@ -110,7 +110,7 @@ export default function PartyCard({
       </div>
 
       <div className="text-xs text-[var(--text-sub)] font-medium flex justify-between items-center pt-0.5 flex-wrap gap-1">
-        <span className="truncate">파티장/기사: <span className="text-[var(--text-main)] font-bold">{isCompleted ? `👑 ${party.leader_name}` : party.members[0]?.name || "알 수 없음"}</span></span>
+        <span className="truncate">파티매칭: <span className="text-[var(--text-main)] font-bold">{isCompleted ? `👑 ${party.leader_name}` : party.members[0]?.name || "알 수 없음"}</span></span>
         <div className="flex items-center gap-2 shrink-0">
           {myJoinedChars.map(m => (
             <button type="button" key={m.name} onClick={() => handleLeaveParty(party, m.name)} className="text-[10px] text-amber-400 hover:underline cursor-pointer bg-amber-500/10 px-2 py-0.5 rounded-lg border border-amber-500/30 font-bold whitespace-nowrap">
