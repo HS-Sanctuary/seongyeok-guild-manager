@@ -1,14 +1,18 @@
 export interface Member {
   name: string;
+  character_name?: string; // 👈 ts(2339) 에러 해결을 위한 속성 추가
+  nickname?: string;       // 👈 범용성 확장을 위한 별명 속성 추가
   job: string;
   roles: string[];
   time_start: string;
   time_end: string;
   is_driver?: boolean;
+  combat_power?: number;
+  magic_resistance?: number;
 }
 
 export interface Party {
-  id: number;
+  id: number | string; // id가 컴포넌트 환경에 따라 string으로도 넘어올 수 있음을 대비
   content_name: string;
   sub_content?: string;
   memo?: string;

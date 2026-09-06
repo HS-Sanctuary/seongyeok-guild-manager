@@ -1,171 +1,146 @@
 "use client";
 
-import { ClassIcon } from "@/components/common/ClassIcon";
-import CustomTimePicker from "./CustomTimePicker";
-import { CONTENT_DB, ContentItem, Party } from "./types";
-import { getFormattedDateWithDDay } from "@/app/party/page";
+import { useState } from "react";
+import ClassIcon from "@/components/common/ClassIcon";
+import { CONTENT_DB, ContentItem, Party } from "@/components/party/types";
+
+export interface BusCharSelectionConfig {
+  selected: boolean;
+  allowRepeat: boolean;
+}
+
+export function generateDefaultBusMemo(content: ContentItem, diff: string): string {
+  return `"성역 길드 버스" [${content.name} ${diff}]`;
+}
 
 interface PartyModalsProps {
-  // 안내 모달
   showSynaxisInfoModal: boolean;
-  setShowSynaxisInfoModal: (open: boolean) => void;
+  setShowSynaxisInfoModal: (val: boolean) => void;
   showLoreGuide: boolean;
-  setShowLoreGuide: (open: boolean) => void;
-
-  // 컨텐츠 모달
+  setShowLoreGuide: (val: boolean) => void;
   showContentModal: boolean;
-  setShowContentModal: (open: boolean) => void;
+  setShowContentModal: (val: boolean) => void;
   tempContentCategory: "어비스" | "레이드";
-  setTempContentCategory: (cat: "어비스" | "레이드") => void;
+  setTempContentCategory: (val: "어비스" | "레이드") => void;
   tempContent: ContentItem;
-  setTempContent: (item: ContentItem) => void;
+  setTempContent: (val: ContentItem) => void;
   tempDiff: string;
-  setTempDiff: (diff: string) => void;
+  setTempDiff: (val: string) => void;
   applyContentModal: () => void;
 
-  // 스케줄 모달
   showScheduleModal: boolean;
-  setShowScheduleModal: (open: boolean) => void;
+  setShowScheduleModal: (val: boolean) => void;
   calendarYearMonth: { year: number; month: number };
   setCalendarYearMonth: React.Dispatch<React.SetStateAction<{ year: number; month: number }>>;
   calendarDays: ({ day: number; dateStr: string } | null)[];
   selectedDate: string;
-  setSelectedDate: (date: string) => void;
+  setSelectedDate: (val: string) => void;
   timeStart: string;
-  setTimeStart: (t: string) => void;
+  setTimeStart: (val: string) => void;
   timeEnd: string;
-  setTimeEnd: (t: string) => void;
+  setTimeEnd: (val: string) => void;
 
-  // 전체 스케줄 달력 모달
   showFilterCalendarModal: boolean;
-  setShowFilterCalendarModal: (open: boolean) => void;
+  setShowFilterCalendarModal: (val: boolean) => void;
   activeDateFilter: string;
-  setActiveDateFilter: (date: string) => void;
+  setActiveDateFilter: (val: string) => void;
   datePartyCounts: Record<string, { total: number; recruiting: number; completed: number }>;
   getDayOfWeekKorean: (dateStr: string) => string;
 
-  // 길드버스 모달
   showBusCreateModal: boolean;
-  setShowBusCreateModal: (open: boolean) => void;
+  setShowBusCreateModal: (val: boolean) => void;
   busCreateContent: ContentItem;
-  setBusCreateContent: (c: ContentItem) => void;
+  setBusCreateContent: (val: ContentItem) => void;
   busCreateDiff: string;
-  setBusCreateDiff: (d: string) => void;
+  setBusCreateDiff: (val: string) => void;
   busCreateDate: string;
-  setBusCreateDate: (d: string) => void;
+  setBusCreateDate: (val: string) => void;
   busCreateTimeStart: string;
-  setBusCreateTimeStart: (t: string) => void;
+  setBusCreateTimeStart: (val: string) => void;
   busCreateTimeEnd: string;
-  setBusCreateTimeEnd: (t: string) => void;
+  setBusCreateTimeEnd: (val: string) => void;
   busCreateMemo: string;
-  setBusCreateMemo: (m: string) => void;
+  setBusCreateMemo: (val: string) => void;
+  busCharSelections: Record<string, BusCharSelectionConfig>;
+  setBusCharSelections: React.Dispatch<React.SetStateAction<Record<string, BusCharSelectionConfig>>>;
   handleCreateGuildBus: () => void;
 
-  // 캐릭터 스펙 상세 모달
   inspectCharacter: any;
-  setInspectCharacter: (char: any) => void;
+  setInspectCharacter: (val: any) => void;
 
-  // 합류 신청 모달
   joinPopupParty: Party | null;
-  setJoinPopupParty: (party: Party | null) => void;
+  setJoinPopupParty: (val: Party | null) => void;
   myCharacters: any[];
   joinSelectedChar: string;
-  setJoinSelectedChar: (char: string) => void;
+  setJoinSelectedChar: (val: string) => void;
   joinSelectedRole: string;
-  setJoinSelectedRole: (role: string) => void;
+  setJoinSelectedRole: (val: string) => void;
   joinTimeStart: string;
-  setJoinTimeStart: (t: string) => void;
+  setJoinTimeStart: (val: string) => void;
   joinTimeEnd: string;
-  setJoinTimeEnd: (t: string) => void;
+  setJoinTimeEnd: (val: string) => void;
   executeJoinParty: () => void;
 }
 
-export default function PartyModals({
-  showSynaxisInfoModal,
-  setShowSynaxisInfoModal,
-  showLoreGuide,
-  setShowLoreGuide,
-  showContentModal,
-  setShowContentModal,
-  tempContentCategory,
-  setTempContentCategory,
-  tempContent,
-  setTempContent,
-  tempDiff,
-  setTempDiff,
-  applyContentModal,
-  showScheduleModal,
-  setShowScheduleModal,
-  calendarYearMonth,
-  setCalendarYearMonth,
-  calendarDays,
-  selectedDate,
-  setSelectedDate,
-  timeStart,
-  setTimeStart,
-  timeEnd,
-  setTimeEnd,
-  showFilterCalendarModal,
-  setShowFilterCalendarModal,
-  activeDateFilter,
-  setActiveDateFilter,
-  datePartyCounts,
-  getDayOfWeekKorean,
-  showBusCreateModal,
-  setShowBusCreateModal,
-  busCreateContent,
-  setBusCreateContent,
-  busCreateDiff,
-  setBusCreateDiff,
-  busCreateDate,
-  setBusCreateDate,
-  busCreateTimeStart,
-  setBusCreateTimeStart,
-  busCreateTimeEnd,
-  setBusCreateTimeEnd,
-  busCreateMemo,
-  setBusCreateMemo,
-  handleCreateGuildBus,
-  inspectCharacter,
-  setInspectCharacter,
-  joinPopupParty,
-  setJoinPopupParty,
-  myCharacters,
-  joinSelectedChar,
-  setJoinSelectedChar,
-  joinSelectedRole,
-  setJoinSelectedRole,
-  joinTimeStart,
-  setJoinTimeStart,
-  joinTimeEnd,
-  setJoinTimeEnd,
-  executeJoinParty
-}: PartyModalsProps) {
-  // 🛡️ [방어적 디자인] 안전 대치 객체 및 배열
-  const safeBusContent = busCreateContent || CONTENT_DB[0];
-  const safeBusDifficulties = safeBusContent?.diffs || safeBusContent?.difficulties || ["어려움"];
+export default function PartyModals(props: PartyModalsProps) {
+  const [busActiveTab, setBusActiveTab] = useState<"SETTINGS" | "CHARACTERS">("CHARACTERS");
 
-  const safeTempContent = tempContent || CONTENT_DB[0];
-  const safeTempDifficulties = safeTempContent?.diffs || safeTempContent?.difficulties || ["어려움"];
+  const selectedCount = Object.values(props.busCharSelections).filter(c => c.selected).length;
+  const totalCount = props.myCharacters.length;
 
-  const safeCalendarDays = calendarDays || [];
-  const safeMyCharacters = myCharacters || [];
+  const handleSelectAll = (select: boolean) => {
+    props.setBusCharSelections(prev => {
+      const next = { ...prev };
+      Object.keys(next).forEach(k => {
+        next[k] = { ...next[k], selected: select };
+      });
+      return next;
+    });
+  };
+
+  const handleToggleAllRepeat = (repeat: boolean) => {
+    props.setBusCharSelections(prev => {
+      const next = { ...prev };
+      Object.keys(next).forEach(k => {
+        if (next[k].selected) {
+          next[k] = { ...next[k], allowRepeat: repeat };
+        }
+      });
+      return next;
+    });
+  };
 
   return (
     <>
-      {/* 1. SYNAXIS 정보 모달 */}
-      {showSynaxisInfoModal && (
-        <div className="fixed inset-0 bg-black/80 z-[12000] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setShowSynaxisInfoModal(false)}>
-          <div className="bg-[var(--panel)] border border-[var(--accent)]/60 text-[var(--text-main)] rounded-2xl max-w-sm w-full p-5 shadow-2xl relative space-y-3" onClick={e => e.stopPropagation()}>
-            <button type="button" onClick={() => setShowSynaxisInfoModal(false)} className="absolute top-3.5 right-3.5 text-[var(--text-sub)] hover:text-[var(--text-main)] text-sm font-bold cursor-pointer">✕</button>
-            <h2 className="text-sm font-black text-[var(--accent)] border-b border-[var(--panel-border)] pb-2 flex items-center gap-2">
-              <span>💡</span> SYNAXIS 파티 매칭 안내
-            </h2>
-            <div className="space-y-2 text-xs text-[var(--text-main)] leading-relaxed font-medium">
-              <p>• 시낙시스는 성역 길드원들의 원활한 레이드 및 어비스 매칭을 위한 자동 시간 계산 플랫폼입니다.</p>
-              <p>• 출발 시간이 확정되면 최적의 중간 시간이 공지되며 파티장이 자동 추첨됩니다.</p>
+      {/* 1. SYNAXIS 안내 모달 */}
+      {props.showSynaxisInfoModal && (
+        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl p-5 sm:p-6 max-w-md w-full space-y-4 shadow-2xl animate-in fade-in zoom-in-95">
+            <div className="flex justify-between items-center border-b border-[var(--panel-border)] pb-3">
+              <h3 className="font-black text-base sm:text-lg text-[var(--accent)] flex items-center gap-2">
+                <span>🏛️</span> SYNAXIS 시스템 안내
+              </h3>
+              <button 
+                onClick={() => props.setShowSynaxisInfoModal(false)}
+                className="text-[var(--text-sub)] hover:text-white font-bold text-lg cursor-pointer"
+              >
+                ✕
+              </button>
             </div>
-            <button type="button" onClick={() => setShowSynaxisInfoModal(false)} className="w-full bg-[var(--accent)] text-[var(--accent-fg)] font-black py-2 rounded-xl text-xs transition shadow-md cursor-pointer">
+            <div className="text-xs sm:text-sm text-[var(--text-sub)] space-y-3 leading-relaxed">
+              <p>
+                <strong className="text-[var(--text-main)] font-bold">시낙시스(SYNAXIS)</strong>는 길드원 간의 원활한 던전 및 레이드 매칭을 위해 설계된 성역 전용 통합 스마트 매칭 플랫폼입니다.
+              </p>
+              <div className="bg-[var(--inner-box)] p-3 rounded-xl border border-[var(--panel-border)] space-y-2 text-[11px] sm:text-xs">
+                <div>✨ <strong className="text-[var(--text-main)]">자동 시간 조율:</strong> 멤버가 모이면 최적의 중간 출발 시간을 자동 산출합니다.</div>
+                <div>🚌 <strong className="text-[var(--text-main)]">성역 길드 버스:</strong> 관리자가 개설한 지원 버스에 내 캐릭터들을 일괄 탑승시킬 수 있습니다.</div>
+                <div>⚡ <strong className="text-[var(--text-main)]">실시간 동기화:</strong> 수동 새로고침 없이 파티 생성이 즉시 반영됩니다.</div>
+              </div>
+            </div>
+            <button
+              onClick={() => props.setShowSynaxisInfoModal(false)}
+              className="w-full py-2.5 bg-[var(--accent)] text-[var(--accent-fg)] font-black text-xs rounded-xl shadow-md hover:opacity-90 transition cursor-pointer"
+            >
               확인
             </button>
           </div>
@@ -173,473 +148,640 @@ export default function PartyModals({
       )}
 
       {/* 2. 가이드 모달 */}
-      {showLoreGuide && (
-        <div className="fixed inset-0 bg-black/80 z-[10000] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setShowLoreGuide(false)}>
-          <div className="bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-main)] rounded-2xl max-w-sm w-full p-5 shadow-2xl relative space-y-3" onClick={e => e.stopPropagation()}>
-            <button type="button" onClick={() => setShowLoreGuide(false)} className="absolute top-3.5 right-3.5 text-[var(--text-sub)] hover:text-[var(--text-main)] text-sm font-bold cursor-pointer">✕</button>
-            <h2 className="text-sm font-black text-[var(--accent)] border-b border-[var(--panel-border)] pb-2 flex items-center gap-2">
-              <span>🏛️</span> SYNAXIS 가이드
-            </h2>
-            <div className="space-y-2 text-xs text-[var(--text-main)] leading-relaxed">
-              <p>• <strong>길드 버스 고정:</strong> 목요일 ~ 수요일 주간 범위 동안 성역 길드 버스가 최상단에 안전하게 고정 노출됩니다.</p>
-              <p>• <strong>일정 충돌 방지:</strong> 동일 캐릭터의 동일 시간대 중복 매칭 신청은 시스템이 자동 차단합니다.</p>
+      {props.showLoreGuide && (
+        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl p-6 max-w-lg w-full space-y-4 shadow-2xl animate-in fade-in zoom-in-95">
+            <div className="flex justify-between items-center border-b border-[var(--panel-border)] pb-3">
+              <h3 className="font-black text-base text-[var(--accent)] flex items-center gap-2">
+                <span>📖</span> 매칭 가이드
+              </h3>
+              <button 
+                onClick={() => props.setShowLoreGuide(false)}
+                className="text-[var(--text-sub)] hover:text-white font-bold text-lg cursor-pointer"
+              >
+                ✕
+              </button>
             </div>
+            <div className="text-xs text-[var(--text-sub)] space-y-2.5 leading-relaxed">
+              <p>• <strong>조합 우선:</strong> 탱/힐/딜 구성을 맞춰 최적의 파티 조합으로 자동 배치합니다.</p>
+              <p>• <strong>모집 우선:</strong> 역할 구분 없이 빠른 매칭 완성을 최우선으로 진행합니다.</p>
+              <p>• <strong>연속 뺑이:</strong> 반복 클리어를 원하는 길드원끼리 묶어주는 매칭 모드입니다.</p>
+            </div>
+            <button
+              onClick={() => props.setShowLoreGuide(false)}
+              className="w-full py-2.5 bg-[var(--inner-box)] border border-[var(--panel-border)] text-[var(--text-main)] font-black text-xs rounded-xl hover:bg-[var(--panel-border)] transition cursor-pointer"
+            >
+              닫기
+            </button>
           </div>
         </div>
       )}
 
-      {/* 3. 목표 컨텐츠 & 난이도 선택 모달 */}
-      {showContentModal && (
-        <div className="fixed inset-0 z-[12000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setShowContentModal(false)}>
-          <div className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl shadow-2xl w-full max-w-md p-5 space-y-4 relative" onClick={e => e.stopPropagation()}>
+      {/* 3. 목표 컨텐츠 선택 모달 */}
+      {props.showContentModal && (
+        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl p-5 sm:p-6 max-w-md w-full space-y-4 shadow-2xl animate-in fade-in zoom-in-95">
             <div className="flex justify-between items-center border-b border-[var(--panel-border)] pb-3">
-              <h3 className="text-sm font-black text-[var(--accent)] flex items-center gap-2">
-                <span>🎯</span> 목표 컨텐츠 & 난이도 선택
-              </h3>
-              <button type="button" onClick={() => setShowContentModal(false)} className="text-[var(--text-sub)] hover:text-[var(--text-main)] font-bold text-xs cursor-pointer">✕</button>
+              <h3 className="font-black text-sm sm:text-base text-[var(--text-main)]">목표 컨텐츠 선택</h3>
+              <button onClick={() => props.setShowContentModal(false)} className="text-[var(--text-sub)] hover:text-white font-bold cursor-pointer">✕</button>
             </div>
 
-            <div className="flex bg-[var(--inner-box)] p-1 rounded-xl border border-[var(--panel-border)] gap-1">
-              <button
-                type="button"
-                onClick={() => {
-                  setTempContentCategory("어비스");
-                  const firstAbyss = CONTENT_DB.find(c => c.category === "어비스") || CONTENT_DB[0];
-                  setTempContent(firstAbyss);
-                  setTempDiff(firstAbyss.defaultDiff);
-                }}
-                className={`flex-1 py-2 rounded-lg text-xs font-black transition cursor-pointer ${
-                  tempContentCategory === "어비스" 
-                    ? "bg-[var(--accent)] text-[var(--accent-fg)] shadow-xs" 
-                    : "text-[var(--text-sub)] hover:text-[var(--text-main)]"
-                }`}
-              >
-                🌀 어비스
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setTempContentCategory("레이드");
-                  const firstRaid = CONTENT_DB.find(c => c.category === "레이드") || CONTENT_DB[4];
-                  setTempContent(firstRaid);
-                  setTempDiff(firstRaid.defaultDiff);
-                }}
-                className={`flex-1 py-2 rounded-lg text-xs font-black transition cursor-pointer ${
-                  tempContentCategory === "레이드" 
-                    ? "bg-rose-600 text-white shadow-xs" 
-                    : "text-[var(--text-sub)] hover:text-[var(--text-main)]"
-                }`}
-              >
-                ⚔️ 레이드
-              </button>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-black text-[var(--accent)] block">1. 컨텐츠 선택</label>
-              <div className="grid grid-cols-1 gap-1.5 max-h-48 overflow-y-auto custom-scrollbar pr-1">
-                {(CONTENT_DB || []).filter(c => c.category === tempContentCategory).map(item => {
-                  const isSelected = safeTempContent.id === item.id;
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => {
-                        setTempContent(item);
-                        setTempDiff(item.defaultDiff);
-                      }}
-                      className={`w-full text-left px-3.5 py-2.5 rounded-xl border text-xs font-bold transition flex justify-between items-center cursor-pointer ${
-                        isSelected 
-                          ? "bg-[var(--inner-box)] border-[var(--accent)] text-[var(--accent)] ring-1 ring-[var(--accent)] font-black shadow-xs" 
-                          : "bg-[var(--inner-box)] border-[var(--panel-border)] text-[var(--text-main)] hover:border-[var(--accent)]"
-                      }`}
-                    >
-                      <span className="truncate pr-2">{item.name}</span>
-                      <span className="text-[10px] text-[var(--text-sub)] font-normal shrink-0">({item.size}인)</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="space-y-1.5 border-t border-[var(--panel-border)] pt-3">
-              <label className="text-xs font-black text-[var(--accent)] block">2. 입장 난이도 선택</label>
-              <div className="flex flex-wrap gap-1.5 pt-1">
-                {safeTempDifficulties.map(diff => {
-                  const isSelected = tempDiff === diff;
-                  return (
-                    <button
-                      key={diff}
-                      type="button"
-                      onClick={() => setTempDiff(diff)}
-                      className={`px-3 py-1.5 rounded-xl border text-xs font-black transition cursor-pointer ${
-                        isSelected 
-                          ? "bg-[var(--accent)] text-[var(--accent-fg)] border-transparent ring-2 ring-[var(--accent)]/50 shadow-xs" 
-                          : "bg-[var(--inner-box)] text-[var(--text-sub)] border-[var(--panel-border)] hover:text-[var(--text-main)]"
-                      }`}
-                    >
-                      {diff}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="pt-2 border-t border-[var(--panel-border)] flex justify-end gap-2">
-              <button 
-                type="button"
-                onClick={() => setShowContentModal(false)} 
-                className="bg-[var(--inner-box)] border border-[var(--panel-border)] text-[var(--text-sub)] font-bold px-4 py-2 rounded-xl text-xs transition cursor-pointer"
-              >
-                취소
-              </button>
-              <button 
-                type="button"
-                onClick={applyContentModal} 
-                className="bg-[var(--accent)] text-[var(--accent-fg)] font-black px-5 py-2 rounded-xl text-xs shadow-md transition cursor-pointer"
-              >
-                선택 완료
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 4. 스케줄 선택 모달 */}
-      {showScheduleModal && (
-        <div className="fixed inset-0 z-[12000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setShowScheduleModal(false)}>
-          <div className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl shadow-2xl w-full max-w-sm p-5 space-y-4 relative" onClick={e => e.stopPropagation()}>
-            <div className="flex justify-between items-center border-b border-[var(--panel-border)] pb-3">
-              <h3 className="text-xs sm:text-sm font-black text-[var(--accent)] flex items-center gap-1.5">
-                <span>📅</span> 매칭 희망 스케줄 선택
-              </h3>
-              <button type="button" onClick={() => setShowScheduleModal(false)} className="text-[var(--text-sub)] hover:text-[var(--text-main)] font-bold text-xs cursor-pointer">✕</button>
+            <div className="grid grid-cols-2 gap-2 p-1 bg-[var(--inner-box)] rounded-xl border border-[var(--panel-border)]">
+              {(["어비스", "레이드"] as const).map(cat => (
+                <button
+                  key={cat}
+                  onClick={() => {
+                    props.setTempContentCategory(cat);
+                    const first = CONTENT_DB.find(c => c.category === cat);
+                    if (first) {
+                      props.setTempContent(first);
+                      props.setTempDiff(first.defaultDiff);
+                    }
+                  }}
+                  className={`py-2 text-xs font-black rounded-lg transition cursor-pointer ${
+                    props.tempContentCategory === cat
+                      ? "bg-[var(--accent)] text-[var(--accent-fg)] shadow-sm"
+                      : "text-[var(--text-sub)] hover:text-white"
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
             </div>
 
             <div className="space-y-2">
-              <div className="flex items-center justify-between bg-[var(--inner-box)] p-2 rounded-xl border border-[var(--panel-border)]">
-                <div className="flex items-center gap-1">
-                  <button type="button" onClick={() => setCalendarYearMonth(prev => ({ ...prev, year: prev.year - 1 }))} className="px-1.5 py-0.5 rounded bg-[var(--panel)] border border-[var(--panel-border)] text-[10px] font-bold hover:text-[var(--accent)] cursor-pointer">≪</button>
-                  <button type="button" onClick={() => setCalendarYearMonth(prev => prev.month === 0 ? { year: prev.year - 1, month: 11 } : { ...prev, month: prev.month - 1 })} className="px-2 py-0.5 rounded bg-[var(--panel)] border border-[var(--panel-border)] text-xs font-bold hover:text-[var(--accent)] cursor-pointer">◀</button>
-                </div>
-                
-                <span className="text-xs font-black text-[var(--accent)]">
-                  {calendarYearMonth.year}년 {calendarYearMonth.month + 1}월
-                </span>
+              <label className="text-[11px] font-black text-[var(--text-sub)]">던전 선택</label>
+              <select
+                value={props.tempContent.name}
+                onChange={(e) => {
+                  const target = CONTENT_DB.find(c => c.name === e.target.value);
+                  if (target) {
+                    props.setTempContent(target);
+                    props.setTempDiff(target.defaultDiff);
+                  }
+                }}
+                className="w-full bg-[var(--inner-box)] border border-[var(--panel-border)] rounded-xl p-2.5 text-xs font-bold text-[var(--text-main)] outline-none focus:border-[var(--accent)] cursor-pointer"
+              >
+                {CONTENT_DB.filter(c => c.category === props.tempContentCategory).map(c => (
+                  <option key={c.name} value={c.name}>{c.name} ({c.size}인)</option>
+                ))}
+              </select>
+            </div>
 
-                <div className="flex items-center gap-1">
-                  <button type="button" onClick={() => setCalendarYearMonth(prev => prev.month === 11 ? { year: prev.year + 1, month: 0 } : { ...prev, month: prev.month + 1 })} className="px-2 py-0.5 rounded bg-[var(--panel)] border border-[var(--panel-border)] text-xs font-bold hover:text-[var(--accent)] cursor-pointer">▶</button>
-                  <button type="button" onClick={() => setCalendarYearMonth(prev => ({ ...prev, year: prev.year + 1 }))} className="px-1.5 py-0.5 rounded bg-[var(--panel)] border border-[var(--panel-border)] text-[10px] font-bold hover:text-[var(--accent)] cursor-pointer">≫</button>
-                </div>
+            <div className="space-y-2">
+              <label className="text-[11px] font-black text-[var(--text-sub)]">난이도 선택</label>
+              <div className="grid grid-cols-3 gap-2">
+                {props.tempContent.diffs.map(d => (
+                  <button
+                    key={d}
+                    onClick={() => props.setTempDiff(d)}
+                    className={`py-2 text-xs font-black rounded-xl border transition cursor-pointer ${
+                      props.tempDiff === d
+                        ? "bg-[var(--accent)] text-[var(--accent-fg)] border-transparent"
+                        : "bg-[var(--inner-box)] border-[var(--panel-border)] text-[var(--text-sub)] hover:border-[var(--accent)]"
+                    }`}
+                  >
+                    {d}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                onClick={() => props.setShowContentModal(false)}
+                className="flex-1 py-2.5 bg-[var(--inner-box)] border border-[var(--panel-border)] text-[var(--text-sub)] font-bold text-xs rounded-xl cursor-pointer"
+              >
+                취소
+              </button>
+              <button
+                onClick={props.applyContentModal}
+                className="flex-1 py-2.5 bg-[var(--accent)] text-[var(--accent-fg)] font-black text-xs rounded-xl cursor-pointer shadow-md"
+              >
+                적용하기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 4. 일시 및 희망 시간 설정 모달 */}
+      {props.showScheduleModal && (
+        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl p-5 sm:p-6 max-w-md w-full space-y-4 shadow-2xl animate-in fade-in zoom-in-95">
+            <div className="flex justify-between items-center border-b border-[var(--panel-border)] pb-3">
+              <h3 className="font-black text-sm sm:text-base text-[var(--text-main)]">📅 출발 희망 일시 설정</h3>
+              <button onClick={() => props.setShowScheduleModal(false)} className="text-[var(--text-sub)] hover:text-white font-bold cursor-pointer">✕</button>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex justify-between items-center bg-[var(--inner-box)] p-2.5 rounded-xl border border-[var(--panel-border)] text-xs font-black">
+                <button
+                  onClick={() => props.setCalendarYearMonth(prev => ({
+                    year: prev.month === 0 ? prev.year - 1 : prev.year,
+                    month: prev.month === 0 ? 11 : prev.month - 1
+                  }))}
+                  className="p-1 hover:text-[var(--accent)] cursor-pointer"
+                >
+                  ◀
+                </button>
+                <span>{props.calendarYearMonth.year}년 {props.calendarYearMonth.month + 1}월</span>
+                <button
+                  onClick={() => props.setCalendarYearMonth(prev => ({
+                    year: prev.month === 11 ? prev.year + 1 : prev.year,
+                    month: prev.month === 11 ? 0 : prev.month + 1
+                  }))}
+                  className="p-1 hover:text-[var(--accent)] cursor-pointer"
+                >
+                  ▶
+                </button>
               </div>
 
-              <div className="grid grid-cols-7 gap-1 text-center bg-[var(--inner-box)] p-2 rounded-xl border border-[var(--panel-border)]">
-                {["일", "월", "화", "수", "목", "금", "토"].map((w, idx) => (
-                  <div key={idx} className={`text-[10px] font-bold pb-1 ${idx === 0 ? "text-rose-400" : idx === 6 ? "text-sky-400" : "text-[var(--text-sub)]"}`}>{w}</div>
-                ))}
-                {safeCalendarDays.map((item, idx) => {
-                  if (!item) return <div key={idx} className="h-8"></div>;
-                  const isSelected = selectedDate === item.dateStr;
+              <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-black text-[var(--text-sub)] border-b border-[var(--panel-border)] pb-1">
+                <span className="text-rose-400">일</span>
+                <span>월</span>
+                <span>화</span>
+                <span>수</span>
+                <span>목</span>
+                <span>금</span>
+                <span className="text-sky-400">토</span>
+              </div>
+
+              <div className="grid grid-cols-7 gap-1">
+                {props.calendarDays.map((d, i) => {
+                  if (!d) return <div key={i} className="h-8"></div>;
+                  const isSelected = props.selectedDate === d.dateStr;
                   return (
                     <button
-                      key={idx}
-                      type="button"
-                      onClick={() => setSelectedDate(item.dateStr)}
-                      className={`h-8 rounded-lg text-xs font-bold transition flex items-center justify-center cursor-pointer ${
-                        isSelected 
-                          ? "bg-[var(--accent)] text-[var(--accent-fg)] font-black shadow-xs scale-105" 
-                          : "text-[var(--text-main)] hover:bg-[var(--panel)]"
+                      key={i}
+                      onClick={() => props.setSelectedDate(d.dateStr)}
+                      className={`h-8 rounded-lg text-xs font-black transition flex items-center justify-center cursor-pointer ${
+                        isSelected
+                          ? "bg-[var(--accent)] text-[var(--accent-fg)] shadow-sm"
+                          : "hover:bg-[var(--inner-box)] text-[var(--text-main)]"
                       }`}
                     >
-                      {item.day}
+                      {d.day}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[var(--panel-border)]">
+                <div>
+                  <label className="text-[10px] font-black text-[var(--text-sub)] block mb-1">희망 시작 시간</label>
+                  <input
+                    type="time"
+                    value={props.timeStart}
+                    onChange={(e) => props.setTimeStart(e.target.value)}
+                    className="w-full bg-[var(--inner-box)] border border-[var(--panel-border)] rounded-xl p-2 text-xs font-bold text-[var(--text-main)] text-center cursor-pointer"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-[var(--text-sub)] block mb-1">희망 종료 시간</label>
+                  <input
+                    type="time"
+                    value={props.timeEnd}
+                    onChange={(e) => props.setTimeEnd(e.target.value)}
+                    className="w-full bg-[var(--inner-box)] border border-[var(--panel-border)] rounded-xl p-2 text-xs font-bold text-[var(--text-main)] text-center cursor-pointer"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => props.setShowScheduleModal(false)}
+              className="w-full py-2.5 bg-[var(--accent)] text-[var(--accent-fg)] font-black text-xs rounded-xl cursor-pointer shadow-md"
+            >
+              설정 완료
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 5. 필터용 달력 모달 */}
+      {props.showFilterCalendarModal && (
+        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl p-5 sm:p-6 max-w-md w-full space-y-4 shadow-2xl animate-in fade-in zoom-in-95">
+            <div className="flex justify-between items-center border-b border-[var(--panel-border)] pb-3">
+              <h3 className="font-black text-sm sm:text-base text-[var(--text-main)]">📅 날짜별 파티 검색</h3>
+              <button onClick={() => props.setShowFilterCalendarModal(false)} className="text-[var(--text-sub)] hover:text-white font-bold cursor-pointer">✕</button>
+            </div>
+
+            <div className="space-y-3">
+              <div className="grid grid-cols-7 gap-1">
+                {props.calendarDays.map((d, i) => {
+                  if (!d) return <div key={i} className="h-10"></div>;
+                  const isSelected = props.activeDateFilter === d.dateStr;
+                  const info = props.datePartyCounts[d.dateStr];
+
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => {
+                        props.setActiveDateFilter(d.dateStr);
+                        props.setShowFilterCalendarModal(false);
+                      }}
+                      className={`h-10 rounded-xl text-xs font-black transition flex flex-col items-center justify-center relative cursor-pointer border ${
+                        isSelected
+                          ? "bg-[var(--accent)] text-[var(--accent-fg)] border-transparent"
+                          : "bg-[var(--inner-box)] border-[var(--panel-border)] text-[var(--text-main)] hover:border-[var(--accent)]"
+                      }`}
+                    >
+                      <span>{d.day}</span>
+                      {info && info.total > 0 && (
+                        <span className={`text-[9px] leading-none px-1 rounded-full ${isSelected ? "bg-black/30 text-white" : "text-[var(--accent)] font-bold"}`}>
+                          {info.total}
+                        </span>
+                      )}
                     </button>
                   );
                 })}
               </div>
             </div>
 
-            <div className="space-y-1.5 border-t border-[var(--panel-border)] pt-3">
-              <label className="text-xs font-bold text-[var(--accent)] flex items-center gap-1 mb-1">
-                <span>⏰</span> 플레이 가능 시간대
-              </label>
-              {/* 🌟 CustomTimePicker 적용 */}
-              <div className="flex items-center gap-2 bg-[var(--inner-box)] p-2 rounded-xl border border-[var(--panel-border)]">
-                <CustomTimePicker value={timeStart} onChange={setTimeStart} />
-                <span className="text-[var(--text-sub)] font-bold text-xs shrink-0">~</span>
-                <CustomTimePicker value={timeEnd} onChange={setTimeEnd} />
+            <button
+              onClick={() => {
+                props.setActiveDateFilter("전체");
+                props.setShowFilterCalendarModal(false);
+              }}
+              className="w-full py-2 bg-[var(--inner-box)] border border-[var(--panel-border)] text-[var(--text-sub)] font-bold text-xs rounded-xl cursor-pointer hover:text-white"
+            >
+              전체 날짜 보기
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 6. 🔥 개편된 성역 길드 버스 파티 개설 모달 */}
+      {props.showBusCreateModal && (
+        <div className="fixed inset-0 z-[100] bg-black/85 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl max-w-xl w-full flex flex-col max-h-[90vh] shadow-2xl animate-in fade-in zoom-in-95 overflow-hidden">
+            
+            {/* 모달 헤더 */}
+            <div className="flex justify-between items-center px-5 py-4 border-b border-[var(--panel-border)] bg-[var(--inner-box)] shrink-0">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">🚌</span>
+                <h3 className="font-black text-base sm:text-lg text-[var(--accent)] tracking-tight">
+                  성역 공식 길드 버스 개설
+                </h3>
               </div>
+              <button 
+                onClick={() => props.setShowBusCreateModal(false)}
+                className="text-[var(--text-sub)] hover:text-white font-black text-lg p-1 cursor-pointer"
+              >
+                ✕
+              </button>
             </div>
 
-            <div className="pt-2 border-t border-[var(--panel-border)] flex justify-end gap-2">
-              <button 
+            {/* 탭 헤더 */}
+            <div className="grid grid-cols-2 border-b border-[var(--panel-border)] bg-[var(--panel)] text-xs font-black shrink-0">
+              <button
+                onClick={() => setBusActiveTab("CHARACTERS")}
+                className={`py-3 flex items-center justify-center gap-2 border-b-2 transition cursor-pointer ${
+                  busActiveTab === "CHARACTERS"
+                    ? "border-[var(--accent)] text-[var(--accent)] bg-[var(--inner-box)]/50"
+                    : "border-transparent text-[var(--text-sub)] hover:text-white"
+                }`}
+              >
+                <span>👥 내 캐릭터 선택</span>
+                <span className="px-2 py-0.5 rounded-full bg-[var(--accent)]/20 text-[var(--accent)] text-[10px]">
+                  {selectedCount} / {totalCount}
+                </span>
+              </button>
+              <button
+                onClick={() => setBusActiveTab("SETTINGS")}
+                className={`py-3 flex items-center justify-center gap-2 border-b-2 transition cursor-pointer ${
+                  busActiveTab === "SETTINGS"
+                    ? "border-[var(--accent)] text-[var(--accent)] bg-[var(--inner-box)]/50"
+                    : "border-transparent text-[var(--text-sub)] hover:text-white"
+                }`}
+              >
+                <span>⚙️ 운행 설정 및 메모</span>
+              </button>
+            </div>
+
+            {/* 모달 본문 (스크롤 영역) */}
+            <div className="p-4 sm:p-5 overflow-y-auto custom-scrollbar flex-1 space-y-4">
+              
+              {busActiveTab === "CHARACTERS" ? (
+                <div className="space-y-3">
+                  {/* 상단 일괄 조작 컨트롤 바 */}
+                  <div className="bg-[var(--inner-box)] border border-[var(--panel-border)] p-2.5 rounded-xl flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => handleSelectAll(true)}
+                        className="px-2.5 py-1 bg-[var(--panel)] border border-[var(--panel-border)] hover:border-[var(--accent)] text-[var(--text-main)] font-bold text-[11px] rounded-lg transition cursor-pointer"
+                      >
+                        전체 선택
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSelectAll(false)}
+                        className="px-2.5 py-1 bg-[var(--panel)] border border-[var(--panel-border)] hover:border-[var(--accent)] text-[var(--text-sub)] font-bold text-[11px] rounded-lg transition cursor-pointer"
+                      >
+                        전체 해제
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 ml-auto">
+                      <span className="text-[11px] font-bold text-[var(--text-sub)]">선택 캐릭터 일괄:</span>
+                      <button
+                        type="button"
+                        onClick={() => handleToggleAllRepeat(true)}
+                        className="px-2 py-1 bg-amber-500/20 text-amber-400 border border-amber-500/40 font-black text-[10px] rounded-lg cursor-pointer"
+                      >
+                        🔄 반복 설정
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleToggleAllRepeat(false)}
+                        className="px-2 py-1 bg-zinc-700/50 text-zinc-300 border border-zinc-600 font-bold text-[10px] rounded-lg cursor-pointer"
+                      >
+                        1회성 설정
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 캐릭터 리스트 */}
+                  <div className="space-y-2">
+                    {props.myCharacters.map((char) => {
+                      const key = char.id || char.nickname;
+                      const config = props.busCharSelections[key] || { selected: false, allowRepeat: true };
+
+                      return (
+                        <div
+                          key={key}
+                          onClick={() => {
+                            props.setBusCharSelections(prev => ({
+                              ...prev,
+                              [key]: { ...config, selected: !config.selected }
+                            }));
+                          }}
+                          className={`p-3 rounded-xl border transition flex items-center justify-between gap-3 cursor-pointer ${
+                            config.selected
+                              ? "bg-[var(--inner-box)] border-[var(--accent)] shadow-sm"
+                              : "bg-[var(--panel)] border-[var(--panel-border)] opacity-60 hover:opacity-100"
+                          }`}
+                        >
+                          {/* 캐릭터 기본 정보 */}
+                          <div className="flex items-center gap-3 min-w-0">
+                            <input
+                              type="checkbox"
+                              checked={config.selected}
+                              onChange={() => {}} // 부모 div 클릭으로 처리
+                              className="w-4 h-4 accent-[var(--accent)] rounded cursor-pointer shrink-0"
+                            />
+                            <ClassIcon job={char.job} className="w-7 h-7 shrink-0" />
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="font-black text-xs sm:text-sm text-[var(--text-main)] truncate">
+                                  {char.nickname}
+                                </span>
+                                {char.is_main && (
+                                  <span className="px-1.5 py-0.2 bg-[var(--accent)] text-[var(--accent-fg)] font-black text-[9px] rounded shrink-0">
+                                    대표
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2 text-[10px] sm:text-[11px] text-[var(--text-sub)] font-bold mt-0.5">
+                                <span>{char.job}</span>
+                                <span>•</span>
+                                <span className="text-[var(--text-main)]">⚔️ {char.combat_power?.toLocaleString() || 0}</span>
+                                <span>•</span>
+                                <span className="text-purple-400">🔮 {char.magic_resistance?.toLocaleString() || 0}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* 반복 여부 토글 버튼 */}
+                          {config.selected && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                props.setBusCharSelections(prev => ({
+                                  ...prev,
+                                  [key]: { ...config, allowRepeat: !config.allowRepeat }
+                                }));
+                              }}
+                              className={`px-2.5 py-1.5 rounded-lg text-[11px] font-black border transition shrink-0 cursor-pointer ${
+                                config.allowRepeat
+                                  ? "bg-amber-500/20 text-amber-400 border-amber-500/50"
+                                  : "bg-zinc-800 text-zinc-400 border-zinc-700"
+                              }`}
+                            >
+                              {config.allowRepeat ? "🔄 반복 가능" : "1️⃣ 1회성"}
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* 목표 컨텐츠 / 난이도 */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[11px] font-black text-[var(--text-sub)] block mb-1">목표 컨텐츠</label>
+                      <select
+                        value={props.busCreateContent.name}
+                        onChange={(e) => {
+                          const target = CONTENT_DB.find(c => c.name === e.target.value);
+                          if (target) {
+                            props.setBusCreateContent(target);
+                            props.setBusCreateDiff(target.defaultDiff);
+                            props.setBusCreateMemo(generateDefaultBusMemo(target, target.defaultDiff));
+                          }
+                        }}
+                        className="w-full bg-[var(--inner-box)] border border-[var(--panel-border)] rounded-xl p-2.5 text-xs font-bold text-[var(--text-main)] outline-none cursor-pointer"
+                      >
+                        {CONTENT_DB.map(c => (
+                          <option key={c.name} value={c.name}>{c.name} ({c.size}인)</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-black text-[var(--text-sub)] block mb-1">난이도</label>
+                      <select
+                        value={props.busCreateDiff}
+                        onChange={(e) => {
+                          props.setBusCreateDiff(e.target.value);
+                          props.setBusCreateMemo(generateDefaultBusMemo(props.busCreateContent, e.target.value));
+                        }}
+                        className="w-full bg-[var(--inner-box)] border border-[var(--panel-border)] rounded-xl p-2.5 text-xs font-bold text-[var(--text-main)] outline-none cursor-pointer"
+                      >
+                        {props.busCreateContent.diffs.map(d => (
+                          <option key={d} value={d}>{d}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* 운행 시작일 */}
+                  <div>
+                    <label className="text-[11px] font-black text-[var(--text-sub)] block mb-1">운행 시작일</label>
+                    <input
+                      type="date"
+                      value={props.busCreateDate}
+                      onChange={(e) => props.setBusCreateDate(e.target.value)}
+                      className="w-full bg-[var(--inner-box)] border border-[var(--panel-border)] rounded-xl p-2.5 text-xs font-bold text-[var(--text-main)] outline-none cursor-pointer"
+                    />
+                  </div>
+
+                  {/* 시간 range */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[11px] font-black text-[var(--text-sub)] block mb-1">시작 시간</label>
+                      <input
+                        type="time"
+                        value={props.busCreateTimeStart}
+                        onChange={(e) => props.setBusCreateTimeStart(e.target.value)}
+                        className="w-full bg-[var(--inner-box)] border border-[var(--panel-border)] rounded-xl p-2.5 text-xs font-bold text-[var(--text-main)] text-center cursor-pointer"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-black text-[var(--text-sub)] block mb-1">종료 시간</label>
+                      <input
+                        type="time"
+                        value={props.busCreateTimeEnd}
+                        onChange={(e) => props.setBusCreateTimeEnd(e.target.value)}
+                        className="w-full bg-[var(--inner-box)] border border-[var(--panel-border)] rounded-xl p-2.5 text-xs font-bold text-[var(--text-main)] text-center cursor-pointer"
+                      />
+                    </div>
+                  </div>
+
+                  {/* 메모 */}
+                  <div>
+                    <label className="text-[11px] font-black text-[var(--text-sub)] block mb-1">공지 메모</label>
+                    <input
+                      type="text"
+                      value={props.busCreateMemo}
+                      onChange={(e) => props.setBusCreateMemo(e.target.value)}
+                      placeholder="버스 승객 안내용 공지"
+                      className="w-full bg-[var(--inner-box)] border border-[var(--panel-border)] rounded-xl p-2.5 text-xs font-bold text-[var(--text-main)] outline-none focus:border-[var(--accent)]"
+                    />
+                  </div>
+                </div>
+              )}
+
+            </div>
+
+            {/* 모달 하단 푸터 액션 */}
+            <div className="p-4 border-t border-[var(--panel-border)] bg-[var(--inner-box)] flex items-center gap-3 shrink-0">
+              <button
                 type="button"
-                onClick={() => setShowScheduleModal(false)} 
-                className="bg-[var(--inner-box)] border border-[var(--panel-border)] text-[var(--text-sub)] font-bold px-4 py-2 rounded-xl text-xs transition cursor-pointer"
+                onClick={() => props.setShowBusCreateModal(false)}
+                className="flex-1 py-3 bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] font-bold text-xs rounded-xl hover:text-white transition cursor-pointer"
               >
                 취소
               </button>
-              <button 
+              <button
                 type="button"
-                onClick={() => setShowScheduleModal(false)} 
-                className="bg-[var(--accent)] text-[var(--accent-fg)] font-black px-5 py-2 rounded-xl text-xs shadow-md transition cursor-pointer"
+                onClick={props.handleCreateGuildBus}
+                className="flex-2 py-3 bg-[var(--accent)] text-[var(--accent-fg)] font-black text-xs rounded-xl shadow-lg hover:opacity-90 transition cursor-pointer"
               >
-                선택 완료
+                🚌 버스 개설하기 ({selectedCount}개 캐릭터)
               </button>
             </div>
+
           </div>
         </div>
       )}
 
-      {/* 5. 전체 스케줄 달력 모달 */}
-      {showFilterCalendarModal && (
-        <div className="fixed inset-0 z-[12000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setShowFilterCalendarModal(false)}>
-          <div className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl shadow-2xl w-full max-w-sm p-5 space-y-3.5 relative" onClick={e => e.stopPropagation()}>
-            <div className="flex justify-between items-center border-b border-[var(--panel-border)] pb-3">
-              <h3 className="text-xs sm:text-sm font-black text-[var(--accent)] flex items-center gap-1.5">
-                <span>📅</span> 전체 파티 스케줄 조회
+      {/* 7. 캐릭터 상세 모달 */}
+      {props.inspectCharacter && (
+        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl p-5 sm:p-6 max-w-xs w-full space-y-4 shadow-2xl animate-in fade-in zoom-in-95 text-center">
+            <div className="flex flex-col items-center gap-2">
+              <ClassIcon job={props.inspectCharacter.job} className="w-12 h-12" />
+              <h3 className="font-black text-base text-[var(--text-main)]">
+                {props.inspectCharacter.nickname || props.inspectCharacter.name}
               </h3>
-              <button type="button" onClick={() => setShowFilterCalendarModal(false)} className="text-[var(--text-sub)] hover:text-[var(--text-main)] font-bold text-xs cursor-pointer">✕</button>
+              <p className="text-xs text-[var(--accent)] font-bold">{props.inspectCharacter.job || "직업 정보 없음"}</p>
             </div>
 
-            <div className="bg-[var(--inner-box)] p-2.5 rounded-xl border border-[var(--accent)]/40 text-center">
-              <span className="text-xs font-bold text-[var(--text-sub)]">
-                선택 날짜:{" "}
-                <strong className="text-[var(--accent)] font-black">
-                  {activeDateFilter === "전체" ? "전체 보기" : `${activeDateFilter} (${getDayOfWeekKorean(activeDateFilter)})`}
-                </strong>
-              </span>
+            <div className="bg-[var(--inner-box)] p-3 rounded-xl border border-[var(--panel-border)] space-y-1.5 text-xs text-[var(--text-sub)]">
+              <div className="flex justify-between">
+                <span>⚔️ 전투력</span>
+                <strong className="text-[var(--text-main)]">{props.inspectCharacter.combat_power?.toLocaleString() || 0}</strong>
+              </div>
+              <div className="flex justify-between">
+                <span>🔮 마법 저항력</span>
+                <strong className="text-purple-400">{props.inspectCharacter.magic_resistance?.toLocaleString() || 0}</strong>
+              </div>
             </div>
 
-            <div className="grid grid-cols-7 gap-1 text-center bg-[var(--inner-box)] p-2 rounded-xl border border-[var(--panel-border)]">
-              {["일", "월", "화", "수", "목", "금", "토"].map((w, idx) => (
-                <div key={idx} className={`text-[10px] font-bold pb-1 ${idx === 0 ? "text-rose-400" : idx === 6 ? "text-sky-400" : "text-[var(--text-sub)]"}`}>{w}</div>
-              ))}
-              {safeCalendarDays.map((item, idx) => {
-                if (!item) return <div key={idx} className="h-9"></div>;
-                const stats = datePartyCounts[item.dateStr] || { total: 0, recruiting: 0, completed: 0 };
-                const isSelected = activeDateFilter === item.dateStr;
-                return (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => {
-                      setActiveDateFilter(item.dateStr);
-                      setShowFilterCalendarModal(false);
-                    }}
-                    className={`h-9 rounded-lg text-xs font-bold transition flex flex-col items-center justify-center relative cursor-pointer ${
-                      isSelected 
-                        ? "bg-[var(--accent)] text-[var(--accent-fg)] font-black shadow-xs scale-105" 
-                        : "text-[var(--text-main)] hover:bg-[var(--panel)]"
-                    }`}
-                  >
-                    <span>{item.day}</span>
-                    {stats.total > 0 && (
-                      <div className="flex items-center gap-0.5 -mt-0.5">
-                        <span className={`text-[8px] px-1 rounded font-black ${isSelected ? "bg-black/40 text-white" : "text-[var(--accent)]"}`}>
-                          {stats.total}
-                        </span>
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="pt-2 border-t border-[var(--panel-border)] flex justify-between items-center">
-              <button 
-                type="button"
-                onClick={() => {
-                  setActiveDateFilter("전체");
-                  setShowFilterCalendarModal(false);
-                }} 
-                className="bg-[var(--inner-box)] border border-[var(--panel-border)] text-[var(--accent)] font-bold px-3 py-1.5 rounded-xl text-xs hover:border-[var(--accent)] transition cursor-pointer"
-              >
-                🔄 전체 날짜 파티 보기
-              </button>
-              <button 
-                type="button"
-                onClick={() => setShowFilterCalendarModal(false)} 
-                className="bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] font-bold px-3.5 py-1.5 rounded-xl text-xs transition cursor-pointer"
-              >
-                닫기
-              </button>
-            </div>
+            <button
+              onClick={() => props.setInspectCharacter(null)}
+              className="w-full py-2 bg-[var(--inner-box)] border border-[var(--panel-border)] text-[var(--text-main)] font-bold text-xs rounded-xl cursor-pointer"
+            >
+              닫기
+            </button>
           </div>
         </div>
       )}
 
-      {/* 6. 길드 버스 개설 모달 */}
-      {showBusCreateModal && (
-        <div className="fixed inset-0 z-[11000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setShowBusCreateModal(false)}>
-          <div className="bg-[var(--panel)] border border-amber-500/60 rounded-2xl shadow-2xl w-full max-w-sm p-5 space-y-3.5 relative" onClick={e => e.stopPropagation()}>
+      {/* 8. 일반 파티 참여 모달 */}
+      {props.joinPopupParty && (
+        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl p-5 sm:p-6 max-w-md w-full space-y-4 shadow-2xl animate-in fade-in zoom-in-95">
             <div className="flex justify-between items-center border-b border-[var(--panel-border)] pb-3">
-              <h3 className="text-xs sm:text-sm font-black text-amber-400 flex items-center gap-1.5"><span>🚌</span> 성역 길드 버스 파티 개설</h3>
-              <button type="button" onClick={() => setShowBusCreateModal(false)} className="text-[var(--text-sub)] hover:text-[var(--text-main)] font-bold text-xs cursor-pointer">✕</button>
+              <h3 className="font-black text-sm sm:text-base text-[var(--text-main)]">⚔️ 파티 참여 신청</h3>
+              <button onClick={() => props.setJoinPopupParty(null)} className="text-[var(--text-sub)] hover:text-white font-bold cursor-pointer">✕</button>
             </div>
-            
-            <div className="space-y-3 text-xs">
+
+            <div className="space-y-3">
               <div>
-                <label className="text-[var(--text-sub)] font-bold mb-1 block">목표 컨텐츠</label>
-                <select 
-                  value={safeBusContent.id || safeBusContent.name} 
-                  onChange={e => {
-                    const content = CONTENT_DB.find(c => c.id === e.target.value || c.name === e.target.value) || CONTENT_DB[0];
-                    setBusCreateContent(content);
-                    setBusCreateDiff(content.defaultDiff || content.diffs?.[0] || "어려움");
-                  }} 
-                  className="w-full bg-[var(--inner-box)] border border-[var(--panel-border)] rounded-xl px-3 py-2 font-bold text-[var(--text-main)] outline-none focus:border-[var(--accent)] cursor-pointer"
+                <label className="text-[11px] font-black text-[var(--text-sub)] block mb-1">참여 캐릭터 선택</label>
+                <select
+                  value={props.joinSelectedChar}
+                  onChange={(e) => props.setJoinSelectedChar(e.target.value)}
+                  className="w-full bg-[var(--inner-box)] border border-[var(--panel-border)] rounded-xl p-2.5 text-xs font-bold text-[var(--text-main)] outline-none cursor-pointer"
                 >
-                  {(CONTENT_DB || []).map(c => <option key={c.id || c.name} value={c.id || c.name}>{c.name} ({c.size}인)</option>)}
+                  {props.myCharacters.map(c => (
+                    <option key={c.id || c.nickname} value={c.nickname}>{c.nickname} ({c.job})</option>
+                  ))}
                 </select>
               </div>
 
               <div>
-                <label className="text-[var(--text-sub)] font-bold mb-1 block">난이도</label>
-                <select 
-                  value={busCreateDiff} 
-                  onChange={e => setBusCreateDiff(e.target.value)} 
-                  className="w-full bg-[var(--inner-box)] border border-[var(--panel-border)] rounded-xl px-3 py-2 font-bold text-[var(--text-main)] outline-none focus:border-[var(--accent)] cursor-pointer"
-                >
-                  {safeBusDifficulties.map(d => <option key={d} value={d}>{d}</option>)}
-                </select>
-              </div>
-
-              {/* 🌟 1번 사진 개선: 모바일/iOS/Android/Mac/PC 전 영역 100% 클릭 가능 달력 박스 */}
-              <div>
-                <label className="text-[var(--text-sub)] font-bold mb-1 block">운행 시작일</label>
-                <div 
-                  className="relative w-full cursor-pointer"
-                  onClick={(e) => {
-                    const input = e.currentTarget.querySelector('input[type="date"]') as HTMLInputElement;
-                    if (input) {
-                      if ('showPicker' in input) {
-                        try { input.showPicker(); } catch (err) {}
-                      } else {
-                        input.focus();
-                      }
-                    }
-                  }}
-                >
-                  <div className="w-full bg-[var(--inner-box)] border border-amber-500/60 rounded-xl px-3 py-2 text-xs font-black text-amber-400 flex items-center justify-between shadow-xs hover:border-amber-400 transition cursor-pointer">
-                    <span className="pointer-events-none">{getFormattedDateWithDDay(busCreateDate)}</span>
-                    <span className="text-sm pointer-events-none">📅</span>
-                  </div>
-                  <input 
-                    type="date" 
-                    value={busCreateDate} 
-                    onChange={e => setBusCreateDate(e.target.value)} 
-                    className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10 block"
-                  />
-                </div>
-              </div>
-
-              {/* 🌟 2번 사진 개선: 고도화된 CustomTimePicker 복원 */}
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-[var(--text-sub)] font-bold mb-1 block">시작 시간</label>
-                  <CustomTimePicker value={busCreateTimeStart} onChange={setBusCreateTimeStart} />
-                </div>
-                <div>
-                  <label className="text-[var(--text-sub)] font-bold mb-1 block">종료 시간</label>
-                  <CustomTimePicker value={busCreateTimeEnd} onChange={setBusCreateTimeEnd} />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-[var(--text-sub)] font-bold mb-1 block">공지 메모</label>
-                <input 
-                  type="text" 
-                  value={busCreateMemo} 
-                  onChange={e => setBusCreateMemo(e.target.value)} 
-                  placeholder="예: 성역 정기 길드 버스 운행!"
-                  className="w-full bg-[var(--inner-box)] border border-[var(--panel-border)] rounded-xl px-3 py-2 font-bold text-[var(--text-main)] outline-none focus:border-[var(--accent)]"
-                />
-              </div>
-            </div>
-
-            <div className="pt-2 border-t border-[var(--panel-border)] flex items-center justify-end gap-2">
-              <button type="button" onClick={() => setShowBusCreateModal(false)} className="bg-[var(--inner-box)] border border-[var(--panel-border)] text-[var(--text-sub)] font-bold px-4 py-2 rounded-xl text-xs transition cursor-pointer">취소</button>
-              <button type="button" onClick={handleCreateGuildBus} className="bg-amber-600 hover:bg-amber-500 text-white font-black px-5 py-2 rounded-xl shadow-md transition text-xs cursor-pointer">개설하기</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 7. 캐릭터 정보 상세 조회 모달 */}
-      {inspectCharacter && (
-        <div className="fixed inset-0 z-[11000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setInspectCharacter(null)}>
-          <div className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl shadow-2xl w-full max-w-sm p-5 space-y-4 relative" onClick={e => e.stopPropagation()}>
-            <button type="button" onClick={() => setInspectCharacter(null)} className="absolute top-3.5 right-3.5 text-[var(--text-sub)] hover:text-[var(--text-main)] text-sm font-bold cursor-pointer">✕</button>
-            <div className="flex items-center gap-3 border-b border-[var(--panel-border)] pb-3">
-              <div className="p-3 bg-[var(--inner-box)] border border-[var(--panel-border)] rounded-2xl shrink-0 shadow-xs">
-                <ClassIcon job={inspectCharacter.job || "전사"} className="w-8 h-8" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <span className="text-xs text-[var(--accent)] font-bold">{inspectCharacter.job || "전사"}</span>
-                <h3 className="text-base font-black text-[var(--text-main)] truncate">{inspectCharacter.nickname}</h3>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-[var(--inner-box)] border border-[var(--panel-border)] p-3 rounded-xl space-y-1">
-                <span className="text-xs text-[var(--text-sub)] font-bold">⚔️ 전투력</span>
-                <p className="text-sm font-black text-[var(--text-main)] truncate">{inspectCharacter.combat_power?.toLocaleString() || "정보 없음"}</p>
-              </div>
-              <div className="bg-[var(--inner-box)] border border-[var(--panel-border)] p-3 rounded-xl space-y-1">
-                <span className="text-xs text-[var(--text-sub)] font-bold">🔮 마도저항</span>
-                <p className="text-sm font-black text-[var(--text-main)] truncate">{inspectCharacter.magic_resistance?.toLocaleString() || "정보 없음"}</p>
-              </div>
-            </div>
-            <button type="button" onClick={() => setInspectCharacter(null)} className="w-full bg-[var(--accent)] text-[var(--accent-fg)] font-black py-2.5 rounded-xl text-xs shadow-md transition cursor-pointer">확인 완료</button>
-          </div>
-        </div>
-      )}
-
-      {/* 8. 파티 합류 신청 모달 */}
-      {joinPopupParty && (
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setJoinPopupParty(null)}>
-          <div className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
-            <div className="bg-[var(--inner-box)] p-4 border-b border-[var(--panel-border)] flex justify-between items-center">
-              <h2 className="text-sm font-black text-[var(--text-main)] flex items-center gap-2"><span>⚔️</span> 파티 합류 신청</h2>
-              <button type="button" onClick={() => setJoinPopupParty(null)} className="text-[var(--text-sub)] hover:text-[var(--text-main)] font-bold text-xs cursor-pointer">✕</button>
-            </div>
-            <div className="p-4 space-y-3.5 bg-[var(--panel)] text-xs">
-              <div className="bg-[var(--inner-box)] p-3 rounded-xl border border-[var(--panel-border)] text-center space-y-1 shadow-xs">
-                <p className="font-black text-[var(--accent)] text-sm truncate">{joinPopupParty.content_name} ({joinPopupParty.difficulty})</p>
-                <p className="text-xs text-[var(--text-sub)] font-mono">⏰ 파티 시간: {joinPopupParty.time_start} ~ {joinPopupParty.time_end}</p>
-              </div>
-              <div>
-                <label className="font-bold text-[var(--text-sub)] mb-1 block">1. 합류할 캐릭터 선택</label>
-                <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto custom-scrollbar p-1">
-                  {safeMyCharacters.map(char => (
-                    <button type="button" key={char.id || char.nickname} onClick={() => setJoinSelectedChar(char.nickname)} className={`text-xs font-bold px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 cursor-pointer ${joinSelectedChar === char.nickname ? "bg-[var(--accent)] text-[var(--accent-fg)] font-black shadow-xs" : "bg-[var(--inner-box)] text-[var(--text-sub)] border border-[var(--panel-border)]"}`}>
-                      <ClassIcon job={char.job || "전사"} className="w-3.5 h-3.5 shrink-0" />
-                      <span className="truncate max-w-[100px]">{char.nickname}</span>
+                <label className="text-[11px] font-black text-[var(--text-sub)] block mb-1">수행 포지션</label>
+                <div className="grid grid-cols-4 gap-2">
+                  {(["탱커", "힐러", "근딜", "원딜"] as const).map(r => (
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() => props.setJoinSelectedRole(r)}
+                      className={`py-2 text-xs font-black rounded-xl border transition cursor-pointer ${
+                        props.joinSelectedRole === r
+                          ? "bg-[var(--accent)] text-[var(--accent-fg)] border-transparent"
+                          : "bg-[var(--inner-box)] border-[var(--panel-border)] text-[var(--text-sub)] hover:border-[var(--accent)]"
+                      }`}
+                    >
+                      {r}
                     </button>
                   ))}
                 </div>
               </div>
-              <div>
-                <label className="font-bold text-[var(--text-sub)] mb-1 block">2. 희망 포지션 선택</label>
-                <div className="flex flex-wrap gap-1.5">
-                  {["탱커", "힐러", "근딜", "원딜"].map(role => (
-                    <button type="button" key={role} onClick={() => setJoinSelectedRole(role)} className={`text-xs font-bold px-3 py-1.5 rounded-xl transition cursor-pointer ${joinSelectedRole === role ? "bg-indigo-600 text-white font-black shadow-xs" : "bg-[var(--inner-box)] text-[var(--text-sub)] border border-[var(--panel-border)]"}`}>
-                      {role}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="bg-[var(--inner-box)] border border-[var(--panel-border)] p-3 rounded-xl space-y-1">
-                <label className="font-black text-[var(--accent)] block mb-1">3. 플레이 가능 시간대</label>
-                {/* 🌟 CustomTimePicker 복원 */}
-                <div className="flex items-center gap-2 pt-1">
-                  <CustomTimePicker value={joinTimeStart} onChange={setJoinTimeStart} />
-                  <span className="text-[var(--text-sub)] font-bold shrink-0">~</span>
-                  <CustomTimePicker value={joinTimeEnd} onChange={setJoinTimeEnd} />
-                </div>
-              </div>
             </div>
-            <div className="p-3 bg-[var(--inner-box)] border-t border-[var(--panel-border)] flex justify-end gap-2">
-              <button type="button" onClick={() => setJoinPopupParty(null)} className="bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] font-bold px-4 py-2 rounded-xl text-xs transition cursor-pointer">취소</button>
-              <button type="button" onClick={executeJoinParty} className="bg-emerald-600 hover:bg-emerald-500 text-white font-black px-5 py-2 rounded-xl shadow-md transition text-xs cursor-pointer">신청하기</button>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                onClick={() => props.setJoinPopupParty(null)}
+                className="flex-1 py-2.5 bg-[var(--inner-box)] border border-[var(--panel-border)] text-[var(--text-sub)] font-bold text-xs rounded-xl cursor-pointer"
+              >
+                취소
+              </button>
+              <button
+                onClick={props.executeJoinParty}
+                className="flex-1 py-2.5 bg-[var(--accent)] text-[var(--accent-fg)] font-black text-xs rounded-xl cursor-pointer shadow-md"
+              >
+                참여하기
+              </button>
             </div>
           </div>
         </div>

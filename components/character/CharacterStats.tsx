@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
 
 interface CharacterStatsProps {
   statViewMode: 'character' | 'account';
@@ -22,7 +23,11 @@ interface CharacterStatsProps {
   accountContribution: string;
   updateProfile: (field: string, value: any) => void;
   setAccountContribution: (value: string) => void;
-  lastUpdatedAt?: string | Date | null; // 👈 DB 최신 업데이트 시각 props 추가
+  lastUpdatedAt?: string | Date | null;
+  currentOwnerNickname?: string;
+  equippedTitle?: string;
+  availableTitles?: string[];
+  onEquipTitleChange?: (newTitle: string) => void;
 }
 
 export default function CharacterStats({
@@ -35,9 +40,72 @@ export default function CharacterStats({
   accountContribution,
   updateProfile,
   setAccountContribution,
-  lastUpdatedAt
+  lastUpdatedAt,
+  currentOwnerNickname = "",
+  equippedTitle = "EMPTY",
+  availableTitles = [],
+  onEquipTitleChange
 }: CharacterStatsProps) {
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
+  const [isTitleModalOpen, setIsTitleModalOpen] = useState(false);
+  const [userTitles, setUserTitles] = useState<string[]>(availableTitles);
+  const [currentTitle, setCurrentTitle] = useState<string>(equippedTitle);
+  const [isEquipping, setIsEquipping] = useState(false);
+
+  useEffect(() => {
+    setCurrentTitle(equippedTitle);
+  }, [equippedTitle]);
+
+  useEffect(() => {
+    if (availableTitles && availableTitles.length > 0) {
+      setUserTitles(availableTitles);
+    } else if (currentOwnerNickname) {
+      fetchMemberTitles();
+    }
+  }, [currentOwnerNickname, availableTitles]);
+
+  const fetchMemberTitles = async () => {
+    try {
+      const { data } = await supabase
+        .from('members')
+        .select('titles, equipped_title')
+        .eq('nickname', currentOwnerNickname)
+        .maybeSingle();
+
+      if (data) {
+        setUserTitles(Array.isArray(data.titles) ? data.titles : []);
+        if (data.equipped_title) setCurrentTitle(data.equipped_title);
+      }
+    } catch (e) {
+      console.error("멤버 칭호 조회 실패:", e);
+    }
+  };
+
+  const handleEquipTitle = async (title: string) => {
+    if (!currentOwnerNickname) {
+      alert("로그인 정보 또는 닉네임이 연결되지 않았습니다.");
+      return;
+    }
+
+    setIsEquipping(true);
+    try {
+      const { error } = await supabase
+        .from('members')
+        .update({ equipped_title: title })
+        .eq('nickname', currentOwnerNickname);
+
+      if (error) throw error;
+
+      setCurrentTitle(title);
+      if (onEquipTitleChange) onEquipTitleChange(title);
+      alert(`👑 [${title === 'EMPTY' ? '칭호 해제' : title}] (이)가 착용되었습니다!`);
+      setIsTitleModalOpen(false);
+    } catch (err: any) {
+      alert("칭호 착용 오류: " + err.message);
+    } finally {
+      setIsEquipping(false);
+    }
+  };
 
   const formatComma = (val: string | number) => {
     if (val === "" || val === null || val === undefined) return "";
@@ -46,7 +114,6 @@ export default function CharacterStats({
     return Number(numStr).toLocaleString();
   };
 
-  // 날짜 포맷팅 함수 (MM/DD HH:mm)
   const formatLastUpdated = (dateVal?: string | Date | null) => {
     if (!dateVal) return "기록 없음";
     const d = new Date(dateVal);
@@ -66,38 +133,50 @@ export default function CharacterStats({
   return (
     <div className="space-y-2">
       {/* 상단 컨트롤러 레이아웃 */}
-      <div className="flex items-center justify-between gap-2 md:gap-4">
+      <div className="flex items-center justify-between gap-2 md:gap-4 flex-wrap">
         
-        {/* RED: 뷰 모드 전환 버튼 */}
-        <div className="inline-flex bg-[var(--inner-box)] p-0.5 md:p-1 rounded-lg border border-[var(--panel-border)] gap-0.5 md:gap-1 shadow-inner shrink-0">
+        {/* RED: 뷰 모드 전환 버튼 & 칭호 장착 버튼 */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          <div className="inline-flex bg-[var(--inner-box)] p-0.5 md:p-1 rounded-lg border border-[var(--panel-border)] gap-0.5 md:gap-1 shadow-inner">
+            <button
+              type="button"
+              onClick={() => setStatViewMode('character')}
+              className={`px-2 py-1 md:px-3 md:py-1.5 text-xs md:text-sm font-black rounded-md transition cursor-pointer flex items-center gap-1 whitespace-nowrap ${
+                statViewMode === 'character'
+                  ? 'bg-[var(--accent)] text-[var(--accent-fg)] shadow-xs'
+                  : 'text-[var(--text-sub)] hover:text-[var(--text-main)]'
+              }`}
+            >
+              <span>👤</span>
+              <span>
+                <span className="hidden sm:inline">선택 </span>캐릭터
+              </span>
+            </button>
+            
+            <button
+              type="button"
+              onClick={() => setStatViewMode('account')}
+              className={`px-2 py-1 md:px-3 md:py-1.5 text-xs md:text-sm font-black rounded-md transition cursor-pointer flex items-center gap-1 whitespace-nowrap ${
+                statViewMode === 'account'
+                  ? 'bg-[var(--accent)] text-[var(--accent-fg)] shadow-xs'
+                  : 'text-[var(--text-sub)] hover:text-[var(--text-main)]'
+              }`}
+            >
+              <span>📊</span>
+              <span>
+                계정<span className="hidden sm:inline"> 총합</span>
+              </span>
+            </button>
+          </div>
+
+          {/* 👑 칭호 변경 모달 트리거 버튼 */}
           <button
             type="button"
-            onClick={() => setStatViewMode('character')}
-            className={`px-2 py-1 md:px-3 md:py-1.5 text-xs md:text-sm font-black rounded-md transition cursor-pointer flex items-center gap-1 whitespace-nowrap ${
-              statViewMode === 'character'
-                ? 'bg-[var(--accent)] text-[var(--accent-fg)] shadow-xs'
-                : 'text-[var(--text-sub)] hover:text-[var(--text-main)]'
-            }`}
+            onClick={() => setIsTitleModalOpen(true)}
+            className="px-2.5 py-1 md:px-3 md:py-1.5 text-xs font-black rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 transition cursor-pointer flex items-center gap-1 whitespace-nowrap"
           >
-            <span>👤</span>
-            <span>
-              <span className="hidden sm:inline">선택 </span>캐릭터
-            </span>
-          </button>
-          
-          <button
-            type="button"
-            onClick={() => setStatViewMode('account')}
-            className={`px-2 py-1 md:px-3 md:py-1.5 text-xs md:text-sm font-black rounded-md transition cursor-pointer flex items-center gap-1 whitespace-nowrap ${
-              statViewMode === 'account'
-                ? 'bg-[var(--accent)] text-[var(--accent-fg)] shadow-xs'
-                : 'text-[var(--text-sub)] hover:text-[var(--text-main)]'
-            }`}
-          >
-            <span>📊</span>
-            <span>
-              계정<span className="hidden sm:inline"> 총합</span>
-            </span>
+            <span>👑</span>
+            <span>{currentTitle && currentTitle !== 'EMPTY' ? currentTitle : '칭호 착용'}</span>
           </button>
         </div>
 
@@ -113,7 +192,6 @@ export default function CharacterStats({
               <span>ℹ️</span>
               <span>최신 업데이트</span>
             </div>
-            {/* DB에서 가져온 실제 시각 자동 반영 */}
             <span className="text-[11px] md:text-xs font-black font-mono text-[var(--accent)]">
               {formatLastUpdated(lastUpdatedAt)}
             </span>
@@ -221,11 +299,85 @@ export default function CharacterStats({
         </div>
       </div>
 
-      {/* 🔄 데이터 동기화 안내 모달 */}
+      {/* 👑 칭호 장착 / 착용 변경 모달 */}
+      {isTitleModalOpen && (
+        <div className="fixed inset-0 z-[130] bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-[var(--panel)] border border-amber-500/50 rounded-2xl max-w-sm w-full p-5 space-y-4 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-[var(--panel-border)] pb-3">
+              <span className="font-black text-amber-400 text-sm flex items-center gap-1.5">
+                <span>👑</span> 보유 칭호 장착 및 변경
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsTitleModalOpen(false)}
+                className="w-7 h-7 rounded-lg bg-[var(--inner-box)] text-[var(--text-sub)] hover:text-[var(--text-main)] border border-[var(--panel-border)] flex items-center justify-center font-bold text-xs cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-xs text-[var(--text-sub)] font-bold">
+                달성한 명예 칭호 중 캐릭터 대표 배지로 표시할 칭호를 선택하세요.
+              </p>
+
+              <button
+                type="button"
+                onClick={() => handleEquipTitle("EMPTY")}
+                disabled={isEquipping}
+                className={`w-full p-2.5 rounded-xl border text-left text-xs font-bold transition flex justify-between items-center ${
+                  currentTitle === "EMPTY" || !currentTitle
+                    ? "bg-amber-500/20 border-amber-500 text-amber-300"
+                    : "bg-[var(--inner-box)] border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)]"
+                }`}
+              >
+                <span>🚫 칭호 착용 해제 (표시 안 함)</span>
+                {currentTitle === "EMPTY" && <span className="text-amber-400 font-black">착용 중</span>}
+              </button>
+
+              <div className="max-h-52 overflow-y-auto space-y-1.5 custom-scrollbar pt-1">
+                {userTitles.length === 0 ? (
+                  <p className="text-xs text-[var(--text-sub)] text-center py-4 bg-[var(--inner-box)] rounded-xl border border-[var(--panel-border)]">
+                    획득한 명예 칭호가 아직 없습니다. 판테온 랭킹 및 SYNAXIS 활동에 도전하세요!
+                  </p>
+                ) : (
+                  userTitles.map(t => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => handleEquipTitle(t)}
+                      disabled={isEquipping}
+                      className={`w-full p-2.5 rounded-xl border text-left text-xs font-black transition flex justify-between items-center ${
+                        currentTitle === t
+                          ? "bg-amber-500/20 border-amber-500 text-amber-300 shadow-xs"
+                          : "bg-[var(--inner-box)] border-[var(--panel-border)] text-[var(--text-main)] hover:border-amber-500/40"
+                      }`}
+                    >
+                      <span className="flex items-center gap-1.5">
+                        <span>🎖️</span> {t}
+                      </span>
+                      {currentTitle === t && <span className="text-amber-400 text-[10px]">✅ 착용 중</span>}
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsTitleModalOpen(false)}
+              className="w-full py-2.5 bg-[var(--inner-box)] text-[var(--text-sub)] hover:text-[var(--text-main)] font-bold text-xs rounded-xl border border-[var(--panel-border)] transition"
+            >
+              닫기
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 데이터 동기화 안내 모달 */}
       {isUpdateModalOpen && (
         <div className="fixed inset-0 z-[120] bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl max-w-md w-full p-5 space-y-4 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
-            
             <div className="flex items-center justify-between border-b border-[var(--panel-border)] pb-3">
               <div className="flex items-center gap-2">
                 <span className="text-lg">🔄</span>

@@ -8,6 +8,7 @@ const MAIN_TABS = [
   { id: "banner", label: "🚨 긴급 배너" },
   { id: "character", label: "👤 캐릭터 관리 설정" },
   { id: "trade", label: "⚖️ 구매/교환 설정" },
+  { id: "bus_control", label: "🚌 버스 & 파티 관제" },
 ];
 
 const CHAR_SUB_TABS = [
@@ -52,6 +53,8 @@ export default function AdminPage() {
     map: "", npc: "", reward: "", reward_cnt: 1, cost: "", cost_cnt: 1, limit: 10, reset_type: "주간", scope: "캐릭당"
   });
 
+  const [adminParties, setAdminParties] = useState<any[]>([]);
+
   useEffect(() => {
     setMounted(true);
     const savedUser = localStorage.getItem("nexus_user");
@@ -61,7 +64,6 @@ export default function AdminPage() {
     }
     const parsedUser = JSON.parse(savedUser);
     
-    // 🔓 임시: 모든 로그인된 계정이 관리자 페이지에 접근 가능하도록 제한 해제
     const isAdmin = !!parsedUser;
 
     if (!isAdmin) {
@@ -76,7 +78,19 @@ export default function AdminPage() {
     fetchTasks();
     fetchClasses();
     fetchTrades();
+    fetchAdminParties();
   }, [router]);
+
+  const fetchAdminParties = async () => {
+    const { data } = await supabase.from('parties').select('*').neq('status', '종료됨').order('created_at', { ascending: false });
+    if (data) setAdminParties(data);
+  };
+
+  const handleForceCloseParty = async (id: number) => {
+    if (!confirm("이 파티를 강제 종료 처리하시겠습니까?")) return;
+    await supabase.from('parties').update({ status: '종료됨' }).eq('id', id);
+    fetchAdminParties();
+  };
 
   const fetchActiveBanner = async () => { 
     const { data } = await supabase.from('nexus_banners').select('*').eq('is_active', true).order('created_at', { ascending: false }).limit(1); 
@@ -215,7 +229,7 @@ export default function AdminPage() {
           </div>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           {MAIN_TABS.map(tab => (
             <button key={tab.id} onClick={() => setActiveMainTab(tab.id)} className={`px-5 py-3 rounded-lg text-sm font-bold transition-all ${activeMainTab === tab.id ? "bg-[#1c1c1e] text-[#e6c788] border border-zinc-700 shadow-md" : "bg-transparent text-zinc-500 hover:bg-zinc-800/50 hover:text-zinc-300"}`}>
               {tab.label}
@@ -567,6 +581,48 @@ export default function AdminPage() {
                     )}
                   </tbody>
                 </table>
+              </div>
+            </div>
+          )}
+
+          {activeMainTab === "bus_control" && (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center border-b border-zinc-800 pb-4">
+                <div>
+                  <h2 className="text-xl font-bold text-[#e6c788]">🚌 실시간 파티 & 길드 버스 관제 센터</h2>
+                  <p className="text-sm text-zinc-400 mt-1">현재 생성된 모든 모집/진행 중인 파티를 중앙 제어합니다.</p>
+                </div>
+                <button onClick={fetchAdminParties} className="text-xs bg-zinc-800 hover:bg-zinc-700 px-3 py-1.5 rounded font-bold">🔄 새로고침</button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {adminParties.map(p => (
+                  <div key={p.id} className="bg-[#252528] border border-zinc-700 rounded-xl p-4 flex flex-col justify-between space-y-3">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <span className="text-[10px] font-black bg-amber-500 text-black px-2 py-0.5 rounded mr-2">{p.party_type}</span>
+                        <span className="text-xs font-bold text-zinc-400">{p.party_date} ({p.time_start} ~ {p.time_end})</span>
+                        <h4 className="text-base font-bold text-white mt-1">{p.content_name} [{p.difficulty}]</h4>
+                      </div>
+                      <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${p.status === '운행중' ? 'bg-emerald-600 text-white animate-pulse' : 'bg-zinc-800 text-zinc-300'}`}>
+                        {p.status}
+                      </span>
+                    </div>
+
+                    <div className="text-xs text-zinc-400 bg-[#1c1c1e] p-2 rounded border border-zinc-800">
+                      파티장: <span className="text-white font-bold">{p.leader_name}</span> | 참여 인원: <span className="text-amber-400 font-bold">{p.members?.length || 0} / {p.max_members}</span>
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-2 border-t border-zinc-700/50">
+                      <button onClick={() => handleForceCloseParty(p.id)} className="text-xs bg-red-900/40 text-red-400 hover:bg-red-800 hover:text-white px-3 py-1.5 rounded font-bold transition">
+                        🛑 파티 강제 종료
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                {adminParties.length === 0 && (
+                  <div className="col-span-2 text-center py-12 text-zinc-500 font-bold">현재 활성화된 파티 또는 버스가 없습니다.</div>
+                )}
               </div>
             </div>
           )}
