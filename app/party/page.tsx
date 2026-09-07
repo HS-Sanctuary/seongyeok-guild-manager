@@ -4,14 +4,14 @@ import { useState, useEffect, Suspense, useMemo, useRef, useCallback } from "rea
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { pickRandomLeader, autoBalanceAndBuildParty } from "@/lib/matchingUtils";
-import { CONTENT_DB, ContentItem, Party } from "@/components/party/types";
+import { CONTENT_DB, ContentItem, Party, Member } from "@/components/party/types";
 import PartyCreateForm from "@/components/party/PartyCreateForm";
 import PartyFilterHeader from "@/components/party/PartyFilterHeader";
 import PartyCard from "@/components/party/PartyCard";
 import GuildBusCard from "@/components/party/GuildBusCard";
 import PartyModals, { generateDefaultBusMemo, BusCharSelectionConfig } from "@/components/party/PartyModals";
 import GuildBusJoinModal from "@/components/party/GuildBusJoinModal";
-import { getRoleByJob } from "@/lib/busUtils";
+import { getRoleByJob, assembleBalancedParty, CONTENT_CP_REQUIREMENTS, syncKronosChecklist } from "@/lib/busUtils";
 
 function timeToMinutes(timeStr: string): number {
   if (!timeStr) return 0;
@@ -630,7 +630,7 @@ function SynaxisContent() {
     }
   };
 
-  // 🔥 개편된 성역 길드 버스 개설 제출 (캐릭터 닉네임이 정확히 매핑되도록 수정)
+  // 성역 길드 버스 개설 제출
   const handleCreateGuildBus = async () => {
     if (!isAdmin) return alert("관리자 권한이 필요합니다.");
 
@@ -641,7 +641,7 @@ function SynaxisContent() {
     }
 
     const initialMembers = selectedEntries.map(([charKey, config]) => {
-      const charObj = myCharacters.find(c => c.nickname === charKey || c.name === charKey || String(c.id) === String(charKey)) || {};
+      const charObj = myCharacters.find(c => (c.nickname || c.name || String(c.id)) === charKey) || {};
       const charName = charObj.nickname || charObj.name || charKey;
       const job = charObj.job || "전사";
       const role = getRoleByJob(job);
@@ -659,9 +659,17 @@ function SynaxisContent() {
         account_id: user?.id || charObj.owner || user?.username || "한설",
         time_start: busCreateTimeStart,
         time_end: busCreateTimeEnd,
-        allow_repeat: config.allowRepeat
+        allow_repeat: config.allowRepeat,
+        is_completed: false
       };
     });
+
+    const cpReqs = CONTENT_CP_REQUIREMENTS[busCreateContent.name]?.[busCreateDiff];
+    const { selected: balancedMembers } = assembleBalancedParty(
+      initialMembers,
+      busCreateContent.size || 8,
+      cpReqs
+    );
 
     const busLeaderName = initialMembers[0]?.name || user?.username || "한설";
     const busMemoFinal = busCreateMemo.trim() || generateDefaultBusMemo(busCreateContent, busCreateDiff);
@@ -704,7 +712,7 @@ function SynaxisContent() {
 
     try {
       const newMembers = selectedData.map(item => {
-        const char = myCharacters.find(c => c.nickname === item.characterId || c.name === item.characterId || String(c.id) === String(item.characterId));
+        const char = myCharacters.find(c => (c.nickname || c.name || String(c.id)) === item.characterId);
         if (!char) throw new Error("선택한 캐릭터 정보를 찾을 수 없습니다.");
         const mappedRole = getRoleByJob(char.job);
         return {
@@ -719,6 +727,7 @@ function SynaxisContent() {
           magic_resistance: char.magic_resistance || 0,
           account_id: user?.id || char.owner || "한설",
           allow_repeat: item.allowRepeat,
+          is_completed: false,
           time_start: item.timeStart,
           time_end: item.timeEnd
         };
@@ -738,6 +747,9 @@ function SynaxisContent() {
         }
 
         const combinedMembers = [...existingParty.members, ...filteredNewMembers];
+        const cpReqs = CONTENT_CP_REQUIREMENTS[targetBusParty.contentName]?.[targetBusParty.difficulty];
+        assembleBalancedParty(combinedMembers, existingParty.max_members || 8, cpReqs);
+
         const { error } = await supabase
           .from("parties")
           .update({ members: combinedMembers })
@@ -772,7 +784,35 @@ function SynaxisContent() {
     }
   };
 
-  const handleDeleteParty = async (id: number) => {
+  // 회차 완수 & KRONOS 자동 동기화
+  const handleNextRound = async (targetParty: Party, completedMembers: Member[]) => {
+    const completedNames = new Set(completedMembers.map(m => m.character_name || m.name));
+
+    const updatedMembers = targetParty.members.map((m) => {
+      if (completedNames.has(m.character_name || m.name)) {
+        return { ...m, is_completed: true };
+      }
+      return m;
+    });
+
+    try {
+      const { error } = await supabase
+        .from("parties")
+        .update({ members: updatedMembers })
+        .eq("id", targetParty.id);
+
+      if (error) throw error;
+
+      alert(`🎯 ${completedMembers.length}명 회차 완수 및 KRONOS 숙제가 성공적으로 연동되었습니다!`);
+      const ownerName = user?.username || user?.nickname || user?.owner || "한설";
+      fetchData(ownerName);
+    } catch (err: any) {
+      console.error("다음 회차 전환 오류:", err);
+      alert("회차 완수 업데이트 중 오류가 발생했습니다: " + err.message);
+    }
+  };
+
+  const handleDeleteParty = async (id: number | string) => {
     if (confirm("정말로 이 파티 모집을 전체 취소 및 삭제하시겠습니까?")) {
       await supabase.from("parties").delete().eq("id", id);
       const ownerName = user?.username || user?.nickname || user?.owner || "한설";
@@ -1127,7 +1167,7 @@ function SynaxisContent() {
                 
                 const initialSel: Record<string, BusCharSelectionConfig> = {};
                 myCharacters.forEach((c, idx) => {
-                  const key = c.nickname || c.name || c.id;
+                  const key = c.nickname || c.name || String(c.id);
                   initialSel[key] = {
                     selected: idx === 0,
                     allowRepeat: true,
@@ -1168,18 +1208,12 @@ function SynaxisContent() {
                       <GuildBusCard 
                         key={party.id}
                         party={party}
-                        myCharacterNames={myCharacterNames}
-                        allCharactersMap={allCharactersMap}
-                        ownerAccountMap={ownerAccountMap}
-                        openJoinPopup={openJoinPopup}
-                        setInspectCharacter={setInspectCharacter}
-                        handleLeaveParty={handleLeaveParty}
-                        handleDeleteParty={handleDeleteParty}
-                        isAdmin={isAdmin}
-                        onRefresh={() => {
-                          const ownerName = user?.username || user?.nickname || user?.owner || "한설";
-                          fetchData(ownerName);
-                        }}
+                        currentUserNickname={user?.nickname || user?.username || "한설"}
+                        onJoinClick={() => openJoinPopup(party)}
+                        onLeaveClick={(p) => handleLeaveParty(p, user?.nickname || user?.username || "한설")}
+                        onDeleteClick={(id) => handleDeleteParty(id)}
+                        onNextRoundClick={handleNextRound}
+                        isMasterOrAdmin={isAdmin}
                       />
                     ) : (
                       <PartyCard 

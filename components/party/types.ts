@@ -1,18 +1,22 @@
 export interface Member {
   name: string;
-  character_name?: string; // 👈 ts(2339) 에러 해결을 위한 속성 추가
-  nickname?: string;       // 👈 범용성 확장을 위한 별명 속성 추가
+  character_name?: string;
+  nickname?: string;
   job: string;
   roles: string[];
+  role?: string;
   time_start: string;
   time_end: string;
   is_driver?: boolean;
   combat_power?: number;
   magic_resistance?: number;
+  allow_repeat?: boolean;
+  is_completed?: boolean;
+  account_id?: string;
 }
 
 export interface Party {
-  id: number | string; // id가 컴포넌트 환경에 따라 string으로도 넘어올 수 있음을 대비
+  id: number | string;
   content_name: string;
   sub_content?: string;
   memo?: string;
@@ -47,19 +51,21 @@ export const ROLE_GROUPS: Record<string, string[]> = {
   "원딜": ["마법사", "화염술사", "전격술사", "궁수", "장궁병", "석궁사수", "악사", "암흑술사"]
 };
 
+// UI 역할군 테마 강제 색상 제거 및 테마 전역 변수 통합
 export const ROLE_COLORS: Record<string, string> = {
-  "탱커": "text-[var(--accent)] bg-[var(--inner-box)] border-[var(--panel-border)] font-bold",
-  "힐러": "text-emerald-500 dark:text-emerald-400 bg-[var(--inner-box)] border-[var(--panel-border)] font-bold",
-  "근딜": "text-rose-500 dark:text-rose-400 bg-[var(--inner-box)] border-[var(--panel-border)] font-bold",
-  "원딜": "text-amber-500 dark:text-amber-400 bg-[var(--inner-box)] border-[var(--panel-border)] font-bold"
+  "탱커": "text-[var(--text-main)] bg-[var(--inner-box)] border-[var(--panel-border)] font-bold",
+  "힐러": "text-[var(--text-main)] bg-[var(--inner-box)] border-[var(--panel-border)] font-bold",
+  "근딜": "text-[var(--text-main)] bg-[var(--inner-box)] border-[var(--panel-border)] font-bold",
+  "원딜": "text-[var(--text-main)] bg-[var(--inner-box)] border-[var(--panel-border)] font-bold",
+  "서포터": "text-[var(--text-main)] bg-[var(--inner-box)] border-[var(--panel-border)] font-bold"
 };
 
 export const DIFFICULTY_COLORS: Record<string, string> = {
-  "입문": "text-purple-600 dark:text-purple-400 bg-[var(--panel)] border-[var(--panel-border)]",
-  "어려움": "text-amber-600 dark:text-amber-400 bg-[var(--panel)] border-[var(--panel-border)]",
-  "매우 어려움": "text-rose-600 dark:text-rose-400 bg-[var(--panel)] border-[var(--panel-border)]",
-  "지옥 1": "text-red-600 dark:text-red-500 bg-[var(--panel)] border-[var(--panel-border)]",
-  "지옥 2": "text-rose-700 dark:text-rose-300 bg-[var(--panel)] border-[var(--panel-border)]"
+  "입문": "text-purple-400 bg-[var(--panel)] border-[var(--panel-border)]",
+  "어려움": "text-amber-400 bg-[var(--panel)] border-[var(--panel-border)]",
+  "매우 어려움": "text-rose-400 bg-[var(--panel)] border-[var(--panel-border)]",
+  "지옥 1": "text-red-500 bg-[var(--panel)] border-[var(--panel-border)]",
+  "지옥 2": "text-rose-300 bg-[var(--panel)] border-[var(--panel-border)]"
 };
 
 export const CONTENT_DB: ContentItem[] = [

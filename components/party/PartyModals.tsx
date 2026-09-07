@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import ClassIcon from "@/components/common/ClassIcon";
 import { CONTENT_DB, ContentItem, Party } from "@/components/party/types";
 
@@ -85,14 +85,31 @@ interface PartyModalsProps {
 export default function PartyModals(props: PartyModalsProps) {
   const [busActiveTab, setBusActiveTab] = useState<"SETTINGS" | "CHARACTERS">("CHARACTERS");
 
+  const uniqueCharacters = useMemo(() => {
+    const map = new Map();
+    (props.myCharacters || []).forEach((c) => {
+      const charKey = c.nickname || c.name || String(c.id);
+      if (charKey && !map.has(charKey)) {
+        map.set(charKey, c);
+      }
+    });
+    return Array.from(map.values()) as any[];
+  }, [props.myCharacters]);
+
   const selectedCount = Object.values(props.busCharSelections).filter(c => c.selected).length;
-  const totalCount = props.myCharacters.length;
+  const totalCount = uniqueCharacters.length;
 
   const handleSelectAll = (select: boolean) => {
     props.setBusCharSelections(prev => {
       const next = { ...prev };
-      Object.keys(next).forEach(k => {
-        next[k] = { ...next[k], selected: select };
+      uniqueCharacters.forEach((char) => {
+        const key = char.nickname || char.name || String(char.id);
+        if (key) {
+          next[key] = {
+            selected: select,
+            allowRepeat: next[key]?.allowRepeat ?? true,
+          };
+        }
       });
       return next;
     });
@@ -102,7 +119,7 @@ export default function PartyModals(props: PartyModalsProps) {
     props.setBusCharSelections(prev => {
       const next = { ...prev };
       Object.keys(next).forEach(k => {
-        if (next[k].selected) {
+        if (next[k]?.selected) {
           next[k] = { ...next[k], allowRepeat: repeat };
         }
       });
@@ -413,12 +430,11 @@ export default function PartyModals(props: PartyModalsProps) {
         </div>
       )}
 
-      {/* 6. 🔥 개편된 성역 길드 버스 파티 개설 모달 */}
+      {/* 6. 성역 길드 버스 파티 개설 모달 */}
       {props.showBusCreateModal && (
         <div className="fixed inset-0 z-[100] bg-black/85 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
           <div className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl max-w-xl w-full flex flex-col max-h-[90vh] shadow-2xl animate-in fade-in zoom-in-95 overflow-hidden">
             
-            {/* 모달 헤더 */}
             <div className="flex justify-between items-center px-5 py-4 border-b border-[var(--panel-border)] bg-[var(--inner-box)] shrink-0">
               <div className="flex items-center gap-2">
                 <span className="text-xl">🚌</span>
@@ -434,7 +450,6 @@ export default function PartyModals(props: PartyModalsProps) {
               </button>
             </div>
 
-            {/* 탭 헤더 */}
             <div className="grid grid-cols-2 border-b border-[var(--panel-border)] bg-[var(--panel)] text-xs font-black shrink-0">
               <button
                 onClick={() => setBusActiveTab("CHARACTERS")}
@@ -461,12 +476,9 @@ export default function PartyModals(props: PartyModalsProps) {
               </button>
             </div>
 
-            {/* 모달 본문 (스크롤 영역) */}
             <div className="p-4 sm:p-5 overflow-y-auto custom-scrollbar flex-1 space-y-4">
-              
               {busActiveTab === "CHARACTERS" ? (
                 <div className="space-y-3">
-                  {/* 상단 일괄 조작 컨트롤 바 */}
                   <div className="bg-[var(--inner-box)] border border-[var(--panel-border)] p-2.5 rounded-xl flex flex-wrap items-center justify-between gap-2 text-xs">
                     <div className="flex items-center gap-1.5">
                       <button
@@ -504,10 +516,9 @@ export default function PartyModals(props: PartyModalsProps) {
                     </div>
                   </div>
 
-                  {/* 캐릭터 리스트 */}
                   <div className="space-y-2">
-                    {props.myCharacters.map((char) => {
-                      const key = char.id || char.nickname;
+                    {uniqueCharacters.map((char) => {
+                      const key = char.nickname || char.name || String(char.id);
                       const config = props.busCharSelections[key] || { selected: false, allowRepeat: true };
 
                       return (
@@ -525,19 +536,18 @@ export default function PartyModals(props: PartyModalsProps) {
                               : "bg-[var(--panel)] border-[var(--panel-border)] opacity-60 hover:opacity-100"
                           }`}
                         >
-                          {/* 캐릭터 기본 정보 */}
                           <div className="flex items-center gap-3 min-w-0">
                             <input
                               type="checkbox"
                               checked={config.selected}
-                              onChange={() => {}} // 부모 div 클릭으로 처리
+                              onChange={() => {}}
                               className="w-4 h-4 accent-[var(--accent)] rounded cursor-pointer shrink-0"
                             />
-                            <ClassIcon job={char.job} className="w-7 h-7 shrink-0" />
-                            <div className="min-w-0">
+                            <ClassIcon job={char.job} className="w-8 h-8 shrink-0" />
+                            <div className="min-w-0 space-y-0.5">
                               <div className="flex items-center gap-1.5 flex-wrap">
                                 <span className="font-black text-xs sm:text-sm text-[var(--text-main)] truncate">
-                                  {char.nickname}
+                                  {char.nickname || char.name}
                                 </span>
                                 {char.is_main && (
                                   <span className="px-1.5 py-0.2 bg-[var(--accent)] text-[var(--accent-fg)] font-black text-[9px] rounded shrink-0">
@@ -545,17 +555,13 @@ export default function PartyModals(props: PartyModalsProps) {
                                   </span>
                                 )}
                               </div>
-                              <div className="flex items-center gap-2 text-[10px] sm:text-[11px] text-[var(--text-sub)] font-bold mt-0.5">
-                                <span>{char.job}</span>
-                                <span>•</span>
-                                <span className="text-[var(--text-main)]">⚔️ {char.combat_power?.toLocaleString() || 0}</span>
-                                <span>•</span>
-                                <span className="text-purple-400">🔮 {char.magic_resistance?.toLocaleString() || 0}</span>
+                              <div className="flex items-center gap-2 text-xs font-black text-[var(--text-sub)] flex-wrap">
+                                <span className="text-[var(--text-main)]">⚔️ {Number(char.combat_power || 0).toLocaleString()}</span>
+                                <span className="text-purple-300">🔮 {Number(char.magic_resistance || 0).toLocaleString()}</span>
                               </div>
                             </div>
                           </div>
 
-                          {/* 반복 여부 토글 버튼 */}
                           {config.selected && (
                             <button
                               type="button"
@@ -582,7 +588,6 @@ export default function PartyModals(props: PartyModalsProps) {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {/* 목표 컨텐츠 / 난이도 */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="text-[11px] font-black text-[var(--text-sub)] block mb-1">목표 컨텐츠</label>
@@ -621,7 +626,6 @@ export default function PartyModals(props: PartyModalsProps) {
                     </div>
                   </div>
 
-                  {/* 운행 시작일 */}
                   <div>
                     <label className="text-[11px] font-black text-[var(--text-sub)] block mb-1">운행 시작일</label>
                     <input
@@ -632,7 +636,6 @@ export default function PartyModals(props: PartyModalsProps) {
                     />
                   </div>
 
-                  {/* 시간 range */}
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="text-[11px] font-black text-[var(--text-sub)] block mb-1">시작 시간</label>
@@ -654,7 +657,6 @@ export default function PartyModals(props: PartyModalsProps) {
                     </div>
                   </div>
 
-                  {/* 메모 */}
                   <div>
                     <label className="text-[11px] font-black text-[var(--text-sub)] block mb-1">공지 메모</label>
                     <input
@@ -667,10 +669,8 @@ export default function PartyModals(props: PartyModalsProps) {
                   </div>
                 </div>
               )}
-
             </div>
 
-            {/* 모달 하단 푸터 액션 */}
             <div className="p-4 border-t border-[var(--panel-border)] bg-[var(--inner-box)] flex items-center gap-3 shrink-0">
               <button
                 type="button"
@@ -687,7 +687,6 @@ export default function PartyModals(props: PartyModalsProps) {
                 🚌 버스 개설하기 ({selectedCount}개 캐릭터)
               </button>
             </div>
-
           </div>
         </div>
       )}

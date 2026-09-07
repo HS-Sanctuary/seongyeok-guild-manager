@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import ClassIcon from "@/components/common/ClassIcon";
 
 interface BusJoinCharConfig {
@@ -21,6 +21,19 @@ interface GuildBusJoinModalProps {
   busTimeEnd?: string;
 }
 
+// 🕒 15분 단위 스마트 시간 옵션 생성
+const TIME_OPTIONS = (() => {
+  const options: string[] = [];
+  for (let h = 0; h < 24; h++) {
+    for (let m = 0; m < 60; m += 15) {
+      const hh = String(h).padStart(2, "0");
+      const mm = String(m).padStart(2, "0");
+      options.push(`${hh}:${mm}`);
+    }
+  }
+  return options;
+})();
+
 export default function GuildBusJoinModal({
   isOpen,
   onClose,
@@ -35,36 +48,44 @@ export default function GuildBusJoinModal({
   const [globalTimeStart, setGlobalTimeStart] = useState(busTimeStart);
   const [globalTimeEnd, setGlobalTimeEnd] = useState(busTimeEnd);
 
-  // 🛡️ [방어 아키텍처] 부모 데이터에서 넘어온 중복 캐릭터를 닉네임/이름 기준으로 완벽하게 제거
+  // 🛡️ [방어 아키텍처] 닉네임/이름/ID 통합 키 사용으로 중복 데이터 제거
   const uniqueCharacters = useMemo(() => {
     const map = new Map();
-    myCharacters.forEach((c) => {
-      const charName = c.nickname || c.name;
-      if (charName && !map.has(charName)) {
-        map.set(charName, c);
+    (myCharacters || []).forEach((c) => {
+      const charKey = c.nickname || c.name || String(c.id);
+      if (charKey && !map.has(charKey)) {
+        map.set(charKey, c);
       }
     });
     return Array.from(map.values()) as any[];
   }, [myCharacters]);
 
+  // 🐛 [버그 해결 핵심] 모달 오픈 시 1회만 초기화하도록 useRef 제어
+  const initializedRef = useRef(false);
+
   useEffect(() => {
     if (isOpen) {
-      setGlobalTimeStart(busTimeStart);
-      setGlobalTimeEnd(busTimeEnd);
-      const initial: Record<string, BusJoinCharConfig> = {};
-      uniqueCharacters.forEach((c, idx) => {
-        const charName = c.nickname || c.name;
-        if (!charName) return;
-        initial[charName] = {
-          selected: idx === 0,
-          allowRepeat: true,
-          timeStart: busTimeStart,
-          timeEnd: busTimeEnd,
-        };
-      });
-      setSelections(initial);
+      if (!initializedRef.current) {
+        setGlobalTimeStart(busTimeStart);
+        setGlobalTimeEnd(busTimeEnd);
+        const initial: Record<string, BusJoinCharConfig> = {};
+        uniqueCharacters.forEach((c, idx) => {
+          const charKey = c.nickname || c.name || String(c.id);
+          if (!charKey) return;
+          initial[charKey] = {
+            selected: idx === 0,
+            allowRepeat: true,
+            timeStart: busTimeStart,
+            timeEnd: busTimeEnd,
+          };
+        });
+        setSelections(initial);
+        initializedRef.current = true;
+      }
+    } else {
+      initializedRef.current = false;
     }
-  }, [isOpen, uniqueCharacters, busTimeStart, busTimeEnd]);
+  }, [isOpen, busTimeStart, busTimeEnd, uniqueCharacters.length]);
 
   if (!isOpen) return null;
 
@@ -73,8 +94,15 @@ export default function GuildBusJoinModal({
   const handleSelectAll = (select: boolean) => {
     setSelections(prev => {
       const next = { ...prev };
-      Object.keys(next).forEach(k => {
-        next[k] = { ...next[k], selected: select };
+      uniqueCharacters.forEach((char) => {
+        const charKey = char.nickname || char.name || String(char.id);
+        if (charKey) {
+          next[charKey] = {
+            ...next[charKey],
+            selected: select,
+            allowRepeat: next[charKey]?.allowRepeat ?? true,
+          };
+        }
       });
       return next;
     });
@@ -84,7 +112,7 @@ export default function GuildBusJoinModal({
     setSelections(prev => {
       const next = { ...prev };
       Object.keys(next).forEach(k => {
-        if (next[k].selected) {
+        if (next[k]?.selected) {
           next[k] = { ...next[k], allowRepeat: repeat };
         }
       });
@@ -99,10 +127,11 @@ export default function GuildBusJoinModal({
       return;
     }
 
-    const payload = activeEntries.map(([charName, config]) => {
-      const targetChar = uniqueCharacters.find(c => (c.nickname || c.name) === charName) || {};
+    const payload = activeEntries.map(([charKey, config]) => {
+      const targetChar = uniqueCharacters.find(c => (c.nickname || c.name || String(c.id)) === charKey) || {};
+      const charName = targetChar.nickname || targetChar.name || charKey;
       return {
-        characterId: charName,
+        characterId: charKey,
         name: charName,
         job: targetChar.job || "전사",
         combat_power: Number(targetChar.combat_power || 0),
@@ -155,7 +184,7 @@ export default function GuildBusJoinModal({
           </div>
         </div>
 
-        {/* 운행 시간 및 일괄 제어 컨트롤 바 */}
+        {/* 운행 시간 및 스마트 시간 선택 컨트롤 바 */}
         <div className="p-4 border-b border-[var(--panel-border)] bg-[var(--panel)] space-y-3 shrink-0">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 bg-[var(--inner-box)] p-3 rounded-xl border border-[var(--panel-border)] text-xs">
             <div className="flex items-center gap-2">
@@ -164,21 +193,32 @@ export default function GuildBusJoinModal({
               <span className="text-[var(--accent)] font-black">{busTimeStart} ~ {busTimeEnd}</span>
             </div>
 
+            {/* 🔑 [수정 포인트] 문구 변경 (파티 가능 시간:) 및 스마트 다크 테마 드롭다운 적용 */}
             <div className="flex items-center gap-1.5 w-full sm:w-auto">
-              <span className="text-[11px] font-bold text-[var(--text-sub)]">탑승 시간 일괄:</span>
-              <input
-                type="time"
+              <span className="text-[11px] font-black text-[var(--accent)] shrink-0">파티 가능 시간:</span>
+              <select
                 value={globalTimeStart}
                 onChange={(e) => setGlobalTimeStart(e.target.value)}
-                className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-lg px-2 py-1 text-xs font-bold text-[var(--text-main)] outline-none cursor-pointer"
-              />
-              <span className="text-[var(--text-sub)]">~</span>
-              <input
-                type="time"
+                className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-lg px-2 py-1 text-xs font-black text-[var(--accent)] outline-none cursor-pointer focus:border-[var(--accent)]"
+              >
+                {TIME_OPTIONS.map((time) => (
+                  <option key={`start-${time}`} value={time} className="bg-[#1c1c1e] text-white">
+                    {time}
+                  </option>
+                ))}
+              </select>
+              <span className="text-[var(--text-sub)] font-bold">~</span>
+              <select
                 value={globalTimeEnd}
                 onChange={(e) => setGlobalTimeEnd(e.target.value)}
-                className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-lg px-2 py-1 text-xs font-bold text-[var(--text-main)] outline-none cursor-pointer"
-              />
+                className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-lg px-2 py-1 text-xs font-black text-[var(--accent)] outline-none cursor-pointer focus:border-[var(--accent)]"
+              >
+                {TIME_OPTIONS.map((time) => (
+                  <option key={`end-${time}`} value={time} className="bg-[#1c1c1e] text-white">
+                    {time}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
@@ -221,24 +261,24 @@ export default function GuildBusJoinModal({
         </div>
 
         {/* 캐릭터 목록 스크롤 영역 */}
-        <div className="p-4 sm:p-5 overflow-y-auto custom-scrollbar flex-1 space-y-2">
+        <div className="p-4 sm:p-5 overflow-y-auto custom-scrollbar flex-1 space-y-2.5">
           {uniqueCharacters.map((char) => {
-            const charName = char.nickname || char.name;
-            if (!charName) return null;
-            const config = selections[charName] || { selected: false, allowRepeat: true, timeStart: busTimeStart, timeEnd: busTimeEnd };
+            const charKey = char.nickname || char.name || String(char.id);
+            if (!charKey) return null;
+            const config = selections[charKey] || { selected: false, allowRepeat: true, timeStart: busTimeStart, timeEnd: busTimeEnd };
 
             return (
               <div
-                key={charName}
+                key={charKey}
                 onClick={() => {
                   setSelections(prev => ({
                     ...prev,
-                    [charName]: { ...config, selected: !config.selected }
+                    [charKey]: { ...config, selected: !config.selected }
                   }));
                 }}
                 className={`p-3 rounded-xl border transition flex items-center justify-between gap-3 cursor-pointer ${
                   config.selected
-                    ? "bg-[var(--inner-box)] border-[var(--accent)] shadow-sm"
+                    ? "bg-[var(--inner-box)] border-[var(--accent)] shadow-md"
                     : "bg-[var(--panel)] border-[var(--panel-border)] opacity-60 hover:opacity-100"
                 }`}
               >
@@ -249,24 +289,30 @@ export default function GuildBusJoinModal({
                     onChange={() => {}}
                     className="w-4 h-4 accent-[var(--accent)] rounded cursor-pointer shrink-0"
                   />
-                  <ClassIcon job={char.job || "전사"} className="w-7 h-7 shrink-0" />
-                  <div className="min-w-0">
+                  <ClassIcon job={char.job || "전사"} className="w-8 h-8 shrink-0" />
+                  <div className="min-w-0 space-y-1">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="font-black text-xs sm:text-sm text-[var(--text-main)] truncate">
-                        {charName}
+                        {char.nickname || char.name}
                       </span>
                       {char.is_main && (
                         <span className="px-1.5 py-0.2 bg-[var(--accent)] text-[var(--accent-fg)] font-black text-[9px] rounded shrink-0">
                           대표
                         </span>
                       )}
+                      <span className="text-[11px] text-[var(--text-sub)] font-bold">
+                        ({char.job || "전사"})
+                      </span>
                     </div>
-                    <div className="flex items-center gap-2 text-[10px] sm:text-[11px] text-[var(--text-sub)] font-bold mt-0.5">
-                      <span>{char.job || "전사"}</span>
-                      <span>•</span>
-                      <span className="text-[var(--text-main)]">⚔️ {Number(char.combat_power || 0).toLocaleString()}</span>
-                      <span>•</span>
-                      <span className="text-purple-400">🔮 {Number(char.magic_resistance || 0).toLocaleString()}</span>
+
+                    {/* 🔑 [수정 포인트] 전투력 및 마도저항 스탯 크기 확대 및 배지 디테일 강화 */}
+                    <div className="flex items-center gap-2 text-xs sm:text-sm font-extrabold mt-0.5 flex-wrap">
+                      <span className="text-[var(--text-main)] bg-[var(--panel)] px-2 py-0.5 rounded-md border border-[var(--panel-border)]">
+                        ⚔️ {Number(char.combat_power || 0).toLocaleString()}
+                      </span>
+                      <span className="text-purple-300 bg-purple-950/40 px-2 py-0.5 rounded-md border border-purple-500/30">
+                        🔮 {Number(char.magic_resistance || 0).toLocaleString()}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -278,7 +324,7 @@ export default function GuildBusJoinModal({
                       e.stopPropagation();
                       setSelections(prev => ({
                         ...prev,
-                        [charName]: { ...config, allowRepeat: !config.allowRepeat }
+                        [charKey]: { ...config, allowRepeat: !config.allowRepeat }
                       }));
                     }}
                     className={`px-2.5 py-1.5 rounded-lg text-[11px] font-black border transition shrink-0 cursor-pointer ${
@@ -307,7 +353,7 @@ export default function GuildBusJoinModal({
           <button
             type="button"
             onClick={handleSubmit}
-            className="flex-2 py-3 bg-[var(--accent)] text-[var(--accent-fg)] font-black text-xs rounded-xl shadow-lg hover:opacity-90 transition cursor-pointer"
+            className="flex-2 py-3 bg-[var(--accent)] text-[var(--accent-fg)] font-black text-xs sm:text-sm rounded-xl shadow-lg hover:opacity-90 transition cursor-pointer"
           >
             선택 캐릭터 버스 탑승 신청 ({selectedCount}개)
           </button>
