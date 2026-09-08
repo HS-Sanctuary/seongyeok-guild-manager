@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { CONTENT_DB } from "@/components/party/types";
 
 // 21개 직업군 5대 포지션 1:1 매핑
 export const JOB_ROLE_MAP: Record<string, "근딜" | "원딜" | "힐러" | "탱커" | "서포터"> = {
@@ -16,6 +17,14 @@ export const JOB_ROLE_MAP: Record<string, "근딜" | "원딜" | "힐러" | "탱�
 
 export function getRoleByJob(jobName: string): "근딜" | "원딜" | "힐러" | "탱커" | "서포터" {
   return JOB_ROLE_MAP[jobName] || "근딜";
+}
+
+/**
+ * 전역 닉네임 애칭 규격: 최대 3글자로 트렁케이트
+ */
+export function getShortNickname(name: string): string {
+  if (!name) return "";
+  return name.length > 3 ? name.slice(0, 3) : name;
 }
 
 // 전투력 안전 파싱 함수 (문자열 결합 버그 방지)
@@ -95,10 +104,8 @@ export function assembleBalancedParty(
     return { selected: [], remaining: [], hasHealer: false, hasTanker: false };
   }
 
-  // 1. 유효 후보 필터링 (미클리어자 우선, 이미 클리어한 자는 allow_repeat 허용 시만 참가)
   let eligible = candidates.filter(c => !c.is_completed || c.allow_repeat);
 
-  // 2. 미클리어자(!is_completed) 1순위, 전투력 내림차순 2순위 정렬
   eligible.sort((a, b) => {
     if (!!a.is_completed !== !!b.is_completed) {
       return a.is_completed ? 1 : -1;
@@ -118,7 +125,6 @@ export function assembleBalancedParty(
     selectedOwners.add(cand.owner_account);
   };
 
-  // 3. 필수 역할군(힐러, 탱커) 선발
   const healerIdx = eligible.findIndex(c => getRoleByJob(c.job) === "힐러" && canAdd(c));
   if (healerIdx !== -1) {
     addCandidate(eligible[healerIdx]);
@@ -129,7 +135,6 @@ export function assembleBalancedParty(
     addCandidate(eligible[tankerIdx]);
   }
 
-  // 4. 전투력 구간별 그룹 분할
   const defaultOp = cpReqs?.op || 90000;
   const defaultRec = cpReqs?.rec || 70000;
 
@@ -150,7 +155,6 @@ export function assembleBalancedParty(
     }
   });
 
-  // 5. 슬롯 할당 (OP: ~3명, REC: 2~3명, MIN: 2~3명)
   let neededOpSlots = Math.min(3, opCandidates.length);
   let neededRecSlots = Math.min(3, recCandidates.length);
   let neededMinSlots = Math.min(2, minCandidates.length);
@@ -182,7 +186,6 @@ export function assembleBalancedParty(
     }
   }
 
-  // 6. 남은 정원 채우기
   for (const c of eligible) {
     if (selected.length >= maxSize) break;
     if (canAdd(c)) {
@@ -200,10 +203,28 @@ export function assembleBalancedParty(
 
 /**
  * KRONOS 숙제 자동 연동 (Supabase Direct Mutation)
+ * 파티/버스 완료 시 해당 캐릭터의 raid_checks / abyss_checks에 던전 키 및 ID를 자동 체크함
  */
 export async function syncKronosChecklist(characterNames: string[], contentType: string, contentName: string) {
   try {
+    if (!characterNames || characterNames.length === 0) return true;
     const normalizedKey = normalizeContentKeyForKronos(contentName);
+
+    const matchedContent = CONTENT_DB.find(
+      (c) => c.name === contentName || contentName.includes(c.name) || c.name.includes(contentName)
+    );
+    const contentId = matchedContent ? matchedContent.id : null;
+
+    let keysToAdd: (string | number)[] = [normalizedKey, contentId, contentName].filter(Boolean) as (string | number)[];
+
+    if (contentName.includes("어비스 3종") || contentName.includes("통합") || contentId === "abyss_all") {
+      keysToAdd = [...keysToAdd, "abyss_all", "abyss_1", "abyss_2", "abyss_3", "어비스", 1, 2, 3, 4];
+    } else if (contentId) {
+      keysToAdd.push(contentId);
+    }
+
+    const isRaid = contentType === "raid" || matchedContent?.category === "레이드" || contentName.includes("레이드") || contentName.includes("카브락") || contentName.includes("에이렐") || contentName.includes("서큐");
+    const isAbyss = contentType === "abyss" || matchedContent?.category === "어비스" || contentName.includes("어비스");
 
     const updatePromises = characterNames.map(async (name) => {
       const cleanName = name.trim();
@@ -226,22 +247,22 @@ export async function syncKronosChecklist(characterNames: string[], contentType:
 
       if (!charData) return;
 
-      if (contentType === "raid") {
+      if (isRaid) {
         const currentChecks = Array.isArray(charData.raid_checks) ? charData.raid_checks : [];
-        if (!currentChecks.includes(normalizedKey)) {
-          await supabase
-            .from("characters")
-            .update({ raid_checks: [...currentChecks, normalizedKey] })
-            .eq("id", charData.id);
-        }
-      } else if (contentType === "abyss") {
+        const nextChecks = Array.from(new Set([...currentChecks, ...keysToAdd]));
+        await supabase
+          .from("characters")
+          .update({ raid_checks: nextChecks })
+          .eq("id", charData.id);
+      }
+
+      if (isAbyss) {
         const currentChecks = Array.isArray(charData.abyss_checks) ? charData.abyss_checks : [];
-        if (!currentChecks.includes(normalizedKey)) {
-          await supabase
-            .from("characters")
-            .update({ abyss_checks: [...currentChecks, normalizedKey] })
-            .eq("id", charData.id);
-        }
+        const nextChecks = Array.from(new Set([...currentChecks, ...keysToAdd]));
+        await supabase
+          .from("characters")
+          .update({ abyss_checks: nextChecks })
+          .eq("id", charData.id);
       }
     });
 

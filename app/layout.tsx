@@ -531,7 +531,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <html lang="ko">
-      <body className="min-h-screen relative font-sans transition-colors duration-200 bg-[var(--background)] text-[var(--foreground)] overflow-x-hidden">
+      {/* body 태그의 overflow-x-hidden을 overflow-x-clip으로 변경하여 하위 sticky 레벨 복구 */}
+      <body className="min-h-screen relative font-sans transition-colors duration-200 bg-[var(--background)] text-[var(--foreground)] overflow-x-clip">
         {isLoginPage ? (
           children
         ) : (

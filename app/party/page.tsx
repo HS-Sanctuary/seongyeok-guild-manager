@@ -11,7 +11,21 @@ import PartyCard from "@/components/party/PartyCard";
 import GuildBusCard from "@/components/party/GuildBusCard";
 import PartyModals, { generateDefaultBusMemo, BusCharSelectionConfig } from "@/components/party/PartyModals";
 import GuildBusJoinModal from "@/components/party/GuildBusJoinModal";
-import { getRoleByJob, assembleBalancedParty, CONTENT_CP_REQUIREMENTS, syncKronosChecklist } from "@/lib/busUtils";
+import ClassIcon from "@/components/common/ClassIcon";
+import { 
+  getRoleByJob, 
+  assembleBalancedParty, 
+  CONTENT_CP_REQUIREMENTS, 
+  syncKronosChecklist, 
+  parseCP, 
+  BusCandidate 
+} from "@/lib/busUtils";
+
+const ALL_21_JOBS = [
+  '도적', '댄서', '듀얼블레이드', '대검전사', '검술사', '격투가',
+  '궁수', '악사', '석궁사수', '마법사', '화염술사', '전격술사', '장궁병', '암흑술사',
+  '힐러', '수도사', '사제', '전사', '기사', '빙결술사', '음유시인'
+];
 
 function timeToMinutes(timeStr: string): number {
   if (!timeStr) return 0;
@@ -159,6 +173,10 @@ function SynaxisContent() {
   const [ownerAccountMap, setOwnerAccountMap] = useState<Record<string, string>>({});
 
   const [activeDateFilter, setActiveDateFilter] = useState<string>("전체");
+
+  // 실시간 디테일 필터링 State (어비스/레이드 카테고리 & 21개 직업)
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<"전체" | "어비스" | "레이드">("전체");
+  const [selectedJobFilter, setSelectedJobFilter] = useState<string>("");
 
   const [calendarYearMonth, setCalendarYearMonth] = useState(() => {
     const d = new Date();
@@ -630,7 +648,6 @@ function SynaxisContent() {
     }
   };
 
-  // 성역 길드 버스 개설 제출
   const handleCreateGuildBus = async () => {
     if (!isAdmin) return alert("관리자 권한이 필요합니다.");
 
@@ -645,18 +662,21 @@ function SynaxisContent() {
       const charName = charObj.nickname || charObj.name || charKey;
       const job = charObj.job || "전사";
       const role = getRoleByJob(job);
+      const ownerAcc = user?.id || charObj.owner || user?.username || "한설";
 
       return {
         character_id: charObj.id,
         name: charName,
         character_name: charName,
+        owner_account: ownerAcc,
         job: job,
         class_name: job,
         role: role,
         roles: [role],
         combat_power: charObj.combat_power || 0,
         magic_resistance: charObj.magic_resistance || 0,
-        account_id: user?.id || charObj.owner || user?.username || "한설",
+        account_id: ownerAcc,
+        owner: ownerAcc,
         time_start: busCreateTimeStart,
         time_end: busCreateTimeEnd,
         allow_repeat: config.allowRepeat,
@@ -665,8 +685,20 @@ function SynaxisContent() {
     });
 
     const cpReqs = CONTENT_CP_REQUIREMENTS[busCreateContent.name]?.[busCreateDiff];
-    const { selected: balancedMembers } = assembleBalancedParty(
-      initialMembers,
+    
+    const busCandidates: BusCandidate[] = initialMembers.map((m) => ({
+      character_name: m.character_name,
+      owner_account: m.owner_account,
+      job: m.job,
+      combat_power: parseCP(m.combat_power),
+      allow_repeat: m.allow_repeat,
+      is_completed: m.is_completed,
+      time_start: m.time_start,
+      time_end: m.time_end
+    }));
+
+    assembleBalancedParty(
+      busCandidates,
       busCreateContent.size || 8,
       cpReqs
     );
@@ -715,17 +747,21 @@ function SynaxisContent() {
         const char = myCharacters.find(c => (c.nickname || c.name || String(c.id)) === item.characterId);
         if (!char) throw new Error("선택한 캐릭터 정보를 찾을 수 없습니다.");
         const mappedRole = getRoleByJob(char.job);
+        const ownerAcc = user?.id || char.owner || "한설";
+
         return {
           character_id: char.id,
           name: char.nickname || char.name,
           character_name: char.nickname || char.name,
+          owner_account: ownerAcc,
           job: char.job || "전사",
           class_name: char.job || "전사",
           role: mappedRole,
           roles: [mappedRole],
           combat_power: char.combat_power || 0,
           magic_resistance: char.magic_resistance || 0,
-          account_id: user?.id || char.owner || "한설",
+          account_id: ownerAcc,
+          owner: ownerAcc,
           allow_repeat: item.allowRepeat,
           is_completed: false,
           time_start: item.timeStart,
@@ -748,7 +784,19 @@ function SynaxisContent() {
 
         const combinedMembers = [...existingParty.members, ...filteredNewMembers];
         const cpReqs = CONTENT_CP_REQUIREMENTS[targetBusParty.contentName]?.[targetBusParty.difficulty];
-        assembleBalancedParty(combinedMembers, existingParty.max_members || 8, cpReqs);
+
+        const combinedCandidates: BusCandidate[] = combinedMembers.map((m: any) => ({
+          character_name: m.character_name || m.name,
+          owner_account: m.account_id || m.owner || m.owner_account || m.nickname || m.name || '',
+          job: m.job,
+          combat_power: parseCP(m.combat_power || m.cp || 0),
+          allow_repeat: m.allow_repeat || false,
+          is_completed: m.is_completed || false,
+          time_start: m.time_start,
+          time_end: m.time_end
+        }));
+
+        assembleBalancedParty(combinedCandidates, existingParty.max_members || 8, cpReqs);
 
         const { error } = await supabase
           .from("parties")
@@ -784,12 +832,18 @@ function SynaxisContent() {
     }
   };
 
-  // 회차 완수 & KRONOS 자동 동기화
+  // 길드 버스 회차 완수 시 크로노스 자동 연동
   const handleNextRound = async (targetParty: Party, completedMembers: Member[]) => {
-    const completedNames = new Set(completedMembers.map(m => m.character_name || m.name));
+    const completedNames = completedMembers.map(m => m.character_name || m.name);
+
+    // KRONOS 숙제 자동 체크 실행
+    const contentType = targetParty.content_name.includes("어비스") ? "abyss" : "raid";
+    await syncKronosChecklist(completedNames, contentType, targetParty.content_name);
+
+    const completedSet = new Set(completedNames);
 
     const updatedMembers = targetParty.members.map((m) => {
-      if (completedNames.has(m.character_name || m.name)) {
+      if (completedSet.has(m.character_name || m.name)) {
         return { ...m, is_completed: true };
       }
       return m;
@@ -803,7 +857,7 @@ function SynaxisContent() {
 
       if (error) throw error;
 
-      alert(`🎯 ${completedMembers.length}명 회차 완수 및 KRONOS 숙제가 성공적으로 연동되었습니다!`);
+      alert(`🎯 ${completedMembers.length}명 회차 완수 및 KRONOS 숙제가 성공적으로 자동 완료되었습니다!`);
       const ownerName = user?.username || user?.nickname || user?.owner || "한설";
       fetchData(ownerName);
     } catch (err: any) {
@@ -812,12 +866,35 @@ function SynaxisContent() {
     }
   };
 
-  const handleDeleteParty = async (id: number | string) => {
-    if (confirm("정말로 이 파티 모집을 전체 취소 및 삭제하시겠습니까?")) {
-      await supabase.from("parties").delete().eq("id", id);
+  // 일반 파티 클리어 완료 시 크로노스 자동 연동
+  const handleCompleteParty = async (party: Party) => {
+    if (!confirm(`🎉 [${party.content_name}] 던전을 완료하시겠습니까?\n참여 중인 전원의 크로노스 숙제 항목이 자동 완료 처리됩니다.`)) return;
+
+    try {
+      const memberNames = party.members.map(m => m.character_name || m.name);
+      const contentType = party.content_name.includes("어비스") ? "abyss" : "raid";
+
+      await syncKronosChecklist(memberNames, contentType, party.content_name);
+
+      const { error } = await supabase
+        .from("parties")
+        .update({ status: "종료됨" })
+        .eq("id", party.id);
+
+      if (error) throw error;
+
+      alert(`🎉 [${party.content_name}] 파티 클리어 및 참여원 ${memberNames.length}명의 KRONOS 숙제 자동 완료가 연동되었습니다!`);
       const ownerName = user?.username || user?.nickname || user?.owner || "한설";
       fetchData(ownerName);
+    } catch (err: any) {
+      alert("파티 완료 처리 중 오류가 발생했습니다: " + err.message);
     }
+  };
+
+  const handleDeleteParty = async (id: number | string) => {
+    await supabase.from("parties").delete().eq("id", id);
+    const ownerName = user?.username || user?.nickname || user?.owner || "한설";
+    fetchData(ownerName);
   };
 
   const handleLeaveParty = async (party: Party, charName: string) => {
@@ -1001,6 +1078,7 @@ function SynaxisContent() {
     return days;
   }, [calendarYearMonth]);
 
+  // 실시간 21개 직업군, 던전 카테고리, 상태 및 필터링 결합 쿼리
   const filteredParties = useMemo(() => {
     const normToday = normalizeDateStr(getTodayString());
 
@@ -1010,6 +1088,7 @@ function SynaxisContent() {
       
       const isBus = party.sub_content?.includes("길드 버스");
 
+      // 1. 날짜 필터
       if (activeDateFilter !== "전체") {
         const normFilterDate = normalizeDateStr(activeDateFilter);
         if (isBus) {
@@ -1020,6 +1099,21 @@ function SynaxisContent() {
         }
       }
 
+      // 2. 던전 카테고리 탭 필터 (어비스 vs 레이드)
+      if (selectedCategoryFilter !== "전체") {
+        const isAbyss = party.content_name.includes("어비스");
+        const category = isAbyss ? "어비스" : "레이드";
+        if (category !== selectedCategoryFilter) return false;
+      }
+
+      // 3. 21개 직업군 실시간 필터
+      if (selectedJobFilter) {
+        const hasJobInMembers = party.members?.some((m: any) => m.job === selectedJobFilter);
+        const isJobInWanted = party.wanted_roles?.some((r: any) => r === getRoleByJob(selectedJobFilter));
+        if (!hasJobInMembers && !isJobInWanted) return false;
+      }
+
+      // 4. 모집 중 / 매칭 완료 / 길드 버스 상태 필터
       const isCompleted = party.status === "매칭 완료" || party.status === "모집완료";
       const isRecruiting = party.status === "모집중";
 
@@ -1027,6 +1121,7 @@ function SynaxisContent() {
       if (statusFilter === "매칭중" && (!isRecruiting || isBus)) return false;
       if (statusFilter === "매칭완료" && !isCompleted) return false;
 
+      // 5. 파티명/방장/멤버 닉네임 키워드 검색
       if (partySearchTerm.trim()) {
         const q = partySearchTerm.toLowerCase();
         const matchName = party.content_name?.toLowerCase().includes(q);
@@ -1034,6 +1129,7 @@ function SynaxisContent() {
         const matchMember = party.members?.some((m: any) => (m.name || m.character_name)?.toLowerCase().includes(q));
         if (!matchName && !matchLeader && !matchMember) return false;
       }
+
       return true;
     });
 
@@ -1048,12 +1144,12 @@ function SynaxisContent() {
 
       return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
     });
-  }, [activeParties, activeDateFilter, statusFilter, partySearchTerm]);
+  }, [activeParties, activeDateFilter, selectedCategoryFilter, selectedJobFilter, statusFilter, partySearchTerm]);
 
   if (!mounted) return null;
 
   return (
-    <main className="min-h-screen bg-[var(--bg-main)] text-[var(--text-main)] font-sans pb-28 pt-3 sm:pt-6 relative select-none w-full overflow-x-hidden">
+    <main className="min-h-screen bg-[var(--bg-main)] text-[var(--text-main)] font-sans pb-28 pt-3 sm:pt-6 relative select-none w-full">
       <div className="max-w-[1400px] mx-auto px-3 sm:px-6 space-y-3 sm:space-y-4 relative z-10">
         
         {/* 상단 헤더 */}
@@ -1118,11 +1214,11 @@ function SynaxisContent() {
           </button>
         </div>
 
-        {/* 메인 레이아웃 */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 min-w-0">
+        {/* ──────────────── PC 레이아웃: Grid items-start 및 Sticky top-24 ──────────────── */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 min-w-0 items-start relative">
           
-          {/* 파티 등록 패널 */}
-          <div className={`lg:col-span-5 xl:col-span-4 bg-[var(--panel)] rounded-2xl border border-[var(--panel-border)] p-4 sm:p-5 shadow-sm h-fit min-w-0 ${
+          {/* 좌측: 리모컨 패널 */}
+          <div className={`lg:col-span-5 xl:col-span-4 bg-[var(--panel)] rounded-2xl border border-[var(--panel-border)] p-4 sm:p-5 shadow-sm h-fit min-w-0 lg:sticky lg:top-24 lg:z-20 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto custom-scrollbar ${
             isMobileFormOpen ? "block animate-in fade-in duration-200" : "hidden lg:block"
           }`}>
             <PartyCreateForm 
@@ -1179,8 +1275,84 @@ function SynaxisContent() {
             />
           </div>
 
-          {/* 파티 피드 영역 */}
+          {/* 우측: 파티 피드 영역 */}
           <div className="lg:col-span-7 xl:col-span-8 space-y-3 min-w-0">
+            
+            {/* ──────────────── 새로 추가된 실시간 디테일 필터링 컨트롤바 (수호자 레이드/일반 던전 & 21개 직업) ──────────────── */}
+            <div className="bg-[var(--panel)] rounded-2xl border border-[var(--panel-border)] p-3.5 sm:p-4 shadow-sm space-y-3">
+              
+              {/* 1. 카테고리 탭 (어비스 / 레이드) */}
+              <div className="flex items-center justify-between gap-2 flex-wrap pb-2 border-b border-[var(--panel-border)]">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-black text-[var(--accent)]">🎯 던전 구분</span>
+                  <div className="flex items-center gap-1 bg-[var(--inner-box)] p-1 rounded-xl border border-[var(--panel-border)]">
+                    {(["전체", "어비스", "레이드"] as const).map(cat => (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setSelectedCategoryFilter(cat)}
+                        className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+                          selectedCategoryFilter === cat
+                            ? "bg-[var(--accent)] text-[var(--accent-fg)] shadow-xs"
+                            : "text-[var(--text-sub)] hover:text-[var(--text-main)]"
+                        }`}
+                      >
+                        {cat === "전체" ? "전체 던전" : cat === "어비스" ? "🔮 어비스" : "⚔️ 수호자 레이드"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {selectedJobFilter && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedJobFilter("")}
+                    className="text-[11px] font-bold text-rose-400 bg-rose-500/10 px-2.5 py-1 rounded-lg border border-rose-500/30 hover:bg-rose-500/20 transition cursor-pointer"
+                  >
+                    ✕ 직업 필터 해제 ({selectedJobFilter})
+                  </button>
+                )}
+              </div>
+
+              {/* 2. 21개 직업 아이콘 선택 스크롤바 */}
+              <div className="space-y-1">
+                <div className="text-[11px] font-bold text-[var(--text-sub)] flex items-center justify-between">
+                  <span>🛡️ 21개 직업군 실시간 참전/구인 필터</span>
+                  <span className="text-[10px] opacity-70">클릭 시 해당 직업 파티만 즉시 정렬</span>
+                </div>
+                <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar py-1 pr-1">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedJobFilter("")}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-black shrink-0 border transition cursor-pointer ${
+                      selectedJobFilter === ""
+                        ? "bg-[var(--accent)] text-[var(--accent-fg)] border-transparent"
+                        : "bg-[var(--inner-box)] border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)]"
+                    }`}
+                  >
+                    전체 직업
+                  </button>
+
+                  {ALL_21_JOBS.map(job => (
+                    <button
+                      key={job}
+                      type="button"
+                      onClick={() => setSelectedJobFilter(selectedJobFilter === job ? "" : job)}
+                      className={`flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold shrink-0 border transition cursor-pointer ${
+                        selectedJobFilter === job
+                          ? "bg-[var(--accent)] text-[var(--accent-fg)] border-transparent shadow-md scale-105"
+                          : "bg-[var(--inner-box)] border-[var(--panel-border)] text-[var(--text-main)] hover:border-[var(--accent)]/50"
+                      }`}
+                    >
+                      <ClassIcon job={job} className="w-4 h-4 shrink-0" />
+                      <span>{job}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+            </div>
+
             <div className="bg-[var(--panel)] rounded-2xl border border-[var(--panel-border)] p-4 sm:p-5 shadow-sm space-y-4 min-w-0">
               
               <PartyFilterHeader 
@@ -1195,7 +1367,8 @@ function SynaxisContent() {
                 statusFilter={statusFilter}
               />
 
-              <div className="space-y-3 max-h-[680px] overflow-y-auto custom-scrollbar pr-1 min-w-0">
+              {/* 파티 카드 피드 목록 */}
+              <div className="space-y-5 min-w-0">
                 {filteredParties.length === 0 ? (
                   <div className="text-center py-20 text-[var(--text-sub)] font-bold text-xs sm:text-sm bg-[var(--inner-box)] rounded-2xl border border-[var(--panel-border)]">
                     해당 조건의 파티가 없습니다.
@@ -1225,6 +1398,7 @@ function SynaxisContent() {
                         setInspectCharacter={setInspectCharacter}
                         handleLeaveParty={handleLeaveParty}
                         handleDeleteParty={handleDeleteParty}
+                        onCompleteParty={handleCompleteParty}
                         isAdmin={isAdmin}
                         onRefresh={() => {
                           const ownerName = user?.username || user?.nickname || user?.owner || "한설";

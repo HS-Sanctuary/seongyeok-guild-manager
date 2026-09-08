@@ -8,11 +8,17 @@ export interface Member {
   time_start: string;
   time_end: string;
   is_driver?: boolean;
-  combat_power?: number;
-  magic_resistance?: number;
+  combat_power?: number | string;
+  magic_resistance?: number | string;
   allow_repeat?: boolean;
   is_completed?: boolean;
   account_id?: string;
+  owner?: string;
+  cp?: number | string;
+  owner_account?: string;
+  character_id?: string | number;
+  class_name?: string;
+  is_highlighted?: boolean;
 }
 
 export interface Party {
@@ -33,6 +39,7 @@ export interface Party {
   leader_name?: string;
   final_start_time?: string;
   created_at?: string;
+  is_started?: boolean;
 }
 
 export interface ContentItem {
@@ -51,7 +58,6 @@ export const ROLE_GROUPS: Record<string, string[]> = {
   "원딜": ["마법사", "화염술사", "전격술사", "궁수", "장궁병", "석궁사수", "악사", "암흑술사"]
 };
 
-// UI 역할군 테마 강제 색상 제거 및 테마 전역 변수 통합
 export const ROLE_COLORS: Record<string, string> = {
   "탱커": "text-[var(--text-main)] bg-[var(--inner-box)] border-[var(--panel-border)] font-bold",
   "힐러": "text-[var(--text-main)] bg-[var(--inner-box)] border-[var(--panel-border)] font-bold",
