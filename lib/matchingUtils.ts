@@ -88,10 +88,101 @@ export const isHealerMember = (member: any): boolean => {
 };
 
 /**
- * 5. [명세 4번] 자동 파티 밸런싱 & 배치 알고리즘
- * - 1순위: 미클리어 캐릭터 우선 배치
- * - 2순위: 반복 참여(용병) 캐릭터를 전투력 높은 순(압도/권장)으로 배치하여 캐리
- * - 힐러 배치 검사 및 인원 미달 처리 태그 계산
+ * 5. 던전 이름 정제 함수 (어비스/레이드 접두사 제거)
+ */
+export const cleanItemName = (name: string): string => {
+  if (!name) return "";
+  return name.replace(/^어비스\s*-\s*/, "").replace(/^레이드\s*-\s*/, "").trim();
+};
+
+/**
+ * 6. 길드 버스 및 크로노스 컨텐츠/숙제 체크 상태 공통 매칭 함수
+ */
+export const isTaskChecked = (checks: any[], item: any, nexusContents: any[] = []): boolean => {
+  if (!Array.isArray(checks) || !item) return false;
+
+  let rawChecks = checks;
+  if (typeof checks === 'string') {
+    try { rawChecks = JSON.parse(checks); } catch (e) { rawChecks = []; }
+  }
+
+  // 1. item이 정적 키 목록(keys)을 가진 경우
+  if (item.keys && Array.isArray(item.keys)) {
+    const checkedNames = new Set<string>();
+    for (const check of rawChecks) {
+      const checkStr = String(check).trim();
+      for (const nc of nexusContents) {
+        if (String(nc.id).trim() === checkStr) {
+          if (nc.name) checkedNames.add(String(nc.name).trim());
+          if (nc.mobile_name) checkedNames.add(String(nc.mobile_name).trim());
+        }
+      }
+      if (!/^\d+$/.test(checkStr)) checkedNames.add(checkStr);
+    }
+
+    for (const k of item.keys) {
+      const kClean = k.trim().toLowerCase();
+      for (const name of Array.from(checkedNames)) {
+        const nameClean = name.toLowerCase();
+        if (kClean === nameClean || kClean.includes(nameClean) || nameClean.includes(kClean)) return true;
+      }
+    }
+    return false;
+  }
+
+  // 2. item이 데이터베이스 콘텐츠 객체인 경우
+  const itemIdStr = String(item.id || "").trim();
+  const rawItemName = (item.name || "").toLowerCase().trim();
+  const cleanName = cleanItemName(item.name || "").toLowerCase();
+
+  return rawChecks.some((checkVal) => {
+    if (checkVal === null || checkVal === undefined) return false;
+
+    let checkStr = "";
+    if (typeof checkVal === "object") {
+      checkStr = String(checkVal.id || checkVal.name || "").trim();
+    } else {
+      checkStr = String(checkVal).trim();
+    }
+
+    const lowerVal = checkStr.toLowerCase();
+
+    if (itemIdStr && checkStr === itemIdStr) return true;
+    if (lowerVal === cleanName || lowerVal === rawItemName) return true;
+
+    for (const nc of nexusContents) {
+      if (String(nc.id).trim() === checkStr) {
+        const ncName = (nc.name || "").toLowerCase().trim();
+        const ncMobile = (nc.mobile_name || "").toLowerCase().trim();
+        if (ncName === rawItemName || ncMobile === rawItemName || cleanName.includes(ncName)) return true;
+      }
+    }
+
+    if (cleanName.includes("카브락") || cleanName.includes("카브")) {
+      if (lowerVal.includes("cabrak") || lowerVal.includes("카브") || lowerVal.includes("raid1")) return true;
+    }
+    if (cleanName.includes("에이렐") || cleanName.includes("에렐")) {
+      if (lowerVal.includes("eirel") || lowerVal.includes("에이렐") || lowerVal.includes("raid3")) return true;
+    }
+    if (cleanName.includes("화석") || cleanName.includes("서큐") || cleanName.includes("서큐버스")) {
+      if (lowerVal.includes("succubus") || lowerVal.includes("서큐") || lowerVal.includes("화석")) return true;
+    }
+    if (cleanName.includes("허상")) {
+      if (lowerVal.includes("abyss_1") || lowerVal.includes("illusion") || lowerVal.includes("허상")) return true;
+    }
+    if (cleanName.includes("동굴")) {
+      if (lowerVal.includes("abyss_2") || lowerVal.includes("cave") || lowerVal.includes("동굴")) return true;
+    }
+    if (cleanName.includes("물길")) {
+      if (lowerVal.includes("abyss_3") || lowerVal.includes("waterway") || lowerVal.includes("물길")) return true;
+    }
+
+    return false;
+  });
+};
+
+/**
+ * 7. 자동 파티 밸런싱 & 배치 알고리즘
  */
 export interface AutoBalanceResult {
   members: any[];
@@ -109,18 +200,15 @@ export const autoBalanceAndBuildParty = (
     return { members: [], hasHealer: false, isIncomplete: true, tags: ["⚠️ 인게임 구인 필요 (0/0명)"] };
   }
 
-  // 1. 미클리어 지원자 vs 용병(반복 참여) 분리
   const uncleared = candidates.filter(c => !c.is_cleared && !c.allow_repeat);
   const mercenaries = candidates.filter(c => c.is_cleared || c.allow_repeat);
 
-  // 전투력 내림차순 정렬
   const sortByPowerDesc = (a: any, b: any) => (b.combat_power || 0) - (a.combat_power || 0);
   uncleared.sort(sortByPowerDesc);
   mercenaries.sort(sortByPowerDesc);
 
   const selectedMembers: any[] = [];
 
-  // 힐러 우선 탐색을 위해 미클리어/용병 중 힐러 추출
   const takeHealerFirst = () => {
     const unclearedHealerIdx = uncleared.findIndex(isHealerMember);
     if (unclearedHealerIdx > -1) {
@@ -133,23 +221,19 @@ export const autoBalanceAndBuildParty = (
     return null;
   };
 
-  // 1단계: 힐러 최소 1명 우선 배치 시도
   const firstHealer = takeHealerFirst();
   if (firstHealer) {
     selectedMembers.push(firstHealer);
   }
 
-  // 2단계: 1순위 미클리어 캐릭터 채우기
   while (selectedMembers.length < maxMembers && uncleared.length > 0) {
     selectedMembers.push(uncleared.shift());
   }
 
-  // 3단계: 남은 슬롯을 2순위 용병(반복 참여 고전투력 캐릭터)으로 채우기
   while (selectedMembers.length < maxMembers && mercenaries.length > 0) {
     selectedMembers.push(mercenaries.shift());
   }
 
-  // 결과 검증
   const hasHealer = selectedMembers.some(isHealerMember);
   const isIncomplete = selectedMembers.length < maxMembers;
 

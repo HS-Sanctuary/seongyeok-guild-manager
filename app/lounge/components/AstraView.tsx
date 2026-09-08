@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../../lib/supabase";
+import { isTaskChecked } from "../../../lib/matchingUtils";
 import ClassIcon from "../../components/ClassIcon";
 
 // --- 타입 정의 ---
@@ -77,7 +78,6 @@ const formatLastSeen = (dateString?: string) => {
   return `${diffDay}일 전`;
 };
 
-// 🔑 숫자에 10만 단위 컴마(,) 보장
 const formatStatNumber = (val: any) => {
   const num = Number(val);
   return isNaN(num) ? "0" : num.toLocaleString("ko-KR");
@@ -107,7 +107,6 @@ export default function AstraView() {
 
   const [selectedCharDetail, setSelectedCharDetail] = useState<{ char: Character; partyInfo?: PartyInfo } | null>(null);
 
-  // 🔴 크로노스 직업별 순위 계산
   const getKratosClassRank = useCallback((char?: Character): number => {
     if (!char || !char.job) return 0;
     const sameJobChars = characters
@@ -118,7 +117,6 @@ export default function AstraView() {
     return index >= 0 ? index + 1 : 0;
   }, [characters]);
 
-  // ESC 키로 상세 모달 닫기
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") setSelectedCharDetail(null);
@@ -208,8 +206,10 @@ export default function AstraView() {
     }
   };
 
+  // 🔑 공통 유틸(isTaskChecked)과 homeworkMap/homework_status 결합 판정
   const checkCompleted = useCallback((c: Character, itemKeys: string[]) => {
     if (!c) return false;
+
     let raidChecks: any[] = [];
     if (Array.isArray(c.raid_checks)) {
       raidChecks = c.raid_checks;
@@ -217,27 +217,7 @@ export default function AstraView() {
       try { raidChecks = JSON.parse(c.raid_checks); } catch (e) {}
     }
 
-    const checkedNames = new Set<string>();
-    if (Array.isArray(raidChecks)) {
-      for (const check of raidChecks) {
-        const checkStr = String(check).trim();
-        for (const nc of nexusContents) {
-          if (String(nc.id).trim() === checkStr) {
-            if (nc.name) checkedNames.add(String(nc.name).trim());
-            if (nc.mobile_name) checkedNames.add(String(nc.mobile_name).trim());
-          }
-        }
-        if (!/^\d+$/.test(checkStr)) checkedNames.add(checkStr);
-      }
-    }
-
-    for (const k of itemKeys) {
-      const kClean = k.trim().toLowerCase();
-      for (const name of Array.from(checkedNames)) {
-        const nameClean = name.toLowerCase();
-        if (kClean === nameClean || kClean.includes(nameClean) || nameClean.includes(kClean)) return true;
-      }
-    }
+    if (isTaskChecked(raidChecks, { keys: itemKeys }, nexusContents)) return true;
 
     let charHw: any = {};
     if (typeof c.homework_status === 'string') {
@@ -465,11 +445,10 @@ export default function AstraView() {
           </div>
         </div>
 
-        {/* 🌟 세부 검색 패널 (모바일/PC 완전히 분리된 반응형 역할 레이아웃) */}
+        {/* 🌟 세부 검색 패널 */}
         {showDetailSearch && (
           <div className="pt-2.5 md:pt-3.5 border-t border-[var(--panel-border)] space-y-2.5 md:space-y-3 animate-in fade-in duration-150">
             
-            {/* 1행: 온라인 유저 토글 + 역할 선택 버튼 (모바일/PC 분리) */}
             <div className="flex flex-col md:flex-row md:items-center gap-2">
               <button
                 onClick={() => setOnlyOnline(!onlyOnline)}
@@ -482,7 +461,6 @@ export default function AstraView() {
                 🟢 온라인 유저만
               </button>
 
-              {/* 📱 모바일 전용 역할 필터: 가로 스크롤 없음, 이모지 없음, '전체' 버튼 없음(재클릭 시 자동 전체), 5등분 그리드 */}
               <div className="grid grid-cols-5 gap-1 bg-[var(--inner-box)] rounded-xl p-1 border border-[var(--panel-border)] md:hidden w-full">
                 {["탱커", "원딜", "근딜", "힐러", "서포터"].map(role => (
                   <button
@@ -499,7 +477,6 @@ export default function AstraView() {
                 ))}
               </div>
 
-              {/* 💻 PC 전용 역할 필터: '전체' 포함 표기, 이모지 제거, 풀네임 텍스트 버튼 */}
               <div className="hidden md:flex items-center bg-[var(--inner-box)] rounded-xl p-1 border border-[var(--panel-border)]">
                 {["전체", "탱커", "원딜", "근딜", "힐러", "서포터"].map(role => (
                   <button
@@ -517,7 +494,6 @@ export default function AstraView() {
               </div>
             </div>
 
-            {/* 2행: 조건 드롭다운 셀렉트 바 */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <select 
                 value={selectedClass} 
@@ -553,7 +529,6 @@ export default function AstraView() {
               </select>
             </div>
 
-            {/* 3행: 수치 입력 필터 (라벨 고정 + 인풋 우측 정렬) */}
             <div className="grid grid-cols-2 gap-2 pt-1 border-t border-[var(--panel-border)]/40">
               <div className="flex items-center justify-between gap-1.5 bg-[var(--inner-box)] px-3 py-1.5 rounded-xl border border-[var(--panel-border)] min-w-0">
                 <span className="text-[0.68rem] md:text-xs font-black text-red-400 whitespace-nowrap shrink-0">최소 전투력</span>
@@ -604,7 +579,6 @@ export default function AstraView() {
                     isLfg ? 'border-rose-500 ring-1 ring-rose-500/50 bg-rose-950/20' : 'border-[var(--panel-border)] hover:bg-[var(--panel)]/50'
                   }`}
                 >
-                  {/* 📱 모바일 전용 뷰: 2열 슬림 컴팩트 */}
                   <div className="md:hidden flex items-center justify-between gap-1.5 w-full">
                     <div className="flex flex-col justify-center space-y-0.5 min-w-0 flex-1 pr-0.5">
                       <div className="flex items-center gap-1 min-w-0">
@@ -644,7 +618,6 @@ export default function AstraView() {
                     </div>
                   </div>
 
-                  {/* 💻 PC 전용 뷰: 3단 여유로운 세로 레이아웃 */}
                   <div className="hidden md:flex flex-col justify-between space-y-2 w-full">
                     <div className="flex items-center justify-between gap-1.5 min-w-0">
                       <div className="flex items-center gap-1.5 min-w-0">
@@ -691,7 +664,6 @@ export default function AstraView() {
           </div>
         </div>
       ) : (
-        /* 🌟 모드 2: 기본 계정별 카드 보기 (모바일: 컴팩트 2열 / PC: 3단 세로 스택) */
         <div className="grid grid-cols-1 gap-2 md:gap-4">
           {filteredAccounts.map(acc => {
             const isMyAccount = currentUser && (acc.ownerKey === currentUser || acc.characters.some(c => c.nickname === currentUser || c.owner === currentUser));
@@ -707,7 +679,6 @@ export default function AstraView() {
                     : 'border-[var(--panel-border)] hover:border-[var(--accent)]'
                 }`}
               >
-                {/* 1. 계정 상단 요약 바 */}
                 <div className="flex items-center justify-between border-b border-[var(--panel-border)] pb-1.5 md:pb-2 gap-2">
                   <div className="flex items-center gap-1.5 md:gap-2 bg-[var(--inner-box)] px-2 md:px-3 py-0.5 md:py-1 rounded-lg md:rounded-xl border border-[var(--panel-border)] min-w-0 shadow-2xs">
                     <ClassIcon job={acc.mainChar?.job || "전사"} kratosClassRank={mainKratosRank} size="sm" />
@@ -720,7 +691,7 @@ export default function AstraView() {
                     <div className="flex items-center gap-1">
                       <span className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full shrink-0 ${acc.isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-gray-500/50'}`}></span>
                       <span className={`text-[0.55rem] md:text-xs font-bold px-1.5 md:px-2 py-0.2 md:py-0.5 rounded border shrink-0 ${
-                        acc.isOnline ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 font-black' : 'bg-gray-800/40 text-gray-400 border-gray-700/40'
+                        acc.isOnline ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 font-black' : 'bg-[var(--inner-box)] text-[var(--text-sub)] border-[var(--panel-border)]'
                       }`}>
                         {acc.isOnline ? '온라인' : formatLastSeen(acc.latestSeen)}
                       </span>
@@ -733,7 +704,6 @@ export default function AstraView() {
                   </div>
                 </div>
 
-                {/* 2. 캐릭터 카드 목록 */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-1 md:gap-3">
                   {acc.characters.map(c => {
                     const partyInfo = getCharPartyInfo(c.nickname);
@@ -748,7 +718,6 @@ export default function AstraView() {
                           isLfg ? 'border-rose-500/80 bg-rose-950/20 ring-1 ring-rose-500/40' : 'border-[var(--panel-border)] hover:bg-[var(--panel)]/50 hover:border-[var(--accent)]'
                         }`}
                       >
-                        {/* 📱 모바일 전용 뷰: 초슬림 컴팩트 2열 레이아웃 */}
                         <div className="md:hidden flex items-center justify-between gap-1.5 w-full">
                           <div className="flex flex-col justify-center space-y-0.5 min-w-0 flex-1 pr-0.5">
                             <div className="flex items-center gap-1 min-w-0">
@@ -789,7 +758,6 @@ export default function AstraView() {
                           </div>
                         </div>
 
-                        {/* 💻 PC 전용 뷰: 3단 여유로운 세로 레이아웃 */}
                         <div className="hidden md:flex flex-col justify-between space-y-2 w-full">
                           <div className="flex items-center justify-between gap-1.5 min-w-0">
                             <div className="flex items-center gap-1.5 min-w-0">

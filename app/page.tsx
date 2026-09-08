@@ -3,7 +3,12 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../lib/supabase";
-import { calculateOptimalStartTime, isScheduleConflict, pickRandomLeader } from "../lib/matchingUtils";
+import { 
+  calculateOptimalStartTime, 
+  isScheduleConflict, 
+  pickRandomLeader, 
+  isTaskChecked 
+} from "../lib/matchingUtils";
 
 interface DeepHole {
   id: string;
@@ -102,6 +107,7 @@ export default function Home() {
   const [myCharacters, setMyCharacters] = useState<any[]>([]);
   const [allCharactersMap, setAllCharactersMap] = useState<Record<string, string>>({});
   const [topRankers, setTopRankers] = useState<any[]>([]);
+  const [nexusContents, setNexusContents] = useState<any[]>([]);
   
   const [uniqueAccountsCount, setUniqueAccountsCount] = useState(1);
   const [totalCharactersCount, setTotalCharactersCount] = useState(0);
@@ -275,6 +281,7 @@ export default function Home() {
     
     if (deepRes.data) setDeepHoles(deepRes.data);
     if (abyssRes.data) setAbyssReports(abyssRes.data);
+    if (contRes.data) setNexusContents(contRes.data);
 
     if (charRes.data) {
       const allChars = charRes.data;
@@ -335,6 +342,20 @@ export default function Home() {
 
     loadUserAndData();
   }, [router]);
+
+  // 🔑 lib/matchingUtils.ts의 isTaskChecked 공통 함수 사용 (코드 중복 완전 제거)
+  const checkTaskDone = (char: any, item: any, type: "daily" | "weekly" | "raid") => {
+    if (!char) return false;
+    let rawChecks: any[] = [];
+    if (type === "daily") rawChecks = char.daily_checks;
+    else if (type === "weekly") {
+      rawChecks = Array.isArray(char.weekly_checks) 
+        ? char.weekly_checks 
+        : (Array.isArray(char.weekly_checks?.normal) ? char.weekly_checks.normal : []);
+    } else if (type === "raid") rawChecks = char.raid_checks;
+
+    return isTaskChecked(rawChecks, item, nexusContents);
+  };
 
   const submitDeepHole = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -435,15 +456,12 @@ export default function Home() {
 
   let totalAccountCurrent = 0, totalAccountMax = 0;
   myCharacters.forEach(char => {
-    const dChecks = Array.isArray(char.daily_checks) ? char.daily_checks.map(Number) : [];
-    
-    const wNormals = Array.isArray(char.weekly_checks) 
-      ? char.weekly_checks 
-      : (Array.isArray(char.weekly_checks?.normal) ? char.weekly_checks.normal : []);
-    const wChecks = wNormals.map(Number);
-    
-    const rChecks = Array.isArray(char.raid_checks) ? char.raid_checks.map(Number) : [];
-    totalAccountCurrent += (dailyTasks.filter(t => dChecks.includes(t.id)).length + weeklyTasks.filter(t => wChecks.includes(t.id)).length + abyssList.filter(a => rChecks.includes(a.id)).length + raidList.filter(r => rChecks.includes(r.id)).length);
+    const completedDaily = dailyTasks.filter(t => checkTaskDone(char, t, "daily")).length;
+    const completedWeekly = weeklyTasks.filter(t => checkTaskDone(char, t, "weekly")).length;
+    const completedAbyss = abyssList.filter(a => checkTaskDone(char, a, "raid")).length;
+    const completedRaid = raidList.filter(r => checkTaskDone(char, r, "raid")).length;
+
+    totalAccountCurrent += (completedDaily + completedWeekly + completedAbyss + completedRaid);
     totalAccountMax += (dailyTasks.length + weeklyTasks.length + abyssList.length + raidList.length);
   });
   const accountProgressRate = totalAccountMax > 0 ? Math.round((totalAccountCurrent / totalAccountMax) * 100) : 0;
@@ -451,7 +469,6 @@ export default function Home() {
   if (!mounted || !user) return null;
 
   return (
-    /* 최상위 컨테이너에 max-w-[1400px] mx-auto 적용 */
     <div className="max-w-[1400px] mx-auto px-2 md:px-6 pt-1 md:pt-2 pb-6 md:pb-8 space-y-4 md:space-y-6 animate-in fade-in duration-300">
       
       {/* 상단 알리미 위젯 */}
@@ -465,9 +482,8 @@ export default function Home() {
 
         <div className="grid grid-cols-2 xl:grid-cols-6 gap-2 md:gap-3 items-stretch">
           
-          {/* 1. Sanctuary ASTRA */}
           <div 
-           onClick={() => router.push('/lounge?tab=ASTRA')}
+             onClick={() => router.push('/lounge?tab=ASTRA')}
             className="rounded-xl border backdrop-blur p-2.5 sm:p-3.5 flex flex-col justify-between relative overflow-hidden shadow-sm order-1 cursor-pointer transition group bg-[var(--panel)] border-[var(--panel-border)] hover:border-[var(--accent)]"
           >
             <div className="absolute -right-4 -bottom-4 text-5xl opacity-5 group-hover:scale-110 transition-transform pointer-events-none">✨</div>
@@ -495,7 +511,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* 2. 올라운더 달성률 */}
           <div className="rounded-xl border backdrop-blur p-2.5 sm:p-3.5 flex flex-col justify-between relative overflow-hidden shadow-sm order-2 bg-[var(--panel)] border-[var(--panel-border)]">
             <div className="absolute -right-4 -bottom-4 text-5xl opacity-5 pointer-events-none">⚡</div>
             <p className="text-[0.55rem] xs:text-[0.6rem] uppercase tracking-[0.05em] xs:tracking-[0.1em] font-bold whitespace-nowrap text-[var(--text-sub)]">올라운더 달성률</p>
@@ -506,7 +521,6 @@ export default function Home() {
             <p className="text-[0.55rem] xs:text-[0.6rem] whitespace-nowrap text-[var(--text-sub)]">최대 1365 LV</p>
           </div>
 
-          {/* 3. 필드보스 알림 */}
           <div className={`rounded-xl p-2.5 sm:p-3.5 flex flex-col justify-between relative transition-all duration-500 order-3 backdrop-blur border bg-[var(--panel)] ${
             fieldBossEvent.status === 'imminent' || fieldBossEvent.status === 'active' 
               ? 'border-yellow-500' 
@@ -522,7 +536,6 @@ export default function Home() {
             <p className="text-[0.55rem] xs:text-[0.6rem] whitespace-nowrap text-[var(--text-sub)]">{fieldBossEvent.status === 'active' ? '지도에서 위치 확인' : '12, 18, 20, 22시'}</p>
           </div>
 
-          {/* 4. 소환의 결계 알림 */}
           <div className={`rounded-xl p-2.5 sm:p-3.5 flex flex-col justify-between relative transition-all duration-500 order-4 backdrop-blur border bg-[var(--panel)] ${
             barrierEvent.status === 'imminent' || barrierEvent.status === 'active' 
               ? 'border-red-500' 
@@ -538,7 +551,6 @@ export default function Home() {
             <p className="text-[0.55rem] xs:text-[0.6rem] whitespace-nowrap text-[var(--text-sub)]">{barrierEvent.status === 'active' ? '몬스터 등장 중' : '매 정각 실시간 타이머'}</p>
           </div>
 
-          {/* 5. 어비스 구멍 알림 */}
           <div className="rounded-xl p-2.5 sm:p-3.5 flex flex-col justify-between relative backdrop-blur order-5 border bg-[var(--panel)] border-[var(--panel-border)]">
             <div className="flex justify-between items-center mb-1 gap-1">
               <p className="text-[0.55rem] xs:text-[0.6rem] font-bold whitespace-nowrap text-[var(--accent)]">어비스 구멍 알림</p>
@@ -557,7 +569,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* 6. 심층 구멍 알림 */}
           <div className="rounded-xl p-2.5 sm:p-3.5 flex flex-col justify-between relative backdrop-blur order-6 border bg-[var(--panel)] border-[var(--panel-border)]">
             <div className="flex flex-col mb-1">
               <div className="flex justify-between items-center w-full gap-1">
@@ -629,18 +640,14 @@ export default function Home() {
             <div className="col-span-full text-center py-8 text-xs font-bold text-[var(--text-sub)]">등록된 캐릭터가 없습니다. '캐릭터 관리'에서 캐릭터를 등록해주세요!</div>
           ) : (
             myCharacters.map((char) => {
-              const dChecks = Array.isArray(char.daily_checks) ? char.daily_checks.map(Number) : [];
-              
-              const wNormals = Array.isArray(char.weekly_checks) 
-                ? char.weekly_checks 
-                : (Array.isArray(char.weekly_checks?.normal) ? char.weekly_checks.normal : []);
-              const wChecks = wNormals.map(Number);
-              
-              const rChecks = Array.isArray(char.raid_checks) ? char.raid_checks.map(Number) : [];
-              const dRate = Math.round((dailyTasks.filter(t => dChecks.includes(t.id)).length / (dailyTasks.length || 1)) * 100);
-              const wRate = Math.round((weeklyTasks.filter(t => wChecks.includes(t.id)).length / (weeklyTasks.length || 1)) * 100);
-              const abyssCount = abyssList.filter(a => rChecks.includes(a.id)).length;
-              const raidCount = raidList.filter(r => rChecks.includes(r.id)).length;
+              const completedDailyCount = dailyTasks.filter(t => checkTaskDone(char, t, "daily")).length;
+              const completedWeeklyCount = weeklyTasks.filter(t => checkTaskDone(char, t, "weekly")).length;
+
+              const dRate = Math.round((completedDailyCount / (dailyTasks.length || 1)) * 100);
+              const wRate = Math.round((completedWeeklyCount / (weeklyTasks.length || 1)) * 100);
+
+              const abyssCount = abyssList.filter(a => checkTaskDone(char, a, "raid")).length;
+              const raidCount = raidList.filter(r => checkTaskDone(char, r, "raid")).length;
 
               return (
                 <div 
@@ -687,7 +694,7 @@ export default function Home() {
                       <span className="text-[0.6rem] font-bold truncate text-[var(--text-sub)]">어비스 ({abyssCount}/{abyssList.length})</span>
                       <div className="grid grid-cols-2 gap-1 md:gap-1.5">
                         {abyssList.length > 0 ? abyssList.map((a, idx) => {
-                          const isChecked = rChecks.includes(a.id);
+                          const isChecked = checkTaskDone(char, a, "raid");
                           const dName = a.short_name || formatName(a.name);
                           const isOddAndLast = (abyssList.length % 2 !== 0) && (idx === abyssList.length - 1);
                           return (
@@ -708,7 +715,7 @@ export default function Home() {
                       <span className="text-[0.6rem] font-bold truncate text-[var(--text-sub)]">레이드 ({raidCount}/{raidList.length})</span>
                       <div className="grid grid-cols-2 gap-1 md:gap-1.5">
                         {raidList.length > 0 ? raidList.map((r, idx) => {
-                          const isChecked = rChecks.includes(r.id);
+                          const isChecked = checkTaskDone(char, r, "raid");
                           const dName = r.short_name || formatName(r.name);
                           const isOddAndLast = (raidList.length % 2 !== 0) && (idx === raidList.length - 1);
                           return (
@@ -924,7 +931,6 @@ export default function Home() {
         </section>
       </div>
 
-      {/* 모달들 */}
       {isAbyssModalOpen && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="border rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col bg-[var(--panel)] border-[var(--panel-border)]">
@@ -935,7 +941,7 @@ export default function Home() {
             <div className="p-5 space-y-4">
               <div className="flex justify-between items-center gap-2">
                 <span className="text-[0.7rem] font-bold whitespace-nowrap text-[var(--text-sub)]">신규 제보 입력</span>
-                {((user?.nickname && ["한설", "수도사는수도사", "신파랑", "제스"].includes(user.nickname)) || 
+                {((user?.nickname && ["한설", "수도사는수도사", "신파랑", "제ส"].includes(user.nickname)) || 
                   ["길드마스터", "마스터", "부마스터"].includes(user?.role)) && (
                   <label className="flex items-center space-x-2 cursor-pointer border px-2 py-1 rounded shrink-0 bg-[var(--inner-box)] border-[var(--panel-border)]">
                     <input type="checkbox" checked={isAdminMode} onChange={(e) => setIsAdminMode(e.target.checked)} className="w-3 h-3 accent-[var(--accent)]" />

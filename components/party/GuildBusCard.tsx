@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ClassIcon from '@/components/common/ClassIcon';
 import { 
   Party, 
@@ -14,8 +14,9 @@ import {
   getRoleByJob,
   getShortNickname,
   parseCP,
-  BusCandidate
+  BusCandidate 
 } from '@/lib/busUtils';
+import { supabase } from '@/lib/supabase';
 
 const Users = ({ className }: { className?: string }) => (
   <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
@@ -91,6 +92,7 @@ interface GuildBusCardProps {
   onLeaveClick: (party: Party, charName?: string) => void;
   onDeleteClick: (partyId: string | number) => void;
   onNextRoundClick?: (party: Party, completedMembers: Member[]) => void;
+  onRefresh?: () => void;
   isMasterOrAdmin: boolean;
 }
 
@@ -101,16 +103,23 @@ export default function GuildBusCard({
   onLeaveClick,
   onDeleteClick,
   onNextRoundClick,
+  onRefresh,
   isMasterOrAdmin
 }: GuildBusCardProps) {
   const [isPoolExpanded, setIsPoolExpanded] = useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   
-  const [isStarted, setIsStarted] = useState<boolean>(party.is_started || false);
+  const isBusStartedInDB = party.status === "운행중" || party.status === "매칭 완료" || (party as any).is_started;
+  const [isStarted, setIsStarted] = useState<boolean>(isBusStartedInDB);
   const [prevMemberNames, setPrevMemberNames] = useState<string[]>([]);
   const [reconfiguredCandidates, setReconfiguredCandidates] = useState<BusCandidate[] | null>(null);
 
-  const candidates: BusCandidate[] = (party.members || []).map((m) => ({
+  useEffect(() => {
+    setIsStarted(isBusStartedInDB);
+  }, [isBusStartedInDB, party.status]);
+
+  const candidates: BusCandidate[] = (party.members || []).map((m: any) => ({
+    character_id: m.character_id || m.id,
     character_name: m.character_name || m.name,
     owner_account: m.account_id || m.owner || m.owner_account || m.nickname || m.name || '',
     job: m.job,
@@ -138,11 +147,24 @@ export default function GuildBusCard({
   const isLeader = party.leader_name === currentUserNickname;
   const canManage = isMasterOrAdmin || isLeader;
 
-  const handleStartBus = () => {
+  const handleStartBus = async () => {
     if (activeMembers.length === 0) return alert("출전 파티원이 없습니다.");
-    setIsStarted(true);
-    setPrevMemberNames(activeMembers.map(m => m.character_name));
-    alert("🚌 길드 버스가 출발했습니다!");
+    try {
+      const { error } = await supabase
+        .from("parties")
+        .update({ status: "운행중" })
+        .eq("id", party.id);
+
+      if (error) throw error;
+
+      setIsStarted(true);
+      setPrevMemberNames(activeMembers.map(m => m.character_name));
+      alert("🚌 길드 버스가 출발했습니다!");
+      if (onRefresh) onRefresh();
+    } catch (err: any) {
+      console.error("버스 출발 DB 처리 실패:", err);
+      alert("버스 출발 처리 중 오류: " + err.message);
+    }
   };
 
   const handleReconstructParty = () => {
@@ -151,7 +173,7 @@ export default function GuildBusCard({
 
     const reshuffled = [...candidates].sort((a, b) => parseCP(b.combat_power) - parseCP(a.combat_power));
     setReconfiguredCandidates(reshuffled);
-    alert("🔄 파티 재구성이 완료되었습니다! 새로 바뀐 멤버는 하이라이트 표시됩니다.");
+    alert("🔄 파티 재구성이 완료되었습니다!");
   };
 
   const handleCompleteAndNextRound = async () => {
@@ -166,14 +188,18 @@ export default function GuildBusCard({
       const activeNames = activeMembers.map((m) => m.character_name);
       setPrevMemberNames(activeNames);
 
-      const contentType = party.party_type === "어비스" ? "abyss" : "raid";
-      await syncKronosChecklist(activeNames, contentType, party.content_name);
+      // 캐릭터 ID 및 객체까지 완벽 전달하여 크로노스 100% 매핑
+      const contentType = party.party_type === "어비스" || party.content_name.includes("어비스") ? "abyss" : "raid";
+      await syncKronosChecklist(activeMembers, contentType, party.content_name, party.difficulty);
 
       if (onNextRoundClick) {
-        const completedMemberList = party.members.filter(m => activeNames.includes(m.character_name || m.name));
+        const completedMemberList = party.members.filter((m: any) => 
+          activeMembers.some(am => am.character_name === (m.character_name || m.name) || am.character_id === (m.character_id || m.id))
+        );
         onNextRoundClick(party, completedMemberList);
       }
       setReconfiguredCandidates(null);
+      if (onRefresh) onRefresh();
     } catch (err) {
       console.error("회차 완수 처리 중 오류:", err);
       alert("KRONOS 동기화 중 오류가 발생했습니다.");
@@ -182,7 +208,7 @@ export default function GuildBusCard({
     }
   };
 
-  const myJoinedMembers = (party.members || []).filter((m) => {
+  const myJoinedMembers = (party.members || []).filter((m: any) => {
     const charOwner = m.account_id || m.owner || m.owner_account || m.nickname || m.name;
     const charName = m.character_name || m.name;
     return charName === currentUserNickname || charOwner === currentUserNickname;
@@ -192,7 +218,7 @@ export default function GuildBusCard({
   return (
     <div className="w-full rounded-2xl border-2 border-[var(--accent)]/60 border-t-4 border-t-[var(--accent)] bg-[var(--panel)] p-4 sm:p-5 shadow-[0_10px_30px_rgba(0,0,0,0.8),0_0_20px_rgba(234,179,8,0.12)] transition-all duration-200 hover:border-[var(--accent)] relative overflow-hidden">
       
-      {/* ──────────────── 1. 버스 카드 헤더 (음영 영역 분리로 시인성 대폭 강화) ──────────────── */}
+      {/* 1. 버스 카드 헤더 */}
       <div className="-mx-4 -mt-4 sm:-mx-5 sm:-mt-5 p-3.5 sm:p-4 bg-black/60 border-b border-[var(--panel-border)] rounded-t-2xl mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2.5 flex-wrap min-w-0">
           <span className="px-2.5 py-1 rounded-md text-xs font-black bg-[var(--accent)] text-black flex items-center gap-1 shrink-0 shadow-sm">
@@ -205,6 +231,11 @@ export default function GuildBusCard({
           <h3 className="text-base sm:text-lg font-black text-[var(--text-main)] truncate max-w-[200px] sm:max-w-[280px]">
             {party.content_name}
           </h3>
+          {isStarted && (
+            <span className="px-2 py-0.5 rounded text-[10px] font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 animate-pulse">
+              운행중
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-3 text-xs text-[var(--text-main)] opacity-90 shrink-0">
@@ -226,7 +257,7 @@ export default function GuildBusCard({
         </div>
       )}
 
-      {/* ──────────────── 2. 출전 파티원 슬롯 레이아웃 ──────────────── */}
+      {/* 2. 출전 파티원 슬롯 레이아웃 */}
       <div className="mb-4 bg-[var(--inner-box)] rounded-xl p-3.5 border border-[var(--panel-border)]">
         <div className="flex flex-wrap items-center justify-between gap-2 mb-3 pb-2.5 border-b border-[var(--panel-border)]">
           <div className="flex items-center gap-2 flex-wrap">
@@ -324,7 +355,7 @@ export default function GuildBusCard({
         </div>
       </div>
 
-      {/* ──────────────── 3. 버스 컨트롤러 ──────────────── */}
+      {/* 3. 버스 컨트롤러 */}
       {canManage && (
         <div className="mb-4 p-3 rounded-xl bg-[var(--inner-box)] border border-[var(--panel-border)] flex flex-wrap items-center justify-between gap-2">
           <div className="text-xs font-bold text-[var(--text-main)] flex items-center gap-1.5">
@@ -359,7 +390,6 @@ export default function GuildBusCard({
               type="button"
               onClick={handleReconstructParty}
               className="px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 hover:bg-indigo-500/30 transition-all flex items-center gap-1 cursor-pointer"
-              title="현재 미완료/용병 유저로 스펙 최적화 재배치"
             >
               <RefreshCw className="w-3.5 h-3.5" />
               <span>파티 재구성</span>
@@ -369,7 +399,6 @@ export default function GuildBusCard({
               type="button"
               onClick={() => onDeleteClick(party.id)}
               className="px-3 py-1.5 rounded-xl text-xs font-bold bg-rose-500/10 text-rose-400 border border-rose-500/30 hover:bg-rose-500/20 transition-all flex items-center gap-1 cursor-pointer"
-              title="버스 해산"
             >
               <Trash2 className="w-3.5 h-3.5" />
               <span>해산</span>
@@ -378,7 +407,7 @@ export default function GuildBusCard({
         </div>
       )}
 
-      {/* ──────────────── 4. 전체 대기열 및 참전 풀 ──────────────── */}
+      {/* 4. 전체 대기열 및 참전 풀 */}
       <div className="rounded-xl border border-[var(--panel-border)] bg-[var(--inner-box)] overflow-hidden">
         <button
           type="button"
@@ -441,14 +470,14 @@ export default function GuildBusCard({
         )}
       </div>
 
-      {/* ──────────────── 5. 개별 캐릭터 탈퇴 컨트롤 ──────────────── */}
+      {/* 5. 개별 캐릭터 탈퇴 컨트롤 */}
       <div className="mt-4 pt-3 border-t border-[var(--panel-border)] flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2 flex-wrap min-w-0 flex-1">
           <span className="text-xs font-bold text-[var(--text-sub)] shrink-0">
             참여 상태: {isMyAccountJoined ? <strong className="text-emerald-400">참여 중 ({myJoinedMembers.length}개)</strong> : "미참여"}
           </span>
 
-          {myJoinedMembers.map((myChar, idx) => {
+          {myJoinedMembers.map((myChar: any, idx: number) => {
             const charName = myChar.character_name || myChar.name;
             return (
               <span
@@ -460,7 +489,6 @@ export default function GuildBusCard({
                   type="button"
                   onClick={() => onLeaveClick(party, charName)}
                   className="w-4 h-4 rounded-full bg-rose-950/80 hover:bg-rose-600 text-rose-300 hover:text-white flex items-center justify-center text-[10px] transition cursor-pointer"
-                  title={`${charName} 캐릭터만 파티 탈퇴`}
                 >
                   <X className="w-3 h-3" />
                 </button>

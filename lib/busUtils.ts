@@ -1,17 +1,10 @@
 import { supabase } from "@/lib/supabase";
-import { CONTENT_DB } from "@/components/party/types";
 
-// 21개 직업군 5대 포지션 1:1 매핑
 export const JOB_ROLE_MAP: Record<string, "근딜" | "원딜" | "힐러" | "탱커" | "서포터"> = {
-  // 근딜 (6종)
   '도적': '근딜', '댄서': '근딜', '듀얼블레이드': '근딜', '대검전사': '근딜', '검술사': '근딜', '격투가': '근딜',
-  // 원딜 (8종)
   '궁수': '원딜', '악사': '원딜', '석궁사수': '원딜', '마법사': '원딜', '화염술사': '원딜', '전격술사': '원딜', '장궁병': '원딜', '암흑술사': '원딜',
-  // 힐러 (3종)
   '힐러': '힐러', '수도사': '힐러', '사제': '힐러',
-  // 탱커 (3종)
   '전사': '탱커', '기사': '탱커', '빙결술사': '탱커',
-  // 서포터 (1종)
   '음유시인': '서포터',
 };
 
@@ -19,15 +12,11 @@ export function getRoleByJob(jobName: string): "근딜" | "원딜" | "힐러" | 
   return JOB_ROLE_MAP[jobName] || "근딜";
 }
 
-/**
- * 전역 닉네임 애칭 규격: 최대 3글자로 트렁케이트
- */
 export function getShortNickname(name: string): string {
   if (!name) return "";
   return name.length > 3 ? name.slice(0, 3) : name;
 }
 
-// 전투력 안전 파싱 함수 (문자열 결합 버그 방지)
 export function parseCP(cp: any): number {
   if (typeof cp === "number") return isNaN(cp) ? 0 : cp;
   if (!cp) return 0;
@@ -36,17 +25,15 @@ export function parseCP(cp: any): number {
   return isNaN(parsed) ? 0 : parsed;
 }
 
-// KRONOS UI 연동용 키 정규화 매퍼
 export function normalizeContentKeyForKronos(contentName: string): string {
   if (!contentName) return "";
-  if (contentName.includes("카브락") || contentName.includes("카브")) return "카브";
-  if (contentName.includes("에이렐") || contentName.includes("에렐")) return "에렐";
-  if (contentName.includes("화이트 서큐버스") || contentName.includes("서큐")) return "서큐";
-  if (contentName.includes("어비스")) return "어비스";
+  if (contentName.includes("카브락") || contentName.includes("카브")) return "cabrak";
+  if (contentName.includes("에이렐") || contentName.includes("에렐")) return "eirel";
+  if (contentName.includes("화이트 서큐버스") || contentName.includes("서큐")) return "succubus";
+  if (contentName.includes("어비스")) return "abyss";
   return contentName;
 }
 
-// 컨텐츠별 전투력 기준표 (풀네임 / 단축명 모두 대응)
 export const CONTENT_CP_REQUIREMENTS: Record<string, Record<string, { min: number; rec: number; op: number }>> = {
   "카브락": {
     "입문": { min: 65000, rec: 72000, op: 82500 },
@@ -82,6 +69,7 @@ export const CONTENT_CP_REQUIREMENTS: Record<string, Record<string, { min: numbe
 };
 
 export interface BusCandidate {
+  character_id?: any;
   character_name: string;
   owner_account: string;
   job: string;
@@ -92,9 +80,6 @@ export interface BusCandidate {
   time_end?: string;
 }
 
-/**
- * 3단계 전투력 비율 & 역할군 자동 파티 밸런싱 알고리즘
- */
 export function assembleBalancedParty(
   candidates: BusCandidate[],
   maxSize: number = 8,
@@ -122,7 +107,9 @@ export function assembleBalancedParty(
 
   const addCandidate = (cand: BusCandidate) => {
     selected.push(cand);
-    selectedOwners.add(cand.owner_account);
+    if (cand.owner_account) {
+      selectedOwners.add(cand.owner_account);
+    }
   };
 
   const healerIdx = eligible.findIndex(c => getRoleByJob(c.job) === "힐러" && canAdd(c));
@@ -202,66 +189,109 @@ export function assembleBalancedParty(
 }
 
 /**
- * KRONOS 숙제 자동 연동 (Supabase Direct Mutation)
- * 파티/버스 완료 시 해당 캐릭터의 raid_checks / abyss_checks에 던전 키 및 ID를 자동 체크함
+ * KRONOS 숙제 자동 연동 엔진 (실제 DB 스키마 raid_checks, weekly_checks 완벽 동기화)
  */
-export async function syncKronosChecklist(characterNames: string[], contentType: string, contentName: string) {
+export async function syncKronosChecklist(
+  characterTargets: (string | { id?: any; character_id?: any; character_name?: string; name?: string; nickname?: string })[],
+  contentType: string,
+  contentName: string,
+  difficulty?: string
+) {
   try {
-    if (!characterNames || characterNames.length === 0) return true;
-    const normalizedKey = normalizeContentKeyForKronos(contentName);
+    if (!characterTargets || characterTargets.length === 0) return true;
 
-    const matchedContent = CONTENT_DB.find(
-      (c) => c.name === contentName || contentName.includes(c.name) || c.name.includes(contentName)
-    );
-    const contentId = matchedContent ? matchedContent.id : null;
+    // KRONOS 키 매핑 매트릭스
+    let keysToAdd: string[] = [
+      contentName,
+      normalizeContentKeyForKronos(contentName),
+    ].filter(Boolean) as string[];
 
-    let keysToAdd: (string | number)[] = [normalizedKey, contentId, contentName].filter(Boolean) as (string | number)[];
-
-    if (contentName.includes("어비스 3종") || contentName.includes("통합") || contentId === "abyss_all") {
-      keysToAdd = [...keysToAdd, "abyss_all", "abyss_1", "abyss_2", "abyss_3", "어비스", 1, 2, 3, 4];
-    } else if (contentId) {
-      keysToAdd.push(contentId);
+    if (contentName.includes("카브락") || contentName.includes("카브")) {
+      if (difficulty === "입문") {
+        keysToAdd.push("cabrak_entry", "cabrak_normal", "cabrak_0", "카브락_입문", "raid_cabrak_entry");
+      } else {
+        keysToAdd.push("cabrak_hard", "cabrak_1", "카브락_어려움", "cabrak", "raid_cabrak_hard");
+      }
+    } else if (contentName.includes("에이렐") || contentName.includes("에렐")) {
+      keysToAdd.push("eirel_hard", "에이렐_어려움", "eirel", "raid_eirel_hard");
+    } else if (contentName.includes("서큐") || contentName.includes("서큐버스")) {
+      if (difficulty === "매우 어려움") {
+        keysToAdd.push("succubus_very_hard", "서큐_매우어려움", "succubus", "raid_succubus_very_hard");
+      } else {
+        keysToAdd.push("succubus_hard", "서큐_어려움", "succubus", "raid_succubus_hard");
+      }
     }
 
-    const isRaid = contentType === "raid" || matchedContent?.category === "레이드" || contentName.includes("레이드") || contentName.includes("카브락") || contentName.includes("에이렐") || contentName.includes("서큐");
-    const isAbyss = contentType === "abyss" || matchedContent?.category === "어비스" || contentName.includes("어비스");
+    if (contentName.includes("어비스") || contentType === "abyss") {
+      keysToAdd.push(
+        "abyss_all", "abyss_1", "abyss_2", "abyss_3", 
+        "abyss_entry", "abyss_hard", "abyss_very_hard", 
+        "어비스 3종 (통합)", "어비스"
+      );
+    }
 
-    const updatePromises = characterNames.map(async (name) => {
-      const cleanName = name.trim();
-      if (!cleanName) return;
+    const isRaid = contentType === "raid" || contentName.includes("레이드") || contentName.includes("카브락") || contentName.includes("에이렐") || contentName.includes("서큐");
+    const isAbyss = contentType === "abyss" || contentName.includes("어비스");
 
-      let { data: charData } = await supabase
-        .from("characters")
-        .select("id, nickname, name, raid_checks, abyss_checks")
-        .eq("nickname", cleanName)
-        .maybeSingle();
+    // 1. 타겟 캐릭터들의 닉네임 및 ID 수집
+    const targetNames = new Set<string>();
+    const targetIds = new Set<any>();
 
-      if (!charData) {
-        const { data: fallbackData } = await supabase
-          .from("characters")
-          .select("id, nickname, name, raid_checks, abyss_checks")
-          .eq("name", cleanName)
-          .maybeSingle();
-        charData = fallbackData;
+    for (const target of characterTargets) {
+      if (!target) continue;
+      if (typeof target === "string") {
+        if (target.trim()) targetNames.add(target.trim());
+      } else if (typeof target === "object") {
+        const cId = target.character_id || target.id;
+        if (cId !== undefined && cId !== null && cId !== "") targetIds.add(cId);
+        const cName = (target.character_name || target.nickname || target.name || "").trim();
+        if (cName) targetNames.add(cName);
       }
+    }
 
-      if (!charData) return;
+    // 2. 실제 존재하는 컬럼(id, nickname, raid_checks, weekly_checks)만 정확히 조회
+    const { data: allChars, error: fetchError } = await supabase
+      .from("characters")
+      .select("id, nickname, raid_checks, weekly_checks");
 
+    if (fetchError || !allChars) {
+      console.error("크로노스 연동 전체 캐릭터 조회 실패:", fetchError);
+      return false;
+    }
+
+    // 3. 자바스크립트 메모리에서 안전하게 매칭
+    const matchedChars = allChars.filter(c => {
+      const cId = c.id;
+      const cNick = (c.nickname || "").trim();
+
+      if (targetIds.has(cId) || targetIds.has(String(cId))) return true;
+      if (cNick && targetNames.has(cNick)) return true;
+      return false;
+    });
+
+    if (matchedChars.length === 0) {
+      return true;
+    }
+
+    // 4. 각 매칭된 캐릭터별 체크리스트 병합 및 업데이트 수행 (어비스는 weekly_checks, 레이드는 raid_checks에 저장)
+    const updatePromises = matchedChars.map(async (charData) => {
+      const mergeChecks = (existingData: any) => {
+        const currentList = Array.isArray(existingData) ? existingData : [];
+        return Array.from(new Set([...currentList, ...keysToAdd]));
+      };
+
+      let updatePayload: any = {};
       if (isRaid) {
-        const currentChecks = Array.isArray(charData.raid_checks) ? charData.raid_checks : [];
-        const nextChecks = Array.from(new Set([...currentChecks, ...keysToAdd]));
-        await supabase
-          .from("characters")
-          .update({ raid_checks: nextChecks })
-          .eq("id", charData.id);
+        updatePayload.raid_checks = mergeChecks(charData.raid_checks);
+      }
+      if (isAbyss) {
+        updatePayload.weekly_checks = mergeChecks(charData.weekly_checks);
       }
 
-      if (isAbyss) {
-        const currentChecks = Array.isArray(charData.abyss_checks) ? charData.abyss_checks : [];
-        const nextChecks = Array.from(new Set([...currentChecks, ...keysToAdd]));
+      if (Object.keys(updatePayload).length > 0) {
         await supabase
           .from("characters")
-          .update({ abyss_checks: nextChecks })
+          .update(updatePayload)
           .eq("id", charData.id);
       }
     });
@@ -269,7 +299,7 @@ export async function syncKronosChecklist(characterNames: string[], contentType:
     await Promise.all(updatePromises);
     return true;
   } catch (e) {
-    console.error("KRONOS 숙제 자동 연동 오류:", e);
+    console.error("KRONOS 숙제 연동 실패:", e);
     return false;
   }
 }

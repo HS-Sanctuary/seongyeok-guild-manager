@@ -11,7 +11,6 @@ import PartyCard from "@/components/party/PartyCard";
 import GuildBusCard from "@/components/party/GuildBusCard";
 import PartyModals, { generateDefaultBusMemo, BusCharSelectionConfig } from "@/components/party/PartyModals";
 import GuildBusJoinModal from "@/components/party/GuildBusJoinModal";
-import ClassIcon from "@/components/common/ClassIcon";
 import { 
   getRoleByJob, 
   assembleBalancedParty, 
@@ -20,12 +19,6 @@ import {
   parseCP, 
   BusCandidate 
 } from "@/lib/busUtils";
-
-const ALL_21_JOBS = [
-  '도적', '댄서', '듀얼블레이드', '대검전사', '검술사', '격투가',
-  '궁수', '악사', '석궁사수', '마법사', '화염술사', '전격술사', '장궁병', '암흑술사',
-  '힐러', '수도사', '사제', '전사', '기사', '빙결술사', '음유시인'
-];
 
 function timeToMinutes(timeStr: string): number {
   if (!timeStr) return 0;
@@ -171,12 +164,12 @@ function SynaxisContent() {
   const [myCharacterNames, setMyCharacterNames] = useState<string[]>([]);
   const [allCharactersMap, setAllCharactersMap] = useState<Record<string, any>>({});
   const [ownerAccountMap, setOwnerAccountMap] = useState<Record<string, string>>({});
+  
+  // 무한 렌더링 방지를 위한 Ref 선언[cite: 23]
+  const ownerAccountMapRef = useRef<Record<string, string>>({});
 
   const [activeDateFilter, setActiveDateFilter] = useState<string>("전체");
-
-  // 실시간 디테일 필터링 State (어비스/레이드 카테고리 & 21개 직업)
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<"전체" | "어비스" | "레이드">("전체");
-  const [selectedJobFilter, setSelectedJobFilter] = useState<string>("");
 
   const [calendarYearMonth, setCalendarYearMonth] = useState(() => {
     const d = new Date();
@@ -228,16 +221,18 @@ function SynaxisContent() {
   const [joinTimeEnd, setJoinTimeEnd] = useState<string>("24:00");
   const [inspectCharacter, setInspectCharacter] = useState<any>(null);
 
+  // useRef를 참조하여 무한 루프 원인 제거[cite: 23]
   const checkTimeouts = useCallback((partyList: Party[], ownerName: string) => {
     if (!ownerName) return;
     const now = new Date();
     const currentHM = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
     const normToday = normalizeDateStr(getTodayString());
+    const currentOwnerMap = ownerAccountMapRef.current;
 
     for (const party of partyList) {
       const isMyParty = party.members?.some((m: any) => {
         const memName = m.name || m.character_name;
-        const memOwner = ownerAccountMap[memName] || memName;
+        const memOwner = currentOwnerMap[memName] || memName;
         return memOwner === ownerName || memName === ownerName;
       }) || party.leader_name === ownerName;
 
@@ -250,7 +245,7 @@ function SynaxisContent() {
         break;
       }
     }
-  }, [ownerAccountMap]);
+  }, []);
 
   const handleExtendTimeout = async (party: Party, extensionType: "30M" | "1H" | "TOMORROW" | "CANCEL") => {
     try {
@@ -270,7 +265,7 @@ function SynaxisContent() {
         const newTimeEnd = minutesToTime(endMins);
 
         await supabase.from("parties").update({ time_end: newTimeEnd }).eq("id", party.id);
-        alert(`⏰ 희망 종료 시간이 ${newTimeEnd}까지 ${addMinutes}분 연장되었습니다.`);
+        alert(`⏰ 희망 종료 시간이 ${newTimeEnd}까지 연장되었습니다.`);
       }
       setTimeoutParty(null);
       const ownerName = user?.username || user?.nickname || user?.owner || "한설";
@@ -353,6 +348,7 @@ function SynaxisContent() {
         });
         setAllCharactersMap(jobMap);
         setOwnerAccountMap(ownerMap);
+        ownerAccountMapRef.current = ownerMap; // Ref 동기화[cite: 23]
 
         const filteredMyChars = sortedChars.filter(c => c.owner === ownerName || c.nickname === ownerName);
         const myCharsList = filteredMyChars.length > 0 ? filteredMyChars : sortedChars;
@@ -687,6 +683,7 @@ function SynaxisContent() {
     const cpReqs = CONTENT_CP_REQUIREMENTS[busCreateContent.name]?.[busCreateDiff];
     
     const busCandidates: BusCandidate[] = initialMembers.map((m) => ({
+      character_id: m.character_id,
       character_name: m.character_name,
       owner_account: m.owner_account,
       job: m.job,
@@ -774,7 +771,7 @@ function SynaxisContent() {
       );
 
       if (existingParty) {
-        const existingMemberIds = new Set(existingParty.members.map((m: any) => m.character_id || m.name || m.character_name));
+        const existingMemberIds = new Set(existingParty.members.map((m: any) => m.character_id || m.id || m.name || m.character_name));
         const filteredNewMembers = newMembers.filter(m => !existingMemberIds.has(m.character_id) && !existingMemberIds.has(m.name));
 
         if (filteredNewMembers.length === 0) {
@@ -786,6 +783,7 @@ function SynaxisContent() {
         const cpReqs = CONTENT_CP_REQUIREMENTS[targetBusParty.contentName]?.[targetBusParty.difficulty];
 
         const combinedCandidates: BusCandidate[] = combinedMembers.map((m: any) => ({
+          character_id: m.character_id || m.id,
           character_name: m.character_name || m.name,
           owner_account: m.account_id || m.owner || m.owner_account || m.nickname || m.name || '',
           job: m.job,
@@ -832,18 +830,15 @@ function SynaxisContent() {
     }
   };
 
-  // 길드 버스 회차 완수 시 크로노스 자동 연동
   const handleNextRound = async (targetParty: Party, completedMembers: Member[]) => {
-    const completedNames = completedMembers.map(m => m.character_name || m.name);
-
-    // KRONOS 숙제 자동 체크 실행
     const contentType = targetParty.content_name.includes("어비스") ? "abyss" : "raid";
-    await syncKronosChecklist(completedNames, contentType, targetParty.content_name);
+    await syncKronosChecklist(completedMembers, contentType, targetParty.content_name, targetParty.difficulty);
 
+    const completedNames = completedMembers.map(m => m.character_name || m.name);
     const completedSet = new Set(completedNames);
 
-    const updatedMembers = targetParty.members.map((m) => {
-      if (completedSet.has(m.character_name || m.name)) {
+    const updatedMembers = targetParty.members.map((m: any) => {
+      if (completedSet.has(m.character_name || m.name) || completedMembers.some(cm => (cm as any).character_id === (m.character_id || m.id))) {
         return { ...m, is_completed: true };
       }
       return m;
@@ -852,7 +847,10 @@ function SynaxisContent() {
     try {
       const { error } = await supabase
         .from("parties")
-        .update({ members: updatedMembers })
+        .update({ 
+          members: updatedMembers,
+          status: "운행중"
+        })
         .eq("id", targetParty.id);
 
       if (error) throw error;
@@ -866,15 +864,12 @@ function SynaxisContent() {
     }
   };
 
-  // 일반 파티 클리어 완료 시 크로노스 자동 연동
   const handleCompleteParty = async (party: Party) => {
     if (!confirm(`🎉 [${party.content_name}] 던전을 완료하시겠습니까?\n참여 중인 전원의 크로노스 숙제 항목이 자동 완료 처리됩니다.`)) return;
 
     try {
-      const memberNames = party.members.map(m => m.character_name || m.name);
       const contentType = party.content_name.includes("어비스") ? "abyss" : "raid";
-
-      await syncKronosChecklist(memberNames, contentType, party.content_name);
+      await syncKronosChecklist(party.members, contentType, party.content_name, party.difficulty);
 
       const { error } = await supabase
         .from("parties")
@@ -883,7 +878,7 @@ function SynaxisContent() {
 
       if (error) throw error;
 
-      alert(`🎉 [${party.content_name}] 파티 클리어 및 참여원 ${memberNames.length}명의 KRONOS 숙제 자동 완료가 연동되었습니다!`);
+      alert(`🎉 [${party.content_name}] 파티 클리어 및 참여원 ${party.members.length}명의 KRONOS 숙제 자동 완료가 연동되었습니다!`);
       const ownerName = user?.username || user?.nickname || user?.owner || "한설";
       fetchData(ownerName);
     } catch (err: any) {
@@ -914,7 +909,7 @@ function SynaxisContent() {
         const updatePayload: any = {
           members: remainingMembers,
           wanted_roles: updatedWanted,
-          status: "모집중",
+          status: party.status === "운행중" ? "운행중" : "모집중",
           final_start_time: null,
           leader_name: remainingMembers[0]?.name || remainingMembers[0]?.character_name || null
         };
@@ -1078,7 +1073,6 @@ function SynaxisContent() {
     return days;
   }, [calendarYearMonth]);
 
-  // 실시간 21개 직업군, 던전 카테고리, 상태 및 필터링 결합 쿼리
   const filteredParties = useMemo(() => {
     const normToday = normalizeDateStr(getTodayString());
 
@@ -1088,7 +1082,6 @@ function SynaxisContent() {
       
       const isBus = party.sub_content?.includes("길드 버스");
 
-      // 1. 날짜 필터
       if (activeDateFilter !== "전체") {
         const normFilterDate = normalizeDateStr(activeDateFilter);
         if (isBus) {
@@ -1099,29 +1092,19 @@ function SynaxisContent() {
         }
       }
 
-      // 2. 던전 카테고리 탭 필터 (어비스 vs 레이드)
       if (selectedCategoryFilter !== "전체") {
         const isAbyss = party.content_name.includes("어비스");
         const category = isAbyss ? "어비스" : "레이드";
         if (category !== selectedCategoryFilter) return false;
       }
 
-      // 3. 21개 직업군 실시간 필터
-      if (selectedJobFilter) {
-        const hasJobInMembers = party.members?.some((m: any) => m.job === selectedJobFilter);
-        const isJobInWanted = party.wanted_roles?.some((r: any) => r === getRoleByJob(selectedJobFilter));
-        if (!hasJobInMembers && !isJobInWanted) return false;
-      }
-
-      // 4. 모집 중 / 매칭 완료 / 길드 버스 상태 필터
       const isCompleted = party.status === "매칭 완료" || party.status === "모집완료";
-      const isRecruiting = party.status === "모집중";
+      const isRecruiting = party.status === "모집중" || party.status === "운행중";
 
       if (statusFilter === "길드버스" && !isBus) return false;
       if (statusFilter === "매칭중" && (!isRecruiting || isBus)) return false;
       if (statusFilter === "매칭완료" && !isCompleted) return false;
 
-      // 5. 파티명/방장/멤버 닉네임 키워드 검색
       if (partySearchTerm.trim()) {
         const q = partySearchTerm.toLowerCase();
         const matchName = party.content_name?.toLowerCase().includes(q);
@@ -1144,7 +1127,7 @@ function SynaxisContent() {
 
       return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
     });
-  }, [activeParties, activeDateFilter, selectedCategoryFilter, selectedJobFilter, statusFilter, partySearchTerm]);
+  }, [activeParties, activeDateFilter, selectedCategoryFilter, statusFilter, partySearchTerm]);
 
   if (!mounted) return null;
 
@@ -1152,7 +1135,6 @@ function SynaxisContent() {
     <main className="min-h-screen bg-[var(--bg-main)] text-[var(--text-main)] font-sans pb-28 pt-3 sm:pt-6 relative select-none w-full">
       <div className="max-w-[1400px] mx-auto px-3 sm:px-6 space-y-3 sm:space-y-4 relative z-10">
         
-        {/* 상단 헤더 */}
         <header className="relative overflow-hidden rounded-2xl bg-[var(--panel)] border border-[var(--panel-border)] py-3 px-4 md:py-4 md:px-6 shadow-md flex flex-col md:flex-row justify-between items-start md:items-center gap-3 min-w-0">
           <div className="absolute top-0 left-0 w-2 h-full bg-[var(--accent)] shadow-[0_0_15px_var(--accent)]"></div>
           
@@ -1171,7 +1153,6 @@ function SynaxisContent() {
                 type="button"
                 onClick={() => setShowSynaxisInfoModal(true)} 
                 className="lg:hidden w-6 h-6 rounded-full bg-[var(--inner-box)] border border-[var(--panel-border)] text-xs font-black text-[var(--text-sub)] hover:text-[var(--accent)] hover:border-[var(--accent)] transition flex items-center justify-center shrink-0 shadow-xs cursor-pointer" 
-                title="SYNAXIS 안내"
               >
                 ?
               </button>
@@ -1179,7 +1160,6 @@ function SynaxisContent() {
                 type="button"
                 onClick={() => setShowLoreGuide(true)} 
                 className="hidden lg:flex w-5 h-5 rounded-full bg-[var(--inner-box)] border border-[var(--panel-border)] text-xs font-black text-[var(--text-sub)] hover:text-[var(--accent)] hover:border-[var(--accent)] transition items-center justify-center shrink-0 ml-1 cursor-pointer" 
-                title="가이드 보기"
               >
                 i
               </button>
@@ -1195,7 +1175,6 @@ function SynaxisContent() {
           </div>
         </header>
 
-        {/* 모바일 파티 등록 토글 */}
         <div className="lg:hidden">
           <button 
             type="button"
@@ -1214,10 +1193,7 @@ function SynaxisContent() {
           </button>
         </div>
 
-        {/* ──────────────── PC 레이아웃: Grid items-start 및 Sticky top-24 ──────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 min-w-0 items-start relative">
-          
-          {/* 좌측: 리모컨 패널 */}
           <div className={`lg:col-span-5 xl:col-span-4 bg-[var(--panel)] rounded-2xl border border-[var(--panel-border)] p-4 sm:p-5 shadow-sm h-fit min-w-0 lg:sticky lg:top-24 lg:z-20 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto custom-scrollbar ${
             isMobileFormOpen ? "block animate-in fade-in duration-200" : "hidden lg:block"
           }`}>
@@ -1275,90 +1251,15 @@ function SynaxisContent() {
             />
           </div>
 
-          {/* 우측: 파티 피드 영역 */}
           <div className="lg:col-span-7 xl:col-span-8 space-y-3 min-w-0">
-            
-            {/* ──────────────── 새로 추가된 실시간 디테일 필터링 컨트롤바 (수호자 레이드/일반 던전 & 21개 직업) ──────────────── */}
-            <div className="bg-[var(--panel)] rounded-2xl border border-[var(--panel-border)] p-3.5 sm:p-4 shadow-sm space-y-3">
-              
-              {/* 1. 카테고리 탭 (어비스 / 레이드) */}
-              <div className="flex items-center justify-between gap-2 flex-wrap pb-2 border-b border-[var(--panel-border)]">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-black text-[var(--accent)]">🎯 던전 구분</span>
-                  <div className="flex items-center gap-1 bg-[var(--inner-box)] p-1 rounded-xl border border-[var(--panel-border)]">
-                    {(["전체", "어비스", "레이드"] as const).map(cat => (
-                      <button
-                        key={cat}
-                        type="button"
-                        onClick={() => setSelectedCategoryFilter(cat)}
-                        className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
-                          selectedCategoryFilter === cat
-                            ? "bg-[var(--accent)] text-[var(--accent-fg)] shadow-xs"
-                            : "text-[var(--text-sub)] hover:text-[var(--text-main)]"
-                        }`}
-                      >
-                        {cat === "전체" ? "전체 던전" : cat === "어비스" ? "🔮 어비스" : "⚔️ 수호자 레이드"}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {selectedJobFilter && (
-                  <button
-                    type="button"
-                    onClick={() => setSelectedJobFilter("")}
-                    className="text-[11px] font-bold text-rose-400 bg-rose-500/10 px-2.5 py-1 rounded-lg border border-rose-500/30 hover:bg-rose-500/20 transition cursor-pointer"
-                  >
-                    ✕ 직업 필터 해제 ({selectedJobFilter})
-                  </button>
-                )}
-              </div>
-
-              {/* 2. 21개 직업 아이콘 선택 스크롤바 */}
-              <div className="space-y-1">
-                <div className="text-[11px] font-bold text-[var(--text-sub)] flex items-center justify-between">
-                  <span>🛡️ 21개 직업군 실시간 참전/구인 필터</span>
-                  <span className="text-[10px] opacity-70">클릭 시 해당 직업 파티만 즉시 정렬</span>
-                </div>
-                <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar py-1 pr-1">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedJobFilter("")}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-black shrink-0 border transition cursor-pointer ${
-                      selectedJobFilter === ""
-                        ? "bg-[var(--accent)] text-[var(--accent-fg)] border-transparent"
-                        : "bg-[var(--inner-box)] border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)]"
-                    }`}
-                  >
-                    전체 직업
-                  </button>
-
-                  {ALL_21_JOBS.map(job => (
-                    <button
-                      key={job}
-                      type="button"
-                      onClick={() => setSelectedJobFilter(selectedJobFilter === job ? "" : job)}
-                      className={`flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold shrink-0 border transition cursor-pointer ${
-                        selectedJobFilter === job
-                          ? "bg-[var(--accent)] text-[var(--accent-fg)] border-transparent shadow-md scale-105"
-                          : "bg-[var(--inner-box)] border-[var(--panel-border)] text-[var(--text-main)] hover:border-[var(--accent)]/50"
-                      }`}
-                    >
-                      <ClassIcon job={job} className="w-4 h-4 shrink-0" />
-                      <span>{job}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-            </div>
-
             <div className="bg-[var(--panel)] rounded-2xl border border-[var(--panel-border)] p-4 sm:p-5 shadow-sm space-y-4 min-w-0">
               
               <PartyFilterHeader 
                 activeDateFilter={activeDateFilter}
                 setActiveDateFilter={setActiveDateFilter}
                 setShowFilterCalendarModal={setShowFilterCalendarModal}
+                selectedCategoryFilter={selectedCategoryFilter}
+                setSelectedCategoryFilter={setSelectedCategoryFilter}
                 setStatusFilter={setStatusFilter}
                 setPartySearchTerm={setPartySearchTerm}
                 upcomingDates={upcomingDates}
@@ -1367,7 +1268,6 @@ function SynaxisContent() {
                 statusFilter={statusFilter}
               />
 
-              {/* 파티 카드 피드 목록 */}
               <div className="space-y-5 min-w-0">
                 {filteredParties.length === 0 ? (
                   <div className="text-center py-20 text-[var(--text-sub)] font-bold text-xs sm:text-sm bg-[var(--inner-box)] rounded-2xl border border-[var(--panel-border)]">
@@ -1386,6 +1286,10 @@ function SynaxisContent() {
                         onLeaveClick={(p) => handleLeaveParty(p, user?.nickname || user?.username || "한설")}
                         onDeleteClick={(id) => handleDeleteParty(id)}
                         onNextRoundClick={handleNextRound}
+                        onRefresh={() => {
+                          const ownerName = user?.username || user?.nickname || user?.owner || "한설";
+                          fetchData(ownerName);
+                        }}
                         isMasterOrAdmin={isAdmin}
                       />
                     ) : (
@@ -1414,7 +1318,6 @@ function SynaxisContent() {
         </div>
       </div>
 
-      {/* 모바일 FAB 플로팅 버튼 */}
       <button
         type="button"
         onTouchStart={handleFabTouchStart}
@@ -1433,7 +1336,6 @@ function SynaxisContent() {
         <span className="whitespace-nowrap shrink-0">{isMobileFormOpen ? "닫기" : "매칭"}</span>
       </button>
 
-      {/* 희망 시간 초과 자동 감지 연장 팝업 모달 */}
       {timeoutParty && (
         <div className="fixed inset-0 z-[110] bg-black/85 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-[#1c1c1e] border border-amber-500/60 rounded-2xl p-6 max-w-md w-full space-y-4 shadow-2xl animate-in fade-in zoom-in-95">
@@ -1442,7 +1344,7 @@ function SynaxisContent() {
             </div>
             <p className="text-xs text-zinc-300 leading-relaxed">
               [<strong className="text-amber-300">{timeoutParty.content_name}</strong>] 파티의 희망 종료 시간(
-              <strong className="text-amber-300">{timeoutParty.time_end}</strong>)이 경과하였습니다. 파티를 연장하거나 일정을 변경하시겠습니까?
+              <strong className="text-amber-300">{timeoutParty.time_end}</strong>)이 경과하였습니다.
             </p>
 
             <div className="grid grid-cols-2 gap-2 pt-2">
@@ -1475,7 +1377,6 @@ function SynaxisContent() {
         </div>
       )}
 
-      {/* 길드 버스 전용 탑승 모달 */}
       {targetBusParty && (
         <GuildBusJoinModal
           isOpen={isBusModalOpen}
@@ -1487,7 +1388,6 @@ function SynaxisContent() {
         />
       )}
 
-      {/* 모달 관리자 */}
       <PartyModals 
         showSynaxisInfoModal={showSynaxisInfoModal}
         setShowSynaxisInfoModal={setShowSynaxisInfoModal}

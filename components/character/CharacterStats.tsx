@@ -135,7 +135,7 @@ export default function CharacterStats({
       {/* 상단 컨트롤러 레이아웃 */}
       <div className="flex items-center justify-between gap-2 md:gap-4 flex-wrap">
         
-        {/* RED: 뷰 모드 전환 버튼 & 칭호 장착 버튼 */}
+        {/* 뷰 모드 전환 버튼 & 칭호 장착 버튼 */}
         <div className="flex items-center gap-1.5 shrink-0">
           <div className="inline-flex bg-[var(--inner-box)] p-0.5 md:p-1 rounded-lg border border-[var(--panel-border)] gap-0.5 md:gap-1 shadow-inner">
             <button
@@ -180,7 +180,7 @@ export default function CharacterStats({
           </button>
         </div>
 
-        {/* GREEN: 동적 시각 출력 업데이트 박스 */}
+        {/* 동적 시각 출력 업데이트 박스 */}
         <button
           type="button"
           onClick={() => setIsUpdateModalOpen(true)}

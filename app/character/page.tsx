@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "../../lib/supabase";
+import { supabase } from "@/lib/supabase";
 
 import CharacterStats from "@/components/character/CharacterStats";
 import ClassLevelManager from "@/components/character/ClassLevelManager";
@@ -16,7 +16,7 @@ const CATEGORY_THEMES: Record<string, any> = {
   KRATOS: { tags: ['bg-red-500/30 text-red-300 border-red-400', 'bg-red-800/40 text-red-400 border-red-600/80', 'bg-red-950/50 text-red-500 border-red-800/70'] },
   TECHNE: { tags: ['bg-blue-500/30 text-blue-300 border-blue-400', 'bg-blue-800/40 text-blue-400 border-blue-600/80', 'bg-blue-950/50 text-blue-500 border-blue-800/70'] },
   HARMONIA: { tags: ['bg-yellow-500/30 text-yellow-300 border-yellow-400', 'bg-yellow-700/40 text-yellow-400 border-yellow-600/80', 'bg-yellow-900/40 text-yellow-500 border-yellow-800/70'] },
-  PIETAS: { tags: ['bg-emerald-500/30 text-emerald-300 border-emerald-400', 'bg-emerald-800/40 text-emerald-400 border-emerald-600/80', 'bg-emerald-950/50 text-emerald-500 border-emerald-800/70'] }
+  PIETAS: { tags: ['bg-emerald-500/30 text-emerald-300 border-emerald-400', 'bg-emerald-800/40 text-emerald-400 border-emerald-600/80', 'bg-emerald-950/50 text-emerald-800/70'] }
 };
 
 const TOP_TITLES = { 
@@ -74,11 +74,11 @@ export default function CharacterPage() {
 
   const [levels, setLevels] = useState<Record<string, number>>({});
 
-  const [dailyChecks, setDailyChecks] = useState<number[]>([]);
-  const [weeklyChecks, setWeeklyChecks] = useState<number[]>([]);
+  const [dailyChecks, setDailyChecks] = useState<any[]>([]);
+  const [weeklyChecks, setWeeklyChecks] = useState<any[]>([]);
   const [repeatChecks, setRepeatChecks] = useState<Record<number, boolean[]>>({});
-  const [abyssChecks, setAbyssChecks] = useState<number[]>([]);
-  const [raidChecks, setRaidChecks] = useState<number[]>([]);
+  const [abyssChecks, setAbyssChecks] = useState<any[]>([]);
+  const [raidChecks, setRaidChecks] = useState<any[]>([]);
 
   const [tradeProgress, setTradeProgress] = useState<Record<number, number>>({});
   const [tradeCompletedBy, setTradeCompletedBy] = useState<Record<number, string>>({});
@@ -106,10 +106,8 @@ export default function CharacterPage() {
     return 14;
   };
 
-  const blackHoleMax = getBlackHoleMaxCount();
-
   const defaultExtraWeeklyTasks = [
-    { id: 9900, name: "검은 구멍", mobile_name: "검은 구멍", type: "repeat_weekly", max_count: blackHoleMax },
+    { id: 9900, name: "검은 구멍", mobile_name: "검은 구멍", type: "repeat_weekly", max_count: getBlackHoleMaxCount() },
     { id: 9901, name: "소환의 결계", mobile_name: "소환의 결계", type: "repeat_weekly", max_count: 7 },
     { id: 9902, name: "뱅가드 브리치", mobile_name: "뱅가드 브리치", type: "repeat_weekly", max_count: 3 }
   ];
@@ -315,22 +313,59 @@ export default function CharacterPage() {
         if (data.contribution !== undefined && data.contribution !== null) setAccountContribution(data.contribution);
         setLevels(data.levels || {});
         
+        // 1. 일일 숙제 보존
         const dChecks = Array.isArray(data.daily_checks) ? data.daily_checks : [];
-        setDailyChecks(dChecks.map(Number).filter((n: any) => !isNaN(n)));
+        setDailyChecks(dChecks);
         
+        // 2. 주간 숙제 보존
         if (data.weekly_checks && !Array.isArray(data.weekly_checks)) {
-          setWeeklyChecks((data.weekly_checks.normal || []).map(Number).filter((n: any) => !isNaN(n)));
+          setWeeklyChecks(data.weekly_checks.normal || []);
           setRepeatChecks(data.weekly_checks.repeat || {});
         } else if (Array.isArray(data.weekly_checks)) {
-          setWeeklyChecks(data.weekly_checks.map(Number).filter((n: any) => !isNaN(n)));
+          setWeeklyChecks(data.weekly_checks);
           setRepeatChecks({});
         } else {
           setWeeklyChecks([]); setRepeatChecks({});
         }
         
-        const rChecks = Array.isArray(data.raid_checks) ? data.raid_checks.map(Number).filter((n: any) => !isNaN(n)) : [];
-        setAbyssChecks(rChecks.filter((id: number) => contentsList.find((c: any) => c.id === id)?.type === 'abyss'));
-        setRaidChecks(rChecks.filter((id: number) => contentsList.find((c: any) => c.id === id)?.type === 'raid'));
+        // 3. 어비스/레이드 안전 파싱 (길드버스 문자열/객체 호환성 극대화)
+        let rawRaidChecks: any[] = [];
+        if (Array.isArray(data.raid_checks)) {
+          rawRaidChecks = data.raid_checks;
+        } else if (typeof data.raid_checks === 'string') {
+          try {
+            const parsed = JSON.parse(data.raid_checks);
+            if (Array.isArray(parsed)) rawRaidChecks = parsed;
+          } catch (e) {
+            rawRaidChecks = [];
+          }
+        }
+
+        const safeContents = contentsList || [];
+        const loadedAbyss: any[] = [];
+        const loadedRaid: any[] = [];
+
+        rawRaidChecks.forEach((checkItem: any) => {
+          if (checkItem === null || checkItem === undefined) return;
+          
+          let itemStr = "";
+          if (typeof checkItem === "object") {
+            itemStr = String(checkItem.id || checkItem.name || "").toLowerCase();
+          } else {
+            itemStr = String(checkItem).toLowerCase();
+          }
+
+          const matchedContent = safeContents.find((c: any) => String(c.id) === itemStr || (c.name && c.name.toLowerCase().includes(itemStr)));
+
+          if (matchedContent?.type === 'abyss' || itemStr.includes('abyss') || itemStr.includes('어비스')) {
+            loadedAbyss.push(checkItem);
+          } else {
+            loadedRaid.push(checkItem);
+          }
+        });
+
+        setAbyssChecks(loadedAbyss);
+        setRaidChecks(loadedRaid);
         
         const rawTrade = data.trade_checks || {};
         const parsedProgress: Record<number, number> = {};
@@ -382,12 +417,12 @@ export default function CharacterPage() {
       setTimeout(() => {
         isInitialLoad.current = false;
         setSaveToast('idle');
-      }, 100);
+      }, 500);
     }
   };
 
   const saveProgress = async () => {
-    if (!profile.nickname.trim() || !user?.nickname) return;
+    if (isInitialLoad.current || !profile.nickname.trim() || !user?.nickname) return;
     try {
       setSaveToast('saving');
       if (profile.isMain) {
@@ -413,7 +448,7 @@ export default function CharacterPage() {
         life_energy: Number(profile.lifeEnergy) || 0, charm: Number(profile.charm) || 0, contribution: Number(accountContribution) || 0,
         is_main: profile.isMain, levels: levels, 
         daily_checks: dailyChecks, weekly_checks: { normal: weeklyChecks, repeat: repeatChecks },
-        raid_checks: [...abyssChecks, ...raidChecks], trade_checks: tradePayload, updated_at: now
+        raid_checks: Array.from(new Set([...abyssChecks, ...raidChecks])), trade_checks: tradePayload, updated_at: now
       };
       
       await supabase.from('characters').upsert(payload, { onConflict: 'nickname' }); 
@@ -542,8 +577,8 @@ export default function CharacterPage() {
   const handleSmartToggle = (type: string) => {
     if (type === 'daily') {
       const normals = visibleDailyList.filter((t: any) => !t.type?.startsWith('repeat')).map((t: any) => t.id);
-      const isAllChecked = normals.every(id => dailyChecks.includes(id));
-      setDailyChecks(isAllChecked ? [] : normals);
+      const isAllChecked = normals.every(id => dailyChecks.some(c => String(c) === String(id)));
+      setDailyChecks(isAllChecked ? [] : Array.from(new Set([...dailyChecks.filter(c => !normals.some(n => String(n) === String(c))), ...(isAllChecked ? [] : normals)])));
       setRepeatChecks(prev => {
         const next = { ...prev };
         visibleDailyList.filter((t: any) => t.type?.startsWith('repeat')).forEach((t: any) => {
@@ -554,8 +589,8 @@ export default function CharacterPage() {
     }
     if (type === 'weekly') {
       const normals = visibleWeeklyList.filter((t: any) => !t.type?.startsWith('repeat')).map((t: any) => t.id);
-      const isAllChecked = normals.every(id => weeklyChecks.includes(id));
-      setWeeklyChecks(isAllChecked ? [] : normals);
+      const isAllChecked = normals.every(id => weeklyChecks.some(c => String(c) === String(id)));
+      setWeeklyChecks(isAllChecked ? [] : Array.from(new Set([...weeklyChecks.filter(c => !normals.some(n => String(n) === String(c))), ...(isAllChecked ? [] : normals)])));
       setRepeatChecks(prev => {
         const next = { ...prev };
         visibleWeeklyList.filter((t: any) => t.type?.startsWith('repeat')).forEach((t: any) => {
@@ -566,13 +601,13 @@ export default function CharacterPage() {
     }
     if (type === 'abyss') {
       const allIds = abyssList.map((t: any) => t.id);
-      const isAllChecked = allIds.every(id => abyssChecks.includes(id));
-      setAbyssChecks(isAllChecked ? [] : allIds);
+      const isAllChecked = allIds.every(id => abyssChecks.some(c => String(c) === String(id)));
+      setAbyssChecks(isAllChecked ? [] : Array.from(new Set([...abyssChecks.filter(c => !allIds.some(a => String(a) === String(c))), ...(isAllChecked ? [] : allIds)])));
     }
     if (type === 'raid') {
       const allIds = raidList.map((t: any) => t.id);
-      const isAllChecked = allIds.every(id => raidChecks.includes(id));
-      setRaidChecks(isAllChecked ? [] : allIds);
+      const isAllChecked = allIds.every(id => raidChecks.some(c => String(c) === String(id)));
+      setRaidChecks(isAllChecked ? [] : Array.from(new Set([...raidChecks.filter(c => !allIds.some(r => String(r) === String(c))), ...(isAllChecked ? [] : allIds)])));
     }
   };
 
@@ -703,10 +738,10 @@ export default function CharacterPage() {
 
   const earnedTitles = getMyEarnedTitles();
 
-  const isDailyAllChecked = visibleDailyList.filter((t: any) => !t.type?.startsWith('repeat')).every((t: any) => dailyChecks.includes(t.id));
-  const isWeeklyAllChecked = visibleWeeklyList.filter((t: any) => !t.type?.startsWith('repeat')).every((t: any) => weeklyChecks.includes(t.id));
-  const isAbyssAllChecked = abyssList.every((t: any) => abyssChecks.includes(t.id));
-  const isRaidAllChecked = raidList.every((t: any) => raidChecks.includes(t.id));
+  const isDailyAllChecked = visibleDailyList.length > 0 && visibleDailyList.filter((t: any) => !t.type?.startsWith('repeat')).every((t: any) => dailyChecks.some(c => String(c) === String(t.id)));
+  const isWeeklyAllChecked = visibleWeeklyList.length > 0 && visibleWeeklyList.filter((t: any) => !t.type?.startsWith('repeat')).every((t: any) => weeklyChecks.some(c => String(c) === String(t.id)));
+  const isAbyssAllChecked = abyssList.length > 0 && abyssList.every((t: any) => abyssChecks.some(c => String(c) === String(t.id)));
+  const isRaidAllChecked = raidList.length > 0 && raidList.every((t: any) => raidChecks.some(c => String(c) === String(t.id)));
 
   return (
     <div className="max-w-[1400px] mx-auto text-[var(--text-main)] font-sans pb-28 md:pb-16 pt-1 md:pt-4 px-2 md:px-6 relative bg-transparent [-webkit-text-size-adjust:100%]">
@@ -728,7 +763,7 @@ export default function CharacterPage() {
         </div>
       )}
 
-      {/* 캐릭터 등록 및 관리 모달 */}
+      {/* 캐릭터 관리 모달 */}
       <CharacterManageModal
         isOpen={isManageModalOpen}
         onClose={() => setIsManageModalOpen(false)}
@@ -741,12 +776,10 @@ export default function CharacterPage() {
 
       <div className="space-y-3 md:space-y-4">
         
-        {/* 상단 헤더: lg(1024px) 이상에서만 1~2줄 표시, 미만에서는 (i) 버튼으로 자동 전환 */}
+        {/* 상단 헤더 */}
         <header className="relative overflow-hidden rounded-xl bg-[var(--panel)] border border-[var(--panel-border)] py-2.5 px-3 md:py-3.5 md:px-5 shadow-xs">
           <div className="absolute top-0 left-0 w-1.5 h-full bg-[var(--accent)]"></div>
           <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-2 md:gap-4">
-            
-            {/* 타이틀 및 모바일/태블릿 전용 (i) 버튼 */}
             <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap shrink-0">
               <h1 className="text-sm sm:text-base md:text-xl font-black tracking-widest leading-none text-[var(--text-main)] shrink-0">CHRONOS</h1>
               <span className="text-[var(--accent)] text-xs sm:text-sm font-bold tracking-wide leading-none whitespace-nowrap shrink-0">
@@ -762,7 +795,6 @@ export default function CharacterPage() {
               </button>
             </div>
 
-            {/* lg(1024px) 미만에서 (i) 클릭 시 출력되는 안내 창 */}
             {showInfo && (
               <div className="lg:hidden bg-[var(--inner-box)] border border-[var(--panel-border)] p-2.5 rounded-lg w-full text-xs font-bold text-[var(--text-sub)] leading-relaxed animate-in fade-in duration-200">
                 <p>⏳ 시간과 기록의 신, 크로노스.</p>
@@ -770,7 +802,6 @@ export default function CharacterPage() {
               </div>
             )}
             
-            {/* 데스크톱 안내 박스: lg(1024px) 이상 완벽한 1~2줄 보장, 3줄 불가 구조 */}
             <div className="hidden lg:flex flex-1 max-w-2xl border border-[var(--panel-border)] bg-[var(--inner-box)] px-4 py-2 rounded-lg text-xs font-bold text-[var(--text-sub)] flex-col justify-center gap-0.5 shadow-xs shrink-0">
               <div className="flex items-center gap-1.5 whitespace-nowrap">
                 <span>⏳</span>
@@ -780,13 +811,11 @@ export default function CharacterPage() {
                 성역과 함께 성장하는 모든 별들의 기록을 관리하는 곳입니다.
               </div>
             </div>
-
           </div>
         </header>
         
         {/* 수치 스탯 및 캐릭터 선택 영역 */}
         <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-2.5 md:p-4 shadow-xs space-y-3 md:space-y-4">
-          
           <CharacterStats
             statViewMode={statViewMode}
             setStatViewMode={setStatViewMode}
@@ -798,6 +827,8 @@ export default function CharacterPage() {
             updateProfile={updateProfile}
             setAccountContribution={setAccountContribution}
             lastUpdatedAt={lastUpdatedAt}
+            currentOwnerNickname={user?.nickname}
+            equippedTitle={myCharacters.find((c: any) => c.nickname === profile.nickname)?.equipped_title || "EMPTY"}
           />
 
           <CharacterSelector
@@ -813,10 +844,9 @@ export default function CharacterPage() {
             setIsTitleAccordionOpen={setIsTitleAccordionOpen}
             earnedTitles={earnedTitles}
           />
-
         </div>
 
-        {/* 🟡 탭 메뉴: 모서리 라운딩(rounded-lg) 적용 */}
+        {/* 탭 메뉴 */}
         <div className="grid grid-cols-3 md:grid-cols-6 gap-1 md:gap-1.5 bg-[var(--inner-box)] p-1 md:p-1.5 rounded-xl border border-[var(--panel-border)]">
           {[
             { id: 'all', label: 'ALL' },
@@ -843,7 +873,6 @@ export default function CharacterPage() {
 
         {/* 메인 콘텐츠 영역 */}
         <div className="space-y-3 md:space-y-4">
-          
           {(activeTab === 'all' || activeTab === 'weekly_daily' || activeTab === 'abyss_raid') && (
             <ContentChecklist
               activeTab={activeTab}
@@ -916,7 +945,6 @@ export default function CharacterPage() {
               setMinLevel={setMinLevel}
             />
           )}
-
         </div>
 
       </div>
