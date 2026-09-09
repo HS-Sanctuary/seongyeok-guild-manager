@@ -66,7 +66,7 @@ export default function ContentChecklist({
           if (checkStr === String(item.id)) return false;
           if (lowerC === itemName || lowerC === cleanName) return false;
 
-          // 2. 카브락 관련 모든 변형 키 일괄 퍼지 (영문 및 한글 키 포함)
+          // 2. 카브락 관련 모든 변형 키 일괄 퍼지
           if (cleanName.includes("카브락") || cleanName.includes("카브") || itemName.includes("카브락")) {
             if (
               lowerC.includes("cabrak") ||
@@ -93,7 +93,16 @@ export default function ContentChecklist({
             ) return false;
           }
 
-          // 5. 어비스 관련 모든 변형 키 일괄 퍼지
+          // 5. 어비스 개별 및 전체 관련 변형 키 일괄 퍼지
+          if (cleanName.includes("허상") || itemName.includes("허상")) {
+            if (lowerC.includes("abyss_1") || lowerC.includes("illusion") || lowerC.includes("허상")) return false;
+          }
+          if (cleanName.includes("동굴") || itemName.includes("동굴")) {
+            if (lowerC.includes("abyss_2") || lowerC.includes("cave") || lowerC.includes("동굴")) return false;
+          }
+          if (cleanName.includes("물길") || itemName.includes("물길")) {
+            if (lowerC.includes("abyss_3") || lowerC.includes("waterway") || lowerC.includes("물길")) return false;
+          }
           if (cleanName.includes("어비스") || itemName.includes("어비스")) {
             if (
               lowerC.includes("abyss") ||

@@ -29,13 +29,13 @@ export default function PartyFilterHeader({
   upcomingDates,
   datePartyCounts
 }: PartyFilterHeaderProps) {
-  // 한설 님 요청: 오늘, 내일 포함 총 4일치 정보만 노출
-  const displayDates = upcomingDates.slice(0, 4);
+  // 한설 님 요청: 4일치에서 3일치로 조정하여 잘림 현상 완벽 방지 및 레이아웃 여유 공간 확보
+  const displayDates = upcomingDates.slice(0, 3);
 
   return (
     <div className="bg-[var(--inner-box)] p-3.5 sm:p-4 rounded-2xl border border-[var(--panel-border)] space-y-3.5 min-w-0 shadow-sm">
       
-      {/* ──────────────── 최상단: 복원된 헤더 타이틀 ──────────────── */}
+      {/* ──────────────── 최상단: 헤더 타이틀 ──────────────── */}
       <div className="flex items-center justify-between border-b border-[var(--panel-border)]/60 pb-2.5">
         <div className="flex items-center gap-2">
           <span className="text-amber-400 text-sm leading-none">⚔️</span>
@@ -51,7 +51,7 @@ export default function PartyFilterHeader({
       {/* ──────────────── 1행 (상단): 던전 구분 (좌) + 날짜 선택 (우) ──────────────── */}
       <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 min-w-0">
         
-        {/* [1행 좌측] 던전 카테고리 탭 (전체던전 / 어비스 / 레이드) */}
+        {/* [1행 좌측] 던전 카테고리 탭 */}
         <div className="flex items-center gap-1 bg-[var(--panel)] p-1 rounded-xl border border-[var(--panel-border)] shrink-0 self-start md:self-auto">
           {(
             [
@@ -75,9 +75,9 @@ export default function PartyFilterHeader({
           ))}
         </div>
 
-        {/* [1행 우측] 날짜 선택 슬라이더 (4일치 제한) + 캘린더 버튼 */}
-        <div className="flex items-center gap-1.5 min-w-0 flex-1 md:max-w-[420px] justify-end">
-          <div className="flex items-center gap-1 overflow-x-auto custom-scrollbar py-0.5 w-full justify-end">
+        {/* [1행 우측] 날짜 선택 영역 (3일치 제한, 하단 검색창과 동일 390px 너비 대칭 정렬) */}
+        <div className="flex items-center gap-1.5 w-full md:w-[390px] min-w-0 justify-end shrink-0">
+          <div className="flex items-center gap-1 py-0.5 w-full justify-end min-w-0">
             <button
               type="button"
               onClick={() => setActiveDateFilter("전체")}
@@ -122,7 +122,7 @@ export default function PartyFilterHeader({
             })}
           </div>
 
-          {/* 달력 모달 보기 버튼 (삭제 없이 보존) */}
+          {/* 달력 모달 보기 버튼 */}
           <button
             type="button"
             onClick={() => setShowFilterCalendarModal(true)}
@@ -165,8 +165,8 @@ export default function PartyFilterHeader({
           ))}
         </div>
 
-        {/* [2행 우측] 검색창 - 1행 우측과 좌우 너비 대칭 대치 (flex-1 & md:max-w-[420px]) */}
-        <div className="relative flex-1 md:max-w-[420px] min-w-[200px]">
+        {/* [2행 우측] 검색창 - 1행 우측 영역과 1:1 대칭 정렬 (w-full md:w-[390px]) */}
+        <div className="relative w-full md:w-[390px] min-w-0 shrink-0">
           <input
             type="text"
             value={partySearchTerm}

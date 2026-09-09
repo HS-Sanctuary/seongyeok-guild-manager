@@ -75,7 +75,7 @@ export const pickRandomLeader = (members: any[]): string => {
 };
 
 /**
- * 4. 힐러 직군 판별 함수 (힐러, 수도사, 사제 / role === '힐러')
+ * 4. 힐러 직군 판별 함수
  */
 export const isHealerMember = (member: any): boolean => {
   if (!member) return false;
@@ -88,7 +88,7 @@ export const isHealerMember = (member: any): boolean => {
 };
 
 /**
- * 5. 던전 이름 정제 함수 (어비스/레이드 접두사 제거)
+ * 5. 던전 이름 정제 함수
  */
 export const cleanItemName = (name: string): string => {
   if (!name) return "";
@@ -96,7 +96,7 @@ export const cleanItemName = (name: string): string => {
 };
 
 /**
- * 6. 길드 버스 및 크로노스 컨텐츠/숙제 체크 상태 공통 매칭 함수
+ * 6. 길드 버스 및 크로노스 컨텐츠/숙제 체크 상태 공통 매칭 함수 (어비스 3종 호환성 강결합)
  */
 export const isTaskChecked = (checks: any[], item: any, nexusContents: any[] = []): boolean => {
   if (!Array.isArray(checks) || !item) return false;
@@ -167,14 +167,16 @@ export const isTaskChecked = (checks: any[], item: any, nexusContents: any[] = [
     if (cleanName.includes("화석") || cleanName.includes("서큐") || cleanName.includes("서큐버스")) {
       if (lowerVal.includes("succubus") || lowerVal.includes("서큐") || lowerVal.includes("화석")) return true;
     }
+    
+    // 어비스 3종 개별 던전 매핑 강화 (어비스 3종 통합 완료 키 포함)
     if (cleanName.includes("허상")) {
-      if (lowerVal.includes("abyss_1") || lowerVal.includes("illusion") || lowerVal.includes("허상")) return true;
+      if (lowerVal.includes("abyss_1") || lowerVal.includes("illusion") || lowerVal.includes("허상") || lowerVal.includes("abyss_all") || lowerVal.includes("어비스 3종") || lowerVal === "abyss") return true;
     }
     if (cleanName.includes("동굴")) {
-      if (lowerVal.includes("abyss_2") || lowerVal.includes("cave") || lowerVal.includes("동굴")) return true;
+      if (lowerVal.includes("abyss_2") || lowerVal.includes("cave") || lowerVal.includes("동굴") || lowerVal.includes("abyss_all") || lowerVal.includes("어비스 3종") || lowerVal === "abyss") return true;
     }
     if (cleanName.includes("물길")) {
-      if (lowerVal.includes("abyss_3") || lowerVal.includes("waterway") || lowerVal.includes("물길")) return true;
+      if (lowerVal.includes("abyss_3") || lowerVal.includes("waterway") || lowerVal.includes("물길") || lowerVal.includes("abyss_all") || lowerVal.includes("어비스 3종") || lowerVal === "abyss") return true;
     }
 
     return false;

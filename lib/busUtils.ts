@@ -189,7 +189,7 @@ export function assembleBalancedParty(
 }
 
 /**
- * KRONOS 숙제 자동 연동 엔진 (실제 DB 스키마 raid_checks, weekly_checks 완벽 동기화)
+ * KRONOS 숙제 자동 연동 엔진 (일반 매칭 & 길드 버스 공통 적용)
  */
 export async function syncKronosChecklist(
   characterTargets: (string | { id?: any; character_id?: any; character_name?: string; name?: string; nickname?: string })[],
@@ -200,38 +200,42 @@ export async function syncKronosChecklist(
   try {
     if (!characterTargets || characterTargets.length === 0) return true;
 
+    const normName = (contentName || "").trim();
+    const isAbyss = contentType === "abyss" || normName.includes("어비스") || normName.includes("허상") || normName.includes("동굴") || normName.includes("물길");
+    const isRaid = contentType === "raid" || normName.includes("레이드") || normName.includes("카브락") || normName.includes("에이렐") || normName.includes("서큐");
+
     // KRONOS 키 매핑 매트릭스
     let keysToAdd: string[] = [
-      contentName,
-      normalizeContentKeyForKronos(contentName),
+      normName,
+      normalizeContentKeyForKronos(normName),
     ].filter(Boolean) as string[];
 
-    if (contentName.includes("카브락") || contentName.includes("카브")) {
+    if (normName.includes("카브락") || normName.includes("카브")) {
       if (difficulty === "입문") {
-        keysToAdd.push("cabrak_entry", "cabrak_normal", "cabrak_0", "카브락_입문", "raid_cabrak_entry");
+        keysToAdd.push("cabrak_entry", "cabrak_normal", "cabrak_0", "카브락_입문", "raid_cabrak_entry", "카브락");
       } else {
-        keysToAdd.push("cabrak_hard", "cabrak_1", "카브락_어려움", "cabrak", "raid_cabrak_hard");
+        keysToAdd.push("cabrak_hard", "cabrak_1", "카브락_어려움", "cabrak", "raid_cabrak_hard", "카브락");
       }
-    } else if (contentName.includes("에이렐") || contentName.includes("에렐")) {
-      keysToAdd.push("eirel_hard", "에이렐_어려움", "eirel", "raid_eirel_hard");
-    } else if (contentName.includes("서큐") || contentName.includes("서큐버스")) {
+    } else if (normName.includes("에이렐") || normName.includes("에렐")) {
+      keysToAdd.push("eirel_hard", "에이렐_어려움", "eirel", "raid_eirel_hard", "에이렐");
+    } else if (normName.includes("서큐") || normName.includes("서큐버스")) {
       if (difficulty === "매우 어려움") {
-        keysToAdd.push("succubus_very_hard", "서큐_매우어려움", "succubus", "raid_succubus_very_hard");
+        keysToAdd.push("succubus_very_hard", "서큐_매우어려움", "succubus", "raid_succubus_very_hard", "화이트 서큐버스");
       } else {
-        keysToAdd.push("succubus_hard", "서큐_어려움", "succubus", "raid_succubus_hard");
+        keysToAdd.push("succubus_hard", "서큐_어려움", "succubus", "raid_succubus_hard", "화이트 서큐버스");
       }
     }
 
-    if (contentName.includes("어비스") || contentType === "abyss") {
+    if (isAbyss) {
+      // 어비스 3종 전체 및 개별 던전 키 일괄 매핑 (KRONOS 상호 완벽 호환)
       keysToAdd.push(
         "abyss_all", "abyss_1", "abyss_2", "abyss_3", 
         "abyss_entry", "abyss_hard", "abyss_very_hard", 
-        "어비스 3종 (통합)", "어비스"
+        "어비스 3종 (통합)", "어비스 3종", "어비스",
+        "허상의 정박지", "광기의 동굴", "흩어진 물길", 
+        "허상", "동굴", "물길"
       );
     }
-
-    const isRaid = contentType === "raid" || contentName.includes("레이드") || contentName.includes("카브락") || contentName.includes("에이렐") || contentName.includes("서큐");
-    const isAbyss = contentType === "abyss" || contentName.includes("어비스");
 
     // 1. 타겟 캐릭터들의 닉네임 및 ID 수집
     const targetNames = new Set<string>();
@@ -249,7 +253,7 @@ export async function syncKronosChecklist(
       }
     }
 
-    // 2. 실제 존재하는 컬럼(id, nickname, raid_checks, weekly_checks)만 정확히 조회
+    // 2. 캐릭터 데이터 조회
     const { data: allChars, error: fetchError } = await supabase
       .from("characters")
       .select("id, nickname, raid_checks, weekly_checks");
@@ -259,33 +263,34 @@ export async function syncKronosChecklist(
       return false;
     }
 
-    // 3. 자바스크립트 메모리에서 안전하게 매칭
+    // 3. 대상 캐릭터 필터링
     const matchedChars = allChars.filter(c => {
       const cId = c.id;
       const cNick = (c.nickname || "").trim();
-
       if (targetIds.has(cId) || targetIds.has(String(cId))) return true;
       if (cNick && targetNames.has(cNick)) return true;
       return false;
     });
 
-    if (matchedChars.length === 0) {
-      return true;
-    }
+    if (matchedChars.length === 0) return true;
 
-    // 4. 각 매칭된 캐릭터별 체크리스트 병합 및 업데이트 수행 (어비스는 weekly_checks, 레이드는 raid_checks에 저장)
+    // 4. DB 동기화 (KRONOS 캐릭터 페이지 스펙에 맞춰 raid_checks 컬럼에 통합 저장)
     const updatePromises = matchedChars.map(async (charData) => {
       const mergeChecks = (existingData: any) => {
-        const currentList = Array.isArray(existingData) ? existingData : [];
+        let currentList: any[] = [];
+        if (Array.isArray(existingData)) {
+          currentList = existingData;
+        } else if (typeof existingData === "string") {
+          try { currentList = JSON.parse(existingData); } catch (e) { currentList = []; }
+        }
         return Array.from(new Set([...currentList, ...keysToAdd]));
       };
 
       let updatePayload: any = {};
-      if (isRaid) {
+      
+      // KRONOS는 어비스와 레이드 항목 모두 raid_checks 컬럼에 보관 및 로드합니다.
+      if (isRaid || isAbyss) {
         updatePayload.raid_checks = mergeChecks(charData.raid_checks);
-      }
-      if (isAbyss) {
-        updatePayload.weekly_checks = mergeChecks(charData.weekly_checks);
       }
 
       if (Object.keys(updatePayload).length > 0) {

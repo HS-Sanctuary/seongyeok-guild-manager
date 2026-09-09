@@ -1,0 +1,110 @@
+export function timeToMinutes(timeStr: string): number {
+  if (!timeStr) return 0;
+  const [h, m] = timeStr.split(":").map(Number);
+  return h * 60 + m;
+}
+
+export function minutesToTime(mins: number): string {
+  const h = Math.floor(mins / 60) % 24;
+  const m = mins % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+export function isTimeOverlapping(start1: string, end1: string, start2: string, end2: string): boolean {
+  if (!start1 || !end1 || !start2 || !end2) return false;
+  const s1 = timeToMinutes(start1);
+  const e1 = timeToMinutes(end1);
+  const s2 = timeToMinutes(start2);
+  const e2 = timeToMinutes(end2);
+  return !(e1 <= s2 || s1 >= e2);
+}
+
+export function calculateMidpointStartTime(timeRanges: { start: string; end: string }[]): string | null {
+  if (!timeRanges || timeRanges.length === 0) return null;
+  let maxStart = Math.max(...timeRanges.map(r => timeToMinutes(r.start)));
+  let minEnd = Math.min(...timeRanges.map(r => timeToMinutes(r.end)));
+  if (maxStart >= minEnd) return timeRanges[0].start;
+  const midMinutes = Math.floor((maxStart + minEnd) / 2);
+  const roundedMid = Math.round(midMinutes / 15) * 15;
+  return minutesToTime(roundedMid);
+}
+
+export function getTodayString(): string {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+export function normalizeDateStr(dateStr: string): string {
+  if (!dateStr) return "";
+  const clean = dateStr.replace(/\./g, "-").trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(clean)) {
+    return clean;
+  }
+  const mmddMatch = clean.match(/^(\d{1,2})[\/\-](\d{1,2})$/);
+  if (mmddMatch) {
+    const year = new Date().getFullYear();
+    const mm = mmddMatch[1].padStart(2, "0");
+    const dd = mmddMatch[2].padStart(2, "0");
+    return `${year}-${mm}-${dd}`;
+  }
+  return clean;
+}
+
+export function getDayOfWeekKorean(dateStr: string): string {
+  const days = ["일", "월", "화", "수", "목", "금", "토"];
+  const normDate = normalizeDateStr(dateStr);
+  const d = new Date(normDate + "T00:00:00");
+  return isNaN(d.getTime()) ? "월" : days[d.getDay()];
+}
+
+export function getFormattedDateWithDDay(dateStr: string): string {
+  if (!dateStr) return "";
+  const normStr = normalizeDateStr(dateStr);
+  const targetDate = new Date(normStr + "T00:00:00");
+  if (isNaN(targetDate.getTime())) return dateStr;
+
+  const year = targetDate.getFullYear();
+  const month = String(targetDate.getMonth() + 1).padStart(2, "0");
+  const day = String(targetDate.getDate()).padStart(2, "0");
+  const daysOfWeek = ["일", "월", "화", "수", "목", "금", "토"];
+  const dayOfWeek = daysOfWeek[targetDate.getDay()];
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const targetMidnight = new Date(targetDate);
+  targetMidnight.setHours(0, 0, 0, 0);
+
+  const diffTime = targetMidnight.getTime() - today.getTime();
+  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+  let dDayText = "";
+  if (diffDays === 0) dDayText = "[오늘]";
+  else if (diffDays === 1) dDayText = "[내일]";
+  else if (diffDays > 1) dDayText = `[${diffDays}일 후]`;
+  else if (diffDays === -1) dDayText = "[어제]";
+  else dDayText = `[${Math.abs(diffDays)}일 전]`;
+
+  return `${year}.${month}.${day} (${dayOfWeek}) ${dDayText}`;
+}
+
+export function getMabinogiWeekRange(dateStr: string) {
+  const normDate = normalizeDateStr(dateStr);
+  const date = new Date(normDate + "T00:00:00");
+  const day = isNaN(date.getTime()) ? 0 : date.getDay();
+  const diffToThursday = day >= 4 ? day - 4 : 3 + (7 - day);
+  const thursday = new Date(date);
+  thursday.setDate(date.getDate() - diffToThursday);
+  thursday.setHours(0, 0, 0, 0);
+
+  const wednesday = new Date(thursday);
+  wednesday.setDate(thursday.getDate() + 6);
+  wednesday.setHours(23, 59, 59, 999);
+
+  return {
+    start: thursday.toISOString().split("T")[0],
+    end: wednesday.toISOString().split("T")[0]
+  };
+}
