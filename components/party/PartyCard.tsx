@@ -1,13 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import ClassIcon from '@/components/common/ClassIcon';
 import { Party, DIFFICULTY_COLORS } from '@/components/party/types';
-import { getRoleByJob, getShortNickname, parseCP } from '@/lib/busUtils';
-
-const Clock = ({ className }: { className?: string }) => (
-  <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 16"/></svg>
-);
+import { getRoleByJob, parseCP } from '@/lib/busUtils';
+import { formatPartyTimeRange, getDayOfWeekKorean, normalizeDateStr } from '@/lib/partyDateUtils';
 
 const Crown = ({ className }: { className?: string }) => (
   <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11.562 3.266a.5.5 0 0 1 .876 0L15.3 8.87a.5.5 0 0 0 .416.27l6.216.525a.5.5 0 0 1 .288.883l-4.69 4.14a.5.5 0 0 0-.153.472l1.378 6.07a.5.5 0 0 1-.747.543L12.5 18.5a.5.5 0 0 0-.499 0l-5.309 3.273a.5.5 0 0 1-.747-.543l1.378-6.07a.5.5 0 0 0-.153-.472L2.48 10.548a.5.5 0 0 1 .288-.883l6.216-.525a.5.5 0 0 0 .416-.27z"/></svg>
@@ -60,69 +57,153 @@ export default function PartyCard({
     }
   };
 
+  // 1. 파티 시간 범주 및 다음 날 여부 판별
+  const { isNextDay } = formatPartyTimeRange(party.time_start, party.time_end);
+
+  // 2. 파티 일시 디스플레이 양식 생성
+  const rawDate = (party as any).party_date || (party as any).date || (party as any).created_at || '';
+  
+  const { formattedDateRange, formattedSingleDate } = useMemo(() => {
+    if (!rawDate) return { formattedDateRange: '', formattedSingleDate: '날짜 미정' };
+    const norm = normalizeDateStr(rawDate);
+    const d1 = new Date(norm.includes('T') ? norm : `${norm}T00:00:00`);
+    if (isNaN(d1.getTime())) return { formattedDateRange: rawDate, formattedSingleDate: rawDate };
+
+    const m1 = String(d1.getMonth() + 1).padStart(2, '0');
+    const day1 = String(d1.getDate()).padStart(2, '0');
+    const dow1 = getDayOfWeekKorean(norm);
+
+    const shortYear = String(d1.getFullYear()).slice(2);
+    const single = `${shortYear}-${m1}-${day1} (${dow1})`;
+
+    const d2 = new Date(d1);
+    d2.setDate(d2.getDate() + 1);
+    const m2 = String(d2.getMonth() + 1).padStart(2, '0');
+    const day2 = String(d2.getDate()).padStart(2, '0');
+    const dow2 = getDayOfWeekKorean(`${d2.getFullYear()}-${m2}-${day2}`);
+
+    // 같은 달이면 월(Month) 생략하여 '09-11(금) ~ 12(토)'로 단축, 달이 바뀌면 '09-30(화) ~ 10-01(수)' 표기
+    const range = m1 === m2
+      ? `${m1}-${day1}(${dow1}) ~ ${day2}(${dow2})`
+      : `${m1}-${day1}(${dow1}) ~ ${m2}-${day2}(${dow2})`;
+
+    return { formattedDateRange: range, formattedSingleDate: single };
+  }, [rawDate]);
+
+  // 3. 최고 전투력(CP) 파티원 자동 산출 ➔ 파티장(👑) 지정
+  const leaderMemberName = useMemo(() => {
+    if (!party.members || party.members.length === 0) return party.leader_name || '';
+
+    let maxCP = -1;
+    let leaderName = party.members[0]?.character_name || party.members[0]?.name || party.leader_name || '';
+
+    party.members.forEach((m) => {
+      const memName = m.character_name || m.name;
+      const charObj = allCharactersMap[memName] || {};
+      const rawCP = m.combat_power || charObj.combat_power || 0;
+      const cp = parseCP(rawCP);
+
+      if (cp > maxCP) {
+        maxCP = cp;
+        leaderName = memName;
+      }
+    });
+
+    return leaderName;
+  }, [party.members, party.leader_name, allCharactersMap]);
+
   return (
-    <div className="w-full rounded-2xl border border-zinc-700/80 border-t-4 border-t-indigo-500/80 bg-[var(--panel)] p-4 sm:p-5 shadow-[0_10px_30px_rgba(0,0,0,0.8)] transition-all duration-200 hover:border-indigo-400/80 relative overflow-hidden">
+    <div className="w-full rounded-2xl border border-zinc-700/80 border-t-4 border-t-indigo-500/80 bg-[var(--panel)] p-3.5 sm:p-5 shadow-[0_10px_30px_rgba(0,0,0,0.8)] transition-all duration-200 hover:border-indigo-400/80 relative overflow-hidden">
       
       {/* ──────────────── 1. 파티 카드 헤더 ──────────────── */}
-      <div className="-mx-4 -mt-4 sm:-mx-5 sm:-mt-5 p-3.5 sm:p-4 bg-zinc-950/70 border-b border-zinc-800 rounded-t-2xl mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5 flex-wrap min-w-0">
-          <span className={`px-2.5 py-1 rounded-md text-xs font-bold border ${DIFFICULTY_COLORS[party.difficulty] || 'bg-[var(--inner-box)] border-[var(--panel-border)] text-[var(--text-main)]'} shrink-0`}>
-            {party.difficulty}
-          </span>
-          <h3 className="text-base sm:text-lg font-black text-[var(--text-main)] truncate max-w-[200px] sm:max-w-[280px]">
+      <div className="-mx-3.5 -mt-3.5 sm:-mx-5 sm:-mt-5 p-3.5 sm:p-4 bg-zinc-950/90 border-b border-zinc-800 rounded-t-2xl mb-3.5 flex flex-col gap-2">
+        
+        {/* 1열: [난이도 / 유형 뱃지] VS [신청 / 참여 중 / 완료 버튼] */}
+        <div className="flex items-center justify-between gap-2 min-w-0">
+          <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+            <span className={`px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-black border ${DIFFICULTY_COLORS[party.difficulty] || 'bg-zinc-800 border-zinc-700 text-zinc-200'} shrink-0`}>
+              {party.difficulty}
+            </span>
+            <span className="px-1.5 py-0.5 rounded text-[10px] sm:text-[11px] font-bold bg-zinc-900 text-zinc-400 border border-zinc-800 shrink-0">
+              {party.party_type}
+            </span>
+          </div>
+
+          {/* 우측 상단 액션 버튼 그룹 */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            {!isFull && !isJoined && (
+              <button
+                type="button"
+                onClick={() => openJoinPopup(party)}
+                className="px-2.5 sm:px-3 py-1 bg-[var(--accent)] hover:brightness-110 text-[var(--accent-fg)] font-black text-xs sm:text-sm rounded-xl shadow-md transition active:scale-95 cursor-pointer flex items-center gap-1 shrink-0"
+              >
+                <UserPlus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span>신청</span>
+              </button>
+            )}
+
+            {isJoined && (
+              <span className="px-2.5 py-1 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-xs sm:text-sm font-black flex items-center gap-1.5 shrink-0">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                참여 중
+              </span>
+            )}
+
+            {(isJoined || isAdmin) && onCompleteParty && (
+              <button
+                type="button"
+                onClick={() => onCompleteParty(party)}
+                className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm rounded-xl shadow-md transition active:scale-95 cursor-pointer flex items-center gap-1 shrink-0"
+                title="던전 클리어 처리 및 KRONOS 숙제 자동 연동"
+              >
+                <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span>완료</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* 2열: 던전명 단독 행 */}
+        <div className="w-full min-w-0 py-0.5">
+          <h3 className="text-base sm:text-lg md:text-xl font-black text-white whitespace-nowrap overflow-hidden text-ellipsis tracking-tight leading-snug">
             {party.content_name}
           </h3>
-          <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-[var(--inner-box)] text-[var(--text-sub)] border border-[var(--panel-border)] shrink-0">
-            {party.party_type}
-          </span>
         </div>
 
-        {/* 상단 우측: 시간 / 방장 / 파티신청 / 던전 완료 버튼 */}
-        <div className="flex items-center gap-2.5 text-xs text-[var(--text-main)] shrink-0 flex-wrap">
-          <div className="flex items-center gap-1 bg-black/50 px-2.5 py-1 rounded-md border border-white/10">
-            <Clock className="w-3.5 h-3.5 text-[var(--accent)]" />
-            <span className="font-bold">{party.time_start} ~ {party.time_end}</span>
+        {/* 3열: 날짜 & 시간 디스플레이 바 (아이콘 완전 제거 및 fluid clamp 폰트 축소 적용) */}
+        <div className="flex items-center justify-start w-full pt-0.5 min-w-0">
+          <div className="inline-flex items-center gap-1 sm:gap-1.5 bg-black/80 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl border border-zinc-800/80 text-[clamp(9.5px,2.8vw,12px)] sm:text-xs font-mono font-extrabold shadow-sm max-w-full min-w-0 overflow-hidden">
+            {isNextDay ? (
+              <div className="flex items-center gap-1 sm:gap-1.5 font-bold text-white whitespace-nowrap min-w-0 tracking-tighter sm:tracking-normal">
+                <span className="text-[var(--accent)] font-sans font-black">
+                  {formattedDateRange}
+                </span>
+                <span className="text-zinc-600 font-bold shrink-0">|</span>
+                <span className="font-mono font-black text-white">
+                  {party.time_start} ~ {party.time_end}
+                </span>
+                <span className="text-[8.5px] sm:text-[10px] bg-indigo-900/80 text-indigo-200 border border-indigo-500/50 px-1 py-0.2 rounded font-sans shrink-0 font-bold ml-0.5">
+                  🌙 다음 날
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 sm:gap-2 font-bold text-white whitespace-nowrap min-w-0 tracking-tighter sm:tracking-normal">
+                <span className="text-[var(--accent)] font-black">
+                  {formattedSingleDate}
+                </span>
+                <span className="text-zinc-600 font-bold shrink-0">|</span>
+                <span className="font-mono font-black text-white">
+                  {party.time_start} ~ {party.time_end}
+                </span>
+              </div>
+            )}
           </div>
-
-          <div className="flex items-center gap-1 bg-black/50 px-2.5 py-1 rounded-md border border-white/10">
-            <Crown className="w-3.5 h-3.5 text-amber-400" />
-            <span className="font-semibold truncate max-w-[70px]">{getShortNickname(party.leader_name || '방장')}</span>
-          </div>
-
-          {!isFull && !isJoined && (
-            <button
-              type="button"
-              onClick={() => openJoinPopup(party)}
-              className="px-3.5 py-1.5 bg-[var(--accent)] hover:brightness-110 text-[var(--accent-fg)] font-black text-xs rounded-xl shadow-md transition active:scale-95 cursor-pointer flex items-center gap-1"
-            >
-              <UserPlus className="w-3.5 h-3.5" />
-              <span>파티 신청</span>
-            </button>
-          )}
-
-          {isJoined && (
-            <span className="px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-xs font-bold">
-              참여 중
-            </span>
-          )}
-
-          {/* 파티 완료 (클리어) 버튼 - 참여 중이거나 방장/관리자일 때 활성화 */}
-          {(isJoined || isAdmin) && onCompleteParty && (
-            <button
-              type="button"
-              onClick={() => onCompleteParty(party)}
-              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-xl shadow-md transition active:scale-95 cursor-pointer flex items-center gap-1"
-              title="던전 클리어 처리 및 KRONOS 숙제 자동 연동"
-            >
-              <CheckCircle className="w-3.5 h-3.5" />
-              <span>던전 완료</span>
-            </button>
-          )}
         </div>
+
       </div>
 
       {party.sub_content && (
-        <div className="mb-3.5 text-xs text-[var(--text-sub)] bg-[var(--inner-box)] p-2.5 rounded-lg border border-[var(--panel-border)] truncate">
+        <div className="mb-3 text-xs text-[var(--text-sub)] bg-[var(--inner-box)] p-2 rounded-xl border border-[var(--panel-border)] truncate">
           💬 {party.sub_content}
         </div>
       )}
@@ -136,7 +217,7 @@ export default function PartyCard({
             return (
               <div 
                 key={`empty-${index}`} 
-                className="h-[62px] rounded-xl border border-dashed border-[var(--panel-border)] bg-black/10 flex items-center justify-center text-xs text-[var(--text-sub)] font-bold"
+                className="h-[84px] rounded-xl border border-dashed border-zinc-800 bg-black/20 flex items-center justify-center text-xs text-zinc-500 font-bold"
               >
                 빈 슬롯
               </div>
@@ -145,35 +226,64 @@ export default function PartyCard({
 
           const memName = member.character_name || member.name;
           const charObj = allCharactersMap[memName] || {};
-          const shortName = getShortNickname(memName);
           const role = member.role || getRoleByJob(member.job);
           const cp = parseCP(member.combat_power || charObj.combat_power || 0);
           const mr = parseCP(member.magic_resistance || charObj.magic_resistance || 0);
+          const aliasTag = charObj.tempAlias || charObj.alias;
+          
+          // 최고 전투력 파티장 판별
+          const isLeader = memName === leaderMemberName;
+
+          // 닉네임과 애칭이 같으면 애칭 뱃지 노출 안함
+          const showAlias = aliasTag && aliasTag !== memName;
+
+          // 글자 수에 따른 폰트 방어 스케일링
+          const nameLen = memName.length;
+          const fontScaleClass = nameLen > 8 ? "text-[10px] tracking-tighter" : "text-xs font-black";
 
           return (
             <div
               key={`mem-${memName}-${index}`}
-              onClick={() => charObj.nickname && setInspectCharacter(charObj)}
-              className="h-[62px] rounded-xl border border-[var(--panel-border)] bg-[var(--inner-box)] p-2 flex items-center gap-2 relative overflow-hidden transition hover:border-[var(--accent)]/60 cursor-pointer min-w-0"
+              onClick={() => (charObj.nickname || charObj.name) && setInspectCharacter(charObj)}
+              className={`h-[84px] rounded-xl border ${isLeader ? 'border-amber-500/60 bg-amber-950/20' : 'border-zinc-800 bg-zinc-900/60'} p-2.5 flex items-center gap-2.5 relative overflow-hidden transition hover:border-[var(--accent)]/60 cursor-pointer min-w-0 shadow-xs`}
             >
+              {/* 좌측: 직업 초상화 (파티장 👑 미니 뱃지) & 포지션 */}
               <div className="flex flex-col items-center justify-center shrink-0">
-                <div className="w-7 h-7 rounded-lg bg-black/40 border border-white/10 flex items-center justify-center p-0.5">
-                  <ClassIcon className="w-5 h-5 text-[var(--text-main)]" job={member.job} />
+                <div className={`w-8 h-8 rounded-lg bg-black/60 border ${isLeader ? 'border-amber-400 ring-2 ring-amber-500/30' : 'border-white/10'} flex items-center justify-center p-0.5 shadow-inner relative`}>
+                  <ClassIcon className="w-5 h-5 text-white" job={member.job} />
+                  {isLeader && (
+                    <span className="absolute -top-1.5 -right-1.5 bg-amber-500 text-black p-0.5 rounded-full shadow-md leading-none border border-black" title="파티장 (최고 전투력)">
+                      <Crown className="w-2.5 h-2.5 fill-amber-950 text-amber-950" />
+                    </span>
+                  )}
                 </div>
-                <span className="mt-0.5 px-1 py-0.2 text-[9px] font-black rounded bg-black/60 text-[var(--accent)] border border-[var(--accent)]/30 leading-none">
+                <span className={`mt-1 px-1 py-0.2 text-[9px] font-black rounded ${isLeader ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'bg-black/70 text-[var(--accent)] border border-[var(--accent)]/40'} leading-none`}>
                   {role}
                 </span>
               </div>
 
-              <div className="flex-1 min-w-0 flex flex-col justify-center">
-                <div className="text-xs font-black text-[var(--text-main)] truncate leading-tight">
-                  {shortName}
+              {/* 우측: 닉네임 & 스탯 정보 */}
+              <div className="flex-1 min-w-0 flex flex-col justify-between h-full py-0.5">
+                <div className="flex items-center gap-1 min-w-0">
+                  <span className={`text-white truncate leading-tight ${fontScaleClass}`} title={memName}>
+                    {memName}
+                  </span>
+                  {showAlias && (
+                    <span className="text-[9px] font-bold px-1 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0 leading-none">
+                      {aliasTag}
+                    </span>
+                  )}
                 </div>
-                <div className="text-[10px] font-mono font-bold text-amber-400 mt-0.5 leading-none">
-                  전투력 {cp > 0 ? cp.toLocaleString() : "-"}
-                </div>
-                <div className="text-[9px] font-mono text-[var(--text-sub)] mt-0.5 leading-none">
-                  마도저항 {mr > 0 ? mr.toLocaleString() : "-"}
+
+                <div className="flex flex-col gap-0.5 min-w-0">
+                  <div className="flex items-center gap-1 text-amber-300 font-mono font-extrabold text-[10px] sm:text-[11px] whitespace-nowrap leading-none">
+                    <span className="text-[9px] shrink-0 opacity-80">⚔️</span>
+                    <span className="truncate">{cp > 0 ? cp.toLocaleString() : "-"}</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-purple-300 font-mono font-bold text-[9px] sm:text-[10px] whitespace-nowrap leading-none">
+                    <span className="text-[8px] shrink-0 opacity-80">🔮</span>
+                    <span className="truncate">{mr > 0 ? mr.toLocaleString() : "-"}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -181,7 +291,7 @@ export default function PartyCard({
         })}
       </div>
 
-      {/* ──────────────── 3. 하단 탈퇴 & 관리자 파티 강제 삭제 ──────────────── */}
+      {/* ──────────────── 3. 하단 탈퇴 & 강제 삭제 ──────────────── */}
       <div className="flex items-center justify-between gap-2 pt-2 border-t border-[var(--panel-border)] text-xs">
         <div className="flex items-center gap-2 flex-wrap min-w-0">
           {joinedMyChars.map((m, idx) => {
@@ -191,9 +301,9 @@ export default function PartyCard({
                 key={`leave-${cName}-${idx}`}
                 type="button"
                 onClick={() => handleLeaveParty(party, cName)}
-                className="px-2.5 py-1 bg-rose-500/10 text-rose-400 border border-rose-500/30 rounded-lg font-bold hover:bg-rose-500/20 transition cursor-pointer"
+                className="px-2.5 py-1 bg-rose-500/10 text-rose-400 border border-rose-500/30 rounded-lg font-bold hover:bg-rose-500/20 transition cursor-pointer text-[11px]"
               >
-                [{getShortNickname(cName)}] 탈퇴
+                [{cName}] 탈퇴
               </button>
             );
           })}
@@ -204,11 +314,11 @@ export default function PartyCard({
             <button
               type="button"
               onClick={handleForceDelete}
-              className="px-3 py-1 rounded-lg text-xs font-bold bg-rose-950/60 text-rose-300 border border-rose-500/40 hover:bg-rose-900 transition flex items-center gap-1 cursor-pointer"
+              className="px-2.5 py-1 bg-amber-500/10 text-amber-400 border border-amber-500/30 hover:bg-amber-500/20 transition cursor-pointer text-[11px] font-bold rounded-lg flex items-center gap-1"
               title="관리자 권한 파티 강제 삭제"
             >
-              <Trash2 className="w-3.5 h-3.5" />
-              <span>파티 강제 삭제</span>
+              <Trash2 className="w-3 h-3 text-amber-400" />
+              <span>강제 삭제</span>
             </button>
           </div>
         )}

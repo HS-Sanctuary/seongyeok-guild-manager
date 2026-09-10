@@ -93,11 +93,54 @@ export default function PartyCreateForm({
       : "/svgs/contens mark/레이드 마크.svg";
   }, [selectedContent]);
 
-  // 컨텐츠 이름에서 '레이드 - ', '어비스 - ' 중복 접두어 원천 제거
+  // 컨텐츠 이름에서 '레이드 - ', '어비스 - ' 중복 접두어 및 '(통합)' 원천 제거
   const displayContentName = useMemo(() => {
     if (!selectedContent) return "목표 컨텐츠 선택";
-    return selectedContent.name.replace(/^(레이드|어비스)\s*-\s*/, "");
+    return selectedContent.name
+      .replace(/^(레이드|어비스)\s*-\s*/, "")
+      .replace(/\s*\(통합\)/g, "")
+      .trim();
   }, [selectedContent]);
+
+  // 다음 날(자정 이후) 넘어감 판별
+  const isNextDay = useMemo(() => {
+    if (!timeStart || !timeEnd) return false;
+    const [sH, sM] = timeStart.split(":").map(Number);
+    const [eH, eM] = timeEnd.split(":").map(Number);
+    const startMins = sH * 60 + sM;
+    const endMins = eH * 60 + eM;
+    return endMins <= startMins;
+  }, [timeStart, timeEnd]);
+
+  // 단축 연도 표기 (예: 2026-09-12 -> 26-09-12)
+  const displayShortDate = useMemo(() => {
+    if (!selectedDate) return "";
+    return selectedDate.replace(/^\d{4}/, (year) => year.slice(2));
+  }, [selectedDate]);
+
+  // 다음 날 포함 듀얼 날짜 포맷터 (예: 09-10(목) ~ 09-11(금))
+  const formattedDateDisplay = useMemo(() => {
+    if (!selectedDate) return "";
+    if (isNextDay) {
+      const d1 = new Date(selectedDate + "T00:00:00");
+      const d2 = new Date(selectedDate + "T00:00:00");
+      d2.setDate(d2.getDate() + 1);
+
+      const m1 = String(d1.getMonth() + 1).padStart(2, "0");
+      const day1 = String(d1.getDate()).padStart(2, "0");
+      const dow1 = getDayOfWeekKorean(selectedDate);
+
+      const year2 = d2.getFullYear();
+      const m2 = String(d2.getMonth() + 1).padStart(2, "0");
+      const day2 = String(d2.getDate()).padStart(2, "0");
+      const nextDateStr = `${year2}-${m2}-${day2}`;
+      const dow2 = getDayOfWeekKorean(nextDateStr);
+
+      return `${m1}-${day1}(${dow1}) ~ ${m2}-${day2}(${dow2})`;
+    } else {
+      return `${displayShortDate} (${getDayOfWeekKorean(selectedDate)})`;
+    }
+  }, [selectedDate, isNextDay, displayShortDate, getDayOfWeekKorean]);
 
   return (
     <div className="space-y-2.5 w-full min-w-0">
@@ -149,7 +192,7 @@ export default function PartyCreateForm({
         </div>
       </div>
 
-      {/* 3. 목표 컨텐츠 & 난이도 (레이드/어비스 마크 scale 1.15 지정) */}
+      {/* 3. 목표 컨텐츠 & 난이도 & 인원 뱃지 */}
       <div className="w-full min-w-0">
         <button
           type="button"
@@ -161,6 +204,11 @@ export default function PartyCreateForm({
             <span className="text-xs font-black text-[var(--text-main)] group-hover:text-[var(--accent)] transition truncate leading-none">
               {displayContentName}
             </span>
+            {selectedContent && (
+              <span className="text-[10px] font-black px-1.5 py-0.5 rounded-md border border-[var(--panel-border)] bg-[var(--panel)] text-[var(--text-sub)] shrink-0 whitespace-nowrap">
+                {selectedContent.size}인
+              </span>
+            )}
             {selectedDiff && (
               <span
                 className={`text-[10px] font-black px-1.5 py-0.5 rounded-md border shrink-0 whitespace-nowrap ${DIFFICULTY_COLORS[selectedDiff]}`}
@@ -168,10 +216,45 @@ export default function PartyCreateForm({
                 {selectedDiff}
               </span>
             )}
-            {selectedContent && (
-              <span className="text-[10px] text-[var(--text-sub)] font-bold whitespace-nowrap shrink-0 hidden sm:inline">
-                ({selectedContent.size}인 권장)
-              </span>
+          </div>
+          <span className="text-xs text-[var(--text-sub)] group-hover:text-[var(--accent)] transition shrink-0 p-0.5">
+            ⚙️
+          </span>
+        </button>
+      </div>
+
+      {/* 4. 매칭 희망 스케줄 */}
+      <div className="w-full min-w-0">
+        <button
+          type="button"
+          onClick={openScheduleModal}
+          className="w-full bg-[var(--inner-box)] border border-[var(--panel-border)] hover:border-[var(--accent)] rounded-xl px-2.5 py-2 text-left transition flex items-center justify-between gap-1.5 group shadow-xs cursor-pointer min-w-0"
+        >
+          <div className="flex items-center gap-2 min-w-0 truncate text-xs font-black text-[var(--text-main)] leading-none">
+            <MarkIcon src="/svgs/UI mark/달력 마크.svg" size="sm" scale={2.10} colorClass="bg-[var(--accent)]" />
+            
+            {isNextDay ? (
+              <div className="flex flex-col gap-1 min-w-0 text-left">
+                <div className="text-[var(--accent)] text-[11px] font-black truncate leading-tight">
+                  {formattedDateDisplay}
+                </div>
+                <div className="text-[var(--text-main)] font-mono text-xs flex items-center gap-1.5 leading-tight">
+                  <span>{timeStart} ~ {timeEnd}</span>
+                  <span className="text-[9px] bg-indigo-900/80 text-indigo-200 border border-indigo-500/50 px-1 py-0.2 rounded font-sans shrink-0 font-bold">
+                    🌙 다음 날
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 min-w-0 truncate">
+                <span className="text-[var(--accent)] whitespace-nowrap shrink-0 flex items-center leading-none">
+                  {displayShortDate} ({getDayOfWeekKorean(selectedDate)})
+                </span>
+                <span className="text-[var(--text-sub)] font-bold shrink-0 flex items-center leading-none opacity-60">|</span>
+                <span className="font-mono truncate flex items-center leading-none translate-y-[0.5px]">
+                  {timeStart} ~ {timeEnd}
+                </span>
+              </div>
             )}
           </div>
           <span className="text-xs text-[var(--text-sub)] group-hover:text-[var(--accent)] transition shrink-0 p-0.5">
@@ -180,30 +263,7 @@ export default function PartyCreateForm({
         </button>
       </div>
 
-      {/* 4. 매칭 희망 스케줄 (달력 마크 scale 2.10 지정) */}
-      <div className="w-full min-w-0">
-        <button
-          type="button"
-          onClick={openScheduleModal}
-          className="w-full bg-[var(--inner-box)] border border-[var(--panel-border)] hover:border-[var(--accent)] rounded-xl px-2.5 py-2 text-left transition flex items-center justify-between gap-1.5 group shadow-xs cursor-pointer min-w-0"
-        >
-          <div className="flex items-center gap-1.5 min-w-0 truncate text-xs font-black text-[var(--text-main)] leading-none">
-            <MarkIcon src="/svgs/UI mark/달력 마크.svg" size="sm" scale={2.10} colorClass="bg-[var(--accent)]" />
-            <span className="text-[var(--accent)] whitespace-nowrap shrink-0 flex items-center leading-none">
-              {selectedDate} ({getDayOfWeekKorean(selectedDate)})
-            </span>
-            <span className="text-[var(--text-sub)] font-bold shrink-0 flex items-center leading-none opacity-60">|</span>
-            <span className="font-mono truncate flex items-center leading-none translate-y-[0.5px]">
-              {timeStart} ~ {timeEnd}
-            </span>
-          </div>
-          <span className="text-xs text-[var(--text-sub)] group-hover:text-[var(--accent)] transition shrink-0 p-0.5">
-            ⚙️
-          </span>
-        </button>
-      </div>
-
-      {/* 5. 파티 스타일 & 매칭 전략 (전투력 scale 1.52, 도감 scale 3.3 지정) */}
+      {/* 5. 파티 스타일 & 매칭 전략 */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full min-w-0">
         {/* 파티 스타일 */}
         <div className="space-y-1 w-full min-w-0">

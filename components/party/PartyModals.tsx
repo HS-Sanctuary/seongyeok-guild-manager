@@ -2,6 +2,8 @@
 
 import { useState, useMemo, useRef, useEffect } from "react";
 import ClassIcon from "@/components/common/ClassIcon";
+import MarkIcon from "@/components/common/MarkIcon";
+import CustomTimePicker from "@/components/party/CustomTimePicker";
 import { CONTENT_DB, ContentItem, Party } from "@/components/party/types";
 
 export interface BusCharSelectionConfig {
@@ -12,6 +14,14 @@ export interface BusCharSelectionConfig {
 export function generateDefaultBusMemo(content: ContentItem, diff: string): string {
   return `"성역 길드 버스" [${content.name} ${diff}]`;
 }
+
+// "어비스 - ", "레이드 - " 접두사 및 "(통합)" 문구 제거 헬퍼 함수
+const cleanContentName = (name: string) => {
+  return name
+    .replace(/^(어비스|레이드)\s*-\s*/, "")
+    .replace(/\s*\(통합\)/g, "")
+    .trim();
+};
 
 interface PartyModalsProps {
   showSynaxisInfoModal: boolean;
@@ -88,7 +98,6 @@ interface PartyModalsProps {
 export default function PartyModals(props: PartyModalsProps) {
   const [busActiveTab, setBusActiveTab] = useState<"SETTINGS" | "CHARACTERS">("CHARACTERS");
 
-  // ──────────────── 캘린더 모달 제스처 및 주 단위 슬라이딩 상태 ────────────────
   const [viewAnchorDate, setViewAnchorDate] = useState<Date>(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
@@ -103,7 +112,35 @@ export default function PartyModals(props: PartyModalsProps) {
   const wheelAccumulator = useRef<number>(0);
   const lastWheelTime = useRef<number>(0);
 
-  // 1. 모달 활성화 시 메인 바디 스크롤 완전 차단 (Body Scroll Lock)
+  // 컨텐츠 목록 2열 그리드 분류
+  const abyssContents = useMemo(() => {
+    return CONTENT_DB.filter((c) => c.category === "어비스");
+  }, []);
+
+  const raidContents = useMemo(() => {
+    return CONTENT_DB.filter((c) => c.category === "레이드");
+  }, []);
+
+  // 스케줄 설정 모달 내 다음 날 상태 및 다음 날 날짜 계산
+  const isScheduleNextDay = useMemo(() => {
+    if (!props.timeStart || !props.timeEnd) return false;
+    const [sH, sM] = props.timeStart.split(":").map(Number);
+    const [eH, eM] = props.timeEnd.split(":").map(Number);
+    const startMins = sH * 60 + sM;
+    const endMins = eH * 60 + eM;
+    return endMins <= startMins;
+  }, [props.timeStart, props.timeEnd]);
+
+  const nextDayDateStr = useMemo(() => {
+    if (!props.selectedDate) return "";
+    const d = new Date(props.selectedDate + "T00:00:00");
+    d.setDate(d.getDate() + 1);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }, [props.selectedDate]);
+
   useEffect(() => {
     if (props.showFilterCalendarModal) {
       const originalOverflow = document.body.style.overflow;
@@ -118,7 +155,6 @@ export default function PartyModals(props: PartyModalsProps) {
     }
   }, [props.showFilterCalendarModal]);
 
-  // 주(Week) 단위 이동 (7일씩 이동)
   const shiftWeeks = (weekDelta: number) => {
     setViewAnchorDate((prev) => {
       const next = new Date(prev);
@@ -127,18 +163,15 @@ export default function PartyModals(props: PartyModalsProps) {
     });
   };
 
-  // 2. 고감도 & 부드러운 휠 스크롤 및 배경 스크롤 이동 차단 Native Listener
   useEffect(() => {
     const modalEl = modalContainerRef.current;
     if (!modalEl || !props.showFilterCalendarModal) return;
 
     const handleNativeWheel = (e: WheelEvent) => {
-      // 배경 페이지로 전달되는 스크롤 이벤트 차단
       e.preventDefault();
       e.stopPropagation();
 
       const now = Date.now();
-      // 150ms 이상 입력이 끊기면 누적치 초기화
       if (now - lastWheelTime.current > 150) {
         wheelAccumulator.current = 0;
       }
@@ -146,7 +179,6 @@ export default function PartyModals(props: PartyModalsProps) {
 
       wheelAccumulator.current += e.deltaY;
 
-      // 기존 대비 1/3 적은 스크롤(Delta 30)로도 민첩하게 반응
       const THRESHOLD = 30;
 
       if (wheelAccumulator.current >= THRESHOLD) {
@@ -162,7 +194,6 @@ export default function PartyModals(props: PartyModalsProps) {
       e.preventDefault();
     };
 
-    // passive: false 지정을 통해 e.preventDefault() 활성화
     modalEl.addEventListener("wheel", handleNativeWheel, { passive: false });
     modalEl.addEventListener("touchmove", handleNativeTouchMove, { passive: false });
 
@@ -186,7 +217,6 @@ export default function PartyModals(props: PartyModalsProps) {
     touchStartY.current = null;
   };
 
-  // 해당 날짜의 일요일(Week Start)을 구하는 헬퍼
   const getSundayOfWeek = (d: Date) => {
     const date = new Date(d);
     const day = date.getDay();
@@ -195,7 +225,6 @@ export default function PartyModals(props: PartyModalsProps) {
     return date;
   };
 
-  // 5주(35일) 윈도우 달력 그리드 계산
   const gridStartDate = useMemo(() => {
     return getSundayOfWeek(viewAnchorDate);
   }, [viewAnchorDate]);
@@ -211,7 +240,6 @@ export default function PartyModals(props: PartyModalsProps) {
     return days;
   }, [gridStartDate]);
 
-  // 상단 년도 및 월 범위 표기 로직 (예: 2026년 10~11월)
   const headerTitle = useMemo(() => {
     if (calendarGridDays.length === 0) {
       return { yearText: "2026년", monthText: "9월", startYear: 2026, startMonth: 9 };
@@ -239,7 +267,6 @@ export default function PartyModals(props: PartyModalsProps) {
     return { yearText, monthText, startYear, startMonth };
   }, [calendarGridDays]);
 
-  // 모집중 파티 수 카운트 연동
   const recruitingPartiesCount = useMemo(() => {
     const partiesList = props.parties || [];
     const fromParties = partiesList.filter((p) =>
@@ -252,7 +279,6 @@ export default function PartyModals(props: PartyModalsProps) {
     return Math.max(fromParties, fromCounts);
   }, [props.parties, props.datePartyCounts]);
 
-  // 완료 및 진행중 파티 집계
   const totalCompletedCount = useMemo(() => {
     const partiesList = props.parties || [];
     const busList = props.guildBuses || [];
@@ -326,7 +352,6 @@ export default function PartyModals(props: PartyModalsProps) {
     });
   };
 
-  // 오늘 날짜 YYYY-MM-DD
   const todayStr = useMemo(() => {
     const now = new Date();
     const y = now.getFullYear();
@@ -339,8 +364,14 @@ export default function PartyModals(props: PartyModalsProps) {
     <>
       {/* 1. SYNAXIS 안내 모달 */}
       {props.showSynaxisInfoModal && (
-        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl p-5 sm:p-6 max-w-md w-full space-y-4 shadow-2xl animate-in fade-in zoom-in-95">
+        <div 
+          className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 cursor-pointer"
+          onClick={() => props.setShowSynaxisInfoModal(false)}
+        >
+          <div 
+            className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl p-5 sm:p-6 max-w-md w-full space-y-4 shadow-2xl animate-in fade-in zoom-in-95 cursor-default"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex justify-between items-center border-b border-[var(--panel-border)] pb-3">
               <h3 className="font-black text-base sm:text-lg text-[var(--accent)] flex items-center gap-2">
                 <span>🏛️</span> SYNAXIS 시스템 안내
@@ -374,8 +405,14 @@ export default function PartyModals(props: PartyModalsProps) {
 
       {/* 2. 가이드 모달 */}
       {props.showLoreGuide && (
-        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl p-6 max-w-lg w-full space-y-4 shadow-2xl animate-in fade-in zoom-in-95">
+        <div 
+          className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 cursor-pointer"
+          onClick={() => props.setShowLoreGuide(false)}
+        >
+          <div 
+            className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl p-6 max-w-lg w-full space-y-4 shadow-2xl animate-in fade-in zoom-in-95 cursor-default"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex justify-between items-center border-b border-[var(--panel-border)] pb-3">
               <h3 className="font-black text-base text-[var(--accent)] flex items-center gap-2">
                 <span>📖</span> 매칭 가이드
@@ -402,86 +439,222 @@ export default function PartyModals(props: PartyModalsProps) {
         </div>
       )}
 
-      {/* 3. 목표 컨텐츠 선택 모달 */}
+      {/* 3. 목표 컨텐츠 선택 모달 (독립 미리보기 바 탑재 및 (통합) 문구 완전 삭제) */}
       {props.showContentModal && (
-        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl p-5 sm:p-6 max-w-md w-full space-y-4 shadow-2xl animate-in fade-in zoom-in-95">
-            <div className="flex justify-between items-center border-b border-[var(--panel-border)] pb-3">
-              <h3 className="font-black text-sm sm:text-base text-[var(--text-main)]">목표 컨텐츠 선택</h3>
+        <div 
+          className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 cursor-pointer"
+          onClick={() => props.setShowContentModal(false)}
+        >
+          <div 
+            className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl p-4 sm:p-5 max-w-lg w-full space-y-3 shadow-2xl animate-in fade-in zoom-in-95 cursor-default max-h-[85vh] flex flex-col overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header (여신상 마크 SVG 적용) */}
+            <div className="flex justify-between items-center border-b border-[var(--panel-border)] pb-3 shrink-0">
+              <h3 className="font-black text-sm sm:text-base text-[var(--text-main)] flex items-center gap-2">
+                <MarkIcon src="/svgs/contens mark/여신상 마크.svg" size="sm" scale={1.8} colorClass="bg-[var(--accent)]" />
+                <span>목표 컨텐츠 선택</span>
+              </h3>
               <button onClick={() => props.setShowContentModal(false)} className="text-[var(--text-sub)] hover:text-white font-bold cursor-pointer">✕</button>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 p-1 bg-[var(--inner-box)] rounded-xl border border-[var(--panel-border)]">
-              {(["어비스", "레이드"] as const).map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => {
-                    props.setTempContentCategory(cat);
-                    const first = CONTENT_DB.find((c) => c.category === cat);
-                    if (first) {
-                      props.setTempContent(first);
-                      props.setTempDiff(first.defaultDiff);
-                    }
-                  }}
-                  className={`py-2 text-xs font-black rounded-lg transition cursor-pointer ${
-                    props.tempContentCategory === cat
-                      ? "bg-[var(--accent)] text-[var(--accent-fg)] shadow-sm"
-                      : "text-[var(--text-sub)] hover:text-white"
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
+            {/* Content Selection Grid (2 Columns: Abyss | Raid) */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 grid grid-cols-2 gap-2.5 sm:gap-3.5 min-h-0">
+              
+              {/* 좌측: 어비스 계열 */}
+              <div className="space-y-2 pr-1 sm:pr-2 border-r border-[var(--panel-border)]/70">
+                <div className="flex items-center gap-1.5 pb-1.5 border-b border-[var(--panel-border)] text-xs font-black text-[var(--accent)] sticky top-0 bg-[var(--panel)] z-10">
+                  <MarkIcon src="/svgs/contens mark/어비스 마크.svg" size="sm" scale={1.6} colorClass="bg-[var(--accent)]" />
+                  <span>어비스</span>
+                </div>
+                <div className="space-y-2">
+                  {abyssContents.map((c) => {
+                    const isSelected = props.tempContent.name === c.name;
+                    const displayName = cleanContentName(c.name);
 
-            <div className="space-y-2">
-              <label className="text-[11px] font-black text-[var(--text-sub)]">던전 선택</label>
-              <select
-                value={props.tempContent.name}
-                onChange={(e) => {
-                  const target = CONTENT_DB.find((c) => c.name === e.target.value);
-                  if (target) {
-                    props.setTempContent(target);
-                    props.setTempDiff(target.defaultDiff);
-                  }
-                }}
-                className="w-full bg-[var(--inner-box)] border border-[var(--panel-border)] rounded-xl p-2.5 text-xs font-bold text-[var(--text-main)] outline-none focus:border-[var(--accent)] cursor-pointer"
-              >
-                {CONTENT_DB.filter((c) => c.category === props.tempContentCategory).map((c) => (
-                  <option key={c.name} value={c.name}>{c.name} ({c.size}인)</option>
-                ))}
-              </select>
-            </div>
+                    return (
+                      <div
+                        key={c.name}
+                        className={`rounded-xl overflow-hidden border transition-all duration-200 ${
+                          isSelected
+                            ? "border-[var(--accent)] bg-[var(--inner-box)] shadow-md"
+                            : "border-[var(--panel-border)] bg-[var(--panel)] hover:border-[var(--accent)]/50"
+                        }`}
+                      >
+                        {/* 컨텐츠 선택 버튼 */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            props.setTempContent(c);
+                            props.setTempContentCategory("어비스");
+                            if (props.tempContent.name !== c.name) {
+                              props.setTempDiff(c.defaultDiff);
+                            }
+                          }}
+                          className={`w-full p-2 sm:p-2.5 text-left text-xs font-black transition flex items-center justify-between cursor-pointer ${
+                            isSelected
+                              ? "bg-[var(--accent)] text-[var(--accent-fg)]"
+                              : "bg-[var(--inner-box)] text-[var(--text-main)] hover:bg-[var(--panel-border)]/50"
+                          }`}
+                        >
+                          <span className="truncate">{displayName}</span>
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold shrink-0 ml-1 ${
+                            isSelected ? "bg-black/20 text-[var(--accent-fg)]" : "bg-[var(--panel)] text-[var(--text-sub)]"
+                          }`}>
+                            {c.size}인
+                          </span>
+                        </button>
 
-            <div className="space-y-2">
-              <label className="text-[11px] font-black text-[var(--text-sub)]">난이도 선택</label>
-              <div className="grid grid-cols-3 gap-2">
-                {props.tempContent.diffs.map((d) => (
-                  <button
-                    key={d}
-                    onClick={() => props.setTempDiff(d)}
-                    className={`py-2 text-xs font-black rounded-xl border transition cursor-pointer ${
-                      props.tempDiff === d
-                        ? "bg-[var(--accent)] text-[var(--accent-fg)] border-transparent"
-                        : "bg-[var(--inner-box)] border-[var(--panel-border)] text-[var(--text-sub)] hover:border-[var(--accent)]"
-                    }`}
-                  >
-                    {d}
-                  </button>
-                ))}
+                        {/* 아코디언 패널: 선택된 컨텐츠 전용 난이도 버튼 */}
+                        {isSelected && (
+                          <div className="p-2 sm:p-2.5 bg-[var(--inner-box)]/90 border-t border-[var(--accent)]/30 space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                            <span className="text-[10px] font-black text-[var(--text-sub)] block">
+                              난이도 선택
+                            </span>
+                            <div className="grid grid-cols-2 gap-1.5">
+                              {c.diffs.map((d) => {
+                                const isDiffSelected = props.tempDiff === d;
+                                return (
+                                  <button
+                                    key={d}
+                                    type="button"
+                                    onClick={() => props.setTempDiff(d)}
+                                    className={`py-1.5 px-1 text-[10px] sm:text-[11px] font-black rounded-lg border transition-all cursor-pointer text-center whitespace-nowrap break-keep ${
+                                      isDiffSelected
+                                        ? "bg-[var(--accent)] text-[var(--accent-fg)] border-transparent shadow-xs scale-[1.02]"
+                                        : "bg-[var(--panel)] border-[var(--panel-border)] text-[var(--text-sub)] hover:text-white hover:border-[var(--accent)]/50"
+                                    }`}
+                                  >
+                                    {d}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
+
+              {/* 우측: 레이드 계열 */}
+              <div className="space-y-2 pl-1 sm:pl-2">
+                <div className="flex items-center gap-1.5 pb-1.5 border-b border-[var(--panel-border)] text-xs font-black text-[var(--accent)] sticky top-0 bg-[var(--panel)] z-10">
+                  <MarkIcon src="/svgs/contens mark/레이드 마크.svg" size="sm" scale={1.6} colorClass="bg-[var(--accent)]" />
+                  <span>레이드</span>
+                </div>
+                <div className="space-y-2">
+                  {raidContents.map((c) => {
+                    const isSelected = props.tempContent.name === c.name;
+                    const displayName = cleanContentName(c.name);
+
+                    return (
+                      <div
+                        key={c.name}
+                        className={`rounded-xl overflow-hidden border transition-all duration-200 ${
+                          isSelected
+                            ? "border-[var(--accent)] bg-[var(--inner-box)] shadow-md"
+                            : "border-[var(--panel-border)] bg-[var(--panel)] hover:border-[var(--accent)]/50"
+                        }`}
+                      >
+                        {/* 컨텐츠 선택 버튼 */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            props.setTempContent(c);
+                            props.setTempContentCategory("레이드");
+                            if (props.tempContent.name !== c.name) {
+                              props.setTempDiff(c.defaultDiff);
+                            }
+                          }}
+                          className={`w-full p-2 sm:p-2.5 text-left text-xs font-black transition flex items-center justify-between cursor-pointer ${
+                            isSelected
+                              ? "bg-[var(--accent)] text-[var(--accent-fg)]"
+                              : "bg-[var(--inner-box)] text-[var(--text-main)] hover:bg-[var(--panel-border)]/50"
+                          }`}
+                        >
+                          <span className="truncate">{displayName}</span>
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold shrink-0 ml-1 ${
+                            isSelected ? "bg-black/20 text-[var(--accent-fg)]" : "bg-[var(--panel)] text-[var(--text-sub)]"
+                          }`}>
+                            {c.size}인
+                          </span>
+                        </button>
+
+                        {/* 아코디언 패널: 선택된 컨텐츠 전용 난이도 버튼 */}
+                        {isSelected && (
+                          <div className="p-2 sm:p-2.5 bg-[var(--inner-box)]/90 border-t border-[var(--accent)]/30 space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                            <span className="text-[10px] font-black text-[var(--text-sub)] block">
+                              난이도 선택
+                            </span>
+                            <div className="grid grid-cols-2 gap-1.5">
+                              {c.diffs.map((d) => {
+                                const isDiffSelected = props.tempDiff === d;
+                                return (
+                                  <button
+                                    key={d}
+                                    type="button"
+                                    onClick={() => props.setTempDiff(d)}
+                                    className={`py-1.5 px-1 text-[10px] sm:text-[11px] font-black rounded-lg border transition-all cursor-pointer text-center whitespace-nowrap break-keep ${
+                                      isDiffSelected
+                                        ? "bg-[var(--accent)] text-[var(--accent-fg)] border-transparent shadow-xs scale-[1.02]"
+                                        : "bg-[var(--panel)] border-[var(--panel-border)] text-[var(--text-sub)] hover:text-white hover:border-[var(--accent)]/50"
+                                    }`}
+                                  >
+                                    {d}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
             </div>
 
-            <div className="flex gap-2 pt-2">
+            {/* 실시간 미리보기 바 (파티 개설 폼 카드 스타일 적용) */}
+            <div className="bg-[var(--inner-box)] border border-[var(--panel-border)] p-2.5 rounded-xl flex items-center justify-between gap-2 shrink-0 animate-in fade-in duration-150">
+              <div className="flex items-center gap-2 min-w-0">
+                <MarkIcon 
+                  src={
+                    props.tempContentCategory === "어비스"
+                      ? "/svgs/contens mark/어비스 마크.svg"
+                      : "/svgs/contens mark/레이드 마크.svg"
+                  } 
+                  size="sm" 
+                  scale={1.8} 
+                  colorClass="bg-[var(--accent)]" 
+                />
+                <span className="font-black text-xs sm:text-sm text-[var(--text-main)] truncate">
+                  {cleanContentName(props.tempContent.name)}
+                </span>
+                <span className="px-2 py-0.5 rounded-md bg-[var(--accent)]/15 border border-[var(--accent)]/40 text-[var(--accent)] text-[11px] font-black shrink-0 whitespace-nowrap">
+                  {props.tempDiff}
+                </span>
+              </div>
+              <span className="text-xs font-bold text-[var(--text-sub)] shrink-0">
+                {props.tempContent.size}인
+              </span>
+            </div>
+
+            {/* 하단 액션 버튼 */}
+            <div className="flex gap-2 pt-1 border-t border-[var(--panel-border)] shrink-0">
               <button
+                type="button"
                 onClick={() => props.setShowContentModal(false)}
-                className="flex-1 py-2.5 bg-[var(--inner-box)] border border-[var(--panel-border)] text-[var(--text-sub)] font-bold text-xs rounded-xl cursor-pointer"
+                className="flex-1 py-2.5 bg-[var(--inner-box)] border border-[var(--panel-border)] text-[var(--text-sub)] hover:text-white font-bold text-xs rounded-xl cursor-pointer transition"
               >
                 취소
               </button>
               <button
+                type="button"
                 onClick={props.applyContentModal}
-                className="flex-1 py-2.5 bg-[var(--accent)] text-[var(--accent-fg)] font-black text-xs rounded-xl cursor-pointer shadow-md"
+                className="flex-2 py-2.5 bg-[var(--accent)] text-[var(--accent-fg)] font-black text-xs sm:text-sm rounded-xl cursor-pointer shadow-md hover:brightness-110 transition text-center"
               >
                 적용하기
               </button>
@@ -490,12 +663,22 @@ export default function PartyModals(props: PartyModalsProps) {
         </div>
       )}
 
-      {/* 4. 일시 및 희망 시간 설정 모달 */}
+      {/* 4. 출발 희망 일시 모달 */}
       {props.showScheduleModal && (
-        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl p-5 sm:p-6 max-w-md w-full space-y-4 shadow-2xl animate-in fade-in zoom-in-95">
+        <div 
+          className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 cursor-pointer"
+          onClick={() => props.setShowScheduleModal(false)}
+        >
+          <div 
+            className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl p-5 sm:p-6 max-w-md w-full space-y-4 shadow-2xl animate-in fade-in zoom-in-95 cursor-default"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* 상단 모달 타이틀 */}
             <div className="flex justify-between items-center border-b border-[var(--panel-border)] pb-3">
-              <h3 className="font-black text-sm sm:text-base text-[var(--text-main)]">📅 출발 희망 일시 설정</h3>
+              <h3 className="font-black text-sm sm:text-base text-[var(--text-main)] flex items-center gap-2">
+                <MarkIcon src="/svgs/UI mark/달력 마크.svg" size="sm" scale={1.8} colorClass="bg-[var(--accent)]" />
+                <span>출발 희망 일시 설정</span>
+              </h3>
               <button onClick={() => props.setShowScheduleModal(false)} className="text-[var(--text-sub)] hover:text-white font-bold cursor-pointer">✕</button>
             </div>
 
@@ -532,44 +715,115 @@ export default function PartyModals(props: PartyModalsProps) {
                 <span className="text-sky-400">토</span>
               </div>
 
+              {/* 달력 GRID */}
               <div className="grid grid-cols-7 gap-1">
                 {props.calendarDays.map((d, i) => {
                   if (!d) return <div key={i} className="h-8"></div>;
-                  const isSelected = props.selectedDate === d.dateStr;
+                  
+                  const isStartSelected = props.selectedDate === d.dateStr;
+                  const isNextDaySelected = isScheduleNextDay && nextDayDateStr === d.dateStr;
+
                   return (
                     <button
                       key={i}
                       onClick={() => props.setSelectedDate(d.dateStr)}
-                      className={`h-8 rounded-lg text-xs font-black transition flex items-center justify-center cursor-pointer ${
-                        isSelected
-                          ? "bg-[var(--accent)] text-[var(--accent-fg)] shadow-sm"
+                      className={`h-8 rounded-lg text-xs font-black transition flex flex-col items-center justify-center cursor-pointer relative ${
+                        isStartSelected
+                          ? "bg-[var(--accent)] text-[var(--accent-fg)] shadow-md ring-2 ring-[var(--accent)]/50"
+                          : isNextDaySelected
+                          ? "bg-indigo-900/70 text-indigo-200 border border-indigo-400/80 ring-1 ring-indigo-400/50 shadow-sm"
                           : "hover:bg-[var(--inner-box)] text-[var(--text-main)]"
                       }`}
                     >
-                      {d.day}
+                      <span>{d.day}</span>
+                      {isNextDaySelected && (
+                        <span className="absolute -top-1 -right-1 text-[8px] bg-indigo-500 text-white rounded-full w-3.5 h-3.5 flex items-center justify-center font-bold shadow-xs">
+                          🌙
+                        </span>
+                      )}
                     </button>
                   );
                 })}
               </div>
 
-              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[var(--panel-border)]">
-                <div>
-                  <label className="text-[10px] font-black text-[var(--text-sub)] block mb-1">희망 시작 시간</label>
-                  <input
-                    type="time"
+              {/* 시간 선택 영역 */}
+              <div className="flex items-center justify-between gap-1 sm:gap-2 pt-3 pb-1 border-t border-[var(--panel-border)] w-full min-w-0">
+                {/* 시작 영역 */}
+                <div className="flex items-center gap-1 flex-1 min-w-0">
+                  <div className="flex items-center gap-1 shrink-0">
+                    <span className="text-sm">⏰</span>
+                    <span className="text-xs font-bold text-[var(--text-sub)]">시작</span>
+                  </div>
+                  <CustomTimePicker
                     value={props.timeStart}
-                    onChange={(e) => props.setTimeStart(e.target.value)}
-                    className="w-full bg-[var(--inner-box)] border border-[var(--panel-border)] rounded-xl p-2 text-xs font-bold text-[var(--text-main)] text-center cursor-pointer"
+                    onChange={props.setTimeStart}
                   />
                 </div>
-                <div>
-                  <label className="text-[10px] font-black text-[var(--text-sub)] block mb-1">희망 종료 시간</label>
-                  <input
-                    type="time"
+
+                {/* 구분자 */}
+                <span className="text-xs font-black text-[var(--text-sub)] shrink-0 px-0.5">~</span>
+
+                {/* 종료 영역 */}
+                <div className="flex items-center gap-1 flex-1 min-w-0">
+                  <span className="text-xs font-bold text-[var(--text-sub)] shrink-0">종료</span>
+                  <CustomTimePicker
                     value={props.timeEnd}
-                    onChange={(e) => props.setTimeEnd(e.target.value)}
-                    className="w-full bg-[var(--inner-box)] border border-[var(--panel-border)] rounded-xl p-2 text-xs font-bold text-[var(--text-main)] text-center cursor-pointer"
+                    onChange={props.setTimeEnd}
+                    badge={
+                      isScheduleNextDay ? (
+                        <span className="px-1 py-0.5 rounded bg-[#1e1b4b] text-indigo-300 border border-indigo-500/40 text-[9px] font-black flex items-center gap-0.5 shrink-0 whitespace-nowrap">
+                          🌙 다음 날
+                        </span>
+                      ) : undefined
+                    }
                   />
+                </div>
+              </div>
+
+              {/* 실시간 미리보기 뷰 */}
+              <div className="bg-[var(--inner-box)] border border-[var(--panel-border)] p-2.5 rounded-xl animate-in fade-in">
+                <div className="flex items-center gap-2 min-w-0 truncate text-xs font-black text-[var(--text-main)] leading-none">
+                  <MarkIcon src="/svgs/UI mark/달력 마크.svg" size="sm" scale={2.10} colorClass="bg-[var(--accent)]" />
+
+                  {isScheduleNextDay ? (
+                    <div className="flex flex-col gap-1 min-w-0 text-left">
+                      <div className="text-[var(--accent)] text-[11px] font-black truncate leading-tight">
+                        {props.selectedDate
+                          ? (() => {
+                              const d1 = new Date(props.selectedDate + "T00:00:00");
+                              const d2 = new Date(props.selectedDate + "T00:00:00");
+                              d2.setDate(d2.getDate() + 1);
+                              const m1 = String(d1.getMonth() + 1).padStart(2, "0");
+                              const day1 = String(d1.getDate()).padStart(2, "0");
+                              const dow1 = props.getDayOfWeekKorean(props.selectedDate);
+                              const y2 = d2.getFullYear();
+                              const m2 = String(d2.getMonth() + 1).padStart(2, "0");
+                              const day2 = String(d2.getDate()).padStart(2, "0");
+                              const nextDateStr = `${y2}-${m2}-${day2}`;
+                              const dow2 = props.getDayOfWeekKorean(nextDateStr);
+                              return `${m1}-${day1}(${dow1}) ~ ${m2}-${day2}(${dow2})`;
+                            })()
+                          : ""
+                        }
+                      </div>
+                      <div className="text-[var(--text-main)] font-mono text-xs flex items-center gap-1.5 leading-tight">
+                        <span>{props.timeStart} ~ {props.timeEnd}</span>
+                        <span className="text-[9px] bg-indigo-900/80 text-indigo-200 border border-indigo-500/50 px-1 py-0.2 rounded font-sans shrink-0 font-bold">
+                          🌙 다음 날
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1.5 min-w-0 truncate">
+                      <span className="text-[var(--accent)] whitespace-nowrap shrink-0 flex items-center leading-none">
+                        {props.selectedDate} ({props.getDayOfWeekKorean(props.selectedDate)})
+                      </span>
+                      <span className="text-[var(--text-sub)] font-bold shrink-0 flex items-center leading-none opacity-60">|</span>
+                      <span className="font-mono truncate flex items-center leading-none translate-y-[0.5px]">
+                        {props.timeStart} ~ {props.timeEnd}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -584,16 +838,19 @@ export default function PartyModals(props: PartyModalsProps) {
         </div>
       )}
 
-      {/* 5. 필터용 달력 모달 (완벽한 월 경계 세로선 & 스크롤 격리 적용) */}
+      {/* 5. 필터용 달력 모달 */}
       {props.showFilterCalendarModal && (
-        <div className="fixed inset-0 z-[150] bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 overscroll-contain">
+        <div 
+          className="fixed inset-0 z-[150] bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 overscroll-contain cursor-pointer"
+          onClick={() => props.setShowFilterCalendarModal(false)}
+        >
           <div
             ref={modalContainerRef}
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
-            className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl w-full max-w-sm p-4 shadow-2xl space-y-3.5 animate-in fade-in zoom-in-95 select-none relative"
+            onClick={(e) => e.stopPropagation()}
+            className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl w-full max-w-sm p-4 shadow-2xl space-y-3.5 animate-in fade-in zoom-in-95 select-none relative cursor-default"
           >
-            {/* 상단 헤더 */}
             <div className="flex justify-between items-center border-b border-[var(--panel-border)] pb-2.5">
               <div className="flex items-center gap-1.5 font-black text-sm text-[var(--text-main)]">
                 <span className="text-base">📅</span>
@@ -639,7 +896,6 @@ export default function PartyModals(props: PartyModalsProps) {
               </div>
             </div>
 
-            {/* 요일 라벨 */}
             <div className="grid grid-cols-7 text-center text-[11px] font-bold text-[var(--text-sub)]">
               <span className="text-red-400">일</span>
               <span>월</span>
@@ -650,7 +906,6 @@ export default function PartyModals(props: PartyModalsProps) {
               <span className="text-blue-400">토</span>
             </div>
 
-            {/* 캘린더 5주 그리드 */}
             <div className="grid grid-cols-7 gap-1">
               {calendarGridDays.map((d) => {
                 const year = d.getFullYear();
@@ -665,7 +920,6 @@ export default function PartyModals(props: PartyModalsProps) {
                 const completedCount = info.completed > 0 ? info.completed : info.total;
                 const hasParty = info.total > 0;
 
-                // 월 경계 판별 로직
                 const isFirstDayOfMonth = d.getDate() === 1;
                 const lastDayOfMonthNum = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
                 const isLastDayOfMonth = d.getDate() === lastDayOfMonthNum;
@@ -686,7 +940,6 @@ export default function PartyModals(props: PartyModalsProps) {
                         : "bg-[var(--inner-box)]/50 text-[var(--text-sub)] hover:text-[var(--text-main)] border border-transparent"
                     }`}
                   >
-                    {/* [한설 님 요청] 1. 각 월의 첫날(1일) 좌측에 빨간 세로 구분선 */}
                     {isFirstDayOfMonth && (
                       <span
                         aria-hidden="true"
@@ -694,7 +947,6 @@ export default function PartyModals(props: PartyModalsProps) {
                       />
                     )}
 
-                    {/* [한설 님 요청] 2. 각 월의 마지막날 우측에 빨간 세로 구분선 */}
                     {isLastDayOfMonth && (
                       <span
                         aria-hidden="true"
@@ -704,7 +956,6 @@ export default function PartyModals(props: PartyModalsProps) {
 
                     <span>{d.getDate()}</span>
 
-                    {/* 카운트 뱃지 */}
                     {hasParty && (
                       <span
                         className={`text-[9px] leading-none font-extrabold px-1 rounded-full ${
@@ -723,7 +974,6 @@ export default function PartyModals(props: PartyModalsProps) {
               })}
             </div>
 
-            {/* 전체 날짜 보기 버튼 */}
             <button
               type="button"
               onClick={() => {
@@ -739,7 +989,6 @@ export default function PartyModals(props: PartyModalsProps) {
               전체 날짜 보기
             </button>
 
-            {/* 하단: 파티 카운트 통계 바 */}
             <div className="pt-1 border-t border-[var(--panel-border)]/80 grid grid-cols-3 gap-1.5 text-center">
               <div className="bg-[var(--inner-box)] p-1.5 rounded-xl border border-emerald-500/20 flex flex-col items-center justify-center">
                 <span className="text-[10px] text-[var(--text-sub)] font-semibold">완료된 파티</span>
@@ -763,7 +1012,6 @@ export default function PartyModals(props: PartyModalsProps) {
               </div>
             </div>
 
-            {/* 조작 안내 팝업 모달 */}
             {showControlInfoModal && (
               <div className="absolute inset-0 bg-black/80 backdrop-blur-xs rounded-2xl flex flex-col items-center justify-center p-4 z-[160] text-center space-y-3">
                 <div className="text-2xl">🖱️📱</div>
@@ -780,7 +1028,6 @@ export default function PartyModals(props: PartyModalsProps) {
               </div>
             )}
 
-            {/* 년도 선택 피커 모달 */}
             {showYearPicker && (
               <div className="absolute inset-0 bg-black/85 backdrop-blur-xs rounded-2xl flex flex-col items-center justify-center p-4 z-[160] space-y-3">
                 <h4 className="text-xs font-black text-[var(--accent)]">연도 선택</h4>
@@ -809,7 +1056,6 @@ export default function PartyModals(props: PartyModalsProps) {
               </div>
             )}
 
-            {/* 월 선택 피커 모달 */}
             {showMonthPicker && (
               <div className="absolute inset-0 bg-black/85 backdrop-blur-xs rounded-2xl flex flex-col items-center justify-center p-4 z-[160] space-y-3">
                 <h4 className="text-xs font-black text-[var(--accent)]">월 선택</h4>
@@ -844,8 +1090,14 @@ export default function PartyModals(props: PartyModalsProps) {
 
       {/* 6. 성역 길드 버스 파티 개설 모달 */}
       {props.showBusCreateModal && (
-        <div className="fixed inset-0 z-[100] bg-black/85 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
-          <div className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl max-w-xl w-full flex flex-col max-h-[90vh] shadow-2xl animate-in fade-in zoom-in-95 overflow-hidden">
+        <div 
+          className="fixed inset-0 z-[100] bg-black/85 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 cursor-pointer"
+          onClick={() => props.setShowBusCreateModal(false)}
+        >
+          <div 
+            className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl max-w-xl w-full flex flex-col max-h-[90vh] shadow-2xl animate-in fade-in zoom-in-95 overflow-hidden cursor-default"
+            onClick={(e) => e.stopPropagation()}
+          >
             
             <div className="flex justify-between items-center px-5 py-4 border-b border-[var(--panel-border)] bg-[var(--inner-box)] shrink-0">
               <div className="flex items-center gap-2">
@@ -1049,24 +1301,16 @@ export default function PartyModals(props: PartyModalsProps) {
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-[11px] font-black text-[var(--text-sub)] block mb-1">시작 시간</label>
-                      <input
-                        type="time"
-                        value={props.busCreateTimeStart}
-                        onChange={(e) => props.setBusCreateTimeStart(e.target.value)}
-                        className="w-full bg-[var(--inner-box)] border border-[var(--panel-border)] rounded-xl p-2.5 text-xs font-bold text-[var(--text-main)] text-center cursor-pointer"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[11px] font-black text-[var(--text-sub)] block mb-1">종료 시간</label>
-                      <input
-                        type="time"
-                        value={props.busCreateTimeEnd}
-                        onChange={(e) => props.setBusCreateTimeEnd(e.target.value)}
-                        className="w-full bg-[var(--inner-box)] border border-[var(--panel-border)] rounded-xl p-2.5 text-xs font-bold text-[var(--text-main)] text-center cursor-pointer"
-                      />
-                    </div>
+                    <CustomTimePicker
+                      label="시작 시간"
+                      value={props.busCreateTimeStart}
+                      onChange={props.setBusCreateTimeStart}
+                    />
+                    <CustomTimePicker
+                      label="종료 시간"
+                      value={props.busCreateTimeEnd}
+                      onChange={props.setBusCreateTimeEnd}
+                    />
                   </div>
 
                   <div>
@@ -1105,8 +1349,14 @@ export default function PartyModals(props: PartyModalsProps) {
 
       {/* 7. 캐릭터 상세 모달 */}
       {props.inspectCharacter && (
-        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl p-5 sm:p-6 max-w-xs w-full space-y-4 shadow-2xl animate-in fade-in zoom-in-95 text-center">
+        <div 
+          className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 cursor-pointer"
+          onClick={() => props.setInspectCharacter(null)}
+        >
+          <div 
+            className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl p-5 sm:p-6 max-w-xs w-full space-y-4 shadow-2xl animate-in fade-in zoom-in-95 text-center cursor-default"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex flex-col items-center gap-2">
               <ClassIcon job={props.inspectCharacter.job} className="w-12 h-12" />
               <h3 className="font-black text-base text-[var(--text-main)]">
@@ -1138,8 +1388,14 @@ export default function PartyModals(props: PartyModalsProps) {
 
       {/* 8. 일반 파티 참여 모달 */}
       {props.joinPopupParty && (
-        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl p-5 sm:p-6 max-w-md w-full space-y-4 shadow-2xl animate-in fade-in zoom-in-95">
+        <div 
+          className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 cursor-pointer"
+          onClick={() => props.setJoinPopupParty(null)}
+        >
+          <div 
+            className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl p-5 sm:p-6 max-w-md w-full space-y-4 shadow-2xl animate-in fade-in zoom-in-95 cursor-default"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex justify-between items-center border-b border-[var(--panel-border)] pb-3">
               <h3 className="font-black text-sm sm:text-base text-[var(--text-main)]">⚔️ 파티 참여 신청</h3>
               <button onClick={() => props.setJoinPopupParty(null)} className="text-[var(--text-sub)] hover:text-white font-bold cursor-pointer">✕</button>

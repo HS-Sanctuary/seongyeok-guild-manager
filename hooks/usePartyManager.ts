@@ -24,6 +24,26 @@ import {
   getMabinogiWeekRange
 } from "@/lib/partyDateUtils";
 
+// 파티의 실질적 종료 Date 객체를 계산하는 정밀 헬퍼 (TS ts(2345) 방어 옵셔널 스펙 반영)
+const getPartyEndDateTime = (partyDateStr?: string, startHM?: string, endHM?: string): Date => {
+  const normDate = normalizeDateStr(partyDateStr || getTodayString());
+  const [eH, eM] = (endHM || "23:59").split(":").map(Number);
+  const [sH, sM] = (startHM || "00:00").split(":").map(Number);
+  
+  const startMins = (isNaN(sH) ? 0 : sH) * 60 + (isNaN(sM) ? 0 : sM);
+  const endMins = (isNaN(eH) ? 23 : eH) * 60 + (isNaN(eM) ? 59 : eM);
+  
+  // 종료 시간이 시작 시간보다 작거나 같으면 다음 날(익일)로 판정
+  const endIsNextDay = endMins <= startMins;
+
+  const d = new Date(normDate + "T00:00:00");
+  if (endIsNextDay) {
+    d.setDate(d.getDate() + 1);
+  }
+  d.setHours(isNaN(eH) ? 23 : eH, isNaN(eM) ? 59 : eM, 0, 0);
+  return d;
+};
+
 export function usePartyManager() {
   const [user, setUser] = useState<any>(null);
   const [mounted, setMounted] = useState(false);
@@ -110,11 +130,10 @@ export function usePartyManager() {
   const [joinTimeEnd, setJoinTimeEnd] = useState<string>("24:00");
   const [inspectCharacter, setInspectCharacter] = useState<any>(null);
 
+  // 타임아웃 검증 로직 (안전한 정밀 타입 검증)
   const checkTimeouts = useCallback((partyList: Party[], ownerName: string) => {
     if (!ownerName) return;
     const now = new Date();
-    const currentHM = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
-    const normToday = normalizeDateStr(getTodayString());
     const currentOwnerMap = ownerAccountMapRef.current;
 
     for (const party of partyList) {
@@ -124,11 +143,10 @@ export function usePartyManager() {
         return memOwner === ownerName || memName === ownerName;
       }) || party.leader_name === ownerName;
 
-      const normPartyDate = normalizeDateStr(party.party_date || normToday);
-      const isPastDate = normPartyDate < normToday;
-      const isPastTime = normPartyDate === normToday && party.time_end && party.time_end < currentHM;
+      // 정밀 종료 일시 계산 (TS undefined 인자 분기 처리 완비)
+      const endDateTime = getPartyEndDateTime(party.party_date, party.time_start, party.time_end);
 
-      if (isMyParty && party.status === "모집중" && (isPastDate || isPastTime)) {
+      if (isMyParty && party.status === "모집중" && now >= endDateTime) {
         setTimeoutParty(party);
         break;
       }
@@ -204,7 +222,8 @@ export function usePartyManager() {
       } else {
         const addMinutes = extensionType === "30M" ? 30 : 60;
         const [h, m] = (party.time_end || "22:00").split(":").map(Number);
-        const endMins = h * 60 + m + addMinutes;
+        let endMins = h * 60 + m + addMinutes;
+        if (endMins >= 1440) endMins -= 1440;
         const newTimeEnd = minutesToTime(endMins);
 
         await supabase.from("parties").update({ time_end: newTimeEnd }).eq("id", party.id);

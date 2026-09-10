@@ -60,20 +60,26 @@ function SynaxisContent() {
           </div>
         </header>
 
-        {/* 모바일 스마트 매칭 등록 토글 버튼 */}
+        {/* 모바일 스마트 매칭 등록 토글 버튼 (접힘 시 하트비트 펄스 애니메이션 적용) */}
         <div className="lg:hidden">
           <button 
             type="button"
             onClick={() => partyManager.setIsMobileFormOpen(!partyManager.isMobileFormOpen)}
-            className={`w-full py-2.5 px-4 rounded-2xl shadow-md transition flex justify-between items-center border active:scale-[0.99] cursor-pointer min-w-0 ${
-              partyManager.isMobileFormOpen ? "bg-[var(--inner-box)] border-[var(--accent)] text-[var(--accent)]" : "bg-[var(--panel)] border-[var(--panel-border)] text-[var(--text-main)]"
+            className={`w-full py-2.5 px-4 rounded-2xl shadow-md transition-all duration-300 flex justify-between items-center border active:scale-[0.99] cursor-pointer min-w-0 ${
+              partyManager.isMobileFormOpen 
+                ? "bg-[var(--inner-box)] border-[var(--accent)] text-[var(--accent)] shadow-[0_0_10px_var(--accent)]/20" 
+                : "bg-[var(--panel)] border-[var(--accent)] text-[var(--text-main)] ring-2 ring-[var(--accent)]/40 animate-pulse shadow-[0_0_15px_var(--accent)]/30"
             }`}
           >
             <span className="flex items-center gap-2 text-xs font-black min-w-0 truncate">
-              <span className="text-sm leading-none shrink-0">✨</span>
-              <span className="truncate">스마트 파티 매칭 등록</span>
+              <span className="text-sm leading-none shrink-0 animate-bounce">✨</span>
+              <span className="truncate text-[var(--accent)] font-black">스마트 파티 매칭 등록</span>
             </span>
-            <span className={`text-[11px] font-black px-2.5 py-0.5 rounded-xl border shrink-0 ${partyManager.isMobileFormOpen ? "bg-[var(--accent)] text-[var(--accent-fg)] border-transparent" : "bg-[var(--inner-box)] border-[var(--panel-border)] text-[var(--accent)]"}`}>
+            <span className={`text-[11px] font-black px-2.5 py-0.5 rounded-xl border shrink-0 transition ${
+              partyManager.isMobileFormOpen 
+                ? "bg-[var(--accent)] text-[var(--accent-fg)] border-transparent" 
+                : "bg-[var(--accent)]/20 text-[var(--accent)] border-[var(--accent)]/60 font-black shadow-xs"
+            }`}>
               {partyManager.isMobileFormOpen ? "닫기" : "열기"}
             </span>
           </button>
