@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
 import ClassIcon from "@/components/common/ClassIcon";
 
 interface BusJoinCharConfig {
@@ -60,32 +60,89 @@ export default function GuildBusJoinModal({
     return Array.from(map.values()) as any[];
   }, [myCharacters]);
 
-  // 🐛 [버그 해결 핵심] 모달 오픈 시 1회만 초기화하도록 useRef 제어
-  const initializedRef = useRef(false);
+  // 🛡️ [완벽 스크롤 차단] html/body 이중 오버플로우 고정 & 휠 이벤트 전파 가로채기
+  useEffect(() => {
+    if (!isOpen) return;
 
+    const originalBodyOverflow = document.body.style.overflow;
+    const originalHtmlOverflow = document.documentElement.style.overflow;
+    const originalBodyTouchAction = document.body.style.touchAction;
+
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.touchAction = "none";
+
+    const handleWheel = (e: WheelEvent) => {
+      const target = e.target as HTMLElement;
+      const scrollableEl = target.closest(".overflow-y-auto, .overflow-auto") as HTMLElement | null;
+
+      if (!scrollableEl) {
+        e.preventDefault();
+      } else {
+        const isScrollAtTop = scrollableEl.scrollTop <= 0 && e.deltaY < 0;
+        const isScrollAtBottom =
+          scrollableEl.scrollTop + scrollableEl.clientHeight >= scrollableEl.scrollHeight - 1 && e.deltaY > 0;
+        if (isScrollAtTop || isScrollAtBottom) {
+          e.preventDefault();
+        }
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      const target = e.target as HTMLElement;
+      const scrollableEl = target.closest(".overflow-y-auto, .overflow-auto");
+      if (!scrollableEl) {
+        e.preventDefault();
+      }
+    };
+
+    window.addEventListener("wheel", handleWheel, { passive: false });
+    window.addEventListener("touchmove", handleTouchMove, { passive: false });
+
+    return () => {
+      document.body.style.overflow = originalBodyOverflow;
+      document.documentElement.style.overflow = originalHtmlOverflow;
+      document.body.style.touchAction = originalBodyTouchAction;
+      window.removeEventListener("wheel", handleWheel);
+      window.removeEventListener("touchmove", handleTouchMove);
+    };
+  }, [isOpen]);
+
+  // 🔑 [상태 보존] 모달 닫힘 후 재개설 시에도 기존 사용자의 선택 체크 및 설정 정보 유지
   useEffect(() => {
     if (isOpen) {
-      if (!initializedRef.current) {
-        setGlobalTimeStart(busTimeStart);
-        setGlobalTimeEnd(busTimeEnd);
-        const initial: Record<string, BusJoinCharConfig> = {};
-        uniqueCharacters.forEach((c, idx) => {
-          const charKey = c.nickname || c.name || String(c.id);
-          if (!charKey) return;
-          initial[charKey] = {
-            selected: idx === 0,
-            allowRepeat: true,
-            timeStart: busTimeStart,
-            timeEnd: busTimeEnd,
-          };
-        });
-        setSelections(initial);
-        initializedRef.current = true;
-      }
-    } else {
-      initializedRef.current = false;
+      setSelections((prev) => {
+        if (Object.keys(prev).length === 0) {
+          const initial: Record<string, BusJoinCharConfig> = {};
+          uniqueCharacters.forEach((c, idx) => {
+            const charKey = c.nickname || c.name || String(c.id);
+            if (!charKey) return;
+            initial[charKey] = {
+              selected: idx === 0,
+              allowRepeat: true,
+              timeStart: busTimeStart,
+              timeEnd: busTimeEnd,
+            };
+          });
+          return initial;
+        } else {
+          const updated = { ...prev };
+          uniqueCharacters.forEach((c) => {
+            const charKey = c.nickname || c.name || String(c.id);
+            if (charKey && !updated[charKey]) {
+              updated[charKey] = {
+                selected: false,
+                allowRepeat: true,
+                timeStart: busTimeStart,
+                timeEnd: busTimeEnd,
+              };
+            }
+          });
+          return updated;
+        }
+      });
     }
-  }, [isOpen, busTimeStart, busTimeEnd, uniqueCharacters.length]);
+  }, [isOpen, busTimeStart, busTimeEnd, uniqueCharacters]);
 
   if (!isOpen) return null;
 
@@ -146,8 +203,14 @@ export default function GuildBusJoinModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[110] bg-black/85 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 select-none">
-      <div className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl max-w-xl w-full flex flex-col max-h-[90vh] shadow-2xl animate-in fade-in zoom-in-95 overflow-hidden">
+    <div 
+      className="fixed inset-0 z-[110] bg-black/85 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 select-none cursor-pointer overscroll-none"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl max-w-xl w-full flex flex-col max-h-[90vh] shadow-2xl animate-in fade-in zoom-in-95 overflow-hidden cursor-default"
+        onClick={(e) => e.stopPropagation()}
+      >
         
         {/* 모달 헤더 */}
         <div className="flex justify-between items-center px-5 py-4 border-b border-[var(--panel-border)] bg-[var(--inner-box)] shrink-0">
@@ -193,7 +256,6 @@ export default function GuildBusJoinModal({
               <span className="text-[var(--accent)] font-black">{busTimeStart} ~ {busTimeEnd}</span>
             </div>
 
-            {/* 🔑 [수정 포인트] 문구 변경 (파티 가능 시간:) 및 스마트 다크 테마 드롭다운 적용 */}
             <div className="flex items-center gap-1.5 w-full sm:w-auto">
               <span className="text-[11px] font-black text-[var(--accent)] shrink-0">파티 가능 시간:</span>
               <select
@@ -261,7 +323,7 @@ export default function GuildBusJoinModal({
         </div>
 
         {/* 캐릭터 목록 스크롤 영역 */}
-        <div className="p-4 sm:p-5 overflow-y-auto custom-scrollbar flex-1 space-y-2.5">
+        <div className="p-4 sm:p-5 overflow-y-auto custom-scrollbar flex-1 space-y-2.5 overscroll-contain">
           {uniqueCharacters.map((char) => {
             const charKey = char.nickname || char.name || String(char.id);
             if (!charKey) return null;
@@ -305,7 +367,6 @@ export default function GuildBusJoinModal({
                       </span>
                     </div>
 
-                    {/* 🔑 [수정 포인트] 전투력 및 마도저항 스탯 크기 확대 및 배지 디테일 강화 */}
                     <div className="flex items-center gap-2 text-xs sm:text-sm font-extrabold mt-0.5 flex-wrap">
                       <span className="text-[var(--text-main)] bg-[var(--panel)] px-2 py-0.5 rounded-md border border-[var(--panel-border)]">
                         ⚔️ {Number(char.combat_power || 0).toLocaleString()}

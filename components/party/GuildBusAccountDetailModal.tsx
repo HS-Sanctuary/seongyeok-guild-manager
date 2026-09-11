@@ -32,11 +32,59 @@ export default function GuildBusAccountDetailModal({
     };
   }, [isOpen, onClose]);
 
+  // 🛡️ [완벽 스크롤 차단] html/body 이중 오버플로우 고정 & 휠 이벤트 전파 가로채기
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const originalBodyOverflow = document.body.style.overflow;
+    const originalHtmlOverflow = document.documentElement.style.overflow;
+    const originalBodyTouchAction = document.body.style.touchAction;
+
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.touchAction = "none";
+
+    const handleWheel = (e: WheelEvent) => {
+      const target = e.target as HTMLElement;
+      const scrollableEl = target.closest(".overflow-y-auto, .overflow-auto") as HTMLElement | null;
+
+      if (!scrollableEl) {
+        e.preventDefault();
+      } else {
+        const isScrollAtTop = scrollableEl.scrollTop <= 0 && e.deltaY < 0;
+        const isScrollAtBottom =
+          scrollableEl.scrollTop + scrollableEl.clientHeight >= scrollableEl.scrollHeight - 1 && e.deltaY > 0;
+        if (isScrollAtTop || isScrollAtBottom) {
+          e.preventDefault();
+        }
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      const target = e.target as HTMLElement;
+      const scrollableEl = target.closest(".overflow-y-auto, .overflow-auto");
+      if (!scrollableEl) {
+        e.preventDefault();
+      }
+    };
+
+    window.addEventListener("wheel", handleWheel, { passive: false });
+    window.addEventListener("touchmove", handleTouchMove, { passive: false });
+
+    return () => {
+      document.body.style.overflow = originalBodyOverflow;
+      document.documentElement.style.overflow = originalHtmlOverflow;
+      document.body.style.touchAction = originalBodyTouchAction;
+      window.removeEventListener("wheel", handleWheel);
+      window.removeEventListener("touchmove", handleTouchMove);
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 cursor-pointer"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 cursor-pointer overscroll-none"
       onClick={onClose}
     >
       <div 
@@ -64,7 +112,7 @@ export default function GuildBusAccountDetailModal({
         </div>
 
         {/* 캐릭터 상세 스펙 리스트 */}
-        <div className="space-y-3 max-h-[55vh] overflow-y-auto custom-scrollbar pr-1 mb-5">
+        <div className="space-y-3 max-h-[55vh] overflow-y-auto custom-scrollbar pr-1 mb-5 overscroll-contain">
           {characters.map((m, idx) => {
             const charName = (m.name || m.character_name) as string;
             const charObj = allCharactersMap[charName] || m.charObj || {};

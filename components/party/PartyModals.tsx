@@ -141,19 +141,65 @@ export default function PartyModals(props: PartyModalsProps) {
     return `${y}-${m}-${day}`;
   }, [props.selectedDate]);
 
-  useEffect(() => {
-    if (props.showFilterCalendarModal) {
-      const originalOverflow = document.body.style.overflow;
-      const originalTouchAction = document.body.style.touchAction;
-      document.body.style.overflow = "hidden";
-      document.body.style.touchAction = "none";
+  // PartyModals 내 모든 모달의 활성화 상태 통합 감지
+  const isAnyModalOpen = Boolean(
+    props.showSynaxisInfoModal ||
+    props.showLoreGuide ||
+    props.showContentModal ||
+    props.showScheduleModal ||
+    props.showFilterCalendarModal ||
+    props.showBusCreateModal ||
+    props.inspectCharacter ||
+    props.joinPopupParty
+  );
 
-      return () => {
-        document.body.style.overflow = originalOverflow;
-        document.body.style.touchAction = originalTouchAction;
-      };
-    }
-  }, [props.showFilterCalendarModal]);
+  // 완벽 스크롤 차단: html/body 이중 오버플로우 고정 & 휠/터치 이벤트 전파 가로채기
+  useEffect(() => {
+    if (!isAnyModalOpen) return;
+
+    const originalBodyOverflow = document.body.style.overflow;
+    const originalHtmlOverflow = document.documentElement.style.overflow;
+    const originalBodyTouchAction = document.body.style.touchAction;
+
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.touchAction = "none";
+
+    const handleWheel = (e: WheelEvent) => {
+      const target = e.target as HTMLElement;
+      const scrollableEl = target.closest(".overflow-y-auto, .overflow-auto") as HTMLElement | null;
+
+      if (!scrollableEl) {
+        e.preventDefault();
+      } else {
+        const isScrollAtTop = scrollableEl.scrollTop <= 0 && e.deltaY < 0;
+        const isScrollAtBottom =
+          scrollableEl.scrollTop + scrollableEl.clientHeight >= scrollableEl.scrollHeight - 1 && e.deltaY > 0;
+        if (isScrollAtTop || isScrollAtBottom) {
+          e.preventDefault();
+        }
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      const target = e.target as HTMLElement;
+      const scrollableEl = target.closest(".overflow-y-auto, .overflow-auto");
+      if (!scrollableEl) {
+        e.preventDefault();
+      }
+    };
+
+    window.addEventListener("wheel", handleWheel, { passive: false });
+    window.addEventListener("touchmove", handleTouchMove, { passive: false });
+
+    return () => {
+      document.body.style.overflow = originalBodyOverflow;
+      document.documentElement.style.overflow = originalHtmlOverflow;
+      document.body.style.touchAction = originalBodyTouchAction;
+      window.removeEventListener("wheel", handleWheel);
+      window.removeEventListener("touchmove", handleTouchMove);
+    };
+  }, [isAnyModalOpen]);
 
   const shiftWeeks = (weekDelta: number) => {
     setViewAnchorDate((prev) => {
@@ -365,7 +411,7 @@ export default function PartyModals(props: PartyModalsProps) {
       {/* 1. SYNAXIS 안내 모달 */}
       {props.showSynaxisInfoModal && (
         <div 
-          className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 cursor-pointer"
+          className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 cursor-pointer overscroll-none"
           onClick={() => props.setShowSynaxisInfoModal(false)}
         >
           <div 
@@ -406,7 +452,7 @@ export default function PartyModals(props: PartyModalsProps) {
       {/* 2. 가이드 모달 */}
       {props.showLoreGuide && (
         <div 
-          className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 cursor-pointer"
+          className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 cursor-pointer overscroll-none"
           onClick={() => props.setShowLoreGuide(false)}
         >
           <div 
@@ -439,17 +485,16 @@ export default function PartyModals(props: PartyModalsProps) {
         </div>
       )}
 
-      {/* 3. 목표 컨텐츠 선택 모달 (독립 미리보기 바 탑재 및 (통합) 문구 완전 삭제) */}
+      {/* 3. 목표 컨텐츠 선택 모달 */}
       {props.showContentModal && (
         <div 
-          className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 cursor-pointer"
+          className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 cursor-pointer overscroll-none"
           onClick={() => props.setShowContentModal(false)}
         >
           <div 
             className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl p-4 sm:p-5 max-w-lg w-full space-y-3 shadow-2xl animate-in fade-in zoom-in-95 cursor-default max-h-[85vh] flex flex-col overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header (여신상 마크 SVG 적용) */}
             <div className="flex justify-between items-center border-b border-[var(--panel-border)] pb-3 shrink-0">
               <h3 className="font-black text-sm sm:text-base text-[var(--text-main)] flex items-center gap-2">
                 <MarkIcon src="/svgs/contens mark/여신상 마크.svg" size="sm" scale={1.8} colorClass="bg-[var(--accent)]" />
@@ -458,10 +503,7 @@ export default function PartyModals(props: PartyModalsProps) {
               <button onClick={() => props.setShowContentModal(false)} className="text-[var(--text-sub)] hover:text-white font-bold cursor-pointer">✕</button>
             </div>
 
-            {/* Content Selection Grid (2 Columns: Abyss | Raid) */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 grid grid-cols-2 gap-2.5 sm:gap-3.5 min-h-0">
-              
-              {/* 좌측: 어비스 계열 */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 grid grid-cols-2 gap-2.5 sm:gap-3.5 min-h-0 overscroll-contain">
               <div className="space-y-2 pr-1 sm:pr-2 border-r border-[var(--panel-border)]/70">
                 <div className="flex items-center gap-1.5 pb-1.5 border-b border-[var(--panel-border)] text-xs font-black text-[var(--accent)] sticky top-0 bg-[var(--panel)] z-10">
                   <MarkIcon src="/svgs/contens mark/어비스 마크.svg" size="sm" scale={1.6} colorClass="bg-[var(--accent)]" />
@@ -481,7 +523,6 @@ export default function PartyModals(props: PartyModalsProps) {
                             : "border-[var(--panel-border)] bg-[var(--panel)] hover:border-[var(--accent)]/50"
                         }`}
                       >
-                        {/* 컨텐츠 선택 버튼 */}
                         <button
                           type="button"
                           onClick={() => {
@@ -505,7 +546,6 @@ export default function PartyModals(props: PartyModalsProps) {
                           </span>
                         </button>
 
-                        {/* 아코디언 패널: 선택된 컨텐츠 전용 난이도 버튼 */}
                         {isSelected && (
                           <div className="p-2 sm:p-2.5 bg-[var(--inner-box)]/90 border-t border-[var(--accent)]/30 space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
                             <span className="text-[10px] font-black text-[var(--text-sub)] block">
@@ -538,7 +578,6 @@ export default function PartyModals(props: PartyModalsProps) {
                 </div>
               </div>
 
-              {/* 우측: 레이드 계열 */}
               <div className="space-y-2 pl-1 sm:pl-2">
                 <div className="flex items-center gap-1.5 pb-1.5 border-b border-[var(--panel-border)] text-xs font-black text-[var(--accent)] sticky top-0 bg-[var(--panel)] z-10">
                   <MarkIcon src="/svgs/contens mark/레이드 마크.svg" size="sm" scale={1.6} colorClass="bg-[var(--accent)]" />
@@ -558,7 +597,6 @@ export default function PartyModals(props: PartyModalsProps) {
                             : "border-[var(--panel-border)] bg-[var(--panel)] hover:border-[var(--accent)]/50"
                         }`}
                       >
-                        {/* 컨텐츠 선택 버튼 */}
                         <button
                           type="button"
                           onClick={() => {
@@ -582,7 +620,6 @@ export default function PartyModals(props: PartyModalsProps) {
                           </span>
                         </button>
 
-                        {/* 아코디언 패널: 선택된 컨텐츠 전용 난이도 버튼 */}
                         {isSelected && (
                           <div className="p-2 sm:p-2.5 bg-[var(--inner-box)]/90 border-t border-[var(--accent)]/30 space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
                             <span className="text-[10px] font-black text-[var(--text-sub)] block">
@@ -617,7 +654,6 @@ export default function PartyModals(props: PartyModalsProps) {
 
             </div>
 
-            {/* 실시간 미리보기 바 (파티 개설 폼 카드 스타일 적용) */}
             <div className="bg-[var(--inner-box)] border border-[var(--panel-border)] p-2.5 rounded-xl flex items-center justify-between gap-2 shrink-0 animate-in fade-in duration-150">
               <div className="flex items-center gap-2 min-w-0">
                 <MarkIcon 
@@ -642,7 +678,6 @@ export default function PartyModals(props: PartyModalsProps) {
               </span>
             </div>
 
-            {/* 하단 액션 버튼 */}
             <div className="flex gap-2 pt-1 border-t border-[var(--panel-border)] shrink-0">
               <button
                 type="button"
@@ -666,14 +701,13 @@ export default function PartyModals(props: PartyModalsProps) {
       {/* 4. 출발 희망 일시 모달 */}
       {props.showScheduleModal && (
         <div 
-          className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 cursor-pointer"
+          className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 cursor-pointer overscroll-none"
           onClick={() => props.setShowScheduleModal(false)}
         >
           <div 
             className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl p-5 sm:p-6 max-w-md w-full space-y-4 shadow-2xl animate-in fade-in zoom-in-95 cursor-default"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* 상단 모달 타이틀 */}
             <div className="flex justify-between items-center border-b border-[var(--panel-border)] pb-3">
               <h3 className="font-black text-sm sm:text-base text-[var(--text-main)] flex items-center gap-2">
                 <MarkIcon src="/svgs/UI mark/달력 마크.svg" size="sm" scale={1.8} colorClass="bg-[var(--accent)]" />
@@ -715,7 +749,6 @@ export default function PartyModals(props: PartyModalsProps) {
                 <span className="text-sky-400">토</span>
               </div>
 
-              {/* 달력 GRID */}
               <div className="grid grid-cols-7 gap-1">
                 {props.calendarDays.map((d, i) => {
                   if (!d) return <div key={i} className="h-8"></div>;
@@ -746,9 +779,7 @@ export default function PartyModals(props: PartyModalsProps) {
                 })}
               </div>
 
-              {/* 시간 선택 영역 */}
               <div className="flex items-center justify-between gap-1 sm:gap-2 pt-3 pb-1 border-t border-[var(--panel-border)] w-full min-w-0">
-                {/* 시작 영역 */}
                 <div className="flex items-center gap-1 flex-1 min-w-0">
                   <div className="flex items-center gap-1 shrink-0">
                     <span className="text-sm">⏰</span>
@@ -760,10 +791,8 @@ export default function PartyModals(props: PartyModalsProps) {
                   />
                 </div>
 
-                {/* 구분자 */}
                 <span className="text-xs font-black text-[var(--text-sub)] shrink-0 px-0.5">~</span>
 
-                {/* 종료 영역 */}
                 <div className="flex items-center gap-1 flex-1 min-w-0">
                   <span className="text-xs font-bold text-[var(--text-sub)] shrink-0">종료</span>
                   <CustomTimePicker
@@ -780,7 +809,6 @@ export default function PartyModals(props: PartyModalsProps) {
                 </div>
               </div>
 
-              {/* 실시간 미리보기 뷰 */}
               <div className="bg-[var(--inner-box)] border border-[var(--panel-border)] p-2.5 rounded-xl animate-in fade-in">
                 <div className="flex items-center gap-2 min-w-0 truncate text-xs font-black text-[var(--text-main)] leading-none">
                   <MarkIcon src="/svgs/UI mark/달력 마크.svg" size="sm" scale={2.10} colorClass="bg-[var(--accent)]" />
@@ -841,7 +869,7 @@ export default function PartyModals(props: PartyModalsProps) {
       {/* 5. 필터용 달력 모달 */}
       {props.showFilterCalendarModal && (
         <div 
-          className="fixed inset-0 z-[150] bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 overscroll-contain cursor-pointer"
+          className="fixed inset-0 z-[150] bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 overscroll-none cursor-pointer"
           onClick={() => props.setShowFilterCalendarModal(false)}
         >
           <div
@@ -1091,14 +1119,13 @@ export default function PartyModals(props: PartyModalsProps) {
       {/* 6. 성역 길드 버스 파티 개설 모달 */}
       {props.showBusCreateModal && (
         <div 
-          className="fixed inset-0 z-[100] bg-black/85 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 cursor-pointer"
+          className="fixed inset-0 z-[100] bg-black/85 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 cursor-pointer overscroll-none"
           onClick={() => props.setShowBusCreateModal(false)}
         >
           <div 
             className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl max-w-xl w-full flex flex-col max-h-[90vh] shadow-2xl animate-in fade-in zoom-in-95 overflow-hidden cursor-default"
             onClick={(e) => e.stopPropagation()}
           >
-            
             <div className="flex justify-between items-center px-5 py-4 border-b border-[var(--panel-border)] bg-[var(--inner-box)] shrink-0">
               <div className="flex items-center gap-2">
                 <span className="text-xl">🚌</span>
@@ -1140,7 +1167,7 @@ export default function PartyModals(props: PartyModalsProps) {
               </button>
             </div>
 
-            <div className="p-4 sm:p-5 overflow-y-auto custom-scrollbar flex-1 space-y-4">
+            <div className="p-4 sm:p-5 overflow-y-auto custom-scrollbar flex-1 space-y-4 overscroll-contain">
               {busActiveTab === "CHARACTERS" ? (
                 <div className="space-y-3">
                   <div className="bg-[var(--inner-box)] border border-[var(--panel-border)] p-2.5 rounded-xl flex flex-wrap items-center justify-between gap-2 text-xs">
@@ -1350,7 +1377,7 @@ export default function PartyModals(props: PartyModalsProps) {
       {/* 7. 캐릭터 상세 모달 */}
       {props.inspectCharacter && (
         <div 
-          className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 cursor-pointer"
+          className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 cursor-pointer overscroll-none"
           onClick={() => props.setInspectCharacter(null)}
         >
           <div 
@@ -1386,70 +1413,153 @@ export default function PartyModals(props: PartyModalsProps) {
         </div>
       )}
 
-      {/* 8. 일반 파티 참여 모달 */}
+      {/* 8. 일반 파티 참여 신청 모달 (확장 세로비율 & 폰트 크기 증대 & 문구 개선 버전) */}
       {props.joinPopupParty && (
         <div 
-          className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 cursor-pointer"
+          className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 cursor-pointer overscroll-none"
           onClick={() => props.setJoinPopupParty(null)}
         >
           <div 
-            className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl p-5 sm:p-6 max-w-md w-full space-y-4 shadow-2xl animate-in fade-in zoom-in-95 cursor-default"
+            className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl p-5 sm:p-6 max-w-lg w-full space-y-4 shadow-2xl animate-in fade-in zoom-in-95 cursor-default max-h-[90vh] flex flex-col overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex justify-between items-center border-b border-[var(--panel-border)] pb-3">
-              <h3 className="font-black text-sm sm:text-base text-[var(--text-main)]">⚔️ 파티 참여 신청</h3>
-              <button onClick={() => props.setJoinPopupParty(null)} className="text-[var(--text-sub)] hover:text-white font-bold cursor-pointer">✕</button>
+            {/* Header */}
+            <div className="flex justify-between items-center border-b border-[var(--panel-border)] pb-3 shrink-0">
+              <h3 className="font-black text-base sm:text-lg text-[var(--text-main)] flex items-center gap-2">
+                <span className="text-lg">⚔️</span>
+                <span>파티 참여 신청</span>
+              </h3>
+              <button 
+                type="button"
+                onClick={() => props.setJoinPopupParty(null)} 
+                className="text-[var(--text-sub)] hover:text-white font-bold text-lg cursor-pointer p-1"
+              >
+                ✕
+              </button>
             </div>
 
-            <div className="space-y-3">
-              <div>
-                <label className="text-[11px] font-black text-[var(--text-sub)] block mb-1">참여 캐릭터 선택</label>
-                <select
-                  value={props.joinSelectedChar}
-                  onChange={(e) => props.setJoinSelectedChar(e.target.value)}
-                  className="w-full bg-[var(--inner-box)] border border-[var(--panel-border)] rounded-xl p-2.5 text-xs font-bold text-[var(--text-main)] outline-none cursor-pointer"
-                >
-                  {props.myCharacters.map((c) => (
-                    <option key={c.id || c.nickname} value={c.nickname}>{c.nickname} ({c.job})</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="text-[11px] font-black text-[var(--text-sub)] block mb-1">수행 포지션</label>
-                <div className="grid grid-cols-4 gap-2">
-                  {(["탱커", "힐러", "근딜", "원딜"] as const).map((r) => (
-                    <button
-                      key={r}
-                      type="button"
-                      onClick={() => props.setJoinSelectedRole(r)}
-                      className={`py-2 text-xs font-black rounded-xl border transition cursor-pointer ${
-                        props.joinSelectedRole === r
-                          ? "bg-[var(--accent)] text-[var(--accent-fg)] border-transparent"
-                          : "bg-[var(--inner-box)] border-[var(--panel-border)] text-[var(--text-sub)] hover:border-[var(--accent)]"
-                      }`}
-                    >
-                      {r}
-                    </button>
-                  ))}
+            {/* Scrollable Main Area */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar space-y-5 pr-0.5 min-h-0 overscroll-contain">
+              
+              {/* 모집 일정 및 목표 파티 요약 브리핑 카드 (빨간 영역 폰트 스케일 업) */}
+              <div className="bg-[var(--inner-box)] border border-[var(--panel-border)] p-3.5 sm:p-4 rounded-xl space-y-2 text-xs sm:text-sm shrink-0 shadow-xs">
+                <div className="flex items-center justify-between font-black">
+                  <span className="text-[var(--accent)] text-xs sm:text-sm flex items-center gap-2 truncate">
+                    <span className="text-sm sm:text-base">🎯</span>
+                    <span className="truncate">{cleanContentName(props.joinPopupParty.content_name || props.joinPopupParty.sub_content || "목표 컨텐츠")}</span>
+                  </span>
+                  <span className="px-2.5 py-0.5 rounded bg-[var(--accent)]/15 border border-[var(--accent)]/40 text-[var(--accent)] text-xs shrink-0 font-black">
+                    {props.joinPopupParty.difficulty || "난이도"}
+                  </span>
+                </div>
+                
+                {/* 폰트 및 아이콘 시인성 강화 */}
+                <div className="text-[var(--text-main)] font-bold text-xs sm:text-sm flex items-center gap-2 pt-1 border-t border-[var(--panel-border)]/50">
+                  <span className="shrink-0 flex items-center gap-1 text-[var(--text-sub)]">
+                    <span>📅</span>
+                    <span>모집 일정:</span>
+                  </span>
+                  <span className="text-[var(--text-main)] font-extrabold tracking-tight truncate">
+                    {props.joinPopupParty.party_date ? props.joinPopupParty.party_date.slice(2) : "오늘"}
+                    ({props.getDayOfWeekKorean(props.joinPopupParty.party_date || todayStr)})
+                    <span className="text-[var(--text-sub)] font-normal mx-1">|</span>
+                    <span className="font-mono">{props.joinPopupParty.time_start || "18:00"} ~ {props.joinPopupParty.time_end || "00:00"}</span>
+                  </span>
                 </div>
               </div>
+
+              {/* 1. 참여할 캐릭터 선택 (3열 그리드 버튼) */}
+              <div className="space-y-2 min-w-0">
+                <label className="text-xs sm:text-sm font-black text-[var(--text-main)] flex items-center gap-1.5 whitespace-nowrap leading-none">
+                  <MarkIcon src="/svgs/UI mark/사람 마크.svg" size="sm" scale={0.85} colorClass="bg-[var(--accent)]" />
+                  <span className="leading-none">참여할 캐릭터 선택</span>
+                </label>
+                <div className="grid grid-cols-3 gap-2 w-full min-w-0">
+                  {uniqueCharacters.map((char) => {
+                    const charName = char.nickname || char.name;
+                    const jobName = char.job || "전사";
+                    const isSelected = props.joinSelectedChar === charName;
+
+                    return (
+                      <button
+                        key={char.id || charName}
+                        type="button"
+                        onClick={() => props.setJoinSelectedChar(charName)}
+                        className={`text-xs font-black py-2.5 px-1.5 rounded-xl transition cursor-pointer whitespace-nowrap flex items-center justify-center gap-1.5 border overflow-hidden min-w-0 tracking-tight shadow-xs ${
+                          isSelected
+                            ? "bg-[var(--accent)] text-[var(--accent-fg)] border-transparent ring-2 ring-[var(--accent)]/40 font-black shadow-md scale-[1.02]"
+                            : "bg-[var(--inner-box)] border-[var(--panel-border)] text-[var(--text-main)] hover:border-[var(--accent)]"
+                        }`}
+                      >
+                        <ClassIcon job={jobName} className={`w-4 h-4 shrink-0 ${isSelected ? "brightness-200" : ""}`} />
+                        <span className="whitespace-nowrap shrink-0 truncate">{charName}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 2. 플레이 가능 시간 설정 및 안내 문구 (초록 영역 문구 수정) */}
+              <div className="space-y-2 min-w-0 pt-1">
+                <label className="text-xs sm:text-sm font-black text-[var(--text-main)] flex items-center gap-1.5 whitespace-nowrap leading-none">
+                  <MarkIcon src="/svgs/UI mark/달력 마크.svg" size="sm" scale={1.8} colorClass="bg-[var(--accent)]" />
+                  <span className="leading-none">내 플레이 가능 시간 설정</span>
+                </label>
+                
+                <div className="bg-[var(--inner-box)] border border-[var(--panel-border)] p-3.5 sm:p-4 rounded-xl space-y-3">
+                  <div className="flex items-center justify-between gap-1 sm:gap-2 w-full min-w-0">
+                    {/* 시작 시간 Picker */}
+                    <div className="flex items-center gap-1 flex-1 min-w-0">
+                      <div className="flex items-center gap-1 shrink-0">
+                        <span className="text-sm">⏰</span>
+                        <span className="text-xs font-bold text-[var(--text-sub)]">시작</span>
+                      </div>
+                      <CustomTimePicker
+                        value={props.joinTimeStart || "18:00"}
+                        onChange={(val) => props.setTimeStartJoin ? props.setTimeStartJoin(val) : null}
+                      />
+                    </div>
+
+                    <span className="text-xs font-black text-[var(--text-sub)] shrink-0 px-0.5">~</span>
+
+                    {/* 종료 시간 Picker */}
+                    <div className="flex items-center gap-1 flex-1 min-w-0">
+                      <span className="text-xs font-bold text-[var(--text-sub)] shrink-0">종료</span>
+                      <CustomTimePicker
+                        value={props.joinTimeEnd || "00:00"}
+                        onChange={(val) => props.setTimeEndJoin ? props.setTimeEndJoin(val) : null}
+                      />
+                    </div>
+                  </div>
+
+                  {/* 초록 영역 요청 문구 수정 반영 */}
+                  <div className="flex items-center gap-1.5 text-xs text-[var(--text-sub)] bg-[var(--panel)]/70 p-2.5 rounded-lg border border-[var(--panel-border)]/60 leading-relaxed font-bold">
+                    <span className="text-amber-400 shrink-0">💡</span>
+                    <span>참여한 파티원들의 출발 시간을 계산해 시스템이 정해줍니다.</span>
+                  </div>
+                </div>
+              </div>
+
             </div>
 
-            <div className="flex gap-2 pt-2">
+            {/* Bottom Actions */}
+            <div className="flex gap-2 pt-3 border-t border-[var(--panel-border)] shrink-0">
               <button
+                type="button"
                 onClick={() => props.setJoinPopupParty(null)}
-                className="flex-1 py-2.5 bg-[var(--inner-box)] border border-[var(--panel-border)] text-[var(--text-sub)] font-bold text-xs rounded-xl cursor-pointer"
+                className="flex-1 py-3 bg-[var(--inner-box)] border border-[var(--panel-border)] text-[var(--text-sub)] hover:text-white font-bold text-xs sm:text-sm rounded-xl cursor-pointer transition text-center"
               >
                 취소
               </button>
               <button
+                type="button"
                 onClick={props.executeJoinParty}
-                className="flex-1 py-2.5 bg-[var(--accent)] text-[var(--accent-fg)] font-black text-xs rounded-xl cursor-pointer shadow-md"
+                className="flex-2 py-3 bg-[var(--accent)] text-[var(--accent-fg)] font-black text-xs sm:text-sm rounded-xl cursor-pointer shadow-md hover:brightness-110 transition text-center"
               >
-                참여하기
+                ✨ 파티 참가!
               </button>
             </div>
+
           </div>
         </div>
       )}
