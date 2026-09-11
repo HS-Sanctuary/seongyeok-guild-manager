@@ -3,8 +3,99 @@
 import React, { useMemo } from 'react';
 import ClassIcon from '@/components/common/ClassIcon';
 import { Party, DIFFICULTY_COLORS } from '@/components/party/types';
-import { getRoleByJob, parseCP } from '@/lib/busUtils';
+import { parseCP } from '@/lib/busUtils';
 import { formatPartyTimeRange, getDayOfWeekKorean, normalizeDateStr } from '@/lib/partyDateUtils';
+
+// 🛡️ [직업별 포지션/역할 100% 정교 자동 판별 알고리즘]
+export const getRoleByJob = (job: string): string => {
+  if (!job) return "근딜";
+  const j = job.trim();
+
+  // 1. 탱커
+  if (["빙결술사", "빙결", "대검전사", "수호자", "수호기사", "기사"].some((k) => j.includes(k))) {
+    return "탱커";
+  }
+
+  // 2. 힐러
+  if (["사제", "수도사"].some((k) => j.includes(k))) {
+    return "힐러";
+  }
+
+  // 3. 서포터
+  if (["음유시인", "바드"].some((k) => j.includes(k))) {
+    return "서포터";
+  }
+
+  // 4. 원딜
+  if (
+    [
+      "장궁병",
+      "궁수",
+      "석궁수",
+      "마법사",
+      "원소술사",
+      "화염술사",
+      "전격술사",
+      "연금술사",
+      "총사",
+      "건슬링어",
+    ].some((k) => j.includes(k))
+  ) {
+    return "원딜";
+  }
+
+  // 5. 근딜
+  if (
+    [
+      "도적",
+      "전사",
+      "격투가",
+      "듀얼블레이드",
+      "듀얼블레이더",
+      "듀블",
+      "검사",
+      "창기사",
+      "암살자",
+    ].some((k) => j.includes(k))
+  ) {
+    return "근딜";
+  }
+
+  return "근딜";
+};
+
+// 닉네임 6글자 단위 줄바꿈 및 가변 폰트 처리 헬퍼
+const renderFormattedNickname = (name: string) => {
+  if (!name) return null;
+  const len = name.length;
+
+  // 6글자 이하: 1줄 노출 & 글자수에 따른 가변 폰트
+  if (len <= 6) {
+    const fontSizeClass =
+      len <= 3
+        ? "text-xs sm:text-sm font-black"
+        : len <= 4
+        ? "text-xs font-black"
+        : "text-[10.5px] sm:text-xs font-black tracking-tighter";
+
+    return (
+      <span className={`text-white whitespace-nowrap leading-tight ${fontSizeClass}`} title={name}>
+        {name}
+      </span>
+    );
+  }
+
+  // 6글자 초과 (7~12글자): 6글자씩 나누어 2줄 노출 (생략 부호 차단)
+  const line1 = name.slice(0, 6);
+  const line2 = name.slice(6, 12);
+
+  return (
+    <div className="flex flex-col leading-[1.15] text-[10px] sm:text-[11px] font-black text-white min-w-0" title={name}>
+      <span className="truncate">{line1}</span>
+      <span className="truncate">{line2}</span>
+    </div>
+  );
+};
 
 const Crown = ({ className }: { className?: string }) => (
   <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11.562 3.266a.5.5 0 0 1 .876 0L15.3 8.87a.5.5 0 0 0 .416.27l6.216.525a.5.5 0 0 1 .288.883l-4.69 4.14a.5.5 0 0 0-.153.472l1.378 6.07a.5.5 0 0 1-.747.543L12.5 18.5a.5.5 0 0 0-.499 0l-5.309 3.273a.5.5 0 0 1-.747-.543l1.378-6.07a.5.5 0 0 0-.153-.472L2.48 10.548a.5.5 0 0 1 .288-.883l6.216-.525a.5.5 0 0 0 .416-.27z"/></svg>
@@ -82,7 +173,6 @@ export default function PartyCard({
     const day2 = String(d2.getDate()).padStart(2, '0');
     const dow2 = getDayOfWeekKorean(`${d2.getFullYear()}-${m2}-${day2}`);
 
-    // 같은 달이면 월(Month) 생략하여 '09-11(금) ~ 12(토)'로 단축, 달이 바뀌면 '09-30(화) ~ 10-01(수)' 표기
     const range = m1 === m2
       ? `${m1}-${day1}(${dow1}) ~ ${day2}(${dow2})`
       : `${m1}-${day1}(${dow1}) ~ ${m2}-${day2}(${dow2})`;
@@ -170,7 +260,7 @@ export default function PartyCard({
           </h3>
         </div>
 
-        {/* 3열: 날짜 & 시간 디스플레이 바 (아이콘 완전 제거 및 fluid clamp 폰트 축소 적용) */}
+        {/* 3열: 날짜 & 시간 디스플레이 바 */}
         <div className="flex items-center justify-start w-full pt-0.5 min-w-0">
           <div className="inline-flex items-center gap-1 sm:gap-1.5 bg-black/80 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl border border-zinc-800/80 text-[clamp(9.5px,2.8vw,12px)] sm:text-xs font-mono font-extrabold shadow-sm max-w-full min-w-0 overflow-hidden">
             {isNextDay ? (
@@ -217,7 +307,7 @@ export default function PartyCard({
             return (
               <div 
                 key={`empty-${index}`} 
-                className="h-[84px] rounded-xl border border-dashed border-zinc-800 bg-black/20 flex items-center justify-center text-xs text-zinc-500 font-bold"
+                className="h-[92px] rounded-xl border border-dashed border-zinc-800 bg-black/20 flex items-center justify-center text-xs text-zinc-500 font-bold"
               >
                 빈 슬롯
               </div>
@@ -226,26 +316,22 @@ export default function PartyCard({
 
           const memName = member.character_name || member.name;
           const charObj = allCharactersMap[memName] || {};
-          const role = member.role || getRoleByJob(member.job);
+          
+          // 🛡️ [수정 완료] 캐릭터 직업 기반 5대 포지션(탱/힐/서포터/근딜/원딜) 정교 자동 판별
+          const rawJob = member.job || charObj.job || '';
+          const role = getRoleByJob(rawJob);
+
           const cp = parseCP(member.combat_power || charObj.combat_power || 0);
           const mr = parseCP(member.magic_resistance || charObj.magic_resistance || 0);
-          const aliasTag = charObj.tempAlias || charObj.alias;
           
           // 최고 전투력 파티장 판별
           const isLeader = memName === leaderMemberName;
-
-          // 닉네임과 애칭이 같으면 애칭 뱃지 노출 안함
-          const showAlias = aliasTag && aliasTag !== memName;
-
-          // 글자 수에 따른 폰트 방어 스케일링
-          const nameLen = memName.length;
-          const fontScaleClass = nameLen > 8 ? "text-[10px] tracking-tighter" : "text-xs font-black";
 
           return (
             <div
               key={`mem-${memName}-${index}`}
               onClick={() => (charObj.nickname || charObj.name) && setInspectCharacter(charObj)}
-              className={`h-[84px] rounded-xl border ${isLeader ? 'border-amber-500/60 bg-amber-950/20' : 'border-zinc-800 bg-zinc-900/60'} p-2.5 flex items-center gap-2.5 relative overflow-hidden transition hover:border-[var(--accent)]/60 cursor-pointer min-w-0 shadow-xs`}
+              className={`h-[92px] rounded-xl border ${isLeader ? 'border-amber-500/60 bg-amber-950/20' : 'border-zinc-800 bg-zinc-900/60'} p-2 sm:p-2.5 flex items-center gap-2 relative overflow-hidden transition hover:border-[var(--accent)]/60 cursor-pointer min-w-0 shadow-xs`}
             >
               {/* 좌측: 직업 초상화 (파티장 👑 미니 뱃지) & 포지션 */}
               <div className="flex flex-col items-center justify-center shrink-0">
@@ -257,22 +343,15 @@ export default function PartyCard({
                     </span>
                   )}
                 </div>
-                <span className={`mt-1 px-1 py-0.2 text-[9px] font-black rounded ${isLeader ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'bg-black/70 text-[var(--accent)] border border-[var(--accent)]/40'} leading-none`}>
+                <span className={`mt-1 px-1 py-0.2 text-[9px] font-black rounded ${isLeader ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'bg-black/70 text-[var(--accent)] border border-[var(--accent)]/40'} leading-none whitespace-nowrap`}>
                   {role}
                 </span>
               </div>
 
-              {/* 우측: 닉네임 & 스탯 정보 */}
+              {/* 우측: 닉네임 (가변 폰트/2줄 줄바꿈) & 스탯 정보 */}
               <div className="flex-1 min-w-0 flex flex-col justify-between h-full py-0.5">
-                <div className="flex items-center gap-1 min-w-0">
-                  <span className={`text-white truncate leading-tight ${fontScaleClass}`} title={memName}>
-                    {memName}
-                  </span>
-                  {showAlias && (
-                    <span className="text-[9px] font-bold px-1 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0 leading-none">
-                      {aliasTag}
-                    </span>
-                  )}
+                <div className="min-w-0 flex items-center">
+                  {renderFormattedNickname(memName)}
                 </div>
 
                 <div className="flex flex-col gap-0.5 min-w-0">
