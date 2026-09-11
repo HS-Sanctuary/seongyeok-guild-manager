@@ -144,7 +144,7 @@ export default function PartyCreateForm({
 
   return (
     <div className="space-y-2.5 w-full min-w-0">
-      {/* 1. 상단 타이틀 & 🚌 길드 버스 버튼 */}
+      {/* 1. 상단 타이틀 & 길드 마크 적용된 길드 버스 개설 버튼 */}
       <div className="flex items-center justify-between gap-2 border-b border-[var(--panel-border)] pb-2 min-w-0">
         <h2 className="text-xs font-black text-[var(--accent)] flex items-center gap-1.5 shrink-0 whitespace-nowrap">
           <span>✨</span> 스마트 파티 매칭
@@ -153,10 +153,15 @@ export default function PartyCreateForm({
           <button
             type="button"
             onClick={() => setShowBusCreateModal(true)}
-            className="bg-[var(--inner-box)] border border-amber-500/60 hover:bg-amber-500 hover:text-black text-amber-400 px-2.5 py-1 rounded-lg text-xs font-black shadow-xs transition flex items-center gap-1.5 shrink-0 cursor-pointer whitespace-nowrap"
+            className="group bg-[var(--inner-box)] border border-amber-500/60 hover:bg-amber-500 hover:text-black text-amber-400 px-2.5 py-1 rounded-lg text-xs font-black shadow-xs transition flex items-center gap-1.5 shrink-0 cursor-pointer whitespace-nowrap"
             title="길드 버스 개설"
           >
-            <span>🚌</span>
+            <MarkIcon
+              src="/svgs/UI mark/길드 마크.svg"
+              size="lg"
+              scale={1.4}
+              colorClass="bg-amber-400 group-hover:bg-black"
+            />
             <span>길드 버스</span>
           </button>
         )}

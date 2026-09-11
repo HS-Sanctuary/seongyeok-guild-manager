@@ -173,7 +173,7 @@ export default function PartyFilterHeader({
           >
             <MarkIcon
               src="/svgs/UI mark/달력 마크.svg"
-              size="xs"
+              size="md"
               colorClass="bg-[var(--text-sub)] group-hover:bg-[var(--accent)]"
             />
           </button>
