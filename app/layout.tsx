@@ -58,14 +58,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const [pendingCount, setPendingCount] = useState(0);
   const [banner, setBanner] = useState<any>(null);
 
-  // 헤더 동적 높이 측정
   useEffect(() => {
-    if (headerRef.current) {
-      setHeaderHeight(headerRef.current.offsetHeight);
-    }
-  }, [banner, mounted, fontSizeLevel]);
+    const el = headerRef.current;
+    if (!el) return;
 
-  // 스크롤 감지
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.target) {
+          setHeaderHeight(entry.target.clientHeight);
+        }
+      }
+    });
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [mounted]);
+
   useEffect(() => {
     let ticking = false;
     const handleScroll = () => {
@@ -88,7 +96,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // 외부 클릭 감지
   useEffect(() => {
     const handleGlobalClickOutside = (event: MouseEvent | TouchEvent) => {
       const target = event.target as HTMLElement;
@@ -128,7 +135,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     };
   }, []);
 
-  // 🚀 ESC 키로 모든 모달/메뉴/바텀시트 감지 닫기
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -327,14 +333,27 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   useEffect(() => {
     if (!mounted) return;
     localStorage.setItem('nexus_font_size', fontSizeLevel);
-    const root = document.documentElement;
-    if (fontSizeLevel === 'large') {
-      root.style.fontSize = '22px';
-    } else if (fontSizeLevel === 'small') {
-      root.style.fontSize = '18px';
-    } else {
-      root.style.fontSize = '20px';
-    }
+
+    const handleResizeAndFont = () => {
+      const root = document.documentElement;
+      const isMobile = window.innerWidth < 640;
+
+      if (isMobile) {
+        root.style.fontSize = '18px';
+      } else {
+        if (fontSizeLevel === 'large') {
+          root.style.fontSize = '22px';
+        } else if (fontSizeLevel === 'small') {
+          root.style.fontSize = '18px';
+        } else {
+          root.style.fontSize = '20px';
+        }
+      }
+    };
+
+    handleResizeAndFont();
+    window.addEventListener('resize', handleResizeAndFont);
+    return () => window.removeEventListener('resize', handleResizeAndFont);
   }, [fontSizeLevel, mounted]);
 
   const loadAccounts = () => {
@@ -481,11 +500,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     window.addEventListener('pointerup', onPointerUp);
   };
 
+  // 🛡️ [Egress 폭탄 완전 차단] setInterval 폴링을 제거하고 최초 진입 시 1회만 조회하도록 최적화
   useEffect(() => {
     if (activeAccount) {
       checkPendingInquiries();
-      const interval = setInterval(checkPendingInquiries, 10000);
-      return () => clearInterval(interval);
     }
   }, [activeAccount]);
 
@@ -506,8 +524,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       } catch (err) {}
     };
     fetchBanner();
-    const bannerInterval = setInterval(fetchBanner, 5000);
-    return () => clearInterval(bannerInterval);
   }, []);
 
   const handleLogout = () => {
@@ -531,7 +547,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <html lang="ko">
-      {/* body 태그의 overflow-x-hidden을 overflow-x-clip으로 변경하여 하위 sticky 레벨 복구 */}
       <body className="min-h-screen relative font-sans transition-colors duration-200 bg-[var(--background)] text-[var(--foreground)] overflow-x-clip">
         {isLoginPage ? (
           children
@@ -540,7 +555,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <input ref={globalStickerInputRef} type="file" accept="image/*" onChange={handleGlobalStickerUpload} className="hidden" />
             <input ref={changeStickerImageRef} type="file" accept="image/*" onChange={handleChangeStickerImage} className="hidden" />
 
-            {/* 네비게이션바 */}
             <Navbar
               headerRef={headerRef}
               showNavbar={showNavbar}
@@ -563,10 +577,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               handleLogout={handleLogout}
             />
 
-            {/* 상단 여백 동적 맞춤 Placeholder */}
             <div style={{ height: headerHeight }} className="w-full shrink-0 transition-all duration-300 pointer-events-none" />
 
-            {/* 모바일 바텀시트 & FAB (딤드 오버레이 포함) */}
             <MobileBottomSheet
               fabPosition={fabPosition}
               handlePointerDown={handlePointerDown}
@@ -582,7 +594,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               pathname={pathname}
             />
 
-            {/* 생텀 설정 모달 */}
             <ThemeModal
               isThemeModalOpen={isThemeModalOpen}
               setIsThemeModalOpen={setIsThemeModalOpen}
@@ -601,10 +612,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               router={router}
             />
 
-            {/* 메인 레이아웃 컨테이너 */}
             <main className="max-w-[1600px] mx-auto px-4 py-6 w-full relative bg-transparent min-h-screen">
               
-              {/* [LAYER 0] 카드 뒤 스티커 레이어 */}
               <StickerCanvas
                 layer="back"
                 stickers={stickers}
@@ -618,12 +627,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 setActiveStickerTab={setActiveStickerTab}
               />
 
-              {/* [LAYER 10] 메인 콘텐츠 레이어 */}
               <div className="relative z-[10] pointer-events-auto">
                 {children}
               </div>
 
-              {/* [LAYER 20] 카드 앞 스티커 및 설정 툴바 레이어 */}
               <StickerCanvas
                 layer="front"
                 stickers={stickers}

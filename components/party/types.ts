@@ -19,6 +19,11 @@ export interface Member {
   character_id?: string | number;
   class_name?: string;
   is_highlighted?: boolean;
+  // 시간 동기화 필드 추가 (TS2339 에러 원천 차단)
+  start_time?: string;
+  end_time?: string;
+  startTime?: string;
+  endTime?: string;
 }
 
 export interface Party {

@@ -75,7 +75,6 @@ const X = ({ className }: { className?: string }) => (
   <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
 );
 
-// 모바일 뷰 전투력 자동 축약 헬퍼
 const formatCPShort = (cp: number) => {
   if (!cp || cp <= 0) return "-";
   if (cp >= 10000) {
@@ -85,7 +84,6 @@ const formatCPShort = (cp: number) => {
   return cp.toLocaleString();
 };
 
-// Supabase characters 테이블의 alias(애칭) 우선 표기 및 최대 3글자 축약 로직
 const getDisplayName = (m: any) => {
   const alias = m.alias || m.tempAlias;
   if (alias && alias !== "EMPTY" && alias !== "NULL" && alias.trim() !== "") {
@@ -120,12 +118,12 @@ export default function GuildBusCard({
   const [isPoolModalOpen, setIsPoolModalOpen] = useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   
-  const isBusStartedInDB = party.status === "운행중" || party.status === "매칭 완료" || (party as any).is_started;
+  // 🎯 DB 상태 호환성 유지 (운행중 / 매칭중 호환)
+  const isBusStartedInDB = party.status === "운행중" || party.status === "매칭 완료" || party.status === "매칭중" || (party as any).is_started;
   const [isStarted, setIsStarted] = useState<boolean>(isBusStartedInDB);
   const [prevMemberNames, setPrevMemberNames] = useState<string[]>([]);
   const [reconfiguredCandidates, setReconfiguredCandidates] = useState<BusCandidate[] | null>(null);
 
-  // 👑 관리자 인계 기능 상태
   const [isTransferModalOpen, setIsTransferModalOpen] = useState<boolean>(false);
   const [eligibleAdmins, setEligibleAdmins] = useState<{ nickname: string; role: string }[]>([]);
   const [selectedAdmin, setSelectedAdmin] = useState<string>('');
@@ -135,7 +133,6 @@ export default function GuildBusCard({
     setIsStarted(isBusStartedInDB);
   }, [isBusStartedInDB, party.status]);
 
-  // 1. 컨텐츠 카테고리에 따른 마크 SVG 선택
   const contentMarkSrc = useMemo(() => {
     if (!party.content_name) return "/svgs/contens mark/레이드 마크.svg";
     const isAbyss = party.party_type === "어비스" || party.content_name.includes("어비스");
@@ -144,7 +141,6 @@ export default function GuildBusCard({
       : "/svgs/contens mark/레이드 마크.svg";
   }, [party.content_name, party.party_type]);
 
-  // 2. 컨텐츠 이름 정제
   const displayContentName = useMemo(() => {
     if (!party.content_name) return "";
     return party.content_name
@@ -153,7 +149,6 @@ export default function GuildBusCard({
       .trim();
   }, [party.content_name]);
 
-  // 3. 서브 메모 정제
   const displaySubContent = useMemo(() => {
     if (!party.sub_content) return "";
     return party.sub_content
@@ -206,7 +201,7 @@ export default function GuildBusCard({
     try {
       const { error } = await supabase
         .from("parties")
-        .update({ status: "운행중" })
+        .update({ status: "운행중", is_started: true })
         .eq("id", party.id);
 
       if (error) throw error;
@@ -261,7 +256,6 @@ export default function GuildBusCard({
     }
   };
 
-  // 🛑 해산하기 버튼 클릭 시 미완료(잔여) 캐릭터 검사 및 상세 경고 컨펌 로직 (오타 수정 완료)
   const handleAttemptDeleteParty = () => {
     const totalMembersCount = (party.members || []).length;
     if (totalMembersCount > 0) {
@@ -277,7 +271,6 @@ export default function GuildBusCard({
     onDeleteClick(party.id);
   };
 
-  // 👑 관리자 인계
   const handleOpenTransferModal = async () => {
     setIsLoadingAdmins(true);
     try {
@@ -345,7 +338,6 @@ export default function GuildBusCard({
     }
   };
 
-  // 🔄 내 캐릭터 반복 참여 toggle 함수
   const handleToggleRepeat = async (charName: string, currentAllowRepeat: boolean) => {
     try {
       const updatedMembers = (party.members || []).map((m: any) => {
@@ -378,7 +370,6 @@ export default function GuildBusCard({
   return (
     <div className="w-full rounded-2xl border-2 border-[var(--accent)]/60 border-t-4 border-t-[var(--accent)] bg-[var(--panel)] p-3.5 sm:p-5 shadow-[0_10px_30px_rgba(0,0,0,0.8),0_0_20px_rgba(234,179,8,0.12)] transition-all duration-200 hover:border-[var(--accent)] relative overflow-hidden">
       
-      {/* 1. 버스 카드 헤더 */}
       <div className="-mx-3.5 -mt-3.5 sm:-mx-5 sm:-mt-5 p-2.5 sm:p-4 bg-black/60 border-b border-[var(--panel-border)] rounded-t-2xl mb-2.5 sm:mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 sm:gap-3">
         <div className="flex items-center gap-1.5 sm:gap-2.5 flex-wrap min-w-0">
           <span className="px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md text-[11px] sm:text-xs font-black bg-[var(--accent)] text-black flex items-center gap-1 shrink-0 shadow-sm">
@@ -416,7 +407,6 @@ export default function GuildBusCard({
         </div>
       </div>
 
-      {/* 커스텀 메모 */}
       {displaySubContent && !isDefaultSubContent && (
         <div className="mb-2.5 sm:mb-4 text-xs text-[var(--text-main)] opacity-90 bg-[var(--inner-box)] p-2.5 rounded-lg border border-[var(--panel-border)] flex items-start gap-2">
           <AlertCircle className="w-4 h-4 text-[var(--accent)] shrink-0 mt-0.5" />
@@ -424,7 +414,6 @@ export default function GuildBusCard({
         </div>
       )}
 
-      {/* 2. 출전 파티원 슬롯 레이아웃 */}
       <div className="mb-3.5 sm:mb-4 bg-[var(--inner-box)] rounded-xl p-3 sm:p-3.5 border border-[var(--panel-border)]">
         <div className="flex flex-wrap items-center justify-between gap-2 mb-2.5 sm:mb-3 pb-2 sm:pb-2.5 border-b border-[var(--panel-border)]">
           <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
@@ -458,7 +447,6 @@ export default function GuildBusCard({
           </div>
         </div>
 
-        {/* 슬롯 그리드 */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5">
           {Array.from({ length: maxPartySize }).map((_, index) => {
             const member = activeMembers[index];
@@ -528,7 +516,6 @@ export default function GuildBusCard({
         </div>
       </div>
 
-      {/* 3. 버스 컨트롤러 */}
       {canManage && (
         <div className="mb-3.5 sm:mb-4 p-2.5 sm:p-3 rounded-xl bg-[var(--inner-box)] border border-[var(--panel-border)] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div className="text-xs font-bold text-[var(--text-main)] flex items-center gap-1.5 shrink-0">
@@ -590,7 +577,6 @@ export default function GuildBusCard({
         </div>
       )}
 
-      {/* 4. 참전 풀 모달 트리거 버튼 */}
       <div className="rounded-xl border border-[var(--panel-border)] bg-[var(--inner-box)] overflow-hidden">
         <button
           type="button"
@@ -607,7 +593,6 @@ export default function GuildBusCard({
         </button>
       </div>
 
-      {/* 5. 내 참여 캐릭터 레이아웃 */}
       <div className="mt-3 sm:mt-4 pt-2.5 sm:pt-3 border-t border-[var(--panel-border)] space-y-2">
         <div className="flex items-center justify-between gap-1.5 min-w-0">
           <span className="text-[11px] sm:text-xs font-bold text-[var(--text-sub)] shrink-0">
@@ -694,7 +679,6 @@ export default function GuildBusCard({
         )}
       </div>
 
-      {/* 👑 관리자 인계 모달 */}
       {isTransferModalOpen && (
         <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-3 animate-in fade-in duration-200">
           <div className="bg-[var(--panel)] border-2 border-[var(--accent)] rounded-2xl p-4 w-full max-w-sm shadow-2xl flex flex-col space-y-3.5">
@@ -767,7 +751,6 @@ export default function GuildBusCard({
         </div>
       )}
 
-      {/* 📋 전체 참전 풀 & 대기열 모달 */}
       <PoolStatusModal
         isOpen={isPoolModalOpen}
         onClose={() => setIsPoolModalOpen(false)}

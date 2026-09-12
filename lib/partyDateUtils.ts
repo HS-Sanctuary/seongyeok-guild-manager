@@ -1,7 +1,19 @@
 export function timeToMinutes(timeStr: string): number {
   if (!timeStr) return 0;
-  const [h, m] = timeStr.split(":").map(Number);
-  return (h || 0) * 60 + (m || 0);
+  // 🎯 정규식 기반 (+1일, 다음날, 익일) 포함 여부 및 HH:MM 안전 추출
+  const isNextDay = /\(\+1일\)|다음날|익일|\+1일/.test(timeStr);
+  const match = timeStr.match(/(\d{1,2}):(\d{1,2})/);
+  if (!match) return 0;
+
+  const hours = parseInt(match[1], 10) || 0;
+  const minutes = parseInt(match[2], 10) || 0;
+  let totalMins = hours * 60 + minutes;
+
+  // 🎯 익일/다음날 설정 시 +1440분(+24시간) 오프셋 가산
+  if (isNextDay) {
+    totalMins += 24 * 60;
+  }
+  return totalMins;
 }
 
 export function minutesToTime(mins: number): string {
@@ -33,9 +45,6 @@ export function formatPartyDate(dateStr?: string): string {
 
 /**
  * 출발 시간 ~ 종료 시간 표기 유틸
- * - "익일" 텍스트를 "다음 날"로 변경
- * - 00:00 종료는 당일 자정(24:00)으로 간주하여 "다음 날" 미적용
- * - 00:01 이상부터 종료 시점이 시작 시점보다 작은 경우에만 "다음 날" 적용
  */
 export function formatPartyTimeRange(timeStart: string, timeEnd: string): { formatted: string; isNextDay: boolean } {
   if (!timeStart || !timeEnd) return { formatted: `${timeStart || "00:00"} ~ ${timeEnd || "00:00"}`, isNextDay: false };
@@ -43,14 +52,15 @@ export function formatPartyTimeRange(timeStart: string, timeEnd: string): { form
   const startMins = timeToMinutes(timeStart);
   const endMins = timeToMinutes(timeEnd);
 
-  // 00:00은 0분이므로 (endMins === 0), 다음 날이 아님.
-  // endMins > 0 이면서 endMins < startMins 인 경우(예: 18:00 ~ 01:00)에만 다음 날로 처리
   const isNextDay = endMins > 0 && endMins < startMins;
 
+  const cleanStart = timeStart.replace(/\s*\(\+1일\)/g, "").replace(/\s*다음날/g, "").trim();
+  const cleanEnd = timeEnd.replace(/\s*\(\+1일\)/g, "").replace(/\s*다음날/g, "").trim();
+
   if (isNextDay) {
-    return { formatted: `${timeStart} ~ 다음 날 ${timeEnd}`, isNextDay: true };
+    return { formatted: `${cleanStart} ~ 다음 날 ${cleanEnd}`, isNextDay: true };
   }
-  return { formatted: `${timeStart} ~ ${timeEnd}`, isNextDay: false };
+  return { formatted: `${cleanStart} ~ ${cleanEnd}`, isNextDay: false };
 }
 
 export function isTimeOverlapping(start1: string, end1: string, start2: string, end2: string): boolean {
@@ -60,8 +70,8 @@ export function isTimeOverlapping(start1: string, end1: string, start2: string, 
   let s2 = timeToMinutes(start2);
   let e2 = timeToMinutes(end2);
 
-  if (e1 <= s1 && e1 > 0) e1 += 24 * 60; // 다음 날 범위 보정
-  if (e2 <= s2 && e2 > 0) e2 += 24 * 60;
+  if (e1 <= s1 && e1 < 1440) e1 += 24 * 60;
+  if (e2 <= s2 && e2 < 1440) e2 += 24 * 60;
 
   return !(e1 <= s2 || s1 >= e2);
 }
@@ -72,12 +82,13 @@ export function calculateMidpointStartTime(timeRanges: { start: string; end: str
   let minEnd = Math.min(...timeRanges.map(r => {
     let e = timeToMinutes(r.end);
     let s = timeToMinutes(r.start);
-    return e <= s && e > 0 ? e + 24 * 60 : e;
+    return (e <= s && e < 1440) ? e + 24 * 60 : e;
   }));
 
   if (maxStart >= minEnd) return timeRanges[0].start;
   const midMinutes = Math.floor((maxStart + minEnd) / 2);
-  const roundedMid = Math.round(midMinutes / 15) * 15;
+  // 🎯 [핵심 보정] 기존 15분 단위 절사/반올림을 5분 단위 정밀 반올림으로 개편
+  const roundedMid = Math.round(midMinutes / 5) * 5;
   return minutesToTime(roundedMid);
 }
 

@@ -49,7 +49,7 @@ export default function Navbar({
   return (
     <nav 
       ref={headerRef} 
-      className={`fixed top-0 left-0 right-0 z-[900] flex flex-col shadow-lg border-b backdrop-blur-md w-full transition-transform duration-300 bg-[var(--panel)] border-[var(--panel-border)] ${
+      className={`fixed top-0 left-0 right-0 z-[90] flex flex-col shadow-lg border-b backdrop-blur-md w-full transition-transform duration-300 bg-[var(--panel)] border-[var(--panel-border)] ${
         showNavbar ? 'translate-y-0' : '-translate-y-full'
       }`}
     >
@@ -91,7 +91,7 @@ export default function Navbar({
               </button>
 
               {isWingsOpen && (
-                <div className="fixed sm:absolute top-16 sm:top-full left-4 right-4 sm:right-auto sm:left-0 mt-2 sm:w-[260px] max-w-[calc(100vw-32px)] bg-[var(--panel)] p-1 rounded-xl shadow-[0_0_20px_rgba(0,0,0,0.8)] border border-[var(--panel-border)] animate-in fade-in slide-in-from-top-2 z-[9999]">
+                <div className="fixed sm:absolute top-16 sm:top-full left-4 right-4 sm:right-auto sm:left-0 mt-2 sm:w-[260px] max-w-[calc(100vw-32px)] bg-[var(--panel)] p-1 rounded-xl shadow-[0_0_20px_rgba(0,0,0,0.8)] border border-[var(--panel-border)] animate-in fade-in slide-in-from-top-2 z-[100]">
                   <div className="relative border border-[var(--accent)] rounded-lg h-full w-full flex flex-col bg-[var(--panel)]">
                     <div className="p-3 border-b border-[var(--panel-border)] flex justify-between items-start">
                       <div className="flex flex-col items-start">
@@ -198,7 +198,7 @@ export default function Navbar({
                 </button>
 
                 {isAccountMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-56 border rounded-xl shadow-2xl z-[960] overflow-hidden p-2 bg-[var(--panel)] border-[var(--panel-border)] text-[var(--text-main)]">
+                  <div className="absolute right-0 mt-2 w-56 border rounded-xl shadow-2xl z-[100] overflow-hidden p-2 bg-[var(--panel)] border-[var(--panel-border)] text-[var(--text-main)]">
                     <div className="text-[0.55rem] font-bold text-[var(--text-sub)] px-2 py-1">현재 활성 계정</div>
                     <div className="flex items-center justify-between p-2 rounded-lg mb-2 border-l-4 bg-[var(--inner-box)] border-[var(--accent)]">
                       <span className="text-[0.7rem] font-black truncate text-[var(--text-main)]">{activeAccount.alias || activeAccount.nickname}</span>

@@ -17,7 +17,9 @@ interface PartyCreateFormProps {
   selectedDate: string;
   getDayOfWeekKorean: (dateStr: string) => string;
   timeStart: string;
+  setTimeStart: (val: string) => void;
   timeEnd: string;
+  setTimeEnd: (val: string) => void;
   openScheduleModal: () => void;
   partyType: "1회 클리어" | "반복 뺑이";
   setPartyType: (type: "1회 클리어" | "반복 뺑이") => void;
@@ -55,7 +57,9 @@ export default function PartyCreateForm({
   selectedDate,
   getDayOfWeekKorean,
   timeStart,
+  setTimeStart,
   timeEnd,
+  setTimeEnd,
   openScheduleModal,
   partyType,
   setPartyType,
@@ -93,7 +97,7 @@ export default function PartyCreateForm({
       : "/svgs/contens mark/레이드 마크.svg";
   }, [selectedContent]);
 
-  // 컨텐츠 이름에서 '레이드 - ', '어비스 - ' 중복 접두어 및 '(통합)' 원천 제거
+  // 컨텐츠 이름 중복 접두어 및 '(통합)' 원천 제거
   const displayContentName = useMemo(() => {
     if (!selectedContent) return "목표 컨텐츠 선택";
     return selectedContent.name
@@ -102,45 +106,32 @@ export default function PartyCreateForm({
       .trim();
   }, [selectedContent]);
 
-  // 다음 날(자정 이후) 넘어감 판별
-  const isNextDay = useMemo(() => {
-    if (!timeStart || !timeEnd) return false;
-    const [sH, sM] = timeStart.split(":").map(Number);
-    const [eH, eM] = timeEnd.split(":").map(Number);
-    const startMins = sH * 60 + sM;
-    const endMins = eH * 60 + eM;
-    return endMins <= startMins;
-  }, [timeStart, timeEnd]);
+  // 시작/종료 시간 오염 텍스트 정제
+  const cleanTimeStart = useMemo(() => {
+    if (!timeStart) return "14:00";
+    return timeStart.replace(/\s*\(\+1일\)/g, "").replace(/\s*다음날/g, "").replace(/\s*\+\d+일/g, "").trim();
+  }, [timeStart]);
 
-  // 단축 연도 표기 (예: 2026-09-12 -> 26-09-12)
+  const cleanTimeEnd = useMemo(() => {
+    if (!timeEnd) return "23:00";
+    return timeEnd.replace(/\s*\(\+1일\)/g, "").replace(/\s*다음날/g, "").replace(/\s*\+\d+일/g, "").trim();
+  }, [timeEnd]);
+
+  // 🎯 [연도 제거 단축 월-일 포맷터] (예: 2026-09-12 -> 09-12)
   const displayShortDate = useMemo(() => {
     if (!selectedDate) return "";
-    return selectedDate.replace(/^\d{4}/, (year) => year.slice(2));
+    return selectedDate.replace(/^\d{4}-/, "");
   }, [selectedDate]);
 
-  // 다음 날 포함 듀얼 날짜 포맷터 (예: 09-10(목) ~ 09-11(금))
-  const formattedDateDisplay = useMemo(() => {
-    if (!selectedDate) return "";
-    if (isNextDay) {
-      const d1 = new Date(selectedDate + "T00:00:00");
-      const d2 = new Date(selectedDate + "T00:00:00");
-      d2.setDate(d2.getDate() + 1);
-
-      const m1 = String(d1.getMonth() + 1).padStart(2, "0");
-      const day1 = String(d1.getDate()).padStart(2, "0");
-      const dow1 = getDayOfWeekKorean(selectedDate);
-
-      const year2 = d2.getFullYear();
-      const m2 = String(d2.getMonth() + 1).padStart(2, "0");
-      const day2 = String(d2.getDate()).padStart(2, "0");
-      const nextDateStr = `${year2}-${m2}-${day2}`;
-      const dow2 = getDayOfWeekKorean(nextDateStr);
-
-      return `${m1}-${day1}(${dow1}) ~ ${m2}-${day2}(${dow2})`;
-    } else {
-      return `${displayShortDate} (${getDayOfWeekKorean(selectedDate)})`;
-    }
-  }, [selectedDate, isNextDay, displayShortDate, getDayOfWeekKorean]);
+  // 자정 경과 익일 스마트 판별
+  const isNextDay = useMemo(() => {
+    if (timeEnd?.includes("+1일") || timeEnd?.includes("다음날")) return true;
+    if (!cleanTimeStart || !cleanTimeEnd) return false;
+    const [sH, sM] = cleanTimeStart.split(":").map(Number);
+    const [eH, eM] = cleanTimeEnd.split(":").map(Number);
+    if (isNaN(sH) || isNaN(eH)) return false;
+    return (eH * 60 + (eM || 0)) <= (sH * 60 + (sM || 0));
+  }, [timeEnd, cleanTimeStart, cleanTimeEnd]);
 
   return (
     <div className="space-y-2.5 w-full min-w-0">
@@ -167,7 +158,7 @@ export default function PartyCreateForm({
         )}
       </div>
 
-      {/* 2. 참여할 캐릭터 선택 (사람 마크 scale 0.8 지정) */}
+      {/* 2. 참여할 캐릭터 선택 */}
       <div className="space-y-1 w-full min-w-0">
         <label className="text-[11px] font-bold text-[var(--text-main)] flex items-center gap-1.5 whitespace-nowrap leading-none">
           <MarkIcon src="/svgs/UI mark/사람 마크.svg" size="sm" scale={0.8} colorClass="bg-[var(--accent)]" />
@@ -228,39 +219,30 @@ export default function PartyCreateForm({
         </button>
       </div>
 
-      {/* 4. 매칭 희망 스케줄 */}
+      {/* 4. 🟢 [수정 완료] 매칭 희망 스케줄 (2026- 제거 -> 09-12 (토) 1줄 최적화) */}
       <div className="w-full min-w-0">
         <button
           type="button"
           onClick={openScheduleModal}
           className="w-full bg-[var(--inner-box)] border border-[var(--panel-border)] hover:border-[var(--accent)] rounded-xl px-2.5 py-2 text-left transition flex items-center justify-between gap-1.5 group shadow-xs cursor-pointer min-w-0"
         >
-          <div className="flex items-center gap-2 min-w-0 truncate text-xs font-black text-[var(--text-main)] leading-none">
+          <div className="flex items-center gap-2 min-w-0 text-xs font-black text-[var(--text-main)] leading-none truncate">
             <MarkIcon src="/svgs/UI mark/달력 마크.svg" size="sm" scale={2.10} colorClass="bg-[var(--accent)]" />
             
-            {isNextDay ? (
-              <div className="flex flex-col gap-1 min-w-0 text-left">
-                <div className="text-[var(--accent)] text-[11px] font-black truncate leading-tight">
-                  {formattedDateDisplay}
-                </div>
-                <div className="text-[var(--text-main)] font-mono text-xs flex items-center gap-1.5 leading-tight">
-                  <span>{timeStart} ~ {timeEnd}</span>
-                  <span className="text-[9px] bg-indigo-900/80 text-indigo-200 border border-indigo-500/50 px-1 py-0.2 rounded font-sans shrink-0 font-bold">
-                    🌙 다음 날
+            <div className="flex items-center gap-1.5 min-w-0 truncate">
+              <span className="text-[var(--accent)] whitespace-nowrap shrink-0 flex items-center leading-none">
+                {displayShortDate} ({getDayOfWeekKorean(selectedDate)})
+              </span>
+              <span className="text-[var(--text-sub)] font-bold shrink-0 flex items-center leading-none opacity-60">|</span>
+              <span className="font-mono truncate flex items-center gap-1.5 leading-none translate-y-[0.5px]">
+                <span>{cleanTimeStart} ~ {cleanTimeEnd}</span>
+                {isNextDay && (
+                  <span className="text-[9px] bg-indigo-900/80 text-indigo-200 border border-indigo-500/50 px-1.5 py-0.5 rounded font-sans shrink-0 font-bold leading-none">
+                    (+1일)
                   </span>
-                </div>
-              </div>
-            ) : (
-              <div className="flex items-center gap-1.5 min-w-0 truncate">
-                <span className="text-[var(--accent)] whitespace-nowrap shrink-0 flex items-center leading-none">
-                  {displayShortDate} ({getDayOfWeekKorean(selectedDate)})
-                </span>
-                <span className="text-[var(--text-sub)] font-bold shrink-0 flex items-center leading-none opacity-60">|</span>
-                <span className="font-mono truncate flex items-center leading-none translate-y-[0.5px]">
-                  {timeStart} ~ {timeEnd}
-                </span>
-              </div>
-            )}
+                )}
+              </span>
+            </div>
           </div>
           <span className="text-xs text-[var(--text-sub)] group-hover:text-[var(--accent)] transition shrink-0 p-0.5">
             ⚙️

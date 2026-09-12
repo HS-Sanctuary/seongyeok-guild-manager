@@ -4,34 +4,57 @@ import React, { useMemo } from 'react';
 import ClassIcon from '@/components/common/ClassIcon';
 import { Party, DIFFICULTY_COLORS } from '@/components/party/types';
 import { parseCP } from '@/lib/busUtils';
-import { formatPartyTimeRange, getDayOfWeekKorean, normalizeDateStr } from '@/lib/partyDateUtils';
+import {
+  formatPartyTimeRange,
+  getDayOfWeekKorean,
+  normalizeDateStr,
+  timeToMinutes,
+  minutesToTime,
+} from '@/lib/partyDateUtils';
 
-// 🛡️ [직업별 포지션/역할 100% 정교 자동 판별 알고리즘]
+// 시간 오염 세척 안전 변환 함수
+const safeTimeToMinutes = (timeStr: string | undefined, defaultVal: string): number => {
+  if (!timeStr) return timeToMinutes(defaultVal);
+  const cleaned = timeStr
+    .replace(/\s*\(\+1일\)/g, "")
+    .replace(/\s*다음날/g, "")
+    .replace(/\s*\+\d+일/g, "")
+    .trim();
+  const mins = timeToMinutes(cleaned);
+  return isNaN(mins) ? timeToMinutes(defaultVal) : mins;
+};
+
 export const getRoleByJob = (job: string): string => {
   if (!job) return "근딜";
   const j = job.trim();
 
-  // 1. 탱커
-  if (["빙결술사", "빙결", "대검전사", "수호자", "수호기사", "기사"].some((k) => j.includes(k))) {
+  // 1. Tanker
+  if (
+    ["빙결술사", "빙결", "대검전사", "수호자", "수호기사", "기사", "성기사", "방패전사", "크루세이더", "디펜더"].some(
+      (k) => j.includes(k)
+    )
+  ) {
     return "탱커";
   }
-
-  // 2. 힐러
-  if (["사제", "수도사"].some((k) => j.includes(k))) {
+  // 2. Healer
+  if (
+    ["사제", "수도사", "힐러", "성직자", "구원자", "복음사", "마도학자", "주술사", "프리스트", "클레릭", "비숍", "샤먼"].some(
+      (k) => j.includes(k)
+    )
+  ) {
     return "힐러";
   }
-
-  // 3. 서포터
-  if (["음유시인", "바드"].some((k) => j.includes(k))) {
+  // 3. Supporter
+  if (["음유시인", "바드", "악사", "서포터", "버퍼", "인챈터"].some((k) => j.includes(k))) {
     return "서포터";
   }
-
-  // 4. 원딜
+  // 4. Ranged DPS
   if (
     [
       "장궁병",
       "궁수",
       "석궁수",
+      "석궁사수",
       "마법사",
       "원소술사",
       "화염술사",
@@ -39,12 +62,17 @@ export const getRoleByJob = (job: string): string => {
       "연금술사",
       "총사",
       "건슬링어",
+      "암흑술사",
+      "저격수",
+      "스나이퍼",
+      "아처",
+      "메이지",
+      "위저드",
     ].some((k) => j.includes(k))
   ) {
     return "원딜";
   }
-
-  // 5. 근딜
+  // 5. Melee DPS
   if (
     [
       "도적",
@@ -54,8 +82,16 @@ export const getRoleByJob = (job: string): string => {
       "듀얼블레이더",
       "듀블",
       "검사",
+      "검술사",
       "창기사",
       "암살자",
+      "댄서",
+      "투사",
+      "검성",
+      "로그",
+      "어쌔신",
+      "버서커",
+      "슬레이어",
     ].some((k) => j.includes(k))
   ) {
     return "근딜";
@@ -64,12 +100,10 @@ export const getRoleByJob = (job: string): string => {
   return "근딜";
 };
 
-// 닉네임 6글자 단위 줄바꿈 및 가변 폰트 처리 헬퍼
 const renderFormattedNickname = (name: string) => {
   if (!name) return null;
   const len = name.length;
 
-  // 6글자 이하: 1줄 노출 & 글자수에 따른 가변 폰트
   if (len <= 6) {
     const fontSizeClass =
       len <= 3
@@ -79,20 +113,25 @@ const renderFormattedNickname = (name: string) => {
         : "text-[10.5px] sm:text-xs font-black tracking-tighter";
 
     return (
-      <span className={`text-white whitespace-nowrap leading-tight ${fontSizeClass}`} title={name}>
+      <span
+        className={`text-white whitespace-nowrap leading-tight text-center w-full block truncate ${fontSizeClass}`}
+        title={name}
+      >
         {name}
       </span>
     );
   }
 
-  // 6글자 초과 (7~12글자): 6글자씩 나누어 2줄 노출 (생략 부호 차단)
   const line1 = name.slice(0, 6);
   const line2 = name.slice(6, 12);
 
   return (
-    <div className="flex flex-col leading-[1.15] text-[10px] sm:text-[11px] font-black text-white min-w-0" title={name}>
-      <span className="truncate">{line1}</span>
-      <span className="truncate">{line2}</span>
+    <div
+      className="flex flex-col items-center justify-center text-center leading-[1.15] text-[10px] sm:text-[11px] font-black text-white w-full min-w-0"
+      title={name}
+    >
+      <span className="truncate w-full text-center">{line1}</span>
+      <span className="truncate w-full text-center">{line2}</span>
     </div>
   );
 };
@@ -148,10 +187,6 @@ export default function PartyCard({
     }
   };
 
-  // 1. 파티 시간 범주 및 다음 날 여부 판별
-  const { isNextDay } = formatPartyTimeRange(party.time_start, party.time_end);
-
-  // 2. 파티 일시 디스플레이 양식 생성
   const rawDate = (party as any).party_date || (party as any).date || (party as any).created_at || '';
   
   const { formattedDateRange, formattedSingleDate } = useMemo(() => {
@@ -180,7 +215,100 @@ export default function PartyCard({
     return { formattedDateRange: range, formattedSingleDate: single };
   }, [rawDate]);
 
-  // 3. 최고 전투력(CP) 파티원 자동 산출 ➔ 파티장(👑) 지정
+  // 교집합 시간 연산 엔진 (방어적 시정 적용)
+  const dynamicTimeInfo = useMemo(() => {
+    const defaultStart = party.time_start || "18:00";
+    const defaultEnd = party.time_end || "20:00";
+
+    if (!party.members || party.members.length === 0) {
+      const { isNextDay } = formatPartyTimeRange(defaultStart, defaultEnd);
+      return {
+        startTime: defaultStart.replace(/\s*\(\+1일\)/g, "").replace(/\s*다음날/g, "").trim(),
+        endTime: defaultEnd.replace(/\s*\(\+1일\)/g, "").replace(/\s*다음날/g, "").trim(),
+        isNextDay,
+        isFull: false,
+        isConflict: false,
+        finalDepartureTime: party.final_start_time || null,
+        memberCount: 0,
+      };
+    }
+
+    const ranges = party.members.map((m) => {
+      const memAny = m as Record<string, any>;
+      const rawStart = memAny.time_start || memAny.start_time || memAny.startTime || memAny.timeStart || defaultStart;
+      const rawEnd = memAny.time_end || memAny.end_time || memAny.endTime || memAny.timeEnd || defaultEnd;
+
+      let sM = safeTimeToMinutes(rawStart, defaultStart);
+      let eM = safeTimeToMinutes(rawEnd, defaultEnd);
+
+      if (eM <= sM && eM < 1440) {
+        eM += 24 * 60;
+      }
+
+      return { sM, eM };
+    });
+
+    let maxStartMins = 0;
+    let minEndMins = 48 * 60;
+
+    ranges.forEach((r) => {
+      if (r.sM > maxStartMins) maxStartMins = r.sM;
+      if (r.eM < minEndMins) minEndMins = r.eM;
+    });
+
+    const isConflict = maxStartMins >= minEndMins;
+    const isCompleted =
+      party.members.length >= party.max_members ||
+      party.status === "completed" ||
+      party.status === "매칭완료";
+
+    if (isConflict) {
+      const { isNextDay } = formatPartyTimeRange(defaultStart, defaultEnd);
+      return {
+        startTime: defaultStart.replace(/\s*\(\+1일\)/g, "").replace(/\s*다음날/g, "").trim(),
+        endTime: defaultEnd.replace(/\s*\(\+1일\)/g, "").replace(/\s*다음날/g, "").trim(),
+        isNextDay,
+        isFull: isCompleted,
+        isConflict: true,
+        finalDepartureTime: null,
+        memberCount: party.members.length,
+      };
+    }
+
+    const startMinsNormalized = maxStartMins % (24 * 60);
+    const endMinsNormalized = minEndMins % (24 * 60);
+
+    const overlapStartStr = minutesToTime(startMinsNormalized);
+    const overlapEndStr = minutesToTime(endMinsNormalized);
+
+    const isNextDay = minEndMins >= 24 * 60 || endMinsNormalized < startMinsNormalized;
+
+    let optimalDepartureTime: string | null = party.final_start_time || null;
+
+    if (!optimalDepartureTime && isCompleted) {
+      const midMins = Math.floor((maxStartMins + minEndMins) / 2);
+      const roundedMid = Math.round(midMins / 5) * 5;
+      optimalDepartureTime = minutesToTime(roundedMid % (24 * 60));
+    }
+
+    return {
+      startTime: overlapStartStr,
+      endTime: overlapEndStr,
+      isNextDay,
+      isFull: isCompleted,
+      isConflict: false,
+      finalDepartureTime: optimalDepartureTime,
+      memberCount: party.members.length,
+    };
+  }, [
+    party.members,
+    party.max_members,
+    party.time_start,
+    party.time_end,
+    party.status,
+    party.final_start_time,
+  ]);
+
   const leaderMemberName = useMemo(() => {
     if (!party.members || party.members.length === 0) return party.leader_name || '';
 
@@ -205,10 +333,7 @@ export default function PartyCard({
   return (
     <div className="w-full rounded-2xl border border-zinc-700/80 border-t-4 border-t-indigo-500/80 bg-[var(--panel)] p-3.5 sm:p-5 shadow-[0_10px_30px_rgba(0,0,0,0.8)] transition-all duration-200 hover:border-indigo-400/80 relative overflow-hidden">
       
-      {/* ──────────────── 1. 파티 카드 헤더 ──────────────── */}
       <div className="-mx-3.5 -mt-3.5 sm:-mx-5 sm:-mt-5 p-3.5 sm:p-4 bg-zinc-950/90 border-b border-zinc-800 rounded-t-2xl mb-3.5 flex flex-col gap-2">
-        
-        {/* 1열: [난이도 / 유형 뱃지] VS [신청 / 참여 중 / 완료 버튼] */}
         <div className="flex items-center justify-between gap-2 min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap min-w-0">
             <span className={`px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-black border ${DIFFICULTY_COLORS[party.difficulty] || 'bg-zinc-800 border-zinc-700 text-zinc-200'} shrink-0`}>
@@ -219,7 +344,6 @@ export default function PartyCard({
             </span>
           </div>
 
-          {/* 우측 상단 액션 버튼 그룹 */}
           <div className="flex items-center gap-1.5 shrink-0">
             {!isFull && !isJoined && (
               <button
@@ -253,43 +377,58 @@ export default function PartyCard({
           </div>
         </div>
 
-        {/* 2열: 던전명 단독 행 */}
         <div className="w-full min-w-0 py-0.5">
           <h3 className="text-base sm:text-lg md:text-xl font-black text-white whitespace-nowrap overflow-hidden text-ellipsis tracking-tight leading-snug">
             {party.content_name}
           </h3>
         </div>
 
-        {/* 3열: 날짜 & 시간 디스플레이 바 */}
         <div className="flex items-center justify-start w-full pt-0.5 min-w-0">
-          <div className="inline-flex items-center gap-1 sm:gap-1.5 bg-black/80 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl border border-zinc-800/80 text-[clamp(9.5px,2.8vw,12px)] sm:text-xs font-mono font-extrabold shadow-sm max-w-full min-w-0 overflow-hidden">
-            {isNextDay ? (
-              <div className="flex items-center gap-1 sm:gap-1.5 font-bold text-white whitespace-nowrap min-w-0 tracking-tighter sm:tracking-normal">
-                <span className="text-[var(--accent)] font-sans font-black">
-                  {formattedDateRange}
-                </span>
-                <span className="text-zinc-600 font-bold shrink-0">|</span>
-                <span className="font-mono font-black text-white">
-                  {party.time_start} ~ {party.time_end}
-                </span>
-                <span className="text-[8.5px] sm:text-[10px] bg-indigo-900/80 text-indigo-200 border border-indigo-500/50 px-1 py-0.2 rounded font-sans shrink-0 font-bold ml-0.5">
-                  🌙 다음 날
-                </span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-1.5 sm:gap-2 font-bold text-white whitespace-nowrap min-w-0 tracking-tighter sm:tracking-normal">
-                <span className="text-[var(--accent)] font-black">
-                  {formattedSingleDate}
-                </span>
-                <span className="text-zinc-600 font-bold shrink-0">|</span>
-                <span className="font-mono font-black text-white">
-                  {party.time_start} ~ {party.time_end}
-                </span>
-              </div>
-            )}
-          </div>
+          {dynamicTimeInfo.isConflict ? (
+            <div className="inline-flex items-center gap-1.5 bg-rose-950/50 border border-rose-500/60 px-2.5 py-1 rounded-xl text-xs font-bold text-rose-300 shadow-sm max-w-full min-w-0 overflow-hidden">
+              <span className="shrink-0">⚠️</span>
+              <span className="font-sans font-black truncate">시간대 불일치 (조율 필요)</span>
+            </div>
+          ) : dynamicTimeInfo.isFull && dynamicTimeInfo.finalDepartureTime ? (
+            <div className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-500/20 via-emerald-500/20 to-indigo-500/20 border border-amber-400/60 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl font-mono text-[clamp(10px,2.8vw,12px)] sm:text-xs font-black text-amber-300 shadow-md max-w-full min-w-0 overflow-hidden">
+              <span className="text-xs sm:text-sm shrink-0 animate-bounce">🎉</span>
+              <span className="whitespace-nowrap font-sans font-black text-amber-200">출발 시간 확정!</span>
+              <span className="text-white bg-amber-500/40 px-2 py-0.5 rounded-md border border-amber-300/60 font-mono font-black text-xs sm:text-sm shadow-xs shrink-0">
+                {dynamicTimeInfo.finalDepartureTime}
+              </span>
+              <span className="text-[9px] sm:text-[10px] text-emerald-300 bg-emerald-950/60 border border-emerald-500/40 px-1.5 py-0.5 rounded font-sans shrink-0 font-extrabold whitespace-nowrap">
+                매칭 완료 ({party.members.length}/{party.max_members}명)
+              </span>
+            </div>
+          ) : (
+            <div className="inline-flex items-center gap-1 sm:gap-1.5 bg-black/80 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl border border-zinc-800/80 text-[clamp(9.5px,2.8vw,12px)] sm:text-xs font-mono font-extrabold shadow-sm max-w-full min-w-0 overflow-hidden">
+              {dynamicTimeInfo.isNextDay ? (
+                <div className="flex items-center gap-1 sm:gap-1.5 font-bold text-white whitespace-nowrap min-w-0 tracking-tighter sm:tracking-normal">
+                  <span className="text-[var(--accent)] font-sans font-black">
+                    {formattedDateRange}
+                  </span>
+                  <span className="text-zinc-600 font-bold shrink-0">|</span>
+                  <span className="font-mono font-black text-white">
+                    {dynamicTimeInfo.startTime} ~ {dynamicTimeInfo.endTime}
+                  </span>
+                  <span className="text-[8.5px] sm:text-[10px] bg-indigo-900/80 text-indigo-200 border border-indigo-500/50 px-1 py-0.2 rounded font-sans shrink-0 font-bold ml-0.5">
+                    🌙 다음 날
+                  </span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 sm:gap-2 font-bold text-white whitespace-nowrap min-w-0 tracking-tighter sm:tracking-normal">
+                  <span className="text-[var(--accent)] font-black">
+                    {formattedSingleDate}
+                  </span>
+                  <span className="text-zinc-600 font-bold shrink-0">|</span>
+                  <span className="font-mono font-black text-white">
+                    {dynamicTimeInfo.startTime} ~ {dynamicTimeInfo.endTime}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
         </div>
-
       </div>
 
       {party.sub_content && (
@@ -298,7 +437,6 @@ export default function PartyCard({
         </div>
       )}
 
-      {/* ──────────────── 2. 참가자 슬롯 ──────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3.5">
         {Array.from({ length: party.max_members }).map((_, index) => {
           const member = party.members[index];
@@ -307,7 +445,7 @@ export default function PartyCard({
             return (
               <div 
                 key={`empty-${index}`} 
-                className="h-[92px] rounded-xl border border-dashed border-zinc-800 bg-black/20 flex items-center justify-center text-xs text-zinc-500 font-bold"
+                className="h-[104px] rounded-xl border border-dashed border-zinc-800 bg-black/20 flex items-center justify-center text-xs text-zinc-500 font-bold"
               >
                 빈 슬롯
               </div>
@@ -317,26 +455,34 @@ export default function PartyCard({
           const memName = member.character_name || member.name;
           const charObj = allCharactersMap[memName] || {};
           
-          // 🛡️ [수정 완료] 캐릭터 직업 기반 5대 포지션(탱/힐/서포터/근딜/원딜) 정교 자동 판별
-          const rawJob = member.job || charObj.job || '';
-          const role = getRoleByJob(rawJob);
+          const rawJob = member.job || charObj.job || (member as any).class_name || charObj.class_name || '';
+          
+          // 🎯 포지션 우선순위 및 방어 파싱
+          const rawExplicitRole = member.role || (member.roles && member.roles[0]) || charObj.role || (charObj.roles && charObj.roles[0]);
+          const explicitRole = typeof rawExplicitRole === "string" ? rawExplicitRole.trim() : "";
+
+          const role = (explicitRole && ["탱커", "힐러", "원딜", "근딜", "서포터"].includes(explicitRole))
+            ? explicitRole
+            : getRoleByJob(rawJob);
 
           const cp = parseCP(member.combat_power || charObj.combat_power || 0);
           const mr = parseCP(member.magic_resistance || charObj.magic_resistance || 0);
           
-          // 최고 전투력 파티장 판별
           const isLeader = memName === leaderMemberName;
+
+          const memAny = member as Record<string, any>;
+          const memStart = (memAny.time_start || memAny.start_time || memAny.startTime || memAny.timeStart || party.time_start || "18:00").replace(/\s*\(\+1일\)/g, "").trim();
+          const memEnd = (memAny.time_end || memAny.end_time || memAny.endTime || memAny.timeEnd || party.time_end || "20:00").replace(/\s*\(\+1일\)/g, "").trim();
 
           return (
             <div
               key={`mem-${memName}-${index}`}
               onClick={() => (charObj.nickname || charObj.name) && setInspectCharacter(charObj)}
-              className={`h-[92px] rounded-xl border ${isLeader ? 'border-amber-500/60 bg-amber-950/20' : 'border-zinc-800 bg-zinc-900/60'} p-2 sm:p-2.5 flex items-center gap-2 relative overflow-hidden transition hover:border-[var(--accent)]/60 cursor-pointer min-w-0 shadow-xs`}
+              className={`h-[104px] rounded-xl border ${isLeader ? 'border-amber-500/60 bg-amber-950/20' : 'border-zinc-800 bg-zinc-900/60'} p-2 sm:p-2.5 flex items-center gap-2 relative overflow-hidden transition hover:border-[var(--accent)]/60 cursor-pointer min-w-0 shadow-xs`}
             >
-              {/* 좌측: 직업 초상화 (파티장 👑 미니 뱃지) & 포지션 */}
               <div className="flex flex-col items-center justify-center shrink-0">
                 <div className={`w-8 h-8 rounded-lg bg-black/60 border ${isLeader ? 'border-amber-400 ring-2 ring-amber-500/30' : 'border-white/10'} flex items-center justify-center p-0.5 shadow-inner relative`}>
-                  <ClassIcon className="w-5 h-5 text-white" job={member.job} />
+                  <ClassIcon className="w-5 h-5 text-white" job={rawJob} />
                   {isLeader && (
                     <span className="absolute -top-1.5 -right-1.5 bg-amber-500 text-black p-0.5 rounded-full shadow-md leading-none border border-black" title="파티장 (최고 전투력)">
                       <Crown className="w-2.5 h-2.5 fill-amber-950 text-amber-950" />
@@ -348,9 +494,8 @@ export default function PartyCard({
                 </span>
               </div>
 
-              {/* 우측: 닉네임 (가변 폰트/2줄 줄바꿈) & 스탯 정보 */}
               <div className="flex-1 min-w-0 flex flex-col justify-between h-full py-0.5">
-                <div className="min-w-0 flex items-center">
+                <div className="min-w-0 flex items-center justify-center w-full h-[30px]">
                   {renderFormattedNickname(memName)}
                 </div>
 
@@ -363,6 +508,10 @@ export default function PartyCard({
                     <span className="text-[8px] shrink-0 opacity-80">🔮</span>
                     <span className="truncate">{mr > 0 ? mr.toLocaleString() : "-"}</span>
                   </div>
+                  <div className="flex items-center gap-0.5 text-[8.5px] text-zinc-400 font-mono truncate leading-none pt-0.5 border-t border-zinc-800/60">
+                    <span className="opacity-70 text-[8px]">⏱️</span>
+                    <span className="truncate">{memStart}~{memEnd}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -370,7 +519,6 @@ export default function PartyCard({
         })}
       </div>
 
-      {/* ──────────────── 3. 하단 탈퇴 & 강제 삭제 ──────────────── */}
       <div className="flex items-center justify-between gap-2 pt-2 border-t border-[var(--panel-border)] text-xs">
         <div className="flex items-center gap-2 flex-wrap min-w-0">
           {joinedMyChars.map((m, idx) => {

@@ -10,7 +10,6 @@ interface CustomTimePickerProps {
   pickerType?: "start" | "end";
 }
 
-// ⚡ 추천 출발 시간 프리셋 (4x2 그리드)
 const PRESETS = ["18:00", "19:00", "20:00", "21:00", "22:00", "23:00", "00:00", "01:00"];
 
 export default function CustomTimePicker({
@@ -23,17 +22,17 @@ export default function CustomTimePicker({
   const [isOpen, setIsOpen] = useState(false);
   const [step, setStep] = useState<"hour" | "minute">("hour");
 
-  // 기본 시간 설정: 시작 = 14:00 (PM) / 종료 = 23:00 (PM)
   const defaultFallback = pickerType === "end" ? "23:00" : "14:00";
 
-  // 값 파싱 함수 (시간, 분, 다음날 여부 추출)
+  // 시간/분/다음날 파싱 함수
   const parseValue = (valStr: string) => {
     const target = valStr || defaultFallback;
     const isNext = target.includes("+1일") || target.includes("다음날") || target.includes("익일");
-    const cleanStr = target.replace(/[^0-9:]/g, "");
-    const [rawH, rawM] = cleanStr.split(":");
-    let hNum = parseInt(rawH || "14", 10);
-    let mNum = parseInt(rawM || "00", 10);
+
+    const match = target.match(/(\d{1,2}):(\d{1,2})/);
+
+    let hNum = match ? parseInt(match[1], 10) : (pickerType === "end" ? 23 : 14);
+    let mNum = match ? parseInt(match[2], 10) : 0;
 
     if (isNaN(hNum)) hNum = pickerType === "end" ? 23 : 14;
     if (isNaN(mNum)) mNum = 0;
@@ -50,7 +49,6 @@ export default function CustomTimePicker({
   const [localMinute, setLocalMinute] = useState<number>(parsed.minute);
   const [isNextDay, setIsNextDay] = useState<boolean>(parsed.isNextDay);
 
-  // 외부 value가 변경될 때 내부 로컬 상태 동기화
   useEffect(() => {
     const p = parseValue(value || defaultFallback);
     setLocalHour(p.hour);
@@ -61,14 +59,13 @@ export default function CustomTimePicker({
   const hStr = String(localHour).padStart(2, "0");
   const mStr = String(localMinute).padStart(2, "0");
 
-  // AM / PM 판별 (12~23시: PM, 0~11시: AM)
   const isPM = localHour >= 12;
   const period: "AM" | "PM" = isPM ? "PM" : "AM";
 
-  // 상태 변경 후 부모 전달 통합 함수
   const emitChange = (newH: number, newM: number, nextDayFlag: boolean) => {
     const validH = (newH + 24) % 24;
     const validM = (newM + 60) % 60;
+
     setLocalHour(validH);
     setLocalMinute(validM);
     setIsNextDay(nextDayFlag);
@@ -78,28 +75,24 @@ export default function CustomTimePicker({
     onChange(finalFormatted);
   };
 
-  // AM/PM 스위치
   const handlePeriodChange = (targetPeriod: "AM" | "PM") => {
     let nextH = localHour;
     let autoNextDay = isNextDay;
 
     if (targetPeriod === "AM" && isPM) {
       nextH = localHour - 12;
-      // 새벽 00시~05시로 넘어가면 다음날 자동 활성화
       if (nextH >= 0 && nextH <= 5) autoNextDay = true;
     } else if (targetPeriod === "PM" && !isPM) {
       nextH = localHour + 12;
-      autoNextDay = false; // PM은 당일
+      autoNextDay = false;
     }
     emitChange(nextH, localMinute, autoNextDay);
   };
 
-  // 당일 / 다음날(+1일) 수동 토글
   const handleNextDayToggle = (flag: boolean) => {
     emitChange(localHour, localMinute, flag);
   };
 
-  // 증감 조절
   const adjustMinutes = (delta: number) => {
     let totalMins = localHour * 60 + localMinute + delta;
     let nextDayFlag = isNextDay;
@@ -114,7 +107,6 @@ export default function CustomTimePicker({
     const nH = Math.floor(totalMins / 60);
     const nM = totalMins % 60;
 
-    // 새벽 00시~05시 접근 시 다음날 자동 지정
     if (nH >= 0 && nH <= 5 && delta > 0) {
       nextDayFlag = true;
     }
@@ -122,10 +114,8 @@ export default function CustomTimePicker({
     emitChange(nH, nM, nextDayFlag);
   };
 
-  // 추천 프리셋 클릭
   const handlePresetClick = (presetStr: string) => {
     const [pH, pM] = presetStr.split(":").map((n) => parseInt(n, 10));
-    // 00:00, 01:00 등 새벽 타임 추천은 자동으로 다음날(+1일) 설정
     const autoNext = pH >= 0 && pH <= 5;
     emitChange(pH, pM, autoNext);
   };
@@ -139,18 +129,11 @@ export default function CustomTimePicker({
     setIsOpen(true);
   };
 
-  // ──────────────── 아날로그 시계 좌표 및 계산 로직 ────────────────
   const CENTER = 95;
   const R_RING = 72;
 
-  const getHourAngle = (hour: number) => {
-    const modHour = hour % 12;
-    return modHour * 30;
-  };
-
-  const getMinuteAngle = (min: number) => {
-    return min * 6;
-  };
+  const getHourAngle = (hour: number) => (hour % 12) * 30;
+  const getMinuteAngle = (min: number) => min * 6;
 
   const handAngle = step === "hour" ? getHourAngle(localHour) : getMinuteAngle(localMinute);
   const handRad = ((handAngle - 90) * Math.PI) / 180;
@@ -158,8 +141,7 @@ export default function CustomTimePicker({
   const handY = CENTER + R_RING * Math.sin(handRad);
 
   const handleSelectHour = (hour: number) => {
-    // 새벽 00시~05시 선택 시 자동 다음날 지정
-    const autoNext = (hour >= 0 && hour <= 5) ? true : isNextDay;
+    const autoNext = hour >= 0 && hour <= 5 ? true : isNextDay;
     emitChange(hour, localMinute, autoNext);
     setStep("minute");
   };
@@ -172,10 +154,9 @@ export default function CustomTimePicker({
     ? [12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
     : [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 
-  const completionText =
-    pickerType === "end"
-      ? `종료 시간 설정 완료 (${isNextDay ? "다음날 " : ""}${hStr}:${mStr})`
-      : `시작 시간 설정 완료 (${isNextDay ? "다음날 " : ""}${hStr}:${mStr})`;
+  const completionText = pickerType === "start"
+    ? `시작 시간 설정 완료 (${isNextDay ? "다음날 " : ""}${hStr}:${mStr})`
+    : `종료 시간 설정 완료 (${isNextDay ? "다음날 " : ""}${hStr}:${mStr})`;
 
   return (
     <div className="relative flex-1 min-w-0">
@@ -193,7 +174,7 @@ export default function CustomTimePicker({
         <span className="font-mono text-xs font-black shrink-0 whitespace-nowrap">
           {hStr}:{mStr}
         </span>
-        {isNextDay && (
+        {isNextDay && !badge && (
           <span className="text-[9px] bg-[var(--accent)]/20 text-[var(--accent)] px-1 py-0.2 rounded font-black shrink-0 border border-[var(--accent)]/40 leading-none">
             +1일
           </span>
@@ -203,7 +184,7 @@ export default function CustomTimePicker({
         </span>
       </button>
 
-      {/* Analog Clock Picker Modal */}
+      {/* Analog Clock Modal */}
       {isOpen && (
         <div 
           className="fixed inset-0 z-[400] bg-black/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overscroll-none animate-in fade-in duration-150 [text-size-adjust:100%]"
@@ -220,7 +201,7 @@ export default function CustomTimePicker({
               <div className="flex items-center gap-1.5">
                 <span className="text-base">⏰</span>
                 <span className="text-xs font-black text-[var(--accent)]">
-                  {pickerType === "end" ? "종료 시간 시계 설정" : "시작 시간 시계 설정"}
+                  {pickerType === "start" ? "시작 시간 시계 설정" : "종료 시간 시계 설정"}
                 </span>
               </div>
               <button
@@ -232,7 +213,7 @@ export default function CustomTimePicker({
               </button>
             </div>
 
-            {/* Step Selector & Digital Display Banner */}
+            {/* Step Display */}
             <div className="w-full bg-[var(--inner-box)] p-2 rounded-xl border border-[var(--panel-border)] flex items-center justify-between px-3">
               <div className="text-[11px] font-black text-[var(--text-sub)]">
                 {step === "hour" ? "1단계: 시(Hour) 선택" : "2단계: 분(Minute) 선택"}
@@ -265,9 +246,8 @@ export default function CustomTimePicker({
               </div>
             </div>
 
-            {/* AM / PM + 당일 / 다음날(+1일) 서브 컨트롤 패널 */}
+            {/* Controls */}
             <div className="w-full space-y-1">
-              {/* 1. AM / PM 선택 스위치 */}
               <div className="w-full bg-[var(--inner-box)] p-1 rounded-xl border border-[var(--panel-border)] flex gap-1">
                 <button
                   type="button"
@@ -293,7 +273,7 @@ export default function CustomTimePicker({
                 </button>
               </div>
 
-              {/* 2. 🟢 [신규 탑재] 당일 vs 다음날(+1일) 날짜 토글 패널 */}
+              {/* 🟢 [수정완료] 시작시간 / 종료시간 구분 없이 당일 / 다음날(+1일) 토글 바 항시 노출 */}
               <div className="w-full bg-[var(--inner-box)] p-1 rounded-xl border border-[var(--panel-border)] flex gap-1">
                 <button
                   type="button"
@@ -320,7 +300,7 @@ export default function CustomTimePicker({
               </div>
             </div>
 
-            {/* Interactive Clock Dial Canvas */}
+            {/* Dial Canvas */}
             <div className="relative w-[190px] h-[190px] bg-[var(--inner-box)] rounded-full border-2 border-[var(--panel-border)] shadow-inner flex items-center justify-center my-0.5 shrink-0">
               <svg className="w-full h-full absolute inset-0 pointer-events-none" viewBox="0 0 190 190">
                 <circle cx={CENTER} cy={CENTER} r="4" fill="var(--accent)" />
@@ -344,7 +324,6 @@ export default function CustomTimePicker({
                 />
               </svg>
 
-              {/* 시(Hour) 모드 다이얼 */}
               {step === "hour" && (
                 <>
                   {hourList.map((h) => {
@@ -373,7 +352,6 @@ export default function CustomTimePicker({
                 </>
               )}
 
-              {/* 분(Minute) 모드 다이얼 */}
               {step === "minute" && (
                 <>
                   {[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55].map((m) => {
@@ -408,7 +386,7 @@ export default function CustomTimePicker({
               )}
             </div>
 
-            {/* 증감 조절 서브 패널 */}
+            {/* Adjust Buttons */}
             <div className="w-full border-t border-[var(--panel-border)] pt-2">
               <div className="grid grid-cols-4 gap-1">
                 <button
@@ -442,7 +420,7 @@ export default function CustomTimePicker({
               </div>
             </div>
 
-            {/* 빠른 시간 추천 패널 */}
+            {/* Quick Presets */}
             <div className="w-full border-t border-[var(--panel-border)] pt-2">
               <span className="text-[10px] font-black text-[var(--text-sub)] mb-1 block">
                 ⚡ 빠른 시간 추천
@@ -465,7 +443,7 @@ export default function CustomTimePicker({
               </div>
             </div>
 
-            {/* 설정 완료 및 닫기 버튼 */}
+            {/* Complete Button */}
             <button
               type="button"
               onClick={() => {

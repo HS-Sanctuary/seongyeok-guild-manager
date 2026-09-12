@@ -6,12 +6,22 @@ interface ClassIconProps {
   job: string; // 예: '검술사', '화염술사'
   className?: string; // 예: 'w-6 h-6'
   rank?: number; // 1: 골드, 2: 실버, 3: 브론즈 (랭커 효과)
+  size?: "xs" | "sm" | "md" | "lg" | "xl"; // 🎯 size 속성 추가 완료
 }
+
+const SIZE_MAP = {
+  xs: "w-4 h-4 min-w-[16px] min-h-[16px]",
+  sm: "w-5 h-5 min-w-[20px] min-h-[20px]",
+  md: "w-6 h-6 min-w-[24px] min-h-[24px]",
+  lg: "w-7 h-7 min-w-[28px] min-h-[28px]",
+  xl: "w-9 h-9 min-w-[36px] min-h-[36px]",
+};
 
 export const ClassIcon: React.FC<ClassIconProps> = ({
   job,
-  className = "w-6 h-6",
+  className = "",
   rank,
+  size = "md",
 }) => {
   // 랭커 1, 2, 3위에 따른 오라/발광 이펙트
   const getRankEffect = () => {
@@ -28,10 +38,11 @@ export const ClassIcon: React.FC<ClassIconProps> = ({
   };
 
   const svgPath = `/svgs/classes/${job}.svg`;
+  const sizeClass = SIZE_MAP[size] || SIZE_MAP.md;
 
   return (
     <div
-      className={`inline-block shrink-0 transition-all duration-300 ${className} ${getRankEffect()}`}
+      className={`inline-block shrink-0 transition-all duration-300 ${sizeClass} ${className} ${getRankEffect()}`}
       style={{
         maskImage: `url('${svgPath}')`,
         WebkitMaskImage: `url('${svgPath}')`,

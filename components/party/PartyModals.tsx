@@ -86,8 +86,10 @@ interface PartyModalsProps {
   setJoinSelectedRole: (val: string) => void;
   joinTimeStart: string;
   setTimeStartJoin?: (val: string) => void;
+  setJoinTimeStart?: (val: string) => void;
   joinTimeEnd: string;
   setTimeEndJoin?: (val: string) => void;
+  setJoinTimeEnd?: (val: string) => void;
   executeJoinParty: () => void;
 
   parties?: any[];
@@ -238,9 +240,11 @@ export default function PartyModals(props: PartyModalsProps) {
         joinSelectedRole={props.joinSelectedRole}
         setJoinSelectedRole={props.setJoinSelectedRole}
         joinTimeStart={props.joinTimeStart}
-        setTimeStartJoin={props.setTimeStartJoin}
+        setTimeStartJoin={props.setTimeStartJoin || props.setJoinTimeStart}
+        setJoinTimeStart={props.setJoinTimeStart || props.setTimeStartJoin}
         joinTimeEnd={props.joinTimeEnd}
-        setTimeEndJoin={props.setTimeEndJoin}
+        setTimeEndJoin={props.setTimeEndJoin || props.setJoinTimeEnd}
+        setJoinTimeEnd={props.setJoinTimeEnd || props.setTimeEndJoin}
         executeJoinParty={props.executeJoinParty}
         getDayOfWeekKorean={props.getDayOfWeekKorean}
       />

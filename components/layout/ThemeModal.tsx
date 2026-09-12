@@ -120,7 +120,9 @@ export default function ThemeModal({
         <div className="bg-[var(--panel-hover)] p-3.5 md:p-4 border-t border-[var(--panel-border)] flex flex-col gap-2.5">
           <div className="flex items-center justify-between gap-2 w-full">
             <button onClick={() => { setIsThemeModalOpen(false); router.push('/customize'); }} className="px-3.5 py-2 rounded-xl bg-[var(--inner-box)] border border-[var(--panel-border)] text-[var(--text-main)] hover:border-[var(--accent)] text-xs font-black transition shadow flex items-center justify-center gap-1.5 cursor-pointer"><span>✨</span> 테마 스튜디오</button>
-            <div className="flex items-center bg-[var(--inner-box)] border border-[var(--panel-border)] rounded-xl p-1 gap-1 shrink-0">
+            
+            {/* 🎯 [핵심] 모바일 환경(sm 미만)에서는 글자 크기 변경 버튼 컨트롤러를 완전 차단 및 숨김 처리 */}
+            <div className="hidden sm:flex items-center bg-[var(--inner-box)] border border-[var(--panel-border)] rounded-xl p-1 gap-1 shrink-0">
               <button onClick={() => setFontSizeLevel('small')} className={`px-2 py-1 rounded-lg text-xs font-bold cursor-pointer ${fontSizeLevel === 'small' ? 'bg-[var(--panel-hover)] text-[var(--text-main)]' : 'text-[var(--text-sub)]'}`}>A-</button>
               <button onClick={() => setFontSizeLevel('normal')} className={`px-2.5 py-1 rounded-lg text-xs font-bold cursor-pointer ${fontSizeLevel === 'normal' ? 'bg-[var(--panel-hover)] text-[var(--text-main)]' : 'text-[var(--text-sub)]'}`}>A</button>
               <button onClick={() => setFontSizeLevel('large')} className={`px-2.5 py-1 rounded-lg text-xs font-bold cursor-pointer ${fontSizeLevel === 'large' ? 'bg-[var(--panel-hover)] text-[var(--text-main)]' : 'text-[var(--text-sub)]'}`}>A+</button>

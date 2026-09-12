@@ -24,7 +24,7 @@ import {
   getMabinogiWeekRange
 } from "@/lib/partyDateUtils";
 
-// 파티의 실질적 종료 Date 객체를 계산하는 정밀 헬퍼 (TS ts(2345) 방어 옵셔널 스펙 반영)
+// 파티의 실질적 종료 Date 객체를 계산하는 정밀 헬퍼
 const getPartyEndDateTime = (partyDateStr?: string, startHM?: string, endHM?: string): Date => {
   const normDate = normalizeDateStr(partyDateStr || getTodayString());
   const [eH, eM] = (endHM || "23:59").split(":").map(Number);
@@ -33,7 +33,6 @@ const getPartyEndDateTime = (partyDateStr?: string, startHM?: string, endHM?: st
   const startMins = (isNaN(sH) ? 0 : sH) * 60 + (isNaN(sM) ? 0 : sM);
   const endMins = (isNaN(eH) ? 23 : eH) * 60 + (isNaN(eM) ? 59 : eM);
   
-  // 종료 시간이 시작 시간보다 작거나 같으면 다음 날(익일)로 판정
   const endIsNextDay = endMins <= startMins;
 
   const d = new Date(normDate + "T00:00:00");
@@ -130,7 +129,7 @@ export function usePartyManager() {
   const [joinTimeEnd, setJoinTimeEnd] = useState<string>("24:00");
   const [inspectCharacter, setInspectCharacter] = useState<any>(null);
 
-  // 타임아웃 검증 로직 (안전한 정밀 타입 검증)
+  // 타임아웃 검증 로직
   const checkTimeouts = useCallback((partyList: Party[], ownerName: string) => {
     if (!ownerName) return;
     const now = new Date();
@@ -143,7 +142,6 @@ export function usePartyManager() {
         return memOwner === ownerName || memName === ownerName;
       }) || party.leader_name === ownerName;
 
-      // 정밀 종료 일시 계산 (TS undefined 인자 분기 처리 완비)
       const endDateTime = getPartyEndDateTime(party.party_date, party.time_start, party.time_end);
 
       if (isMyParty && party.status === "모집중" && now >= endDateTime) {
@@ -453,11 +451,31 @@ export function usePartyManager() {
         combat_power: myCharObj?.combat_power || 0,
         magic_resistance: myCharObj?.magic_resistance || 0,
         time_start: timeStart,
-        time_end: timeEnd
+        time_end: timeEnd,
+        start_time: timeStart,
+        end_time: timeEnd,
+        startTime: timeStart,
+        endTime: timeEnd
       };
 
       const candidateList = [...existingMembers, newMember];
       const balanced = autoBalanceAndBuildParty(candidateList, existingMatchingParty.max_members);
+
+      // 🎯 [핵심 방어 및 TS 타입 캐스팅 적용] autoBalanceAndBuildParty가 누락시킨 시간 데이터를 복원하고 `as any`로 컴파일 에러 완전 방어
+      const membersWithTime = balanced.members.map((bm: any) => {
+        const original = candidateList.find((c: any) => (c.name || c.character_name) === (bm.name || bm.character_name));
+        const s = original?.time_start || original?.start_time || original?.startTime || timeStart;
+        const e = original?.time_end || original?.end_time || original?.endTime || timeEnd;
+        return {
+          ...bm,
+          time_start: s,
+          time_end: e,
+          start_time: s,
+          end_time: e,
+          startTime: s,
+          endTime: e,
+        } as any;
+      });
 
       let updatedWanted = [...(existingMatchingParty.wanted_roles || [])];
       if (myRoles.length > 0) {
@@ -468,16 +486,16 @@ export function usePartyManager() {
       }
 
       let updatePayload: any = {
-        members: balanced.members,
+        members: membersWithTime,
         wanted_roles: updatedWanted
       };
 
-      if (balanced.members.length === existingMatchingParty.max_members) {
-        const timeRanges = balanced.members.map((m: any) => ({ start: m.time_start || timeStart, end: m.time_end || timeEnd }));
+      if (membersWithTime.length === existingMatchingParty.max_members) {
+        const timeRanges = membersWithTime.map((m: any) => ({ start: m.time_start || m.start_time || timeStart, end: m.time_end || m.end_time || timeEnd }));
         const optimalTime = calculateMidpointStartTime(timeRanges);
-        updatePayload.final_start_time = optimalTime || existingMatchingParty.members[0].time_start;
+        updatePayload.final_start_time = optimalTime || membersWithTime[0].time_start;
         updatePayload.status = "매칭 완료";
-        updatePayload.leader_name = pickRandomLeader(balanced.members);
+        updatePayload.leader_name = pickRandomLeader(membersWithTime);
       } else {
         updatePayload.status = "모집중";
       }
@@ -519,7 +537,11 @@ export function usePartyManager() {
       combat_power: myCharObj?.combat_power || 0,
       magic_resistance: myCharObj?.magic_resistance || 0,
       time_start: timeStart, 
-      time_end: timeEnd 
+      time_end: timeEnd,
+      start_time: timeStart,
+      end_time: timeEnd,
+      startTime: timeStart,
+      endTime: timeEnd
     };
 
     const newParty: any = {
@@ -582,6 +604,10 @@ export function usePartyManager() {
         owner: ownerAcc,
         time_start: busCreateTimeStart,
         time_end: busCreateTimeEnd,
+        start_time: busCreateTimeStart,
+        end_time: busCreateTimeEnd,
+        startTime: busCreateTimeStart,
+        endTime: busCreateTimeEnd,
         allow_repeat: config.allowRepeat,
         is_completed: false
       };
@@ -669,7 +695,11 @@ export function usePartyManager() {
           allow_repeat: item.allowRepeat,
           is_completed: false,
           time_start: item.timeStart,
-          time_end: item.timeEnd
+          time_end: item.timeEnd,
+          start_time: item.timeStart,
+          end_time: item.timeEnd,
+          startTime: item.timeStart,
+          endTime: item.timeEnd
         };
       });
 
@@ -697,8 +727,8 @@ export function usePartyManager() {
           combat_power: parseCP(m.combat_power || m.cp || 0),
           allow_repeat: m.allow_repeat || false,
           is_completed: m.is_completed || false,
-          time_start: m.time_start,
-          time_end: m.time_end
+          time_start: m.time_start || m.start_time || "18:00",
+          time_end: m.time_end || m.end_time || "23:59"
         }));
 
         assembleBalancedParty(combinedCandidates, existingParty.max_members || 8, cpReqs);
@@ -876,6 +906,7 @@ export function usePartyManager() {
 
       const myCharObj = allCharactersMap[joinSelectedChar];
       const myJob = myCharObj?.job || "전사";
+
       const newMember = { 
         name: joinSelectedChar, 
         character_name: joinSelectedChar,
@@ -886,22 +917,42 @@ export function usePartyManager() {
         combat_power: myCharObj?.combat_power || 0,
         magic_resistance: myCharObj?.magic_resistance || 0,
         time_start: joinTimeStart, 
-        time_end: joinTimeEnd 
+        time_end: joinTimeEnd,
+        start_time: joinTimeStart,
+        end_time: joinTimeEnd,
+        startTime: joinTimeStart,
+        endTime: joinTimeEnd
       };
 
       const candidateList = [...latestParty.members, newMember];
       const balanced = autoBalanceAndBuildParty(candidateList, latestParty.max_members);
 
+      // 🎯 [핵심 방어 및 TS 타입 캐스팅 적용] 참가 신청 시에도 시간 데이터 복원 및 `as any`로 컴파일 에러 완전 방어
+      const membersWithTime = balanced.members.map((bm: any) => {
+        const original = candidateList.find((c: any) => (c.name || c.character_name) === (bm.name || bm.character_name));
+        const s = original?.time_start || original?.start_time || original?.startTime || joinTimeStart;
+        const e = original?.time_end || original?.end_time || original?.endTime || joinTimeEnd;
+        return {
+          ...bm,
+          time_start: s,
+          time_end: e,
+          start_time: s,
+          end_time: e,
+          startTime: s,
+          endTime: e,
+        } as any;
+      });
+
       let updatedWanted = [...(latestParty.wanted_roles || [])];
       if (updatedWanted.indexOf(joinSelectedRole) > -1) updatedWanted.splice(updatedWanted.indexOf(joinSelectedRole), 1);
 
-      let updatePayload: any = { members: balanced.members, wanted_roles: updatedWanted };
-      if (balanced.members.length === latestParty.max_members) {
-        const timeRanges = balanced.members.map((m: any) => ({ start: m.time_start || joinTimeStart, end: m.time_end || joinTimeEnd }));
+      let updatePayload: any = { members: membersWithTime, wanted_roles: updatedWanted };
+      if (membersWithTime.length === latestParty.max_members) {
+        const timeRanges = membersWithTime.map((m: any) => ({ start: m.time_start || m.start_time || joinTimeStart, end: m.time_end || m.end_time || joinTimeEnd }));
         const optimalTime = calculateMidpointStartTime(timeRanges);
-        updatePayload.final_start_time = optimalTime || latestParty.members[0].time_start;
+        updatePayload.final_start_time = optimalTime || membersWithTime[0].time_start;
         updatePayload.status = "매칭 완료";
-        updatePayload.leader_name = pickRandomLeader(balanced.members);
+        updatePayload.leader_name = pickRandomLeader(membersWithTime);
       } else {
         updatePayload.status = "모집중";
       }
@@ -1047,7 +1098,7 @@ export function usePartyManager() {
 
       const aIsCompleted = a.status === "매칭 완료" || a.status === "모집완료" ? 1 : 0;
       const bIsCompleted = b.status === "매칭 완료" || b.status === "모집완료" ? 1 : 0;
-      if (aIsCompleted !== bIsCompleted) return aIsCompleted - bIsCompleted;
+      if (aIsCompleted !== bIsCompleted) return bIsCompleted - aIsCompleted;
 
       return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
     });
