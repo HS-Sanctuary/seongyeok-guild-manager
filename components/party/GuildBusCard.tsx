@@ -118,7 +118,6 @@ export default function GuildBusCard({
   const [isPoolModalOpen, setIsPoolModalOpen] = useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   
-  // 🎯 DB 상태 호환성 유지 (운행중 / 매칭중 호환)
   const isBusStartedInDB = party.status === "운행중" || party.status === "매칭 완료" || party.status === "매칭중" || (party as any).is_started;
   const [isStarted, setIsStarted] = useState<boolean>(isBusStartedInDB);
   const [prevMemberNames, setPrevMemberNames] = useState<string[]>([]);
@@ -368,16 +367,17 @@ export default function GuildBusCard({
   const isMyAccountJoined = myJoinedMembers.length > 0;
 
   return (
-    <div className="w-full rounded-2xl border-2 border-[var(--accent)]/60 border-t-4 border-t-[var(--accent)] bg-[var(--panel)] p-3.5 sm:p-5 shadow-[0_10px_30px_rgba(0,0,0,0.8),0_0_20px_rgba(234,179,8,0.12)] transition-all duration-200 hover:border-[var(--accent)] relative overflow-hidden">
+    <div className="w-full rounded-2xl border-2 border-[var(--accent)]/60 border-t-4 border-t-[var(--accent)] bg-[var(--panel)] p-3 sm:p-5 shadow-lg transition-all duration-200 hover:border-[var(--accent)] relative overflow-hidden">
       
-      <div className="-mx-3.5 -mt-3.5 sm:-mx-5 sm:-mt-5 p-2.5 sm:p-4 bg-black/60 border-b border-[var(--panel-border)] rounded-t-2xl mb-2.5 sm:mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 sm:gap-3">
+      {/* 카드 헤더 래퍼 */}
+      <div className="-mx-3 -mt-3 sm:-mx-5 sm:-mt-5 p-2 sm:p-4 bg-[var(--inner-box)] border-b border-[var(--panel-border)] rounded-t-2xl mb-2 sm:mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-3">
         <div className="flex items-center gap-1.5 sm:gap-2.5 flex-wrap min-w-0">
-          <span className="px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md text-[11px] sm:text-xs font-black bg-[var(--accent)] text-black flex items-center gap-1 shrink-0 shadow-sm">
-            <MarkIcon src="/svgs/UI mark/길드 마크.svg" size="xs" colorClass="bg-black" scale={1.1} />
+          <span className="px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md text-[11px] sm:text-xs font-black bg-[var(--accent)] text-[var(--accent-fg)] flex items-center gap-1 shrink-0 shadow-xs">
+            <MarkIcon src="/svgs/UI mark/길드 마크.svg" size="xs" colorClass="bg-[var(--accent-fg)]" scale={1.1} />
             <span>길드버스</span>
           </span>
 
-          <span className={`px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md text-[11px] sm:text-xs font-bold border ${DIFFICULTY_COLORS[party.difficulty] || 'bg-[var(--inner-box)] border-[var(--panel-border)] text-[var(--text-main)]'} shrink-0`}>
+          <span className={`px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md text-[11px] sm:text-xs font-bold border ${DIFFICULTY_COLORS[party.difficulty] || 'bg-[var(--panel)] border-[var(--panel-border)] text-[var(--text-main)]'} shrink-0`}>
             {party.difficulty}
           </span>
 
@@ -389,33 +389,35 @@ export default function GuildBusCard({
           </div>
 
           {isStarted && (
-            <span className="px-1.5 sm:px-2 py-0.2 rounded text-[9px] sm:text-[10px] font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 animate-pulse">
+            <span className="px-1.5 sm:px-2 py-0.2 rounded text-[9px] sm:text-[10px] font-black bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/40 animate-pulse">
               운행중
             </span>
           )}
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-3 text-[11px] sm:text-xs text-[var(--text-main)] opacity-90 shrink-0">
-          <div className="flex items-center gap-1 bg-black/40 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md border border-white/10">
+        {/* 희망 시간 & 기사단장 */}
+        <div className="flex items-center gap-2 sm:gap-3 text-[11px] sm:text-xs text-[var(--text-main)] shrink-0">
+          <div className="flex items-center gap-1 bg-[var(--panel)] px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md border border-[var(--panel-border)]">
             <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[var(--accent)]" />
-            <span className="font-bold">{party.time_start} ~ {party.time_end}</span>
+            <span className="font-bold text-[var(--text-main)]">{party.time_start} ~ {party.time_end}</span>
           </div>
-          <div className="flex items-center gap-1 bg-black/40 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md border border-white/10">
-            <Crown className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-400" />
-            <span className="font-semibold truncate max-w-[80px]">{party.leader_name || '기사단장'}</span>
+          <div className="flex items-center gap-1 bg-[var(--panel)] px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md border border-[var(--panel-border)]">
+            <Crown className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-600 dark:text-amber-400" />
+            <span className="font-bold text-[var(--text-main)] truncate max-w-[80px]">{party.leader_name || '기사단장'}</span>
           </div>
         </div>
       </div>
 
       {displaySubContent && !isDefaultSubContent && (
-        <div className="mb-2.5 sm:mb-4 text-xs text-[var(--text-main)] opacity-90 bg-[var(--inner-box)] p-2.5 rounded-lg border border-[var(--panel-border)] flex items-start gap-2">
+        <div className="mb-2 sm:mb-3 text-xs text-[var(--text-main)] bg-[var(--inner-box)] p-2 rounded-lg border border-[var(--panel-border)] flex items-start gap-1.5">
           <AlertCircle className="w-4 h-4 text-[var(--accent)] shrink-0 mt-0.5" />
           <span className="break-all leading-snug font-medium min-w-0 flex-1">{displaySubContent}</span>
         </div>
       )}
 
-      <div className="mb-3.5 sm:mb-4 bg-[var(--inner-box)] rounded-xl p-3 sm:p-3.5 border border-[var(--panel-border)]">
-        <div className="flex flex-wrap items-center justify-between gap-2 mb-2.5 sm:mb-3 pb-2 sm:pb-2.5 border-b border-[var(--panel-border)]">
+      {/* 출전 파티 현황 영역 */}
+      <div className="mb-2.5 sm:mb-4 bg-[var(--inner-box)] rounded-xl p-2.5 sm:p-3.5 border border-[var(--panel-border)]">
+        <div className="flex flex-wrap items-center justify-between gap-1.5 mb-2 sm:mb-3 pb-1.5 sm:pb-2.5 border-b border-[var(--panel-border)]">
           <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
             <span className="text-xs sm:text-sm font-black text-[var(--text-main)] flex items-center gap-1.5">
               <MarkIcon src="/svgs/UI mark/지구본 마크.svg" size="xs" scale={1.1} colorClass="bg-[var(--accent)]" />
@@ -424,14 +426,14 @@ export default function GuildBusCard({
 
             <div className="flex items-center gap-1 ml-1">
               <span className={`px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-[11px] font-bold rounded-md border flex items-center gap-1 ${
-                hasTanker ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-zinc-800/60 border-zinc-700 text-zinc-500'
+                hasTanker ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400' : 'bg-[var(--panel)] border-[var(--panel-border)] text-[var(--text-sub)] opacity-70'
               }`}>
                 <Shield className="w-3 h-3" />
                 {hasTanker ? '탱커 확보' : '탱커 미확보'}
               </span>
 
               <span className={`px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-[11px] font-bold rounded-md border flex items-center gap-1 ${
-                hasHealer ? 'bg-teal-500/10 border-teal-500/30 text-teal-300' : 'bg-zinc-800/60 border-zinc-700 text-zinc-500'
+                hasHealer ? 'bg-teal-500/10 border-teal-500/30 text-teal-600 dark:text-teal-300' : 'bg-[var(--panel)] border-[var(--panel-border)] text-[var(--text-sub)] opacity-70'
               }`}>
                 <Heart className="w-3 h-3" />
                 {hasHealer ? '힐러 확보' : '힐러 미확보'}
@@ -439,15 +441,16 @@ export default function GuildBusCard({
             </div>
           </div>
 
-          <div className="px-2.5 sm:px-3 py-1 bg-[var(--panel)] border border-[var(--accent)]/40 rounded-xl flex items-center gap-1.5 shadow-inner">
-            <span className="text-[11px] sm:text-xs text-[var(--text-sub)] font-medium">평균 전투력</span>
+          <div className="px-2 py-0.5 sm:px-3 sm:py-1 bg-[var(--panel)] border border-[var(--accent)]/40 rounded-xl flex items-center gap-1.5 shadow-xs">
+            <span className="text-[10px] sm:text-xs text-[var(--text-sub)] font-medium">평균 전투력</span>
             <span className="text-xs sm:text-sm font-black text-[var(--accent)] font-mono">
               {avgCombatPower > 0 ? avgCombatPower.toLocaleString() : "0"}
             </span>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5">
+        {/* 8인 파티 출전 멤버 슬롯 */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-2.5">
           {Array.from({ length: maxPartySize }).map((_, index) => {
             const member = activeMembers[index];
 
@@ -455,7 +458,7 @@ export default function GuildBusCard({
               return (
                 <div 
                   key={`empty-${index}`} 
-                  className="min-h-[62px] rounded-xl border border-dashed border-[var(--panel-border)] bg-black/10 flex items-center justify-center text-xs text-[var(--text-sub)] font-bold"
+                  className="min-h-[58px] sm:min-h-[62px] rounded-xl border border-dashed border-[var(--panel-border)] bg-[var(--inner-box)]/50 flex items-center justify-center text-[11px] sm:text-xs text-[var(--text-sub)] font-bold"
                 >
                   빈 출전 슬롯
                 </div>
@@ -471,30 +474,30 @@ export default function GuildBusCard({
             return (
               <div 
                 key={`active-${member.character_name}-${index}`}
-                className={`min-h-[62px] rounded-xl border p-2 flex items-center gap-2 relative overflow-hidden transition-all min-w-0 ${
+                className={`min-h-[58px] sm:min-h-[62px] rounded-xl border p-1.5 sm:p-2 flex items-center gap-1.5 sm:gap-2 relative overflow-hidden transition-all min-w-0 ${
                   isNewlyAdded 
                     ? 'border-amber-400 bg-amber-500/10 shadow-[0_0_12px_rgba(251,191,36,0.3)] animate-pulse' 
-                    : 'border-[var(--panel-border)] bg-[var(--panel)] hover:border-[var(--accent)]/60'
+                    : 'border-[var(--panel-border)] bg-[var(--panel)] hover:border-[var(--accent)]'
                 }`}
               >
                 {isNewlyAdded && (
-                  <span className="absolute top-0 right-0 px-1.5 py-0.2 bg-amber-500 text-black font-black text-[8px] rounded-bl-md">
+                  <span className="absolute top-0 right-0 px-1 py-0.2 bg-amber-500 text-black font-black text-[8px] rounded-bl-md">
                     NEW
                   </span>
                 )}
 
                 <div className="flex flex-col items-center justify-center shrink-0">
-                  <div className="w-7 h-7 rounded-lg bg-black/40 border border-white/10 flex items-center justify-center p-0.5">
-                    <ClassIcon className="w-5 h-5 text-[var(--text-main)]" job={member.job} />
+                  <div className="w-6 sm:w-7 h-6 sm:h-7 rounded-lg bg-[var(--inner-box)] border border-[var(--panel-border)] flex items-center justify-center p-0.5">
+                    <ClassIcon className="w-4 sm:w-5 h-4 sm:h-5 text-[var(--text-main)]" job={member.job} />
                   </div>
-                  <span className="mt-0.5 px-1 py-0.2 text-[9px] font-black rounded bg-black/60 text-[var(--accent)] border border-[var(--accent)]/30 leading-none">
+                  <span className="mt-0.5 px-1 py-0.2 text-[8.5px] sm:text-[9px] font-black rounded bg-[var(--accent)] text-[var(--accent-fg)] leading-none">
                     {role}
                   </span>
                 </div>
 
                 <div className="flex-1 min-w-0 flex flex-col justify-center">
                   <div className="flex items-center gap-1 min-w-0">
-                    <span className="text-xs font-black text-[var(--text-main)] truncate leading-tight">
+                    <span className="text-[11px] sm:text-xs font-black text-[var(--text-main)] truncate leading-tight">
                       {displayName}
                     </span>
                     {member.allow_repeat && (
@@ -502,9 +505,9 @@ export default function GuildBusCard({
                     )}
                   </div>
 
-                  <div className="flex items-center gap-1 mt-0.5 min-w-0">
-                    <MarkIcon src="/svgs/status mark/전투력 마크.svg" size="xs" scale={0.85} colorClass="bg-amber-400" />
-                    <span className="text-[11px] sm:text-xs font-black text-amber-400 font-mono leading-none truncate">
+                  <div className="flex items-center gap-0.5 mt-0.5 min-w-0">
+                    <MarkIcon src="/svgs/status mark/전투력 마크.svg" size="xs" scale={0.8} colorClass="bg-amber-600 dark:bg-amber-400" />
+                    <span className="text-[10px] sm:text-xs font-black text-amber-800 dark:text-amber-400 font-mono leading-none truncate">
                       <span className="sm:hidden">{formatCPShort(cpNum)}</span>
                       <span className="hidden sm:inline">{cpNum > 0 ? cpNum.toLocaleString() : "-"}</span>
                     </span>
@@ -516,98 +519,104 @@ export default function GuildBusCard({
         </div>
       </div>
 
+      {/* 🎯 버스 컨트롤러 버튼 그룹 (라이트/다크 양방향 솔리드 고대비 100% 보장) */}
       {canManage && (
-        <div className="mb-3.5 sm:mb-4 p-2.5 sm:p-3 rounded-xl bg-[var(--inner-box)] border border-[var(--panel-border)] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div className="text-xs font-bold text-[var(--text-main)] flex items-center gap-1.5 shrink-0">
-            <Crown className="w-4 h-4 text-amber-400" />
+        <div className="mb-2 sm:mb-3 p-1.5 sm:p-2.5 rounded-xl bg-[var(--inner-box)] border border-[var(--panel-border)] flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-2">
+          <div className="text-[10.5px] sm:text-xs font-black text-[var(--text-main)] flex items-center gap-1 shrink-0">
+            <Crown className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
             <span>버스 컨트롤러</span>
           </div>
 
-          <div className="grid grid-cols-2 gap-1.5 w-full sm:flex sm:items-center sm:w-auto sm:gap-2">
+          <div className="grid grid-cols-2 gap-1 w-full sm:flex sm:items-center sm:w-auto sm:gap-1.5">
             {!isStarted ? (
               <button
                 type="button"
                 onClick={handleStartBus}
                 disabled={activeMembers.length === 0}
-                className="w-full sm:w-auto px-3 py-1.5 rounded-lg sm:rounded-xl text-xs font-black bg-emerald-500 hover:bg-emerald-400 text-black disabled:opacity-50 transition-all flex items-center justify-center gap-1 shadow cursor-pointer"
+                className="w-full sm:w-auto px-2 py-1 rounded-md sm:rounded-lg text-[10.5px] sm:text-xs font-black bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-700 disabled:opacity-50 transition-all flex items-center justify-center gap-1 shadow-sm cursor-pointer active:scale-95"
               >
-                <Play className="w-3.5 h-3.5 shrink-0" />
-                <span>버스 출발</span>
+                <Play className="w-3 h-3 shrink-0 text-white" />
+                <span className="text-white">버스 출발</span>
               </button>
             ) : (
               <button
                 type="button"
                 onClick={handleCompleteAndNextRound}
                 disabled={isSyncing || activeMembers.length === 0}
-                className="w-full sm:w-auto px-3 py-1.5 rounded-lg sm:rounded-xl text-xs font-black bg-[var(--accent)] text-black hover:brightness-110 disabled:opacity-50 transition-all flex items-center justify-center gap-1 shadow cursor-pointer"
+                className="w-full sm:w-auto px-2 py-1 rounded-md sm:rounded-lg text-[10.5px] sm:text-xs font-black bg-[var(--accent)] text-[var(--accent-fg)] hover:brightness-110 disabled:opacity-50 transition-all flex items-center justify-center gap-1 shadow-sm cursor-pointer active:scale-95"
               >
-                <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                <Sparkles className="w-3 h-3 shrink-0" />
                 <span>{isSyncing ? "동기화..." : "회차 완료!"}</span>
               </button>
             )}
 
+            {/* 🎯 [파티 재구성] 솔리드 딥 인디고 + 백색 폰트 (시인성 100% 고대비) */}
             <button
               type="button"
               onClick={handleReconstructParty}
-              className="w-full sm:w-auto px-2.5 py-1.5 rounded-lg sm:rounded-xl text-xs font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 hover:bg-indigo-500/30 transition-all flex items-center justify-center gap-1 cursor-pointer"
+              className="w-full sm:w-auto px-2 py-1 rounded-md sm:rounded-lg text-[10.5px] sm:text-xs font-black bg-indigo-600 hover:bg-indigo-700 text-white border border-indigo-700 shadow-sm transition-all flex items-center justify-center gap-1 cursor-pointer active:scale-95"
             >
-              <RefreshCw className="w-3.5 h-3.5 shrink-0" />
-              <span>파티 재구성</span>
+              <RefreshCw className="w-3 h-3 shrink-0 text-white" />
+              <span className="text-white">파티 재구성</span>
             </button>
 
+            {/* 🎯 [관리자 인계] 솔리드 비비드 앰버 + 칠흑색 폰트 (시인성 100% 고대비) */}
             <button
               type="button"
               onClick={handleOpenTransferModal}
               disabled={isLoadingAdmins}
-              className="w-full sm:w-auto px-2.5 py-1.5 rounded-lg sm:rounded-xl text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 disabled:opacity-50 transition-all flex items-center justify-center gap-1 cursor-pointer"
+              className="w-full sm:w-auto px-2 py-1 rounded-md sm:rounded-lg text-[10.5px] sm:text-xs font-black bg-amber-500 hover:bg-amber-400 text-zinc-950 border border-amber-600 shadow-sm disabled:opacity-50 transition-all flex items-center justify-center gap-1 cursor-pointer active:scale-95"
             >
-              <UserCheck className="w-3.5 h-3.5 shrink-0 text-amber-400" />
-              <span>{isLoadingAdmins ? '조회중...' : '관리자 인계'}</span>
+              <UserCheck className="w-3 h-3 shrink-0 text-zinc-950" />
+              <span className="text-zinc-950">{isLoadingAdmins ? '조회중...' : '관리자 인계'}</span>
             </button>
 
+            {/* 🎯 [해산] 솔리드 크림슨 로즈 + 백색 폰트 (시인성 100% 고대비) */}
             <button
               type="button"
               onClick={handleAttemptDeleteParty}
-              className="w-full sm:w-auto px-2.5 py-1.5 rounded-lg sm:rounded-xl text-xs font-bold bg-rose-500/10 text-rose-400 border border-rose-500/30 hover:bg-rose-500/20 transition-all flex items-center justify-center gap-1 cursor-pointer"
+              className="w-full sm:w-auto px-2 py-1 rounded-md sm:rounded-lg text-[10.5px] sm:text-xs font-black bg-rose-600 hover:bg-rose-700 text-white border border-rose-700 shadow-sm transition-all flex items-center justify-center gap-1 cursor-pointer active:scale-95"
             >
-              <Trash2 className="w-3.5 h-3.5 shrink-0" />
-              <span>해산</span>
+              <Trash2 className="w-3 h-3 shrink-0 text-white" />
+              <span className="text-white">해산</span>
             </button>
           </div>
         </div>
       )}
 
+      {/* 참가 캐릭터 리스트 토글 바 */}
       <div className="rounded-xl border border-[var(--panel-border)] bg-[var(--inner-box)] overflow-hidden">
         <button
           type="button"
           onClick={() => setIsPoolModalOpen(true)}
-          className="w-full px-3 py-2 sm:px-3.5 sm:py-2.5 flex items-center justify-between text-xs font-bold text-[var(--text-main)] hover:bg-[var(--panel)]/50 transition-colors cursor-pointer min-w-0"
+          className="w-full px-2.5 py-1.5 sm:px-3 sm:py-2 flex items-center justify-between text-[10.5px] sm:text-xs font-bold text-[var(--text-main)] hover:bg-[var(--panel)]/50 transition-colors cursor-pointer min-w-0"
         >
-          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-            <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[var(--accent)] shrink-0" />
+          <div className="flex items-center gap-1.5 min-w-0">
+            <Users className="w-3.5 h-3.5 text-[var(--accent)] shrink-0" />
             <span className="truncate">참가 캐릭터 List ({party.members?.length || 0}캐릭터)</span>
           </div>
-          <span className="text-[11px] sm:text-xs text-[var(--accent)] font-bold shrink-0 ml-1">
+          <span className="text-[10px] sm:text-xs text-[var(--accent)] font-bold shrink-0 ml-1">
             상세 보기 ➔
           </span>
         </button>
       </div>
 
-      <div className="mt-3 sm:mt-4 pt-2.5 sm:pt-3 border-t border-[var(--panel-border)] space-y-2">
+      {/* 하단 내 참여 캐릭터 칩 및 추가 버튼 */}
+      <div className="mt-2.5 sm:mt-4 pt-2 sm:pt-3 border-t border-[var(--panel-border)] space-y-1.5">
         <div className="flex items-center justify-between gap-1.5 min-w-0">
-          <span className="text-[11px] sm:text-xs font-bold text-[var(--text-sub)] shrink-0">
-            참여 상태: {isMyAccountJoined ? <strong className="text-emerald-400">참여 중 ({myJoinedMembers.length}개)</strong> : "미참여"}
+          <span className="text-[10.5px] sm:text-xs font-bold text-[var(--text-sub)] shrink-0">
+            참여 상태: {isMyAccountJoined ? <strong className="text-emerald-600 dark:text-emerald-400">참여 중 ({myJoinedMembers.length}개)</strong> : "미참여"}
           </span>
 
           {isMyAccountJoined ? (
-            <div className="text-[10px] sm:text-[11px] font-bold text-[var(--text-sub)] bg-[var(--inner-box)] px-2 py-0.5 rounded-md border border-[var(--panel-border)] flex items-center gap-1.5 shrink-0">
+            <div className="text-[9.5px] sm:text-[11px] font-bold text-[var(--text-sub)] bg-[var(--inner-box)] px-1.5 py-0.5 rounded-md border border-[var(--panel-border)] flex items-center gap-1 shrink-0">
               <span className="flex items-center gap-0.5">
-                <RefreshCw className="w-3 h-3 text-[var(--accent)] inline-block" />
+                <RefreshCw className="w-2.5 h-2.5 text-[var(--accent)] inline-block" />
                 <span>:반복</span>
               </span>
               <span className="text-[var(--panel-border)]">|</span>
-              <span className="flex items-center gap-0.5 text-rose-400">
-                <X className="w-3 h-3 inline-block" />
+              <span className="flex items-center gap-0.5 text-rose-500">
+                <X className="w-2.5 h-2.5 inline-block" />
                 <span>:탈퇴</span>
               </span>
             </div>
@@ -615,16 +624,16 @@ export default function GuildBusCard({
             <button
               type="button"
               onClick={() => onJoinClick(party)}
-              className="px-2.5 sm:px-3 py-1 sm:py-1.5 bg-[var(--accent)] hover:brightness-110 text-[var(--accent-fg)] font-black text-[11px] sm:text-xs rounded-lg sm:rounded-xl shadow-xs transition active:scale-95 cursor-pointer flex items-center gap-1 shrink-0"
+              className="px-2.5 py-1 bg-[var(--accent)] hover:brightness-110 text-[var(--accent-fg)] font-black text-[10.5px] sm:text-xs rounded-lg shadow-xs transition active:scale-95 cursor-pointer flex items-center gap-1 shrink-0"
             >
-              <Plus className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+              <Plus className="w-3 h-3" />
               <span>참여 신청</span>
             </button>
           )}
         </div>
 
         {isMyAccountJoined && (
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-1.5 pt-1 w-full">
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-1 pt-0.5 w-full">
             {myJoinedMembers.map((myChar: any, idx: number) => {
               const charName = myChar.character_name || myChar.name;
               const displayName = getDisplayName(myChar);
@@ -633,7 +642,7 @@ export default function GuildBusCard({
               return (
                 <div
                   key={`joined-chip-${charName}-${idx}`}
-                  className={`flex items-center justify-between px-2 py-1 rounded-xl border text-xs font-bold transition shadow-xs ${
+                  className={`flex items-center justify-between px-1.5 py-0.5 rounded-lg border text-[11px] font-bold transition shadow-xs ${
                     isRepeat
                       ? 'bg-[var(--accent-soft)]/60 border-[var(--accent)] text-[var(--accent)]'
                       : 'bg-[var(--inner-box)] border-[var(--panel-border)] text-[var(--text-main)] hover:border-[var(--accent)]/50'
@@ -642,12 +651,12 @@ export default function GuildBusCard({
                   <button
                     type="button"
                     onClick={() => handleToggleRepeat(charName, isRepeat)}
-                    className="flex items-center gap-1 min-w-0 flex-1 text-left cursor-pointer truncate"
+                    className="flex items-center gap-0.5 min-w-0 flex-1 text-left cursor-pointer truncate"
                     title="클릭 시 반복 참여 설정(ON/OFF)"
                   >
                     <span className="truncate">{displayName}</span>
                     <RefreshCw 
-                      className={`w-3.5 h-3.5 shrink-0 transition-colors ${
+                      className={`w-3 h-3 shrink-0 transition-colors ${
                         isRepeat ? 'text-[var(--accent)]' : 'text-[var(--text-main)] opacity-70'
                       }`} 
                     />
@@ -656,10 +665,10 @@ export default function GuildBusCard({
                   <button
                     type="button"
                     onClick={() => onLeaveClick(party, charName)}
-                    className="w-4 h-4 rounded-full bg-rose-950/80 hover:bg-rose-600 text-rose-300 hover:text-white flex items-center justify-center text-[9px] transition cursor-pointer shrink-0 ml-1"
+                    className="w-3.5 h-3.5 rounded-full bg-rose-600 hover:bg-rose-700 text-white font-black flex items-center justify-center text-[8px] transition cursor-pointer shrink-0 ml-1 shadow-xs"
                     title={`${charName} 버스 탈퇴`}
                   >
-                    <X className="w-2.5 h-2.5" />
+                    <X className="w-2 h-2 text-white" />
                   </button>
                 </div>
               );
@@ -669,9 +678,9 @@ export default function GuildBusCard({
               <button
                 type="button"
                 onClick={() => onJoinClick(party)}
-                className="flex items-center justify-center gap-1 px-2 py-1 bg-[var(--panel)] border border-dashed border-[var(--accent)]/60 hover:border-[var(--accent)] text-[var(--accent)] rounded-xl text-xs font-bold transition cursor-pointer"
+                className="flex items-center justify-center gap-0.5 px-2 py-0.5 bg-[var(--panel)] border border-dashed border-[var(--accent)]/60 hover:border-[var(--accent)] text-[var(--accent)] rounded-lg text-[11px] font-bold transition cursor-pointer"
               >
-                <Plus className="w-3 h-3" />
+                <Plus className="w-2.5 h-2.5" />
                 <span>추가</span>
               </button>
             )}
@@ -679,18 +688,19 @@ export default function GuildBusCard({
         )}
       </div>
 
+      {/* 관리자 인계 모달 */}
       {isTransferModalOpen && (
-        <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-3 animate-in fade-in duration-200">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-[100] flex items-center justify-center p-3 animate-in fade-in duration-200">
           <div className="bg-[var(--panel)] border-2 border-[var(--accent)] rounded-2xl p-4 w-full max-w-sm shadow-2xl flex flex-col space-y-3.5">
             <div className="flex items-center justify-between pb-2 border-b border-[var(--panel-border)]">
               <div className="flex items-center gap-2 text-sm font-black text-[var(--accent)]">
-                <Crown className="w-4 h-4 text-amber-400 shrink-0" />
+                <Crown className="w-4 h-4 text-amber-500 shrink-0" />
                 <span>👑 버스 관리자 권한 인계</span>
               </div>
               <button
                 type="button"
                 onClick={() => setIsTransferModalOpen(false)}
-                className="text-[var(--text-sub)] hover:text-white transition p-0.5"
+                className="text-[var(--text-sub)] hover:text-[var(--text-main)] transition p-0.5"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -708,7 +718,7 @@ export default function GuildBusCard({
                   className={`flex items-center justify-between p-2.5 rounded-xl border transition cursor-pointer ${
                     selectedAdmin === admin.nickname
                       ? 'border-[var(--accent)] bg-[var(--inner-box)] shadow-xs'
-                      : 'border-[var(--panel-border)] bg-black/20 hover:border-[var(--accent)]/50'
+                      : 'border-[var(--panel-border)] bg-[var(--inner-box)] hover:border-[var(--accent)]/50'
                   }`}
                 >
                   <div className="flex items-center gap-2">
@@ -724,7 +734,7 @@ export default function GuildBusCard({
                     </span>
                   </div>
 
-                  <span className="px-2 py-0.5 text-[10px] font-black rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                  <span className="px-2 py-0.5 text-[10px] font-black rounded-md bg-amber-500 text-zinc-950 font-black border border-amber-600">
                     {admin.role || '관리자'}
                   </span>
                 </label>
@@ -735,14 +745,14 @@ export default function GuildBusCard({
               <button
                 type="button"
                 onClick={() => setIsTransferModalOpen(false)}
-                className="px-3 py-1.5 rounded-xl bg-[var(--inner-box)] border border-[var(--panel-border)] text-xs font-bold text-[var(--text-sub)] hover:text-white transition cursor-pointer"
+                className="px-3 py-1.5 rounded-xl bg-[var(--inner-box)] border border-[var(--panel-border)] text-xs font-bold text-[var(--text-sub)] hover:text-[var(--text-main)] transition cursor-pointer"
               >
                 취소
               </button>
               <button
                 type="button"
                 onClick={handleConfirmTransfer}
-                className="px-4 py-1.5 rounded-xl bg-[var(--accent)] text-black text-xs font-black hover:brightness-110 transition shadow-sm cursor-pointer"
+                className="px-4 py-1.5 rounded-xl bg-[var(--accent)] text-[var(--accent-fg)] text-xs font-black hover:brightness-110 transition shadow-xs cursor-pointer"
               >
                 인계 확정
               </button>

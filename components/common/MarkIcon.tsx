@@ -11,7 +11,7 @@ export interface MarkIconProps {
   size?: "xs" | "sm" | "md" | "lg" | "xl";
   /** 전역 테마 색상 클래스 (기본값: bg-[var(--accent)]) */
   colorClass?: string;
-  /** 호출부 전용 커스텀 배율 오버라이드 (예: scale={3.3}) */
+  /** 호출부 전용 커스텀 배율 오버라이드 (예: scale={1.35}) */
   scale?: number;
   /** 마크 요소 추가 클래스 */
   className?: string;
@@ -20,7 +20,7 @@ export interface MarkIconProps {
 }
 
 // ──────────────── 전역 기본 안전 광학 배율 (Global Default Safe Scales) ────────────────
-// 특정 UI의 극단적 배율로 인한 타 페이지 부작용을 방지하기 위한 표준 기본값
+// SVG 파일별 여백 차이를 정밀 보정하여 visual weight 1:1 맞춤
 const BASE_OPTICAL_SCALES: Record<string, number> = {
   "사람 마크": 0.90,
   "레이드 마크": 1.10,
@@ -28,6 +28,10 @@ const BASE_OPTICAL_SCALES: Record<string, number> = {
   "달력 마크": 1.20,
   "전투력 마크": 1.10,
   "도감 마크": 1.20,
+  "마도저항 마크": 1.35,
+  "마력저항 마크": 1.35,
+  "장비 마크": 1.00,
+  "길드 마크": 1.35, // 🎯 길드 마크 기본 시각 볼륨 35% 증대 적용
 };
 
 const SIZE_MAP = {

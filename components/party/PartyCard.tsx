@@ -2,6 +2,7 @@
 
 import React, { useMemo } from 'react';
 import ClassIcon from '@/components/common/ClassIcon';
+import MarkIcon from '@/components/common/MarkIcon';
 import { Party, DIFFICULTY_COLORS } from '@/components/party/types';
 import { parseCP } from '@/lib/busUtils';
 import {
@@ -11,6 +12,16 @@ import {
   timeToMinutes,
   minutesToTime,
 } from '@/lib/partyDateUtils';
+
+// 모바일용 CP/MR 수치 만 단위 축약 유틸
+const formatCPShort = (cp: number) => {
+  if (!cp || cp <= 0) return "-";
+  if (cp >= 10000) {
+    const man = cp / 10000;
+    return `${(Math.floor(man * 10) / 10).toFixed(1)}만`;
+  }
+  return cp.toLocaleString();
+};
 
 // 시간 오염 세척 안전 변환 함수
 const safeTimeToMinutes = (timeStr: string | undefined, defaultVal: string): number => {
@@ -28,7 +39,6 @@ export const getRoleByJob = (job: string): string => {
   if (!job) return "근딜";
   const j = job.trim();
 
-  // 1. Tanker
   if (
     ["빙결술사", "빙결", "대검전사", "수호자", "수호기사", "기사", "성기사", "방패전사", "크루세이더", "디펜더"].some(
       (k) => j.includes(k)
@@ -36,7 +46,6 @@ export const getRoleByJob = (job: string): string => {
   ) {
     return "탱커";
   }
-  // 2. Healer
   if (
     ["사제", "수도사", "힐러", "성직자", "구원자", "복음사", "마도학자", "주술사", "프리스트", "클레릭", "비숍", "샤먼"].some(
       (k) => j.includes(k)
@@ -44,11 +53,9 @@ export const getRoleByJob = (job: string): string => {
   ) {
     return "힐러";
   }
-  // 3. Supporter
   if (["음유시인", "바드", "악사", "서포터", "버퍼", "인챈터"].some((k) => j.includes(k))) {
     return "서포터";
   }
-  // 4. Ranged DPS
   if (
     [
       "장궁병",
@@ -72,7 +79,6 @@ export const getRoleByJob = (job: string): string => {
   ) {
     return "원딜";
   }
-  // 5. Melee DPS
   if (
     [
       "도적",
@@ -110,11 +116,11 @@ const renderFormattedNickname = (name: string) => {
         ? "text-xs sm:text-sm font-black"
         : len <= 4
         ? "text-xs font-black"
-        : "text-[10.5px] sm:text-xs font-black tracking-tighter";
+        : "text-[11px] sm:text-xs font-black tracking-tighter";
 
     return (
       <span
-        className={`text-white whitespace-nowrap leading-tight text-center w-full block truncate ${fontSizeClass}`}
+        className={`text-[var(--text-main)] whitespace-nowrap leading-tight text-left block truncate ${fontSizeClass}`}
         title={name}
       >
         {name}
@@ -127,11 +133,11 @@ const renderFormattedNickname = (name: string) => {
 
   return (
     <div
-      className="flex flex-col items-center justify-center text-center leading-[1.15] text-[10px] sm:text-[11px] font-black text-white w-full min-w-0"
+      className="flex flex-col items-start justify-center text-left leading-tight text-[10px] sm:text-[11px] font-black text-[var(--text-main)] w-full min-w-0"
       title={name}
     >
-      <span className="truncate w-full text-center">{line1}</span>
-      <span className="truncate w-full text-center">{line2}</span>
+      <span className="truncate w-full text-left">{line1}</span>
+      <span className="truncate w-full text-left">{line2}</span>
     </div>
   );
 };
@@ -181,6 +187,24 @@ export default function PartyCard({
   const joinedMyChars = party.members.filter(m => myCharacterNames.includes(m.name || m.character_name || ''));
   const isJoined = joinedMyChars.length > 0;
 
+  // 🎯 컨텐츠 마크 SVG 경로 동적 계산 (레이드 vs 어비스)
+  const contentMarkSrc = useMemo(() => {
+    if (!party.content_name) return "/svgs/contens mark/레이드 마크.svg";
+    const isAbyss = party.party_type === "어비스" || party.content_name.includes("어비스");
+    return isAbyss
+      ? "/svgs/contens mark/어비스 마크.svg"
+      : "/svgs/contens mark/레이드 마크.svg";
+  }, [party.content_name, party.party_type]);
+
+  // 🎯 컨텐츠 명칭 정제 ("레이드 - ", "어비스 - ", "(통합)" 텍스트 분리)
+  const displayContentName = useMemo(() => {
+    if (!party.content_name) return "";
+    return party.content_name
+      .replace(/^(레이드|어비스)\s*-\s*/, "")
+      .replace(/\s*\(통합\)/g, "")
+      .trim();
+  }, [party.content_name]);
+
   const handleForceDelete = () => {
     if (confirm("⚠️ 정말로 이 파티 모집을 강제 삭제하시겠습니까?\n삭제된 데이터는 복구할 수 없습니다.")) {
       handleDeleteParty(party.id);
@@ -215,7 +239,6 @@ export default function PartyCard({
     return { formattedDateRange: range, formattedSingleDate: single };
   }, [rawDate]);
 
-  // 교집합 시간 연산 엔진 (방어적 시정 적용)
   const dynamicTimeInfo = useMemo(() => {
     const defaultStart = party.time_start || "18:00";
     const defaultEnd = party.time_end || "20:00";
@@ -331,15 +354,16 @@ export default function PartyCard({
   }, [party.members, party.leader_name, allCharactersMap]);
 
   return (
-    <div className="w-full rounded-2xl border border-zinc-700/80 border-t-4 border-t-indigo-500/80 bg-[var(--panel)] p-3.5 sm:p-5 shadow-[0_10px_30px_rgba(0,0,0,0.8)] transition-all duration-200 hover:border-indigo-400/80 relative overflow-hidden">
+    <div className="w-full rounded-2xl border border-[var(--panel-border)] border-t-4 border-t-[var(--accent)] bg-[var(--panel)] p-3.5 sm:p-5 shadow-lg transition-all duration-200 hover:border-[var(--accent)] relative overflow-hidden">
       
-      <div className="-mx-3.5 -mt-3.5 sm:-mx-5 sm:-mt-5 p-3.5 sm:p-4 bg-zinc-950/90 border-b border-zinc-800 rounded-t-2xl mb-3.5 flex flex-col gap-2">
+      {/* 카드 헤더 래퍼 */}
+      <div className="-mx-3.5 -mt-3.5 sm:-mx-5 sm:-mt-5 p-3.5 sm:p-4 bg-[var(--inner-box)] border-b border-[var(--panel-border)] rounded-t-2xl mb-3.5 flex flex-col gap-2">
         <div className="flex items-center justify-between gap-2 min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-            <span className={`px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-black border ${DIFFICULTY_COLORS[party.difficulty] || 'bg-zinc-800 border-zinc-700 text-zinc-200'} shrink-0`}>
+            <span className={`px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-black border ${DIFFICULTY_COLORS[party.difficulty] || 'bg-[var(--panel)] border-[var(--panel-border)] text-[var(--text-main)]'} shrink-0`}>
               {party.difficulty}
             </span>
-            <span className="px-1.5 py-0.5 rounded text-[10px] sm:text-[11px] font-bold bg-zinc-900 text-zinc-400 border border-zinc-800 shrink-0">
+            <span className="px-1.5 py-0.5 rounded text-[10px] sm:text-[11px] font-bold bg-[var(--panel)] text-[var(--text-sub)] border border-[var(--panel-border)] shrink-0">
               {party.party_type}
             </span>
           </div>
@@ -357,7 +381,7 @@ export default function PartyCard({
             )}
 
             {isJoined && (
-              <span className="px-2.5 py-1 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-xs sm:text-sm font-black flex items-center gap-1.5 shrink-0">
+              <span className="px-2.5 py-1 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-xs sm:text-sm font-black flex items-center gap-1.5 shrink-0">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                 참여 중
               </span>
@@ -377,51 +401,54 @@ export default function PartyCard({
           </div>
         </div>
 
-        <div className="w-full min-w-0 py-0.5">
-          <h3 className="text-base sm:text-lg md:text-xl font-black text-white whitespace-nowrap overflow-hidden text-ellipsis tracking-tight leading-snug">
-            {party.content_name}
+        {/* 🎯 컨텐츠 제목 영역: SVG 마크 아이콘 + 정제된 컨텐츠 이름 */}
+        <div className="w-full min-w-0 py-0.5 flex items-center gap-1.5 sm:gap-2">
+          <MarkIcon src={contentMarkSrc} size="xs" scale={1.15} colorClass="bg-[var(--accent)]" />
+          <h3 className="text-base sm:text-lg md:text-xl font-black text-[var(--text-main)] whitespace-nowrap overflow-hidden text-ellipsis tracking-tight leading-snug">
+            {displayContentName}
           </h3>
         </div>
 
+        {/* 희망 시간 영역 */}
         <div className="flex items-center justify-start w-full pt-0.5 min-w-0">
           {dynamicTimeInfo.isConflict ? (
-            <div className="inline-flex items-center gap-1.5 bg-rose-950/50 border border-rose-500/60 px-2.5 py-1 rounded-xl text-xs font-bold text-rose-300 shadow-sm max-w-full min-w-0 overflow-hidden">
+            <div className="inline-flex items-center gap-1.5 bg-rose-500/10 border border-rose-500/40 px-2.5 py-1 rounded-xl text-xs font-bold text-rose-600 dark:text-rose-400 shadow-xs max-w-full min-w-0 overflow-hidden">
               <span className="shrink-0">⚠️</span>
               <span className="font-sans font-black truncate">시간대 불일치 (조율 필요)</span>
             </div>
           ) : dynamicTimeInfo.isFull && dynamicTimeInfo.finalDepartureTime ? (
-            <div className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-500/20 via-emerald-500/20 to-indigo-500/20 border border-amber-400/60 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl font-mono text-[clamp(10px,2.8vw,12px)] sm:text-xs font-black text-amber-300 shadow-md max-w-full min-w-0 overflow-hidden">
+            <div className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-500/10 via-emerald-500/10 to-indigo-500/10 border border-amber-400/50 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl font-mono text-[clamp(10px,2.8vw,12px)] sm:text-xs font-black text-amber-600 dark:text-amber-400 shadow-xs max-w-full min-w-0 overflow-hidden">
               <span className="text-xs sm:text-sm shrink-0 animate-bounce">🎉</span>
-              <span className="whitespace-nowrap font-sans font-black text-amber-200">출발 시간 확정!</span>
-              <span className="text-white bg-amber-500/40 px-2 py-0.5 rounded-md border border-amber-300/60 font-mono font-black text-xs sm:text-sm shadow-xs shrink-0">
+              <span className="whitespace-nowrap font-sans font-black text-amber-600 dark:text-amber-400">출발 시간 확정!</span>
+              <span className="text-[var(--accent-fg)] bg-[var(--accent)] px-2 py-0.5 rounded-md border border-[var(--accent)] font-mono font-black text-xs sm:text-sm shadow-xs shrink-0">
                 {dynamicTimeInfo.finalDepartureTime}
               </span>
-              <span className="text-[9px] sm:text-[10px] text-emerald-300 bg-emerald-950/60 border border-emerald-500/40 px-1.5 py-0.5 rounded font-sans shrink-0 font-extrabold whitespace-nowrap">
+              <span className="text-[9px] sm:text-[10px] text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-1.5 py-0.5 rounded font-sans shrink-0 font-extrabold whitespace-nowrap">
                 매칭 완료 ({party.members.length}/{party.max_members}명)
               </span>
             </div>
           ) : (
-            <div className="inline-flex items-center gap-1 sm:gap-1.5 bg-black/80 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl border border-zinc-800/80 text-[clamp(9.5px,2.8vw,12px)] sm:text-xs font-mono font-extrabold shadow-sm max-w-full min-w-0 overflow-hidden">
+            <div className="inline-flex items-center gap-1 sm:gap-1.5 bg-[var(--panel)] px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl border border-[var(--panel-border)] text-[clamp(9.5px,2.8vw,12px)] sm:text-xs font-mono font-extrabold shadow-xs max-w-full min-w-0 overflow-hidden">
               {dynamicTimeInfo.isNextDay ? (
-                <div className="flex items-center gap-1 sm:gap-1.5 font-bold text-white whitespace-nowrap min-w-0 tracking-tighter sm:tracking-normal">
+                <div className="flex items-center gap-1 sm:gap-1.5 font-bold text-[var(--text-main)] whitespace-nowrap min-w-0 tracking-tighter sm:tracking-normal">
                   <span className="text-[var(--accent)] font-sans font-black">
                     {formattedDateRange}
                   </span>
-                  <span className="text-zinc-600 font-bold shrink-0">|</span>
-                  <span className="font-mono font-black text-white">
+                  <span className="text-[var(--text-sub)] font-bold shrink-0">|</span>
+                  <span className="font-mono font-black text-[var(--text-main)]">
                     {dynamicTimeInfo.startTime} ~ {dynamicTimeInfo.endTime}
                   </span>
-                  <span className="text-[8.5px] sm:text-[10px] bg-indigo-900/80 text-indigo-200 border border-indigo-500/50 px-1 py-0.2 rounded font-sans shrink-0 font-bold ml-0.5">
+                  <span className="text-[8.5px] sm:text-[10px] bg-[var(--accent)]/20 text-[var(--accent)] border border-[var(--accent)]/40 px-1 py-0.2 rounded font-sans shrink-0 font-bold ml-0.5">
                     🌙 다음 날
                   </span>
                 </div>
               ) : (
-                <div className="flex items-center gap-1.5 sm:gap-2 font-bold text-white whitespace-nowrap min-w-0 tracking-tighter sm:tracking-normal">
+                <div className="flex items-center gap-1.5 sm:gap-2 font-bold text-[var(--text-main)] whitespace-nowrap min-w-0 tracking-tighter sm:tracking-normal">
                   <span className="text-[var(--accent)] font-black">
                     {formattedSingleDate}
                   </span>
-                  <span className="text-zinc-600 font-bold shrink-0">|</span>
-                  <span className="font-mono font-black text-white">
+                  <span className="text-[var(--text-sub)] font-bold shrink-0">|</span>
+                  <span className="font-mono font-black text-[var(--text-main)]">
                     {dynamicTimeInfo.startTime} ~ {dynamicTimeInfo.endTime}
                   </span>
                 </div>
@@ -437,6 +464,7 @@ export default function PartyCard({
         </div>
       )}
 
+      {/* 파티원 슬롯 */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3.5">
         {Array.from({ length: party.max_members }).map((_, index) => {
           const member = party.members[index];
@@ -445,7 +473,7 @@ export default function PartyCard({
             return (
               <div 
                 key={`empty-${index}`} 
-                className="h-[104px] rounded-xl border border-dashed border-zinc-800 bg-black/20 flex items-center justify-center text-xs text-zinc-500 font-bold"
+                className="min-h-[108px] sm:min-h-[112px] rounded-xl border border-dashed border-[var(--panel-border)] bg-[var(--inner-box)]/30 flex items-center justify-center text-xs text-[var(--text-sub)] font-bold"
               >
                 빈 슬롯
               </div>
@@ -457,7 +485,6 @@ export default function PartyCard({
           
           const rawJob = member.job || charObj.job || (member as any).class_name || charObj.class_name || '';
           
-          // 🎯 포지션 우선순위 및 방어 파싱
           const rawExplicitRole = member.role || (member.roles && member.roles[0]) || charObj.role || (charObj.roles && charObj.roles[0]);
           const explicitRole = typeof rawExplicitRole === "string" ? rawExplicitRole.trim() : "";
 
@@ -478,39 +505,47 @@ export default function PartyCard({
             <div
               key={`mem-${memName}-${index}`}
               onClick={() => (charObj.nickname || charObj.name) && setInspectCharacter(charObj)}
-              className={`h-[104px] rounded-xl border ${isLeader ? 'border-amber-500/60 bg-amber-950/20' : 'border-zinc-800 bg-zinc-900/60'} p-2 sm:p-2.5 flex items-center gap-2 relative overflow-hidden transition hover:border-[var(--accent)]/60 cursor-pointer min-w-0 shadow-xs`}
+              className={`min-h-[108px] sm:min-h-[112px] rounded-xl border ${isLeader ? 'border-amber-500/60 bg-amber-500/10' : 'border-[var(--panel-border)] bg-[var(--inner-box)]'} p-2 sm:p-2.5 flex items-center gap-2 relative overflow-hidden transition hover:border-[var(--accent)] cursor-pointer min-w-0 shadow-xs`}
             >
               <div className="flex flex-col items-center justify-center shrink-0">
-                <div className={`w-8 h-8 rounded-lg bg-black/60 border ${isLeader ? 'border-amber-400 ring-2 ring-amber-500/30' : 'border-white/10'} flex items-center justify-center p-0.5 shadow-inner relative`}>
-                  <ClassIcon className="w-5 h-5 text-white" job={rawJob} />
+                <div className={`w-7 sm:w-8 h-7 sm:h-8 rounded-lg bg-[var(--panel)] border ${isLeader ? 'border-amber-400 ring-2 ring-amber-500/30' : 'border-[var(--panel-border)]'} flex items-center justify-center p-0.5 shadow-inner relative`}>
+                  <ClassIcon className="w-5 h-5 text-[var(--text-main)]" job={rawJob} />
                   {isLeader && (
-                    <span className="absolute -top-1.5 -right-1.5 bg-amber-500 text-black p-0.5 rounded-full shadow-md leading-none border border-black" title="파티장 (최고 전투력)">
-                      <Crown className="w-2.5 h-2.5 fill-amber-950 text-amber-950" />
+                    <span className="absolute -top-1.5 -right-1.5 bg-amber-500 text-zinc-950 p-0.5 rounded-full shadow-md leading-none border border-amber-600" title="파티장 (최고 전투력)">
+                      <Crown className="w-2.5 h-2.5 fill-zinc-950 text-zinc-950" />
                     </span>
                   )}
                 </div>
-                <span className={`mt-1 px-1 py-0.2 text-[9px] font-black rounded ${isLeader ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'bg-black/70 text-[var(--accent)] border border-[var(--accent)]/40'} leading-none whitespace-nowrap`}>
+                <span className="mt-1 px-1.5 py-0.5 text-[9px] font-black rounded bg-[var(--accent)] text-[var(--accent-fg)] leading-none whitespace-nowrap shadow-xs">
                   {role}
                 </span>
               </div>
 
-              <div className="flex-1 min-w-0 flex flex-col justify-between h-full py-0.5">
-                <div className="min-w-0 flex items-center justify-center w-full h-[30px]">
+              <div className="flex-1 min-w-0 flex flex-col justify-center gap-1 py-0.5">
+                <div className="min-w-0 flex items-center justify-start w-full">
                   {renderFormattedNickname(memName)}
                 </div>
 
-                <div className="flex flex-col gap-0.5 min-w-0">
-                  <div className="flex items-center gap-1 text-amber-300 font-mono font-extrabold text-[10px] sm:text-[11px] whitespace-nowrap leading-none">
-                    <span className="text-[9px] shrink-0 opacity-80">⚔️</span>
-                    <span className="truncate">{cp > 0 ? cp.toLocaleString() : "-"}</span>
+                <div className="flex flex-col gap-1 min-w-0">
+                  <div className="flex items-center gap-1.5 text-amber-700 dark:text-amber-400 font-mono font-black text-xs sm:text-sm whitespace-nowrap leading-none">
+                    <MarkIcon src="/svgs/status mark/전투력 마크.svg" size="xs" scale={0.9} colorClass="bg-amber-600 dark:bg-amber-400" />
+                    <span className="truncate text-xs sm:text-sm font-black font-mono tracking-tight">
+                      <span className="sm:hidden">{formatCPShort(cp)}</span>
+                      <span className="hidden sm:inline">{cp > 0 ? cp.toLocaleString() : "-"}</span>
+                    </span>
                   </div>
-                  <div className="flex items-center gap-1 text-purple-300 font-mono font-bold text-[9px] sm:text-[10px] whitespace-nowrap leading-none">
-                    <span className="text-[8px] shrink-0 opacity-80">🔮</span>
-                    <span className="truncate">{mr > 0 ? mr.toLocaleString() : "-"}</span>
+                  
+                  <div className="flex items-center gap-1.5 text-purple-700 dark:text-purple-400 font-mono font-black text-xs sm:text-sm whitespace-nowrap leading-none">
+                    <MarkIcon src="/svgs/status mark/마도저항 마크.svg" size="xs" scale={0.85} colorClass="bg-purple-600 dark:bg-purple-400" />
+                    <span className="truncate text-xs sm:text-sm font-black font-mono tracking-tight">
+                      <span className="sm:hidden">{formatCPShort(mr)}</span>
+                      <span className="hidden sm:inline">{mr > 0 ? mr.toLocaleString() : "-"}</span>
+                    </span>
                   </div>
-                  <div className="flex items-center gap-0.5 text-[8.5px] text-zinc-400 font-mono truncate leading-none pt-0.5 border-t border-zinc-800/60">
+
+                  <div className="flex items-center gap-0.5 text-[9.5px] sm:text-[10px] text-[var(--text-sub)] font-mono truncate leading-none pt-1 border-t border-[var(--panel-border)]">
                     <span className="opacity-70 text-[8px]">⏱️</span>
-                    <span className="truncate">{memStart}~{memEnd}</span>
+                    <span className="truncate font-semibold">{memStart}~{memEnd}</span>
                   </div>
                 </div>
               </div>
@@ -519,6 +554,7 @@ export default function PartyCard({
         })}
       </div>
 
+      {/* 하단 제어 버튼 */}
       <div className="flex items-center justify-between gap-2 pt-2 border-t border-[var(--panel-border)] text-xs">
         <div className="flex items-center gap-2 flex-wrap min-w-0">
           {joinedMyChars.map((m, idx) => {
@@ -528,7 +564,7 @@ export default function PartyCard({
                 key={`leave-${cName}-${idx}`}
                 type="button"
                 onClick={() => handleLeaveParty(party, cName)}
-                className="px-2.5 py-1 bg-rose-500/10 text-rose-400 border border-rose-500/30 rounded-lg font-bold hover:bg-rose-500/20 transition cursor-pointer text-[11px]"
+                className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white font-black border border-rose-700 rounded-lg transition cursor-pointer text-[11px] shadow-xs active:scale-95"
               >
                 [{cName}] 탈퇴
               </button>
@@ -541,11 +577,11 @@ export default function PartyCard({
             <button
               type="button"
               onClick={handleForceDelete}
-              className="px-2.5 py-1 bg-amber-500/10 text-amber-400 border border-amber-500/30 hover:bg-amber-500/20 transition cursor-pointer text-[11px] font-bold rounded-lg flex items-center gap-1"
+              className="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-zinc-950 font-black border border-amber-600 shadow-xs transition cursor-pointer text-[11px] rounded-lg flex items-center gap-1 active:scale-95"
               title="관리자 권한 파티 강제 삭제"
             >
-              <Trash2 className="w-3 h-3 text-amber-400" />
-              <span>강제 삭제</span>
+              <Trash2 className="w-3 h-3 text-zinc-950" />
+              <span className="text-zinc-950">강제 삭제</span>
             </button>
           </div>
         )}

@@ -1,7 +1,7 @@
-```markdown
+
 # 🏛️ SANCTUM_MASTER_GUIDE.md
 
-**최신 업데이트**: v1.6 (2026년 9월 12일)  
+**최신 업데이트**: v1.7 (2026년 9월 13일)  
 **목표 릴리즈**: 2026년 9월 14일 (v1.0 MVP 정식 오픈)  
 **역할 & 정체성**: 'SANCTUM' 수석 풀스택 아키텍트 & 개발자 (기획자/길드마스터 '한설' 님과 전적 협업)
 
@@ -58,8 +58,10 @@ seongyeok-guild-manager/
 │
 ├── 📁 components/                   # [재사용 모듈화 UI 컴포넌트]
 │   ├── 📁 character/                # 캐릭터 모달, 스탯, 체크리스트, 직업레벨
-│   ├── 📁 common/                   # ClassIcon (21개 직업 SVG + Rank 1~3 오라)
+│   ├── 📁 common/                   # ClassIcon (21개 직업 SVG + Rank 1~3 오라), MarkIcon
 │   ├── 📁 layout/                   # Navbar, MobileBottomSheet, StickerCanvas, ThemeModal
+│   ├── 📁 sanctum/                  # 🏛️ 메인 대시보드(SANCTUM) 전용 모듈
+│   │   └── SanctumHeaderWidgets.tsx # [1] 메인 헤더 위젯 (모바일 3x2 미니 그리드 / 풀버전 확장)
 │   └── 📁 party/                    # 시낙시스 파티 매칭 전용 컴포넌트
 │       ├── 📁 modals/               # 8종 독립 서브 모달
 │       │   ├── SynaxisInfoModal.tsx # [1] SYNAXIS 안내 팝업
@@ -86,16 +88,36 @@ seongyeok-guild-manager/
 │   ├── partyDateUtils.ts            # 자정 경과(+1일) 시간 연산, 5분 단위 중반 확정, 마비노기 주간 범위
 │   ├── matchingUtils.ts             # 조합 자동 밸런싱 및 임의 방장 선정 엔진
 │   └── supabase.ts                  # Supabase Realtime 클라이언트 인스턴스
-├── 📁 public/                       # 정적 에셋 (public/svgs/classes/ 21개 직업군 SVG)
+├── 📁 public/                       # 정적 에셋 (public/svgs/classes/ 21개 직업군 SVG 등)
 └── 📁 types/                        # TypeScript 전역 타입 정의
 
 ```
 
 ---
 
-## 3. ⚔️ 핵심 비즈니스 로직 및 유틸리티 엔진 명세
+## 3. ⚔️ 핵심 비즈니스 로직 및 모듈화 아키텍처 명세
 
-### 3.1. KRONOS 자동 연동 & 길드 버스 엔진 (`lib/busUtils.ts`)
+### 3.1. 메인 대시보드 위젯 모듈화 (`SanctumHeaderWidgets.tsx`)
+
+* **모바일 스크롤 컴팩트화 (3열 × 2행 미니 그리드)**:
+* 모바일 진입 초기(`!isWidgetExpandedMobile`)에는 세로 수직 길이가 70% 축소된 3열 × 2행 컴팩트 그리드 노출.
+* **위 3개**: ASTRA 현황 (SOL/LUNA), 올라운더 달성 LV, 필드보스 알림
+* **아래 3개**: 소환의 결계 알림, 어비스 구멍, 심층 구멍
+* **[상세보기 ▼] / [요약보기 ▲]** 토글 조작을 통해 원본 풀사이즈 6개 카드 그리드로 스무스하게 이행.
+
+
+* **콘텐츠별 미니 그리드 특화 표현**:
+* **ASTRA & 올라운더**: `MarkIcon` 규격을 `sm`으로 확대 조정하여 타 콘텐츠 아이콘과 시각적 중량감 동일화.
+* **어비스 구멍**: 모바일 좁은 그리드 공간에서도 truncated 없이 `어비스 구멍` 텍스트 명시.
+* **심층 구멍**: 초기화 남은 시간(`deepTimer`)과 핵심 사냥터 `창백한 산` 실시간 제보 개수(`N개` 또는 `대기`)를 이중 동시 표기. 제보 구멍 존재 시 Red 하이라이트 경고 테두리 부여.
+
+
+* **단축 알림 바**:
+* 헤더 상단 텍스트를 `심층/어비스 구멍 출현 제보 시 공유 가능`으로 단축하여 모바일 디바이스 가로 겹침 현상 원천 방지.
+
+
+
+### 3.2. KRONOS 자동 연동 & 길드 버스 엔진 (`lib/busUtils.ts`)
 
 * **21개 직업 5대 포지션 매핑 (`JOB_ROLE_MAP`)**:
 * **근딜**: 도적, 댄서, 듀얼블레이드, 대검전사, 검술사, 격투가
@@ -107,47 +129,24 @@ seongyeok-guild-manager/
 
 * **KRONOS 키 매핑 매트릭스 (`syncKronosChecklist`)**:
 * 파티/버스 회차 및 클리어 완료 시 Supabase `characters.raid_checks` JSONB 컬럼에 자동 바인딩.
-* 레이드: `cabrak_entry`, `cabrak_hard`, `eirel_hard`, `succubus_hard`, `succubus_very_hard` 등.
-* 어비스: `abyss_all`, `abyss_1~3`, `허상의 정박지`, `광기의 동굴`, `흩어진 물길` 일괄 체크 연동.
 
 
 * **스마트 파티 밸런서 (`assembleBalancedParty`)**:
 * 지원 후보군 중 계정 중복(`owner_account`) 방어 및 미완수 캐릭터 우선 배치.
-* 필수 포지션(힐러 1선발, 탱커 2선발) 자동 선점 후 종결(OP) / 권장(REC) / 최소(MIN) 스탯 구간별 3:3:2 비율 슬롯 배분.
+* 필수 포지션(힐러 1선발, 탱커 2선발) 자동 선점 후 3:3:2 비율 슬롯 배분.
 
 
 
-### 3.2. 날짜 & 실시간 시간 연산 엔진 (`lib/partyDateUtils.ts`)
+### 3.3. 날짜 & 실시간 시간 연산 엔진 (`lib/partyDateUtils.ts`)
 
-* **익일(+1일) 오프셋 정규화 (`timeToMinutes`)**:
-* `(+1일)`, `다음날`, `익일` 키워드 포함 시 +1440분(+24시간) 가산 연산 처리.
+* **익일(+1일) 오프셋 정규화 (`timeToMinutes`)**: `(+1일)` 등의 키워드 감지 시 +1440분 연산.
+* **5분 단위 출발 시간 정밀 보정 (`calculateMidpointStartTime`)**: 교집합 구간 중앙값을 5분 단위 반올림 확정.
+* **마비노기 모바일 주간 리셋 범위 연산 (`getMabinogiWeekRange`)**: 목요일 00:00:00 ~ 수요일 23:59:59 주간 범위 자동 산출.
 
+### 3.4. 시낙시스 전역 관리자 훅 (`hooks/usePartyManager.ts`)
 
-* **5분 단위 출발 시간 정밀 보정 (`calculateMidpointStartTime`)**:
-* 교집합 최댓 시작점($\text{maxStart}$)과 최솟 종료점($\text{minEnd}$) 구간의 중앙값을 5분 단위 정밀 반올림(`Math.round(mid / 5) * 5`)으로 확정.
-
-
-* **마비노기 모바일 주간 리셋 범위 연산 (`getMabinogiWeekRange`)**:
-* 목요일 00:00:00 ~ 수요일 23:59:59 기준 주간 범위를 산출하여 길드 버스 카드가 주간 동안 유효 필터링되도록 보장.
-
-
-* **상대 D-Day 자동 계산 (`getFormattedDateWithDDay`)**:
-* 오늘, 내일, 어제, N일 후/전 자동 뱃지 문자열 생성 연동.
-
-
-
-### 3.3. 시낙시스 전역 관리자 훅 (`hooks/usePartyManager.ts`)
-
-* **Realtime DB 자동 동기화**: Supabase `parties` 테이블의 Postgres Realtime 변경 이벤트를 감지하여 화면 새로고침 없이 대시보드 갱신.
-* **희망 종료 시간 경과(Timeout) 방어**:
-* 모집 중인 파티의 종료 시간이 지난 경우 본인 리더 파티에 한해 타임아웃 안내 팝업 자동 표출.
-* **4대 처리 옵션**: +30분 연장, +1시간 연장, 내일 동일 시간 이관, 파티 모집 취소.
-
-
-* **모바일 FAB 제스처 및 바텀시트**:
-* 모바일 화면 우측 하단의 매칭 버튼에 터치/마우스 드래그 좌표 이동 및 충돌 차단 적용.
-
-
+* **Realtime DB 자동 동기화**: Supabase `parties` Postgres Realtime 구독.
+* **희망 종료 시간 경과(Timeout) 방어**: 리더 파티 대상 +30분, +1시간, 내일 동일 시간 이관, 모집 취소 팝업 제공.
 
 ---
 
@@ -156,20 +155,15 @@ seongyeok-guild-manager/
 ### 4.1. 닉네임 가변 레이아웃 규격 (Red Area UI/UX)
 
 * **슬롯 정렬 최적화**: 파티원 슬롯 렌더링 영역에 `h-[36px] w-full flex flex-col items-center justify-center text-center`를 적용하여 수평/수직 정중앙 고정.
-* **1~6자 (단문 닉네임)**: 1줄 중앙 배치 및 글자 수 기반 가변 폰트 적용.
-* 1~3자: `text-xs sm:text-sm font-black`
-* 4자: `text-xs font-black`
-* 5~6자: `text-[10.5px] sm:text-xs font-black tracking-tighter`
-
-
-* **7~12자 (장문 닉네임)**: 6자 단위 2줄 분할 렌더링 (`leading-[1.15] text-[10px] sm:text-[11px]`), 말줄임표없이 완전한 시인성 확보.
+* **1~6자 (단문 닉네임)**: 1줄 중앙 배치 및 글자 수 기반 가변 폰트 적용 (1~3자: `text-xs sm:text-sm`, 4자: `text-xs`, 5~6자: `text-[10.5px] sm:text-xs`).
+* **7~12자 (장문 닉네임)**: 6자 단위 2줄 분할 렌더링 (`leading-[1.15] text-[10px] sm:text-[11px]`), 말줄임표 없이 완전한 시인성 확보.
 
 ### 4.2. 파티 상태별 디스플레이 매트릭스
 
 | 파티 상태 | 파티원 수 | 표시 내용 (Header Display) | UI 뱃지 스타일 |
 | --- | --- | --- | --- |
-| **모집 시작** | 1명 | `09-12(토) | 10:00 ~ 12:00` (최초 생성자 희망 시간) | 기본 다크 뱃지 (`bg-black/80`) |
-| **모집 진행 중** | 2~3명 | `09-12(토) | 10:00 ~ 10:30` (실시간 교집합 수축) | 실시간 교집합 뱃지 (`border-[var(--accent)]`) |
+| **모집 시작** | 1명 | `09-12(토) | 10:00 ~ 12:00` (최초 생성자 희망 시간) |
+| **모집 진행 중** | 2~3명 | `09-12(토) | 10:00 ~ 10:30` (실시간 교집합 수축) |
 | **시간 불일치** | 2~4명 | `⚠️ 시간대 불일치 (조율 필요)` | 로즈 경고 뱃지 (`bg-rose-950/40`) |
 | **매칭 완료** | 4명 | `🎉 출발 시간 확정! 10:15` | 골든-에메랄드 뱃지 (`from-amber-500/20...`) |
 
@@ -180,7 +174,7 @@ seongyeok-guild-manager/
 * `characters`: 직업, 전투력(CP), 마법 저항력, 일간/주간/레이드 체크리스트 (`jsonb`), 랭킹, 대표 캐릭터 여부(`is_main`), 계정 소유자(`owner`).
 * `accounts` / `members`: 길드원 계정, 닉네임, 입장 코드, 권한 (`role`: admin/member), 칭호 (`titles`, `equipped_title`).
 * `parties`: 컨텐츠명, 난이도, 모집시간 (`time_start`, `time_end`), 최종출발시간 (`final_start_time`), 멤버 목록 (`jsonb`), 파티 상태 (`status`).
-* `boards`, `gnosis_guides`, `lounge_posts`, `inquiries`, `abyss_reports`, `guild_settings`
+* `boards`, `gnosis_guides`, `lounge_posts`, `inquiries`, `abyss_reports`, `deep_holes`, `guild_settings`
 
 ---
 
@@ -239,27 +233,3 @@ seongyeok-guild-manager/
 4. **크로스 더블 체크 리포트 의무화**
 * 코드 작성 및 수정 완료 후 `[의도 파악 브리핑 -> 변경 파일 경로 안내 -> 통짜 코드 생성 -> 변경 전후 검증 리포트]` 과정을 보고한다.
 
-
-
-```
-
----
-
-### 📋 크로스 더블 체크 리포트 (Cross Double-Check Report)
-
-1. **의도 파악 브리핑**
-   * 기획자 겸 길드마스터 한설 님의 검증 요청에 따라, 시낙시스(SYNAXIS) 주요 코어 유틸리티(`partyDateUtils_2.ts`, `busUtils.ts`)와 커스텀 훅(`usePartyManager_2.ts`), 대시보드 페이지(`page_2.tsx`) 및 9종 모달 시스템의 최신 검증 내역을 `SANCTUM_MASTER_GUIDE.md` 문서에 완벽히 반영·업데이트했습니다.
-
-2. **대상 파일 및 경로**
-   * `SANCTUM_MASTER_GUIDE.md` (루트 문서 디렉터리)
-
-3. **변경 전후 검증 리포트**
-   * **버전 승급**: v1.5 → **v1.6** 업데이트 반영.
-   * **모듈 지도 갱신**: `lib/busUtils.ts`, `lib/partyDateUtils.ts`, `hooks/usePartyManager.ts`, `app/party/page.tsx` 등 최근 확장 및 검증된 핵심 유틸 파일 명세 추가.
-   * **비즈니스 로직 세부 기재**:
-     * `busUtils.ts`: 21개 직업군 포지션 매핑, KRONOS 키 바인딩 매트릭스, 3:3:2 CP 밸런싱 알고리즘 명시.
-     * `partyDateUtils.ts`: 익일(+1일) 오프셋 가산, 5분 단위 중반 출발 확정, 마비노기 목요일 주간 범위 계산 명시.
-     * `usePartyManager.ts`: 타임아웃 4대 연장/취소 처리, Realtime Postgres 구독, 모바일 FAB 드래그 로직 명시.
-   * **Z-Index 레이어 구조 세분화**: 팝업 중첩을 방지하는 5단계 Z-Index 계층표(Z-100 ~ Z-350) 갱신.
-
-```
