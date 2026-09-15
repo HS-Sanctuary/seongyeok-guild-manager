@@ -1,9 +1,9 @@
 
 # 🏛️ SANCTUM_MASTER_GUIDE.md
 
-**최신 업데이트**: v1.7 (2026년 9월 13일)  
-**목표 릴리즈**: 2026년 9월 14일 (v1.0 MVP 정식 오픈)  
-**역할 & 정체성**: 'SANCTUM' 수석 풀스택 아키텍트 & 개발자 (기획자/길드마스터 '한설' 님과 전적 협업)
+**최신 업데이트**: v1.8 (2026년 9월 15일)  
+**목표 릴리즈**: 2026년 9월 14일 (v1.0 MVP 정식 오픈 및 가동 중)  
+**역할 & 정체성**: 'SANCTUM' 수석 풀스택 아키텍트 & 개발자 (기획자/길드마스터 '한설' 님과 전격 협업)
 
 ---
 
@@ -29,67 +29,117 @@
 
 ---
 
-## 2. 📁 최신 디렉터리 구조 및 모듈 지도 (Directory Structure)
+## 2. 📁 디렉터리 구조 및 정적 에셋 지도 (Directory & Asset Map)
 
 ```text
 seongyeok-guild-manager/
 ├── 📁 app/                          # [App Router 기반 페이지 및 API 라우트]
-│   ├── 📁 admin/                    # 관리자 전용 제어 센터
+│   ├── 📁 admin/                    # 🔐 관리자 전용 제어 센터 (page.tsx)
 │   ├── 📁 api/                      # Supabase Sync & External API Routes
-│   │   ├── analyze-item/            # 아이템 분석 API
-│   │   ├── game-events/             # 캘린더 이벤트 동기화
-│   │   ├── guild-characters/        # 길드원 캐릭터 일괄 수집
-│   │   ├── market/                  # 거래소 시세 트래킹
-│   │   ├── sync-client/             # 클라이언트 스탯 동기화
-│   │   └── sync-weekly/             # 주간 숙제 자동 리셋
+│   │   ├── 📁 analyze-item/         # 아이템 옵션 분석 API (route.ts)
+│   │   ├── 📁 game-events/          # 캘린더 게임 이벤트 동기화 (route.ts)
+│   │   ├── 📁 guild-characters/     # 길드원 캐릭터 일괄 수집 (route.ts)
+│   │   ├── 📁 market/               # 거래소 시세 추적 API (route.ts)
+│   │   ├── 📁 sync-client/          # 클라이언트 스탯 실시간 동기화 (route.ts)
+│   │   └── 📁 sync-weekly/          # 주간 숙제 자동 리셋 연산 (route.ts)
 │   ├── 📁 character/                # ⚔️ 크로노스 (캐릭터 관리/스탯/체크리스트)
-│   ├── 📁 customize/                # 🎨 테마 스튜디오 (CSS 변수 & 스티커 캔버스)
+│   │   ├── 📁 detail/               # 캐릭터 스탯 상세 조회 (page.tsx)
+│   │   └── page.tsx                 # 캐릭터 메인 대시보드
+│   ├── 📁 customize/                # 🎨 테마 스튜디오 & 스티커 캔버스 (page.tsx)
 │   ├── 📁 gnosis/                   # 📖 그노시스 (정보 공유 & 공략 보드)
-│   ├── 📁 login/                    # 🔐 인증 & 로그인
+│   │   ├── 📁 [id]/                 # 게시글 상세 (page.tsx)
+│   │   ├── 📁 write/                # 공략 작성 에디터 (page.tsx)
+│   │   └── page.tsx                 # 그노시스 메인
+│   ├── 📁 login/                    # 🔐 인증 & 길드원 로그인 (page.tsx)
 │   ├── 📁 lounge/                   # 🏛️ 아고라 (PANTHEON 랭킹 & ASTRA 현황)
-│   ├── 📁 market/                   # 💰 엠포리온 (거래소 정보 추적)
-│   ├── 📁 notice/                   # 📜 케리그마 (길드 공지사항)
-│   ├── 📁 party/                    # ⚔️ 시낙시스 (스마트 파티 매칭 시스템 메인)
-│   │   └── page.tsx                 # 시낙시스 대시보드 (Suspense/Fab/Timeout/Cards)
-│   ├── 📁 support/                  # 💬 로고스 (1:1 문의 & 건의)
-│   ├── globals.css                  # 전역 스타일 및 6종 CSS 테마 변수 정의
+│   │   ├── 📁 components/           # AstraView.tsx, PantheonView.tsx
+│   │   └── page.tsx                 # 라운지 메인
+│   ├── 📁 market/                   # 💰 엠포리온 (거래소 시세 정보 - page.tsx)
+│   ├── 📁 notice/                   # 📜 케리그마 (길드 공지사항 - page.tsx)
+│   ├── 📁 party/                    # ⚔️ 시낙시스 (스마트 파티 매칭 메인 - page.tsx)
+│   ├── 📁 support/                  # 💬 로고스 (1:1 문의 & 건의 - page.tsx)
+│   ├── favicon.ico                  # 서브 파비콘
+│   ├── globals.css                  # 전역 CSS 변수 & 6종 컬러 테마 정의
 │   ├── layout.tsx                   # RootLayout (전역 스토어, Navbar, StickerCanvas)
-│   └── page.tsx                     # 메인 대시보드
+│   └── page.tsx                     # 메인 대시보드 (SANCTUM)
 │
-├── 📁 components/                   # [재사용 모듈화 UI 컴포넌트]
-│   ├── 📁 character/                # 캐릭터 모달, 스탯, 체크리스트, 직업레벨
-│   ├── 📁 common/                   # ClassIcon (21개 직업 SVG + Rank 1~3 오라), MarkIcon
-│   ├── 📁 layout/                   # Navbar, MobileBottomSheet, StickerCanvas, ThemeModal
-│   ├── 📁 sanctum/                  # 🏛️ 메인 대시보드(SANCTUM) 전용 모듈
-│   │   └── SanctumHeaderWidgets.tsx # [1] 메인 헤더 위젯 (모바일 3x2 미니 그리드 / 풀버전 확장)
-│   └── 📁 party/                    # 시낙시스 파티 매칭 전용 컴포넌트
-│       ├── 📁 modals/               # 8종 독립 서브 모달
-│       │   ├── SynaxisInfoModal.tsx # [1] SYNAXIS 안내 팝업
-│       │   ├── LoreGuideModal.tsx   # [2] 매칭 가이드 팝업
-│       │   ├── ContentSelectModal.tsx # [3] 목표 컨텐츠 선택 모달
-│       │   ├── ScheduleModal.tsx    # [4] 출발 희망 일시 모달 (1주 슬라이드/전체 연도)
-│       │   ├── FilterCalendarModal.tsx # [5] 필터 달력 모달 (스와이프/휠 제스처)
-│       │   ├── BusCreateModal.tsx   # [6] 공식 길드 버스 개설 모달
-│       │   ├── InspectCharacterModal.tsx # [7] 캐릭터 스탯 상세 모달
-│       │   └── JoinPartyModal.tsx   # [8] 일반 파티 참여 모달 (3열 그리드 버튼)
-│       ├── CustomTimePicker.tsx     # 아날로그 시계/디지털 겸용 시간 선택 피커
-│       ├── GuildBusCard.tsx         # 길드 버스 전용 카드 UI
-│       ├── GuildBusJoinModal.tsx    # 길드 버스 탑승 모달 (멀티 캐릭터 타임 슬롯 설정)
-│       ├── PartyCard.tsx            # 일반 파티 카드 UI (교집합 타임 계산/가변 닉네임)
-│       ├── PartyCreateForm.tsx      # 파티 생성 폼 (모바일 1줄 단축 일시)
-│       ├── PartyFilterHeader.tsx    # 파티 필터링 및 10일 디스플레이 헤더
-│       ├── PartyModals.tsx          # 서브 모달 8종 통합 라우팅 & 스크롤 락 허브
-│       └── types.ts                 # 파티 시스템 전역 타입 정의
+├── 📁 components/                   # [재사용 UI 모듈 컴포넌트]
+│   ├── 📁 character/                # 캐릭터 모달, 스탯, 체크리스트, 거래목록
+│   │   ├── CharacterManageModal.tsx # 캐릭터 생성/수정 모달
+│   │   ├── CharacterSelector.tsx    # 캐릭터 선택 탭
+│   │   ├── CharacterStats.tsx       # 스탯 입력 및 표시
+│   │   ├── ClassLevelManager.tsx    # 21개 직업 레벨 관리
+│   │   ├── ContentChecklist.tsx     # 일간/주간/레이드 체크리스트
+│   │   └── TradeList.tsx            # 거래 가능 아이템 리스트
+│   ├── 📁 common/                   # 공통 핵심 아이콘 컴포넌트
+│   │   ├── ClassIcon.tsx            # 21개 직업 SVG + Rank 1~3 네온 오라 렌더러
+│   │   └── MarkIcon.tsx             # 컨텐츠/상태/UI 마크 전역 SVG 렌더러
+│   ├── 📁 layout/                   # 전역 레이아웃 요소
+│   │   ├── MobileBottomSheet.tsx    # 모바일 전용 네비게이션 바텀시트
+│   │   ├── Navbar.tsx               # 상단 네비게이션 바
+│   │   ├── StickerCanvas.tsx        # 커스텀 스티커 플로팅 캔버스
+│   │   └── ThemeModal.tsx           # 6종 테마 변경 모달
+│   ├── 📁 party/                    # ⚔️ 시낙시스 파티 매칭 전용 컴포넌트
+│   └── 📁 sanctum/                  # 🏛️ 메인 대시보드(SANCTUM) 전용 모듈
+│       ├── KronosCheckboardSection.tsx # KRONOS 숙제 체크 현황 세션
+│       ├── PantheonRankingSection.tsx  # PANTHEON 전력 랭킹 세션
+│       ├── SanctumHeaderWidgets.tsx    # 모바일 3x2 미니 그리드 / 풀 헤더 위젯
+│       ├── SanctumModals.tsx           # 메인 대시보드 통합 모달
+│       └── SynaxisPartySection.tsx     # 시낙시스 실시간 모집 현황 세션
 │
-├── 📁 hooks/                        # 커스텀 훅
-│   └── usePartyManager.ts           # 시낙시스 전역 상태, 타임아웃, DB 구독, 밸런싱 핸들러
-├── 📁 lib/                          # 비즈니스 로직 및 유틸리티
-│   ├── busUtils.ts                  # KRONOS 숙제 자동 연동, 21개 직업 포지션, 버스 밸런서
-│   ├── partyDateUtils.ts            # 자정 경과(+1일) 시간 연산, 5분 단위 중반 확정, 마비노기 주간 범위
-│   ├── matchingUtils.ts             # 조합 자동 밸런싱 및 임의 방장 선정 엔진
+├── 📁 hooks/                        # 커스텀 훅 모듈
+│   ├── usePartyManager.ts           # 시낙시스 전역 상태, 타임아웃, DB 구독
+│   └── usePressAndHold.ts           # 롱프레스 터치 제스처 훅
+│
+├── 📁 lib/                          # 비즈니스 로직 & 백엔드 유틸리티
+│   ├── busUtils.ts                  # KRONOS 연동, 21개 직업 포지션, 버스 밸런서
+│   ├── imageUtils.ts                # 스티커 & 이미지 업로드 유틸
+│   ├── matchingUtils.ts             # 조합 자동 밸런싱 및 방장 선정 알고리즘
+│   ├── partyDateUtils.ts            # 자정 경과(+1일) 연산, 5분 단위 시간 확정
 │   └── supabase.ts                  # Supabase Realtime 클라이언트 인스턴스
-├── 📁 public/                       # 정적 에셋 (public/svgs/classes/ 21개 직업군 SVG 등)
-└── 📁 types/                        # TypeScript 전역 타입 정의
+│
+├── 📁 public/                       # 정적 에셋 및 정밀 분류 SVG 리소스
+│   ├── 📁 svgs/
+│   │   ├── 📁 classes/              # ⚔️ 21개 직업군 전용 SVG 에셋
+│   │   │   ├── 검술사.svg, 격투가.svg, 궁수.svg, 기사.svg, 대검전사.svg
+│   │   │   ├── 댄서.svg, 도적.svg, 듀얼블레이드.svg, 마법사.svg, 빙결술사.svg
+│   │   │   ├── 사제.svg, 석궁사수.svg, 수도사.svg, 악사.svg, 암흑술사.svg
+│   │   │   ├── 음유시인.svg, 장궁병.svg, 전격술사.svg, 전사.svg, 화염술사.svg, 힐러.svg
+│   │   │
+│   │   ├── 📁 contens mark/         # 🎯 컨텐츠 구분 마크 SVG (4종)
+│   │   │   ├── 레이드 마크.svg, 어비스 마크.svg, 여신상 마크.svg, 필드보스 마크.svg
+│   │   │
+│   │   ├── 📁 status mark/          # 📊 캐릭터 상태/스탯 마크 SVG (2종)
+│   │   │   ├── 마도저항 마크.svg, 전투력 마크.svg
+│   │   │
+│   │   └── 📁 UI mark/              # 🎨 전역 UI 및 메뉴 마크 SVG (18종)
+│   │       ├── 가방 마크.svg, 거래소 마크.svg, 길드 마크.svg, 달력 마크.svg
+│   │       ├── 도감 마크.svg, 랭킹 마크.svg, 사람 마크.svg, 선물상자 마크.svg
+│   │       ├── 우편함 마크.svg, 은동전 공물 마크.svg, 장비 마크.svg, 재화 마크.svg
+│   │       ├── 재화주머니 마크.svg, 전구 마크.svg, 지구본 마크.svg, 채팅 마크.svg
+│   │       ├── 트로피 마크.svg, 패션 마크.svg
+│   │
+│   ├── file.svg, globe.svg          # 기본 SVG 아이콘
+│   ├── items_catalog.json           # 마비노기 모바일 거래소 아이템 카탈로그 DB
+│   ├── logo.svg.svg                 # SANCTUM 공식 로고
+│   ├── next.svg, vercel.svg, window.svg
+│
+├── 📁 types/                        # TypeScript 전역 타입 정의
+│   └── layout.ts
+│
+├── .continuerules                    # AI 에이전트 개발 규칙 정의서
+├── .env.local                       # 환경 변수 (Supabase URL/Key)
+├── .gitignore                       # Git 제외 규칙
+├── 계정추가 방법쿼리                 # 관리자 SQL 쿼리 가이드 문서
+├── 푸시풀명령어                     # Git 커밋/푸시 단축 명령어 문서
+├── eslint.config.mjs
+├── next-env.d.ts
+├── next.config.ts                   # Next.js 구성 파일
+├── package-lock.json
+├── package.json                     # 프로젝트 의존성 설정
+├── postcss.config.mjs
+├── README.md                        # 프로젝트 설명서
+└── tsconfig.json                    # TypeScript 컴파일 설정
 
 ```
 
@@ -117,6 +167,8 @@ seongyeok-guild-manager/
 
 
 
+---
+
 ### 3.2. KRONOS 자동 연동 & 길드 버스 엔진 (`lib/busUtils.ts`)
 
 * **21개 직업 5대 포지션 매핑 (`JOB_ROLE_MAP`)**:
@@ -137,11 +189,15 @@ seongyeok-guild-manager/
 
 
 
+---
+
 ### 3.3. 날짜 & 실시간 시간 연산 엔진 (`lib/partyDateUtils.ts`)
 
 * **익일(+1일) 오프셋 정규화 (`timeToMinutes`)**: `(+1일)` 등의 키워드 감지 시 +1440분 연산.
 * **5분 단위 출발 시간 정밀 보정 (`calculateMidpointStartTime`)**: 교집합 구간 중앙값을 5분 단위 반올림 확정.
 * **마비노기 모바일 주간 리셋 범위 연산 (`getMabinogiWeekRange`)**: 목요일 00:00:00 ~ 수요일 23:59:59 주간 범위 자동 산출.
+
+---
 
 ### 3.4. 시낙시스 전역 관리자 훅 (`hooks/usePartyManager.ts`)
 
@@ -174,7 +230,7 @@ seongyeok-guild-manager/
 * `characters`: 직업, 전투력(CP), 마법 저항력, 일간/주간/레이드 체크리스트 (`jsonb`), 랭킹, 대표 캐릭터 여부(`is_main`), 계정 소유자(`owner`).
 * `accounts` / `members`: 길드원 계정, 닉네임, 입장 코드, 권한 (`role`: admin/member), 칭호 (`titles`, `equipped_title`).
 * `parties`: 컨텐츠명, 난이도, 모집시간 (`time_start`, `time_end`), 최종출발시간 (`final_start_time`), 멤버 목록 (`jsonb`), 파티 상태 (`status`).
-* `boards`, `gnosis_guides`, `lounge_posts`, `inquiries`, `abyss_reports`, `deep_holes`, `guild_settings`
+* `boards`, `gnosis_guides`, `lounge_posts`, `inquiries`, `abyss_reports`, `deep_holes`, `guild_settings`, `notices`
 
 ---
 
@@ -232,4 +288,3 @@ seongyeok-guild-manager/
 
 4. **크로스 더블 체크 리포트 의무화**
 * 코드 작성 및 수정 완료 후 `[의도 파악 브리핑 -> 변경 파일 경로 안내 -> 통짜 코드 생성 -> 변경 전후 검증 리포트]` 과정을 보고한다.
-
