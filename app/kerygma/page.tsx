@@ -50,6 +50,29 @@ export default function KerygmaPage() {
     }
   };
 
+  const buildCommentsTree = (flatComments: CommentItem[]) => {
+    const map = new Map<number, CommentItem>();
+    const roots: CommentItem[] = [];
+    flatComments.forEach((c) => map.set(c.id, { ...c, children: [] }));
+    flatComments.forEach((c) => {
+      const node = map.get(c.id);
+      if (c.parent_id && map.has(c.parent_id)) {
+        map.get(c.parent_id)!.children!.push(node!);
+      } else {
+        roots.push(node!);
+      }
+    });
+    return roots;
+  };
+
+  const loadComments = (noticeId: number) => {
+    const allComments: CommentItem[] = JSON.parse(
+      localStorage.getItem("sanctum_notice_comments") || "[]"
+    );
+    const noticeComments = allComments.filter((c) => c.notice_id === noticeId);
+    setCommentsTree(buildCommentsTree(noticeComments));
+  };
+
   const fetchNotices = async () => {
     setIsLoading(true);
     const { data, error } = await supabase.from("notices").select("*");
@@ -60,6 +83,20 @@ export default function KerygmaPage() {
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
     setNotices(combined);
+
+    // 🎯 [작성 완료 직후 바로 보기 자동 바인딩] URL 쿼리 파라미터 id 체크
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const targetId = params.get("id");
+      if (targetId) {
+        const found = combined.find((n) => String(n.id) === String(targetId));
+        if (found) {
+          setSelectedNotice(found);
+          loadComments(found.id);
+        }
+      }
+    }
+
     setIsLoading(false);
   };
 
@@ -97,30 +134,10 @@ export default function KerygmaPage() {
     );
     await supabase.from("notices").delete().eq("id", id);
     setSelectedNotice(null);
+    if (typeof window !== "undefined") {
+      window.history.replaceState({}, "", "/kerygma");
+    }
     fetchNotices();
-  };
-
-  const buildCommentsTree = (flatComments: CommentItem[]) => {
-    const map = new Map<number, CommentItem>();
-    const roots: CommentItem[] = [];
-    flatComments.forEach((c) => map.set(c.id, { ...c, children: [] }));
-    flatComments.forEach((c) => {
-      const node = map.get(c.id);
-      if (c.parent_id && map.has(c.parent_id)) {
-        map.get(c.parent_id)!.children!.push(node!);
-      } else {
-        roots.push(node!);
-      }
-    });
-    return roots;
-  };
-
-  const loadComments = (noticeId: number) => {
-    const allComments: CommentItem[] = JSON.parse(
-      localStorage.getItem("sanctum_notice_comments") || "[]"
-    );
-    const noticeComments = allComments.filter((c) => c.notice_id === noticeId);
-    setCommentsTree(buildCommentsTree(noticeComments));
   };
 
   const openNotice = (notice: Notice) => {
@@ -262,7 +279,12 @@ export default function KerygmaPage() {
       {selectedNotice && (
         <KerygmaReaderView
           selectedNotice={selectedNotice}
-          onCloseReader={() => setSelectedNotice(null)}
+          onCloseReader={() => {
+            setSelectedNotice(null);
+            if (typeof window !== "undefined") {
+              window.history.replaceState({}, "", "/kerygma");
+            }
+          }}
           canWriteNotice={canWriteNotice}
           onTogglePin={togglePin}
           onDeleteNotice={deleteNotice}

@@ -41,7 +41,7 @@ export default function KerygmaCategoryTabs({
       <button
         key={cat}
         onClick={() => onSelectCategory(cat)}
-        className={`relative px-3 py-1.5 rounded-lg text-[0.75rem] font-bold transition-all duration-300 border whitespace-nowrap shrink-0 cursor-pointer ${
+        className={`relative px-2 sm:px-3 py-1 sm:py-1.5 rounded-md sm:rounded-lg text-[10px] sm:text-[0.75rem] font-bold transition-all duration-300 border whitespace-nowrap shrink-0 cursor-pointer ${
           isSelected
             ? activeClasses
             : "bg-[var(--panel)] border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)] hover:bg-[var(--panel-hover)]"
@@ -62,27 +62,28 @@ export default function KerygmaCategoryTabs({
   };
 
   return (
-    <div className="p-3 rounded-xl bg-[var(--panel)] border border-[var(--panel-border)] shadow-sm flex items-center justify-between gap-3 overflow-hidden">
-      <div className="flex items-center gap-2 text-[0.75rem] overflow-x-auto pb-1 sm:pb-0 custom-scrollbar flex-1 min-w-0">
+    <div className="p-2 sm:p-3 rounded-xl bg-[var(--panel)] border border-[var(--panel-border)] shadow-sm flex items-center justify-between gap-1.5 sm:gap-3 overflow-hidden">
+      <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 sm:pb-0 custom-scrollbar flex-1 min-w-0">
         {renderCategoryButton("전체")}
-        <span className="text-[var(--panel-border)] font-black select-none px-1 shrink-0">|</span>
+        <span className="text-[var(--panel-border)] text-[10px] sm:text-[12px] font-black select-none shrink-0">|</span>
         {renderCategoryButton("길드 공지사항")}
         {renderCategoryButton("길드 이벤트")}
-        <span className="text-[var(--panel-border)] font-black select-none px-1 shrink-0">|</span>
+        <span className="text-[var(--panel-border)] text-[10px] sm:text-[12px] font-black select-none shrink-0">|</span>
         {renderCategoryButton("생텀 공지사항")}
         {renderCategoryButton("생텀 업데이트")}
         {renderCategoryButton("생텀 가이드")}
-        <span className="text-[var(--panel-border)] font-black select-none px-1 shrink-0">|</span>
+        <span className="text-[var(--panel-border)] text-[10px] sm:text-[12px] font-black select-none shrink-0">|</span>
         {renderCategoryButton("모비노기 공식")}
       </div>
 
       {canWriteNotice && (
         <Link
           href="/kerygma/write"
-          className="bg-[var(--accent)] hover:bg-[var(--accent-strong)] text-[var(--accent-fg)] text-[0.7rem] font-bold px-3 py-1.5 rounded-md transition shadow-sm flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer ml-auto"
+          className="bg-[var(--accent)] hover:bg-[var(--accent-strong)] text-[var(--accent-fg)] text-[10px] sm:text-[0.7rem] font-bold px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-md transition shadow-sm flex items-center gap-1 sm:gap-1.5 whitespace-nowrap shrink-0 ml-auto cursor-pointer"
         >
           <span>✏️</span>
-          <span>새 공지 작성</span>
+          <span className="hidden sm:inline">새 공지 작성</span>
+          <span className="sm:hidden">작성</span>
         </Link>
       )}
     </div>

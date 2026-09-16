@@ -1,0 +1,10 @@
+-- characters 테이블 전체 구조 및 job 컬럼 데이터 확인 쿼리
+SELECT 
+  id,
+  nickname,
+  job,
+  combat_power,
+  created_at,
+  updated_at
+FROM public.characters
+ORDER BY id ASC;
