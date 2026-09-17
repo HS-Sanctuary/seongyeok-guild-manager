@@ -1,0 +1,460 @@
+// ==UserScript==
+// @name         SANCTUM Seamless Auto-Sync & Logger (v8.2)
+// @namespace    http://tampermonkey.net/
+// @version      8.2
+// @description  모비라이프 API 전면 배제! 100% UI 물리 클릭 매크로 방식으로 4대 랭킹 완벽 수집
+// @author       GuildMaster
+// @match        https://mabimobi.life/*
+// @grant        GM_xmlhttpRequest
+// @grant        GM_download
+// @run-at       document-idle
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    const SANCTUM_BASE_URL = 'https://sanctum-tawny-three.vercel.app';
+    const TARGET_SERVER = '데이안';
+
+    let isRunning = false;
+    let isStopped = false;
+
+    const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const isAutoSync = urlParams.get('autoSync') === 'true';
+    const targetsParam = urlParams.get('targets');
+
+    const btnSync = document.createElement('button');
+    btnSync.innerHTML = '🔄 SANCTUM 길드원 동기화 (v8.2)';
+    btnSync.style.position = 'fixed';
+    btnSync.style.top = '20px';
+    btnSync.style.right = '20px';
+    btnSync.style.width = '280px';
+    btnSync.style.zIndex = '99999';
+    btnSync.style.padding = '12px 16px';
+    btnSync.style.backgroundColor = '#e6c788';
+    btnSync.style.color = 'black';
+    btnSync.style.fontWeight = '900';
+    btnSync.style.borderRadius = '8px';
+    btnSync.style.cursor = 'pointer';
+    btnSync.style.boxShadow = '0 4px 12px rgba(0,0,0,0.5)';
+    btnSync.style.textAlign = 'center';
+
+    const btnStop = document.createElement('button');
+    btnStop.innerHTML = '⏹️ 수집 중단하기';
+    btnStop.style.position = 'fixed';
+    btnStop.style.top = '72px';
+    btnStop.style.right = '20px';
+    btnStop.style.width = '280px';
+    btnStop.style.zIndex = '99999';
+    btnStop.style.padding = '10px 16px';
+    btnStop.style.backgroundColor = '#ff4d4d';
+    btnStop.style.color = 'white';
+    btnStop.style.fontWeight = 'bold';
+    btnStop.style.borderRadius = '8px';
+    btnStop.style.cursor = 'pointer';
+    btnStop.style.display = 'none';
+    btnStop.style.boxShadow = '0 4px 12px rgba(0,0,0,0.5)';
+    btnStop.style.textAlign = 'center';
+
+    document.body.appendChild(btnSync);
+    document.body.appendChild(btnStop);
+
+    function resetUI() {
+        isRunning = false;
+        isStopped = false;
+        btnSync.innerHTML = '🔄 SANCTUM 길드원 동기화 (v8.2)';
+        btnSync.disabled = false;
+        btnStop.style.display = 'none';
+        btnStop.disabled = false;
+    }
+
+    btnStop.onclick = function() {
+        if (isRunning) {
+            isStopped = true;
+            btnStop.innerHTML = '⏳ 중단 처리 중...';
+            btnStop.disabled = true;
+        }
+    };
+
+    function getVisualWidth(str) {
+        let width = 0;
+        for (let i = 0; i < str.length; i++) {
+            width += (str.charCodeAt(i) > 0x7F) ? 2 : 1;
+        }
+        return width;
+    }
+
+    function padEndVisual(str, targetWidth) {
+        const strWidth = getVisualWidth(str);
+        if (strWidth >= targetWidth) return str;
+        return str + ' '.repeat(targetWidth - strWidth);
+    }
+
+    function formatRankDiff(oldRank, newRank) {
+        if (!newRank || newRank <= 0) return '집계전';
+        if (!oldRank || oldRank <= 0) return `#${newRank.toLocaleString()}(NEW)`;
+        const diff = oldRank - newRank;
+        if (diff > 0) return `#${newRank.toLocaleString()}(▲${diff})`;
+        if (diff < 0) return `#${newRank.toLocaleString()}(▼${Math.abs(diff)})`;
+        return `#${newRank.toLocaleString()}(-)`;
+    }
+
+    function setReactInputValue(input, value) {
+        const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
+        nativeInputValueSetter.call(input, value);
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    function generateTextReport(growthData, failedList) {
+        const nowStr = new Date().toLocaleString('ko-KR');
+        let text = `============================================================================================================================\n`;
+        text += `🏰 SANCTUM 길드원 스탯 & 랭킹 성장 리포트 (${nowStr})\n`;
+        text += `============================================================================================================================\n\n`;
+
+        const col1Header = padEndVisual('[닉네임]', 14);
+        const col2Header = padEndVisual('[전투력 (변화)]', 22);
+        const col3Header = padEndVisual('[생활력 (변화)]', 22);
+        const col4Header = padEndVisual('[매력 (변화)]', 22);
+        const col5Header = '[텔로스 랭킹 변동 (통합 / 데이안)]';
+
+        text += `${col1Header} ${col2Header} ${col3Header} ${col4Header} ${col5Header}\n`;
+        text += `----------------------------------------------------------------------------------------------------------------------------\n`;
+
+        growthData.forEach(item => {
+            const nick = padEndVisual(item.nickname, 14);
+            const cDiff = item.diff.combat >= 0 ? `(+${item.diff.combat})` : `(${item.diff.combat})`;
+            const lDiff = item.diff.life >= 0 ? `(+${item.diff.life})` : `(${item.diff.life})`;
+            const chDiff = item.diff.charm >= 0 ? `(+${item.diff.charm})` : `(${item.diff.charm})`;
+
+            const combatStr = padEndVisual(`${item.new.combat} ${cDiff}`, 22);
+            const lifeStr = padEndVisual(`${item.new.life} ${lDiff}`, 22);
+            const charmStr = padEndVisual(`${item.new.charm} ${chDiff}`, 22);
+
+            const oldTelos = item.old?.rankings?.TELOS || {};
+            const newTelos = item.new?.rankings?.TELOS || {};
+
+            const overallRankStr = formatRankDiff(oldTelos.overall, newTelos.overall);
+            const deianRankStr = formatRankDiff(oldTelos.deian, newTelos.deian);
+            const rankSummary = `통합 ${overallRankStr} / 데이안 ${deianRankStr}`;
+
+            text += `${nick} ${combatStr} ${lifeStr} ${charmStr} ${rankSummary}\n`;
+        });
+
+        if (failedList && failedList.length > 0) {
+            text += `\n----------------------------------------------------------------------------------------------------------------------------\n`;
+            text += `❌ 수집 스킵 / 미반영 목록 (${failedList.length}명)\n`;
+            text += `----------------------------------------------------------------------------------------------------------------------------\n`;
+            failedList.forEach(f => {
+                text += `• ${f.name} ➔ ${f.reason}\n`;
+            });
+        }
+        text += `============================================================================================================================\n`;
+        return text;
+    }
+
+    function downloadTextFile(filename, text) {
+        const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const element = document.createElement('a');
+        element.setAttribute('href', url);
+        element.setAttribute('download', filename);
+        element.style.display = 'none';
+        document.body.appendChild(element);
+        element.click();
+        document.body.removeChild(element);
+    }
+
+    function showReportModal(reportText) {
+        const modal = document.createElement('div');
+        modal.style.position = 'fixed';
+        modal.style.top = '0';
+        modal.style.left = '0';
+        modal.style.width = '100vw';
+        modal.style.height = '100vh';
+        modal.style.backgroundColor = 'rgba(0,0,0,0.85)';
+        modal.style.zIndex = '100000';
+        modal.style.display = 'flex';
+        modal.style.flexDirection = 'column';
+        modal.style.alignItems = 'center';
+        modal.style.justifyContent = 'center';
+        modal.style.padding = '20px';
+
+        const box = document.createElement('div');
+        box.style.backgroundColor = '#1e1e1e';
+        box.style.border = '2px solid #e6c788';
+        box.style.borderRadius = '12px';
+        box.style.width = '95%';
+        box.style.maxWidth = '1100px';
+        box.style.maxHeight = '85vh';
+        box.style.display = 'flex';
+        box.style.flexDirection = 'column';
+        box.style.padding = '20px';
+        box.style.boxShadow = '0 10px 30px rgba(0,0,0,0.8)';
+
+        const title = document.createElement('h2');
+        title.innerHTML = '📊 SANCTUM 동기화 & 스탯/랭킹 성장 리포트 (v8.2)';
+        title.style.color = '#e6c788';
+        title.style.marginTop = '0';
+        title.style.marginBottom = '12px';
+        title.style.fontSize = '18px';
+
+        const textarea = document.createElement('textarea');
+        textarea.value = reportText;
+        textarea.style.flex = '1';
+        textarea.style.minHeight = '380px';
+        textarea.style.backgroundColor = '#121212';
+        textarea.style.color = '#00ff66';
+        textarea.style.fontFamily = 'Consolas, Monaco, "Courier New", monospace';
+        textarea.style.fontSize = '13px';
+        textarea.style.lineHeight = '1.4';
+        textarea.style.padding = '12px';
+        textarea.style.border = '1px solid #333';
+        textarea.style.borderRadius = '6px';
+        textarea.style.whiteSpace = 'pre';
+        textarea.style.overflowX = 'auto';
+
+        const btnGroup = document.createElement('div');
+        btnGroup.style.display = 'flex';
+        btnGroup.style.justifyContent = 'flex-end';
+        btnGroup.style.gap = '10px';
+        btnGroup.style.marginTop = '15px';
+
+        const btnCopy = document.createElement('button');
+        btnCopy.innerHTML = '📋 텍스트 복사하기';
+        btnCopy.style.padding = '10px 18px';
+        btnCopy.style.backgroundColor = '#e6c788';
+        btnCopy.style.color = 'black';
+        btnCopy.style.fontWeight = 'bold';
+        btnCopy.style.border = 'none';
+        btnCopy.style.borderRadius = '6px';
+        btnCopy.style.cursor = 'pointer';
+        btnCopy.onclick = () => {
+            textarea.select();
+            document.execCommand('copy');
+            alert('✅ 리포트 내용이 클립보드에 복사되었습니다!');
+        };
+
+        const btnDownload = document.createElement('button');
+        btnDownload.innerHTML = '💾 .txt 파일 수동 다운로드';
+        btnDownload.style.padding = '10px 18px';
+        btnDownload.style.backgroundColor = '#3b82f6';
+        btnDownload.style.color = 'white';
+        btnDownload.style.fontWeight = 'bold';
+        btnDownload.style.border = 'none';
+        btnDownload.style.borderRadius = '6px';
+        btnDownload.style.cursor = 'pointer';
+        btnDownload.onclick = () => {
+            const today = new Date().toISOString().split('T')[0];
+            downloadTextFile(`SANCTUM_성장_리포트_${today}.txt`, reportText);
+        };
+
+        const btnClose = document.createElement('button');
+        btnClose.innerHTML = '닫기';
+        btnClose.style.padding = '10px 18px';
+        btnClose.style.backgroundColor = '#444';
+        btnClose.style.color = 'white';
+        btnClose.style.border = 'none';
+        btnClose.style.borderRadius = '6px';
+        btnClose.style.cursor = 'pointer';
+        btnClose.onclick = () => document.body.removeChild(modal);
+
+        btnGroup.appendChild(btnCopy);
+        btnGroup.appendChild(btnDownload);
+        btnGroup.appendChild(btnClose);
+
+        box.appendChild(title);
+        box.appendChild(textarea);
+        box.appendChild(btnGroup);
+        modal.appendChild(box);
+        document.body.appendChild(modal);
+    }
+
+    async function runSyncProcess(targetCharacters) {
+        isRunning = true;
+        isStopped = false;
+        btnSync.disabled = true;
+        btnSync.innerHTML = `⏳ [0/${targetCharacters.length}] 수집 준비 중...`;
+        btnStop.style.display = 'block';
+
+        const gatheredData = [];
+        const failedList = [];
+        let count = 0;
+
+        const searchInput = document.querySelector('input[placeholder*="캐릭터"]') || document.querySelector('input[type="text"]');
+        if (!searchInput) {
+            alert('❌ 캐릭터 검색창을 찾을 수 없습니다. 랭킹 페이지인지 확인해주세요.');
+            resetUI();
+            return;
+        }
+
+        const tabsToClick = [
+            { key: 'TELOS', text: '종합' },
+            { key: 'KRATOS', text: '전투력' },
+            { key: 'HARMONIA', text: '매력' },
+            { key: 'TECHNE', text: '생활력' }
+        ];
+
+        for (const targetInfo of targetCharacters) {
+            if (isStopped) {
+                alert(`⏹️ 동기화가 중단되었습니다. (${count}/${targetCharacters.length} 진행됨)`);
+                resetUI();
+                return;
+            }
+
+            count++;
+            const name = typeof targetInfo === 'object' ? targetInfo.nickname : targetInfo;
+            const expectedJob = typeof targetInfo === 'object' ? targetInfo.job : null;
+
+            btnSync.innerHTML = `⏳ [${count}/${targetCharacters.length}] '${name}' UI 매크로 스캔...`;
+
+            let charData = {
+                nickname: name,
+                combat_power: 0, charm: 0, life_energy: 0,
+                rankings: {}
+            };
+            let failReason = '';
+            let foundInAnyTab = false;
+
+            // 1. 닉네임 입력 및 엔터키 (검색) 실행
+            setReactInputValue(searchInput, name);
+            searchInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, bubbles: true }));
+            await sleep(300);
+
+            const searchBtns = Array.from(document.querySelectorAll('button')).filter(b => b.innerText.includes('검색'));
+            if (searchBtns.length > 0) searchBtns[searchBtns.length - 1].click();
+
+            await sleep(2500); // 📌 최초 검색 후 리스트 뜨는 렌더링 시간 대기
+
+            // 2. 4가지 탭(종합, 전투력, 매력, 생활력) 순회 클릭
+            for (const tab of tabsToClick) {
+                if (isStopped) return;
+
+                const allBtns = Array.from(document.querySelectorAll('button'));
+                const tabBtn = allBtns.find(b => b.innerText.includes(tab.text));
+
+                if (tabBtn) {
+                    tabBtn.click(); // 물리적으로 버튼 탭 클릭
+                    await sleep(1800); // 📌 탭 전환 후 리스트 변경 대기
+                }
+
+                // 테이블 로우 읽기
+                const rows = document.querySelectorAll('table tr, tbody tr');
+                for (const row of rows) {
+                    const cols = row.querySelectorAll('td');
+                    if (cols.length >= 8) {
+                        const colName = cols[2]?.innerText?.trim();
+                        const colServer = cols[3]?.innerText?.trim();
+                        const colJob = cols[4]?.innerText?.trim();
+
+                        if (colName === name && colServer && colServer.includes(TARGET_SERVER)) {
+                            // 주클래스 검증
+                            if (tab.key === 'TELOS' && expectedJob && !colJob.includes(expectedJob) && !expectedJob.includes(colJob)) {
+                                failReason = `주클래스 미착용 (${colJob})`;
+                                break;
+                            }
+
+                            // 📌 화면 테이블 1열(통합 순위), 2열(서버 순위) 직접 파싱
+                            const domOverall = Number(cols[0]?.innerText?.replace(/[^0-9]/g, '')) || 0;
+                            const domDeian = Number(cols[1]?.innerText?.replace(/[^0-9]/g, '')) || 0;
+
+                            charData.rankings[tab.key] = { overall: domOverall, deian: domDeian };
+
+                            // 스탯은 한 번만 넣으면 되므로 첫 탭에서 파싱
+                            if (tab.key === 'TELOS' || charData.combat_power === 0) {
+                                charData.combat_power = Number(cols[5]?.innerText?.replace(/[^0-9]/g, '')) || 0;
+                                charData.charm = Number(cols[6]?.innerText?.replace(/[^0-9]/g, '')) || 0;
+                                charData.life_energy = Number(cols[7]?.innerText?.replace(/[^0-9]/g, '')) || 0;
+                            }
+
+                            foundInAnyTab = true;
+                            break; // 해당 탭에서 내 캐릭터 찾았으면 다음 탭으로 넘어감
+                        }
+                    }
+                }
+
+                if (failReason) break; // 주클래스 미착용 등 에러 시 탭 순회 중지
+            }
+
+            if (foundInAnyTab && !failReason) {
+                gatheredData.push(charData);
+            } else {
+                failedList.push({ name: name, reason: failReason || '화면 검색 결과에서 찾지 못함' });
+            }
+
+            await sleep(1000); // 다음 캐릭터 넘어가기 전 딜레이
+        }
+
+        if (isStopped) {
+            alert("⏹️ 동기화가 중단되었습니다.");
+            resetUI();
+            return;
+        }
+
+        if (gatheredData.length === 0) {
+            alert("수집된 캐릭터 데이터가 없습니다.");
+            resetUI();
+            return;
+        }
+
+        btnSync.innerHTML = '⏳ SANCTUM DB에 전송 중...';
+        GM_xmlhttpRequest({
+            method: "POST",
+            url: `${SANCTUM_BASE_URL}/api/sync-client`,
+            headers: { "Content-Type": "application/json" },
+            data: JSON.stringify({ items: gatheredData, requestedBy: 'Tampermonkey_v8.2' }),
+            onload: function(syncRes) {
+                try {
+                    const syncResult = JSON.parse(syncRes.responseText);
+                    if (syncResult.success) {
+                        btnSync.innerHTML = '✅ 완료!';
+                        const reportText = generateTextReport(syncResult.growthReport || [], failedList);
+                        showReportModal(reportText);
+                        resetUI();
+                    } else {
+                        alert("동기화 저장 실패: " + (syncResult.error || "알 수 없는 오류"));
+                        resetUI();
+                    }
+                } catch (e) {
+                    alert("응답 처리 실패!");
+                    resetUI();
+                }
+            },
+            onerror: function() {
+                alert("Vercel 서버 통신 실패!");
+                resetUI();
+            }
+        });
+    }
+
+    if (isAutoSync && targetsParam) {
+        const targetList = targetsParam.split(',').map(s => s.trim()).filter(Boolean);
+        if (targetList.length > 0) {
+            setTimeout(() => runSyncProcess(targetList), 500);
+        }
+    }
+
+    btnSync.onclick = function() {
+        if (isRunning) return;
+
+        GM_xmlhttpRequest({
+            method: "GET",
+            url: `${SANCTUM_BASE_URL}/api/guild-characters`,
+            onload: function(res) {
+                try {
+                    const result = JSON.parse(res.responseText);
+                    const charList = result.characters || result.nicknames || [];
+                    if (result.success && charList.length > 0) {
+                        runSyncProcess(charList);
+                    } else {
+                        alert("생텀 DB에 등록된 캐릭터가 없습니다!");
+                    }
+                } catch (e) {
+                    alert("길드원 목록을 가져오지 못했습니다.");
+                }
+            }
+        });
+    };
+})();

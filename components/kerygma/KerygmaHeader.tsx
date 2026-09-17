@@ -7,11 +7,11 @@ export default function KerygmaHeader() {
 
   return (
     <>
-      {/* 🎯 크로노스 헤더와 100% 비주얼 동기화된 케리그마 상단 헤더 */}
-      <div className="w-full bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl px-4 py-3.5 sm:px-5 sm:py-4 flex items-center justify-between gap-3 shadow-sm relative overflow-hidden border-l-[4px] border-l-[var(--accent)]">
+      {/* 🎯 KERYGMA 상단 헤더 바 */}
+      <div className="w-full bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl px-4 py-3 sm:px-5 sm:py-3.5 flex items-center justify-between gap-3 shadow-sm relative overflow-hidden border-l-[4px] border-l-[var(--accent)] transition-colors duration-200">
         
-        {/* 좌측: KERYGMA 타이틀 + 서브타이틀 + (i) 안내 버튼 (크로노스 배치 규격 일치) */}
-        <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
+        {/* 좌측: 타이틀 + 서브타이틀 + 모바일 전용 (i) 버튼 */}
+        <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 shrink-0">
           <span className="text-base sm:text-xl font-black text-[var(--text-main)] tracking-wider shrink-0">
             KERYGMA
           </span>
@@ -20,18 +20,28 @@ export default function KerygmaHeader() {
             케리그마 : 길드 공지사항
           </span>
 
-          {/* 🎯 크로노스 전역 테마 스타일 (i) 버튼 */}
+          {/* 모바일 뷰 전용 (i) 버튼 (sm:hidden) */}
           <button
             onClick={() => setIsInfoModalOpen(true)}
             title="케리그마 안내 보기"
-            className="w-5 h-5 sm:w-5.5 sm:h-5.5 rounded-full bg-[var(--inner-box)] border border-[var(--panel-border)] hover:border-[var(--accent)] text-[var(--text-sub)] hover:text-[var(--accent)] transition-all flex items-center justify-center text-[10px] sm:text-[11px] font-serif italic shrink-0 cursor-pointer active:scale-90 shadow-xs ml-0.5"
+            className="sm:hidden w-5 h-5 rounded-full bg-[var(--inner-box)] border border-[var(--panel-border)] hover:border-[var(--accent)] text-[var(--text-sub)] hover:text-[var(--accent)] transition-all flex items-center justify-center text-[10px] font-serif italic shrink-0 cursor-pointer active:scale-90 shadow-xs ml-0.5"
           >
             i
           </button>
         </div>
+
+        {/* PC/데스크톱 뷰 전용 인라인 안내 박스 (hidden sm:flex) */}
+        <div className="hidden sm:flex flex-col items-end justify-center text-right bg-[var(--inner-box)] border border-[var(--panel-border)] rounded-xl px-3.5 py-1.5 shrink-0 shadow-inner max-w-md">
+          <p className="text-[var(--text-sub)] font-medium text-[11px] sm:text-xs whitespace-nowrap">
+            케리그마는 고대 그리스어로 <strong className="text-[var(--text-main)] font-bold">'선포'</strong>와 <strong className="text-[var(--text-main)] font-bold">'공표'</strong>를 뜻하는 말입니다.
+          </p>
+          <p className="text-[var(--accent)] font-bold text-[11px] sm:text-xs whitespace-nowrap">
+            성역의 소식과 뜻이 가장 먼저 울려 퍼지는 공간입니다.
+          </p>
+        </div>
       </div>
 
-      {/* 🛡️ (i) 클릭 시 팝업되는 케리그마 의미 안내 모달 (SANCTUM 전역 테마 적용) */}
+      {/* 모바일 뷰 (i) 버튼 클릭 시 팝업되는 안내 모달 */}
       {isInfoModalOpen && (
         <div className="fixed inset-0 bg-black/75 backdrop-blur-xs z-[100] flex items-center justify-center p-4 animate-fadeIn">
           <div className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl p-5 sm:p-6 w-full max-w-sm shadow-2xl space-y-4 relative border-l-4 border-l-[var(--accent)]">
@@ -50,7 +60,7 @@ export default function KerygmaHeader() {
 
             <div className="space-y-2 text-xs sm:text-sm leading-relaxed">
               <p className="text-[var(--text-sub)] font-medium">
-                케리그마는 고대 그리스어로 <strong className="text-[var(--text-main)]">'선포'</strong>와 <strong className="text-[var(--text-main)]">'공표'</strong>를 뜻하는 말입니다.
+                케리그마는 고대 그리스어로 <strong className="text-[var(--text-main)] font-bold">'선포'</strong>와 <strong className="text-[var(--text-main)] font-bold">'공표'</strong>를 뜻하는 말입니다.
               </p>
               <p className="text-[var(--accent)] font-bold">
                 성역의 소식과 뜻이 가장 먼저 울려 퍼지는 공간입니다.

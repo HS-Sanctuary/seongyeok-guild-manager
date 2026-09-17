@@ -1,45 +1,271 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { Notice, CommentItem, LINK_ONLY_CATEGORIES } from "@/types/kerygma";
+import { Notice, CommentItem, PollData } from "@/types/kerygma";
+
+// 🎯 사전에 분리 작성해둔 케리그마 전용 서브 모듈 컴포넌트군 정식 조립
 import KerygmaHeader from "@/components/kerygma/KerygmaHeader";
 import KerygmaCategoryTabs from "@/components/kerygma/KerygmaCategoryTabs";
 import KerygmaTableList from "@/components/kerygma/KerygmaTableList";
 import KerygmaReaderView from "@/components/kerygma/KerygmaReaderView";
+import KerygmaPollModal from "@/components/kerygma/KerygmaPollModal";
 
-function KerygmaContent() {
-  const searchParams = useSearchParams();
+export default function KerygmaMainPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const noticeIdParam = searchParams.get("id");
 
   const [user, setUser] = useState<any>(null);
-  const [mounted, setMounted] = useState(false);
-
   const [notices, setNotices] = useState<Notice[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  // 리더(Reader) & 댓글 상태
+  const [selectedCategory, setSelectedCategory] = useState("전체");
+  const [loading, setLoading] = useState(true);
   const [selectedNotice, setSelectedNotice] = useState<Notice | null>(null);
+
+  // 댓글 상태 관리
   const [commentsTree, setCommentsTree] = useState<CommentItem[]>([]);
   const [newCommentText, setNewCommentText] = useState("");
   const [replyingTo, setReplyingTo] = useState<number | null>(null);
   const [replyText, setReplyText] = useState("");
 
-  const [activeCategory, setActiveCategory] = useState("전체");
+  // 투표 모달 상태 관리
+  const [isPollModalOpen, setIsPollModalOpen] = useState(false);
+  const [pollForm, setPollForm] = useState<PollData>({
+    title: "",
+    isAnonymous: false,
+    options: [
+      { id: "opt-1", text: "", votes: 0, voters: [] },
+      { id: "opt-2", text: "", votes: 0, voters: [] },
+    ],
+    allowMultiple: false,
+    endDate: "1일",
+  });
 
-  // 🛡️ 외부 사이트 이동 확인 모달 상태
-  const [confirmLinkModal, setConfirmLinkModal] = useState<{
-    isOpen: boolean;
-    url: string;
-    title: string;
-  } | null>(null);
+  const isMaster =
+    user?.nickname === "한설" ||
+    user?.role === "길드마스터" ||
+    user?.role === "길드 마스터" ||
+    user?.role === "마스터" ||
+    user?.role === "admin";
+
+  const isSubMaster =
+    user?.role === "부길드마스터" ||
+    user?.role === "부마스터" ||
+    user?.role === "admin";
+
+  const canWriteNotice = isMaster || isSubMaster;
+  const currentNickname = user?.nickname || "방문자";
+
+  // Supabase DB 게시글 조회
+  const fetchNotices = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("notices")
+        .select("*")
+        .order("is_pinned", { ascending: false })
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("Supabase notices fetch error:", error);
+      } else if (data) {
+        setNotices(data as Notice[]);
+      }
+    } catch (err) {
+      console.error("Notices fetch exception:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const savedUser = localStorage.getItem("nexus_user");
+    if (savedUser) setUser(JSON.parse(savedUser));
+
+    fetchNotices();
+
+    const channel = supabase
+      .channel("public:notices")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "notices" },
+        () => {
+          fetchNotices();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  // URL ID 감지 및 읽기 모드 전환
+  useEffect(() => {
+    if (noticeIdParam && notices.length > 0) {
+      const found = notices.find((n) => Number(n.id) === Number(noticeIdParam));
+      if (found) {
+        setSelectedNotice(found);
+      } else {
+        supabase
+          .from("notices")
+          .select("*")
+          .eq("id", Number(noticeIdParam))
+          .single()
+          .then(({ data }) => {
+            if (data) setSelectedNotice(data as Notice);
+          });
+      }
+    } else {
+      setSelectedNotice(null);
+    }
+  }, [noticeIdParam, notices]);
+
+  // 필독 고정 토글
+  const handleTogglePin = async (id: number, currentPinned: boolean) => {
+    if (!canWriteNotice) return alert("필독 고정 권한이 없습니다.");
+
+    const { error } = await supabase
+      .from("notices")
+      .update({ is_pinned: !currentPinned })
+      .eq("id", id);
+
+    if (error) {
+      alert(`고정 변경 실패: ${error.message}`);
+    } else {
+      fetchNotices();
+    }
+  };
+
+  // 공지 삭제
+  const handleDeleteNotice = async (id: number) => {
+    if (!canWriteNotice) return alert("삭제 권한이 없습니다.");
+    if (!confirm("정말 이 공지글을 삭제하시겠습니까?")) return;
+
+    const { error } = await supabase.from("notices").delete().eq("id", id);
+    if (error) {
+      alert(`삭제 실패: ${error.message}`);
+    } else {
+      alert("공지글이 삭제되었습니다.");
+      router.replace("/kerygma");
+      fetchNotices();
+    }
+  };
+
+  const handleOpenNotice = (notice: Notice) => {
+    router.push(`/kerygma?id=${notice.id}`);
+  };
+
+  const handleCloseReader = () => {
+    router.replace("/kerygma");
+    setSelectedNotice(null);
+  };
+
+  // 투표 기능 연동
+  const handleVoteOption = async (optionId: string) => {
+    if (!selectedNotice || !selectedNotice.poll) return;
+
+    const currentPoll = selectedNotice.poll;
+    const userVotes = currentPoll.userVotes || [];
+    let updatedVotes: string[] = [];
+
+    if (currentPoll.allowMultiple) {
+      if (userVotes.includes(optionId)) {
+        updatedVotes = userVotes.filter((id) => id !== optionId);
+      } else {
+        updatedVotes = [...userVotes, optionId];
+      }
+    } else {
+      updatedVotes = userVotes.includes(optionId) ? [] : [optionId];
+    }
+
+    const updatedOptions = currentPoll.options.map((opt) => {
+      const wasVoted = userVotes.includes(opt.id);
+      const isNowVoted = updatedVotes.includes(opt.id);
+
+      let votesCount = opt.votes || 0;
+      if (!wasVoted && isNowVoted) votesCount += 1;
+      if (wasVoted && !isNowVoted) votesCount = Math.max(0, votesCount - 1);
+
+      return { ...opt, votes: votesCount };
+    });
+
+    const updatedPoll = {
+      ...currentPoll,
+      options: updatedOptions,
+      userVotes: updatedVotes,
+    };
+
+    const { error } = await supabase
+      .from("notices")
+      .update({ poll: updatedPoll })
+      .eq("id", selectedNotice.id);
+
+    if (!error) {
+      setSelectedNotice({ ...selectedNotice, poll: updatedPoll });
+    }
+  };
+
+  // 좋아요 연동
+  const handleReaction = async (type: "like" | "dislike") => {
+    if (!selectedNotice) return;
+
+    const currentLikes = selectedNotice.likes || 0;
+    const isAlreadyLiked = selectedNotice.userReaction === "like";
+    const newLikes = isAlreadyLiked ? Math.max(0, currentLikes - 1) : currentLikes + 1;
+    const newReaction = isAlreadyLiked ? null : "like";
+
+    const { error } = await supabase
+      .from("notices")
+      .update({ likes: newLikes })
+      .eq("id", selectedNotice.id);
+
+    if (!error) {
+      setSelectedNotice({
+        ...selectedNotice,
+        likes: newLikes,
+        userReaction: newReaction,
+      });
+    }
+  };
+
+  // 댓글 등록
+  const handleAddComment = (parentId: number | null = null) => {
+    const text = parentId ? replyText : newCommentText;
+    if (!text.trim()) return alert("댓글 내용을 입력해주세요.");
+
+    const newComment: CommentItem = {
+      id: Date.now(),
+      author: currentNickname,
+      content: text,
+      created_at: new Date().toISOString(),
+      parentId: parentId || undefined,
+    };
+
+    if (parentId) {
+      setCommentsTree((prev) =>
+        prev.map((c) =>
+          c.id === parentId
+            ? { ...c, children: [...(c.children || []), newComment] }
+            : c
+        )
+      );
+      setReplyText("");
+      setReplyingTo(null);
+    } else {
+      setCommentsTree((prev) => [...prev, newComment]);
+      setNewCommentText("");
+    }
+  };
+
+  const filteredNotices = notices.filter((n) => {
+    if (selectedCategory === "전체") return true;
+    return n.type === selectedCategory;
+  });
 
   const formatNoticeDate = (dateStr: string) => {
     if (!dateStr) return "";
     const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return dateStr;
     const yy = String(d.getFullYear()).slice(2);
     const mm = d.getMonth() + 1;
     const dd = d.getDate();
@@ -47,373 +273,72 @@ function KerygmaContent() {
   };
 
   const getBadgeStyle = (type: string, isPinned: boolean) => {
-    if (isPinned) return "text-red-400 font-semibold";
-    switch (type) {
-      case "생텀 가이드":
-        return "text-purple-400";
-      case "모비노기 공식":
-        return "text-blue-400";
-      case "생텀 업데이트":
-        return "text-emerald-400";
-      case "길드 이벤트":
-        return "text-amber-400";
-      default:
-        return "text-[var(--accent)]";
+    if (isPinned) {
+      return "bg-rose-950/80 border-rose-500/70 text-rose-300 font-extrabold shadow-xs";
     }
+    return "bg-purple-950/60 border-purple-500/60 text-purple-300 font-bold";
   };
-
-  const buildCommentsTree = (flatComments: CommentItem[]) => {
-    const map = new Map<number, CommentItem>();
-    const roots: CommentItem[] = [];
-    flatComments.forEach((c) => map.set(c.id, { ...c, children: [] }));
-    flatComments.forEach((c) => {
-      const node = map.get(c.id);
-      if (c.parent_id && map.has(c.parent_id)) {
-        map.get(c.parent_id)!.children!.push(node!);
-      } else {
-        roots.push(node!);
-      }
-    });
-    return roots;
-  };
-
-  const loadComments = (noticeId: number) => {
-    const allComments: CommentItem[] = JSON.parse(
-      localStorage.getItem("sanctum_notice_comments") || "[]"
-    );
-    const noticeComments = allComments.filter((c) => c.notice_id === noticeId);
-    setCommentsTree(buildCommentsTree(noticeComments));
-  };
-
-  const fetchNotices = async () => {
-    setIsLoading(true);
-    const { data, error } = await supabase.from("notices").select("*");
-    const localData = JSON.parse(localStorage.getItem("notices_mock_db") || "[]");
-    let combined: Notice[] = !error && data ? [...data] : [];
-    combined = [...combined, ...localData].sort((a, b) => {
-      if (a.is_pinned !== b.is_pinned) return a.is_pinned ? -1 : 1;
-      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-    });
-    setNotices(combined);
-    setIsLoading(false);
-  };
-
-  useEffect(() => {
-    setMounted(true);
-    const savedUser = localStorage.getItem("nexus_user");
-    if (savedUser) setUser(JSON.parse(savedUser));
-    fetchNotices();
-  }, []);
-
-  // 🎯 [URL 쿼리 스트링(searchParams) 변동 실시간 감지 & 리더뷰 스위칭 연동]
-  useEffect(() => {
-    if (isLoading) return;
-
-    if (!noticeIdParam) {
-      // URL에 id 쿼리가 없으면 공지 목록 리스트 모드로 전환
-      setSelectedNotice(null);
-    } else {
-      // URL에 id 쿼리가 있으면 해당 공지글 선택하여 리더뷰 노출
-      const found = notices.find((n) => String(n.id) === String(noticeIdParam));
-      if (found) {
-        setSelectedNotice(found);
-        loadComments(found.id);
-      } else {
-        setSelectedNotice(null);
-      }
-    }
-  }, [noticeIdParam, notices, isLoading]);
-
-  const currentNickname = user?.nickname || "방문자";
-  const isMaster = user?.nickname === "한설" || user?.role === "길드마스터";
-  const isSubMaster =
-    user?.role === "부길드마스터" || user?.role === "부마스터" || user?.role === "admin";
-  const canWriteNotice = isMaster || isSubMaster;
-
-  const togglePin = async (id: number, currentPinned: boolean) => {
-    if (!canWriteNotice) return;
-    const mockDb: Notice[] = JSON.parse(localStorage.getItem("notices_mock_db") || "[]");
-    const updated = mockDb.map((n) => (n.id === id ? { ...n, is_pinned: !currentPinned } : n));
-    localStorage.setItem("notices_mock_db", JSON.stringify(updated));
-    if (selectedNotice && selectedNotice.id === id)
-      setSelectedNotice({ ...selectedNotice, is_pinned: !currentPinned });
-    await supabase.from("notices").update({ is_pinned: !currentPinned }).eq("id", id);
-    fetchNotices();
-  };
-
-  const deleteNotice = async (id: number) => {
-    if (!canWriteNotice) return;
-    if (!confirm("이 게시글을 삭제하시겠습니까?")) return;
-    const mockDb: Notice[] = JSON.parse(localStorage.getItem("notices_mock_db") || "[]");
-    localStorage.setItem(
-      "notices_mock_db",
-      JSON.stringify(mockDb.filter((n) => n.id !== id))
-    );
-    await supabase.from("notices").delete().eq("id", id);
-    setSelectedNotice(null);
-    router.push("/kerygma");
-    fetchNotices();
-  };
-
-  // 🎯 [공지글 클릭 시 URL 쿼리 파라미터 부여하여 리더뷰 전환]
-  const openNotice = (notice: Notice) => {
-    const isLinkType = notice.link || LINK_ONLY_CATEGORIES.includes(notice.type);
-
-    if (isLinkType) {
-      const targetUrl = notice.link || "https://official.mabinogimobile.nexon.com";
-      setConfirmLinkModal({
-        isOpen: true,
-        url: targetUrl,
-        title: notice.title,
-      });
-      return;
-    }
-
-    setSelectedNotice(notice);
-    loadComments(notice.id);
-    router.push(`/kerygma?id=${notice.id}`);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  // 🎯 [리더뷰 닫기 / 목록으로 돌아가기 버튼 클릭 시]
-  const handleCloseReader = () => {
-    setSelectedNotice(null);
-    router.push("/kerygma");
-  };
-
-  const handleAddComment = (parentId: number | null = null) => {
-    if (!selectedNotice) return;
-    const text = parentId === null ? newCommentText : replyText;
-    if (!text.trim()) return;
-
-    const allComments: CommentItem[] = JSON.parse(
-      localStorage.getItem("sanctum_notice_comments") || "[]"
-    );
-    const newEntry: CommentItem = {
-      id: Date.now(),
-      notice_id: selectedNotice.id,
-      author: currentNickname,
-      content: text.trim(),
-      created_at: new Date().toISOString(),
-      parent_id: parentId,
-    };
-
-    const updated = [...allComments, newEntry];
-    localStorage.setItem("sanctum_notice_comments", JSON.stringify(updated));
-
-    if (parentId === null) setNewCommentText("");
-    else {
-      setReplyingTo(null);
-      setReplyText("");
-    }
-    loadComments(selectedNotice.id);
-  };
-
-  const handleReaction = (type: "like" | "dislike") => {
-    if (!selectedNotice) return;
-    const currentReaction = selectedNotice.userReaction;
-    let newLikes = selectedNotice.likes || 0;
-    let newDislikes = selectedNotice.dislikes || 0;
-    let newReaction: "like" | "dislike" | null = type;
-
-    if (currentReaction === type) {
-      newReaction = null;
-      if (type === "like") newLikes = Math.max(0, newLikes - 1);
-      else newDislikes = Math.max(0, newDislikes - 1);
-    } else {
-      if (currentReaction === "like") newLikes = Math.max(0, newLikes - 1);
-      if (currentReaction === "dislike") newDislikes = Math.max(0, newDislikes - 1);
-      if (type === "like") newLikes += 1;
-      else newDislikes += 1;
-    }
-
-    const updatedNotice = {
-      ...selectedNotice,
-      likes: newLikes,
-      dislikes: newDislikes,
-      userReaction: newReaction,
-    };
-    setSelectedNotice(updatedNotice);
-    setNotices((prev) => prev.map((n) => (n.id === updatedNotice.id ? updatedNotice : n)));
-    const mockDb: Notice[] = JSON.parse(localStorage.getItem("notices_mock_db") || "[]");
-    localStorage.setItem(
-      "notices_mock_db",
-      JSON.stringify(mockDb.map((n) => (n.id === updatedNotice.id ? updatedNotice : n)))
-    );
-  };
-
-  const handleVoteOption = (optionId: string) => {
-    if (!selectedNotice || !selectedNotice.poll) return;
-    const poll = selectedNotice.poll;
-    const userVotes = poll.userVotes || [];
-    let updatedVotes = [...userVotes];
-
-    if (poll.allowMultiple) {
-      if (updatedVotes.includes(optionId))
-        updatedVotes = updatedVotes.filter((id) => id !== optionId);
-      else updatedVotes.push(optionId);
-    } else {
-      updatedVotes = [optionId];
-    }
-
-    const updatedOptions = poll.options.map((opt) => {
-      let voters = (opt.voters || []).filter((v) => v !== currentNickname);
-      if (updatedVotes.includes(opt.id)) voters.push(currentNickname);
-      return { ...opt, votes: voters.length, voters };
-    });
-
-    const updatedNotice = {
-      ...selectedNotice,
-      poll: { ...poll, options: updatedOptions, userVotes: updatedVotes },
-    };
-    setSelectedNotice(updatedNotice);
-    setNotices((prev) => prev.map((n) => (n.id === updatedNotice.id ? updatedNotice : n)));
-  };
-
-  const filteredList = notices.filter(
-    (n) => activeCategory === "전체" || n.type === activeCategory
-  );
-  const recentNoticesList = notices
-    .filter((n) => n.id !== selectedNotice?.id)
-    .slice(0, 8);
-
-  if (!mounted) return null;
 
   return (
-    <main className="min-h-screen bg-[var(--background)] text-[var(--foreground)] pb-24 pt-3 overflow-x-hidden">
-      {/* 1. 메인 리스트 뷰 */}
-      <div
-        className={`max-w-[1400px] mx-auto px-3 sm:px-6 space-y-3 sm:space-y-4 transition-all duration-300 ${
-          selectedNotice
-            ? "opacity-0 pointer-events-none h-0 overflow-hidden"
-            : "opacity-100"
-        }`}
-      >
-        {/* 상단 헤더 (ℹ️ 모달 내장) */}
+    <main className="min-h-[calc(100vh-4.5rem)] sm:min-h-[calc(100vh-5rem)] bg-[var(--background)] text-[var(--text-main)] p-3 sm:p-6 transition-colors duration-200">
+      <div className="max-w-[1200px] mx-auto space-y-3 sm:space-y-3.5">
+        
+        {/* 1. 크로노스 동기화 인라인 헤더 모듈 */}
         <KerygmaHeader />
 
-        {/* 카테고리 3-버튼 바 ([공지 전체] [변경] [작성]) */}
-        <KerygmaCategoryTabs
-          activeCategory={activeCategory}
-          onSelectCategory={setActiveCategory}
-          canWriteNotice={canWriteNotice}
-        />
+        {/* 2. 본문 컨텐츠 (ReaderView vs TableList) */}
+        {selectedNotice ? (
+          <KerygmaReaderView
+            selectedNotice={selectedNotice}
+            onCloseReader={handleCloseReader}
+            canWriteNotice={canWriteNotice}
+            onTogglePin={handleTogglePin}
+            onDeleteNotice={handleDeleteNotice}
+            getBadgeStyle={getBadgeStyle}
+            formatNoticeDate={formatNoticeDate}
+            onVoteOption={handleVoteOption}
+            onReaction={handleReaction}
+            commentsTree={commentsTree}
+            currentNickname={currentNickname}
+            newCommentText={newCommentText}
+            setNewCommentText={setNewCommentText}
+            replyingTo={replyingTo}
+            setReplyingTo={setReplyingTo}
+            replyText={replyText}
+            setReplyText={setReplyText}
+            onAddComment={handleAddComment}
+            recentNoticesList={notices.slice(0, 5)}
+            onOpenNotice={handleOpenNotice}
+          />
+        ) : (
+          <div className="space-y-3">
+            {/* 2-1. 카테고리 탭 모듈 */}
+            <KerygmaCategoryTabs
+              activeCategory={selectedCategory}
+              onSelectCategory={setSelectedCategory}
+              canWriteNotice={canWriteNotice}
+            />
 
-        {/* 공지 목록 리스트 */}
-        <KerygmaTableList
-          isLoading={isLoading}
-          notices={filteredList}
-          onOpenNotice={openNotice}
-          formatNoticeDate={formatNoticeDate}
-          getBadgeStyle={getBadgeStyle}
+            {/* 2-2. 공지사항 테이블 리스트 모듈 */}
+            <KerygmaTableList
+              isLoading={loading}
+              notices={filteredNotices}
+              onOpenNotice={handleOpenNotice}
+              formatNoticeDate={formatNoticeDate}
+              getBadgeStyle={getBadgeStyle}
+            />
+          </div>
+        )}
+
+        {/* 3. 투표 모달 모듈 */}
+        <KerygmaPollModal
+          isOpen={isPollModalOpen}
+          onClose={() => setIsPollModalOpen(false)}
+          pollForm={pollForm}
+          setPollForm={setPollForm}
+          onInsertPoll={() => setIsPollModalOpen(false)}
         />
       </div>
-
-      {/* 2. 리더(Reader) 뷰 */}
-      {selectedNotice && (
-        <KerygmaReaderView
-          selectedNotice={selectedNotice}
-          onCloseReader={handleCloseReader}
-          canWriteNotice={canWriteNotice}
-          onTogglePin={togglePin}
-          onDeleteNotice={deleteNotice}
-          getBadgeStyle={getBadgeStyle}
-          formatNoticeDate={formatNoticeDate}
-          onVoteOption={handleVoteOption}
-          onReaction={handleReaction}
-          commentsTree={commentsTree}
-          currentNickname={currentNickname}
-          newCommentText={newCommentText}
-          setNewCommentText={setNewCommentText}
-          replyingTo={replyingTo}
-          setReplyingTo={setReplyingTo}
-          replyText={replyText}
-          setReplyText={setReplyText}
-          onAddComment={handleAddComment}
-          recentNoticesList={recentNoticesList}
-          onOpenNotice={openNotice}
-        />
-      )}
-
-      {/* 🛡️ 외부 사이트 이동 안내 / 보안 확인 모달 */}
-      {confirmLinkModal?.isOpen && (
-        <div className="fixed inset-0 bg-black/75 backdrop-blur-xs z-[100] flex items-center justify-center p-4 animate-fadeIn">
-          <div className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl p-5 sm:p-6 w-full max-w-sm shadow-2xl space-y-4 border-amber-500/40">
-            <div className="flex items-center justify-between border-b border-[var(--panel-border)] pb-3">
-              <h3 className="text-sm sm:text-base font-bold text-[var(--accent)] flex items-center gap-2">
-                <span>🛡️</span>
-                <span>외부 사이트 이동 안내</span>
-              </h3>
-              <button
-                onClick={() => setConfirmLinkModal(null)}
-                className="text-[var(--text-sub)] hover:text-[var(--text-main)] text-xs font-bold cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="space-y-2.5">
-              <p className="text-xs font-bold text-[var(--text-main)] break-all">
-                "{confirmLinkModal.title}"
-              </p>
-
-              <div className="p-3 bg-[var(--inner-box)] border border-[var(--panel-border)] rounded-xl break-all text-[11px] font-mono text-[var(--accent)]">
-                {confirmLinkModal.url}
-              </div>
-
-              <div className="p-3 bg-red-950/20 border border-red-800/40 rounded-xl space-y-1 text-[11px] text-red-300">
-                <p className="font-bold flex items-center gap-1">
-                  <span>⚠️</span> <span>보안 주의사항</span>
-                </p>
-                <p>성역(SANCTUM) 외부의 사이트로 이동합니다. 신뢰할 수 있는 사이트인지 확인 후 접속해 주세요.</p>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-[var(--panel-border)]">
-              <button
-                onClick={() => setConfirmLinkModal(null)}
-                className="px-4 py-2 bg-[var(--inner-box)] border border-[var(--panel-border)] hover:bg-[var(--panel-hover)] text-[var(--text-main)] text-xs font-bold rounded-xl transition cursor-pointer"
-              >
-                취소
-              </button>
-              <button
-                onClick={() => {
-                  window.open(confirmLinkModal.url, "_blank", "noopener,noreferrer");
-                  setConfirmLinkModal(null);
-                }}
-                className="px-4 py-2 bg-[var(--accent)] hover:bg-[var(--accent-strong)] text-[var(--accent-fg)] text-xs font-bold rounded-xl transition shadow cursor-pointer flex items-center gap-1"
-              >
-                <span>이동하기</span>
-                <span>🔗</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <style
-        dangerouslySetInnerHTML={{
-          __html: `
-        .prose-editor table { width: 100%; table-layout: fixed; border-collapse: collapse; margin: 12px 0; border: 1px solid var(--panel-border); }
-        .prose-editor td { border: 1px solid var(--panel-border); padding: 8px 12px; overflow-wrap: break-word; word-break: break-all; min-width: 48px; }
-        .prose-editor [contenteditable=true]:empty:before { content: attr(data-placeholder); color: var(--text-sub); opacity: 0.5; cursor: text; }
-      `,
-        }}
-      />
     </main>
-  );
-}
-
-export default function KerygmaPage() {
-  return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen flex items-center justify-center bg-[var(--background)] text-[var(--accent)] font-bold text-sm">
-          공지사항을 로딩 중입니다...
-        </div>
-      }
-    >
-      <KerygmaContent />
-    </Suspense>
   );
 }

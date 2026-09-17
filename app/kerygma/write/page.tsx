@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Notice, PollData } from "@/types/kerygma";
 import KerygmaPollModal from "@/components/kerygma/KerygmaPollModal";
+import KerygmaEditorToolbar from "@/components/kerygma/KerygmaEditorToolbar";
+import KerygmaTableContextMenu from "@/components/kerygma/KerygmaTableContextMenu";
 
 const KERYGMA_CATEGORIES = [
   "길드 공지사항",
@@ -17,32 +19,6 @@ const KERYGMA_CATEGORIES = [
 
 const LINK_ONLY_CATEGORIES = ["생텀 가이드", "모비노기 공식"];
 
-const SPECIAL_CHARS = [
-  "★", "☆", "♥", "♡", "♠", "♤", "♣", "♧",
-  "●", "○", "■", "□", "▲", "△", "▼", "▽", "◆", "◇",
-  "◎", "◈", "▣", "◐", "◑", "▒", "▤", "▥", "▨", "▧", "▦", "▩",
-  "→", "←", "↑", "↓", "↔", "↕", "↗", "↙", "↖", "↘",
-  "⇒", "⇔", "✓", "✔", "✕", "✖", "✗", "✘",
-  "©", "®", "™", "±", "×", "÷", "≠", "≤", "≥", "∞", "∴", "∵",
-  "½", "⅓", "⅔", "¼", "¾", "⅛", "⅜", "⅝", "⅞",
-  "℃", "℉", "㎎", "㎏", "㎜", "㎝", "㎞", "㎡", "㎥", "㏄",
-  "Ω", "i", "A", "É", "—", "€", "£", "¥"
-];
-
-const FONT_SIZES = [12, 14, 16, 18, 20, 24, 28, 32];
-const LINE_HEIGHTS = [1.1, 1.3, 1.5, 1.7, 1.9, 2.1];
-
-const CELL_BG_COLORS = [
-  { name: "투명", value: "transparent", border: "var(--panel-border)" },
-  { name: "골드", value: "rgba(212, 175, 55, 0.25)", border: "#d4af37" },
-  { name: "블루", value: "rgba(52, 152, 219, 0.25)", border: "#3498db" },
-  { name: "레드", value: "rgba(231, 76, 60, 0.25)", border: "#e74c3c" },
-  { name: "그린", value: "rgba(46, 204, 113, 0.25)", border: "#2ecc71" },
-  { name: "퍼플", value: "rgba(155, 89, 182, 0.25)", border: "#9b59b6" },
-  { name: "그레이", value: "rgba(255, 255, 255, 0.12)", border: "#888" },
-  { name: "블랙", value: "rgba(0, 0, 0, 0.6)", border: "var(--panel-border)" },
-];
-
 // 🎯 [이미지 초경량 WebP 자동 리샘플링 엔진]
 const compressAndResampleImage = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -51,7 +27,7 @@ const compressAndResampleImage = (file: File): Promise<string> => {
       const img = new Image();
       img.onload = () => {
         const canvas = document.createElement("canvas");
-        const MAX_WIDTH = 1000; // 가로 최대 1000px 규격화
+        const MAX_WIDTH = 1000;
         const MAX_HEIGHT = 2000;
 
         let width = img.width;
@@ -76,8 +52,6 @@ const compressAndResampleImage = (file: File): Promise<string> => {
         }
 
         ctx.drawImage(img, 0, 0, width, height);
-
-        // WebP 70% 압축 (5MB~10MB PNG 원본 -> 약 40KB~80KB로 98% 용량 감축)
         const compressedBase64 = canvas.toDataURL("image/webp", 0.7);
         resolve(compressedBase64);
       };
@@ -97,7 +71,6 @@ export default function KerygmaWritePage() {
 
   const [isEditMode, setIsEditMode] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
-
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
 
   const [newNotice, setNewNotice] = useState({
@@ -111,7 +84,6 @@ export default function KerygmaWritePage() {
   const [activePopover, setActivePopover] = useState<
     "fontSize" | "lineHeight" | "table" | "symbol" | "heading" | null
   >(null);
-  const [tableGrid, setTableGrid] = useState({ r: 0, c: 0 });
 
   const [contextMenu, setContextMenu] = useState<{
     x: number;
@@ -187,45 +159,62 @@ export default function KerygmaWritePage() {
         setIsEditMode(true);
         setEditId(idNum);
 
-        const mockDb: Notice[] = JSON.parse(
-          localStorage.getItem("notices_mock_db") || "[]"
-        );
-        const existing = mockDb.find((n) => Number(n.id) === idNum);
-
-        if (existing) {
-          setNewNotice({
-            type: existing.type,
-            title: existing.title,
-            content: existing.content || "",
-            link: existing.link || "",
-            isPinned: existing.is_pinned || false,
-          });
-          if (existing.poll) {
-            setPendingPoll(existing.poll);
-            setPollForm(existing.poll);
-          }
-
-          setTimeout(() => {
-            if (editorRef.current && !LINK_ONLY_CATEGORIES.includes(existing.type)) {
-              editorRef.current.innerHTML = existing.content || "";
+        // Supabase DB에서 게시글 조회
+        supabase
+          .from("notices")
+          .select("*")
+          .eq("id", idNum)
+          .single()
+          .then(({ data, error }) => {
+            if (error || !data) {
+              console.error("Supabase load error:", error);
+              alert("공지글을 불러오지 못했습니다.");
+              return;
             }
-          }, 100);
-        }
+
+            setNewNotice({
+              type: data.type,
+              title: data.title,
+              content: data.content || "",
+              link: data.link || "",
+              isPinned: data.is_pinned || false,
+            });
+            if (data.poll) {
+              setPendingPoll(data.poll);
+              setPollForm(data.poll);
+            }
+
+            setTimeout(() => {
+              if (editorRef.current && !LINK_ONLY_CATEGORIES.includes(data.type)) {
+                editorRef.current.innerHTML = data.content || "";
+              }
+            }, 120);
+          });
       } else {
         const draft = localStorage.getItem("kerygma_notice_draft");
         if (draft) {
           if (window.confirm("임시저장된 공지글이 있습니다. 가져오시겠습니까?")) {
             try {
               const parsed = JSON.parse(draft);
-              setNewNotice(parsed);
+              setNewNotice({
+                type: parsed.type || "길드 공지사항",
+                title: parsed.title || "",
+                content: parsed.content || "",
+                link: parsed.link || "",
+                isPinned: parsed.isPinned || false,
+              });
               if (parsed.poll) {
                 setPendingPoll(parsed.poll);
                 setPollForm(parsed.poll);
               }
-              if (editorRef.current && !LINK_ONLY_CATEGORIES.includes(parsed.type)) {
-                editorRef.current.innerHTML = parsed.content || "";
-              }
-            } catch (e) {}
+              setTimeout(() => {
+                if (editorRef.current && !LINK_ONLY_CATEGORIES.includes(parsed.type)) {
+                  editorRef.current.innerHTML = parsed.content || "";
+                }
+              }, 120);
+            } catch (e) {
+              console.error("Draft restore error:", e);
+            }
           } else {
             localStorage.removeItem("kerygma_notice_draft");
           }
@@ -249,22 +238,30 @@ export default function KerygmaWritePage() {
     };
   }, []);
 
-  const isMaster = user?.nickname === "한설" || user?.role === "길드마스터";
-  const isSubMaster =
-    user?.role === "부길드마스터" || user?.role === "부마스터" || user?.role === "admin";
-  const canWriteNotice = isMaster || isSubMaster;
+  const isMaster =
+    user?.nickname === "한설" ||
+    user?.role === "길드마스터" ||
+    user?.role === "길드 마스터" ||
+    user?.role === "마스터" ||
+    user?.role === "admin";
 
+  const isSubMaster =
+    user?.role === "부길드마스터" ||
+    user?.role === "부마스터" ||
+    user?.role === "admin";
+
+  const canWriteNotice = isMaster || isSubMaster;
   const isLinkOnly = LINK_ONLY_CATEGORIES.includes(newNotice.type);
 
   const handleEditorInput = () => {
-    if (editorRef.current)
+    if (editorRef.current) {
       setNewNotice((prev) => ({
         ...prev,
         content: editorRef.current!.innerHTML,
       }));
+    }
   };
 
-  // 🎯 [복사-붙여넣기(Ctrl+V) 스마트 인터셉터 & 초경량 압축 처리]
   const handleEditorPaste = async (e: React.ClipboardEvent<HTMLDivElement>) => {
     const clipboardData = e.clipboardData;
     if (!clipboardData) return;
@@ -307,14 +304,12 @@ export default function KerygmaWritePage() {
     }
   };
 
-  // 🎯 [드래그앤드롭 파일 첨부 감지 및 리샘플링]
   const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
     if (draggedTableRef.current) {
       e.preventDefault();
       e.stopPropagation();
 
       const movingTable = draggedTableRef.current;
-
       let range: Range | null = null;
       if (document.caretRangeFromPoint) {
         range = document.caretRangeFromPoint(e.clientX, e.clientY);
@@ -356,7 +351,6 @@ export default function KerygmaWritePage() {
       e.stopPropagation();
 
       const files = Array.from(e.dataTransfer.files);
-
       const hasMedia = files.some(
         (f) => f.type.startsWith("video/") || f.type.startsWith("audio/")
       );
@@ -544,17 +538,13 @@ export default function KerygmaWritePage() {
         setGlobalCursorOverride("ew-resize");
 
         const handleWindowMouseMove = (moveEvent: MouseEvent) => {
-          if (!isResizingRef.current || isResizingRef.current.type !== "table")
-            return;
+          if (!isResizingRef.current || isResizingRef.current.type !== "table") return;
           const { table, startX, startWidth } = isResizingRef.current;
           const editorWidth = editorRef.current
             ? editorRef.current.clientWidth - 40
             : 800;
           const deltaX = moveEvent.clientX - startX;
-          const newWidth = Math.max(
-            120,
-            Math.min(editorWidth, startWidth + deltaX)
-          );
+          const newWidth = Math.max(120, Math.min(editorWidth, startWidth + deltaX));
 
           table.style.width = `${newWidth}px`;
           table.style.maxWidth = "100%";
@@ -642,6 +632,7 @@ export default function KerygmaWritePage() {
     }
   };
 
+  // 표 조작 바인딩 메서드
   const applyCellBgColor = (cell: HTMLTableCellElement, color: string) => {
     cell.style.backgroundColor = color;
     handleEditorInput();
@@ -674,10 +665,7 @@ export default function KerygmaWritePage() {
     handleEditorInput();
   };
 
-  const insertRow = (
-    cell: HTMLTableCellElement,
-    position: "above" | "below"
-  ) => {
+  const insertRow = (cell: HTMLTableCellElement, position: "above" | "below") => {
     const tr = cell.closest("tr");
     if (!tr) return;
     const newTr = document.createElement("tr");
@@ -702,10 +690,7 @@ export default function KerygmaWritePage() {
     setContextMenu(null);
   };
 
-  const insertColumn = (
-    cell: HTMLTableCellElement,
-    position: "left" | "right"
-  ) => {
+  const insertColumn = (cell: HTMLTableCellElement, position: "left" | "right") => {
     const tr = cell.closest("tr");
     const table = cell.closest("table");
     if (!tr || !table) return;
@@ -769,7 +754,6 @@ export default function KerygmaWritePage() {
 
   const handleTableInsert = (rows: number, cols: number) => {
     let html = `<table contenteditable="false" draggable="true" class="sanctum-editor-table" style="width: 360px; max-width: 100%; border-collapse: collapse; margin: 14px 0; border: 1px solid var(--panel-border); position: relative; user-select: none;">`;
-
     html += `<caption class="sanctum-table-drag-handle" contenteditable="false" style="caption-side: top; background: var(--inner-box); border: 1px solid var(--panel-border); border-bottom: none; padding: 6px; font-size: 11px; color: var(--text-sub); font-weight: 700; cursor: grab; user-select: none; text-align: center;">드래그하여 위치 이동</caption><tbody>`;
 
     for (let r = 0; r < rows; r++) {
@@ -783,108 +767,7 @@ export default function KerygmaWritePage() {
     insertCustomHTML(html);
   };
 
-  const getNextCount = (type: string): { num: number; char: string } => {
-    const editorEl = editorRef.current;
-    if (!editorEl) return { num: 1, char: "1" };
-
-    const fullText = editorEl.innerText || "";
-
-    if (type.startsWith("num-")) {
-      if (type === "num-l1") {
-        const l1Matches = [...fullText.matchAll(/(?:^|\n)(\d+)\.\s/g)];
-        const count = l1Matches.length;
-        return { num: count + 1, char: String(count + 1) };
-      }
-
-      if (type === "num-l2") {
-        const l1Matches = [...fullText.matchAll(/(?:^|\n)(\d+)\.\s/g)];
-        let searchSection = fullText;
-        if (l1Matches.length > 0) {
-          const lastL1Index = fullText.lastIndexOf(
-            l1Matches[l1Matches.length - 1][0]
-          );
-          searchSection = fullText.slice(lastL1Index);
-        }
-        const l2Matches = [...searchSection.matchAll(/(?:^|\n)\((\d+)\)\s/g)];
-        const count = l2Matches.length;
-        return { num: count + 1, char: String(count + 1) };
-      }
-
-      if (type === "num-l3") {
-        const l2Matches = [...fullText.matchAll(/(?:^|\n)\((\d+)\)\s/g)];
-        let searchSection = fullText;
-        if (l2Matches.length > 0) {
-          const lastL2Index = fullText.lastIndexOf(
-            l2Matches[l2Matches.length - 1][0]
-          );
-          searchSection = fullText.slice(lastL2Index);
-        } else {
-          const l1Matches = [...fullText.matchAll(/(?:^|\n)(\d+)\.\s/g)];
-          if (l1Matches.length > 0) {
-            const lastL1Index = fullText.lastIndexOf(
-              l1Matches[l1Matches.length - 1][0]
-            );
-            searchSection = fullText.slice(lastL1Index);
-          }
-        }
-        const l3Matches = [...searchSection.matchAll(/(?:^|\n)\[(\d+)\]\s/g)];
-        const count = l3Matches.length;
-        return { num: count + 1, char: String(count + 1) };
-      }
-    }
-
-    if (type.startsWith("alpha-")) {
-      if (type === "alpha-l1") {
-        const l1Matches = [...fullText.matchAll(/(?:^|\n)([A-Z])\.\s/g)];
-        const count = l1Matches.length;
-        const charCode = 65 + (count % 26);
-        return { num: count + 1, char: String.fromCharCode(charCode) };
-      }
-
-      if (type === "alpha-l2") {
-        const l1Matches = [...fullText.matchAll(/(?:^|\n)([A-Z])\.\s/g)];
-        let searchSection = fullText;
-        if (l1Matches.length > 0) {
-          const lastL1Index = fullText.lastIndexOf(
-            l1Matches[l1Matches.length - 1][0]
-          );
-          searchSection = fullText.slice(lastL1Index);
-        }
-        const l2Matches = [...searchSection.matchAll(/(?:^|\n)\(([A-Z])\)\s/g)];
-        const count = l2Matches.length;
-        const charCode = 65 + (count % 26);
-        return { num: count + 1, char: String.fromCharCode(charCode) };
-      }
-
-      if (type === "alpha-l3") {
-        const l2Matches = [...fullText.matchAll(/(?:^|\n)\(([A-Z])\)\s/g)];
-        let searchSection = fullText;
-        if (l2Matches.length > 0) {
-          const lastL2Index = fullText.lastIndexOf(
-            l2Matches[l2Matches.length - 1][0]
-          );
-          searchSection = fullText.slice(lastL2Index);
-        } else {
-          const l1Matches = [...fullText.matchAll(/(?:^|\n)([A-Z])\.\s/g)];
-          if (l1Matches.length > 0) {
-            const lastL1Index = fullText.lastIndexOf(
-              l1Matches[l1Matches.length - 1][0]
-            );
-            searchSection = fullText.slice(lastL1Index);
-          }
-        }
-        const l3Matches = [...searchSection.matchAll(/(?:^|\n)\[([A-Z])\]\s/g)];
-        const count = l3Matches.length;
-        const charCode = 65 + (count % 26);
-        return { num: count + 1, char: String.fromCharCode(charCode) };
-      }
-    }
-
-    return { num: 1, char: "1" };
-  };
-
   const insertHeadingBlock = (type: string) => {
-    const { char } = getNextCount(type);
     let fontSize = "20px";
     let fontWeight = "800";
     let color = "var(--text-main)";
@@ -896,11 +779,11 @@ export default function KerygmaWritePage() {
 
     switch (type) {
       case "num-l1":
-        prefix = `${char}. `;
+        prefix = `1. `;
         borderBottom = "2px solid var(--accent)";
         break;
       case "num-l2":
-        prefix = `(${char}) `;
+        prefix = `(1) `;
         fontSize = "16px";
         fontWeight = "700";
         color = "var(--accent)";
@@ -909,7 +792,7 @@ export default function KerygmaWritePage() {
         marginBottom = "6px";
         break;
       case "num-l3":
-        prefix = `[${char}] `;
+        prefix = `[1] `;
         fontSize = "14.5px";
         fontWeight = "600";
         color = "var(--text-sub)";
@@ -918,11 +801,11 @@ export default function KerygmaWritePage() {
         marginBottom = "4px";
         break;
       case "alpha-l1":
-        prefix = `${char}. `;
+        prefix = `A. `;
         borderBottom = "2px solid var(--accent)";
         break;
       case "alpha-l2":
-        prefix = `(${char}) `;
+        prefix = `(A) `;
         fontSize = "16px";
         fontWeight = "700";
         color = "var(--accent)";
@@ -931,7 +814,7 @@ export default function KerygmaWritePage() {
         marginBottom = "6px";
         break;
       case "alpha-l3":
-        prefix = `[${char}] `;
+        prefix = `[A] `;
         fontSize = "14.5px";
         fontWeight = "600";
         color = "var(--text-sub)";
@@ -959,15 +842,6 @@ export default function KerygmaWritePage() {
         color = "var(--text-main)";
         marginLeft = "20px";
         marginTop = "10px";
-        marginBottom = "4px";
-        break;
-      case "sym-l4":
-        prefix = `▣ `;
-        fontSize = "13.5px";
-        fontWeight = "500";
-        color = "var(--text-sub)";
-        marginLeft = "30px";
-        marginTop = "6px";
         marginBottom = "4px";
         break;
     }
@@ -1003,10 +877,7 @@ export default function KerygmaWritePage() {
   };
 
   const handleEditorKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (
-      (e.ctrlKey || e.metaKey) &&
-      ["b", "i", "u", "s"].includes(e.key.toLowerCase())
-    ) {
+    if ((e.ctrlKey || e.metaKey) && ["b", "i", "u", "s"].includes(e.key.toLowerCase())) {
       e.preventDefault();
       const key = e.key.toLowerCase();
       if (key === "b") executeCommand("bold");
@@ -1032,9 +903,10 @@ export default function KerygmaWritePage() {
       poll: pendingPoll || undefined,
     };
     localStorage.setItem("kerygma_notice_draft", JSON.stringify(draftData));
-    alert("임시저장 완료 (투표 데이터 포함)");
+    alert("임시저장 완료 (본문 및 투표 데이터 포함)");
   };
 
+  // 🎯 [Supabase 100% 직결 및 router.replace 히스토리 대체 적용]
   const handleSubmit = async () => {
     if (!newNotice.title.trim()) return alert("제목을 입력해주세요.");
 
@@ -1053,7 +925,7 @@ export default function KerygmaWritePage() {
       (newNotice.type === "생텀 업데이트" || newNotice.type === "생텀 공지사항") &&
       !isMaster
     ) {
-      return alert("해당 카테고리는 길드마스터 전용입니다.");
+      return alert("해당 카테고리는 길드마스터/관리자 전용입니다.");
     }
 
     const payloadSizeKB = Math.round(new Blob([cleanedContent]).size / 1024);
@@ -1063,60 +935,52 @@ export default function KerygmaWritePage() {
       );
     }
 
-    let finalId = editId || Date.now();
+    let finalId = editId;
 
-    const payload: Omit<Notice, "id"> = {
+    const payload = {
       type: newNotice.type,
       title: newNotice.title,
       content: isLinkOnly ? "" : cleanedContent,
-      link: isLinkOnly ? newNotice.link : undefined,
+      link: isLinkOnly ? newNotice.link : null,
       author: user?.nickname || "관리자",
       is_pinned: newNotice.isPinned,
       created_at: new Date().toISOString(),
-      poll: pendingPoll || undefined,
+      poll: pendingPoll || null,
       likes: 0,
       dislikes: 0,
     };
 
     if (isEditMode && editId) {
-      try {
-        await supabase.from("notices").update(payload).eq("id", editId);
-      } catch (e) {
-        console.warn("Supabase update warning fallback to local storage:", e);
+      const { error } = await supabase.from("notices").update(payload).eq("id", editId);
+      if (error) {
+        console.error("Supabase update error:", error);
+        return alert(
+          `[DB 수정 실패] ${error.message}\n\n※ Supabase SQL Editor에서 알맞은 컬럼(poll, link 등) 추가 및 RLS 비활성화 쿼리를 실행해 주셨는지 확인하세요.`
+        );
       }
-
-      const localDb: Notice[] = JSON.parse(
-        localStorage.getItem("notices_mock_db") || "[]"
-      );
-      const updatedDb = localDb.map((n) =>
-        Number(n.id) === Number(editId) ? { ...n, ...payload, id: editId } : n
-      );
-      localStorage.setItem("notices_mock_db", JSON.stringify(updatedDb));
     } else {
-      try {
-        const { data, error } = await supabase
-          .from("notices")
-          .insert([payload])
-          .select();
-        if (!error && data && data.length > 0 && data[0].id) {
-          finalId = data[0].id;
-        }
-      } catch (e) {
-        console.warn("Supabase insert warning fallback to local storage:", e);
+      const { data, error } = await supabase
+        .from("notices")
+        .insert([payload])
+        .select();
+
+      if (error) {
+        console.error("Supabase insert error:", error);
+        return alert(
+          `[DB 저장 실패] ${error.message}\n\n※ Supabase SQL Editor에서 알맞은 컬럼(poll, link 등) 추가 및 RLS 비활성화 쿼리를 실행해 주셨는지 확인하세요.`
+        );
       }
 
-      const localDb: Notice[] = JSON.parse(
-        localStorage.getItem("notices_mock_db") || "[]"
-      );
-      const newEntry: Notice = { id: finalId, ...payload };
-      localStorage.setItem(
-        "notices_mock_db",
-        JSON.stringify([newEntry, ...localDb])
-      );
+      if (data && data.length > 0 && data[0].id) {
+        finalId = data[0].id;
+      }
     }
 
     localStorage.removeItem("kerygma_notice_draft");
-    router.push(`/kerygma?id=${finalId}`);
+    alert(isEditMode ? "공지글이 성공적으로 수정되었습니다." : "공지글이 성공적으로 등록되었습니다!");
+    
+    // 🎯 [핵심 Fix: push 대신 replace를 사용하여 히스토리 스택 상의 작성 페이지를 새로 생성된 공지 상세/목록으로 교체]
+    router.replace(finalId ? `/kerygma?id=${finalId}` : "/kerygma");
   };
 
   if (!mounted) return null;
@@ -1180,7 +1044,7 @@ export default function KerygmaWritePage() {
         {/* 메인 작성 카드 */}
         <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] shadow-sm flex flex-col flex-1 min-h-0 overflow-hidden relative">
           
-          {/* 🎯 [헤더 및 툴바 영역 - relative z-20 overflow-visible 적용으로 본문 z-10 상위 배치 보장] */}
+          {/* 헤더 및 툴바 영역 */}
           <div className="flex flex-col shrink-0 border-b border-[var(--panel-border)] bg-[var(--panel)] rounded-t-xl relative z-20 overflow-visible">
             
             {/* 카테고리 선택 영역 */}
@@ -1249,331 +1113,23 @@ export default function KerygmaWritePage() {
               className="w-full bg-[var(--panel)] text-[var(--text-main)] text-[0.95rem] sm:text-[1rem] font-bold px-3 sm:px-4 py-2.5 sm:py-3 border-b border-[var(--panel-border)] focus:outline-none placeholder-[var(--text-sub)]/50 shrink-0 relative z-10"
             />
 
-            {/* 🎯 [에디터 서식 툴바 - relative z-20 overflow-visible 적용으로 드롭다운 팝업 z-50 최상위 렌더링 보장] */}
+            {/* 서식 툴바 컴포넌트 */}
             {!isLinkOnly && (
-              <div
-                className="flex items-center flex-wrap gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 bg-[var(--inner-box)] text-[var(--text-main)] shrink-0 border-b border-[var(--panel-border)] relative z-20 overflow-visible"
-                onMouseDown={(e) => e.preventDefault()}
-              >
-                <div className="flex items-center gap-1 shrink-0 flex-nowrap">
-                  <div className="flex items-center bg-[var(--panel)] border border-[var(--panel-border)] rounded-lg overflow-hidden shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => executeCommand("bold")}
-                      className="w-7 h-7 font-serif font-black hover:bg-[var(--panel-hover)] transition text-[0.75rem] cursor-pointer text-[var(--text-main)]"
-                      title="굵게"
-                    >
-                      B
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => executeCommand("italic")}
-                      className="w-7 h-7 font-serif italic hover:bg-[var(--panel-hover)] transition border-l border-[var(--panel-border)] text-[0.75rem] cursor-pointer text-[var(--text-main)]"
-                      title="기울임"
-                    >
-                      i
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => executeCommand("underline")}
-                      className="w-7 h-7 font-serif underline hover:bg-[var(--panel-hover)] transition border-l border-[var(--panel-border)] text-[0.75rem] cursor-pointer text-[var(--text-main)]"
-                      title="밑줄"
-                    >
-                      U
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => executeCommand("strikeThrough")}
-                      className="w-7 h-7 font-serif line-through hover:bg-[var(--panel-hover)] transition border-l border-[var(--panel-border)] text-[0.75rem] cursor-pointer text-[var(--text-main)]"
-                      title="취소선"
-                    >
-                      S
-                    </button>
-                  </div>
-
-                  <div className="flex items-center bg-[var(--panel)] border border-[var(--panel-border)] rounded-lg overflow-hidden shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => executeCommand("justifyLeft")}
-                      className="w-7 h-7 hover:bg-[var(--panel-hover)] transition text-[0.65rem] font-bold cursor-pointer flex items-center justify-center text-[var(--text-main)]"
-                      title="좌측 정렬"
-                    >
-                      좌
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => executeCommand("justifyCenter")}
-                      className="w-7 h-7 hover:bg-[var(--panel-hover)] transition border-l border-[var(--panel-border)] text-[0.65rem] font-bold cursor-pointer flex items-center justify-center text-[var(--text-main)]"
-                      title="중앙 정렬"
-                    >
-                      중
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => executeCommand("justifyRight")}
-                      className="w-7 h-7 hover:bg-[var(--panel-hover)] transition border-l border-[var(--panel-border)] text-[0.65rem] font-bold cursor-pointer flex items-center justify-center text-[var(--text-main)]"
-                      title="우측 정렬"
-                    >
-                      우
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => executeCommand("justifyFull")}
-                      className="w-7 h-7 hover:bg-[var(--panel-hover)] transition border-l border-[var(--panel-border)] text-[0.65rem] font-bold cursor-pointer flex items-center justify-center text-[var(--text-main)]"
-                      title="양쪽 정렬"
-                    >
-                      양쪽
-                    </button>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-1 shrink-0 flex-nowrap relative z-30">
-                  {/* 헤더 선택 드롭다운 */}
-                  <div className="relative shrink-0">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setActivePopover(
-                          activePopover === "heading" ? null : "heading"
-                        )
-                      }
-                      className="flex items-center gap-0.5 px-2 h-7 bg-[var(--panel)] border border-[var(--panel-border)] rounded-lg text-[11px] sm:text-[0.7rem] font-bold cursor-pointer text-[var(--accent)] hover:bg-[var(--panel-hover)] transition"
-                    >
-                      <span>헤더</span> <span className="text-[0.55rem]">▼</span>
-                    </button>
-                    {activePopover === "heading" && (
-                      <div className="absolute top-full mt-1 left-0 bg-[var(--panel)] border border-[var(--panel-border)] rounded-xl shadow-2xl w-[210px] p-2 flex flex-col gap-1 z-50 max-h-[300px] overflow-y-auto custom-scrollbar">
-                        <div className="text-[0.65rem] font-bold text-[var(--text-sub)] px-2 py-1 border-b border-[var(--panel-border)]">
-                          숫자 계층
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => insertHeadingBlock("num-l1")}
-                          className="text-left px-2 py-1.5 text-[0.75rem] hover:bg-[var(--inner-box)] text-[var(--text-main)] font-bold rounded-lg cursor-pointer"
-                        >
-                          1. 대제목
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => insertHeadingBlock("num-l2")}
-                          className="text-left px-2 py-1 text-[0.72rem] hover:bg-[var(--inner-box)] text-[var(--accent)] font-semibold rounded-lg pl-4 cursor-pointer"
-                        >
-                          (1) 중제목
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => insertHeadingBlock("num-l3")}
-                          className="text-left px-2 py-1 text-[0.7rem] hover:bg-[var(--inner-box)] text-[var(--text-sub)] rounded-lg pl-6 cursor-pointer"
-                        >
-                          [1] 소제목
-                        </button>
-
-                        <div className="text-[0.65rem] font-bold text-[var(--text-sub)] px-2 py-1 border-b border-[var(--panel-border)] mt-1">
-                          알파벳 계층
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => insertHeadingBlock("alpha-l1")}
-                          className="text-left px-2 py-1.5 text-[0.75rem] hover:bg-[var(--inner-box)] text-[var(--text-main)] font-bold rounded-lg cursor-pointer"
-                        >
-                          A. 대제목
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => insertHeadingBlock("alpha-l2")}
-                          className="text-left px-2 py-1 text-[0.72rem] hover:bg-[var(--inner-box)] text-[var(--accent)] font-semibold rounded-lg pl-4 cursor-pointer"
-                        >
-                          (A) 중제목
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => insertHeadingBlock("alpha-l3")}
-                          className="text-left px-2 py-1 text-[0.7rem] hover:bg-[var(--inner-box)] text-[var(--text-sub)] rounded-lg pl-6 cursor-pointer"
-                        >
-                          [A] 소제목
-                        </button>
-
-                        <div className="text-[0.65rem] font-bold text-[var(--text-sub)] px-2 py-1 border-b border-[var(--panel-border)] mt-1">
-                          기호 계층
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => insertHeadingBlock("sym-l1")}
-                          className="text-left px-2 py-1.5 text-[0.75rem] hover:bg-[var(--inner-box)] text-[var(--text-main)] font-bold rounded-lg cursor-pointer"
-                        >
-                          ◆ 1단계 대제목
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => insertHeadingBlock("sym-l2")}
-                          className="text-left px-2 py-1 text-[0.72rem] hover:bg-[var(--inner-box)] text-[var(--accent)] font-semibold rounded-lg pl-3 cursor-pointer"
-                        >
-                          ■ 2단계 중제목
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => insertHeadingBlock("sym-l3")}
-                          className="text-left px-2 py-1 text-[0.7rem] hover:bg-[var(--inner-box)] text-[var(--text-main)] rounded-lg pl-5 cursor-pointer"
-                        >
-                          ◈ 3단계 소제목
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* 폰트 크기 드롭다운 */}
-                  <div className="relative shrink-0">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setActivePopover(
-                          activePopover === "fontSize" ? null : "fontSize"
-                        )
-                      }
-                      className="flex items-center gap-0.5 px-2 h-7 bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-main)] hover:bg-[var(--panel-hover)] rounded-lg text-[11px] sm:text-[0.7rem] font-bold cursor-pointer transition"
-                    >
-                      크기 <span className="text-[0.55rem]">▼</span>
-                    </button>
-                    {activePopover === "fontSize" && (
-                      <div className="absolute top-full mt-1 left-0 bg-[var(--panel)] border border-[var(--panel-border)] rounded-xl shadow-2xl w-16 max-h-40 overflow-y-auto flex flex-col py-1 z-50 custom-scrollbar">
-                        {FONT_SIZES.map((sz: number) => (
-                          <button
-                            key={sz}
-                            type="button"
-                            onClick={() => applyFontSize(sz)}
-                            className="text-left px-2.5 py-1 text-[0.7rem] hover:bg-[var(--inner-box)] text-[var(--text-main)] cursor-pointer"
-                          >
-                            {sz}px
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* 줄간격 드롭다운 */}
-                  <div className="relative shrink-0">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setActivePopover(
-                          activePopover === "lineHeight" ? null : "lineHeight"
-                        )
-                      }
-                      className="flex items-center gap-0.5 px-2 h-7 bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-main)] hover:bg-[var(--panel-hover)] rounded-lg text-[11px] sm:text-[0.7rem] font-bold cursor-pointer transition"
-                    >
-                      간격 <span className="text-[0.55rem]">▼</span>
-                    </button>
-                    {activePopover === "lineHeight" && (
-                      <div className="absolute top-full mt-1 left-0 bg-[var(--panel)] border border-[var(--panel-border)] rounded-xl shadow-2xl w-16 flex flex-col py-1 z-50">
-                        {LINE_HEIGHTS.map((lh: number) => (
-                          <button
-                            key={lh}
-                            type="button"
-                            onClick={() => applyLineHeight(lh)}
-                            className="text-left px-2.5 py-1 text-[0.7rem] hover:bg-[var(--inner-box)] text-[var(--text-main)] cursor-pointer"
-                          >
-                            {lh}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* 표 생성 그리드 드롭다운 */}
-                  <div className="relative shrink-0">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setActivePopover(activePopover === "table" ? null : "table")
-                      }
-                      className="flex items-center gap-0.5 px-2 h-7 bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-main)] hover:bg-[var(--panel-hover)] rounded-lg text-[11px] sm:text-[0.7rem] font-bold cursor-pointer transition"
-                    >
-                      <span>표</span>
-                      <span className="text-[0.55rem]">▼</span>
-                    </button>
-
-                    {activePopover === "table" && (
-                      <div className="absolute top-full mt-1 left-0 bg-[var(--panel)] border border-[var(--panel-border)] rounded-xl shadow-2xl p-3 z-50 flex flex-col items-center w-[210px]">
-                        <span className="text-[0.68rem] font-bold text-[var(--accent)] mb-1.5">
-                          표 생성 {tableGrid.r > 0 ? `(${tableGrid.r}행 ${tableGrid.c}열)` : ""}
-                        </span>
-                        <div
-                          className="grid grid-cols-10 gap-0.5"
-                          onMouseLeave={() => setTableGrid({ r: 0, c: 0 })}
-                        >
-                          {Array.from({ length: 10 }).map((_, r) =>
-                            Array.from({ length: 10 }).map((_, c) => (
-                              <div
-                                key={`${r}-${c}`}
-                                onMouseEnter={() =>
-                                  setTableGrid({ r: r + 1, c: c + 1 })
-                                }
-                                onClick={() => handleTableInsert(r + 1, c + 1)}
-                                className={`w-3.5 h-3.5 border cursor-pointer transition ${
-                                  r < tableGrid.r && c < tableGrid.c
-                                    ? "bg-[var(--accent)]/40 border-[var(--accent)]"
-                                    : "border-[var(--panel-border)] bg-[var(--inner-box)]"
-                                }`}
-                              />
-                            ))
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* 특수문자 드롭다운 */}
-                  <div className="relative shrink-0">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setActivePopover(
-                          activePopover === "symbol" ? null : "symbol"
-                        )
-                      }
-                      className="flex items-center justify-center px-2 h-7 bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-main)] hover:bg-[var(--panel-hover)] rounded-lg text-[11px] sm:text-[0.7rem] font-bold cursor-pointer transition"
-                      title="특수문자 삽입"
-                    >
-                      특문
-                    </button>
-                    {activePopover === "symbol" && (
-                      <div className="absolute top-full mt-1 left-0 bg-[var(--panel)] border border-[var(--panel-border)] rounded-xl shadow-2xl w-[260px] p-2 z-50 grid grid-cols-10 gap-1 h-48 overflow-y-auto custom-scrollbar">
-                        {SPECIAL_CHARS.map((char) => (
-                          <button
-                            key={char}
-                            type="button"
-                            onClick={() => insertCustomHTML(char)}
-                            className="w-5 h-5 flex items-center justify-center bg-[var(--inner-box)] border border-[var(--panel-border)] hover:bg-[var(--panel-hover)] hover:border-[var(--accent)] rounded text-[0.75rem] text-[var(--text-main)] cursor-pointer transition"
-                          >
-                            {char}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* 투표 첨부 버튼 */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (pendingPoll) {
-                        setPollForm(pendingPoll);
-                      }
-                      setIsPollModalOpen(true);
-                    }}
-                    className={`flex items-center gap-1 px-2.5 h-7 border rounded-lg text-[11px] sm:text-[0.7rem] font-bold cursor-pointer shrink-0 transition ${
-                      pendingPoll
-                        ? "bg-[var(--accent)]/15 border-[var(--accent)] text-[var(--accent)] shadow-xs"
-                        : "bg-[var(--panel)] border-[var(--panel-border)] text-[var(--text-main)] hover:bg-[var(--panel-hover)] hover:border-[var(--accent)]"
-                    }`}
-                  >
-                    <span>투표</span>
-                    {pendingPoll && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)] animate-pulse" />
-                    )}
-                  </button>
-                </div>
-              </div>
+              <KerygmaEditorToolbar
+                executeCommand={executeCommand}
+                insertCustomHTML={insertCustomHTML}
+                applyFontSize={applyFontSize}
+                applyLineHeight={applyLineHeight}
+                insertHeadingBlock={insertHeadingBlock}
+                handleTableInsert={handleTableInsert}
+                pendingPoll={pendingPoll}
+                onOpenPollModal={() => {
+                  if (pendingPoll) setPollForm(pendingPoll);
+                  setIsPollModalOpen(true);
+                }}
+                activePopover={activePopover}
+                setActivePopover={setActivePopover}
+              />
             )}
 
             {/* 스마트 슬림 투표 바 */}
@@ -1679,7 +1235,6 @@ export default function KerygmaWritePage() {
               </div>
             </div>
           ) : (
-            /* 🎯 [에디터 본문 - relative z-10 부여 및 상단 툴바 z-20보다 하위에 배치하여 드롭다운 가림 완벽 해결] */
             <div className="flex-1 min-h-0 relative z-10 overflow-y-auto custom-scrollbar bg-[var(--panel)] rounded-b-xl flex flex-col">
               <div
                 ref={editorRef}
@@ -1713,7 +1268,7 @@ export default function KerygmaWritePage() {
         onInsertPoll={handleInsertPoll}
       />
 
-      {/* 모바일 전용 카테고리 선택 모달 */}
+      {/* 모바일 카테고리 모달 */}
       {isCategoryModalOpen && (
         <div
           className="fixed inset-0 bg-black/60 backdrop-blur-xs z-[9999] flex items-center justify-center p-4 animate-fadeIn"
@@ -1767,153 +1322,19 @@ export default function KerygmaWritePage() {
         </div>
       )}
 
-      {/* 우클릭 표 조작 컨텍스트 메뉴 */}
+      {/* 표 조작 컨텍스트 메뉴 */}
       {contextMenu && (
-        <div
-          className="fixed bg-[var(--panel)] border border-[var(--panel-border)] shadow-2xl rounded-2xl p-3 min-w-[240px] z-[9999] text-[var(--text-main)] flex flex-col gap-2 text-[0.75rem]"
-          style={{
-            top: Math.min(contextMenu.y, window.innerHeight - 400),
-            left: Math.min(contextMenu.x, window.innerWidth - 250),
-          }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="flex flex-col gap-1.5">
-            <span className="text-[0.65rem] font-bold text-[var(--accent)]">
-              표 크기 & 배치
-            </span>
-            <div className="flex items-center justify-between text-[0.65rem] gap-1">
-              <span className="text-[var(--text-sub)]">너비:</span>
-              <div className="flex gap-1">
-                {[
-                  { label: "100%", val: "100%" },
-                  { label: "75%", val: "75%" },
-                  { label: "360px", val: "360px" },
-                  { label: "자동", val: "auto" },
-                ].map((w) => (
-                  <button
-                    key={w.label}
-                    type="button"
-                    onClick={() => applyTableWidth(contextMenu.cell, w.val)}
-                    className="px-1.5 py-0.5 bg-[var(--inner-box)] border border-[var(--panel-border)] hover:border-[var(--accent)] hover:text-[var(--accent)] text-[var(--text-main)] rounded cursor-pointer transition"
-                  >
-                    {w.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between text-[0.65rem] gap-1">
-              <span className="text-[var(--text-sub)]">정렬:</span>
-              <div className="flex gap-1">
-                {[
-                  { label: "좌측", val: "left" },
-                  { label: "중앙", val: "center" },
-                  { label: "우측", val: "right" },
-                ].map((a) => (
-                  <button
-                    key={a.label}
-                    type="button"
-                    onClick={() =>
-                      applyTableAlign(contextMenu.cell, a.val as any)
-                    }
-                    className="px-2 py-0.5 bg-[var(--inner-box)] border border-[var(--panel-border)] hover:border-[var(--accent)] hover:text-[var(--accent)] text-[var(--text-main)] rounded cursor-pointer transition"
-                  >
-                    {a.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="h-[1px] bg-[var(--panel-border)] my-0.5" />
-
-          <div className="flex flex-col gap-1.5">
-            <span className="text-[0.65rem] font-bold text-[var(--text-sub)]">
-              셀 배경색
-            </span>
-            <div className="grid grid-cols-4 gap-1.5">
-              {CELL_BG_COLORS.map((c) => (
-                <button
-                  key={c.name}
-                  type="button"
-                  onClick={() => applyCellBgColor(contextMenu.cell, c.value)}
-                  className="flex items-center justify-center gap-1 py-1 px-1 bg-[var(--inner-box)] border hover:border-[var(--accent)] rounded text-[0.63rem] text-[var(--text-main)] cursor-pointer transition"
-                  style={{ borderColor: c.border }}
-                >
-                  <span
-                    className="w-2.5 h-2.5 rounded-full border border-[var(--panel-border)] inline-block shrink-0"
-                    style={{ backgroundColor: c.value }}
-                  />
-                  <span>{c.name}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="h-[1px] bg-[var(--panel-border)] my-0.5" />
-
-          <div className="flex flex-col gap-1">
-            <span className="text-[0.65rem] font-bold text-[var(--text-sub)]">
-              행 / 열 추가
-            </span>
-            <div className="grid grid-cols-2 gap-1">
-              <button
-                type="button"
-                onClick={() => insertRow(contextMenu.cell, "above")}
-                className="px-2 py-1 bg-[var(--inner-box)] border border-[var(--panel-border)] hover:bg-[var(--panel-hover)] rounded text-left cursor-pointer transition"
-              >
-                위로 행 삽입
-              </button>
-              <button
-                type="button"
-                onClick={() => insertRow(contextMenu.cell, "below")}
-                className="px-2 py-1 bg-[var(--inner-box)] border border-[var(--panel-border)] hover:bg-[var(--panel-hover)] rounded text-left cursor-pointer transition"
-              >
-                아래 행 삽입
-              </button>
-              <button
-                type="button"
-                onClick={() => insertColumn(contextMenu.cell, "left")}
-                className="px-2 py-1 bg-[var(--inner-box)] border border-[var(--panel-border)] hover:bg-[var(--panel-hover)] rounded text-left cursor-pointer transition"
-              >
-                좌측 열 삽입
-              </button>
-              <button
-                type="button"
-                onClick={() => insertColumn(contextMenu.cell, "right")}
-                className="px-2 py-1 bg-[var(--inner-box)] border border-[var(--panel-border)] hover:bg-[var(--panel-hover)] rounded text-left cursor-pointer transition"
-              >
-                우측 열 삽입
-              </button>
-            </div>
-          </div>
-
-          <div className="h-[1px] bg-[var(--panel-border)] my-0.5" />
-
-          <div className="flex flex-col gap-1 text-[0.7rem]">
-            <button
-              type="button"
-              onClick={() => deleteRow(contextMenu.cell)}
-              className="px-2 py-1 bg-red-950/40 border border-red-800/60 hover:bg-red-900/60 text-red-300 rounded cursor-pointer flex-1 transition"
-            >
-              행 삭제
-            </button>
-            <button
-              type="button"
-              onClick={() => deleteColumn(contextMenu.cell)}
-              className="px-2 py-1 bg-red-950/40 border border-red-800/60 hover:bg-red-900/60 text-red-300 rounded cursor-pointer flex-1 transition"
-            >
-              열 삭제
-            </button>
-            <button
-              type="button"
-              onClick={() => deleteTable(contextMenu.cell)}
-              className="px-2 py-1 bg-red-600 border border-red-500 hover:bg-red-700 text-white rounded cursor-pointer flex-1 font-bold transition"
-            >
-              표 삭제
-            </button>
-          </div>
-        </div>
+        <KerygmaTableContextMenu
+          contextMenu={contextMenu}
+          applyTableWidth={applyTableWidth}
+          applyTableAlign={applyTableAlign}
+          applyCellBgColor={applyCellBgColor}
+          insertRow={insertRow}
+          insertColumn={insertColumn}
+          deleteRow={deleteRow}
+          deleteColumn={deleteColumn}
+          deleteTable={deleteTable}
+        />
       )}
     </main>
   );
