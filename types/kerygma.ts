@@ -16,11 +16,12 @@ export interface PollData {
 
 export interface CommentItem {
   id: number;
-  notice_id: number;
+  notice_id?: number;
   author: string;
   content: string;
   created_at: string;
   parent_id?: number | null;
+  parentId?: number | null;
   children?: CommentItem[];
 }
 

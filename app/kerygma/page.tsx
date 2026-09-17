@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Notice, CommentItem, PollData } from "@/types/kerygma";
 
-// 🎯 사전에 분리 작성해둔 케리그마 전용 서브 모듈 컴포넌트군 정식 조립
 import KerygmaHeader from "@/components/kerygma/KerygmaHeader";
 import KerygmaCategoryTabs from "@/components/kerygma/KerygmaCategoryTabs";
 import KerygmaTableList from "@/components/kerygma/KerygmaTableList";
@@ -57,7 +56,6 @@ export default function KerygmaMainPage() {
   const canWriteNotice = isMaster || isSubMaster;
   const currentNickname = user?.nickname || "방문자";
 
-  // Supabase DB 게시글 조회
   const fetchNotices = async () => {
     try {
       const { data, error } = await supabase
@@ -100,7 +98,6 @@ export default function KerygmaMainPage() {
     };
   }, []);
 
-  // URL ID 감지 및 읽기 모드 전환
   useEffect(() => {
     if (noticeIdParam && notices.length > 0) {
       const found = notices.find((n) => Number(n.id) === Number(noticeIdParam));
@@ -121,7 +118,6 @@ export default function KerygmaMainPage() {
     }
   }, [noticeIdParam, notices]);
 
-  // 필독 고정 토글
   const handleTogglePin = async (id: number, currentPinned: boolean) => {
     if (!canWriteNotice) return alert("필독 고정 권한이 없습니다.");
 
@@ -137,7 +133,6 @@ export default function KerygmaMainPage() {
     }
   };
 
-  // 공지 삭제
   const handleDeleteNotice = async (id: number) => {
     if (!canWriteNotice) return alert("삭제 권한이 없습니다.");
     if (!confirm("정말 이 공지글을 삭제하시겠습니까?")) return;
@@ -161,7 +156,6 @@ export default function KerygmaMainPage() {
     setSelectedNotice(null);
   };
 
-  // 투표 기능 연동
   const handleVoteOption = async (optionId: string) => {
     if (!selectedNotice || !selectedNotice.poll) return;
 
@@ -206,7 +200,6 @@ export default function KerygmaMainPage() {
     }
   };
 
-  // 좋아요 연동
   const handleReaction = async (type: "like" | "dislike") => {
     if (!selectedNotice) return;
 
@@ -229,7 +222,6 @@ export default function KerygmaMainPage() {
     }
   };
 
-  // 댓글 등록
   const handleAddComment = (parentId: number | null = null) => {
     const text = parentId ? replyText : newCommentText;
     if (!text.trim()) return alert("댓글 내용을 입력해주세요.");
@@ -240,6 +232,7 @@ export default function KerygmaMainPage() {
       content: text,
       created_at: new Date().toISOString(),
       parentId: parentId || undefined,
+      parent_id: parentId || null,
     };
 
     if (parentId) {
@@ -282,11 +275,8 @@ export default function KerygmaMainPage() {
   return (
     <main className="min-h-[calc(100vh-4.5rem)] sm:min-h-[calc(100vh-5rem)] bg-[var(--background)] text-[var(--text-main)] p-3 sm:p-6 transition-colors duration-200">
       <div className="max-w-[1200px] mx-auto space-y-3 sm:space-y-3.5">
-        
-        {/* 1. 크로노스 동기화 인라인 헤더 모듈 */}
         <KerygmaHeader />
 
-        {/* 2. 본문 컨텐츠 (ReaderView vs TableList) */}
         {selectedNotice ? (
           <KerygmaReaderView
             selectedNotice={selectedNotice}
@@ -312,14 +302,12 @@ export default function KerygmaMainPage() {
           />
         ) : (
           <div className="space-y-3">
-            {/* 2-1. 카테고리 탭 모듈 */}
             <KerygmaCategoryTabs
               activeCategory={selectedCategory}
               onSelectCategory={setSelectedCategory}
               canWriteNotice={canWriteNotice}
             />
 
-            {/* 2-2. 공지사항 테이블 리스트 모듈 */}
             <KerygmaTableList
               isLoading={loading}
               notices={filteredNotices}
@@ -330,7 +318,6 @@ export default function KerygmaMainPage() {
           </div>
         )}
 
-        {/* 3. 투표 모달 모듈 */}
         <KerygmaPollModal
           isOpen={isPollModalOpen}
           onClose={() => setIsPollModalOpen(false)}

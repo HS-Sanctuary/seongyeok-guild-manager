@@ -33,7 +33,6 @@ interface ReaderRecord {
   read_at: string;
 }
 
-// 🎯 [Supabase public.characters 실시간 DB 전수 매핑 매트릭스]
 const SUPABASE_CHARACTERS_JOB_MAP: Record<string, string> = {
   한설: "댄서",
   영겁: "화염술사",
@@ -112,7 +111,6 @@ export default function KerygmaReaderView({
   const [readers, setReaders] = useState<ReaderRecord[]>([]);
   const [showReaders, setShowReaders] = useState(false);
 
-  // 🎯 [작성자 직책 권한 감지 유틸]
   const getAuthorRoleBadge = (authorName: string) => {
     if (!authorName) return null;
 
@@ -146,7 +144,6 @@ export default function KerygmaReaderView({
     return null;
   };
 
-  // 🎯 [대표 캐릭터 닉네임 & 직업(job) 정밀 파싱 유틸]
   const getRepresentativeCharacterInfo = (accountName: string) => {
     if (SUPABASE_CHARACTERS_JOB_MAP[accountName]) {
       return {
@@ -182,7 +179,6 @@ export default function KerygmaReaderView({
     return { charName: accountName, mainClass: "전사" };
   };
 
-  // 🎯 [열람 기록 동기화]
   useEffect(() => {
     if (!selectedNotice) return;
     const storageKey = `sanctum_notice_readers_${selectedNotice.id}`;
@@ -219,7 +215,7 @@ export default function KerygmaReaderView({
   };
 
   return (
-    <div className="max-w-[1400px] mx-auto px-3 sm:px-4 md:px-6 space-y-4 sm:space-y-6 animate-fadeIn pb-12">
+    <div className="max-w-[1400px] mx-auto px-3 sm:px-4 md:px-6 space-y-4 sm:space-y-6 animate-fadeIn pb-12 overflow-x-hidden">
       {/* 1. 상단 액션 바 */}
       <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3 border-b border-[var(--panel-border)] pb-3">
         <button
@@ -261,7 +257,7 @@ export default function KerygmaReaderView({
       </div>
 
       {/* 2. 본문 카드 */}
-      <div className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-xl p-4 sm:p-5 md:p-7 shadow-lg space-y-4 sm:space-y-6">
+      <div className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-xl p-3.5 sm:p-5 md:p-7 shadow-lg space-y-4 sm:space-y-6 overflow-hidden">
         {/* Header Area */}
         <div className="border-b border-[var(--panel-border)] pb-4 space-y-2">
           <div className="flex items-center gap-2">
@@ -274,11 +270,10 @@ export default function KerygmaReaderView({
               {selectedNotice.type}
             </span>
           </div>
-          <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-[var(--text-main)] break-all leading-tight">
+          <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-[var(--text-main)] break-all [word-break:break-all] [overflow-wrap:anywhere] leading-tight">
             {selectedNotice.title}
           </h1>
 
-          {/* 작성자 닉네임 & 직책 뱃지 배치 */}
           <div className="flex items-center gap-2 text-xs text-[var(--text-sub)] pt-1 flex-wrap">
             <span className="font-bold text-[var(--text-main)] flex items-center gap-1.5">
               {getAuthorRoleBadge(selectedNotice.author)}
@@ -288,7 +283,6 @@ export default function KerygmaReaderView({
             <span>{formatNoticeDate(selectedNotice.created_at)}</span>
           </div>
 
-          {/* 🔐 [관리자 전용: 읽은 길드원 목록 패널] */}
           {canWriteNotice && (
             <div className="mt-3 bg-[var(--inner-box)]/80 border border-[var(--panel-border)] rounded-lg p-2.5 sm:p-3 text-xs shadow-inner">
               <div
@@ -317,7 +311,6 @@ export default function KerygmaReaderView({
                           key={r.nickname}
                           className="px-2 py-1 bg-[var(--panel)] border border-[var(--panel-border)] hover:border-[var(--accent)]/50 rounded-md text-[11px] sm:text-xs font-medium text-[var(--text-main)] flex items-center gap-1.5 shadow-sm transition"
                         >
-                          {/* 🎯 [ClassIcon job 속성 전달 및 size 타입 충돌 해결] */}
                           <ClassIcon job={mainClass} size="sm" />
                           <span className="font-bold text-[11px] sm:text-xs text-[var(--text-main)] truncate max-w-[100px]">
                             {charName}
@@ -335,13 +328,12 @@ export default function KerygmaReaderView({
           )}
         </div>
 
-        {/* Content Area */}
+        {/* Content Area - 모바일 우측 글자 반 잘림 현상 원천 차단 딥 오버라이드 */}
         <div
-          className="prose-editor min-h-[160px] text-[var(--text-main)] text-sm md:text-base leading-relaxed break-words overflow-x-auto"
+          className="prose-editor min-h-[160px] text-[var(--text-main)] text-sm md:text-base leading-relaxed p-1 sm:p-2 box-border max-w-full overflow-hidden break-all [word-break:break-all] [overflow-wrap:anywhere] whitespace-normal [&_*]:whitespace-normal [&_*]:break-all [&_*]:[word-break:break-all] [&_*]:[overflow-wrap:anywhere] [&_*]:max-w-full [&_*]:box-border"
           dangerouslySetInnerHTML={{ __html: selectedNotice.content }}
         />
 
-        {/* Poll Option */}
         {selectedNotice.poll && (
           <div className="p-3 sm:p-4 bg-[var(--inner-box)] border border-[var(--panel-border)] rounded-xl space-y-3 my-4">
             <h3 className="font-bold text-sm text-[var(--text-main)] flex items-center gap-2">
@@ -361,7 +353,7 @@ export default function KerygmaReaderView({
                         : "bg-[var(--panel)] border-[var(--panel-border)] text-[var(--text-sub)] hover:border-[var(--text-sub)]"
                     }`}
                   >
-                    <span className="break-all pr-2">{opt.text}</span>
+                    <span className="break-all [word-break:break-all] [overflow-wrap:anywhere] pr-2">{opt.text}</span>
                     <span className="text-[11px] font-bold shrink-0">
                       {opt.votes || 0}표 {userVoted && "✓"}
                     </span>
@@ -372,7 +364,6 @@ export default function KerygmaReaderView({
           </div>
         )}
 
-        {/* 좋아요 버튼 */}
         <div className="flex justify-center pt-4 pb-2">
           <button
             onClick={() => onReaction("like")}
@@ -401,7 +392,6 @@ export default function KerygmaReaderView({
           <span>댓글</span>
         </h3>
 
-        {/* Comments Tree */}
         <div className="space-y-3">
           {commentsTree.length === 0 ? (
             <p className="text-xs text-[var(--text-sub)] text-center py-6">
@@ -421,7 +411,7 @@ export default function KerygmaReaderView({
                     {formatTimeShort(comment.created_at)}
                   </span>
                 </div>
-                <p className="text-[var(--text-main)] break-words leading-normal">
+                <p className="text-[var(--text-main)] break-all [word-break:break-all] [overflow-wrap:anywhere] leading-normal">
                   {comment.content}
                 </p>
 
@@ -449,7 +439,7 @@ export default function KerygmaReaderView({
                             {formatTimeShort(child.created_at)}
                           </span>
                         </div>
-                        <p className="text-[var(--text-main)] break-words">
+                        <p className="text-[var(--text-main)] break-all [word-break:break-all] [overflow-wrap:anywhere]">
                           {child.content}
                         </p>
                       </div>
@@ -482,7 +472,6 @@ export default function KerygmaReaderView({
           )}
         </div>
 
-        {/* New Comment Input */}
         <div className="pt-3 border-t border-[var(--panel-border)] space-y-2">
           <div className="text-xs text-[var(--text-sub)] font-semibold">
             작성자: <span className="text-[var(--text-main)] font-bold">{currentNickname}</span>
@@ -505,7 +494,6 @@ export default function KerygmaReaderView({
         </div>
       </div>
 
-      {/* 4. 최근 게시글 미리보기 */}
       {recentNoticesList.length > 0 && (
         <div className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-xl p-4 sm:p-5 shadow-lg space-y-3">
           <h4 className="text-xs font-bold text-[var(--text-sub)] uppercase tracking-wider">
