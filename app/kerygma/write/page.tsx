@@ -269,7 +269,6 @@ export default function KerygmaWritePage() {
     const clipboardData = e.clipboardData;
     if (!clipboardData) return;
 
-    // 1. 이미지 및 스크린샷 붙여넣기 감지 -> WebP 초경량 압축
     const items = Array.from(clipboardData.items);
     const imageItem = items.find((item) => item.type.startsWith("image/"));
 
@@ -289,7 +288,6 @@ export default function KerygmaWritePage() {
       return;
     }
 
-    // 2. 동영상 및 오디오 파일 붙여넣기 차단
     const hasMedia = items.some(
       (item) => item.type.startsWith("video/") || item.type.startsWith("audio/")
     );
@@ -299,7 +297,6 @@ export default function KerygmaWritePage() {
       return;
     }
 
-    // 3. 서식 있는 HTML 붙여넣기 시 헤비 미디어 태그 필터링
     const pastedHtml = clipboardData.getData("text/html");
     if (pastedHtml && /<(video|audio|iframe|embed|object)/i.test(pastedHtml)) {
       e.preventDefault();
@@ -354,7 +351,6 @@ export default function KerygmaWritePage() {
       return;
     }
 
-    // 파일 드롭 처리
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       e.preventDefault();
       e.stopPropagation();
@@ -390,7 +386,6 @@ export default function KerygmaWritePage() {
     const tempDiv = document.createElement("div");
     tempDiv.innerHTML = rawHtml;
 
-    // 동영상 및 미디어 태그 최종 정제
     tempDiv
       .querySelectorAll("video, audio, iframe, embed, object, source")
       .forEach((el) => el.remove());
@@ -1061,7 +1056,6 @@ export default function KerygmaWritePage() {
       return alert("해당 카테고리는 길드마스터 전용입니다.");
     }
 
-    // 🎯 [DB 용량 방어 안전 가드 (최대 2MB 제한)]
     const payloadSizeKB = Math.round(new Blob([cleanedContent]).size / 1024);
     if (payloadSizeKB > 2000) {
       return alert(
@@ -1186,11 +1180,11 @@ export default function KerygmaWritePage() {
         {/* 메인 작성 카드 */}
         <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] shadow-sm flex flex-col flex-1 min-h-0 overflow-hidden relative">
           
-          {/* 헤더 영역 */}
-          <div className="flex flex-col shrink-0 border-b border-[var(--panel-border)] bg-[var(--panel)] rounded-t-xl overflow-visible">
+          {/* 🎯 [헤더 및 툴바 영역 - relative z-20 overflow-visible 적용으로 본문 z-10 상위 배치 보장] */}
+          <div className="flex flex-col shrink-0 border-b border-[var(--panel-border)] bg-[var(--panel)] rounded-t-xl relative z-20 overflow-visible">
             
             {/* 카테고리 선택 영역 */}
-            <div className="bg-[var(--inner-box)] border-b border-[var(--panel-border)] p-2 sm:p-2.5 flex items-center justify-between gap-2 rounded-t-xl">
+            <div className="bg-[var(--inner-box)] border-b border-[var(--panel-border)] p-2 sm:p-2.5 flex items-center justify-between gap-2 rounded-t-xl relative z-10">
               
               <div className="hidden sm:flex items-center gap-1.5 overflow-x-auto custom-scrollbar shrink-0">
                 {KERYGMA_CATEGORIES.map((cat) => {
@@ -1252,13 +1246,13 @@ export default function KerygmaWritePage() {
               onChange={(e) =>
                 setNewNotice({ ...newNotice, title: e.target.value })
               }
-              className="w-full bg-[var(--panel)] text-[var(--text-main)] text-[0.95rem] sm:text-[1rem] font-bold px-3 sm:px-4 py-2.5 sm:py-3 border-b border-[var(--panel-border)] focus:outline-none placeholder-[var(--text-sub)]/50 shrink-0"
+              className="w-full bg-[var(--panel)] text-[var(--text-main)] text-[0.95rem] sm:text-[1rem] font-bold px-3 sm:px-4 py-2.5 sm:py-3 border-b border-[var(--panel-border)] focus:outline-none placeholder-[var(--text-sub)]/50 shrink-0 relative z-10"
             />
 
-            {/* 에디터 서식 툴바 */}
+            {/* 🎯 [에디터 서식 툴바 - relative z-20 overflow-visible 적용으로 드롭다운 팝업 z-50 최상위 렌더링 보장] */}
             {!isLinkOnly && (
               <div
-                className="flex items-center flex-wrap gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 bg-[var(--inner-box)] text-[var(--text-main)] shrink-0 overflow-x-auto custom-scrollbar border-b border-[var(--panel-border)]"
+                className="flex items-center flex-wrap gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 bg-[var(--inner-box)] text-[var(--text-main)] shrink-0 border-b border-[var(--panel-border)] relative z-20 overflow-visible"
                 onMouseDown={(e) => e.preventDefault()}
               >
                 <div className="flex items-center gap-1 shrink-0 flex-nowrap">
@@ -1333,7 +1327,8 @@ export default function KerygmaWritePage() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1 shrink-0 flex-nowrap relative">
+                <div className="flex items-center gap-1 shrink-0 flex-nowrap relative z-30">
+                  {/* 헤더 선택 드롭다운 */}
                   <div className="relative shrink-0">
                     <button
                       type="button"
@@ -1347,7 +1342,7 @@ export default function KerygmaWritePage() {
                       <span>헤더</span> <span className="text-[0.55rem]">▼</span>
                     </button>
                     {activePopover === "heading" && (
-                      <div className="absolute top-full mt-1 left-0 bg-[var(--panel)] border border-[var(--panel-border)] rounded-xl shadow-2xl w-[210px] p-2 flex flex-col gap-1 z-30 max-h-[300px] overflow-y-auto custom-scrollbar">
+                      <div className="absolute top-full mt-1 left-0 bg-[var(--panel)] border border-[var(--panel-border)] rounded-xl shadow-2xl w-[210px] p-2 flex flex-col gap-1 z-50 max-h-[300px] overflow-y-auto custom-scrollbar">
                         <div className="text-[0.65rem] font-bold text-[var(--text-sub)] px-2 py-1 border-b border-[var(--panel-border)]">
                           숫자 계층
                         </div>
@@ -1426,6 +1421,7 @@ export default function KerygmaWritePage() {
                     )}
                   </div>
 
+                  {/* 폰트 크기 드롭다운 */}
                   <div className="relative shrink-0">
                     <button
                       type="button"
@@ -1439,7 +1435,7 @@ export default function KerygmaWritePage() {
                       크기 <span className="text-[0.55rem]">▼</span>
                     </button>
                     {activePopover === "fontSize" && (
-                      <div className="absolute top-full mt-1 left-0 bg-[var(--panel)] border border-[var(--panel-border)] rounded-xl shadow-2xl w-16 max-h-40 overflow-y-auto flex flex-col py-1 z-30 custom-scrollbar">
+                      <div className="absolute top-full mt-1 left-0 bg-[var(--panel)] border border-[var(--panel-border)] rounded-xl shadow-2xl w-16 max-h-40 overflow-y-auto flex flex-col py-1 z-50 custom-scrollbar">
                         {FONT_SIZES.map((sz: number) => (
                           <button
                             key={sz}
@@ -1454,6 +1450,7 @@ export default function KerygmaWritePage() {
                     )}
                   </div>
 
+                  {/* 줄간격 드롭다운 */}
                   <div className="relative shrink-0">
                     <button
                       type="button"
@@ -1467,7 +1464,7 @@ export default function KerygmaWritePage() {
                       간격 <span className="text-[0.55rem]">▼</span>
                     </button>
                     {activePopover === "lineHeight" && (
-                      <div className="absolute top-full mt-1 left-0 bg-[var(--panel)] border border-[var(--panel-border)] rounded-xl shadow-2xl w-16 flex flex-col py-1 z-30">
+                      <div className="absolute top-full mt-1 left-0 bg-[var(--panel)] border border-[var(--panel-border)] rounded-xl shadow-2xl w-16 flex flex-col py-1 z-50">
                         {LINE_HEIGHTS.map((lh: number) => (
                           <button
                             key={lh}
@@ -1482,6 +1479,7 @@ export default function KerygmaWritePage() {
                     )}
                   </div>
 
+                  {/* 표 생성 그리드 드롭다운 */}
                   <div className="relative shrink-0">
                     <button
                       type="button"
@@ -1495,7 +1493,7 @@ export default function KerygmaWritePage() {
                     </button>
 
                     {activePopover === "table" && (
-                      <div className="absolute top-full mt-1 left-0 bg-[var(--panel)] border border-[var(--panel-border)] rounded-xl shadow-2xl p-3 z-30 flex flex-col items-center w-[210px]">
+                      <div className="absolute top-full mt-1 left-0 bg-[var(--panel)] border border-[var(--panel-border)] rounded-xl shadow-2xl p-3 z-50 flex flex-col items-center w-[210px]">
                         <span className="text-[0.68rem] font-bold text-[var(--accent)] mb-1.5">
                           표 생성 {tableGrid.r > 0 ? `(${tableGrid.r}행 ${tableGrid.c}열)` : ""}
                         </span>
@@ -1524,6 +1522,7 @@ export default function KerygmaWritePage() {
                     )}
                   </div>
 
+                  {/* 특수문자 드롭다운 */}
                   <div className="relative shrink-0">
                     <button
                       type="button"
@@ -1538,7 +1537,7 @@ export default function KerygmaWritePage() {
                       특문
                     </button>
                     {activePopover === "symbol" && (
-                      <div className="absolute top-full mt-1 left-0 bg-[var(--panel)] border border-[var(--panel-border)] rounded-xl shadow-2xl w-[260px] p-2 z-30 grid grid-cols-10 gap-1 h-48 overflow-y-auto custom-scrollbar">
+                      <div className="absolute top-full mt-1 left-0 bg-[var(--panel)] border border-[var(--panel-border)] rounded-xl shadow-2xl w-[260px] p-2 z-50 grid grid-cols-10 gap-1 h-48 overflow-y-auto custom-scrollbar">
                         {SPECIAL_CHARS.map((char) => (
                           <button
                             key={char}
@@ -1553,6 +1552,7 @@ export default function KerygmaWritePage() {
                     )}
                   </div>
 
+                  {/* 투표 첨부 버튼 */}
                   <button
                     type="button"
                     onClick={() => {
@@ -1578,7 +1578,7 @@ export default function KerygmaWritePage() {
 
             {/* 스마트 슬림 투표 바 */}
             {pendingPoll && (
-              <div className="bg-[var(--inner-box)] border-b border-[var(--panel-border)] px-3 sm:px-4 py-2 flex flex-col gap-2 shrink-0 transition-all">
+              <div className="bg-[var(--inner-box)] border-b border-[var(--panel-border)] px-3 sm:px-4 py-2 flex flex-col gap-2 shrink-0 transition-all relative z-10">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 overflow-hidden min-w-0">
                     <span className="px-2 py-0.5 bg-[var(--accent)] text-[var(--accent-fg)] text-[10px] font-extrabold rounded shrink-0">
@@ -1679,7 +1679,7 @@ export default function KerygmaWritePage() {
               </div>
             </div>
           ) : (
-            /* 🎯 [onPaste / onDrop 감지 및 실시간 스마트 리샘플링 에디터] */
+            /* 🎯 [에디터 본문 - relative z-10 부여 및 상단 툴바 z-20보다 하위에 배치하여 드롭다운 가림 완벽 해결] */
             <div className="flex-1 min-h-0 relative z-10 overflow-y-auto custom-scrollbar bg-[var(--panel)] rounded-b-xl flex flex-col">
               <div
                 ref={editorRef}
