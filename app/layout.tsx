@@ -356,6 +356,46 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     return () => window.removeEventListener('resize', handleResizeAndFont);
   }, [fontSizeLevel, mounted]);
 
+  // DB에서 최신 권한 정보를 실시간 동기화하는 로직 추가
+  const syncAccountRoleWithDB = async (accList: AccountPreset[]) => {
+    try {
+      const { data: dbAccounts, error } = await supabase
+        .from('accounts')
+        .select('nickname, role');
+
+      if (!error && dbAccounts) {
+        const roleMap = new Map(dbAccounts.map(a => [a.nickname, a.role]));
+
+        const updatedAccounts = accList.map(acc => {
+          const latestRole = roleMap.get(acc.nickname);
+          if (latestRole && latestRole !== acc.role) {
+            return { ...acc, role: latestRole };
+          }
+          return acc;
+        });
+
+        setAccounts(updatedAccounts);
+        localStorage.setItem("sanctum_accounts", JSON.stringify(updatedAccounts));
+
+        const savedActiveId = localStorage.getItem("sanctum_active_account_id");
+        const current = updatedAccounts.find(a => a.id === savedActiveId) || updatedAccounts[0];
+        
+        if (current) {
+          setActiveAccount(current);
+          localStorage.setItem("nexus_user", JSON.stringify({ 
+            nickname: current.nickname, 
+            alias: current.alias, 
+            role: current.role,
+            borderColor: current.borderColor,
+            theme: current.theme 
+          }));
+        }
+      }
+    } catch (err) {
+      console.error("DB Role Sync Error:", err);
+    }
+  };
+
   const loadAccounts = () => {
     try {
       const oldUser = localStorage.getItem("nexus_user");
@@ -386,6 +426,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         const current = parsedAccounts.find(a => a.id === savedActiveId) || parsedAccounts[0];
         setActiveAccount(current);
         setTempTheme(current.theme || 'aureum');
+        
+        // Supabase DB와 권한 실시간 동기화 수행
+        syncAccountRoleWithDB(parsedAccounts);
       }
     } catch (e) {}
   };
@@ -500,7 +543,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     window.addEventListener('pointerup', onPointerUp);
   };
 
-  // 🛡️ [Egress 폭탄 완전 차단] setInterval 폴링을 제거하고 최초 진입 시 1회만 조회하도록 최적화
   useEffect(() => {
     if (activeAccount) {
       checkPendingInquiries();

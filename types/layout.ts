@@ -1,3 +1,10 @@
+export type UserRole =
+  | "길드마스터"
+  | "부마스터"
+  | "부마스터 대행"
+  | "cbt테스터"
+  | "길드원";
+
 export interface NavItem {
   kr: string;
   en: string;
@@ -8,10 +15,20 @@ export interface NavItem {
 export interface AccountPreset {
   id: string;
   nickname: string;
-  role: string;
+  role: UserRole | string;
   alias?: string;
   borderColor?: string;
   theme?: string;
+}
+
+export interface UserAccount {
+  id: string;
+  nickname: string;
+  code: string;
+  role: UserRole;
+  created_at?: string;
+  equipped_title?: string;
+  titles?: string[];
 }
 
 export interface Sticker {

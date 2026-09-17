@@ -2,9 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "../../lib/supabase";
+import { supabase } from "@/lib/supabase";
+import { UserRole } from "@/types/layout";
 
 const MAIN_TABS = [
+  { id: "accounts", label: "👥 계정 & 5단계 권한 관리" },
   { id: "banner", label: "🚨 긴급 배너" },
   { id: "character", label: "👤 캐릭터 관리 설정" },
   { id: "trade", label: "⚖️ 구매/교환 설정" },
@@ -17,42 +19,62 @@ const CHAR_SUB_TABS = [
   { id: "classes", label: "🪖 클래스 목록 설정" },
 ];
 
+const ROLE_OPTIONS: UserRole[] = [
+  "길드마스터",
+  "부마스터",
+  "부마스터 대행",
+  "cbt테스터",
+  "길드원",
+];
+
 export default function AdminPage() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [user, setUser] = useState<any>(null);
   
-  const [activeMainTab, setActiveMainTab] = useState("character"); 
+  const [activeMainTab, setActiveMainTab] = useState("accounts"); 
   const [activeCharTab, setActiveCharTab] = useState("tasks"); 
 
+  // 계정 관리 상태
+  const [accounts, setAccounts] = useState<any[]>([]);
+  const [loadingAccounts, setLoadingAccounts] = useState(false);
+  const [updatingAccountId, setUpdatingAccountId] = useState<string | null>(null);
+
+  // 긴급 배너 상태
   const [bannerInput, setBannerInput] = useState("");
   const [activeBanner, setActiveBanner] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // 컨텐츠(어비스/레이드) 상태
   const [contents, setContents] = useState<any[]>([]);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editForm, setEditForm] = useState<any>({});
   
+  // 숙제 상태
   const [tasks, setTasks] = useState<any[]>([]);
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
   const [editTaskForm, setEditTaskForm] = useState<any>({});
 
+  // 클래스 상태
   const [classes, setClasses] = useState<any[]>([]);
   const [editingClassId, setEditingClassId] = useState<number | null>(null);
   const [editClassForm, setEditClassForm] = useState<any>({});
   const [newClass, setNewClass] = useState({ icon: "👤", name: "" });
 
+  // 신규 등록 임시 상태
   const [newAbyss, setNewAbyss] = useState("");
   const [newRaid, setNewRaid] = useState("");
   const [newDaily, setNewDaily] = useState("");
   const [newWeekly, setNewWeekly] = useState("");
   const [newRepeat, setNewRepeat] = useState({ name: "", max: 1, cycle: "repeat_weekly" });
 
+  // 물물교환 상태
   const [trades, setTrades] = useState<any[]>([]);
   const [newTrade, setNewTrade] = useState({
     map: "", npc: "", reward: "", reward_cnt: 1, cost: "", cost_cnt: 1, limit: 10, reset_type: "주간", scope: "캐릭당"
   });
 
+  // 파티 관제 상태
   const [adminParties, setAdminParties] = useState<any[]>([]);
 
   useEffect(() => {
@@ -64,7 +86,14 @@ export default function AdminPage() {
     }
     const parsedUser = JSON.parse(savedUser);
     
-    const isAdmin = !!parsedUser;
+    // 5단계 권한 체계 관리자 접근 권한 체크 (길드마스터, 부마스터, 부마스터 대행)
+    const isAdmin =
+      parsedUser.nickname === "한설" ||
+      parsedUser.role === "길드마스터" ||
+      parsedUser.role === "부마스터" ||
+      parsedUser.role === "부마스터 대행" ||
+      parsedUser.role === "admin" ||
+      parsedUser.role === "master";
 
     if (!isAdmin) {
       alert("관리자 권한이 없습니다."); 
@@ -73,6 +102,7 @@ export default function AdminPage() {
     }
     setUser(parsedUser);
 
+    fetchAccounts();
     fetchActiveBanner();
     fetchContents();
     fetchTasks();
@@ -81,6 +111,110 @@ export default function AdminPage() {
     fetchAdminParties();
   }, [router]);
 
+  // 1. 계정 및 권한 목록 조회
+  const fetchAccounts = async () => {
+    setLoadingAccounts(true);
+    try {
+      const { data, error } = await supabase
+        .from("accounts")
+        .select("*")
+        .order("created_at", { ascending: true });
+
+      if (data) {
+        const roleOrder: Record<string, number> = {
+          길드마스터: 1,
+          부마스터: 2,
+          "부마스터 대행": 3,
+          cbt테스터: 4,
+          길드원: 5,
+        };
+
+        const sorted = (data as any[]).sort((a, b) => {
+          const orderA = roleOrder[a.role] || 99;
+          const orderB = roleOrder[b.role] || 99;
+          if (orderA !== orderB) return orderA - orderB;
+          return (a.nickname || "").localeCompare(b.nickname || "", "ko");
+        });
+
+        setAccounts(sorted);
+      }
+    } catch (e) {
+      console.error("Accounts fetch error:", e);
+    } finally {
+      setLoadingAccounts(false);
+    }
+  };
+
+  // 계정 권한 즉시 변경
+  const handleRoleChange = async (targetAcc: any, newRole: string) => {
+    if (targetAcc.role === newRole) return;
+
+    const isMasterUser =
+      user?.nickname === "한설" || user?.role === "길드마스터" || user?.role === "master";
+
+    if (!isMasterUser && targetAcc.role === "길드마스터") {
+      alert("길드마스터의 권한은 수정할 수 없습니다.");
+      return;
+    }
+
+    if (!isMasterUser && newRole === "길드마스터") {
+      alert("길드마스터 권한 부여는 최고위 관리자만 가능합니다.");
+      return;
+    }
+
+    if (!confirm(`'${targetAcc.nickname}' 님의 권한을 '${newRole}'(으)로 변경하시겠습니까?`)) {
+      return;
+    }
+
+    setUpdatingAccountId(targetAcc.id);
+    try {
+      const { error } = await supabase
+        .from("accounts")
+        .update({ role: newRole })
+        .eq("id", targetAcc.id);
+
+      if (error) {
+        alert(`권한 변경 실패: ${error.message}`);
+      } else {
+        alert("성공적으로 권한이 변경되었습니다.");
+        setAccounts((prev) =>
+          prev.map((acc) => (acc.id === targetAcc.id ? { ...acc, role: newRole } : acc))
+        );
+
+        if (user && user.id === targetAcc.id) {
+          const updatedUser = { ...user, role: newRole };
+          localStorage.setItem("nexus_user", JSON.stringify(updatedUser));
+          setUser(updatedUser);
+        }
+      }
+    } catch (e) {
+      alert("권한 변경 중 오류가 발생했습니다.");
+    } finally {
+      setUpdatingAccountId(null);
+    }
+  };
+
+  // 권한 뱃지 스타일 유틸
+  const getRoleBadgeStyle = (role: string) => {
+    switch (role) {
+      case "길드마스터":
+      case "master":
+        return "bg-amber-500/20 text-amber-400 border-amber-500/50 font-black";
+      case "부마스터":
+      case "admin":
+        return "bg-blue-500/20 text-blue-400 border-blue-500/50 font-bold";
+      case "부마스터 대행":
+        return "bg-teal-500/20 text-teal-400 border-teal-500/50 font-bold";
+      case "cbt테스터":
+        return "bg-purple-500/20 text-purple-400 border-purple-500/50 font-semibold";
+      case "길드원":
+      case "member":
+      default:
+        return "bg-zinc-800 text-zinc-400 border-zinc-700 font-normal";
+    }
+  };
+
+  // 2. 파티 관제 로직
   const fetchAdminParties = async () => {
     const { data } = await supabase.from('parties').select('*').neq('status', '종료됨').order('created_at', { ascending: false });
     if (data) setAdminParties(data);
@@ -92,6 +226,7 @@ export default function AdminPage() {
     fetchAdminParties();
   };
 
+  // 3. 긴급 배너 로직
   const fetchActiveBanner = async () => { 
     const { data } = await supabase.from('nexus_banners').select('*').eq('is_active', true).order('created_at', { ascending: false }).limit(1); 
     if (data && data.length > 0) setActiveBanner(data[0]); 
@@ -121,7 +256,8 @@ export default function AdminPage() {
     setActiveBanner(null); 
     window.location.reload(); 
   };
-  
+
+  // 4. 캐릭터 컨텐츠(레이드/어비스) 로직
   const fetchContents = async () => { 
     const { data } = await supabase.from('nexus_contents').select('*').order('type').order('id'); 
     if (data) setContents(data); 
@@ -146,7 +282,8 @@ export default function AdminPage() {
     await supabase.from('nexus_contents').delete().eq('id', id); 
     fetchContents(); 
   };
-  
+
+  // 5. 숙제 로직
   const fetchTasks = async () => { 
     const { data } = await supabase.from('nexus_tasks').select('*').order('type').order('id'); 
     if (data) setTasks(data); 
@@ -172,7 +309,8 @@ export default function AdminPage() {
     await supabase.from('nexus_tasks').delete().eq('id', id); 
     fetchTasks(); 
   };
-  
+
+  // 6. 클래스 로직
   const fetchClasses = async () => { 
     const { data } = await supabase.from('nexus_classes').select('*').order('id'); 
     if (data) setClasses(data); 
@@ -197,6 +335,7 @@ export default function AdminPage() {
     fetchClasses(); 
   };
 
+  // 7. 물물교환 로직
   const fetchTrades = async () => { 
     const { data } = await supabase.from('nexus_trades').select('*').order('id'); 
     if (data) setTrades(data); 
@@ -221,14 +360,16 @@ export default function AdminPage() {
     <main className="min-h-screen bg-[#121212] text-[#d4d4d8] font-sans pb-20 pt-8">
       <div className="max-w-[1200px] mx-auto p-4 md:p-8 space-y-6">
         
+        {/* 헤더 */}
         <div className="flex items-center gap-4 border-b border-zinc-800 pb-6">
           <div className="text-4xl">⚙️</div>
           <div>
             <h1 className="text-2xl md:text-3xl font-black text-[#e6c788]">성역 넥서스 관리 시스템</h1>
-            <p className="text-sm text-zinc-400 mt-1">성역 길드의 모든 데이터를 구조적으로 제어합니다.</p>
+            <p className="text-sm text-zinc-400 mt-1">성역 길드의 계정, 권한 및 모든 데이터를 구조적으로 제어합니다.</p>
           </div>
         </div>
 
+        {/* 메인 탭 네비게이션 */}
         <div className="flex gap-2 flex-wrap">
           {MAIN_TABS.map(tab => (
             <button key={tab.id} onClick={() => setActiveMainTab(tab.id)} className={`px-5 py-3 rounded-lg text-sm font-bold transition-all ${activeMainTab === tab.id ? "bg-[#1c1c1e] text-[#e6c788] border border-zinc-700 shadow-md" : "bg-transparent text-zinc-500 hover:bg-zinc-800/50 hover:text-zinc-300"}`}>
@@ -237,8 +378,85 @@ export default function AdminPage() {
           ))}
         </div>
 
+        {/* 탭 콘텐츠 영역 */}
         <div className="bg-[#1c1c1e] border border-zinc-800 rounded-xl p-6 shadow-xl min-h-[500px]">
           
+          {/* 1. 👥 계정 & 5단계 권한 관리 탭 */}
+          {activeMainTab === "accounts" && (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center border-b border-zinc-800 pb-4">
+                <div>
+                  <h2 className="text-xl font-bold text-[#e6c788]">👥 길드원 계정 & 5단계 권한 체계 관리</h2>
+                  <p className="text-sm text-zinc-400 mt-1">Supabase accounts 테이블 단일 진실 공급원 기반 권한 설정</p>
+                </div>
+                <button onClick={fetchAccounts} className="text-xs bg-zinc-800 hover:bg-zinc-700 px-3 py-1.5 rounded font-bold text-zinc-300 transition">
+                  🔄 새로고침
+                </button>
+              </div>
+
+              <div className="bg-[#252528] rounded-xl border border-zinc-700 p-4">
+                {loadingAccounts ? (
+                  <div className="py-12 text-center text-xs text-zinc-400 animate-pulse">
+                    계정 정보를 동기화하는 중입니다...
+                  </div>
+                ) : accounts.length === 0 ? (
+                  <div className="py-12 text-center text-xs text-zinc-500">
+                    등록된 계정이 없습니다.
+                  </div>
+                ) : (
+                  <div className="divide-y divide-zinc-800">
+                    {accounts.map((acc) => {
+                      const isThisMaster = acc.nickname === "한설" || acc.role === "길드마스터" || acc.role === "master";
+                      const isMasterUser = user?.nickname === "한설" || user?.role === "길드마스터" || user?.role === "master";
+                      const canModify = isMasterUser || (!isThisMaster && (user?.role === "부마스터" || user?.role === "admin"));
+
+                      return (
+                        <div key={acc.id} className="py-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 hover:bg-[#1c1c1e] px-3 rounded-lg transition">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-full bg-[#121212] border border-zinc-700 flex items-center justify-center font-bold text-xs text-[#e6c788] shrink-0">
+                              {(acc.nickname || "?").slice(0, 1)}
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-sm text-white">{acc.nickname}</span>
+                                <span className={`px-2 py-0.5 rounded text-[10.5px] border ${getRoleBadgeStyle(acc.role)}`}>
+                                  {acc.role}
+                                </span>
+                              </div>
+                              <div className="text-[11px] text-zinc-500 mt-0.5">
+                                입장코드: <span className="font-mono text-zinc-300">{acc.code || "-"}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                            {canModify ? (
+                              <select
+                                value={acc.role}
+                                disabled={updatingAccountId === acc.id || (!isMasterUser && isThisMaster)}
+                                onChange={(e) => handleRoleChange(acc, e.target.value)}
+                                className="bg-[#121212] border border-zinc-600 text-white text-xs font-bold rounded px-3 py-1.5 outline-none cursor-pointer focus:border-[#e6c788]"
+                              >
+                                {ROLE_OPTIONS.map((rOpt) => (
+                                  <option key={rOpt} value={rOpt} disabled={!isMasterUser && rOpt === "길드마스터"}>
+                                    {rOpt}
+                                  </option>
+                                ))}
+                              </select>
+                            ) : (
+                              <span className="text-[11px] text-zinc-500 italic px-2 py-1">수정 권한 없음</span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* 2. 🚨 긴급 배너 탭 */}
           {activeMainTab === "banner" && (
             <div className="space-y-6 max-w-3xl">
               <h2 className="text-xl font-bold text-white mb-4">🚨 긴급 공지 배너 제어</h2>
@@ -261,6 +479,7 @@ export default function AdminPage() {
             </div>
           )}
 
+          {/* 3. 👤 캐릭터 관리 설정 탭 */}
           {activeMainTab === "character" && (
             <div className="space-y-6">
               <div className="flex border-b border-zinc-800 mb-6">
@@ -493,6 +712,7 @@ export default function AdminPage() {
             </div>
           )}
 
+          {/* 4. ⚖️ 구매/교환 설정 탭 */}
           {activeMainTab === "trade" && (
             <div className="space-y-6">
               <div className="flex justify-between items-end border-b border-zinc-800 pb-4">
@@ -585,6 +805,7 @@ export default function AdminPage() {
             </div>
           )}
 
+          {/* 5. 🚌 버스 & 파티 관제 탭 */}
           {activeMainTab === "bus_control" && (
             <div className="space-y-6">
               <div className="flex justify-between items-center border-b border-zinc-800 pb-4">
@@ -626,6 +847,7 @@ export default function AdminPage() {
               </div>
             </div>
           )}
+
         </div>
       </div>
     </main>

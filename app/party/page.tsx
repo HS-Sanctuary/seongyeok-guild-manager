@@ -15,6 +15,12 @@ function SynaxisContent() {
 
   if (!partyManager.mounted) return null;
 
+  // 🛡️ [권한 정밀 체크] 부마스터 대행 이상 (길드마스터, 부마스터, 부마스터 대행, MASTER, ADMIN, SUB_MASTER)
+  const userRole = partyManager.user?.role || partyManager.user?.account_role || "";
+  const isSubMasterOrHigher = 
+    partyManager.isAdmin || 
+    ["길드마스터", "부마스터", "부마스터 대행", "master", "admin", "sub_master"].includes(userRole.toLowerCase());
+
   return (
     <main className="min-h-screen bg-[var(--bg-main)] text-[var(--text-main)] font-sans pb-28 pt-3 sm:pt-6 relative select-none w-full">
       <div className="max-w-[1400px] mx-auto px-3 sm:px-6 space-y-3 sm:space-y-4 relative z-10">
@@ -91,7 +97,7 @@ function SynaxisContent() {
             partyManager.isMobileFormOpen ? "block animate-in fade-in duration-200" : "hidden lg:block"
           }`}>
             <PartyCreateForm 
-              isAdmin={partyManager.isAdmin}
+              isAdmin={isSubMasterOrHigher}
               myCharacterNames={partyManager.myCharacterNames}
               allCharactersMap={partyManager.allCharactersMap}
               selectedChar={partyManager.selectedChar}
@@ -102,7 +108,9 @@ function SynaxisContent() {
               selectedDate={partyManager.selectedDate}
               getDayOfWeekKorean={getDayOfWeekKorean}
               timeStart={partyManager.timeStart}
+              setTimeStart={partyManager.setTimeStart}
               timeEnd={partyManager.timeEnd}
+              setTimeEnd={partyManager.setTimeEnd}
               openScheduleModal={() => partyManager.setShowScheduleModal(true)}
               partyType={partyManager.partyType}
               setPartyType={partyManager.setPartyType}
@@ -160,6 +168,7 @@ function SynaxisContent() {
                         key={party.id}
                         party={party}
                         currentUserNickname={partyManager.user?.nickname || partyManager.user?.username || "한설"}
+                        currentUserRole={userRole}
                         onJoinClick={() => partyManager.openJoinPopup(party)}
                         onLeaveClick={(p) => partyManager.handleLeaveParty(p, partyManager.user?.nickname || partyManager.user?.username || "한설")}
                         onDeleteClick={(id) => partyManager.handleDeleteParty(id)}
@@ -168,7 +177,7 @@ function SynaxisContent() {
                           const ownerName = partyManager.user?.username || partyManager.user?.nickname || partyManager.user?.owner || "한설";
                           partyManager.fetchData(ownerName);
                         }}
-                        isMasterOrAdmin={partyManager.isAdmin}
+                        isMasterOrAdmin={isSubMasterOrHigher}
                       />
                     ) : (
                       <PartyCard 
@@ -181,7 +190,7 @@ function SynaxisContent() {
                         handleLeaveParty={partyManager.handleLeaveParty}
                         handleDeleteParty={partyManager.handleDeleteParty}
                         onCompleteParty={partyManager.handleCompleteParty}
-                        isAdmin={partyManager.isAdmin}
+                        isAdmin={isSubMasterOrHigher}
                         onRefresh={() => {
                           const ownerName = partyManager.user?.username || partyManager.user?.nickname || partyManager.user?.owner || "한설";
                           partyManager.fetchData(ownerName);

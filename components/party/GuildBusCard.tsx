@@ -108,6 +108,7 @@ interface GuildBusCardProps {
 export default function GuildBusCard({
   party,
   currentUserNickname,
+  currentUserRole = "",
   onJoinClick,
   onLeaveClick,
   onDeleteClick,
@@ -192,8 +193,10 @@ export default function GuildBusCard({
     ? Math.round(activeMembers.reduce((acc, cur) => acc + parseCP(cur.combat_power), 0) / activeMembers.length)
     : 0;
 
+  // 🛡️ [부마스터 대행 이상 판별] 길드마스터, 부마스터, 부마스터 대행 권한 체크
+  const isSubMasterOrHigherRole = ["길드마스터", "부마스터", "부마스터 대행", "master", "admin", "sub_master"].includes(currentUserRole.toLowerCase());
   const isLeader = party.leader_name === currentUserNickname;
-  const canManage = isMasterOrAdmin || isLeader;
+  const canManage = isMasterOrAdmin || isSubMasterOrHigherRole || isLeader;
 
   const handleStartBus = async () => {
     if (activeMembers.length === 0) return alert("출전 파티원이 없습니다.");
@@ -294,11 +297,11 @@ export default function GuildBusCard({
 
       const admins = (accounts || []).filter((acc: any) => {
         const r = acc.role || '';
-        return r === '길드마스터' || r === '부마스터' || r.includes('마스터') || r === 'ADMIN' || r === 'MASTER' || r === 'SUB_MASTER';
+        return r === '길드마스터' || r === '부마스터' || r === '부마스터 대행' || r.includes('마스터') || r === 'ADMIN' || r === 'MASTER' || r === 'SUB_MASTER';
       });
 
       if (admins.length === 0) {
-        alert("⚠️ 인계할 관리자(길드마스터/부마스터)가 현재 파티 내에 없습니다.\n(현재 파티에 참여 중인 인원 중 관리자 권한을 소지한 인원이 없습니다.)");
+        alert("⚠️ 인계할 관리자(길드마스터/부마스터/부마스터 대행)가 현재 파티 내에 없습니다.\n(현재 파티에 참여 중인 인원 중 관리자 권한을 소지한 인원이 없습니다.)");
         setIsLoadingAdmins(false);
         return;
       }
@@ -519,7 +522,7 @@ export default function GuildBusCard({
         </div>
       </div>
 
-      {/* 🎯 버스 컨트롤러 버튼 그룹 (라이트/다크 양방향 솔리드 고대비 100% 보장) */}
+      {/* 🎯 버스 컨트롤러 버튼 그룹 (부마스터 대행 이상 노출 보장) */}
       {canManage && (
         <div className="mb-2 sm:mb-3 p-1.5 sm:p-2.5 rounded-xl bg-[var(--inner-box)] border border-[var(--panel-border)] flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-2">
           <div className="text-[10.5px] sm:text-xs font-black text-[var(--text-main)] flex items-center gap-1 shrink-0">
@@ -550,7 +553,7 @@ export default function GuildBusCard({
               </button>
             )}
 
-            {/* 🎯 [파티 재구성] 솔리드 딥 인디고 + 백색 폰트 (시인성 100% 고대비) */}
+            {/* [파티 재구성] */}
             <button
               type="button"
               onClick={handleReconstructParty}
@@ -560,7 +563,7 @@ export default function GuildBusCard({
               <span className="text-white">파티 재구성</span>
             </button>
 
-            {/* 🎯 [관리자 인계] 솔리드 비비드 앰버 + 칠흑색 폰트 (시인성 100% 고대비) */}
+            {/* [관리자 인계] */}
             <button
               type="button"
               onClick={handleOpenTransferModal}
@@ -571,7 +574,7 @@ export default function GuildBusCard({
               <span className="text-zinc-950">{isLoadingAdmins ? '조회중...' : '관리자 인계'}</span>
             </button>
 
-            {/* 🎯 [해산] 솔리드 크림슨 로즈 + 백색 폰트 (시인성 100% 고대비) */}
+            {/* [해산] */}
             <button
               type="button"
               onClick={handleAttemptDeleteParty}
@@ -707,7 +710,7 @@ export default function GuildBusCard({
             </div>
 
             <div className="text-xs text-[var(--text-sub)] font-medium leading-relaxed">
-              현재 파티에 참여 중인 관리자(길드마스터/부마스터) 중에서 새로운 방장을 선택해주세요.
+              현재 파티에 참여 중인 관리자(길드마스터/부마스터/부마스터 대행) 중에서 새로운 방장을 선택해주세요.
             </div>
 
             <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1 custom-scrollbar">

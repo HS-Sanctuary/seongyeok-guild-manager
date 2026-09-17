@@ -46,6 +46,27 @@ export default function Navbar({
   pendingCount,
   handleLogout
 }: NavbarProps) {
+
+  // 5단계 권한에 따른 가변 아이콘 렌더링 유틸
+  const getRoleIcon = (role?: string) => {
+    switch (role) {
+      case "길드마스터":
+      case "master":
+        return "👑";
+      case "부마스터":
+      case "admin":
+        return "⚔️";
+      case "부마스터 대행":
+        return "🛡️";
+      case "cbt테스터":
+        return "🧪";
+      case "길드원":
+      case "member":
+      default:
+        return "🛡️";
+    }
+  };
+
   return (
     <nav 
       ref={headerRef} 
@@ -189,10 +210,16 @@ export default function Navbar({
             {mounted && activeAccount ? (
               <div className="relative shrink-0" ref={accountMenuRef}>
                 <button onClick={() => setIsAccountMenuOpen(!isAccountMenuOpen)} className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full border transition shadow-md whitespace-nowrap bg-[var(--panel)] hover:bg-[var(--panel-hover)] text-[var(--text-main)] border-[var(--accent)] cursor-pointer shrink-0">
-                  <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center text-[0.65rem] shrink-0 bg-[var(--inner-box)] text-[var(--text-main)]">👑</div>
+                  <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center text-[0.65rem] shrink-0 bg-[var(--inner-box)] text-[var(--text-main)]">
+                    {getRoleIcon(activeAccount.role)}
+                  </div>
                   <div className="flex flex-col text-left leading-none whitespace-nowrap min-w-0">
-                    <span className="text-[0.68rem] sm:text-[0.72rem] font-bold flex items-center gap-1 max-w-[80px] xs:max-w-[110px] sm:max-w-[140px] truncate text-[var(--text-main)]">{activeAccount.alias || activeAccount.nickname}</span>
-                    <span className="text-[0.52rem] sm:text-[0.58rem] text-[var(--accent)] mt-0.5">{activeAccount.role}</span>
+                    <span className="text-[0.68rem] sm:text-[0.72rem] font-bold flex items-center gap-1 max-w-[80px] xs:max-w-[110px] sm:max-w-[140px] truncate text-[var(--text-main)]">
+                      {activeAccount.alias || activeAccount.nickname}
+                    </span>
+                    <span className="text-[0.52rem] sm:text-[0.58rem] text-[var(--accent)] mt-0.5">
+                      {activeAccount.role || "길드원"}
+                    </span>
                   </div>
                   <span className="text-[0.52rem] sm:text-[0.58rem] text-[var(--text-sub)] ml-0.5">▼</span>
                 </button>
@@ -201,7 +228,10 @@ export default function Navbar({
                   <div className="absolute right-0 mt-2 w-56 border rounded-xl shadow-2xl z-[100] overflow-hidden p-2 bg-[var(--panel)] border-[var(--panel-border)] text-[var(--text-main)]">
                     <div className="text-[0.55rem] font-bold text-[var(--text-sub)] px-2 py-1">현재 활성 계정</div>
                     <div className="flex items-center justify-between p-2 rounded-lg mb-2 border-l-4 bg-[var(--inner-box)] border-[var(--accent)]">
-                      <span className="text-[0.7rem] font-black truncate text-[var(--text-main)]">{activeAccount.alias || activeAccount.nickname}</span>
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-[0.7rem] font-black truncate text-[var(--text-main)]">{activeAccount.alias || activeAccount.nickname}</span>
+                        <span className="text-[0.55rem] text-[var(--accent)] mt-0.5">{activeAccount.role || "길드원"}</span>
+                      </div>
                       <span className="text-[0.55rem] bg-[var(--accent)]/20 text-[var(--accent)] px-1.5 py-0.5 rounded shrink-0">선택됨</span>
                     </div>
 
@@ -210,7 +240,10 @@ export default function Navbar({
                         <div className="text-[0.55rem] font-bold text-[var(--text-sub)] px-2 py-1 border-t border-[var(--panel-border)] mt-1">계정 빠른 스위칭</div>
                         {accounts.filter(a => a.id !== activeAccount.id).map(acc => (
                           <button key={acc.id} onClick={() => switchAccount(acc)} className="w-full flex items-center justify-between p-2 rounded-lg text-left transition my-0.5 hover:bg-[var(--panel-hover)] text-[var(--text-sub)] hover:text-[var(--text-main)] cursor-pointer">
-                            <span className="text-[0.7rem] font-bold truncate">{acc.alias || acc.nickname}</span>
+                            <div className="flex flex-col min-w-0">
+                              <span className="text-[0.7rem] font-bold truncate">{acc.alias || acc.nickname}</span>
+                              <span className="text-[0.55rem] text-zinc-500">{acc.role || "길드원"}</span>
+                            </div>
                             <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: acc.borderColor }}></span>
                           </button>
                         ))}
