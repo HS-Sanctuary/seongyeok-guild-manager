@@ -119,7 +119,8 @@ export default function GuildBusCard({
   const [isPoolModalOpen, setIsPoolModalOpen] = useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   
-  const isBusStartedInDB = party.status === "운행중" || party.status === "매칭 완료" || party.status === "매칭중" || (party as any).is_started;
+  // 🛡️ [스키마 무결성 방어] 미존재 컬럼(is_started) 제거 후 status 기반 단일 판별
+  const isBusStartedInDB = party.status === "운행중" || party.status === "매칭 완료" || party.status === "매칭중";
   const [isStarted, setIsStarted] = useState<boolean>(isBusStartedInDB);
   const [prevMemberNames, setPrevMemberNames] = useState<string[]>([]);
   const [reconfiguredCandidates, setReconfiguredCandidates] = useState<BusCandidate[] | null>(null);
@@ -201,9 +202,10 @@ export default function GuildBusCard({
   const handleStartBus = async () => {
     if (activeMembers.length === 0) return alert("출전 파티원이 없습니다.");
     try {
+      // 🛡️ [스키마 방어] 미존재 컬럼(is_started) 제외, status만 변경
       const { error } = await supabase
         .from("parties")
-        .update({ status: "운행중", is_started: true })
+        .update({ status: "운행중" })
         .eq("id", party.id);
 
       if (error) throw error;
@@ -479,7 +481,7 @@ export default function GuildBusCard({
                 key={`active-${member.character_name}-${index}`}
                 className={`min-h-[58px] sm:min-h-[62px] rounded-xl border p-1.5 sm:p-2 flex items-center gap-1.5 sm:gap-2 relative overflow-hidden transition-all min-w-0 ${
                   isNewlyAdded 
-                    ? 'border-amber-400 bg-amber-500/10 shadow-[0_0_12px_rgba(251,191,36,0.3)] animate-pulse' 
+                    ? 'border-amber-400 bg-amber-500/10 shadow- animate-pulse' 
                     : 'border-[var(--panel-border)] bg-[var(--panel)] hover:border-[var(--accent)]'
                 }`}
               >
