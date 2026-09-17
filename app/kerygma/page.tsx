@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Notice, CommentItem, LINK_ONLY_CATEGORIES } from "@/types/kerygma";
 import KerygmaHeader from "@/components/kerygma/KerygmaHeader";
@@ -8,7 +9,11 @@ import KerygmaCategoryTabs from "@/components/kerygma/KerygmaCategoryTabs";
 import KerygmaTableList from "@/components/kerygma/KerygmaTableList";
 import KerygmaReaderView from "@/components/kerygma/KerygmaReaderView";
 
-export default function KerygmaPage() {
+function KerygmaContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const noticeIdParam = searchParams.get("id");
+
   const [user, setUser] = useState<any>(null);
   const [mounted, setMounted] = useState(false);
 
@@ -90,19 +95,6 @@ export default function KerygmaPage() {
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
     setNotices(combined);
-
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      const targetId = params.get("id");
-      if (targetId) {
-        const found = combined.find((n) => String(n.id) === String(targetId));
-        if (found) {
-          setSelectedNotice(found);
-          loadComments(found.id);
-        }
-      }
-    }
-
     setIsLoading(false);
   };
 
@@ -112,6 +104,25 @@ export default function KerygmaPage() {
     if (savedUser) setUser(JSON.parse(savedUser));
     fetchNotices();
   }, []);
+
+  // 🎯 [URL 쿼리 스트링(searchParams) 변동 실시간 감지 & 리더뷰 스위칭 연동]
+  useEffect(() => {
+    if (isLoading) return;
+
+    if (!noticeIdParam) {
+      // URL에 id 쿼리가 없으면 공지 목록 리스트 모드로 전환
+      setSelectedNotice(null);
+    } else {
+      // URL에 id 쿼리가 있으면 해당 공지글 선택하여 리더뷰 노출
+      const found = notices.find((n) => String(n.id) === String(noticeIdParam));
+      if (found) {
+        setSelectedNotice(found);
+        loadComments(found.id);
+      } else {
+        setSelectedNotice(null);
+      }
+    }
+  }, [noticeIdParam, notices, isLoading]);
 
   const currentNickname = user?.nickname || "방문자";
   const isMaster = user?.nickname === "한설" || user?.role === "길드마스터";
@@ -140,12 +151,11 @@ export default function KerygmaPage() {
     );
     await supabase.from("notices").delete().eq("id", id);
     setSelectedNotice(null);
-    if (typeof window !== "undefined") {
-      window.history.replaceState({}, "", "/kerygma");
-    }
+    router.push("/kerygma");
     fetchNotices();
   };
 
+  // 🎯 [공지글 클릭 시 URL 쿼리 파라미터 부여하여 리더뷰 전환]
   const openNotice = (notice: Notice) => {
     const isLinkType = notice.link || LINK_ONLY_CATEGORIES.includes(notice.type);
 
@@ -161,7 +171,14 @@ export default function KerygmaPage() {
 
     setSelectedNotice(notice);
     loadComments(notice.id);
+    router.push(`/kerygma?id=${notice.id}`);
     window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // 🎯 [리더뷰 닫기 / 목록으로 돌아가기 버튼 클릭 시]
+  const handleCloseReader = () => {
+    setSelectedNotice(null);
+    router.push("/kerygma");
   };
 
   const handleAddComment = (parentId: number | null = null) => {
@@ -296,12 +313,7 @@ export default function KerygmaPage() {
       {selectedNotice && (
         <KerygmaReaderView
           selectedNotice={selectedNotice}
-          onCloseReader={() => {
-            setSelectedNotice(null);
-            if (typeof window !== "undefined") {
-              window.history.replaceState({}, "", "/kerygma");
-            }
-          }}
+          onCloseReader={handleCloseReader}
           canWriteNotice={canWriteNotice}
           onTogglePin={togglePin}
           onDeleteNotice={deleteNotice}
@@ -344,7 +356,7 @@ export default function KerygmaPage() {
               <p className="text-xs font-bold text-[var(--text-main)] break-all">
                 "{confirmLinkModal.title}"
               </p>
-              
+
               <div className="p-3 bg-[var(--inner-box)] border border-[var(--panel-border)] rounded-xl break-all text-[11px] font-mono text-[var(--accent)]">
                 {confirmLinkModal.url}
               </div>
@@ -389,5 +401,19 @@ export default function KerygmaPage() {
         }}
       />
     </main>
+  );
+}
+
+export default function KerygmaPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-[var(--background)] text-[var(--accent)] font-bold text-sm">
+          공지사항을 로딩 중입니다...
+        </div>
+      }
+    >
+      <KerygmaContent />
+    </Suspense>
   );
 }
