@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Notice, CommentItem, PollData } from "@/types/kerygma";
@@ -11,7 +11,7 @@ import KerygmaTableList from "@/components/kerygma/KerygmaTableList";
 import KerygmaReaderView from "@/components/kerygma/KerygmaReaderView";
 import KerygmaPollModal from "@/components/kerygma/KerygmaPollModal";
 
-export default function KerygmaMainPage() {
+function KerygmaContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const noticeIdParam = searchParams.get("id");
@@ -327,5 +327,17 @@ export default function KerygmaMainPage() {
         />
       </div>
     </main>
+  );
+}
+
+export default function KerygmaMainPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-[calc(100vh-4.5rem)] flex items-center justify-center text-[var(--text-sub)] font-bold text-xs">
+        📜 케리그마 시공간 동기화 중...
+      </div>
+    }>
+      <KerygmaContent />
+    </Suspense>
   );
 }
