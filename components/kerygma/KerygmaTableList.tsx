@@ -1,6 +1,6 @@
 "use client";
 
-import { Notice } from "@/types/kerygma";
+import { Notice, LINK_ONLY_CATEGORIES } from "@/types/kerygma";
 
 interface KerygmaTableListProps {
   isLoading: boolean;
@@ -17,75 +17,76 @@ export default function KerygmaTableList({
   formatNoticeDate,
   getBadgeStyle,
 }: KerygmaTableListProps) {
-  return (
-    <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] overflow-hidden shadow-sm">
-      {/* 🎯 모바일 최적화 콤팩트 테이블 헤더 */}
-      <div className="flex items-center justify-between px-2 sm:px-4 py-2 sm:py-3 bg-[var(--inner-box)] border-b border-[var(--panel-border)] text-[9px] sm:text-[0.7rem] font-semibold text-[var(--text-sub)] select-none">
-        <div className="w-[55px] sm:w-[110px] shrink-0 text-center">분류</div>
-        <div className="flex-1 min-w-0 px-2 sm:px-3 text-left">제목</div>
-        <div className="w-[45px] sm:w-[85px] shrink-0 text-center">작성자</div>
-        <div className="w-[50px] sm:w-[90px] shrink-0 text-center">작성일</div>
+  if (isLoading) {
+    return (
+      <div className="w-full bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl p-8 text-center text-xs text-[var(--text-sub)] animate-pulse shadow-sm">
+        <div className="inline-block w-5 h-5 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin mb-2" />
+        <p>케리그마 공지사항을 불러오는 중입니다...</p>
       </div>
+    );
+  }
 
-      {isLoading ? (
-        <div className="flex justify-center items-center h-40 text-[var(--text-sub)] text-[11px] sm:text-[0.8rem]">
-          데이터 로드 중...
-        </div>
-      ) : notices.length === 0 ? (
-        <div className="flex justify-center items-center h-40 text-[var(--text-sub)] text-[11px] sm:text-[0.8rem]">
-          등록된 게시글이 없습니다.
-        </div>
-      ) : (
-        <div className="flex flex-col">
-          {notices.map((notice) => (
+  if (notices.length === 0) {
+    return (
+      <div className="w-full bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl p-12 text-center text-xs text-[var(--text-sub)] shadow-sm">
+        등록된 게시글이 없습니다.
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl shadow-sm overflow-hidden">
+      {/* 🎯 컬럼 헤더 제거 -> 2줄 카드/블럭형 리스트 구조 */}
+      <div className="divide-y divide-[var(--panel-border)]">
+        {notices.map((notice) => {
+          const isLink = notice.link || LINK_ONLY_CATEGORIES.includes(notice.type);
+          const badgeText = notice.is_pinned ? "📌 필독" : notice.type;
+
+          return (
             <div
               key={notice.id}
               onClick={() => onOpenNotice(notice)}
-              className="flex items-center justify-between px-2 sm:px-4 py-2.5 sm:py-3 border-b border-[var(--panel-border)] hover:bg-[var(--panel-hover)] cursor-pointer transition-colors group last:border-0 text-[11px] sm:text-[0.85rem]"
+              className="px-3.5 sm:px-4 py-3 hover:bg-[var(--panel-hover)] transition cursor-pointer flex flex-col gap-1.5 group"
             >
-              {/* 분류 */}
-              <div className="w-[55px] sm:w-[110px] shrink-0 text-center flex justify-center items-center overflow-hidden">
+              {/* 1행: [좌측 분류 뱃지] + [우측 작성자 & 작성일] */}
+              <div className="flex items-center justify-between gap-2 w-full">
+                {/* 좌측: 분류 뱃지 (shrink-0 적용으로 명칭 절대로 안 잘림) */}
                 <span
-                  className={`text-[8.5px] sm:text-[0.7rem] font-bold px-1 sm:px-2 py-0.5 rounded border border-[var(--panel-border)] whitespace-nowrap truncate w-full sm:w-auto mx-0.5 sm:mx-0 ${getBadgeStyle(
+                  className={`px-2 py-0.5 rounded text-[10.5px] sm:text-xs font-semibold shrink-0 whitespace-nowrap border bg-[var(--inner-box)] ${getBadgeStyle(
                     notice.type,
                     notice.is_pinned
                   )}`}
                 >
-                  {notice.is_pinned ? "필독" : notice.type}
+                  {badgeText}
                 </span>
+
+                {/* 우측: 작성자 + 작성일 */}
+                <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 text-[11px] sm:text-xs text-[var(--text-sub)]">
+                  <span className="font-medium text-[var(--text-main)]">
+                    {notice.author}
+                  </span>
+                  <span className="opacity-40">•</span>
+                  <span className="opacity-80">
+                    {formatNoticeDate(notice.created_at)}
+                  </span>
+                </div>
               </div>
 
-              {/* 제목 */}
-              <div className="flex-1 min-w-0 px-2 sm:px-3 flex items-center gap-1.5 sm:gap-2 overflow-hidden">
-                <h3
-                  className={`truncate whitespace-nowrap text-[11px] sm:text-[0.85rem] ${
-                    notice.is_pinned
-                      ? "font-bold text-[var(--text-main)]"
-                      : "font-medium text-[var(--text-sub)] group-hover:text-[var(--text-main)]"
-                  }`}
-                >
+              {/* 2행: 공지 제목 (시인성 극대화 및 자연스러운 Truncate 방어) */}
+              <div className="flex items-center gap-1.5 min-w-0 w-full pt-0.5">
+                <span className="text-xs sm:text-sm font-semibold text-[var(--text-main)] truncate group-hover:text-[var(--accent)] transition leading-snug">
                   {notice.title}
-                </h3>
-                {notice.poll && (
-                  <span className="text-[8px] sm:text-[0.65rem] bg-[var(--accent)]/15 text-[var(--accent)] px-1 sm:px-1.5 py-0.5 rounded font-semibold shrink-0 whitespace-nowrap">
-                    📊투표
+                </span>
+                {isLink && (
+                  <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/30 px-1 py-0.2 rounded shrink-0 whitespace-nowrap">
+                    🔗
                   </span>
                 )}
               </div>
-
-              {/* 작성자 */}
-              <div className="w-[45px] sm:w-[85px] shrink-0 text-center text-[9.5px] sm:text-[0.75rem] text-[var(--text-sub)] truncate whitespace-nowrap font-medium px-0.5">
-                {notice.author}
-              </div>
-
-              {/* 작성일 */}
-              <div className="w-[50px] sm:w-[90px] shrink-0 text-center text-[9px] sm:text-[0.75rem] text-[var(--text-sub)] opacity-75 font-mono truncate whitespace-nowrap">
-                {formatNoticeDate(notice.created_at)}
-              </div>
             </div>
-          ))}
-        </div>
-      )}
+          );
+        })}
+      </div>
     </div>
   );
 }

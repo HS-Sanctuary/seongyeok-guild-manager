@@ -55,7 +55,9 @@ seongyeok-guild-manager/
 │   │   ├── 📁 components/           # AstraView.tsx, PantheonView.tsx
 │   │   └── page.tsx                 # 라운지 메인
 │   ├── 📁 market/                   # 💰 엠포리온 (거래소 시세 정보 - page.tsx)
-│   ├── 📁 notice/                   # 📜 케리그마 (길드 공지사항 - page.tsx)
+│   ├── 📁 kerygma/                  # 📜 케리그마 (길드 공지사항 - page.tsx)
+    │   ├──📁 write/                 # 케리그마 공지사항 작성 에디터 (page.tsx)
+│   │   └── page.tsx                 # 케리그마 메인 (page.tsx)
 │   ├── 📁 party/                    # ⚔️ 시낙시스 (스마트 파티 매칭 메인 - page.tsx)
 │   ├── 📁 support/                  # 💬 로고스 (1:1 문의 & 건의 - page.tsx)
 │   ├── favicon.ico                  # 서브 파비콘

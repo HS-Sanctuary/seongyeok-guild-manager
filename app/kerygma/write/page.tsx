@@ -3,10 +3,19 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { CATEGORIES, LINK_ONLY_CATEGORIES, PollData, Notice } from "@/types/kerygma";
+import { Notice, PollData } from "@/types/kerygma";
 import KerygmaPollModal from "@/components/kerygma/KerygmaPollModal";
 
-const NOTICE_CATEGORIES = ["길드 공지사항", "생텀 공지사항", "생텀 업데이트"];
+const KERYGMA_CATEGORIES = [
+  "길드 공지사항",
+  "길드 이벤트",
+  "생텀 공지사항",
+  "생텀 업데이트",
+  "생텀 가이드",
+  "모비노기 공식",
+];
+
+const LINK_ONLY_CATEGORIES = ["생텀 가이드", "모비노기 공식"];
 
 const SPECIAL_CHARS = [
   "★", "☆", "♥", "♡", "♠", "♤", "♣", "♧",
@@ -24,15 +33,61 @@ const FONT_SIZES = [12, 14, 16, 18, 20, 24, 28, 32];
 const LINE_HEIGHTS = [1.1, 1.3, 1.5, 1.7, 1.9, 2.1];
 
 const CELL_BG_COLORS = [
-  { name: "투명", value: "transparent", border: "#555" },
+  { name: "투명", value: "transparent", border: "var(--panel-border)" },
   { name: "골드", value: "rgba(212, 175, 55, 0.25)", border: "#d4af37" },
   { name: "블루", value: "rgba(52, 152, 219, 0.25)", border: "#3498db" },
   { name: "레드", value: "rgba(231, 76, 60, 0.25)", border: "#e74c3c" },
   { name: "그린", value: "rgba(46, 204, 113, 0.25)", border: "#2ecc71" },
   { name: "퍼플", value: "rgba(155, 89, 182, 0.25)", border: "#9b59b6" },
   { name: "그레이", value: "rgba(255, 255, 255, 0.12)", border: "#888" },
-  { name: "블랙", value: "#141416", border: "#333" },
+  { name: "블랙", value: "rgba(0, 0, 0, 0.6)", border: "var(--panel-border)" },
 ];
+
+// 🎯 [이미지 초경량 WebP 자동 리샘플링 엔진]
+const compressAndResampleImage = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const MAX_WIDTH = 1000; // 가로 최대 1000px 규격화
+        const MAX_HEIGHT = 2000;
+
+        let width = img.width;
+        let height = img.height;
+
+        if (width > MAX_WIDTH) {
+          height = Math.round((height * MAX_WIDTH) / width);
+          width = MAX_WIDTH;
+        }
+        if (height > MAX_HEIGHT) {
+          width = Math.round((width * MAX_HEIGHT) / height);
+          height = MAX_HEIGHT;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          reject(new Error("Canvas 생성 실패"));
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // WebP 70% 압축 (5MB~10MB PNG 원본 -> 약 40KB~80KB로 98% 용량 감축)
+        const compressedBase64 = canvas.toDataURL("image/webp", 0.7);
+        resolve(compressedBase64);
+      };
+      img.onerror = (err) => reject(err);
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = (err) => reject(err);
+    reader.readAsDataURL(file);
+  });
+};
 
 export default function KerygmaWritePage() {
   const router = useRouter();
@@ -40,9 +95,10 @@ export default function KerygmaWritePage() {
   const [user, setUser] = useState<any>(null);
   const [mounted, setMounted] = useState(false);
 
-  // 🎯 [수정 모드 관리 상태]
   const [isEditMode, setIsEditMode] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
+
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
 
   const [newNotice, setNewNotice] = useState({
     type: "길드 공지사항",
@@ -53,7 +109,7 @@ export default function KerygmaWritePage() {
   });
 
   const [activePopover, setActivePopover] = useState<
-    "fontSize" | "lineHeight" | "textColor" | "bgColor" | "table" | "symbol" | "heading" | null
+    "fontSize" | "lineHeight" | "table" | "symbol" | "heading" | null
   >(null);
   const [tableGrid, setTableGrid] = useState({ r: 0, c: 0 });
 
@@ -75,8 +131,10 @@ export default function KerygmaWritePage() {
 
   const draggedTableRef = useRef<HTMLTableElement | null>(null);
 
+  // 투표 관련 상태
   const [isPollModalOpen, setIsPollModalOpen] = useState(false);
   const [pendingPoll, setPendingPoll] = useState<PollData | null>(null);
+  const [showPollPreviewCard, setShowPollPreviewCard] = useState(false);
   const [pollForm, setPollForm] = useState<PollData>({
     title: "",
     options: [
@@ -104,11 +162,22 @@ export default function KerygmaWritePage() {
   };
 
   useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setActivePopover(null);
+        setContextMenu(null);
+        setIsCategoryModalOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  useEffect(() => {
     setMounted(true);
     const savedUser = localStorage.getItem("nexus_user");
     if (savedUser) setUser(JSON.parse(savedUser));
 
-    // 🎯 [수정 모드 URL 파라미터 감지 및 기존 데이터 프리필]
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const editIdParam = params.get("editId");
@@ -118,7 +187,9 @@ export default function KerygmaWritePage() {
         setIsEditMode(true);
         setEditId(idNum);
 
-        const mockDb: Notice[] = JSON.parse(localStorage.getItem("notices_mock_db") || "[]");
+        const mockDb: Notice[] = JSON.parse(
+          localStorage.getItem("notices_mock_db") || "[]"
+        );
         const existing = mockDb.find((n) => Number(n.id) === idNum);
 
         if (existing) {
@@ -129,23 +200,34 @@ export default function KerygmaWritePage() {
             link: existing.link || "",
             isPinned: existing.is_pinned || false,
           });
-          if (existing.poll) setPendingPoll(existing.poll);
+          if (existing.poll) {
+            setPendingPoll(existing.poll);
+            setPollForm(existing.poll);
+          }
 
           setTimeout(() => {
-            if (editorRef.current) editorRef.current.innerHTML = existing.content || "";
+            if (editorRef.current && !LINK_ONLY_CATEGORIES.includes(existing.type)) {
+              editorRef.current.innerHTML = existing.content || "";
+            }
           }, 100);
         }
       } else {
-        const draft = localStorage.getItem("notice_draft");
+        const draft = localStorage.getItem("kerygma_notice_draft");
         if (draft) {
-          if (window.confirm("임시저장된 글이 있습니다. 가지고 오시겠습니까?")) {
+          if (window.confirm("임시저장된 공지글이 있습니다. 가져오시겠습니까?")) {
             try {
               const parsed = JSON.parse(draft);
               setNewNotice(parsed);
-              if (editorRef.current) editorRef.current.innerHTML = parsed.content || "";
+              if (parsed.poll) {
+                setPendingPoll(parsed.poll);
+                setPollForm(parsed.poll);
+              }
+              if (editorRef.current && !LINK_ONLY_CATEGORIES.includes(parsed.type)) {
+                editorRef.current.innerHTML = parsed.content || "";
+              }
             } catch (e) {}
           } else {
-            localStorage.removeItem("notice_draft");
+            localStorage.removeItem("kerygma_notice_draft");
           }
         }
       }
@@ -172,8 +254,134 @@ export default function KerygmaWritePage() {
     user?.role === "부길드마스터" || user?.role === "부마스터" || user?.role === "admin";
   const canWriteNotice = isMaster || isSubMaster;
 
+  const isLinkOnly = LINK_ONLY_CATEGORIES.includes(newNotice.type);
+
   const handleEditorInput = () => {
-    if (editorRef.current) setNewNotice((prev) => ({ ...prev, content: editorRef.current!.innerHTML }));
+    if (editorRef.current)
+      setNewNotice((prev) => ({
+        ...prev,
+        content: editorRef.current!.innerHTML,
+      }));
+  };
+
+  // 🎯 [복사-붙여넣기(Ctrl+V) 스마트 인터셉터 & 초경량 압축 처리]
+  const handleEditorPaste = async (e: React.ClipboardEvent<HTMLDivElement>) => {
+    const clipboardData = e.clipboardData;
+    if (!clipboardData) return;
+
+    // 1. 이미지 및 스크린샷 붙여넣기 감지 -> WebP 초경량 압축
+    const items = Array.from(clipboardData.items);
+    const imageItem = items.find((item) => item.type.startsWith("image/"));
+
+    if (imageItem) {
+      e.preventDefault();
+      const file = imageItem.getAsFile();
+      if (!file) return;
+
+      try {
+        const compressedBase64 = await compressAndResampleImage(file);
+        const imgHtml = `<img src="${compressedBase64}" alt="첨부 이미지" class="max-w-full rounded-xl my-2.5 border border-[var(--panel-border)] shadow-md inline-block" style="max-width: 100%; height: auto;" /><p><br></p>`;
+        insertCustomHTML(imgHtml);
+      } catch (err) {
+        console.error("Image compression error:", err);
+        alert("이미지 압축 처리 중 오류가 발생했습니다.");
+      }
+      return;
+    }
+
+    // 2. 동영상 및 오디오 파일 붙여넣기 차단
+    const hasMedia = items.some(
+      (item) => item.type.startsWith("video/") || item.type.startsWith("audio/")
+    );
+    if (hasMedia) {
+      e.preventDefault();
+      alert("동영상 및 오디오 파일은 DB 용량 보호를 위해 붙여넣기가 제한됩니다.");
+      return;
+    }
+
+    // 3. 서식 있는 HTML 붙여넣기 시 헤비 미디어 태그 필터링
+    const pastedHtml = clipboardData.getData("text/html");
+    if (pastedHtml && /<(video|audio|iframe|embed|object)/i.test(pastedHtml)) {
+      e.preventDefault();
+      const plainText = clipboardData.getData("text/plain");
+      executeCommand("insertText", plainText);
+      alert("외부 동영상 및 서식 미디어 태그가 자동 제거되고 텍스트만 안전하게 붙여넣어졌습니다.");
+      return;
+    }
+  };
+
+  // 🎯 [드래그앤드롭 파일 첨부 감지 및 리샘플링]
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    if (draggedTableRef.current) {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const movingTable = draggedTableRef.current;
+
+      let range: Range | null = null;
+      if (document.caretRangeFromPoint) {
+        range = document.caretRangeFromPoint(e.clientX, e.clientY);
+      } else if ((document as any).caretPositionFromPoint) {
+        const pos = (document as any).caretPositionFromPoint(e.clientX, e.clientY);
+        if (pos) {
+          range = document.createRange();
+          range.setStart(pos.offsetNode, pos.offset);
+          range.collapse(true);
+        }
+      }
+
+      if (range && editorRef.current) {
+        if (movingTable.contains(range.commonAncestorContainer)) {
+          draggedTableRef.current = null;
+          return;
+        }
+
+        movingTable.remove();
+        range.insertNode(movingTable);
+
+        const pBreak = document.createElement("p");
+        pBreak.innerHTML = "<br>";
+        if (movingTable.nextSibling) {
+          movingTable.parentNode?.insertBefore(pBreak, movingTable.nextSibling);
+        } else {
+          movingTable.parentNode?.appendChild(pBreak);
+        }
+
+        draggedTableRef.current = null;
+        setGlobalCursorOverride(null);
+        handleEditorInput();
+      }
+      return;
+    }
+
+    // 파일 드롭 처리
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const files = Array.from(e.dataTransfer.files);
+
+      const hasMedia = files.some(
+        (f) => f.type.startsWith("video/") || f.type.startsWith("audio/")
+      );
+      if (hasMedia) {
+        alert("동영상 및 오디오 파일은 DB 용량 보호를 위해 드롭 첨부가 제한됩니다.");
+        return;
+      }
+
+      const imageFiles = files.filter((f) => f.type.startsWith("image/"));
+      if (imageFiles.length > 0) {
+        for (const file of imageFiles) {
+          try {
+            const compressedBase64 = await compressAndResampleImage(file);
+            const imgHtml = `<img src="${compressedBase64}" alt="첨부 이미지" class="max-w-full rounded-xl my-2.5 border border-[var(--panel-border)] shadow-md inline-block" style="max-width: 100%; height: auto;" /><p><br></p>`;
+            insertCustomHTML(imgHtml);
+          } catch (err) {
+            console.error("Drop image compression error:", err);
+          }
+        }
+      }
+    }
   };
 
   const cleanHTMLForSave = (rawHtml: string): string => {
@@ -182,7 +390,14 @@ export default function KerygmaWritePage() {
     const tempDiv = document.createElement("div");
     tempDiv.innerHTML = rawHtml;
 
-    tempDiv.querySelectorAll(".sanctum-table-drag-handle, caption").forEach((el) => el.remove());
+    // 동영상 및 미디어 태그 최종 정제
+    tempDiv
+      .querySelectorAll("video, audio, iframe, embed, object, source")
+      .forEach((el) => el.remove());
+
+    tempDiv
+      .querySelectorAll(".sanctum-table-drag-handle, caption")
+      .forEach((el) => el.remove());
 
     tempDiv.querySelectorAll("table").forEach((tbl) => {
       tbl.removeAttribute("draggable");
@@ -214,7 +429,9 @@ export default function KerygmaWritePage() {
 
   const applyFontSize = (sz: number) => {
     executeCommand("fontSize", "7");
-    const els = editorRef.current?.querySelectorAll('font[size="7"], span[style*="xxx-large"]');
+    const els = editorRef.current?.querySelectorAll(
+      'font[size="7"], span[style*="xxx-large"]'
+    );
     els?.forEach((el) => {
       el.removeAttribute("size");
       (el as HTMLElement).style.fontSize = `${sz}px`;
@@ -308,9 +525,7 @@ export default function KerygmaWritePage() {
     const table = target.closest("table") as HTMLTableElement | null;
     const cell = target.closest("td, th") as HTMLTableCellElement | null;
 
-    if (dragHandle) {
-      return;
-    }
+    if (dragHandle) return;
 
     if (table) {
       const tableRect = table.getBoundingClientRect();
@@ -334,11 +549,17 @@ export default function KerygmaWritePage() {
         setGlobalCursorOverride("ew-resize");
 
         const handleWindowMouseMove = (moveEvent: MouseEvent) => {
-          if (!isResizingRef.current || isResizingRef.current.type !== "table") return;
+          if (!isResizingRef.current || isResizingRef.current.type !== "table")
+            return;
           const { table, startX, startWidth } = isResizingRef.current;
-          const editorWidth = editorRef.current ? editorRef.current.clientWidth - 40 : 800;
+          const editorWidth = editorRef.current
+            ? editorRef.current.clientWidth - 40
+            : 800;
           const deltaX = moveEvent.clientX - startX;
-          const newWidth = Math.max(120, Math.min(editorWidth, startWidth + deltaX));
+          const newWidth = Math.max(
+            120,
+            Math.min(editorWidth, startWidth + deltaX)
+          );
 
           table.style.width = `${newWidth}px`;
           table.style.maxWidth = "100%";
@@ -383,7 +604,8 @@ export default function KerygmaWritePage() {
 
         const handleWindowMouseMove = (moveEvent: MouseEvent) => {
           if (!isResizingRef.current) return;
-          const { type, cell, startX, startY, startWidth, startHeight } = isResizingRef.current;
+          const { type, cell, startX, startY, startWidth, startHeight } =
+            isResizingRef.current;
           if (type === "col") {
             const deltaX = moveEvent.clientX - startX;
             cell.style.width = `${Math.max(30, startWidth + deltaX)}px`;
@@ -425,56 +647,8 @@ export default function KerygmaWritePage() {
     }
   };
 
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    if (!draggedTableRef.current) return;
-    e.preventDefault();
-    e.stopPropagation();
-
-    const movingTable = draggedTableRef.current;
-
-    let range: Range | null = null;
-    if (document.caretRangeFromPoint) {
-      range = document.caretRangeFromPoint(e.clientX, e.clientY);
-    } else if ((document as any).caretPositionFromPoint) {
-      const pos = (document as any).caretPositionFromPoint(e.clientX, e.clientY);
-      if (pos) {
-        range = document.createRange();
-        range.setStart(pos.offsetNode, pos.offset);
-        range.collapse(true);
-      }
-    }
-
-    if (range && editorRef.current) {
-      if (movingTable.contains(range.commonAncestorContainer)) {
-        draggedTableRef.current = null;
-        return;
-      }
-
-      movingTable.remove();
-      range.insertNode(movingTable);
-
-      const pBreak = document.createElement("p");
-      pBreak.innerHTML = "<br>";
-      if (movingTable.nextSibling) {
-        movingTable.parentNode?.insertBefore(pBreak, movingTable.nextSibling);
-      } else {
-        movingTable.parentNode?.appendChild(pBreak);
-      }
-
-      draggedTableRef.current = null;
-      setGlobalCursorOverride(null);
-      handleEditorInput();
-    }
-  };
-
   const applyCellBgColor = (cell: HTMLTableCellElement, color: string) => {
     cell.style.backgroundColor = color;
-    handleEditorInput();
-  };
-
-  const applyCellDimensions = (cell: HTMLTableCellElement, opts: { width?: string; height?: string }) => {
-    if (opts.width !== undefined) cell.style.width = opts.width;
-    if (opts.height !== undefined) cell.style.height = opts.height;
     handleEditorInput();
   };
 
@@ -486,7 +660,10 @@ export default function KerygmaWritePage() {
     handleEditorInput();
   };
 
-  const applyTableAlign = (cell: HTMLTableCellElement, align: "left" | "center" | "right") => {
+  const applyTableAlign = (
+    cell: HTMLTableCellElement,
+    align: "left" | "center" | "right"
+  ) => {
     const table = cell.closest("table");
     if (!table) return;
     if (align === "left") {
@@ -502,7 +679,10 @@ export default function KerygmaWritePage() {
     handleEditorInput();
   };
 
-  const insertRow = (cell: HTMLTableCellElement, position: "above" | "below") => {
+  const insertRow = (
+    cell: HTMLTableCellElement,
+    position: "above" | "below"
+  ) => {
     const tr = cell.closest("tr");
     if (!tr) return;
     const newTr = document.createElement("tr");
@@ -527,7 +707,10 @@ export default function KerygmaWritePage() {
     setContextMenu(null);
   };
 
-  const insertColumn = (cell: HTMLTableCellElement, position: "left" | "right") => {
+  const insertColumn = (
+    cell: HTMLTableCellElement,
+    position: "left" | "right"
+  ) => {
     const tr = cell.closest("tr");
     const table = cell.closest("table");
     if (!tr || !table) return;
@@ -592,7 +775,7 @@ export default function KerygmaWritePage() {
   const handleTableInsert = (rows: number, cols: number) => {
     let html = `<table contenteditable="false" draggable="true" class="sanctum-editor-table" style="width: 360px; max-width: 100%; border-collapse: collapse; margin: 14px 0; border: 1px solid var(--panel-border); position: relative; user-select: none;">`;
 
-    html += `<caption class="sanctum-table-drag-handle" contenteditable="false" style="caption-side: top; background: rgba(255,255,255,0.08); border: 1px solid var(--panel-border); border-bottom: none; padding: 6px; font-size: 11px; color: var(--text-sub); font-weight: 700; cursor: grab; user-select: none; text-align: center;">⠿ 드래그하여 글자 사이로 이동</caption><tbody>`;
+    html += `<caption class="sanctum-table-drag-handle" contenteditable="false" style="caption-side: top; background: var(--inner-box); border: 1px solid var(--panel-border); border-bottom: none; padding: 6px; font-size: 11px; color: var(--text-sub); font-weight: 700; cursor: grab; user-select: none; text-align: center;">드래그하여 위치 이동</caption><tbody>`;
 
     for (let r = 0; r < rows; r++) {
       html += `<tr>`;
@@ -622,7 +805,9 @@ export default function KerygmaWritePage() {
         const l1Matches = [...fullText.matchAll(/(?:^|\n)(\d+)\.\s/g)];
         let searchSection = fullText;
         if (l1Matches.length > 0) {
-          const lastL1Index = fullText.lastIndexOf(l1Matches[l1Matches.length - 1][0]);
+          const lastL1Index = fullText.lastIndexOf(
+            l1Matches[l1Matches.length - 1][0]
+          );
           searchSection = fullText.slice(lastL1Index);
         }
         const l2Matches = [...searchSection.matchAll(/(?:^|\n)\((\d+)\)\s/g)];
@@ -634,12 +819,16 @@ export default function KerygmaWritePage() {
         const l2Matches = [...fullText.matchAll(/(?:^|\n)\((\d+)\)\s/g)];
         let searchSection = fullText;
         if (l2Matches.length > 0) {
-          const lastL2Index = fullText.lastIndexOf(l2Matches[l2Matches.length - 1][0]);
+          const lastL2Index = fullText.lastIndexOf(
+            l2Matches[l2Matches.length - 1][0]
+          );
           searchSection = fullText.slice(lastL2Index);
         } else {
           const l1Matches = [...fullText.matchAll(/(?:^|\n)(\d+)\.\s/g)];
           if (l1Matches.length > 0) {
-            const lastL1Index = fullText.lastIndexOf(l1Matches[l1Matches.length - 1][0]);
+            const lastL1Index = fullText.lastIndexOf(
+              l1Matches[l1Matches.length - 1][0]
+            );
             searchSection = fullText.slice(lastL1Index);
           }
         }
@@ -661,7 +850,9 @@ export default function KerygmaWritePage() {
         const l1Matches = [...fullText.matchAll(/(?:^|\n)([A-Z])\.\s/g)];
         let searchSection = fullText;
         if (l1Matches.length > 0) {
-          const lastL1Index = fullText.lastIndexOf(l1Matches[l1Matches.length - 1][0]);
+          const lastL1Index = fullText.lastIndexOf(
+            l1Matches[l1Matches.length - 1][0]
+          );
           searchSection = fullText.slice(lastL1Index);
         }
         const l2Matches = [...searchSection.matchAll(/(?:^|\n)\(([A-Z])\)\s/g)];
@@ -674,12 +865,16 @@ export default function KerygmaWritePage() {
         const l2Matches = [...fullText.matchAll(/(?:^|\n)\(([A-Z])\)\s/g)];
         let searchSection = fullText;
         if (l2Matches.length > 0) {
-          const lastL2Index = fullText.lastIndexOf(l2Matches[l2Matches.length - 1][0]);
+          const lastL2Index = fullText.lastIndexOf(
+            l2Matches[l2Matches.length - 1][0]
+          );
           searchSection = fullText.slice(lastL2Index);
         } else {
           const l1Matches = [...fullText.matchAll(/(?:^|\n)([A-Z])\.\s/g)];
           if (l1Matches.length > 0) {
-            const lastL1Index = fullText.lastIndexOf(l1Matches[l1Matches.length - 1][0]);
+            const lastL1Index = fullText.lastIndexOf(
+              l1Matches[l1Matches.length - 1][0]
+            );
             searchSection = fullText.slice(lastL1Index);
           }
         }
@@ -813,7 +1008,10 @@ export default function KerygmaWritePage() {
   };
 
   const handleEditorKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    if ((e.ctrlKey || e.metaKey) && ["b", "i", "u", "s"].includes(e.key.toLowerCase())) {
+    if (
+      (e.ctrlKey || e.metaKey) &&
+      ["b", "i", "u", "s"].includes(e.key.toLowerCase())
+    ) {
       e.preventDefault();
       const key = e.key.toLowerCase();
       if (key === "b") executeCommand("bold");
@@ -823,57 +1021,61 @@ export default function KerygmaWritePage() {
     }
   };
 
-  const insertPoll = () => {
-    if (!pollForm.title.trim()) return alert("투표 주제를 입력하세요.");
-    const validOptions = pollForm.options.filter((o) => o.text.trim() !== "");
-    if (validOptions.length < 2) return alert("선택 항목을 2개 이상 입력하세요.");
-
-    const finalPoll: PollData = {
-      ...pollForm,
-      options: validOptions.map((opt, i) => ({
-        ...opt,
-        id: `opt-${Date.now()}-${i}`,
-        votes: 0,
-        voters: [],
-      })),
-    };
-    setPendingPoll(finalPoll);
-    insertCustomHTML(
-      `<div class="p-3 my-3 border border-[var(--accent)]/50 rounded-lg bg-[var(--inner-box)] text-[0.8rem] font-bold">📊 [투표 삽입됨: ${finalPoll.title}]</div><p><br></p>`
-    );
+  const handleInsertPoll = (pollData: PollData) => {
+    setPendingPoll(pollData);
     setIsPollModalOpen(false);
   };
 
   const handleSaveDraft = () => {
-    const currentContent = editorRef.current ? editorRef.current.innerHTML : newNotice.content;
+    const currentContent = editorRef.current
+      ? editorRef.current.innerHTML
+      : newNotice.content;
     const cleanedContent = cleanHTMLForSave(currentContent);
-    const draftData = { ...newNotice, content: cleanedContent };
-    localStorage.setItem("notice_draft", JSON.stringify(draftData));
-    alert("임시저장 되었습니다.");
+    const draftData = {
+      ...newNotice,
+      content: cleanedContent,
+      poll: pendingPoll || undefined,
+    };
+    localStorage.setItem("kerygma_notice_draft", JSON.stringify(draftData));
+    alert("임시저장 완료 (투표 데이터 포함)");
   };
 
   const handleSubmit = async () => {
     if (!newNotice.title.trim()) return alert("제목을 입력해주세요.");
-    const currentContent = editorRef.current ? editorRef.current.innerHTML : newNotice.content;
+
+    const currentContent = editorRef.current
+      ? editorRef.current.innerHTML
+      : newNotice.content;
     const cleanedContent = cleanHTMLForSave(currentContent);
 
-    if (LINK_ONLY_CATEGORIES.includes(newNotice.type) && !newNotice.link?.trim())
-      return alert("외부 링크(URL)를 입력해주세요.");
-    if (!LINK_ONLY_CATEGORIES.includes(newNotice.type) && !cleanedContent.trim())
-      return alert("내용을 입력해주세요.");
+    if (isLinkOnly && !newNotice.link?.trim()) {
+      return alert("외부 이동 URL 링크를 입력해주세요.");
+    }
+    if (!isLinkOnly && !cleanedContent.trim() && !pendingPoll) {
+      return alert("내용 또는 투표를 작성해주세요.");
+    }
     if (
       (newNotice.type === "생텀 업데이트" || newNotice.type === "생텀 공지사항") &&
       !isMaster
-    )
+    ) {
       return alert("해당 카테고리는 길드마스터 전용입니다.");
+    }
+
+    // 🎯 [DB 용량 방어 안전 가드 (최대 2MB 제한)]
+    const payloadSizeKB = Math.round(new Blob([cleanedContent]).size / 1024);
+    if (payloadSizeKB > 2000) {
+      return alert(
+        `게시글 데이터 용량이 너무 큽니다 (${payloadSizeKB}KB). 첨부된 이미지가 너무 많거나 고용량인 경우 일부 정리 후 시도해주세요.`
+      );
+    }
 
     let finalId = editId || Date.now();
 
     const payload: Omit<Notice, "id"> = {
       type: newNotice.type,
       title: newNotice.title,
-      content: LINK_ONLY_CATEGORIES.includes(newNotice.type) ? "" : cleanedContent,
-      link: LINK_ONLY_CATEGORIES.includes(newNotice.type) ? newNotice.link : undefined,
+      content: isLinkOnly ? "" : cleanedContent,
+      link: isLinkOnly ? newNotice.link : undefined,
       author: user?.nickname || "관리자",
       is_pinned: newNotice.isPinned,
       created_at: new Date().toISOString(),
@@ -889,14 +1091,19 @@ export default function KerygmaWritePage() {
         console.warn("Supabase update warning fallback to local storage:", e);
       }
 
-      const localDb: Notice[] = JSON.parse(localStorage.getItem("notices_mock_db") || "[]");
+      const localDb: Notice[] = JSON.parse(
+        localStorage.getItem("notices_mock_db") || "[]"
+      );
       const updatedDb = localDb.map((n) =>
         Number(n.id) === Number(editId) ? { ...n, ...payload, id: editId } : n
       );
       localStorage.setItem("notices_mock_db", JSON.stringify(updatedDb));
     } else {
       try {
-        const { data, error } = await supabase.from("notices").insert([payload]).select();
+        const { data, error } = await supabase
+          .from("notices")
+          .insert([payload])
+          .select();
         if (!error && data && data.length > 0 && data[0].id) {
           finalId = data[0].id;
         }
@@ -904,18 +1111,18 @@ export default function KerygmaWritePage() {
         console.warn("Supabase insert warning fallback to local storage:", e);
       }
 
-      const localDb: Notice[] = JSON.parse(localStorage.getItem("notices_mock_db") || "[]");
+      const localDb: Notice[] = JSON.parse(
+        localStorage.getItem("notices_mock_db") || "[]"
+      );
       const newEntry: Notice = { id: finalId, ...payload };
-      localStorage.setItem("notices_mock_db", JSON.stringify([newEntry, ...localDb]));
+      localStorage.setItem(
+        "notices_mock_db",
+        JSON.stringify([newEntry, ...localDb])
+      );
     }
 
-    localStorage.removeItem("notice_draft");
-
-    if (NOTICE_CATEGORIES.includes(newNotice.type)) {
-      router.push(`/kerygma?id=${finalId}`);
-    } else {
-      router.push("/gnosis");
-    }
+    localStorage.removeItem("kerygma_notice_draft");
+    router.push(`/kerygma?id=${finalId}`);
   };
 
   if (!mounted) return null;
@@ -925,42 +1132,41 @@ export default function KerygmaWritePage() {
       <main className="min-h-screen bg-[var(--background)] text-[var(--foreground)] flex flex-col items-center justify-center p-6 text-center">
         <h1 className="text-xl font-bold text-red-400 mb-2">접근 권한 제한</h1>
         <p className="text-xs text-[var(--text-sub)] mb-4">
-          공략/공지 작성 및 수정은 길드 관리자 계정만 이용 가능합니다.
+          공지 작성 및 수정은 길드 관리자 계정만 이용 가능합니다.
         </p>
         <button
           onClick={() => router.push("/kerygma")}
           className="px-4 py-2 bg-[var(--panel)] border border-[var(--panel-border)] rounded-lg text-xs font-bold text-[var(--text-main)] cursor-pointer"
         >
-          목록으로 돌아가기
+          케리그마 목록으로 돌아가기
         </button>
       </main>
     );
   }
 
   return (
-    <main className="h-[calc(100vh-4.5rem)] sm:h-[calc(100vh-5rem)] bg-[var(--background)] text-[var(--foreground)] overflow-hidden flex flex-col p-2 sm:p-5">
-      <div className="max-w-[1400px] w-full mx-auto flex flex-col h-full space-y-2 sm:space-y-3 min-h-0">
+    <main className="h-[calc(100vh-4.5rem)] sm:h-[calc(100vh-5rem)] bg-[var(--background)] text-[var(--foreground)] flex flex-col p-2 sm:p-5 overflow-hidden relative">
+      <div className="max-w-[1400px] w-full mx-auto flex flex-col h-full space-y-2 sm:space-y-3 min-h-0 overflow-hidden">
+        
+        {/* 상단 액션 바 */}
         <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-[var(--panel-border)] pb-2 sm:pb-2.5 gap-2 sm:gap-3 shrink-0">
-          <h1 className="text-base sm:text-lg font-bold text-[var(--text-main)] flex items-center gap-2">
-            <span>✏️</span>
-            <span>{isEditMode ? "공략 / 공지 게시글 수정" : "공략 / 공지 게시글 작성"}</span>
+          <h1 className="text-base sm:text-lg font-bold text-[var(--text-main)]">
+            {isEditMode ? "케리그마 게시글 수정" : "케리그마 게시글 작성"}
           </h1>
 
           <div className="flex items-center gap-1.5 w-full sm:w-auto">
             <button
+              type="button"
               onClick={handleSaveDraft}
               className="flex-1 sm:flex-none bg-[var(--inner-box)] border border-[var(--panel-border)] hover:bg-[var(--panel-hover)] text-[var(--text-main)] text-[11px] sm:text-[0.75rem] font-bold px-3 py-1.5 rounded-lg transition cursor-pointer"
             >
               임시저장
             </button>
             <button
+              type="button"
               onClick={() => {
                 if (confirm("작성 중인 내용이 지워질 수 있습니다. 돌아가시겠습니까?")) {
-                  if (NOTICE_CATEGORIES.includes(newNotice.type)) {
-                    router.push("/kerygma");
-                  } else {
-                    router.push("/gnosis");
-                  }
+                  router.push("/kerygma");
                 }
               }}
               className="flex-1 sm:flex-none bg-[var(--inner-box)] border border-[var(--panel-border)] hover:bg-red-500/10 hover:text-red-400 text-[var(--text-main)] text-[11px] sm:text-[0.75rem] font-bold px-3 py-1.5 rounded-lg transition cursor-pointer"
@@ -968,6 +1174,7 @@ export default function KerygmaWritePage() {
               취소
             </button>
             <button
+              type="button"
               onClick={handleSubmit}
               className="flex-1 sm:flex-none bg-[var(--accent)] hover:bg-[var(--accent-strong)] text-[var(--accent-fg)] text-[11px] sm:text-[0.75rem] font-bold px-5 py-1.5 rounded-lg transition shadow cursor-pointer"
             >
@@ -976,231 +1183,269 @@ export default function KerygmaWritePage() {
           </div>
         </header>
 
-        <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] overflow-hidden shadow-sm flex flex-col flex-1 min-h-0">
-          <div className="flex flex-col shrink-0 border-b border-[var(--panel-border)] bg-[var(--panel)] relative z-30">
-            {/* 🎯 모바일 뷰 최적화 카테고리 탭 (가로 스크롤 및 콤팩트 패딩 적용) */}
-            <div className="bg-[var(--inner-box)] border-b border-[var(--panel-border)] p-2 sm:p-2.5 flex items-center gap-1.5 overflow-x-auto custom-scrollbar shrink-0">
-              {CATEGORIES.filter((c) => c !== "전체").map((cat) => (
+        {/* 메인 작성 카드 */}
+        <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] shadow-sm flex flex-col flex-1 min-h-0 overflow-hidden relative">
+          
+          {/* 헤더 영역 */}
+          <div className="flex flex-col shrink-0 border-b border-[var(--panel-border)] bg-[var(--panel)] rounded-t-xl overflow-visible">
+            
+            {/* 카테고리 선택 영역 */}
+            <div className="bg-[var(--inner-box)] border-b border-[var(--panel-border)] p-2 sm:p-2.5 flex items-center justify-between gap-2 rounded-t-xl">
+              
+              <div className="hidden sm:flex items-center gap-1.5 overflow-x-auto custom-scrollbar shrink-0">
+                {KERYGMA_CATEGORIES.map((cat) => {
+                  const isSelected = newNotice.type === cat;
+                  const isMasterOnly =
+                    cat.includes("생텀") && !cat.includes("가이드") && !isMaster;
+
+                  return (
+                    <button
+                      key={cat}
+                      type="button"
+                      disabled={isMasterOnly}
+                      onClick={() => setNewNotice({ ...newNotice, type: cat })}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition border whitespace-nowrap shrink-0 cursor-pointer ${
+                        isSelected
+                          ? "bg-[var(--text-main)] text-[var(--panel)] border-[var(--text-main)] shadow-sm"
+                          : "bg-[var(--panel)] text-[var(--text-sub)] border-[var(--panel-border)] hover:border-[var(--text-sub)] hover:text-[var(--text-main)] disabled:opacity-30"
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="flex sm:hidden items-center gap-1.5">
+                <div className="px-2.5 py-1 bg-[var(--text-main)] text-[var(--panel)] font-extrabold text-[11px] rounded shadow-sm shrink-0">
+                  {newNotice.type}
+                </div>
                 <button
-                  key={cat}
-                  onClick={() =>
-                    setNewNotice({
-                      ...newNotice,
-                      type: cat,
-                      link: LINK_ONLY_CATEGORIES.includes(cat) ? newNotice.link : "",
-                    })
-                  }
-                  disabled={cat.includes("생텀") && !isMaster && !cat.includes("가이드")}
-                  className={`px-2.5 py-1 rounded text-[10px] sm:text-[0.7rem] font-bold transition border whitespace-nowrap shrink-0 cursor-pointer ${
-                    newNotice.type === cat
-                      ? "bg-[var(--text-main)] text-[var(--panel)] border-[var(--text-main)]"
-                      : "bg-[var(--panel)] text-[var(--text-sub)] border-[var(--panel-border)] hover:border-[var(--text-sub)] disabled:opacity-30"
-                  }`}
+                  type="button"
+                  onClick={() => setIsCategoryModalOpen(true)}
+                  className="px-2.5 py-1 bg-[var(--panel)] hover:bg-[var(--panel-hover)] border border-[var(--panel-border)] hover:border-[var(--accent)] text-[var(--accent)] text-[11px] font-bold rounded transition cursor-pointer shrink-0"
                 >
-                  {cat}
+                  변경
                 </button>
-              ))}
-              <label className="ml-auto flex items-center gap-1.5 cursor-pointer group px-2 shrink-0">
+              </div>
+
+              <label className="flex items-center gap-1.5 cursor-pointer group px-1 shrink-0">
                 <input
                   type="checkbox"
                   checked={newNotice.isPinned}
-                  onChange={(e) => setNewNotice({ ...newNotice, isPinned: e.target.checked })}
+                  onChange={(e) =>
+                    setNewNotice({ ...newNotice, isPinned: e.target.checked })
+                  }
                   className="w-3.5 h-3.5 rounded cursor-pointer accent-red-500"
                 />
-                <span className="text-[10px] sm:text-[0.75rem] font-bold text-[var(--text-sub)] group-hover:text-[var(--text-main)]">
-                  📌 필독
+                <span className="text-[11px] sm:text-xs font-bold text-[var(--text-sub)] group-hover:text-[var(--text-main)]">
+                  필독 설정
                 </span>
               </label>
             </div>
 
+            {/* 제목 입력란 */}
             <input
               type="text"
               placeholder="제목을 입력하세요"
               value={newNotice.title}
-              onChange={(e) => setNewNotice({ ...newNotice, title: e.target.value })}
+              onChange={(e) =>
+                setNewNotice({ ...newNotice, title: e.target.value })
+              }
               className="w-full bg-[var(--panel)] text-[var(--text-main)] text-[0.95rem] sm:text-[1rem] font-bold px-3 sm:px-4 py-2.5 sm:py-3 border-b border-[var(--panel-border)] focus:outline-none placeholder-[var(--text-sub)]/50 shrink-0"
             />
 
-            {!LINK_ONLY_CATEGORIES.includes(newNotice.type) && (
+            {/* 에디터 서식 툴바 */}
+            {!isLinkOnly && (
               <div
-                className="flex items-center overflow-x-auto sm:flex-wrap gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 bg-[#252528] text-zinc-300 relative z-10 shrink-0 custom-scrollbar"
+                className="flex items-center flex-wrap gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 bg-[var(--inner-box)] text-[var(--text-main)] shrink-0 overflow-x-auto custom-scrollbar border-b border-[var(--panel-border)]"
                 onMouseDown={(e) => e.preventDefault()}
               >
-                <div className="flex items-center bg-[#1c1c1e] border border-zinc-700 rounded overflow-hidden shrink-0">
-                  <button
-                    onClick={() => executeCommand("bold")}
-                    className="w-7 h-7 font-serif font-black hover:bg-zinc-700 transition text-[0.75rem] cursor-pointer"
-                    title="굵게"
-                  >
-                    B
-                  </button>
-                  <button
-                    onClick={() => executeCommand("italic")}
-                    className="w-7 h-7 font-serif italic hover:bg-zinc-700 transition border-l border-zinc-700 text-[0.75rem] cursor-pointer"
-                    title="기울임"
-                  >
-                    i
-                  </button>
-                  <button
-                    onClick={() => executeCommand("underline")}
-                    className="w-7 h-7 font-serif underline hover:bg-zinc-700 transition border-l border-zinc-700 text-[0.75rem] cursor-pointer"
-                    title="밑줄"
-                  >
-                    U
-                  </button>
-                  <button
-                    onClick={() => executeCommand("strikeThrough")}
-                    className="w-7 h-7 font-serif line-through hover:bg-zinc-700 transition border-l border-zinc-700 text-[0.75rem] cursor-pointer"
-                    title="취소선"
-                  >
-                    S
-                  </button>
-                </div>
-
-                <div className="flex items-center bg-[#1c1c1e] border border-zinc-700 rounded overflow-hidden shrink-0">
-                  <button
-                    onClick={() => executeCommand("justifyLeft")}
-                    className="w-7 h-7 hover:bg-zinc-700 transition text-[0.7rem] cursor-pointer flex items-center justify-center"
-                    title="좌측 정렬"
-                  >
-                    ⇇
-                  </button>
-                  <button
-                    onClick={() => executeCommand("justifyCenter")}
-                    className="w-7 h-7 hover:bg-zinc-700 transition border-l border-zinc-700 text-[0.7rem] cursor-pointer flex items-center justify-center"
-                    title="중앙 정렬"
-                  >
-                    ≡
-                  </button>
-                  <button
-                    onClick={() => executeCommand("justifyRight")}
-                    className="w-7 h-7 hover:bg-zinc-700 transition border-l border-zinc-700 text-[0.7rem] cursor-pointer flex items-center justify-center"
-                    title="우측 정렬"
-                  >
-                    ⇉
-                  </button>
-                  <button
-                    onClick={() => executeCommand("justifyFull")}
-                    className="w-7 h-7 hover:bg-zinc-700 transition border-l border-zinc-700 text-[0.7rem] cursor-pointer flex items-center justify-center"
-                    title="양쪽 정렬"
-                  >
-                    ⇥
-                  </button>
-                </div>
-
-                <div className="relative shrink-0">
-                  <button
-                    onClick={() =>
-                      setActivePopover(activePopover === "heading" ? null : "heading")
-                    }
-                    className="flex items-center gap-1 px-2.5 h-7 bg-[#1c1c1e] border border-zinc-700 rounded text-[10px] sm:text-[0.7rem] font-bold cursor-pointer text-[var(--accent)] hover:bg-zinc-700"
-                  >
-                    <span>📌 제목/구조</span> <span className="text-[0.5rem] sm:text-[0.6rem]">▼</span>
-                  </button>
-                  {activePopover === "heading" && (
-                    <div className="absolute top-full mt-1 left-0 bg-[#252528] border border-zinc-700 rounded-lg shadow-2xl w-[230px] p-2 flex flex-col gap-1 z-50">
-                      <div className="text-[0.65rem] font-bold text-zinc-400 px-2 py-1 border-b border-zinc-700">
-                        🔢 숫자 계층 카운팅 (1., 2 / (1), (2)...)
-                      </div>
-                      <button
-                        onClick={() => insertHeadingBlock("num-l1")}
-                        className="text-left px-2 py-1.5 text-[0.75rem] hover:bg-zinc-700 text-white font-bold rounded flex items-center justify-between cursor-pointer"
-                      >
-                        <span>1. 대제목</span>
-                        <span className="text-[0.65rem] text-zinc-400">대제목 카운트</span>
-                      </button>
-                      <button
-                        onClick={() => insertHeadingBlock("num-l2")}
-                        className="text-left px-2 py-1 text-[0.72rem] hover:bg-zinc-700 text-[var(--accent)] font-semibold rounded flex items-center justify-between pl-4 cursor-pointer"
-                      >
-                        <span>(1) 중제목</span>
-                        <span className="text-[0.65rem] text-zinc-400">상위 기준 리셋</span>
-                      </button>
-                      <button
-                        onClick={() => insertHeadingBlock("num-l3")}
-                        className="text-left px-2 py-1 text-[0.7rem] hover:bg-zinc-700 text-zinc-300 rounded flex items-center justify-between pl-6 cursor-pointer"
-                      >
-                        <span>[1] 소제목</span>
-                        <span className="text-[0.65rem] text-zinc-400">상위 기준 리셋</span>
-                      </button>
-
-                      <div className="text-[0.65rem] font-bold text-zinc-400 px-2 py-1 border-b border-zinc-700 mt-1">
-                        🔤 알파벳 계층 카운팅 (A., B / (A), (B)...)
-                      </div>
-                      <button
-                        onClick={() => insertHeadingBlock("alpha-l1")}
-                        className="text-left px-2 py-1.5 text-[0.75rem] hover:bg-zinc-700 text-white font-bold rounded flex items-center justify-between cursor-pointer"
-                      >
-                        <span>A. 대제목</span>
-                        <span className="text-[0.65rem] text-zinc-400">대제목 카운트</span>
-                      </button>
-                      <button
-                        onClick={() => insertHeadingBlock("alpha-l2")}
-                        className="text-left px-2 py-1 text-[0.72rem] hover:bg-zinc-700 text-[var(--accent)] font-semibold rounded flex items-center justify-between pl-4 cursor-pointer"
-                      >
-                        <span>(A) 중제목</span>
-                        <span className="text-[0.65rem] text-zinc-400">상위 기준 리셋</span>
-                      </button>
-                      <button
-                        onClick={() => insertHeadingBlock("alpha-l3")}
-                        className="text-left px-2 py-1 text-[0.7rem] hover:bg-zinc-700 text-zinc-300 rounded flex items-center justify-between pl-6 cursor-pointer"
-                      >
-                        <span>[A] 소제목</span>
-                        <span className="text-[0.65rem] text-zinc-400">상위 기준 리셋</span>
-                      </button>
-
-                      <div className="text-[0.65rem] font-bold text-zinc-400 px-2 py-1 border-b border-zinc-700 mt-1">
-                        ◆ 특수문자 계층 구조
-                      </div>
-                      <button
-                        onClick={() => insertHeadingBlock("sym-l1")}
-                        className="text-left px-2 py-1.5 text-[0.75rem] hover:bg-zinc-700 text-white font-bold rounded flex items-center justify-between cursor-pointer"
-                      >
-                        <span>◆ 1단계 대제목</span>
-                        <span className="text-[0.65rem] text-zinc-400">20px</span>
-                      </button>
-                      <button
-                        onClick={() => insertHeadingBlock("sym-l2")}
-                        className="text-left px-2 py-1 text-[0.72rem] hover:bg-zinc-700 text-[var(--accent)] font-semibold rounded flex items-center justify-between pl-3 cursor-pointer"
-                      >
-                        <span>■ 2단계 중제목</span>
-                        <span className="text-[0.65rem] text-zinc-400">16px</span>
-                      </button>
-                      <button
-                        onClick={() => insertHeadingBlock("sym-l3")}
-                        className="text-left px-2 py-1 text-[0.7rem] hover:bg-zinc-700 text-zinc-200 rounded flex items-center justify-between pl-5 cursor-pointer"
-                      >
-                        <span>◈ 3단계 소제목</span>
-                        <span className="text-[0.65rem] text-zinc-400">14.5px</span>
-                      </button>
-                      <button
-                        onClick={() => insertHeadingBlock("sym-l4")}
-                        className="text-left px-2 py-1 text-[0.68rem] hover:bg-zinc-700 text-zinc-400 rounded flex items-center justify-between pl-7 cursor-pointer"
-                      >
-                        <span>▣ 4단계 세부목록</span>
-                        <span className="text-[0.65rem] text-zinc-400">13.5px</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <div className="relative">
+                <div className="flex items-center gap-1 shrink-0 flex-nowrap">
+                  <div className="flex items-center bg-[var(--panel)] border border-[var(--panel-border)] rounded-lg overflow-hidden shrink-0">
                     <button
-                      onClick={() =>
-                        setActivePopover(activePopover === "fontSize" ? null : "fontSize")
-                      }
-                      className="flex items-center gap-1 px-2 h-7 bg-[#1c1c1e] border border-zinc-700 rounded text-[10px] sm:text-[0.7rem] font-bold cursor-pointer"
+                      type="button"
+                      onClick={() => executeCommand("bold")}
+                      className="w-7 h-7 font-serif font-black hover:bg-[var(--panel-hover)] transition text-[0.75rem] cursor-pointer text-[var(--text-main)]"
+                      title="굵게"
                     >
-                      크기 <span className="text-[0.5rem] sm:text-[0.6rem]">▼</span>
+                      B
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => executeCommand("italic")}
+                      className="w-7 h-7 font-serif italic hover:bg-[var(--panel-hover)] transition border-l border-[var(--panel-border)] text-[0.75rem] cursor-pointer text-[var(--text-main)]"
+                      title="기울임"
+                    >
+                      i
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => executeCommand("underline")}
+                      className="w-7 h-7 font-serif underline hover:bg-[var(--panel-hover)] transition border-l border-[var(--panel-border)] text-[0.75rem] cursor-pointer text-[var(--text-main)]"
+                      title="밑줄"
+                    >
+                      U
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => executeCommand("strikeThrough")}
+                      className="w-7 h-7 font-serif line-through hover:bg-[var(--panel-hover)] transition border-l border-[var(--panel-border)] text-[0.75rem] cursor-pointer text-[var(--text-main)]"
+                      title="취소선"
+                    >
+                      S
+                    </button>
+                  </div>
+
+                  <div className="flex items-center bg-[var(--panel)] border border-[var(--panel-border)] rounded-lg overflow-hidden shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => executeCommand("justifyLeft")}
+                      className="w-7 h-7 hover:bg-[var(--panel-hover)] transition text-[0.65rem] font-bold cursor-pointer flex items-center justify-center text-[var(--text-main)]"
+                      title="좌측 정렬"
+                    >
+                      좌
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => executeCommand("justifyCenter")}
+                      className="w-7 h-7 hover:bg-[var(--panel-hover)] transition border-l border-[var(--panel-border)] text-[0.65rem] font-bold cursor-pointer flex items-center justify-center text-[var(--text-main)]"
+                      title="중앙 정렬"
+                    >
+                      중
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => executeCommand("justifyRight")}
+                      className="w-7 h-7 hover:bg-[var(--panel-hover)] transition border-l border-[var(--panel-border)] text-[0.65rem] font-bold cursor-pointer flex items-center justify-center text-[var(--text-main)]"
+                      title="우측 정렬"
+                    >
+                      우
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => executeCommand("justifyFull")}
+                      className="w-7 h-7 hover:bg-[var(--panel-hover)] transition border-l border-[var(--panel-border)] text-[0.65rem] font-bold cursor-pointer flex items-center justify-center text-[var(--text-main)]"
+                      title="양쪽 정렬"
+                    >
+                      양쪽
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1 shrink-0 flex-nowrap relative">
+                  <div className="relative shrink-0">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setActivePopover(
+                          activePopover === "heading" ? null : "heading"
+                        )
+                      }
+                      className="flex items-center gap-0.5 px-2 h-7 bg-[var(--panel)] border border-[var(--panel-border)] rounded-lg text-[11px] sm:text-[0.7rem] font-bold cursor-pointer text-[var(--accent)] hover:bg-[var(--panel-hover)] transition"
+                    >
+                      <span>헤더</span> <span className="text-[0.55rem]">▼</span>
+                    </button>
+                    {activePopover === "heading" && (
+                      <div className="absolute top-full mt-1 left-0 bg-[var(--panel)] border border-[var(--panel-border)] rounded-xl shadow-2xl w-[210px] p-2 flex flex-col gap-1 z-30 max-h-[300px] overflow-y-auto custom-scrollbar">
+                        <div className="text-[0.65rem] font-bold text-[var(--text-sub)] px-2 py-1 border-b border-[var(--panel-border)]">
+                          숫자 계층
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => insertHeadingBlock("num-l1")}
+                          className="text-left px-2 py-1.5 text-[0.75rem] hover:bg-[var(--inner-box)] text-[var(--text-main)] font-bold rounded-lg cursor-pointer"
+                        >
+                          1. 대제목
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => insertHeadingBlock("num-l2")}
+                          className="text-left px-2 py-1 text-[0.72rem] hover:bg-[var(--inner-box)] text-[var(--accent)] font-semibold rounded-lg pl-4 cursor-pointer"
+                        >
+                          (1) 중제목
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => insertHeadingBlock("num-l3")}
+                          className="text-left px-2 py-1 text-[0.7rem] hover:bg-[var(--inner-box)] text-[var(--text-sub)] rounded-lg pl-6 cursor-pointer"
+                        >
+                          [1] 소제목
+                        </button>
+
+                        <div className="text-[0.65rem] font-bold text-[var(--text-sub)] px-2 py-1 border-b border-[var(--panel-border)] mt-1">
+                          알파벳 계층
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => insertHeadingBlock("alpha-l1")}
+                          className="text-left px-2 py-1.5 text-[0.75rem] hover:bg-[var(--inner-box)] text-[var(--text-main)] font-bold rounded-lg cursor-pointer"
+                        >
+                          A. 대제목
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => insertHeadingBlock("alpha-l2")}
+                          className="text-left px-2 py-1 text-[0.72rem] hover:bg-[var(--inner-box)] text-[var(--accent)] font-semibold rounded-lg pl-4 cursor-pointer"
+                        >
+                          (A) 중제목
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => insertHeadingBlock("alpha-l3")}
+                          className="text-left px-2 py-1 text-[0.7rem] hover:bg-[var(--inner-box)] text-[var(--text-sub)] rounded-lg pl-6 cursor-pointer"
+                        >
+                          [A] 소제목
+                        </button>
+
+                        <div className="text-[0.65rem] font-bold text-[var(--text-sub)] px-2 py-1 border-b border-[var(--panel-border)] mt-1">
+                          기호 계층
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => insertHeadingBlock("sym-l1")}
+                          className="text-left px-2 py-1.5 text-[0.75rem] hover:bg-[var(--inner-box)] text-[var(--text-main)] font-bold rounded-lg cursor-pointer"
+                        >
+                          ◆ 1단계 대제목
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => insertHeadingBlock("sym-l2")}
+                          className="text-left px-2 py-1 text-[0.72rem] hover:bg-[var(--inner-box)] text-[var(--accent)] font-semibold rounded-lg pl-3 cursor-pointer"
+                        >
+                          ■ 2단계 중제목
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => insertHeadingBlock("sym-l3")}
+                          className="text-left px-2 py-1 text-[0.7rem] hover:bg-[var(--inner-box)] text-[var(--text-main)] rounded-lg pl-5 cursor-pointer"
+                        >
+                          ◈ 3단계 소제목
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="relative shrink-0">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setActivePopover(
+                          activePopover === "fontSize" ? null : "fontSize"
+                        )
+                      }
+                      className="flex items-center gap-0.5 px-2 h-7 bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-main)] hover:bg-[var(--panel-hover)] rounded-lg text-[11px] sm:text-[0.7rem] font-bold cursor-pointer transition"
+                    >
+                      크기 <span className="text-[0.55rem]">▼</span>
                     </button>
                     {activePopover === "fontSize" && (
-                      <div className="absolute top-full mt-1 left-0 bg-[#1c1c1e] border border-zinc-700 rounded shadow-xl w-16 max-h-40 overflow-y-auto flex flex-col py-1 z-50">
+                      <div className="absolute top-full mt-1 left-0 bg-[var(--panel)] border border-[var(--panel-border)] rounded-xl shadow-2xl w-16 max-h-40 overflow-y-auto flex flex-col py-1 z-30 custom-scrollbar">
                         {FONT_SIZES.map((sz: number) => (
                           <button
                             key={sz}
+                            type="button"
                             onClick={() => applyFontSize(sz)}
-                            className="text-left px-2.5 py-1 text-[0.7rem] hover:bg-zinc-700 text-white cursor-pointer"
+                            className="text-left px-2.5 py-1 text-[0.7rem] hover:bg-[var(--inner-box)] text-[var(--text-main)] cursor-pointer"
                           >
                             {sz}px
                           </button>
@@ -1208,22 +1453,27 @@ export default function KerygmaWritePage() {
                       </div>
                     )}
                   </div>
-                  <div className="relative">
+
+                  <div className="relative shrink-0">
                     <button
+                      type="button"
                       onClick={() =>
-                        setActivePopover(activePopover === "lineHeight" ? null : "lineHeight")
+                        setActivePopover(
+                          activePopover === "lineHeight" ? null : "lineHeight"
+                        )
                       }
-                      className="flex items-center gap-1 px-2 h-7 bg-[#1c1c1e] border border-zinc-700 rounded text-[10px] sm:text-[0.7rem] font-bold cursor-pointer"
+                      className="flex items-center gap-0.5 px-2 h-7 bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-main)] hover:bg-[var(--panel-hover)] rounded-lg text-[11px] sm:text-[0.7rem] font-bold cursor-pointer transition"
                     >
-                      간격 <span className="text-[0.5rem] sm:text-[0.6rem]">▼</span>
+                      간격 <span className="text-[0.55rem]">▼</span>
                     </button>
                     {activePopover === "lineHeight" && (
-                      <div className="absolute top-full mt-1 left-0 bg-[#1c1c1e] border border-zinc-700 rounded shadow-xl w-16 flex flex-col py-1 z-50">
+                      <div className="absolute top-full mt-1 left-0 bg-[var(--panel)] border border-[var(--panel-border)] rounded-xl shadow-2xl w-16 flex flex-col py-1 z-30">
                         {LINE_HEIGHTS.map((lh: number) => (
                           <button
                             key={lh}
+                            type="button"
                             onClick={() => applyLineHeight(lh)}
-                            className="text-left px-2.5 py-1 text-[0.7rem] hover:bg-zinc-700 text-white cursor-pointer"
+                            className="text-left px-2.5 py-1 text-[0.7rem] hover:bg-[var(--inner-box)] text-[var(--text-main)] cursor-pointer"
                           >
                             {lh}
                           </button>
@@ -1231,101 +1481,212 @@ export default function KerygmaWritePage() {
                       </div>
                     )}
                   </div>
-                </div>
 
-                <div className="flex items-center gap-1.5 border-l border-zinc-700 pl-1.5 sm:pl-2 relative shrink-0">
-                  <button
-                    onClick={() => setActivePopover(activePopover === "table" ? null : "table")}
-                    className="flex items-center gap-1 px-2 h-7 bg-[#1c1c1e] border border-zinc-700 text-zinc-200 hover:text-white rounded text-[10px] sm:text-[0.7rem] font-bold cursor-pointer"
-                    title="표 생성"
-                  >
-                    <span>🔲 표 생성</span>
-                    <span className="text-[0.5rem] sm:text-[0.6rem]">▼</span>
-                  </button>
+                  <div className="relative shrink-0">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setActivePopover(activePopover === "table" ? null : "table")
+                      }
+                      className="flex items-center gap-0.5 px-2 h-7 bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-main)] hover:bg-[var(--panel-hover)] rounded-lg text-[11px] sm:text-[0.7rem] font-bold cursor-pointer transition"
+                    >
+                      <span>표</span>
+                      <span className="text-[0.55rem]">▼</span>
+                    </button>
 
-                  {activePopover === "table" && (
-                    <div className="absolute top-full mt-1 left-0 bg-[#252528] border border-zinc-700 rounded-lg shadow-2xl p-3 z-50 flex flex-col items-center w-[210px]">
-                      <span className="text-[0.68rem] font-bold text-[var(--accent)] mb-1.5">
-                        📐 표 생성 {tableGrid.r > 0 ? `(${tableGrid.r}행 ${tableGrid.c}열)` : ""}
-                      </span>
-                      <div
-                        className="grid grid-cols-10 gap-0.5"
-                        onMouseLeave={() => setTableGrid({ r: 0, c: 0 })}
-                      >
-                        {Array.from({ length: 10 }).map((_, r) =>
-                          Array.from({ length: 10 }).map((_, c) => (
-                            <div
-                              key={`${r}-${c}`}
-                              onMouseEnter={() => setTableGrid({ r: r + 1, c: c + 1 })}
-                              onClick={() => handleTableInsert(r + 1, c + 1)}
-                              className={`w-3.5 h-3.5 border cursor-pointer ${
-                                r < tableGrid.r && c < tableGrid.c
-                                  ? "bg-[var(--accent)]/40 border-[var(--accent)]"
-                                  : "border-zinc-700 bg-zinc-800"
-                              }`}
-                            />
-                          ))
-                        )}
-                      </div>
-                      <p className="text-[0.62rem] text-zinc-400 mt-2 text-center">
-                        💡 표 상단 바[⠿]를 잡고 글자 사이로 이동하거나 <br />
-                        <b>[우클릭]</b>으로 크기/색상을 조정하세요!
-                      </p>
-                    </div>
-                  )}
-
-                  <button
-                    onClick={() => setActivePopover(activePopover === "symbol" ? null : "symbol")}
-                    className="flex items-center justify-center w-7 h-7 bg-[#1c1c1e] border border-zinc-700 rounded text-[0.75rem] text-white cursor-pointer"
-                    title="특수문자 삽입"
-                  >
-                    Ω
-                  </button>
-                  {activePopover === "symbol" && (
-                    <div className="absolute top-full mt-1 left-0 bg-[#252528] border border-zinc-700 rounded shadow-xl w-[280px] p-2 z-50 grid grid-cols-10 gap-1 h-48 overflow-y-auto">
-                      {SPECIAL_CHARS.map((char) => (
-                        <button
-                          key={char}
-                          onClick={() => insertCustomHTML(char)}
-                          className="w-6 h-6 flex items-center justify-center bg-[#1c1c1e] border border-zinc-700 hover:bg-zinc-600 rounded text-[0.75rem] text-white cursor-pointer"
+                    {activePopover === "table" && (
+                      <div className="absolute top-full mt-1 left-0 bg-[var(--panel)] border border-[var(--panel-border)] rounded-xl shadow-2xl p-3 z-30 flex flex-col items-center w-[210px]">
+                        <span className="text-[0.68rem] font-bold text-[var(--accent)] mb-1.5">
+                          표 생성 {tableGrid.r > 0 ? `(${tableGrid.r}행 ${tableGrid.c}열)` : ""}
+                        </span>
+                        <div
+                          className="grid grid-cols-10 gap-0.5"
+                          onMouseLeave={() => setTableGrid({ r: 0, c: 0 })}
                         >
-                          {char}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                          {Array.from({ length: 10 }).map((_, r) =>
+                            Array.from({ length: 10 }).map((_, c) => (
+                              <div
+                                key={`${r}-${c}`}
+                                onMouseEnter={() =>
+                                  setTableGrid({ r: r + 1, c: c + 1 })
+                                }
+                                onClick={() => handleTableInsert(r + 1, c + 1)}
+                                className={`w-3.5 h-3.5 border cursor-pointer transition ${
+                                  r < tableGrid.r && c < tableGrid.c
+                                    ? "bg-[var(--accent)]/40 border-[var(--accent)]"
+                                    : "border-[var(--panel-border)] bg-[var(--inner-box)]"
+                                }`}
+                              />
+                            ))
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="relative shrink-0">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setActivePopover(
+                          activePopover === "symbol" ? null : "symbol"
+                        )
+                      }
+                      className="flex items-center justify-center px-2 h-7 bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-main)] hover:bg-[var(--panel-hover)] rounded-lg text-[11px] sm:text-[0.7rem] font-bold cursor-pointer transition"
+                      title="특수문자 삽입"
+                    >
+                      특문
+                    </button>
+                    {activePopover === "symbol" && (
+                      <div className="absolute top-full mt-1 left-0 bg-[var(--panel)] border border-[var(--panel-border)] rounded-xl shadow-2xl w-[260px] p-2 z-30 grid grid-cols-10 gap-1 h-48 overflow-y-auto custom-scrollbar">
+                        {SPECIAL_CHARS.map((char) => (
+                          <button
+                            key={char}
+                            type="button"
+                            onClick={() => insertCustomHTML(char)}
+                            className="w-5 h-5 flex items-center justify-center bg-[var(--inner-box)] border border-[var(--panel-border)] hover:bg-[var(--panel-hover)] hover:border-[var(--accent)] rounded text-[0.75rem] text-[var(--text-main)] cursor-pointer transition"
+                          >
+                            {char}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
 
                   <button
-                    onClick={() => setIsPollModalOpen(true)}
-                    className="flex items-center gap-1.5 px-2.5 sm:px-3 h-7 bg-[#1c1c1e] border border-zinc-700 text-zinc-300 hover:bg-zinc-700 hover:text-white rounded text-[10px] sm:text-[0.7rem] font-bold cursor-pointer"
+                    type="button"
+                    onClick={() => {
+                      if (pendingPoll) {
+                        setPollForm(pendingPoll);
+                      }
+                      setIsPollModalOpen(true);
+                    }}
+                    className={`flex items-center gap-1 px-2.5 h-7 border rounded-lg text-[11px] sm:text-[0.7rem] font-bold cursor-pointer shrink-0 transition ${
+                      pendingPoll
+                        ? "bg-[var(--accent)]/15 border-[var(--accent)] text-[var(--accent)] shadow-xs"
+                        : "bg-[var(--panel)] border-[var(--panel-border)] text-[var(--text-main)] hover:bg-[var(--panel-hover)] hover:border-[var(--accent)]"
+                    }`}
                   >
-                    📊 투표
+                    <span>투표</span>
+                    {pendingPoll && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)] animate-pulse" />
+                    )}
                   </button>
                 </div>
               </div>
             )}
+
+            {/* 스마트 슬림 투표 바 */}
+            {pendingPoll && (
+              <div className="bg-[var(--inner-box)] border-b border-[var(--panel-border)] px-3 sm:px-4 py-2 flex flex-col gap-2 shrink-0 transition-all">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 overflow-hidden min-w-0">
+                    <span className="px-2 py-0.5 bg-[var(--accent)] text-[var(--accent-fg)] text-[10px] font-extrabold rounded shrink-0">
+                      투표 첨부됨
+                    </span>
+                    <span className="text-xs font-bold text-[var(--text-main)] truncate">
+                      {pendingPoll.title}
+                    </span>
+                    <span className="text-[10px] text-[var(--text-sub)] hidden sm:inline shrink-0">
+                      ({pendingPoll.options.length}개 항목 · {pendingPoll.allowMultiple ? "복수" : "단일"} · {pendingPoll.endDate})
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setShowPollPreviewCard(!showPollPreviewCard)}
+                      className="px-2 py-1 bg-[var(--panel)] hover:bg-[var(--panel-hover)] border border-[var(--panel-border)] text-[10.5px] font-bold text-[var(--text-main)] rounded transition cursor-pointer"
+                    >
+                      {showPollPreviewCard ? "미리보기 닫기 ▲" : "카드 보기 ▼"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPollForm(pendingPoll);
+                        setIsPollModalOpen(true);
+                      }}
+                      className="px-2 py-1 bg-[var(--panel)] hover:bg-[var(--panel-hover)] border border-[var(--panel-border)] text-[10.5px] font-bold text-[var(--accent)] rounded transition cursor-pointer"
+                    >
+                      수정
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (confirm("첨부된 투표를 삭제하시겠습니까?")) {
+                          setPendingPoll(null);
+                          setShowPollPreviewCard(false);
+                        }
+                      }}
+                      className="px-2 py-1 bg-red-950/40 hover:bg-red-900/60 border border-red-800/60 text-[10.5px] font-bold text-red-300 rounded transition cursor-pointer"
+                    >
+                      삭제
+                    </button>
+                  </div>
+                </div>
+
+                {showPollPreviewCard && (
+                  <div className="mt-1 p-3 bg-[var(--panel)] border border-[var(--panel-border)] rounded-xl space-y-2 animate-fadeIn border-l-4 border-l-[var(--accent)]">
+                    <div className="flex justify-between items-center text-[11px] font-bold border-b border-[var(--panel-border)]/50 pb-1.5">
+                      <span className="text-[var(--text-main)]">{pendingPoll.title}</span>
+                      <div className="flex items-center gap-1 text-[10px]">
+                        <span className="px-1.5 py-0.5 bg-[var(--inner-box)] border border-[var(--panel-border)] text-[var(--text-sub)] rounded">
+                          {pendingPoll.allowMultiple ? "복수 선택" : "단일 선택"}
+                        </span>
+                        <span className="px-1.5 py-0.5 bg-[var(--inner-box)] border border-[var(--panel-border)] text-[var(--text-sub)] rounded">
+                          {pendingPoll.isAnonymous ? "익명" : "실명 공개"}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      {pendingPoll.options.map((opt, idx) => (
+                        <div
+                          key={opt.id || idx}
+                          className="w-full bg-[var(--inner-box)] border border-[var(--panel-border)] rounded-lg p-2 flex items-center justify-between text-xs text-[var(--text-main)]"
+                        >
+                          <span className="truncate">{opt.text || `선택 ${idx + 1}`}</span>
+                          <span className="text-[10px] text-[var(--text-sub)] bg-[var(--panel)] px-1.5 py-0.5 rounded border border-[var(--panel-border)] shrink-0">
+                            0표 (0%)
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
-          {LINK_ONLY_CATEGORIES.includes(newNotice.type) ? (
-            <div className="p-4 flex flex-col gap-1.5 bg-[var(--inner-box)] flex-1 min-h-0 overflow-y-auto custom-scrollbar">
-              <label className="text-[0.8rem] font-bold text-[var(--text-main)]">
-                🔗 외부 이동 URL 링크
+          {/* 본문 및 외부 링크 분기 영역 */}
+          {isLinkOnly ? (
+            <div className="p-4 sm:p-6 flex flex-col gap-3 bg-[var(--inner-box)] flex-1 min-h-0 overflow-y-auto custom-scrollbar relative z-10 rounded-b-xl">
+              <label className="text-xs sm:text-sm font-bold text-[var(--text-main)]">
+                외부 바로가기 이동 URL 링크
               </label>
               <input
                 type="url"
-                placeholder="https://..."
+                placeholder="https://official.mabinogimobile.nexon.com..."
                 value={newNotice.link || ""}
                 onChange={(e) => setNewNotice({ ...newNotice, link: e.target.value })}
-                className="w-full bg-[var(--panel)] border border-[var(--panel-border)] rounded-lg px-3 py-2 text-[0.85rem] text-[var(--text-main)] focus:border-[var(--accent)] outline-none"
+                className="w-full bg-[var(--panel)] border border-[var(--panel-border)] rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-[var(--text-main)] focus:border-[var(--accent)] outline-none transition"
               />
+              <div className="p-3 bg-[var(--panel)] border border-[var(--panel-border)] rounded-xl space-y-1.5 text-[11px] sm:text-xs text-[var(--text-sub)]">
+                <p className="font-bold text-[var(--accent)]">
+                  외부 바로가기 링크 기능 동작 안내
+                </p>
+                <p>• [{newNotice.type}] 카테고리는 공지 목록에서 글 클릭 시 바로 외부 URL로 이동합니다.</p>
+                <p>• 보안 환경을 위해 접속 전 보안 이동 확인 팝업이 표시됩니다.</p>
+              </div>
             </div>
           ) : (
-            <div className="flex flex-col flex-1 min-h-0 relative overflow-hidden bg-[var(--panel)]">
+            /* 🎯 [onPaste / onDrop 감지 및 실시간 스마트 리샘플링 에디터] */
+            <div className="flex-1 min-h-0 relative z-10 overflow-y-auto custom-scrollbar bg-[var(--panel)] rounded-b-xl flex flex-col">
               <div
                 ref={editorRef}
                 contentEditable
                 spellCheck={false}
                 onInput={handleEditorInput}
+                onPaste={handleEditorPaste}
                 onClick={() => setActivePopover(null)}
                 onKeyDown={handleEditorKeyDown}
                 onContextMenu={handleEditorContextMenu}
@@ -1335,35 +1696,93 @@ export default function KerygmaWritePage() {
                 onDragStart={handleDragStart}
                 onDragOver={handleDragOver}
                 onDrop={handleDrop}
-                className="w-full flex-1 min-h-0 p-3 sm:p-5 bg-[var(--panel)] text-[0.9rem] sm:text-[0.95rem] leading-[1.65] text-[var(--text-main)] outline-none custom-scrollbar prose-editor overflow-y-auto"
-                data-placeholder="내용을 작성해주세요..."
-              />
-
-              <KerygmaPollModal
-                isOpen={isPollModalOpen}
-                onClose={() => setIsPollModalOpen(false)}
-                pollForm={pollForm}
-                setPollForm={setPollForm}
-                onInsertPoll={insertPoll}
+                className="w-full flex-1 min-h-[300px] p-3 sm:p-5 bg-[var(--panel)] text-[0.9rem] sm:text-[0.95rem] leading-[1.65] text-[var(--text-main)] outline-none custom-scrollbar prose-editor"
+                data-placeholder="케리그마 공지사항 내용을 작성해주세요..."
               />
             </div>
           )}
         </div>
       </div>
 
+      {/* 투표 모달 */}
+      <KerygmaPollModal
+        isOpen={isPollModalOpen}
+        onClose={() => setIsPollModalOpen(false)}
+        pollForm={pollForm}
+        setPollForm={setPollForm}
+        onInsertPoll={handleInsertPoll}
+      />
+
+      {/* 모바일 전용 카테고리 선택 모달 */}
+      {isCategoryModalOpen && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs z-[9999] flex items-center justify-center p-4 animate-fadeIn"
+          onClick={() => setIsCategoryModalOpen(false)}
+        >
+          <div
+            className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl p-5 w-full max-w-xs shadow-2xl space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-[var(--panel-border)] pb-2.5">
+              <h3 className="text-sm font-bold text-[var(--text-main)]">
+                카테고리 선택
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsCategoryModalOpen(false)}
+                className="text-[var(--text-sub)] hover:text-[var(--text-main)] text-xs font-bold p-1 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              {KERYGMA_CATEGORIES.map((cat) => {
+                const isSelected = newNotice.type === cat;
+                const isMasterOnly =
+                  cat.includes("생텀") && !cat.includes("가이드") && !isMaster;
+
+                return (
+                  <button
+                    key={cat}
+                    type="button"
+                    disabled={isMasterOnly}
+                    onClick={() => {
+                      setNewNotice({ ...newNotice, type: cat });
+                      setIsCategoryModalOpen(false);
+                    }}
+                    className={`w-full py-2.5 px-3 rounded-xl border text-xs font-bold text-left transition flex items-center justify-between cursor-pointer ${
+                      isSelected
+                        ? "bg-[var(--accent)] text-[var(--accent-fg)] border-[var(--accent)] shadow"
+                        : "bg-[var(--inner-box)] border-[var(--panel-border)] text-[var(--text-main)] hover:border-[var(--accent)]/50 disabled:opacity-30"
+                    }`}
+                  >
+                    <span>{cat}</span>
+                    {isSelected && <span className="text-xs">선택됨</span>}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 우클릭 표 조작 컨텍스트 메뉴 */}
       {contextMenu && (
         <div
-          className="fixed bg-[#202023] border border-zinc-700 shadow-2xl rounded-xl p-2.5 min-w-[250px] z-[9999] text-zinc-200 flex flex-col gap-2 text-[0.75rem]"
+          className="fixed bg-[var(--panel)] border border-[var(--panel-border)] shadow-2xl rounded-2xl p-3 min-w-[240px] z-[9999] text-[var(--text-main)] flex flex-col gap-2 text-[0.75rem]"
           style={{
-            top: Math.min(contextMenu.y, window.innerHeight - 420),
-            left: Math.min(contextMenu.x, window.innerWidth - 260),
+            top: Math.min(contextMenu.y, window.innerHeight - 400),
+            left: Math.min(contextMenu.x, window.innerWidth - 250),
           }}
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex flex-col gap-1.5">
-            <span className="text-[0.65rem] font-bold text-[var(--accent)]">📐 표 전체 크기 & 배치</span>
+            <span className="text-[0.65rem] font-bold text-[var(--accent)]">
+              표 크기 & 배치
+            </span>
             <div className="flex items-center justify-between text-[0.65rem] gap-1">
-              <span className="text-zinc-400">너비:</span>
+              <span className="text-[var(--text-sub)]">너비:</span>
               <div className="flex gap-1">
                 {[
                   { label: "100%", val: "100%" },
@@ -1373,8 +1792,9 @@ export default function KerygmaWritePage() {
                 ].map((w) => (
                   <button
                     key={w.label}
+                    type="button"
                     onClick={() => applyTableWidth(contextMenu.cell, w.val)}
-                    className="px-1.5 py-0.5 bg-[#141416] border border-zinc-700 hover:border-[var(--accent)] hover:text-[var(--accent)] text-zinc-300 rounded cursor-pointer"
+                    className="px-1.5 py-0.5 bg-[var(--inner-box)] border border-[var(--panel-border)] hover:border-[var(--accent)] hover:text-[var(--accent)] text-[var(--text-main)] rounded cursor-pointer transition"
                   >
                     {w.label}
                   </button>
@@ -1383,7 +1803,7 @@ export default function KerygmaWritePage() {
             </div>
 
             <div className="flex items-center justify-between text-[0.65rem] gap-1">
-              <span className="text-zinc-400">정렬:</span>
+              <span className="text-[var(--text-sub)]">정렬:</span>
               <div className="flex gap-1">
                 {[
                   { label: "좌측", val: "left" },
@@ -1392,8 +1812,11 @@ export default function KerygmaWritePage() {
                 ].map((a) => (
                   <button
                     key={a.label}
-                    onClick={() => applyTableAlign(contextMenu.cell, a.val as any)}
-                    className="px-2 py-0.5 bg-[#141416] border border-zinc-700 hover:border-[var(--accent)] hover:text-[var(--accent)] text-zinc-300 rounded cursor-pointer"
+                    type="button"
+                    onClick={() =>
+                      applyTableAlign(contextMenu.cell, a.val as any)
+                    }
+                    className="px-2 py-0.5 bg-[var(--inner-box)] border border-[var(--panel-border)] hover:border-[var(--accent)] hover:text-[var(--accent)] text-[var(--text-main)] rounded cursor-pointer transition"
                   >
                     {a.label}
                   </button>
@@ -1402,20 +1825,23 @@ export default function KerygmaWritePage() {
             </div>
           </div>
 
-          <div className="h-[1px] bg-zinc-700/80 my-0.5" />
+          <div className="h-[1px] bg-[var(--panel-border)] my-0.5" />
 
           <div className="flex flex-col gap-1.5">
-            <span className="text-[0.65rem] font-bold text-zinc-400">🎨 셀 배경색 선택</span>
+            <span className="text-[0.65rem] font-bold text-[var(--text-sub)]">
+              셀 배경색
+            </span>
             <div className="grid grid-cols-4 gap-1.5">
               {CELL_BG_COLORS.map((c) => (
                 <button
                   key={c.name}
+                  type="button"
                   onClick={() => applyCellBgColor(contextMenu.cell, c.value)}
-                  className="flex items-center justify-center gap-1 py-1 px-1 bg-[#141416] border hover:border-white rounded text-[0.63rem] text-zinc-300 cursor-pointer"
+                  className="flex items-center justify-center gap-1 py-1 px-1 bg-[var(--inner-box)] border hover:border-[var(--accent)] rounded text-[0.63rem] text-[var(--text-main)] cursor-pointer transition"
                   style={{ borderColor: c.border }}
                 >
                   <span
-                    className="w-2.5 h-2.5 rounded-full border border-zinc-600 inline-block shrink-0"
+                    className="w-2.5 h-2.5 rounded-full border border-[var(--panel-border)] inline-block shrink-0"
                     style={{ backgroundColor: c.value }}
                   />
                   <span>{c.name}</span>
@@ -1424,92 +1850,67 @@ export default function KerygmaWritePage() {
             </div>
           </div>
 
-          <div className="h-[1px] bg-zinc-700/80 my-0.5" />
+          <div className="h-[1px] bg-[var(--panel-border)] my-0.5" />
 
           <div className="flex flex-col gap-1">
-            <span className="text-[0.65rem] font-bold text-zinc-400">➕ 행 / 열 추가</span>
+            <span className="text-[0.65rem] font-bold text-[var(--text-sub)]">
+              행 / 열 추가
+            </span>
             <div className="grid grid-cols-2 gap-1">
               <button
+                type="button"
                 onClick={() => insertRow(contextMenu.cell, "above")}
-                className="px-2 py-1 bg-[#141416] border border-zinc-700 hover:bg-zinc-700 rounded text-left flex items-center gap-1 cursor-pointer"
+                className="px-2 py-1 bg-[var(--inner-box)] border border-[var(--panel-border)] hover:bg-[var(--panel-hover)] rounded text-left cursor-pointer transition"
               >
-                <span>⬆️</span> 위로 행 삽입
+                위로 행 삽입
               </button>
               <button
+                type="button"
                 onClick={() => insertRow(contextMenu.cell, "below")}
-                className="px-2 py-1 bg-[#141416] border border-zinc-700 hover:bg-zinc-700 rounded text-left flex items-center gap-1 cursor-pointer"
+                className="px-2 py-1 bg-[var(--inner-box)] border border-[var(--panel-border)] hover:bg-[var(--panel-hover)] rounded text-left cursor-pointer transition"
               >
-                <span>⬇️</span> 아래 행 삽입
+                아래 행 삽입
               </button>
               <button
+                type="button"
                 onClick={() => insertColumn(contextMenu.cell, "left")}
-                className="px-2 py-1 bg-[#141416] border border-zinc-700 hover:bg-zinc-700 rounded text-left flex items-center gap-1 cursor-pointer"
+                className="px-2 py-1 bg-[var(--inner-box)] border border-[var(--panel-border)] hover:bg-[var(--panel-hover)] rounded text-left cursor-pointer transition"
               >
-                <span>⬅️</span> 좌측 열 삽입
+                좌측 열 삽입
               </button>
               <button
+                type="button"
                 onClick={() => insertColumn(contextMenu.cell, "right")}
-                className="px-2 py-1 bg-[#141416] border border-zinc-700 hover:bg-zinc-700 rounded text-left flex items-center gap-1 cursor-pointer"
+                className="px-2 py-1 bg-[var(--inner-box)] border border-[var(--panel-border)] hover:bg-[var(--panel-hover)] rounded text-left cursor-pointer transition"
               >
-                <span>➡️</span> 우측 열 삽입
+                우측 열 삽입
               </button>
             </div>
           </div>
 
-          <div className="h-[1px] bg-zinc-700/80 my-0.5" />
+          <div className="h-[1px] bg-[var(--panel-border)] my-0.5" />
 
-          <div className="flex flex-col gap-1">
-            <span className="text-[0.65rem] font-bold text-zinc-400">📏 셀 너비 / 높이 퀵 설정</span>
-            <div className="flex items-center justify-between gap-1 text-[0.65rem]">
-              <span className="text-zinc-400">높이:</span>
-              <div className="flex gap-1">
-                {["30px", "45px", "60px"].map((h) => (
-                  <button
-                    key={h}
-                    onClick={() => applyCellDimensions(contextMenu.cell, { height: h })}
-                    className="px-1.5 py-0.5 bg-[#141416] border border-zinc-700 hover:border-[var(--accent)] text-zinc-300 rounded cursor-pointer"
-                  >
-                    {h}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="flex items-center justify-between gap-1 text-[0.65rem]">
-              <span className="text-zinc-400">너비:</span>
-              <div className="flex gap-1">
-                {["80px", "140px", "200px"].map((w) => (
-                  <button
-                    key={w}
-                    onClick={() => applyCellDimensions(contextMenu.cell, { width: w })}
-                    className="px-1.5 py-0.5 bg-[#141416] border border-zinc-700 hover:border-[var(--accent)] text-zinc-300 rounded cursor-pointer"
-                  >
-                    {w}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="h-[1px] bg-zinc-700/80 my-0.5" />
-
-          <div className="flex items-center justify-between gap-1 text-[0.7rem]">
+          <div className="flex flex-col gap-1 text-[0.7rem]">
             <button
+              type="button"
               onClick={() => deleteRow(contextMenu.cell)}
-              className="px-2 py-1 bg-red-950/40 border border-red-800/60 hover:bg-red-900/60 text-red-300 rounded cursor-pointer flex-1"
+              className="px-2 py-1 bg-red-950/40 border border-red-800/60 hover:bg-red-900/60 text-red-300 rounded cursor-pointer flex-1 transition"
             >
-              🗑️ 행 삭제
+              행 삭제
             </button>
             <button
+              type="button"
               onClick={() => deleteColumn(contextMenu.cell)}
-              className="px-2 py-1 bg-red-950/40 border border-red-800/60 hover:bg-red-900/60 text-red-300 rounded cursor-pointer flex-1"
+              className="px-2 py-1 bg-red-950/40 border border-red-800/60 hover:bg-red-900/60 text-red-300 rounded cursor-pointer flex-1 transition"
             >
-              🗑️ 열 삭제
+              열 삭제
             </button>
             <button
+              type="button"
               onClick={() => deleteTable(contextMenu.cell)}
-              className="px-2 py-1 bg-red-900 border border-red-700 hover:bg-red-800 text-white rounded cursor-pointer flex-1 font-bold"
+              className="px-2 py-1 bg-red-600 border border-red-500 hover:bg-red-700 text-white rounded cursor-pointer flex-1 font-bold transition"
             >
-              ❌ 표 삭제
+              표 삭제
             </button>
           </div>
         </div>

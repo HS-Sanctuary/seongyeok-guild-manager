@@ -24,6 +24,13 @@ export default function KerygmaPage() {
 
   const [activeCategory, setActiveCategory] = useState("전체");
 
+  // 🛡️ 외부 사이트 이동 확인 모달 상태
+  const [confirmLinkModal, setConfirmLinkModal] = useState<{
+    isOpen: boolean;
+    url: string;
+    title: string;
+  } | null>(null);
+
   const formatNoticeDate = (dateStr: string) => {
     if (!dateStr) return "";
     const d = new Date(dateStr);
@@ -84,7 +91,6 @@ export default function KerygmaPage() {
     });
     setNotices(combined);
 
-    // 🎯 [작성 완료 직후 바로 보기 자동 바인딩] URL 쿼리 파라미터 id 체크
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const targetId = params.get("id");
@@ -141,10 +147,18 @@ export default function KerygmaPage() {
   };
 
   const openNotice = (notice: Notice) => {
-    if (LINK_ONLY_CATEGORIES.includes(notice.type) && notice.link) {
-      window.open(notice.link, "_blank");
+    const isLinkType = notice.link || LINK_ONLY_CATEGORIES.includes(notice.type);
+
+    if (isLinkType) {
+      const targetUrl = notice.link || "https://official.mabinogimobile.nexon.com";
+      setConfirmLinkModal({
+        isOpen: true,
+        url: targetUrl,
+        title: notice.title,
+      });
       return;
     }
+
     setSelectedNotice(notice);
     loadComments(notice.id);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -249,23 +263,26 @@ export default function KerygmaPage() {
   if (!mounted) return null;
 
   return (
-    <main className="min-h-screen bg-[var(--background)] text-[var(--foreground)] pb-24 pt-4 overflow-x-hidden">
+    <main className="min-h-screen bg-[var(--background)] text-[var(--foreground)] pb-24 pt-3 overflow-x-hidden">
       {/* 1. 메인 리스트 뷰 */}
       <div
-        className={`max-w-[1400px] mx-auto px-4 md:px-6 space-y-4 transition-all duration-300 ${
+        className={`max-w-[1400px] mx-auto px-3 sm:px-6 space-y-3 sm:space-y-4 transition-all duration-300 ${
           selectedNotice
             ? "opacity-0 pointer-events-none h-0 overflow-hidden"
             : "opacity-100"
         }`}
       >
+        {/* 상단 헤더 (ℹ️ 모달 내장) */}
         <KerygmaHeader />
 
+        {/* 카테고리 3-버튼 바 ([공지 전체] [변경] [작성]) */}
         <KerygmaCategoryTabs
           activeCategory={activeCategory}
           onSelectCategory={setActiveCategory}
           canWriteNotice={canWriteNotice}
         />
 
+        {/* 공지 목록 리스트 */}
         <KerygmaTableList
           isLoading={isLoading}
           notices={filteredList}
@@ -304,6 +321,62 @@ export default function KerygmaPage() {
           recentNoticesList={recentNoticesList}
           onOpenNotice={openNotice}
         />
+      )}
+
+      {/* 🛡️ 외부 사이트 이동 안내 / 보안 확인 모달 */}
+      {confirmLinkModal?.isOpen && (
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-xs z-[100] flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl p-5 sm:p-6 w-full max-w-sm shadow-2xl space-y-4 border-amber-500/40">
+            <div className="flex items-center justify-between border-b border-[var(--panel-border)] pb-3">
+              <h3 className="text-sm sm:text-base font-bold text-[var(--accent)] flex items-center gap-2">
+                <span>🛡️</span>
+                <span>외부 사이트 이동 안내</span>
+              </h3>
+              <button
+                onClick={() => setConfirmLinkModal(null)}
+                className="text-[var(--text-sub)] hover:text-[var(--text-main)] text-xs font-bold cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-2.5">
+              <p className="text-xs font-bold text-[var(--text-main)] break-all">
+                "{confirmLinkModal.title}"
+              </p>
+              
+              <div className="p-3 bg-[var(--inner-box)] border border-[var(--panel-border)] rounded-xl break-all text-[11px] font-mono text-[var(--accent)]">
+                {confirmLinkModal.url}
+              </div>
+
+              <div className="p-3 bg-red-950/20 border border-red-800/40 rounded-xl space-y-1 text-[11px] text-red-300">
+                <p className="font-bold flex items-center gap-1">
+                  <span>⚠️</span> <span>보안 주의사항</span>
+                </p>
+                <p>성역(SANCTUM) 외부의 사이트로 이동합니다. 신뢰할 수 있는 사이트인지 확인 후 접속해 주세요.</p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-[var(--panel-border)]">
+              <button
+                onClick={() => setConfirmLinkModal(null)}
+                className="px-4 py-2 bg-[var(--inner-box)] border border-[var(--panel-border)] hover:bg-[var(--panel-hover)] text-[var(--text-main)] text-xs font-bold rounded-xl transition cursor-pointer"
+              >
+                취소
+              </button>
+              <button
+                onClick={() => {
+                  window.open(confirmLinkModal.url, "_blank", "noopener,noreferrer");
+                  setConfirmLinkModal(null);
+                }}
+                className="px-4 py-2 bg-[var(--accent)] hover:bg-[var(--accent-strong)] text-[var(--accent-fg)] text-xs font-bold rounded-xl transition shadow cursor-pointer flex items-center gap-1"
+              >
+                <span>이동하기</span>
+                <span>🔗</span>
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       <style
