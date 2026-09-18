@@ -18,21 +18,21 @@ interface AccountPreset {
 // 🎯 Shift+1~0 특수문자 10종 리스트
 const SPECIAL_CHARS = ["!", "@", "#", "$", "%", "^", "&", "*", "(", ")"];
 
-// 무작위 2자리 특수문자 생성 헬퍼 함수
-const generateRandomSpecialChars = () => {
-  const c1 = SPECIAL_CHARS[Math.floor(Math.random() * SPECIAL_CHARS.length)];
-  const c2 = SPECIAL_CHARS[Math.floor(Math.random() * SPECIAL_CHARS.length)];
-  return `${c1}${c2}`;
-};
+// 🪶 좌우로 유기적으로 크게 살랑거리며 천천히 낙하하는 깃털 7개의 결정론적 물리 속성
+const FEATHER_PARTICLES = Array.from({ length: 7 }, (_, i) => {
+  const pseudo1 = ((i * 17 + 5) % 10) / 10;
+  const pseudo2 = ((i * 23 + 11) % 10) / 10;
+  const pseudo3 = ((i * 29 + 3) % 10) / 10;
+  const pseudo4 = ((i * 31 + 7) % 10) / 10;
 
-// 🪶 좌우로 살랑거리며 낙하하는 깃털 14개의 무작위 물리 속성
-const FEATHER_PARTICLES = Array.from({ length: 14 }, (_, i) => ({
-  id: i,
-  left: `${(i * 7.1 + Math.random() * 4).toFixed(1)}%`,
-  duration: `${(7 + Math.random() * 5).toFixed(1)}s`,
-  delay: `${(Math.random() * 6).toFixed(1)}s`,
-  scale: (0.45 + Math.random() * 0.55).toFixed(2),
-}));
+  return {
+    id: i,
+    left: `${(i * 13.5 + pseudo1 * 6).toFixed(1)}%`,
+    duration: `${(14 + pseudo2 * 9).toFixed(1)}s`,
+    delay: `${(pseudo3 * 8).toFixed(1)}s`,
+    scale: (0.45 + pseudo4 * 0.55).toFixed(2),
+  };
+});
 
 export default function LoginPage() {
   const router = useRouter();
@@ -43,23 +43,21 @@ export default function LoginPage() {
   // 기존 로그인 폼 상태
   const [nickname, setNickname] = useState("");
   const [code, setCode] = useState("");
+  const [keepLoggedIn, setKeepLoggedIn] = useState(true); // 로그인 상태 유지
 
   // 신규 가입 폼 상태
   const [regNickname, setRegNickname] = useState("");
   const [regFavWord, setRegFavWord] = useState("");
   const [regBirth, setRegBirth] = useState("");
-  const [specialSuffix, setSpecialSuffix] = useState("!&");
+  
+  // 🎯 선택된 특수문자 2개 상태 (기본값: ! 와 &)
+  const [selectedSpecials, setSelectedSpecials] = useState<string[]>(["!", "&"]);
 
   // 시스템 및 UI 상태
   const [loading, setLoading] = useState(false);
   const [showCredits, setShowCredits] = useState(false);
   const [failCount, setFailCount] = useState(0);
   const [lockoutTimer, setLockoutTimer] = useState(0);
-
-  // 초기 랜덤 특수문자 발급
-  useEffect(() => {
-    setSpecialSuffix(generateRandomSpecialChars());
-  }, []);
 
   // 쿨다운 타이머 처리
   useEffect(() => {
@@ -71,7 +69,35 @@ export default function LoginPage() {
     }
   }, [lockoutTimer]);
 
-  // 비밀번호 미리보기 조합 연산 (단어 + 생일4자리 + 무작위특수문자2자리)
+  // ⌨️ [ESC 키 입력 시 크레딧 모달 닫기 이벤트 바인딩]
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && showCredits) {
+        setShowCredits(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [showCredits]);
+
+  // 특수문자 칩 클릭 로직 (최대 2개 유지, 이미 2개면 가장 오래된 것 교체)
+  const handleSpecialCharClick = (char: string) => {
+    if (selectedSpecials.includes(char)) {
+      if (selectedSpecials.length > 1) {
+        setSelectedSpecials(selectedSpecials.filter((c) => c !== char));
+      }
+    } else {
+      if (selectedSpecials.length < 2) {
+        setSelectedSpecials([...selectedSpecials, char]);
+      } else {
+        setSelectedSpecials([selectedSpecials[1], char]);
+      }
+    }
+  };
+
+  const specialSuffix = selectedSpecials.join("");
+
+  // 비밀번호 미리보기 조합 연산
   const previewFav = regFavWord.trim().replaceAll(" ", "");
   const previewBirth = regBirth.trim();
   const generatedCodePreview = previewFav || previewBirth
@@ -122,6 +148,13 @@ export default function LoginPage() {
         return;
       }
 
+      // 로그인 상태 유지 설정 저장
+      if (keepLoggedIn) {
+        localStorage.setItem("sanctum_keep_logged_in", "true");
+      } else {
+        localStorage.removeItem("sanctum_keep_logged_in");
+      }
+
       executeLoginSuccess(data.nickname, data.role || "길드원");
     } catch (err) {
       console.error(err);
@@ -141,7 +174,10 @@ export default function LoginPage() {
     if (!cleanNick) return alert("대표 캐릭터 닉네임을 입력해주세요!");
     if (!cleanFav) return alert("좋아하는 것(단어/사물)을 입력해주세요!");
     if (!cleanBirth || !/^\d{4}$/.test(cleanBirth)) {
-      return alert("생일은 4자리 숫자(예: 0923)로 입력해주세요!");
+      return alert("생일은 4자리 숫자(예: 0328)로 입력해주세요!");
+    }
+    if (selectedSpecials.length < 2) {
+      return alert("접속 코드용 특수문자 2개를 선택해 주세요!");
     }
 
     const finalCode = `${cleanFav}${cleanBirth}${specialSuffix}`;
@@ -192,7 +228,7 @@ export default function LoginPage() {
       setRegNickname("");
       setRegFavWord("");
       setRegBirth("");
-      setSpecialSuffix(generateRandomSpecialChars());
+      setSelectedSpecials(["!", "&"]);
     } catch (err) {
       console.error(err);
       alert("신규 가입 처리 중 예외가 발생했습니다.");
@@ -245,71 +281,124 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#070709] flex flex-col items-center justify-center p-4 sm:p-6 relative overflow-hidden select-none">
+    <main className="min-h-screen bg-[url('/images/bg-login-mobile.webp')] sm:bg-[url('/images/bg-login-pc.webp')] bg-cover bg-center bg-no-repeat flex flex-col items-center justify-center p-4 sm:p-6 relative overflow-hidden select-none">
       
-      {/* 🪶 [Keyframe Animations] 좌우 파동 깃털 하강 & 날개 미세 호버링 모션 (좌우 반전 적용) */}
+      {/* 🪶 & 🔮 [Keyframe Animations] 넓은 좌우 스윙과 천천히 낙하하는 깃털 및 회전 빛줄기 키프레임 */}
       <style jsx global>{`
         @keyframes fallAndSway {
           0% {
-            transform: translateY(-10vh) translateX(0px) rotate(0deg);
+            transform: translateY(-10vh) translateX(0px) rotate(-15deg);
             opacity: 0;
           }
-          15% {
+          12% {
             opacity: 0.85;
           }
-          35% {
-            transform: translateY(35vh) translateX(45px) rotate(40deg);
+          30% {
+            transform: translateY(25vh) translateX(65px) rotate(35deg);
           }
-          60% {
-            transform: translateY(65vh) translateX(-40px) rotate(-30deg);
+          55% {
+            transform: translateY(55vh) translateX(-60px) rotate(-40deg);
           }
-          85% {
+          80% {
+            transform: translateY(82vh) translateX(40px) rotate(25deg);
             opacity: 0.85;
           }
           100% {
-            transform: translateY(105vh) translateX(15px) rotate(15deg);
+            transform: translateY(108vh) translateX(-15px) rotate(10deg);
             opacity: 0;
           }
         }
 
-        /* 🔄 좌측 날개: scaleX(-1) 반전 및 미세 호버 */
-        @keyframes wingFloatLeft {
-          0%, 100% {
-            transform: scaleX(-1) translateY(0px) rotate(0deg);
+        /* 🎯 피벗 중심축(translate(-50%, -50%))을 유지하면서 360도 회전 */
+        @keyframes rotateClockwise {
+          from {
+            transform: translate(-50%, -50%) rotate(0deg);
           }
-          50% {
-            transform: scaleX(-1) translateY(-14px) rotate(-1.5deg);
-          }
-        }
-
-        /* 🔄 우측 날개: scaleX(1) 원본 정방향 및 미세 호버 */
-        @keyframes wingFloatRight {
-          0%, 100% {
-            transform: scaleX(1) translateY(0px) rotate(0deg);
-          }
-          50% {
-            transform: scaleX(1) translateY(-14px) rotate(1.5deg);
+          to {
+            transform: translate(-50%, -50%) rotate(360deg);
           }
         }
 
-        /* ✨ 날개 광원 숨쉬기 모션 */
-        @keyframes wingPulseGlow {
+        @keyframes rotateCounterClockwise {
+          from {
+            transform: translate(-50%, -50%) rotate(0deg);
+          }
+          to {
+            transform: translate(-50%, -50%) rotate(-360deg);
+          }
+        }
+
+        @keyframes pulseBeam {
           0%, 100% {
-            opacity: 0.75;
-            filter: drop-shadow(0 0 25px rgba(255, 230, 150, 0.8)) drop-shadow(0 0 50px rgba(212, 175, 55, 0.5));
+            opacity: 0.28;
           }
           50% {
-            opacity: 1;
-            filter: drop-shadow(0 0 38px rgba(255, 240, 180, 0.95)) drop-shadow(0 0 75px rgba(255, 215, 0, 0.75));
+            opacity: 0.48;
           }
         }
       `}</style>
 
-      {/* 🌌 [Cinematic Background] 심층 구멍 천상 광원 및 오라 */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#2a2215] via-[#0b0b0e] to-[#050507] pointer-events-none" />
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[350px] sm:w-[600px] h-[750px] bg-gradient-to-b from-[#FFE082]/20 via-[#D4AF37]/5 to-transparent blur-3xl pointer-events-none" />
+      {/* 🌟 [Light Aura Overlay] 상단 SANCTUM 로고 천상 황금빛 방사 오라 */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(255,224,130,0.25)_0%,_rgba(212,175,55,0.08)_40%,_transparent_75%)] pointer-events-none z-0" />
 
-      {/* 🪶 [S자 좌우 흔들림 깃털 파티클 레이어] - 반투명 순백색 도색 */}
+      {/* 🔮 [Sun Core Sunbeams / Rotating Light Rays Layer] (초록색 십자가 지정 영역 피벗 바인딩 - 2중 중첩으로 콤보 애니메이션 충돌 분리) */}
+      <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
+        {/* 1. 시계 방향 회전 외곽 껍질 */}
+        <div
+          className="absolute left-1/2 top-[56%] sm:top-[50.5%] w-[250vh] h-[250vh] min-w-[1200px] min-h-[1200px] origin-center mix-blend-screen pointer-events-none"
+          style={{
+            animationName: "rotateClockwise",
+            animationDuration: "100s",
+            animationTimingFunction: "linear",
+            animationIterationCount: "infinite",
+          }}
+        >
+          {/* 내부 펄스 코어 */}
+          <div
+            className="w-full h-full origin-center"
+            style={{
+              background: `repeating-conic-gradient(
+                from 0deg at 50% 50%,
+                rgba(255, 224, 130, 0.16) 0deg 6deg,
+                transparent 6deg 24deg,
+                rgba(212, 175, 55, 0.11) 24deg 30deg,
+                transparent 30deg 54deg
+              )`,
+              maskImage: "radial-gradient(circle at 50% 50%, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.3) 40%, rgba(0,0,0,0) 75%)",
+              WebkitMaskImage: "radial-gradient(circle at 50% 50%, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.3) 40%, rgba(0,0,0,0) 75%)",
+              animationName: "pulseBeam",
+              animationDuration: "7s",
+              animationTimingFunction: "ease-in-out",
+              animationIterationCount: "infinite",
+            }}
+          />
+        </div>
+
+        {/* 2. 반시계 방향 회전 서브 보조 빛줄기 */}
+        <div
+          className="absolute left-1/2 top-[56%] sm:top-[50.5%] w-[250vh] h-[250vh] min-w-[1200px] min-h-[1200px] origin-center mix-blend-screen pointer-events-none"
+          style={{
+            background: `repeating-conic-gradient(
+              from 15deg at 50% 50%,
+              rgba(255, 240, 180, 0.12) 0deg 8deg,
+              transparent 8deg 32deg,
+              rgba(212, 175, 55, 0.08) 32deg 38deg,
+              transparent 38deg 65deg
+            )`,
+            maskImage: "radial-gradient(circle at 50% 50%, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.2) 45%, rgba(0,0,0,0) 80%)",
+            WebkitMaskImage: "radial-gradient(circle at 50% 50%, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.2) 45%, rgba(0,0,0,0) 80%)",
+            animationName: "rotateCounterClockwise",
+            animationDuration: "140s",
+            animationTimingFunction: "linear",
+            animationIterationCount: "infinite",
+          }}
+        />
+      </div>
+
+      {/* 🌌 [Soft Bottom Gradient] 텍스트 가독성 보장용 스무스 하단 차광 */}
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/10 to-black/50 pointer-events-none z-0" />
+
+      {/* 🪶 [넓고 천천히 S자로 흔들리는 깃털 파티클 레이어 - 쇼트핸드 분리 적용] */}
       <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden">
         {FEATHER_PARTICLES.map((p) => (
           <div
@@ -317,14 +406,16 @@ export default function LoginPage() {
             className="absolute top-0 w-6 h-6 sm:w-8 sm:h-8 opacity-0"
             style={{
               left: p.left,
-              animation: `fallAndSway ${p.duration} ease-in-out infinite`,
+              animationName: "fallAndSway",
+              animationDuration: p.duration,
+              animationTimingFunction: "ease-in-out",
+              animationIterationCount: "infinite",
               animationDelay: p.delay,
               transform: `scale(${p.scale})`,
             }}
           >
-            {/* ✨ 반투명 순백색 SVG Masking 렌더러 */}
             <div
-              className="w-full h-full bg-white/70"
+              className="w-full h-full bg-white/80"
               style={{
                 maskImage: `url('/svgs/logo/깃털.svg')`,
                 WebkitMaskImage: `url('/svgs/logo/깃털.svg')`,
@@ -334,287 +425,301 @@ export default function LoginPage() {
                 WebkitMaskPosition: "center",
                 maskSize: "contain",
                 WebkitMaskSize: "contain",
-                filter: "drop-shadow(0 0 8px rgba(255, 255, 255, 0.8))",
+                filter: "drop-shadow(0 0 10px rgba(255, 255, 255, 0.9))",
               }}
             />
           </div>
         ))}
       </div>
 
-      {/* 우측 상단 웅장한 크레딧 버튼 */}
-      <button
-        type="button"
-        onClick={() => setShowCredits(true)}
-        className="absolute top-4 right-4 sm:top-6 sm:right-6 px-3.5 py-1.5 sm:px-4 sm:py-2 bg-[#121216]/90 backdrop-blur-md border border-[#D4AF37]/50 hover:border-[#FFE082] text-[#F3E5AB] text-xs font-bold rounded-xl shadow-[0_0_15px_rgba(212,175,55,0.25)] transition-all flex items-center gap-2 hover:scale-105 active:scale-95 cursor-pointer z-40"
-      >
-        <span className="text-[#FFE082]">🏛️</span>
-        <span className="tracking-wider">CREDITS & HONOR</span>
-      </button>
-
-      {/* 🏛️ [Hero Header] 신성 엠블럼 & 금빛 세공 타이포 로고 */}
-      <div className="text-center relative z-20 mb-4 sm:mb-6 animate-fadeIn flex flex-col items-center">
-        <div className="relative flex items-center justify-center p-2 group cursor-pointer">
-          
-          {/* 천상 후광 링 */}
-          <svg className="absolute w-[300px] sm:w-[440px] h-[300px] sm:h-[440px] text-[#D4AF37]/25 pointer-events-none" viewBox="0 0 200 200" fill="none">
-            <circle cx="100" cy="100" r="90" stroke="currentColor" strokeWidth="0.75" strokeDasharray="4 4" />
-            <circle cx="100" cy="100" r="82" stroke="currentColor" strokeWidth="0.5" />
-            <circle cx="100" cy="100" r="74" stroke="currentColor" strokeWidth="0.25" strokeDasharray="12 6" />
-          </svg>
-
-          {/* 중앙 황금 후광 광원 */}
-          <div className="absolute w-44 h-44 bg-gradient-to-r from-amber-400/30 via-yellow-100/40 to-amber-500/30 rounded-full blur-2xl opacity-90 group-hover:opacity-100 transition duration-1000 animate-pulse pointer-events-none" />
-
-          {/* 메탈릭 골드 타이포 로고 */}
-          <div
-            className="w-[260px] sm:w-[360px] md:w-[420px] h-20 sm:h-28 md:h-32 bg-gradient-to-b from-[#FFFDF0] via-[#FFD700] to-[#996515] transition-transform duration-500 group-hover:scale-105 relative z-10"
-            style={{
-              maskImage: `url('/svgs/logo/생텀타이포로고.svg')`,
-              WebkitMaskImage: `url('/svgs/logo/생텀타이포로고.svg')`,
-              maskRepeat: "no-repeat",
-              WebkitMaskRepeat: "no-repeat",
-              maskPosition: "center",
-              WebkitMaskPosition: "center",
-              maskSize: "contain",
-              WebkitMaskSize: "contain",
-              filter: "drop-shadow(0 0 18px rgba(255, 215, 0, 0.8)) drop-shadow(0 4px 10px rgba(0,0,0,0.9))",
-            }}
-          />
-        </div>
-
-        {/* 한글 서버 라벨 */}
-        <div className="flex items-center justify-center gap-3 mt-1 relative z-10">
-          <div className="h-[1px] w-12 sm:w-28 bg-gradient-to-r from-transparent via-[#D4AF37]/80 to-transparent" />
-          <span className="text-[11px] sm:text-xs font-black text-[#F3E5AB] tracking-widest drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
-            ◆ 데이안 서버 • 성역 길드 ◆
-          </span>
-          <div className="h-[1px] w-12 sm:w-28 bg-gradient-to-r from-transparent via-[#D4AF37]/80 to-transparent" />
-        </div>
-      </div>
-
-      {/* 🪽 [Angel Wings & Form Card Container] 찬란한 신성 광원 도색 하얀 날개 컨테이너 */}
-      <div className="relative w-full max-w-md flex items-center justify-center z-20">
+      {/* ⚔️ [Floating Form Container] (배경 SANCTUM 로고 아래 정돈 mt-20 sm:mt-28) */}
+      <div className="w-full max-w-[330px] sm:max-w-[350px] relative z-20 space-y-3 mt-20 sm:mt-28 px-1">
         
-        {/* 1. 좌측 하얀 날개 (Left Wing) - 검은 스케치선 소멸 & 고광도 천상 오라 적용 */}
-        <div
-          className="absolute -left-[160px] sm:-left-[280px] md:-left-[350px] -top-[140px] sm:-top-[200px] md:-top-[240px] w-[240px] sm:w-[420px] md:w-[480px] h-auto pointer-events-none z-10 opacity-70 sm:opacity-100"
-          style={{ animation: "wingFloatLeft 6s ease-in-out infinite" }}
-        >
-          {/* 🌟 날개 자체에서 피어오르는 황금빛 백그라운드 광원 블러 */}
-          <div className="absolute inset-0 bg-radial from-[#FFE082]/40 via-[#D4AF37]/20 to-transparent blur-2xl rounded-full transform -rotate-12 scale-110 pointer-events-none" />
-          
-          <img
-            src="/svgs/logo/하얀날개.svg"
-            alt="White Wing Left"
-            className="w-full h-auto object-contain relative z-10 mix-blend-lighten filter brightness-125 contrast-110 drop-shadow-[0_0_25px_rgba(255,230,150,0.85)] drop-shadow-[0_0_55px_rgba(212,175,55,0.6)] drop-shadow-[0_0_80px_rgba(255,255,255,0.7)]"
-            style={{ animation: "wingPulseGlow 4s ease-in-out infinite" }}
-          />
-        </div>
-
-        {/* 2. 우측 하얀 날개 (Right Wing) - 검은 스케치선 소멸 & 고광도 천상 오라 적용 */}
-        <div
-          className="absolute -right-[160px] sm:-right-[280px] md:-right-[350px] -top-[140px] sm:-top-[200px] md:-top-[240px] w-[240px] sm:w-[420px] md:w-[480px] h-auto pointer-events-none z-10 opacity-70 sm:opacity-100"
-          style={{ animation: "wingFloatRight 6s ease-in-out infinite" }}
-        >
-          {/* 🌟 날개 자체에서 피어오르는 황금빛 백그라운드 광원 블러 */}
-          <div className="absolute inset-0 bg-radial from-[#FFE082]/40 via-[#D4AF37]/20 to-transparent blur-2xl rounded-full transform rotate-12 scale-110 pointer-events-none" />
-
-          <img
-            src="/svgs/logo/하얀날개.svg"
-            alt="White Wing Right"
-            className="w-full h-auto object-contain relative z-10 mix-blend-lighten filter brightness-125 contrast-110 drop-shadow-[0_0_25px_rgba(255,230,150,0.85)] drop-shadow-[0_0_55px_rgba(212,175,55,0.6)] drop-shadow-[0_0_80px_rgba(255,255,255,0.7)]"
-            style={{ animation: "wingPulseGlow 4s ease-in-out infinite" }}
-          />
-        </div>
-
-        {/* ⚔️ [Gothic Luxury Form Card] 중앙 접속 카드 */}
-        <div className="w-full bg-[#0D0D11]/90 backdrop-blur-2xl border border-[#D4AF37]/40 rounded-2xl p-5 sm:p-7 shadow-[0_20px_60px_rgba(0,0,0,0.95),0_0_40px_rgba(212,175,55,0.15)] relative z-20 overflow-hidden">
-          
-          {/* 4개 모서리 황금 필리그리 장식 */}
-          <svg className="absolute top-1 left-1 w-6 h-6 text-[#D4AF37]/60 pointer-events-none" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M2 2h8v2H4v6H2V2zm0 0l6 6" stroke="currentColor" strokeWidth="1" />
-          </svg>
-          <svg className="absolute top-1 right-1 w-6 h-6 text-[#D4AF37]/60 pointer-events-none" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M22 2h-8v2h6v6h2V2zm0 0l-6 6" stroke="currentColor" strokeWidth="1" />
-          </svg>
-          <svg className="absolute bottom-1 left-1 w-6 h-6 text-[#D4AF37]/60 pointer-events-none" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M2 22h8v-2H4v-6H2v8zm0 0l6-6" stroke="currentColor" strokeWidth="1" />
-          </svg>
-          <svg className="absolute bottom-1 right-1 w-6 h-6 text-[#D4AF37]/60 pointer-events-none" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M22 22h-8v-2h6v-6h2v8zm0 0l-6-6" stroke="currentColor" strokeWidth="1" />
-          </svg>
-
-          {/* 탭 스위처 */}
-          <div className="flex bg-[#050507] p-1 rounded-xl border border-[#2A2A33] mb-5 relative z-10">
-            <button
-              type="button"
-              onClick={() => setActiveTab("login")}
-              className={`flex-1 py-2.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                activeTab === "login"
-                  ? "bg-gradient-to-r from-[#D4AF37] via-[#F3E5AB] to-[#C5A059] text-slate-950 font-black shadow-[0_0_15px_rgba(212,175,55,0.4)]"
-                  : "text-zinc-400 hover:text-white"
-              }`}
-            >
-              🔐 기존 계정 접속
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab("register")}
-              className={`flex-1 py-2.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                activeTab === "register"
-                  ? "bg-gradient-to-r from-[#D4AF37] via-[#F3E5AB] to-[#C5A059] text-slate-950 font-black shadow-[0_0_15px_rgba(212,175,55,0.4)]"
-                  : "text-zinc-400 hover:text-white"
-              }`}
-            >
-              ⚔️ 신규 길드원 가입
-            </button>
+        {/* 📜 [상단 슬로건 - 극초경량 블러 bg-black/10 backdrop-blur-[2px]] */}
+        <div className="text-center space-y-1">
+          <div className="inline-block px-3 py-1 rounded-xl bg-black/10 backdrop-blur-[2px]">
+            <h2 className="text-xs sm:text-[13px] font-serif font-medium text-[#FFFDF0] tracking-wide drop-shadow-[0_2px_6px_rgba(0,0,0,0.95)]">
+              성역과 함께 시작하는 마비노기 모바일.
+            </h2>
           </div>
+          <div className="flex items-center justify-center gap-2 opacity-75 pt-0.5">
+            <div className="h-[1px] w-10 bg-gradient-to-r from-transparent to-[#D4AF37]" />
+            <span className="text-[#D4AF37] text-[8px] drop-shadow-[0_0_5px_rgba(212,175,55,0.8)]">✦</span>
+            <div className="h-[1px] w-10 bg-gradient-to-l from-transparent to-[#D4AF37]" />
+          </div>
+        </div>
 
-          {/* 2-A. 기존 계정 접속 폼 */}
-          {activeTab === "login" ? (
-            <form onSubmit={handleLogin} className="space-y-4 relative z-10 animate-fadeIn">
-              <div>
-                <label className="block text-xs font-bold text-[#D4AF37]/90 mb-1.5">
-                  대표 캐릭터 닉네임
-                </label>
-                <input
-                  type="text"
-                  value={nickname}
-                  onChange={(e) => setNickname(e.target.value)}
-                  className="w-full bg-[#050508]/90 border border-[#2A2A35] text-white rounded-xl p-3 text-xs sm:text-sm focus:outline-none focus:border-[#D4AF37] focus:shadow-[0_0_12px_rgba(212,175,55,0.3)] transition"
-                  placeholder="대표 캐릭터 닉네임 (예: 한설)"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-[#D4AF37]/90 mb-1.5">
-                  접속 코드
-                </label>
-                <input
-                  type="password"
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                  className="w-full bg-[#050508]/90 border border-[#2A2A35] text-white rounded-xl p-3 text-xs sm:text-sm focus:outline-none focus:border-[#D4AF37] focus:shadow-[0_0_12px_rgba(212,175,55,0.3)] transition"
-                  placeholder="부여받은 접속 코드를 입력하세요"
-                />
-              </div>
+        {/* 2-A. 기존 계정 로그인 폼 */}
+        {activeTab === "login" ? (
+          <form onSubmit={handleLogin} className="space-y-3 relative z-10 animate-fadeIn">
+            
+            {/* 아이디 (대표 캐릭터 닉네임) 입력란 - PC뷰 폰트 슬림화 적용 */}
+            <div className="relative flex items-center">
+              <span className="absolute left-3.5 z-20 pointer-events-none drop-shadow-[0_0_8px_rgba(255,224,130,0.9)]">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="#FFE082" strokeWidth="2.2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              </span>
+              <input
+                type="text"
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+                className="w-full pl-11 pr-4 py-2.5 sm:py-2 bg-[#050608]/35 backdrop-blur-md border border-[#D4AF37]/35 text-white rounded-xl text-[11px] sm:text-xs focus:outline-none focus:border-[#FFE082] focus:ring-1 focus:ring-[#FFE082]/60 focus:shadow-[0_0_15px_rgba(212,175,55,0.35)] transition placeholder:text-zinc-300/80 shadow-[0_8px_20px_rgba(0,0,0,0.5)]"
+                placeholder="대표 캐릭터 닉네임 (예: 성역)"
+              />
+            </div>
 
-              {lockoutTimer > 0 && (
-                <div className="p-2.5 bg-rose-950/60 border border-rose-800/80 rounded-lg text-center text-xs font-bold text-rose-300">
-                  ⚠️ 보안 쿨다운 실행 중: {lockoutTimer}초 남음
+            {/* 비밀번호 (접속 코드) 입력란 - PC뷰 폰트 슬림화 적용 */}
+            <div className="relative flex items-center">
+              <span className="absolute left-3.5 z-20 pointer-events-none drop-shadow-[0_0_8px_rgba(255,224,130,0.9)]">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="#FFE082" strokeWidth="2.2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </span>
+              <input
+                type="password"
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                className="w-full pl-11 pr-4 py-2.5 sm:py-2 bg-[#050608]/35 backdrop-blur-md border border-[#D4AF37]/35 text-white rounded-xl text-[11px] sm:text-xs focus:outline-none focus:border-[#FFE082] focus:ring-1 focus:ring-[#FFE082]/60 focus:shadow-[0_0_15px_rgba(212,175,55,0.35)] transition placeholder:text-zinc-300/80 shadow-[0_8px_20px_rgba(0,0,0,0.5)]"
+                placeholder="생성하신 접속 코드를 입력하세요."
+              />
+            </div>
+
+            {/* 📜 [로그인 상태 유지 & 생텀 신규 가입] */}
+            <div className="flex items-center justify-between py-0.5 text-xs">
+              <label className="flex items-center gap-2 cursor-pointer select-none group px-2.5 py-1 bg-black/10 backdrop-blur-[2px] rounded-lg transition">
+                <div
+                  onClick={() => setKeepLoggedIn(!keepLoggedIn)}
+                  className="w-4 h-4 rounded-[4px] bg-[#050608]/40 border border-[#D4AF37]/60 flex items-center justify-center cursor-pointer transition-all shadow-inner group-hover:border-[#FFE082]"
+                >
+                  {keepLoggedIn && (
+                    <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
                 </div>
-              )}
+                <span
+                  onClick={() => setKeepLoggedIn(!keepLoggedIn)}
+                  className="font-medium text-[11px] sm:text-xs text-[#FFFDF0] transition drop-shadow-[0_1px_4px_rgba(0,0,0,1)]"
+                >
+                  로그인 상태 유지
+                </span>
+              </label>
 
               <button
-                type="submit"
-                disabled={loading || lockoutTimer > 0}
-                className="w-full bg-gradient-to-r from-[#D4AF37] via-[#FFF5C0] to-[#C5A059] hover:brightness-110 text-slate-950 font-black py-3 rounded-xl mt-4 transition shadow-[0_4px_20px_rgba(212,175,55,0.35)] disabled:opacity-50 cursor-pointer text-xs sm:text-sm tracking-wide"
+                type="button"
+                onClick={() => setActiveTab("register")}
+                className="px-2.5 py-1 bg-black/10 backdrop-blur-[2px] rounded-lg text-[#FFE082] hover:text-white transition font-medium text-[11px] sm:text-xs cursor-pointer hover:underline underline-offset-4 drop-shadow-[0_1px_4px_rgba(0,0,0,1)]"
               >
-                {loading ? "성역 인증 중..." : "생텀 접속하기"}
+                생텀 신규 가입
               </button>
-            </form>
-          ) : (
-            /* 2-B. 신규 길드원 가입 신청 폼 */
-            <form onSubmit={handleRegister} className="space-y-3.5 relative z-10 animate-fadeIn">
-              <div>
-                <label className="block text-xs font-bold text-[#D4AF37]/90 mb-1">
+            </div>
+
+            {lockoutTimer > 0 && (
+              <div className="p-2.5 bg-rose-950/90 border border-rose-800 rounded-xl text-center text-xs font-bold text-rose-200 backdrop-blur-md shadow-lg">
+                ⚠️ 보안 쿨다운 실행 중: {lockoutTimer}초 남음
+              </div>
+            )}
+
+            {/* 👑 [고품격 판타지 RPG 메탈릭 로그인 버튼] */}
+            <button
+              type="submit"
+              disabled={loading || lockoutTimer > 0}
+              className="relative w-full py-3 rounded-md bg-gradient-to-r from-[#1a1510] via-[#3a2b1b] to-[#1a1510] border border-[#a6824a] hover:border-[#f3e5ab] text-[#f0d297] font-serif font-medium text-xs sm:text-sm tracking-widest shadow-[inset_0_1px_1px_rgba(255,255,255,0.15),0_4px_16px_rgba(0,0,0,0.85)] transition-all cursor-pointer flex items-center justify-center group overflow-hidden active:scale-[0.99] mt-1"
+            >
+              <div className="absolute inset-[2px] border border-[#d4af37]/40 rounded-[3px] pointer-events-none group-hover:border-[#ffe082]/70 transition-colors" />
+
+              {/* 4방향 중앙 다이아몬드 메탈 노드 장식 (✦) */}
+              <div className="absolute -top-[3px] left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-[#d4af37] rotate-45 border border-[#1a1510] shadow-[0_0_6px_rgba(212,175,55,0.8)]" />
+              <div className="absolute -bottom-[3px] left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-[#d4af37] rotate-45 border border-[#1a1510] shadow-[0_0_6px_rgba(212,175,55,0.8)]" />
+              <div className="absolute -left-[3px] top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-[#d4af37] rotate-45 border border-[#1a1510] shadow-[0_0_6px_rgba(212,175,55,0.8)]" />
+              <div className="absolute -right-[3px] top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-[#d4af37] rotate-45 border border-[#1a1510] shadow-[0_0_6px_rgba(212,175,55,0.8)]" />
+
+              <span className="relative z-10 drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)]">
+                {loading ? "성역 인증 중..." : "로그인"}
+              </span>
+            </button>
+          </form>
+        ) : (
+          /* 2-B. 신규 길드원 가입 신청 폼 */
+          <form onSubmit={handleRegister} className="space-y-3 relative z-10 animate-fadeIn">
+            <div>
+              <div className="inline-block mb-1 px-2 py-0.5 rounded-md bg-black/10 backdrop-blur-[2px]">
+                <label className="block text-xs font-normal text-[#D4AF37] drop-shadow-[0_1px_4px_rgba(0,0,0,1)]">
                   대표 캐릭터 닉네임
                 </label>
+              </div>
+              <input
+                type="text"
+                value={regNickname}
+                onChange={(e) => setRegNickname(e.target.value)}
+                className="w-full bg-[#050608]/35 backdrop-blur-md border border-[#D4AF37]/35 text-white rounded-xl p-2.5 sm:py-2 text-[11px] sm:text-xs focus:outline-none focus:border-[#FFE082] focus:shadow-[0_0_15px_rgba(212,175,55,0.35)] transition placeholder:text-zinc-300/80 shadow-[0_8px_20px_rgba(0,0,0,0.5)]"
+                placeholder="마비노기 모바일 본캐 닉네임"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <div className="inline-block mb-1 px-2 py-0.5 rounded-md bg-black/10 backdrop-blur-[2px]">
+                  <label className="block text-xs font-normal text-[#D4AF37] drop-shadow-[0_1px_4px_rgba(0,0,0,1)]">
+                    좋아하는 것 (7글자)
+                  </label>
+                </div>
                 <input
                   type="text"
-                  value={regNickname}
-                  onChange={(e) => setRegNickname(e.target.value)}
-                  className="w-full bg-[#050508]/90 border border-[#2A2A35] text-white rounded-xl p-2.5 text-xs sm:text-sm focus:outline-none focus:border-[#D4AF37] focus:shadow-[0_0_12px_rgba(212,175,55,0.3)] transition"
-                  placeholder="마비노기 모바일 본캐 닉네임"
+                  maxLength={7}
+                  value={regFavWord}
+                  onChange={(e) => setRegFavWord(e.target.value.replace(/\s/g, ""))}
+                  className="w-full bg-[#050608]/35 backdrop-blur-md border border-[#D4AF37]/35 text-white rounded-xl p-2.5 sm:py-2 text-[11px] sm:text-xs focus:outline-none focus:border-[#FFE082] transition placeholder:text-zinc-300/80 shadow-[0_8px_20px_rgba(0,0,0,0.5)]"
+                  placeholder="예: 사과, 검, 바다"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-xs font-bold text-[#D4AF37]/90 mb-1">
-                    좋아하는 것 (단어)
+              <div>
+                <div className="inline-block mb-1 px-2 py-0.5 rounded-md bg-black/10 backdrop-blur-[2px]">
+                  <label className="block text-xs font-normal text-[#D4AF37] drop-shadow-[0_1px_4px_rgba(0,0,0,1)]">
+                    생일 (4자리)
                   </label>
-                  <input
-                    type="text"
-                    value={regFavWord}
-                    onChange={(e) => setRegFavWord(e.target.value)}
-                    className="w-full bg-[#050508]/90 border border-[#2A2A35] text-white rounded-xl p-2.5 text-xs focus:outline-none focus:border-[#D4AF37] transition"
-                    placeholder="예: 사과, 검, 바다"
-                  />
                 </div>
+                <input
+                  type="text"
+                  maxLength={4}
+                  value={regBirth}
+                  onChange={(e) => setRegBirth(e.target.value.replace(/\D/g, ""))}
+                  className="w-full bg-[#050608]/35 backdrop-blur-md border border-[#D4AF37]/35 text-white rounded-xl p-2.5 sm:py-2 text-[11px] sm:text-xs focus:outline-none focus:border-[#FFE082] transition placeholder:text-zinc-300/80 shadow-[0_8px_20px_rgba(0,0,0,0.5)]"
+                  placeholder="예: 0328"
+                />
+              </div>
+            </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-[#D4AF37]/90 mb-1">
-                    생월일 (4자리)
-                  </label>
-                  <input
-                    type="text"
-                    maxLength={4}
-                    value={regBirth}
-                    onChange={(e) => setRegBirth(e.target.value.replace(/\D/g, ""))}
-                    className="w-full bg-[#050508]/90 border border-[#2A2A35] text-white rounded-xl p-2.5 text-xs focus:outline-none focus:border-[#D4AF37] transition"
-                    placeholder="예: 0923"
-                  />
-                </div>
+            {/* 🎯 [10개 특수문자 1줄(1 Row) 컴팩트 그리드 배열 적용] */}
+            <div className="space-y-1.5 pt-0.5">
+              <div className="inline-block px-2 py-0.5 rounded-md bg-black/10 backdrop-blur-[2px]">
+                <label className="block text-xs font-normal text-[#D4AF37] drop-shadow-[0_1px_4px_rgba(0,0,0,1)]">
+                  특수문자 2개 선택!
+                </label>
               </div>
 
-              {/* 자동 생성 코드 실시간 미리보기 바 */}
-              <div className="p-2.5 bg-[#050508] border border-[#D4AF37]/30 rounded-xl flex items-center justify-between text-xs">
-                <span className="text-zinc-400 font-semibold">자동 생성 비밀코드:</span>
-                <div className="flex items-center gap-1.5">
-                  <span className="font-mono font-black text-[#FFE082]">
-                    {generatedCodePreview}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setSpecialSuffix(generateRandomSpecialChars())}
-                    className="text-[10px] bg-[#121216] hover:bg-[#1f1f26] border border-[#D4AF37]/50 text-[#F3E5AB] px-1.5 py-0.5 rounded transition cursor-pointer"
-                    title="특수문자 조합 재생성"
-                  >
-                    🎲 재생성
-                  </button>
-                </div>
+              <div className="grid grid-cols-10 gap-1 p-1.5 bg-[#050608]/30 backdrop-blur-md border border-[#D4AF37]/30 rounded-xl shadow-inner">
+                {SPECIAL_CHARS.map((char) => {
+                  const isSelected = selectedSpecials.includes(char);
+                  return (
+                    <button
+                      key={char}
+                      type="button"
+                      onClick={() => handleSpecialCharClick(char)}
+                      className={`py-1.5 rounded-md text-[11px] sm:text-xs font-mono font-bold transition-all cursor-pointer flex items-center justify-center active:scale-95 ${
+                        isSelected
+                          ? "bg-[#D4AF37]/30 border border-[#FFE082] text-[#FFE082] shadow-[0_0_8px_rgba(255,224,130,0.5)] scale-105"
+                          : "bg-[#050608]/40 border border-white/10 text-zinc-400 hover:border-[#D4AF37]/40 hover:text-white"
+                      }`}
+                    >
+                      {char}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 🔵 [접속 코드 밀착 연결 및 박스 고투명화] */}
+            <div className="p-2.5 bg-[#050608]/30 backdrop-blur-md border border-[#D4AF37]/35 rounded-xl flex items-center justify-between text-xs shadow-[0_8px_20px_rgba(0,0,0,0.5)]">
+              <div className="flex items-center gap-2 overflow-hidden w-full">
+                <span className="text-zinc-200 font-normal text-[11px] whitespace-nowrap">생성된 접속 코드:</span>
+                <span className="font-mono font-bold text-[#FFE082] drop-shadow-[0_0_8px_rgba(255,224,130,0.8)] text-xs sm:text-sm truncate">
+                  {generatedCodePreview}
+                </span>
+              </div>
+            </div>
+
+            {/* 🩷 [안내문구 & 로그인 이동 링크 한 줄 레이아웃] */}
+            <div className="flex items-center justify-between py-0.5 text-xs">
+              <div className="px-2.5 py-1 bg-black/10 backdrop-blur-[2px] rounded-lg inline-flex items-center gap-1">
+                <span className="text-[10px] text-[#FFE082] font-medium drop-shadow-[0_1px_4px_rgba(0,0,0,1)]">
+                  ⚠️ 코드를 꼭 기억해주세요!
+                </span>
               </div>
 
               <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-gradient-to-r from-[#D4AF37] via-[#FFF5C0] to-[#C5A059] hover:brightness-110 text-slate-950 font-black py-3 rounded-xl mt-2 transition shadow-[0_4px_20px_rgba(212,175,55,0.35)] disabled:opacity-50 cursor-pointer text-xs sm:text-sm tracking-wide"
+                type="button"
+                onClick={() => setActiveTab("login")}
+                className="px-2.5 py-1 bg-black/10 backdrop-blur-[2px] rounded-lg text-[#FFE082] hover:text-white transition font-medium text-[11px] sm:text-xs cursor-pointer hover:underline underline-offset-4 drop-shadow-[0_1px_4px_rgba(0,0,0,1)]"
               >
-                {loading ? "가입 신청 중..." : "성역 가입 신청하기"}
+                로그인 화면으로
               </button>
-            </form>
-          )}
+            </div>
 
-          {/* 슬로건 푸터 */}
-          <div className="mt-5 text-center border-t border-[#2A2A35] pt-3.5 relative z-10">
-            <p className="text-[11px] sm:text-xs text-zinc-400 font-medium tracking-tight">
-              마비노기 모바일 데이안 서버 | 성역 길드 전용 플랫폼
+            {/* 가입 신청 버튼 */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="relative w-full py-3 rounded-md bg-gradient-to-r from-[#1a1510] via-[#3a2b1b] to-[#1a1510] border border-[#a6824a] hover:border-[#f3e5ab] text-[#f0d297] font-serif font-medium text-xs sm:text-sm tracking-widest shadow-[inset_0_1px_1px_rgba(255,255,255,0.15),0_4px_16px_rgba(0,0,0,0.85)] transition-all cursor-pointer flex items-center justify-center group overflow-hidden active:scale-[0.99] mt-1"
+            >
+              <div className="absolute inset-[2px] border border-[#d4af37]/40 rounded-[3px] pointer-events-none group-hover:border-[#ffe082]/70 transition-colors" />
+              <div className="absolute -top-[3px] left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-[#d4af37] rotate-45 border border-[#1a1510]" />
+              <div className="absolute -bottom-[3px] left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-[#d4af37] rotate-45 border border-[#1a1510]" />
+              <div className="absolute -left-[3px] top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-[#d4af37] rotate-45 border border-[#1a1510]" />
+              <div className="absolute -right-[3px] top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-[#d4af37] rotate-45 border border-[#1a1510]" />
+              <span className="relative z-10 drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)]">
+                {loading ? "가입 신청 중..." : "생텀 가입 신청하기"}
+              </span>
+            </button>
+          </form>
+        )}
+
+        {/* 📜 [슬로건 푸터 - 극초경량 블러 bg-black/10 backdrop-blur-[2px]] */}
+        <div className="mt-4 text-center border-t border-[#D4AF37]/25 pt-3 relative z-10">
+          <div className="inline-block px-2.5 py-0.5 rounded-md bg-black/10 backdrop-blur-[2px]">
+            <p className="text-[10px] sm:text-[10.5px] text-[#FFFDF0] font-medium tracking-[0.05em] whitespace-nowrap leading-tight drop-shadow-[0_1px_4px_rgba(0,0,0,0.95)]">
+              마비노기 모바일 데이안 서버 | 성역 길드 전용 관리 플랫폼
             </p>
           </div>
         </div>
       </div>
 
-      {/* 🏛️ 웅장한 시네마틱 크레딧 & 명예의 전당 팝업 모달 */}
+      {/* 🏛️ [우측 하단 고정 RPG 메탈릭 버튼: CREDITS & HONOR] */}
+      <button
+        type="button"
+        onClick={() => setShowCredits(true)}
+        className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 px-4 py-2 rounded-md bg-gradient-to-r from-[#1a1510] via-[#3a2b1b] to-[#1a1510] border border-[#a6824a] hover:border-[#f3e5ab] text-[#f0d297] font-serif font-medium text-xs tracking-widest shadow-[inset_0_1px_1px_rgba(255,255,255,0.15),0_4px_16px_rgba(0,0,0,0.85)] transition-all flex items-center justify-center group overflow-hidden hover:scale-105 active:scale-95 cursor-pointer z-40"
+      >
+        <div className="absolute inset-[2px] border border-[#d4af37]/40 rounded-[3px] pointer-events-none group-hover:border-[#ffe082]/70 transition-colors" />
+
+        <div className="absolute -top-[2px] left-1/2 -translate-x-1/2 w-1 h-1 bg-[#d4af37] rotate-45 border border-[#1a1510] shadow-[0_0_4px_rgba(212,175,55,0.8)]" />
+        <div className="absolute -bottom-[2px] left-1/2 -translate-x-1/2 w-1 h-1 bg-[#d4af37] rotate-45 border border-[#1a1510] shadow-[0_0_4px_rgba(212,175,55,0.8)]" />
+        <div className="absolute -left-[2px] top-1/2 -translate-y-1/2 w-1 h-1 bg-[#d4af37] rotate-45 border border-[#1a1510] shadow-[0_0_4px_rgba(212,175,55,0.8)]" />
+        <div className="absolute -right-[2px] top-1/2 -translate-y-1/2 w-1 h-1 bg-[#d4af37] rotate-45 border border-[#1a1510] shadow-[0_0_4px_rgba(212,175,55,0.8)]" />
+
+        <span className="relative z-10 drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)] tracking-wider">
+          CREDITS & HONOR
+        </span>
+      </button>
+
+      {/* 🏛️ [웅장한 시네마틱 크레딧 & 명예의 전당 팝업 모달] */}
       {showCredits && (
         <div
-          className="fixed inset-0 bg-black/90 backdrop-blur-md z-[99999] flex items-center justify-center p-4 animate-fadeIn"
+          className="fixed inset-0 bg-black/85 backdrop-blur-md z-[99999] flex items-center justify-center p-4 animate-fadeIn"
           onClick={() => setShowCredits(false)}
         >
           <div
-            className="bg-[#0D0D11] border-2 border-[#D4AF37] text-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-[0_0_60px_rgba(212,175,55,0.3)] relative overflow-hidden space-y-6"
+            className="bg-[#0d0a07]/95 backdrop-blur-xl border border-[#a6824a]/80 text-white rounded-2xl max-w-lg w-full p-6 sm:p-8 shadow-[0_0_50px_rgba(0,0,0,0.9),0_0_30px_rgba(212,175,55,0.2)] relative overflow-hidden space-y-6"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* 닫기 버튼 */}
+            <div className="absolute inset-[4px] border border-[#d4af37]/30 rounded-xl pointer-events-none" />
+
+            <div className="absolute -top-[3px] left-1/2 -translate-x-1/2 w-2 h-2 bg-[#d4af37] rotate-45 border border-[#1a1510] shadow-[0_0_8px_rgba(212,175,55,0.8)]" />
+            <div className="absolute -bottom-[3px] left-1/2 -translate-x-1/2 w-2 h-2 bg-[#d4af37] rotate-45 border border-[#1a1510] shadow-[0_0_8px_rgba(212,175,55,0.8)]" />
+            <div className="absolute -left-[3px] top-1/2 -translate-y-1/2 w-2 h-2 bg-[#d4af37] rotate-45 border border-[#1a1510] shadow-[0_0_8px_rgba(212,175,55,0.8)]" />
+            <div className="absolute -right-[3px] top-1/2 -translate-y-1/2 w-2 h-2 bg-[#d4af37] rotate-45 border border-[#1a1510] shadow-[0_0_8px_rgba(212,175,55,0.8)]" />
+
             <button
               type="button"
               onClick={() => setShowCredits(false)}
-              className="absolute top-4 right-4 text-zinc-400 hover:text-white text-lg font-black p-2 rounded-full hover:bg-[#1a1a22] transition cursor-pointer"
+              className="absolute top-4 right-4 text-zinc-400 hover:text-[#FFE082] text-base font-bold p-1.5 rounded-full hover:bg-white/5 transition cursor-pointer z-10"
             >
               ✕
             </button>
 
-            {/* 오프닝 타이틀 & 도색 타이포 로고 */}
-            <div className="text-center space-y-2 border-b border-[#2A2A35] pb-5 flex flex-col items-center">
+            <div className="text-center space-y-2 border-b border-[#a6824a]/30 pb-5 flex flex-col items-center relative z-10">
               <div
                 className="w-48 h-14 bg-gradient-to-b from-[#FFFDF0] via-[#FFD700] to-[#996515] mb-1"
                 style={{
@@ -629,31 +734,30 @@ export default function LoginPage() {
                   filter: "drop-shadow(0 0 12px rgba(255, 215, 0, 0.7))",
                 }}
               />
-              <div className="text-xs font-black tracking-widest text-[#D4AF37] uppercase">
+              <div className="text-xs font-serif font-bold tracking-widest text-[#f0d297] uppercase drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">
                 SANCTUM HONOR ROLL & CREDITS
               </div>
-              <p className="text-xs text-zinc-400 font-medium">
+              <p className="text-[11px] text-zinc-400 font-medium">
                 마비노기 모바일 데이안 서버 성역 길드 통합 플랫폼
               </p>
             </div>
 
-            {/* 크레딧 명단 */}
-            <div className="space-y-5 max-h-[60vh] overflow-y-auto custom-scrollbar pr-2 text-center">
-              <div className="bg-[#050508] border border-[#D4AF37]/40 p-4 rounded-2xl shadow-inner space-y-1">
-                <span className="text-[10px] font-extrabold text-[#D4AF37] tracking-widest uppercase block">
-                  Project Lead & Chief Architect
+            <div className="space-y-5 max-h-[58vh] overflow-y-auto custom-scrollbar pr-1 text-center relative z-10">
+              <div className="bg-[#16120e]/80 border border-[#a6824a]/50 p-4 rounded-xl shadow-inner space-y-1 relative">
+                <span className="text-[10px] font-serif font-bold text-[#f0d297] tracking-widest uppercase block drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                  PROJECT LEAD & CHIEF ARCHITECT
                 </span>
-                <div className="text-lg font-black text-white">
-                  한설 <span className="text-xs font-normal text-zinc-400">(길드마스터)</span>
+                <div className="text-lg font-serif font-bold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
+                  한설 <span className="text-xs font-sans font-normal text-zinc-400">(길드마스터)</span>
                 </div>
-                <div className="text-[11px] text-zinc-400 font-medium">
+                <div className="text-[11px] text-zinc-300/80 font-medium">
                   기획 & 시스템 수석 총괄 개발
                 </div>
               </div>
 
               <div className="space-y-2">
-                <span className="text-[11px] font-black text-[#D4AF37] tracking-wider uppercase block">
-                  🌟 SPECIAL THANKS (데이안 서버)
+                <span className="text-[11px] font-serif font-bold text-[#f0d297] tracking-wider uppercase block drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                  SPECIAL THANKS (데이안 서버)
                 </span>
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
@@ -669,7 +773,7 @@ export default function LoginPage() {
                   ].map((name) => (
                     <div
                       key={name}
-                      className="px-2.5 py-2 bg-[#050508] border border-[#2A2A35] rounded-xl text-xs font-bold text-zinc-200 shadow-sm hover:border-[#D4AF37]/60 transition truncate"
+                      className="px-2.5 py-2 bg-[#120e0a]/80 border border-[#a6824a]/30 rounded-lg text-xs font-medium text-[#e6c288] shadow-sm hover:border-[#f3e5ab] hover:text-[#ffe082] transition truncate"
                     >
                       {name}
                     </div>
@@ -677,10 +781,10 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-[#2A2A35]">
-                <p className="text-xs font-bold text-zinc-400 leading-relaxed italic">
+              <div className="pt-3 border-t border-[#a6824a]/25">
+                <p className="text-xs font-serif font-medium text-zinc-300 leading-relaxed italic drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">
                   "그리고... 성역의 영광을 함께 만들어가는<br />
-                  <span className="text-[#FFE082] font-black">모든 데이안 서버 성역 길드원 여러분들께</span> 이 플랫폼을 바칩니다."
+                  <span className="text-[#f0d297] font-bold">모든 데이안 서버 성역 길드원 여러분들께</span> 이 플랫폼을 바칩니다."
                 </p>
               </div>
             </div>
@@ -688,9 +792,18 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={() => setShowCredits(false)}
-              className="w-full bg-gradient-to-r from-[#D4AF37] via-[#FFF5C0] to-[#C5A059] text-slate-950 font-black py-2.5 rounded-xl text-xs transition shadow-md cursor-pointer"
+              className="relative w-full py-3 rounded-md bg-gradient-to-r from-[#1a1510] via-[#3a2b1b] to-[#1a1510] border border-[#a6824a] hover:border-[#f3e5ab] text-[#f0d297] font-serif font-medium text-xs sm:text-sm tracking-widest shadow-[inset_0_1px_1px_rgba(255,255,255,0.15),0_4px_16px_rgba(0,0,0,0.85)] transition-all cursor-pointer flex items-center justify-center group overflow-hidden active:scale-[0.99] relative z-10"
             >
-              확인
+              <div className="absolute inset-[2px] border border-[#d4af37]/40 rounded-[3px] pointer-events-none group-hover:border-[#ffe082]/70 transition-colors" />
+
+              <div className="absolute -top-[3px] left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-[#d4af37] rotate-45 border border-[#1a1510] shadow-[0_0_6px_rgba(212,175,55,0.8)]" />
+              <div className="absolute -bottom-[3px] left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-[#d4af37] rotate-45 border border-[#1a1510] shadow-[0_0_6px_rgba(212,175,55,0.8)]" />
+              <div className="absolute -left-[3px] top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-[#d4af37] rotate-45 border border-[#1a1510] shadow-[0_0_6px_rgba(212,175,55,0.8)]" />
+              <div className="absolute -right-[3px] top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-[#d4af37] rotate-45 border border-[#1a1510] shadow-[0_0_6px_rgba(212,175,55,0.8)]" />
+
+              <span className="relative z-10 drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)]">
+                확인
+              </span>
             </button>
           </div>
         </div>
