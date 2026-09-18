@@ -767,6 +767,7 @@ export default function KerygmaWritePage() {
     insertCustomHTML(html);
   };
 
+  // 🎯 [동적 헤더 카운팅 삽입 엔진]
   const insertHeadingBlock = (type: string) => {
     let fontSize = "20px";
     let fontWeight = "800";
@@ -777,13 +778,31 @@ export default function KerygmaWritePage() {
     let borderBottom = "none";
     let prefix = "";
 
+    // 에디터 내 동일 헤더 타입의 기존 개수를 측정하여 +1 순번 생성
+    const existingCount = editorRef.current
+      ? editorRef.current.querySelectorAll(`[data-heading-type="${type}"]`).length
+      : 0;
+    const nextIndex = existingCount + 1;
+
+    // 알파벳 순번 유틸 (1 -> A, 2 -> B, ..., 26 -> Z, 27 -> AA)
+    const getAlphaChar = (num: number) => {
+      let result = "";
+      let n = num;
+      while (n > 0) {
+        const rem = (n - 1) % 26;
+        result = String.fromCharCode(65 + rem) + result;
+        n = Math.floor((n - 1) / 26);
+      }
+      return result || "A";
+    };
+
     switch (type) {
       case "num-l1":
-        prefix = `1. `;
+        prefix = `${nextIndex}. `;
         borderBottom = "2px solid var(--accent)";
         break;
       case "num-l2":
-        prefix = `(1) `;
+        prefix = `(${nextIndex}) `;
         fontSize = "16px";
         fontWeight = "700";
         color = "var(--accent)";
@@ -792,7 +811,7 @@ export default function KerygmaWritePage() {
         marginBottom = "6px";
         break;
       case "num-l3":
-        prefix = `[1] `;
+        prefix = `[${nextIndex}] `;
         fontSize = "14.5px";
         fontWeight = "600";
         color = "var(--text-sub)";
@@ -801,11 +820,11 @@ export default function KerygmaWritePage() {
         marginBottom = "4px";
         break;
       case "alpha-l1":
-        prefix = `A. `;
+        prefix = `${getAlphaChar(nextIndex)}. `;
         borderBottom = "2px solid var(--accent)";
         break;
       case "alpha-l2":
-        prefix = `(A) `;
+        prefix = `(${getAlphaChar(nextIndex)}) `;
         fontSize = "16px";
         fontWeight = "700";
         color = "var(--accent)";
@@ -814,7 +833,7 @@ export default function KerygmaWritePage() {
         marginBottom = "6px";
         break;
       case "alpha-l3":
-        prefix = `[A] `;
+        prefix = `[${getAlphaChar(nextIndex)}] `;
         fontSize = "14.5px";
         fontWeight = "600";
         color = "var(--text-sub)";
@@ -847,7 +866,7 @@ export default function KerygmaWritePage() {
     }
 
     const blockId = `hdr-${Date.now()}`;
-    const headerHtml = `<div id="${blockId}" style="display: block; width: 100%; clear: both; font-size: ${fontSize}; font-weight: ${fontWeight}; color: ${color}; margin-top: ${marginTop}; margin-bottom: ${marginBottom}; margin-left: ${marginLeft}; ${
+    const headerHtml = `<div id="${blockId}" data-heading-type="${type}" style="display: block; width: 100\%; clear: both; font-size: ${fontSize}; font-weight: ${fontWeight}; color:${color}; margin-top: ${marginTop}; margin-bottom:${marginBottom}; margin-left: ${marginLeft};${
       borderBottom !== "none" ? `border-bottom: ${borderBottom}; padding-bottom: 4px;` : ""
     }">${prefix}&nbsp;</div><p><br></p>`;
 
@@ -979,7 +998,6 @@ export default function KerygmaWritePage() {
     localStorage.removeItem("kerygma_notice_draft");
     alert(isEditMode ? "공지글이 성공적으로 수정되었습니다." : "공지글이 성공적으로 등록되었습니다!");
     
-    // 🎯 [핵심 Fix: push 대신 replace를 사용하여 히스토리 스택 상의 작성 페이지를 새로 생성된 공지 상세/목록으로 교체]
     router.replace(finalId ? `/kerygma?id=${finalId}` : "/kerygma");
   };
 

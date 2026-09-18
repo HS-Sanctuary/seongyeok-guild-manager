@@ -18,11 +18,13 @@ function KerygmaContent() {
 
   const [user, setUser] = useState<any>(null);
   const [notices, setNotices] = useState<Notice[]>([]);
+  const [accountsMap, setAccountsMap] = useState<Record<string, { role?: string; equipped_title?: string; titles?: string[]; job?: string; main_class?: string }>>({});
+  const [dbCharacters, setDbCharacters] = useState<any[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("전체");
   const [loading, setLoading] = useState(true);
   const [selectedNotice, setSelectedNotice] = useState<Notice | null>(null);
 
-  // 댓글 상태 관리
+  // 댓글 상태 관리 (DB 연동)
   const [commentsTree, setCommentsTree] = useState<CommentItem[]>([]);
   const [newCommentText, setNewCommentText] = useState("");
   const [replyingTo, setReplyingTo] = useState<number | null>(null);
@@ -56,6 +58,57 @@ function KerygmaContent() {
   const canWriteNotice = isMaster || isSubMaster;
   const currentNickname = user?.nickname || "방문자";
 
+  // DB 계정, 직업, 칭호 데이터 및 캐릭터 스탯 일괄 수집
+  const fetchAccounts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("accounts")
+        .select("nickname, role, equipped_title, titles, job, main_class");
+
+      if (!error && data) {
+        const map: Record<string, any> = {};
+        data.forEach((acc: any) => {
+          map[acc.nickname] = {
+            role: acc.role,
+            equipped_title: acc.equipped_title,
+            titles: Array.isArray(acc.titles) ? acc.titles : typeof acc.titles === "string" ? [acc.titles] : [],
+            job: acc.job || acc.main_class || "댄서",
+          };
+        });
+        setAccountsMap(map);
+      }
+    } catch (err) {
+      console.error("Accounts fetch exception:", err);
+    }
+  };
+
+  // 판테온 칭호 실시간 연동용 캐릭터 스탯 수집
+  const fetchCharacters = async () => {
+    try {
+      const { data, error } = await supabase.from("characters").select("*");
+      if (!error && data) {
+        const mappedData = data.map((c: any) => ({
+          id: c.nickname,
+          name: c.nickname,
+          owner: c.owner || c.nickname,
+          job: c.job || "전사",
+          combatPower: Number(c.combat_power) || 0,
+          magicResist: Number(c.magic_resistance) || 0,
+          lifePower: Number(c.life_energy) || 0,
+          charm: Number(c.charm) || 0,
+          contribution: Number(c.contribution) || 0,
+          isMain: c.is_main || false,
+          rankings: c.rankings || {},
+          serverRankOverall: c.rankings?.TELOS?.overall ?? c.server_rank_overall ?? 0,
+          serverRankDeian: c.rankings?.TELOS?.deian ?? c.server_rank_deian ?? 0,
+        }));
+        setDbCharacters(mappedData);
+      }
+    } catch (err) {
+      console.error("Characters fetch exception:", err);
+    }
+  };
+
   const fetchNotices = async () => {
     try {
       const { data, error } = await supabase
@@ -80,6 +133,8 @@ function KerygmaContent() {
     const savedUser = localStorage.getItem("nexus_user");
     if (savedUser) setUser(JSON.parse(savedUser));
 
+    fetchAccounts();
+    fetchCharacters();
     fetchNotices();
 
     const channel = supabase
@@ -98,23 +153,32 @@ function KerygmaContent() {
     };
   }, []);
 
+  // 공지 선택 및 DB 댓글 트리 동기화
   useEffect(() => {
     if (noticeIdParam && notices.length > 0) {
       const found = notices.find((n) => Number(n.id) === Number(noticeIdParam));
       if (found) {
         setSelectedNotice(found);
+        const rawComments = (found as any).comments || [];
+        setCommentsTree(Array.isArray(rawComments) ? rawComments : []);
       } else {
         supabase
           .from("notices")
           .select("*")
           .eq("id", Number(noticeIdParam))
           .single()
-          .then(({ data }) => {
-            if (data) setSelectedNotice(data as Notice);
+          .then(({ data, error }) => {
+            if (data && !error) {
+              const n = data as Notice;
+              setSelectedNotice(n);
+              const rawComments = (n as any).comments || [];
+              setCommentsTree(Array.isArray(rawComments) ? rawComments : []);
+            }
           });
       }
     } else {
       setSelectedNotice(null);
+      setCommentsTree([]);
     }
   }, [noticeIdParam, notices]);
 
@@ -154,6 +218,7 @@ function KerygmaContent() {
   const handleCloseReader = () => {
     router.replace("/kerygma");
     setSelectedNotice(null);
+    setCommentsTree([]);
   };
 
   const handleVoteOption = async (optionId: string) => {
@@ -200,29 +265,38 @@ function KerygmaContent() {
     }
   };
 
-  const handleReaction = async (type: "like" | "dislike") => {
-    if (!selectedNotice) return;
-
-    const currentLikes = selectedNotice.likes || 0;
-    const isAlreadyLiked = selectedNotice.userReaction === "like";
-    const newLikes = isAlreadyLiked ? Math.max(0, currentLikes - 1) : currentLikes + 1;
-    const newReaction = isAlreadyLiked ? null : "like";
-
-    const { error } = await supabase
-      .from("notices")
-      .update({ likes: newLikes })
-      .eq("id", selectedNotice.id);
-
-    if (!error) {
-      setSelectedNotice({
-        ...selectedNotice,
-        likes: newLikes,
-        userReaction: newReaction,
-      });
-    }
+  // 대대대댓글 재귀 탐색 삽입
+  const insertRecursive = (nodes: CommentItem[], targetParentId: number, newItem: CommentItem): CommentItem[] => {
+    return nodes.map((node) => {
+      if (node.id === targetParentId) {
+        return {
+          ...node,
+          children: [...(node.children || []), newItem],
+        };
+      }
+      if (node.children && node.children.length > 0) {
+        return {
+          ...node,
+          children: insertRecursive(node.children, targetParentId, newItem),
+        };
+      }
+      return node;
+    });
   };
 
-  const handleAddComment = (parentId: number | null = null) => {
+  // 대대대댓글 재귀 삭제
+  const deleteRecursive = (nodes: CommentItem[], targetId: number): CommentItem[] => {
+    return nodes
+      .filter((node) => node.id !== targetId)
+      .map((node) => ({
+        ...node,
+        children: node.children ? deleteRecursive(node.children, targetId) : [],
+      }));
+  };
+
+  // 댓글 / 답글 DB 연동 작성
+  const handleAddComment = async (parentId: number | null = null) => {
+    if (!selectedNotice) return;
     const text = parentId ? replyText : newCommentText;
     if (!text.trim()) return alert("댓글 내용을 입력해주세요.");
 
@@ -233,22 +307,59 @@ function KerygmaContent() {
       created_at: new Date().toISOString(),
       parentId: parentId || undefined,
       parent_id: parentId || null,
+      children: [],
     };
 
+    let updatedTree: CommentItem[] = [];
+
     if (parentId) {
-      setCommentsTree((prev) =>
-        prev.map((c) =>
-          c.id === parentId
-            ? { ...c, children: [...(c.children || []), newComment] }
-            : c
-        )
-      );
+      updatedTree = insertRecursive(commentsTree, parentId, newComment);
+    } else {
+      updatedTree = [...commentsTree, newComment];
+    }
+
+    const { error } = await supabase
+      .from("notices")
+      .update({ comments: updatedTree })
+      .eq("id", selectedNotice.id);
+
+    if (error) {
+      console.error("댓글 DB 저장 실패:", error);
+      alert(`⚠️ 댓글 DB 저장 실패: ${error.message}\n\nSupabase 'notices' 테이블에 'comments' (jsonb) 컬럼을 생성해 주셨는지 확인해 주세요!`);
+      return;
+    }
+
+    setCommentsTree(updatedTree);
+    setSelectedNotice({ ...selectedNotice, comments: updatedTree } as any);
+    if (parentId) {
       setReplyText("");
       setReplyingTo(null);
     } else {
-      setCommentsTree((prev) => [...prev, newComment]);
       setNewCommentText("");
     }
+    fetchNotices();
+  };
+
+  // 댓글 삭제
+  const handleDeleteComment = async (commentId: number) => {
+    if (!selectedNotice) return;
+    if (!confirm("댓글을 삭제하시겠습니까?")) return;
+
+    const updatedTree = deleteRecursive(commentsTree, commentId);
+
+    const { error } = await supabase
+      .from("notices")
+      .update({ comments: updatedTree })
+      .eq("id", selectedNotice.id);
+
+    if (error) {
+      alert(`댓글 삭제 실패: ${error.message}`);
+      return;
+    }
+
+    setCommentsTree(updatedTree);
+    setSelectedNotice({ ...selectedNotice, comments: updatedTree } as any);
+    fetchNotices();
   };
 
   const filteredNotices = notices.filter((n) => {
@@ -287,8 +398,9 @@ function KerygmaContent() {
             getBadgeStyle={getBadgeStyle}
             formatNoticeDate={formatNoticeDate}
             onVoteOption={handleVoteOption}
-            onReaction={handleReaction}
             commentsTree={commentsTree}
+            accountsMap={accountsMap}
+            dbCharacters={dbCharacters}
             currentNickname={currentNickname}
             newCommentText={newCommentText}
             setNewCommentText={setNewCommentText}
@@ -297,6 +409,7 @@ function KerygmaContent() {
             replyText={replyText}
             setReplyText={setReplyText}
             onAddComment={handleAddComment}
+            onDeleteComment={handleDeleteComment}
             recentNoticesList={notices.slice(0, 5)}
             onOpenNotice={handleOpenNotice}
           />
