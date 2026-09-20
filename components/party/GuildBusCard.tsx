@@ -6,7 +6,8 @@ import MarkIcon from '@/components/common/MarkIcon';
 import { 
   Party, 
   Member, 
-  DIFFICULTY_COLORS 
+  DIFFICULTY_COLORS,
+  ABYSS_SUB_DUNGEONS
 } from '@/components/party/types';
 import { 
   assembleBalancedParty, 
@@ -15,13 +16,17 @@ import {
   getRoleByJob,
   getShortNickname,
   parseCP,
-  BusCandidate 
+  BusCandidate,
+  BusMember 
 } from '@/lib/busUtils';
 import { supabase } from '@/lib/supabase';
 import PoolStatusModal from '@/components/party/modals/PoolStatusModal';
 
-const Users = ({ className }: { className?: string }) => (
-  <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+const Users = ({ className, title }: { className?: string; title?: string }) => (
+  <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    {title && <title>{title}</title>}
+    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+  </svg>
 );
 
 const RefreshCw = ({ className, title }: { className?: string; title?: string }) => (
@@ -51,8 +56,11 @@ const Plus = ({ className }: { className?: string }) => (
   <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
 );
 
-const Crown = ({ className }: { className?: string }) => (
-  <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11.562 3.266a.5.5 0 0 1 .876 0L15.3 8.87a.5.5 0 0 0 .416.27l6.216.525a.5.5 0 0 1 .288.883l-4.69 4.14a.5.5 0 0 0-.153.472l1.378 6.07a.5.5 0 0 1-.747.543L12.5 18.5a.5.5 0 0 0-.499 0l-5.309 3.273a.5.5 0 0 1-.747-.543l1.378-6.07a.5.5 0 0 0-.153-.472L2.48 10.548a.5.5 0 0 1 .288-.883l6.216-.525a.5.5 0 0 0 .416-.27z"/></svg>
+const Crown = ({ className, title }: { className?: string; title?: string }) => (
+  <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    {title && <title>{title}</title>}
+    <path d="M11.562 3.266a.5.5 0 0 1 .876 0L15.3 8.87a.5.5 0 0 0 .416.27l6.216.525a.5.5 0 0 1 .288.883l-4.69 4.14a.5.5 0 0 0-.153.472l1.378 6.07a.5.5 0 0 1-.747.543L12.5 18.5a.5.5 0 0 0-.499 0l-5.309 3.273a.5.5 0 0 1-.747-.543l1.378-6.07a.5.5 0 0 0-.153-.472L2.48 10.548a.5.5 0 0 1 .288-.883l6.216-.525a.5.5 0 0 0 .416-.27z"/>
+  </svg>
 );
 
 const UserCheck = ({ className }: { className?: string }) => (
@@ -119,7 +127,6 @@ export default function GuildBusCard({
   const [isPoolModalOpen, setIsPoolModalOpen] = useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   
-  // 🛡️ [스키마 무결성 방어] 미존재 컬럼(is_started) 제거 후 status 기반 단일 판별
   const isBusStartedInDB = party.status === "운행중" || party.status === "매칭 완료" || party.status === "매칭중";
   const [isStarted, setIsStarted] = useState<boolean>(isBusStartedInDB);
   const [prevMemberNames, setPrevMemberNames] = useState<string[]>([]);
@@ -142,13 +149,50 @@ export default function GuildBusCard({
       : "/svgs/contens mark/레이드 마크.svg";
   }, [party.content_name, party.party_type]);
 
-  const displayContentName = useMemo(() => {
-    if (!party.content_name) return "";
-    return party.content_name
-      .replace(/^(레이드|어비스)\s*-\s*/, "")
-      .replace(/\s*\(통합\)/g, "")
-      .trim();
-  }, [party.content_name]);
+  // 🎯 100% 동적 파싱 로직: 하드코딩 탈피, 배열 길이를 DB 상수 기준으로 판단
+  const abyssInfo = useMemo(() => {
+    const isAbyss = party.party_type === "어비스" || party.content_name?.includes("어비스");
+    if (!isAbyss) {
+      return {
+        title: party.content_name?.replace(/^(레이드|어비스)\s*-\s*/, "").replace(/\s*\(통합\)/g, "").trim() || "",
+        selectedDungeons: [],
+        isPartial: false
+      };
+    }
+
+    const rawSub = (party as any).selected_sub_contents || (party as any).sub_contents || [];
+    let activeIds: string[] = [];
+
+    if (Array.isArray(rawSub) && rawSub.length > 0) {
+      activeIds = rawSub;
+    } else if (typeof party.sub_content === "string") {
+      ABYSS_SUB_DUNGEONS.forEach(d => {
+        if (party.sub_content?.includes(d.name) || party.sub_content?.includes(d.shortName)) {
+          activeIds.push(d.id);
+        }
+      });
+    }
+
+    const activeDungeons = ABYSS_SUB_DUNGEONS.filter(d => 
+      activeIds.includes(d.id) || activeIds.includes(d.name) || activeIds.includes(d.shortName)
+    );
+
+    // 하드코딩(=== 3) 제거 및 DB 배열(length) 기준 동적 판단
+    if (activeDungeons.length === 0 || activeDungeons.length === ABYSS_SUB_DUNGEONS.length) {
+      return {
+        title: "어비스 ALL",
+        selectedDungeons: ABYSS_SUB_DUNGEONS,
+        isPartial: false
+      };
+    }
+
+    const shortNames = activeDungeons.map(d => d.shortName).join("/");
+    return {
+      title: `어비스 ${shortNames}`,
+      selectedDungeons: activeDungeons,
+      isPartial: true
+    };
+  }, [party.content_name, party.party_type, (party as any).selected_sub_contents, (party as any).sub_contents, party.sub_content]);
 
   const displaySubContent = useMemo(() => {
     if (!party.sub_content) return "";
@@ -186,15 +230,14 @@ export default function GuildBusCard({
   const maxPartySize = party.max_members || 8;
 
   const activeCandidateList = reconfiguredCandidates || candidates;
-  const { selected, remaining, hasHealer, hasTanker } = assembleBalancedParty(activeCandidateList, maxPartySize, cpReqs);
+  const { selected, hasHealer, hasTanker } = assembleBalancedParty(activeCandidateList, maxPartySize, cpReqs);
 
   const activeMembers = selected;
 
   const avgCombatPower = activeMembers.length > 0
-    ? Math.round(activeMembers.reduce((acc, cur) => acc + parseCP(cur.combat_power), 0) / activeMembers.length)
+    ? Math.round(activeMembers.reduce((acc: number, cur: BusMember) => acc + parseCP(cur.combat_power), 0) / activeMembers.length)
     : 0;
 
-  // 🛡️ [부마스터 대행 이상 판별] 길드마스터, 부마스터, 부마스터 대행 권한 체크
   const isSubMasterOrHigherRole = ["길드마스터", "부마스터", "부마스터 대행", "master", "admin", "sub_master"].includes(currentUserRole.toLowerCase());
   const isLeader = party.leader_name === currentUserNickname;
   const canManage = isMasterOrAdmin || isSubMasterOrHigherRole || isLeader;
@@ -202,7 +245,6 @@ export default function GuildBusCard({
   const handleStartBus = async () => {
     if (activeMembers.length === 0) return alert("출전 파티원이 없습니다.");
     try {
-      // 🛡️ [스키마 방어] 미존재 컬럼(is_started) 제외, status만 변경
       const { error } = await supabase
         .from("parties")
         .update({ status: "운행중" })
@@ -211,7 +253,7 @@ export default function GuildBusCard({
       if (error) throw error;
 
       setIsStarted(true);
-      setPrevMemberNames(activeMembers.map(m => m.character_name));
+      setPrevMemberNames(activeMembers.map((m: BusMember) => m.character_name));
       alert("🚌 길드 버스가 출발했습니다!");
       if (onRefresh) onRefresh();
     } catch (err: any) {
@@ -221,7 +263,7 @@ export default function GuildBusCard({
   };
 
   const handleReconstructParty = () => {
-    const currentActiveNames = activeMembers.map(m => m.character_name);
+    const currentActiveNames = activeMembers.map((m: BusMember) => m.character_name);
     setPrevMemberNames(currentActiveNames);
 
     const reshuffled = [...candidates].sort((a, b) => parseCP(b.combat_power) - parseCP(a.combat_power));
@@ -238,7 +280,7 @@ export default function GuildBusCard({
 
     setIsSyncing(true);
     try {
-      const activeNames = activeMembers.map((m) => m.character_name);
+      const activeNames = activeMembers.map((m: BusMember) => m.character_name);
       setPrevMemberNames(activeNames);
 
       const contentType = party.party_type === "어비스" || party.content_name.includes("어비스") ? "abyss" : "raid";
@@ -246,7 +288,7 @@ export default function GuildBusCard({
 
       if (onNextRoundClick) {
         const completedMemberList = party.members.filter((m: any) => 
-          activeMembers.some(am => am.character_name === (m.character_name || m.name) || am.character_id === (m.character_id || m.id))
+          activeMembers.some((am: BusMember) => am.character_name === (m.character_name || m.name) || am.character_id === (m.character_id || m.id))
         );
         onNextRoundClick(party, completedMemberList);
       }
@@ -375,42 +417,64 @@ export default function GuildBusCard({
     <div className="w-full rounded-2xl border-2 border-[var(--accent)]/60 border-t-4 border-t-[var(--accent)] bg-[var(--panel)] p-3 sm:p-5 shadow-lg transition-all duration-200 hover:border-[var(--accent)] relative overflow-hidden">
       
       {/* 카드 헤더 래퍼 */}
-      <div className="-mx-3 -mt-3 sm:-mx-5 sm:-mt-5 p-2 sm:p-4 bg-[var(--inner-box)] border-b border-[var(--panel-border)] rounded-t-2xl mb-2 sm:mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-3">
-        <div className="flex items-center gap-1.5 sm:gap-2.5 flex-wrap min-w-0">
-          <span className="px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md text-[11px] sm:text-xs font-black bg-[var(--accent)] text-[var(--accent-fg)] flex items-center gap-1 shrink-0 shadow-xs">
-            <MarkIcon src="/svgs/UI mark/길드 마크.svg" size="xs" colorClass="bg-[var(--accent-fg)]" scale={1.1} />
-            <span>길드버스</span>
-          </span>
-
-          <span className={`px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md text-[11px] sm:text-xs font-bold border ${DIFFICULTY_COLORS[party.difficulty] || 'bg-[var(--panel)] border-[var(--panel-border)] text-[var(--text-main)]'} shrink-0`}>
-            {party.difficulty}
-          </span>
-
-          <div className="flex items-center gap-1.5 min-w-0">
-            <MarkIcon src={contentMarkSrc} size="xs" scale={1.15} colorClass="bg-[var(--accent)]" />
-            <h3 className="text-sm sm:text-lg font-black text-[var(--text-main)] truncate max-w-[180px] sm:max-w-[320px]">
-              {displayContentName}
-            </h3>
-          </div>
-
-          {isStarted && (
-            <span className="px-1.5 sm:px-2 py-0.2 rounded text-[9px] sm:text-[10px] font-black bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/40 animate-pulse">
-              운행중
+      <div className="-mx-3 -mt-3 sm:-mx-5 sm:-mt-5 p-2 sm:p-4 bg-[var(--inner-box)] border-b border-[var(--panel-border)] rounded-t-2xl mb-2 sm:mb-4 flex flex-col gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-2.5 flex-wrap min-w-0">
+            <span className="px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md text-[11px] sm:text-xs font-black bg-[var(--accent)] text-[var(--accent-fg)] flex items-center gap-1 shrink-0 shadow-xs">
+              <MarkIcon src="/svgs/UI mark/길드 마크.svg" size="xs" colorClass="bg-[var(--accent-fg)]" scale={1.1} />
+              <span>길드버스</span>
             </span>
-          )}
+
+            <span className={`px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md text-[11px] sm:text-xs font-bold border ${DIFFICULTY_COLORS[party.difficulty] || 'bg-[var(--panel)] border-[var(--panel-border)] text-[var(--text-main)]'} shrink-0`}>
+              {party.difficulty}
+            </span>
+
+            <div className="flex items-center gap-1.5 min-w-0">
+              <MarkIcon src={contentMarkSrc} size="xs" scale={1.15} colorClass="bg-[var(--accent)]" />
+              <h3 className="text-sm sm:text-lg font-black text-[var(--text-main)] truncate max-w-[180px] sm:max-w-[320px]">
+                {abyssInfo.title}
+              </h3>
+            </div>
+
+            {isStarted && (
+              <span className="px-1.5 sm:px-2 py-0.2 rounded text-[9px] sm:text-[10px] font-black bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/40 animate-pulse">
+                운행중
+              </span>
+            )}
+          </div>
+
+          {/* 희망 시간 & 기사단장 */}
+          <div className="flex items-center gap-2 sm:gap-3 text-[11px] sm:text-xs text-[var(--text-main)] shrink-0">
+            <div className="flex items-center gap-1 bg-[var(--panel)] px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md border border-[var(--panel-border)]">
+              <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[var(--accent)]" />
+              <span className="font-bold text-[var(--text-main)]">{party.time_start} ~ {party.time_end}</span>
+            </div>
+            <div className="flex items-center gap-1 bg-[var(--panel)] px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md border border-[var(--panel-border)]">
+              <Crown className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-600 dark:text-amber-400" />
+              <span className="font-bold text-[var(--text-main)] truncate max-w-[80px]">{party.leader_name || '기사단장'}</span>
+            </div>
+          </div>
         </div>
 
-        {/* 희망 시간 & 기사단장 */}
-        <div className="flex items-center gap-2 sm:gap-3 text-[11px] sm:text-xs text-[var(--text-main)] shrink-0">
-          <div className="flex items-center gap-1 bg-[var(--panel)] px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md border border-[var(--panel-border)]">
-            <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[var(--accent)]" />
-            <span className="font-bold text-[var(--text-main)]">{party.time_start} ~ {party.time_end}</span>
+        {/* 🎯 어비스 목표 던전 시각적 피드백 뱃지 그룹 */}
+        {abyssInfo.selectedDungeons.length > 0 && (
+          <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+            {abyssInfo.selectedDungeons.map((dungeon) => (
+              <span 
+                key={dungeon.id}
+                className="px-2 py-0.5 rounded-md text-[10px] sm:text-[11px] font-black bg-[var(--accent)]/15 text-[var(--accent)] border border-[var(--accent)]/40 flex items-center gap-1 shadow-xs"
+              >
+                <span>🎯</span>
+                <span>{dungeon.name}</span>
+              </span>
+            ))}
+            {abyssInfo.isPartial && (
+              <span className="px-1.5 py-0.5 rounded-md text-[9.5px] sm:text-[10px] font-black bg-rose-500/20 text-rose-300 border border-rose-500/40">
+                {abyssInfo.selectedDungeons.length}개 던전 지정 운행
+              </span>
+            )}
           </div>
-          <div className="flex items-center gap-1 bg-[var(--panel)] px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md border border-[var(--panel-border)]">
-            <Crown className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-600 dark:text-amber-400" />
-            <span className="font-bold text-[var(--text-main)] truncate max-w-[80px]">{party.leader_name || '기사단장'}</span>
-          </div>
-        </div>
+        )}
       </div>
 
       {displaySubContent && !isDefaultSubContent && (
@@ -505,8 +569,8 @@ export default function GuildBusCard({
                     <span className="text-[11px] sm:text-xs font-black text-[var(--text-main)] truncate leading-tight">
                       {displayName}
                     </span>
-                    {member.allow_repeat && (
-                      <RefreshCw className="w-3 h-3 text-[var(--accent)] shrink-0" title="용병/반복 참여" />
+                    {member.is_driver && (
+                      <Crown className="w-3 h-3 text-amber-500 shrink-0" title="버스 기사" />
                     )}
                   </div>
 
@@ -524,7 +588,7 @@ export default function GuildBusCard({
         </div>
       </div>
 
-      {/* 🎯 버스 컨트롤러 버튼 그룹 (부마스터 대행 이상 노출 보장) */}
+      {/* 버스 컨트롤러 버튼 그룹 */}
       {canManage && (
         <div className="mb-2 sm:mb-3 p-1.5 sm:p-2.5 rounded-xl bg-[var(--inner-box)] border border-[var(--panel-border)] flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-2">
           <div className="text-[10.5px] sm:text-xs font-black text-[var(--text-main)] flex items-center gap-1 shrink-0">
@@ -555,7 +619,6 @@ export default function GuildBusCard({
               </button>
             )}
 
-            {/* [파티 재구성] */}
             <button
               type="button"
               onClick={handleReconstructParty}
@@ -565,7 +628,6 @@ export default function GuildBusCard({
               <span className="text-white">파티 재구성</span>
             </button>
 
-            {/* [관리자 인계] */}
             <button
               type="button"
               onClick={handleOpenTransferModal}
@@ -576,7 +638,6 @@ export default function GuildBusCard({
               <span className="text-zinc-950">{isLoadingAdmins ? '조회중...' : '관리자 인계'}</span>
             </button>
 
-            {/* [해산] */}
             <button
               type="button"
               onClick={handleAttemptDeleteParty}
@@ -739,7 +800,7 @@ export default function GuildBusCard({
                     </span>
                   </div>
 
-                  <span className="px-2 py-0.5 text-[10px] font-black rounded-md bg-amber-500 text-zinc-950 font-black border border-amber-600">
+                  <span className="px-2 py-0.5 text-[10px] font-black rounded-md bg-amber-500 text-zinc-950 border border-amber-600">
                     {admin.role || '관리자'}
                   </span>
                 </label>

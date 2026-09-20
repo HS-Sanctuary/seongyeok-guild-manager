@@ -341,6 +341,10 @@ function SynaxisContent() {
         joinTimeEnd={partyManager.joinTimeEnd}
         setJoinTimeEnd={partyManager.setJoinTimeEnd}
         executeJoinParty={partyManager.executeJoinParty}
+        tempSubContents={(partyManager as any).tempSubContents}
+        setTempSubContents={(partyManager as any).setTempSubContents}
+        busSelectedSubContents={(partyManager as any).busSelectedSubContents}
+        setBusSelectedSubContents={(partyManager as any).setBusSelectedSubContents}
       />
 
       <style dangerouslySetInnerHTML={{__html: `

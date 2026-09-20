@@ -6,12 +6,15 @@ import { pickRandomLeader, autoBalanceAndBuildParty } from "@/lib/matchingUtils"
 import { CONTENT_DB, ContentItem, Party, Member } from "@/components/party/types";
 import { generateDefaultBusMemo, BusCharSelectionConfig } from "@/components/party/PartyModals";
 import { 
-  getRoleByJob, 
+  getRoleByJob,
+  getJobRole, 
   assembleBalancedParty, 
   CONTENT_CP_REQUIREMENTS, 
   syncKronosChecklist, 
   parseCP, 
-  BusCandidate 
+  BusCandidate,
+  ContentPowerReq,
+  NexusClassItem
 } from "@/lib/busUtils";
 import {
   timeToMinutes,
@@ -74,6 +77,9 @@ export function usePartyManager() {
   const [allCharactersMap, setAllCharactersMap] = useState<Record<string, any>>({});
   const [ownerAccountMap, setOwnerAccountMap] = useState<Record<string, string>>({});
   
+  const [powerReqs, setPowerReqs] = useState<ContentPowerReq[]>([]);
+  const [nexusClasses, setNexusClasses] = useState<NexusClassItem[]>([]);
+  
   const ownerAccountMapRef = useRef<Record<string, string>>({});
 
   const [activeDateFilter, setActiveDateFilter] = useState<string>("전체");
@@ -129,6 +135,34 @@ export function usePartyManager() {
   const [joinTimeEnd, setJoinTimeEnd] = useState<string>("24:00");
   const [inspectCharacter, setInspectCharacter] = useState<any>(null);
 
+  // DB 요구스탯(content_power_reqs) 동적 조회 헬퍼
+  const getCPReqsForContent = useCallback((contentName: string, difficulty: string) => {
+    const dbReq = powerReqs.find(r => r.content_name === contentName && r.difficulty === difficulty);
+    if (dbReq) {
+      return {
+        min_cp: dbReq.min_cp,
+        rec_cp: dbReq.rec_cp,
+        op_cp: dbReq.op_cp,
+        rec_mr: dbReq.rec_mr || 0,
+        op_mr: dbReq.op_mr || 0,
+        min: dbReq.min_cp,
+        rec: dbReq.rec_cp,
+        op: dbReq.op_cp
+      };
+    }
+    const fallback = CONTENT_CP_REQUIREMENTS[contentName]?.[difficulty] || { min: 0, rec: 0, op: 0, rec_mr: 0, op_mr: 0 };
+    return {
+      min_cp: fallback.min,
+      rec_cp: fallback.rec,
+      op_cp: fallback.op,
+      rec_mr: fallback.rec_mr || 0,
+      op_mr: fallback.op_mr || 0,
+      min: fallback.min,
+      rec: fallback.rec,
+      op: fallback.op
+    };
+  }, [powerReqs]);
+
   // 타임아웃 검증 로직
   const checkTimeouts = useCallback((partyList: Party[], ownerName: string) => {
     if (!ownerName) return;
@@ -153,7 +187,7 @@ export function usePartyManager() {
 
   const fetchData = useCallback(async (ownerName: string) => {
     try {
-      const [charRes, partyRes] = await Promise.all([
+      const [charRes, partyRes, powerReqsRes, classesRes] = await Promise.all([
         supabase
           .from("characters")
           .select("*")
@@ -163,8 +197,22 @@ export function usePartyManager() {
           .from("parties")
           .select("*")
           .neq("status", "종료됨")
-          .order("created_at", { ascending: false })
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("content_power_reqs")
+          .select("*"),
+        supabase
+          .from("nexus_classes")
+          .select("*")
       ]);
+
+      if (powerReqsRes.data) {
+        setPowerReqs(powerReqsRes.data);
+      }
+
+      if (classesRes.data) {
+        setNexusClasses(classesRes.data);
+      }
 
       if (charRes.data) {
         const sortedChars = [...charRes.data].sort((a, b) => {
@@ -446,8 +494,8 @@ export function usePartyManager() {
         character_name: selectedChar,
         character_id: myCharObj?.id,
         job: myJob,
-        role: myRoles[0] || "딜러",
-        roles: myRoles.length > 0 ? myRoles : ["딜러"],
+        role: myRoles[0] || getRoleByJob(myJob, nexusClasses),
+        roles: myRoles.length > 0 ? myRoles : [getRoleByJob(myJob, nexusClasses)],
         combat_power: myCharObj?.combat_power || 0,
         magic_resistance: myCharObj?.magic_resistance || 0,
         time_start: timeStart,
@@ -461,7 +509,6 @@ export function usePartyManager() {
       const candidateList = [...existingMembers, newMember];
       const balanced = autoBalanceAndBuildParty(candidateList, existingMatchingParty.max_members);
 
-      // 🎯 [핵심 방어 및 TS 타입 캐스팅 적용] autoBalanceAndBuildParty가 누락시킨 시간 데이터를 복원하고 `as any`로 컴파일 에러 완전 방어
       const membersWithTime = balanced.members.map((bm: any) => {
         const original = candidateList.find((c: any) => (c.name || c.character_name) === (bm.name || bm.character_name));
         const s = original?.time_start || original?.start_time || original?.startTime || timeStart;
@@ -532,7 +579,7 @@ export function usePartyManager() {
       character_name: selectedChar, 
       character_id: myCharObj?.id, 
       job: myJob, 
-      role: myRoles[0] || "딜러",
+      role: myRoles[0] || getRoleByJob(myJob, nexusClasses),
       roles: myRoles, 
       combat_power: myCharObj?.combat_power || 0,
       magic_resistance: myCharObj?.magic_resistance || 0,
@@ -586,7 +633,7 @@ export function usePartyManager() {
       const charObj = myCharacters.find(c => (c.nickname || c.name || String(c.id)) === charKey) || {};
       const charName = charObj.nickname || charObj.name || charKey;
       const job = charObj.job || "전사";
-      const role = getRoleByJob(job);
+      const role = getRoleByJob(job, nexusClasses);
       const ownerAcc = user?.id || charObj.owner || user?.username || "한설";
 
       return {
@@ -613,7 +660,7 @@ export function usePartyManager() {
       };
     });
 
-    const cpReqs = CONTENT_CP_REQUIREMENTS[busCreateContent.name]?.[busCreateDiff];
+    const cpReqs = getCPReqsForContent(busCreateContent.name, busCreateDiff);
     
     const busCandidates: BusCandidate[] = initialMembers.map((m) => ({
       character_id: m.character_id,
@@ -676,7 +723,7 @@ export function usePartyManager() {
       const newMembers = selectedData.map(item => {
         const char = myCharacters.find(c => (c.nickname || c.name || String(c.id)) === item.characterId);
         if (!char) throw new Error("선택한 캐릭터 정보를 찾을 수 없습니다.");
-        const mappedRole = getRoleByJob(char.job);
+        const mappedRole = getRoleByJob(char.job, nexusClasses);
         const ownerAcc = user?.id || char.owner || "한설";
 
         return {
@@ -717,7 +764,7 @@ export function usePartyManager() {
         }
 
         const combinedMembers = [...existingParty.members, ...filteredNewMembers];
-        const cpReqs = CONTENT_CP_REQUIREMENTS[targetBusParty.contentName]?.[targetBusParty.difficulty];
+        const cpReqs = getCPReqsForContent(targetBusParty.contentName, targetBusParty.difficulty);
 
         const combinedCandidates: BusCandidate[] = combinedMembers.map((m: any) => ({
           character_id: m.character_id || m.id,
@@ -927,7 +974,6 @@ export function usePartyManager() {
       const candidateList = [...latestParty.members, newMember];
       const balanced = autoBalanceAndBuildParty(candidateList, latestParty.max_members);
 
-      // 🎯 [핵심 방어 및 TS 타입 캐스팅 적용] 참가 신청 시에도 시간 데이터 복원 및 `as any`로 컴파일 에러 완전 방어
       const membersWithTime = balanced.members.map((bm: any) => {
         const original = candidateList.find((c: any) => (c.name || c.character_name) === (bm.name || bm.character_name));
         const s = original?.time_start || original?.start_time || original?.startTime || joinTimeStart;
@@ -1131,6 +1177,8 @@ export function usePartyManager() {
     myCharacters,
     myCharacterNames,
     allCharactersMap,
+    powerReqs,
+    nexusClasses,
     activeDateFilter,
     setActiveDateFilter,
     selectedCategoryFilter,

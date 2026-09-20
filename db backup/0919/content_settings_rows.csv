@@ -1,0 +1,8 @@
+id,name,type,duration_minutes
+abyss_1,어비스 - 허상의 정박지,abyss,15
+abyss_2,어비스 - 광기의 동굴,abyss,15
+abyss_3,어비스 - 흩어진 물길,abyss,15
+abyss_all,어비스 3종 (통합),abyss,45
+raid_cav,레이드 - 카브락,raid,15
+raid_eirel,레이드 - 에이렐,raid,15
+raid_white,레이드 - 화이트 서큐버스,raid,15

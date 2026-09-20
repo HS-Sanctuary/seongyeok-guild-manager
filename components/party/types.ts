@@ -19,7 +19,7 @@ export interface Member {
   character_id?: string | number;
   class_name?: string;
   is_highlighted?: boolean;
-  // 시간 동기화 필드 추가 (TS2339 에러 원천 차단)
+  // 시간 동기화 필드 (TS2339 에러 원천 차단)
   start_time?: string;
   end_time?: string;
   startTime?: string;
@@ -80,11 +80,18 @@ export const DIFFICULTY_COLORS: Record<string, string> = {
 };
 
 export const CONTENT_DB: ContentItem[] = [
-  { id: "abyss_all", name: "어비스 3종 (통합)", category: "어비스", size: 4, diffs: ["입문", "어려움", "매우 어려움", "지옥 1", "지옥 2"], defaultDiff: "매우 어려움" },
+  { id: "abyss_all", name: "어비스 다중 (통합)", category: "어비스", size: 4, diffs: ["입문", "어려움", "매우 어려움", "지옥 1", "지옥 2"], defaultDiff: "매우 어려움" },
   { id: "abyss_1", name: "어비스 - 허상의 정박지", category: "어비스", size: 4, diffs: ["입문", "어려움", "매우 어려움", "지옥 1", "지옥 2"], defaultDiff: "매우 어려움" },
   { id: "abyss_2", name: "어비스 - 광기의 동굴", category: "어비스", size: 4, diffs: ["입문", "어려움", "매우 어려움", "지옥 1", "지옥 2"], defaultDiff: "매우 어려움" },
   { id: "abyss_3", name: "어비스 - 흩어진 물길", category: "어비스", size: 4, diffs: ["입문", "어려움", "매우 어려움", "지옥 1", "지옥 2"], defaultDiff: "매우 어려움" },
   { id: "raid_cav", name: "레이드 - 카브락", category: "레이드", size: 8, diffs: ["입문", "어려움"], defaultDiff: "어려움" },
   { id: "raid_airel", name: "레이드 - 에이렐", category: "레이드", size: 4, diffs: ["어려움"], defaultDiff: "어려움" },
   { id: "raid_white", name: "레이드 - 화이트 서큐버스", category: "레이드", size: 4, diffs: ["어려움", "매우 어려움"], defaultDiff: "매우 어려움" }
+];
+
+// 🎯 경로: components/party/types.ts (해당 변수를 찾아 아래로 덮어씌워 주세요)
+export const ABYSS_SUB_DUNGEONS = [
+  { id: "abyss_1", name: "허상의 정박지", shortName: "허상" },
+  { id: "abyss_2", name: "광기의 동굴", shortName: "광기" },
+  { id: "abyss_3", name: "흩어진 물길", shortName: "물길" },
 ];

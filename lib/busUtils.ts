@@ -1,310 +1,459 @@
 import { supabase } from "@/lib/supabase";
 
-export const JOB_ROLE_MAP: Record<string, "근딜" | "원딜" | "힐러" | "탱커" | "서포터"> = {
-  '도적': '근딜', '댄서': '근딜', '듀얼블레이드': '근딜', '대검전사': '근딜', '검술사': '근딜', '격투가': '근딜',
-  '궁수': '원딜', '악사': '원딜', '석궁사수': '원딜', '마법사': '원딜', '화염술사': '원딜', '전격술사': '원딜', '장궁병': '원딜', '암흑술사': '원딜',
-  '힐러': '힐러', '수도사': '힐러', '사제': '힐러',
-  '전사': '탱커', '기사': '탱커', '빙결술사': '탱커',
-  '음유시인': '서포터',
-};
+export type JobRole = "근딜" | "원딜" | "힐러" | "탱커" | "서포터";
 
-export function getRoleByJob(jobName: string): "근딜" | "원딜" | "힐러" | "탱커" | "서포터" {
-  return JOB_ROLE_MAP[jobName] || "근딜";
+export interface NexusClassItem {
+  id: number;
+  name: string;
+  role: JobRole;
 }
 
-export function getShortNickname(name: string): string {
-  if (!name) return "";
-  return name.length > 3 ? name.slice(0, 3) : name;
+export interface ContentPowerReq {
+  id?: number;
+  content_id?: number;
+  content_type?: string;
+  content_name?: string;
+  difficulty?: string;
+  min_cp: number;
+  rec_cp: number;
+  op_cp: number;
+  rec_mr?: number;
+  op_mr?: number;
 }
 
-export function parseCP(cp: any): number {
-  if (typeof cp === "number") return isNaN(cp) ? 0 : cp;
-  if (!cp) return 0;
-  const clean = String(cp).replace(/,/g, "").trim();
-  const parsed = parseInt(clean, 10);
-  return isNaN(parsed) ? 0 : parsed;
-}
-
-export function normalizeContentKeyForKronos(contentName: string): string {
-  if (!contentName) return "";
-  if (contentName.includes("카브락") || contentName.includes("카브")) return "cabrak";
-  if (contentName.includes("에이렐") || contentName.includes("에렐")) return "eirel";
-  if (contentName.includes("화이트 서큐버스") || contentName.includes("서큐")) return "succubus";
-  if (contentName.includes("어비스")) return "abyss";
-  return contentName;
-}
-
-export const CONTENT_CP_REQUIREMENTS: Record<string, Record<string, { min: number; rec: number; op: number }>> = {
-  "카브락": {
-    "입문": { min: 65000, rec: 72000, op: 82500 },
-    "어려움": { min: 90000, rec: 95000, op: 109000 },
-  },
-  "레이드 - 카브락": {
-    "입문": { min: 65000, rec: 72000, op: 82500 },
-    "어려움": { min: 90000, rec: 95000, op: 109000 },
-  },
-  "에이렐": {
-    "어려움": { min: 43500, rec: 50000, op: 57500 },
-  },
-  "레이드 - 에이렐": {
-    "어려움": { min: 43500, rec: 50000, op: 57500 },
-  },
-  "화이트 서큐버스": {
-    "어려움": { min: 0, rec: 27000, op: 31100 },
-    "매우 어려움": { min: 50000, rec: 57500, op: 64000 },
-  },
-  "레이드 - 화이트 서큐버스": {
-    "어려움": { min: 0, rec: 27000, op: 31100 },
-    "매우 어려움": { min: 50000, rec: 57500, op: 64000 },
-  },
-  "어비스 3종 (통합)": {
-    "입문": { min: 50000, rec: 56000, op: 64500 },
-    "어려움": { min: 63000, rec: 66000, op: 75000 },
-    "매우 어려움": { min: 76000, rec: 80000, op: 92000 },
-    "지옥 1": { min: 87500, rec: 92000, op: 105000 },
-    "지옥1": { min: 87500, rec: 92000, op: 105000 },
-    "지옥 2": { min: 95000, rec: 100000, op: 115000 },
-    "지옥2": { min: 95000, rec: 100000, op: 115000 },
-  },
-};
-
-export interface BusCandidate {
-  character_id?: any;
-  character_name: string;
-  owner_account: string;
+export interface CharacterCandidate {
+  id?: number;
+  name?: string;
+  character_id?: number;
+  character_name?: string;
   job: string;
   combat_power: number;
+  magic_resistance?: number;
+  owner_account?: string;
+  owner?: string;
+  raid_checks?: Record<string, boolean>;
+  daily_checks?: Record<string, boolean>;
+  weekly_checks?: Record<string, boolean>;
+}
+
+export interface BusCandidate {
+  character_id?: number;
+  character_name: string;
+  owner_account?: string;
+  job: string;
+  combat_power: number;
+  magic_resistance?: number;
   allow_repeat?: boolean;
   is_completed?: boolean;
   time_start?: string;
   time_end?: string;
+  raid_checks?: Record<string, boolean>;
 }
 
-export function assembleBalancedParty(
-  candidates: BusCandidate[],
-  maxSize: number = 8,
-  cpReqs?: { min: number; rec: number; op: number }
-) {
-  if (!candidates || candidates.length === 0) {
-    return { selected: [], remaining: [], hasHealer: false, hasTanker: false };
+export interface BusMember {
+  character_id: number;
+  character_name: string;
+  job: string;
+  role: JobRole;
+  combat_power: number;
+  magic_resistance: number;
+  owner_account: string;
+  is_driver?: boolean;
+  is_passenger?: boolean;
+}
+
+// 🎯 파티 밸런서 리턴 타입 인터페이스
+export interface AssemblePartyResult {
+  selected: BusMember[];
+  remaining: BusCandidate[];
+  hasHealer: boolean;
+  hasTanker: boolean;
+}
+
+export interface StatValidationResult {
+  isMinPassed: boolean;
+  isRecPassed: boolean;
+  isOpPassed: boolean;
+  cpDeficit: number;
+  mrDeficit: number;
+  badgeLabel: string;
+  badgeColorClass: string;
+}
+
+// 🎯 어비스 던전 UID - 직관적 약어 매핑 카탈로그
+export const ABYSS_KEY_MAP: Record<string, string> = {
+  abyss_1: "허상",
+  abyss_2: "동굴",
+  abyss_3: "물길",
+};
+
+/**
+ * 🎯 어비스 선택 던전에 따른 동적 약어 뱃지 텍스트 산출 유틸리티
+ */
+export function formatAbyssBadgeText(contentName: string, subContents?: any): string {
+  if (!contentName) return "";
+  const cleaned = contentName.replace(/^(레이드|어비스)\s*-\s*/, "").replace(/\s*\(통합\)/g, "").trim();
+
+  if (!contentName.includes("어비스")) return cleaned;
+
+  let keys: string[] = [];
+  if (Array.isArray(subContents)) {
+    keys = subContents;
+  } else if (typeof subContents === "string") {
+    try {
+      const parsed = JSON.parse(subContents);
+      if (Array.isArray(parsed)) keys = parsed;
+      else keys = [subContents];
+    } catch {
+      keys = subContents.split(",").map((s) => s.trim()).filter(Boolean);
+    }
   }
 
-  let eligible = candidates.filter(c => !c.is_completed || c.allow_repeat);
+  if (!keys || keys.length === 0) {
+    return cleaned;
+  }
 
-  eligible.sort((a, b) => {
-    if (!!a.is_completed !== !!b.is_completed) {
-      return a.is_completed ? 1 : -1;
+  const totalAbyssKeys = Object.keys(ABYSS_KEY_MAP);
+  const validKeys = keys.filter((k) => ABYSS_KEY_MAP[k]);
+
+  if (validKeys.length === 0) return cleaned;
+
+  if (validKeys.length >= totalAbyssKeys.length) {
+    return "어비스 ALL";
+  }
+
+  const labels = validKeys.map((k) => ABYSS_KEY_MAP[k]);
+  return `어비스 ${labels.join("/")}`;
+}
+
+// 비상용 백업 (Fallback) 21개 직업 역할군 맵
+export const JOB_ROLE_MAP: Record<string, JobRole> = {
+  도적: "근딜",
+  댄서: "근딜",
+  듀얼블레이드: "근딜",
+  대검전사: "근딜",
+  검술사: "근딜",
+  격투가: "근딜",
+
+  궁수: "원딜",
+  악사: "원딜",
+  석궁사수: "원딜",
+  마법사: "원딜",
+  화염술사: "원딜",
+  전격술사: "원딜",
+  장궁병: "원딜",
+  암흑술사: "원딜",
+
+  힐러: "힐러",
+  수도사: "힐러",
+  사제: "힐러",
+
+  전사: "탱커",
+  기사: "탱커",
+  빙결술사: "탱커",
+
+  음유시인: "서포터",
+};
+
+// static 요구스탯 컷 매핑 백업
+export const CONTENT_CP_REQUIREMENTS: Record<string, Record<string, { min: number; rec: number; op: number; rec_mr?: number; op_mr?: number }>> = {
+  "레이드 - 카브락": {
+    "입문": { min: 65000, rec: 72000, op: 82500, rec_mr: 0, op_mr: 0 },
+    "어려움": { min: 90000, rec: 95000, op: 109000, rec_mr: 0, op_mr: 0 },
+  },
+  "레이드 - 에이렐": {
+    "어려움": { min: 43500, rec: 50000, op: 57500, rec_mr: 0, op_mr: 0 },
+  },
+  "레이드 - 화이트 서큐버스": {
+    "어려움": { min: 0, rec: 27000, op: 31100, rec_mr: 0, op_mr: 0 },
+    "매우 어려움": { min: 50000, rec: 57500, op: 64000, rec_mr: 0, op_mr: 0 },
+  },
+  "어비스 - 허상의 정박지": {
+    "입문": { min: 50000, rec: 56000, op: 64500, rec_mr: 0, op_mr: 0 },
+    "어려움": { min: 63000, rec: 66000, op: 75000, rec_mr: 0, op_mr: 0 },
+    "매우 어려움": { min: 76000, rec: 80000, op: 92000, rec_mr: 0, op_mr: 0 },
+    "지옥1": { min: 87500, rec: 92000, op: 105000, rec_mr: 0, op_mr: 0 },
+    "지옥2": { min: 95000, rec: 100000, op: 115000, rec_mr: 0, op_mr: 0 },
+  }
+};
+
+export function parseCP(val: any): number {
+  if (typeof val === 'number') return val;
+  if (!val) return 0;
+  const str = String(val).replace(/,/g, '').trim();
+  const parsed = parseInt(str, 10);
+  return isNaN(parsed) ? 0 : parsed;
+}
+
+export function getRoleByJob(jobName: string, classCatalog?: NexusClassItem[]): JobRole {
+  if (classCatalog && classCatalog.length > 0) {
+    const found = classCatalog.find((c) => c.name === jobName);
+    if (found && found.role) {
+      return found.role;
     }
-    return parseCP(b.combat_power) - parseCP(a.combat_power);
-  });
+  }
+  return JOB_ROLE_MAP[jobName] || "근딜";
+}
 
-  const selected: BusCandidate[] = [];
-  const selectedOwners = new Set<string>();
+export const getJobRole = getRoleByJob;
 
-  const canAdd = (cand: BusCandidate) => {
-    return !selectedOwners.has(cand.owner_account) && !selected.some(s => s.character_name === cand.character_name);
+export function getShortNickname(name: string, maxLength: number = 6): string {
+  if (!name) return "";
+  if (name.length <= maxLength) return name;
+  return name.slice(0, maxLength);
+}
+
+export function validateStatRequirement(
+  cp: number,
+  mr: number,
+  req?: any
+): StatValidationResult {
+  if (!req) {
+    return {
+      isMinPassed: true,
+      isRecPassed: true,
+      isOpPassed: false,
+      cpDeficit: 0,
+      mrDeficit: 0,
+      badgeLabel: "기준 미지정",
+      badgeColorClass: "bg-zinc-800 text-zinc-400 border-zinc-700",
+    };
+  }
+
+  const minCp = req.min_cp ?? req.min ?? 0;
+  const recCp = req.rec_cp ?? req.rec ?? 0;
+  const opCp = req.op_cp ?? req.op ?? 0;
+  const recMr = req.rec_mr ?? 0;
+  const opMr = req.op_mr ?? 0;
+
+  const isMinPassed = cp >= minCp;
+  const isRecPassed = cp >= recCp && mr >= recMr;
+  const isOpPassed = cp >= opCp && mr >= opMr;
+
+  const cpDeficit = Math.max(0, recCp - cp);
+  const mrDeficit = Math.max(0, recMr - mr);
+
+  let badgeLabel = "미달";
+  let badgeColorClass = "bg-rose-950/60 text-rose-400 border-rose-800/50";
+
+  if (isOpPassed) {
+    badgeLabel = "⚡ 압도 (기사/버스기사 가능)";
+    badgeColorClass = "bg-purple-950/60 text-purple-300 border-purple-700/60 font-bold shadow-sm";
+  } else if (isRecPassed) {
+    badgeLabel = "✅ 권장 충족";
+    badgeColorClass = "bg-emerald-950/60 text-emerald-300 border-emerald-700/60 font-bold";
+  } else if (isMinPassed) {
+    badgeLabel = "⚠️ 최소 충족 (조율 필요)";
+    badgeColorClass = "bg-amber-950/60 text-amber-300 border-amber-700/60";
+  }
+
+  return {
+    isMinPassed,
+    isRecPassed,
+    isOpPassed,
+    cpDeficit,
+    mrDeficit,
+    badgeLabel,
+    badgeColorClass,
   };
-
-  const addCandidate = (cand: BusCandidate) => {
-    selected.push(cand);
-    if (cand.owner_account) {
-      selectedOwners.add(cand.owner_account);
-    }
-  };
-
-  const healerIdx = eligible.findIndex(c => getRoleByJob(c.job) === "힐러" && canAdd(c));
-  if (healerIdx !== -1) {
-    addCandidate(eligible[healerIdx]);
-  }
-
-  const tankerIdx = eligible.findIndex(c => getRoleByJob(c.job) === "탱커" && canAdd(c));
-  if (tankerIdx !== -1) {
-    addCandidate(eligible[tankerIdx]);
-  }
-
-  const defaultOp = cpReqs?.op || 90000;
-  const defaultRec = cpReqs?.rec || 70000;
-
-  const opCandidates: BusCandidate[] = [];
-  const recCandidates: BusCandidate[] = [];
-  const minCandidates: BusCandidate[] = [];
-
-  eligible.forEach(c => {
-    if (selected.some(s => s.character_name === c.character_name)) return;
-
-    const cp = parseCP(c.combat_power);
-    if (cp >= defaultOp * 0.95) {
-      opCandidates.push(c);
-    } else if (cp >= defaultRec * 0.95) {
-      recCandidates.push(c);
-    } else {
-      minCandidates.push(c);
-    }
-  });
-
-  let neededOpSlots = Math.min(3, opCandidates.length);
-  let neededRecSlots = Math.min(3, recCandidates.length);
-  let neededMinSlots = Math.min(2, minCandidates.length);
-
-  for (const c of opCandidates) {
-    if (selected.length >= maxSize) break;
-    if (neededOpSlots <= 0) break;
-    if (canAdd(c)) {
-      addCandidate(c);
-      neededOpSlots--;
-    }
-  }
-
-  for (const c of recCandidates) {
-    if (selected.length >= maxSize) break;
-    if (neededRecSlots <= 0) break;
-    if (canAdd(c)) {
-      addCandidate(c);
-      neededRecSlots--;
-    }
-  }
-
-  for (const c of minCandidates) {
-    if (selected.length >= maxSize) break;
-    if (neededMinSlots <= 0) break;
-    if (canAdd(c)) {
-      addCandidate(c);
-      neededMinSlots--;
-    }
-  }
-
-  for (const c of eligible) {
-    if (selected.length >= maxSize) break;
-    if (canAdd(c)) {
-      addCandidate(c);
-    }
-  }
-
-  const selectedNames = new Set(selected.map(s => s.character_name));
-  const remaining = candidates.filter(c => !selectedNames.has(c.character_name));
-  const hasHealer = selected.some(s => getRoleByJob(s.job) === "힐러");
-  const hasTanker = selected.some(s => getRoleByJob(s.job) === "탱커");
-
-  return { selected, remaining, hasHealer, hasTanker };
 }
 
 /**
- * KRONOS 숙제 자동 연동 엔진 (일반 매칭 & 길드 버스 공통 적용)
+ * 🎯 스마트 파티 밸런서 (AssemblePartyResult 구조체 정확히 반환)
  */
-export async function syncKronosChecklist(
-  characterTargets: (string | { id?: any; character_id?: any; character_name?: string; name?: string; nickname?: string })[],
-  contentType: string,
-  contentName: string,
-  difficulty?: string
-) {
-  try {
-    if (!characterTargets || characterTargets.length === 0) return true;
+export function assembleBalancedParty(
+  candidates: BusCandidate[],
+  maxPartySizeOrReq?: number | ContentPowerReq | any,
+  reqOrTargetKey?: any,
+  targetContentKeyOrSize?: any,
+  classCatalog?: NexusClassItem[]
+): AssemblePartyResult {
+  if (!candidates || candidates.length === 0) {
+    return {
+      selected: [],
+      remaining: [],
+      hasHealer: false,
+      hasTanker: false,
+    };
+  }
 
-    const normName = (contentName || "").trim();
-    const isAbyss = contentType === "abyss" || normName.includes("어비스") || normName.includes("허상") || normName.includes("동굴") || normName.includes("물길");
-    const isRaid = contentType === "raid" || normName.includes("레이드") || normName.includes("카브락") || normName.includes("에이렐") || normName.includes("서큐");
+  let maxPartySize = 4;
+  let req: any = null;
+  let targetContentKey: string | undefined = undefined;
 
-    // KRONOS 키 매핑 매트릭스
-    let keysToAdd: string[] = [
-      normName,
-      normalizeContentKeyForKronos(normName),
-    ].filter(Boolean) as string[];
-
-    if (normName.includes("카브락") || normName.includes("카브")) {
-      if (difficulty === "입문") {
-        keysToAdd.push("cabrak_entry", "cabrak_normal", "cabrak_0", "카브락_입문", "raid_cabrak_entry", "카브락");
-      } else {
-        keysToAdd.push("cabrak_hard", "cabrak_1", "카브락_어려움", "cabrak", "raid_cabrak_hard", "카브락");
-      }
-    } else if (normName.includes("에이렐") || normName.includes("에렐")) {
-      keysToAdd.push("eirel_hard", "에이렐_어려움", "eirel", "raid_eirel_hard", "에이렐");
-    } else if (normName.includes("서큐") || normName.includes("서큐버스")) {
-      if (difficulty === "매우 어려움") {
-        keysToAdd.push("succubus_very_hard", "서큐_매우어려움", "succubus", "raid_succubus_very_hard", "화이트 서큐버스");
-      } else {
-        keysToAdd.push("succubus_hard", "서큐_어려움", "succubus", "raid_succubus_hard", "화이트 서큐버스");
-      }
+  if (typeof maxPartySizeOrReq === 'number') {
+    maxPartySize = maxPartySizeOrReq;
+    req = reqOrTargetKey;
+    if (typeof targetContentKeyOrSize === 'string') {
+      targetContentKey = targetContentKeyOrSize;
     }
-
-    if (isAbyss) {
-      // 어비스 3종 전체 및 개별 던전 키 일괄 매핑 (KRONOS 상호 완벽 호환)
-      keysToAdd.push(
-        "abyss_all", "abyss_1", "abyss_2", "abyss_3", 
-        "abyss_entry", "abyss_hard", "abyss_very_hard", 
-        "어비스 3종 (통합)", "어비스 3종", "어비스",
-        "허상의 정박지", "광기의 동굴", "흩어진 물길", 
-        "허상", "동굴", "물길"
-      );
+  } else {
+    req = maxPartySizeOrReq;
+    if (typeof reqOrTargetKey === 'string') {
+      targetContentKey = reqOrTargetKey;
     }
-
-    // 1. 타겟 캐릭터들의 닉네임 및 ID 수집
-    const targetNames = new Set<string>();
-    const targetIds = new Set<any>();
-
-    for (const target of characterTargets) {
-      if (!target) continue;
-      if (typeof target === "string") {
-        if (target.trim()) targetNames.add(target.trim());
-      } else if (typeof target === "object") {
-        const cId = target.character_id || target.id;
-        if (cId !== undefined && cId !== null && cId !== "") targetIds.add(cId);
-        const cName = (target.character_name || target.nickname || target.name || "").trim();
-        if (cName) targetNames.add(cName);
-      }
+    if (typeof targetContentKeyOrSize === 'number') {
+      maxPartySize = targetContentKeyOrSize;
     }
+  }
 
-    // 2. 캐릭터 데이터 조회
-    const { data: allChars, error: fetchError } = await supabase
-      .from("characters")
-      .select("id, nickname, raid_checks, weekly_checks");
+  // 1. 이미 완료한 캐릭터 제외 및 미완료 우선 정렬
+  const filteredCandidates = [...candidates].sort((a, b) => {
+    const aCleared = targetContentKey ? !!a.raid_checks?.[targetContentKey] : false;
+    const bCleared = targetContentKey ? !!b.raid_checks?.[targetContentKey] : false;
 
-    if (fetchError || !allChars) {
-      console.error("크로노스 연동 전체 캐릭터 조회 실패:", fetchError);
-      return false;
-    }
+    if (aCleared !== bCleared) return aCleared ? 1 : -1;
+    const aCp = parseCP(a.combat_power);
+    const bCp = parseCP(b.combat_power);
+    return bCp - aCp;
+  });
 
-    // 3. 대상 캐릭터 필터링
-    const matchedChars = allChars.filter(c => {
-      const cId = c.id;
-      const cNick = (c.nickname || "").trim();
-      if (targetIds.has(cId) || targetIds.has(String(cId))) return true;
-      if (cNick && targetNames.has(cNick)) return true;
-      return false;
+  const selectedMembers: BusMember[] = [];
+  const usedAccounts = new Set<string>();
+
+  const tryAddCandidate = (cand: BusCandidate, isDriver: boolean = false): boolean => {
+    const ownerAcc = cand.owner_account || cand.character_name;
+    if (ownerAcc && usedAccounts.has(ownerAcc)) return false;
+    if (selectedMembers.length >= maxPartySize) return false;
+
+    const job = cand.job || "전사";
+    const role = getRoleByJob(job, classCatalog);
+    const charName = cand.character_name || "";
+    const charId = cand.character_id || 0;
+    const cp = parseCP(cand.combat_power);
+    const mr = parseCP(cand.magic_resistance || 0);
+
+    selectedMembers.push({
+      character_id: charId,
+      character_name: charName,
+      job,
+      role,
+      combat_power: cp,
+      magic_resistance: mr,
+      owner_account: ownerAcc,
+      is_driver: isDriver,
+      is_passenger: !isDriver,
     });
+    if (ownerAcc) usedAccounts.add(ownerAcc);
+    return true;
+  };
 
-    if (matchedChars.length === 0) return true;
+  // Step 1. 버스 기사 (압도 스탯 보유자) 우선 1선발
+  if (req && (req.op_cp || req.op)) {
+    const driverCandidate = filteredCandidates.find((c) => {
+      const cp = parseCP(c.combat_power);
+      const mr = parseCP(c.magic_resistance || 0);
+      const val = validateStatRequirement(cp, mr, req);
+      return val.isOpPassed;
+    });
+    if (driverCandidate) {
+      tryAddCandidate(driverCandidate, true);
+    }
+  }
 
-    // 4. DB 동기화 (KRONOS 캐릭터 페이지 스펙에 맞춰 raid_checks 컬럼에 통합 저장)
-    const updatePromises = matchedChars.map(async (charData) => {
-      const mergeChecks = (existingData: any) => {
-        let currentList: any[] = [];
-        if (Array.isArray(existingData)) {
-          currentList = existingData;
-        } else if (typeof existingData === "string") {
-          try { currentList = JSON.parse(existingData); } catch (e) { currentList = []; }
-        }
-        return Array.from(new Set([...currentList, ...keysToAdd]));
-      };
+  // Step 2. 힐러 포지션 1선발
+  const healerCandidate = filteredCandidates.find(
+    (c) => getRoleByJob(c.job, classCatalog) === "힐러" && !usedAccounts.has(c.owner_account || c.character_name)
+  );
+  if (healerCandidate) {
+    tryAddCandidate(healerCandidate, false);
+  }
 
-      let updatePayload: any = {};
-      
-      // KRONOS는 어비스와 레이드 항목 모두 raid_checks 컬럼에 보관 및 로드합니다.
-      if (isRaid || isAbyss) {
-        updatePayload.raid_checks = mergeChecks(charData.raid_checks);
-      }
+  // Step 3. 탱커 포지션 1선발
+  const tankerCandidate = filteredCandidates.find(
+    (c) => getRoleByJob(c.job, classCatalog) === "탱커" && !usedAccounts.has(c.owner_account || c.character_name)
+  );
+  if (tankerCandidate) {
+    tryAddCandidate(tankerCandidate, false);
+  }
 
-      if (Object.keys(updatePayload).length > 0) {
+  // Step 4. 나머지 슬롯 전투력 순 채우기
+  for (const cand of filteredCandidates) {
+    if (selectedMembers.length >= maxPartySize) break;
+    tryAddCandidate(cand, false);
+  }
+
+  const remainingCandidates = filteredCandidates.filter(
+    (c) => !selectedMembers.some((m) => m.character_name === c.character_name)
+  );
+
+  const hasHealer = selectedMembers.some((m) => m.role === "힐러");
+  const hasTanker = selectedMembers.some((m) => m.role === "탱커");
+
+  return {
+    selected: selectedMembers,
+    remaining: remainingCandidates,
+    hasHealer,
+    hasTanker,
+  };
+}
+
+export async function syncKronosChecklist(
+  target: any,
+  arg2?: string,
+  arg3?: string | boolean,
+  arg4?: string
+): Promise<boolean> {
+  try {
+    if (Array.isArray(target)) {
+      const members = target;
+      const contentName = typeof arg3 === 'string' ? arg3 : (typeof arg2 === 'string' ? arg2 : '');
+      if (!contentName) return false;
+
+      const updatePromises = members.map(async (m: any) => {
+        const charId = m.character_id || m.id;
+        if (!charId) return;
+
+        const { data: charData } = await supabase
+          .from("characters")
+          .select("raid_checks")
+          .eq("id", charId)
+          .single();
+
+        const currentChecks = charData?.raid_checks || {};
+        const updatedChecks = {
+          ...currentChecks,
+          [contentName]: true,
+        };
+
         await supabase
           .from("characters")
-          .update(updatePayload)
-          .eq("id", charData.id);
-      }
-    });
+          .update({ raid_checks: updatedChecks })
+          .eq("id", charId);
+      });
 
-    await Promise.all(updatePromises);
-    return true;
-  } catch (e) {
-    console.error("KRONOS 숙제 연동 실패:", e);
+      await Promise.all(updatePromises);
+      return true;
+    }
+
+    const characterId = Number(target);
+    const contentKey = String(arg2);
+    const isCleared = typeof arg3 === 'boolean' ? arg3 : true;
+
+    if (!characterId) return false;
+
+    const { data: charData, error: fetchErr } = await supabase
+      .from("characters")
+      .select("raid_checks")
+      .eq("id", characterId)
+      .single();
+
+    if (fetchErr || !charData) return false;
+
+    const currentChecks = charData.raid_checks || {};
+    const updatedChecks = {
+      ...currentChecks,
+      [contentKey]: isCleared,
+    };
+
+    const { error: updateErr } = await supabase
+      .from("characters")
+      .update({ raid_checks: updatedChecks })
+      .eq("id", characterId);
+
+    return !updateErr;
+  } catch (err) {
+    console.error("syncKronosChecklist 예외:", err);
     return false;
   }
 }

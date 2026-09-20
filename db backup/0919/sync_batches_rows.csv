@@ -1,0 +1,4 @@
+id,started_at,status,total_targets,matched,failed,requested_by
+1,2026-08-09 16:40:59.560921+00,warning,20,0,20,BrowserExtension
+2,2026-08-09 16:46:33.418636+00,success,4,4,0,AutoSyncv3.5
+3,2026-08-09 16:56:24.541709+00,success,29,29,0,AutoSyncv5.5_Deian

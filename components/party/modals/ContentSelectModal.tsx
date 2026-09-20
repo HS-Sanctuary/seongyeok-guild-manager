@@ -1,13 +1,14 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import MarkIcon from "@/components/common/MarkIcon";
-import { CONTENT_DB, ContentItem } from "@/components/party/types";
+import { CONTENT_DB, ContentItem, ABYSS_SUB_DUNGEONS } from "@/components/party/types";
 
 const cleanContentName = (name: string) => {
   return name
     .replace(/^(어비스|레이드)\s*-\s*/, "")
     .replace(/\s*\(통합\)/g, "")
+    .replace("3종", "다중")
     .trim();
 };
 
@@ -21,6 +22,8 @@ interface ContentSelectModalProps {
   tempDiff: string;
   setTempDiff: (val: string) => void;
   applyContentModal: () => void;
+  tempSubContents?: string[];
+  setTempSubContents?: (val: string[]) => void;
 }
 
 export default function ContentSelectModal({
@@ -33,15 +36,51 @@ export default function ContentSelectModal({
   tempDiff,
   setTempDiff,
   applyContentModal,
+  tempSubContents,
+  setTempSubContents,
 }: ContentSelectModalProps) {
   const abyssContents = useMemo(() => CONTENT_DB.filter((c) => c.category === "어비스"), []);
   const raidContents = useMemo(() => CONTENT_DB.filter((c) => c.category === "레이드"), []);
+
+  // 🛡️ 백업 포일 상태: 프롭 전달 유무와 무관하게 다중 선택 토글이 상시 작동하도록 방어
+  const [localSubContents, setLocalSubContents] = useState<string[]>(
+    tempSubContents && tempSubContents.length > 0 ? tempSubContents : ["abyss_1", "abyss_2", "abyss_3"]
+  );
+
+  useEffect(() => {
+    if (tempSubContents && tempSubContents.length > 0) {
+      setLocalSubContents(tempSubContents);
+    }
+  }, [tempSubContents]);
+
+  const activeSubContents = tempSubContents ?? localSubContents;
+
+  const toggleSubContent = (id: string) => {
+    let next: string[];
+    if (activeSubContents.includes(id)) {
+      if (activeSubContents.length <= 1) return;
+      next = activeSubContents.filter((subId) => subId !== id);
+    } else {
+      next = [...activeSubContents, id];
+    }
+    setLocalSubContents(next);
+    if (setTempSubContents) {
+      setTempSubContents(next);
+    }
+  };
+
+  const abyssBadgeLabel = useMemo(() => {
+    if (tempContentCategory !== "어비스") return null;
+    if (activeSubContents.length === 3 || activeSubContents.length === 0) return "어비스 ALL";
+    const selectedObj = ABYSS_SUB_DUNGEONS.filter((item) => activeSubContents.includes(item.id));
+    return `어비스 ${selectedObj.map((o) => o.shortName).join("/")}`;
+  }, [tempContentCategory, activeSubContents]);
 
   if (!showContentModal) return null;
 
   return (
     <div 
-      className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 cursor-pointer overscroll-none"
+      className="fixed inset-0 z-[300] bg-black/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 cursor-pointer overscroll-none"
       onClick={() => setShowContentModal(false)}
     >
       <div 
@@ -57,6 +96,7 @@ export default function ContentSelectModal({
         </div>
 
         <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 grid grid-cols-2 gap-2.5 sm:gap-3.5 min-h-0 overscroll-contain">
+          {/* 어비스 영역 */}
           <div className="space-y-2 pr-1 sm:pr-2 border-r border-[var(--panel-border)]/70">
             <div className="flex items-center gap-1.5 pb-1.5 border-b border-[var(--panel-border)] text-xs font-black text-[var(--accent)] sticky top-0 bg-[var(--panel)] z-10">
               <MarkIcon src="/svgs/contens mark/어비스 마크.svg" size="sm" scale={1.6} colorClass="bg-[var(--accent)]" />
@@ -64,12 +104,13 @@ export default function ContentSelectModal({
             </div>
             <div className="space-y-2">
               {abyssContents.map((c) => {
-                const isSelected = tempContent.name === c.name;
+                const isSelected = tempContent.id === c.id || tempContent.name === c.name;
                 const displayName = cleanContentName(c.name);
+                const isMultiAbyssCard = c.id === "abyss_all" || c.name.includes("다중") || c.name.includes("3종");
 
                 return (
                   <div
-                    key={c.name}
+                    key={c.id}
                     className={`rounded-xl overflow-hidden border transition-all duration-200 ${
                       isSelected
                         ? "border-[var(--accent)] bg-[var(--inner-box)] shadow-md"
@@ -81,7 +122,7 @@ export default function ContentSelectModal({
                       onClick={() => {
                         setTempContent(c);
                         setTempContentCategory("어비스");
-                        if (tempContent.name !== c.name) {
+                        if (tempContent.id !== c.id) {
                           setTempDiff(c.defaultDiff);
                         }
                       }}
@@ -123,6 +164,35 @@ export default function ContentSelectModal({
                             );
                           })}
                         </div>
+
+                        {/* 🎯 어비스 다중 카드가 선택된 경우(핑크 영역) - 버스크리에이트 / 파티크리에이트 공통 상시 노출 */}
+                        {isMultiAbyssCard && (
+                          <div className="pt-2 border-t border-[var(--panel-border)]/50 space-y-1">
+                            <span className="text-[10px] font-black text-[var(--accent)] block">
+                              목표 던전 (다중 선택)
+                            </span>
+                            <div className="flex flex-col gap-1">
+                              {ABYSS_SUB_DUNGEONS.map((dungeon) => {
+                                const isSubSelected = activeSubContents.includes(dungeon.id);
+                                return (
+                                  <button
+                                    key={dungeon.id}
+                                    type="button"
+                                    onClick={() => toggleSubContent(dungeon.id)}
+                                    className={`py-1 px-1.5 text-[10px] font-black rounded-md border transition-all cursor-pointer text-left flex items-center justify-between ${
+                                      isSubSelected
+                                        ? "bg-[var(--accent)] text-[var(--accent-fg)] border-transparent"
+                                        : "bg-[var(--panel)] border-[var(--panel-border)] text-[var(--text-sub)]"
+                                    }`}
+                                  >
+                                    <span>{dungeon.name}</span>
+                                    <span className="text-[9px]">{isSubSelected ? "✓" : ""}</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -131,6 +201,7 @@ export default function ContentSelectModal({
             </div>
           </div>
 
+          {/* 레이드 영역 */}
           <div className="space-y-2 pl-1 sm:pl-2">
             <div className="flex items-center gap-1.5 pb-1.5 border-b border-[var(--panel-border)] text-xs font-black text-[var(--accent)] sticky top-0 bg-[var(--panel)] z-10">
               <MarkIcon src="/svgs/contens mark/레이드 마크.svg" size="sm" scale={1.6} colorClass="bg-[var(--accent)]" />
@@ -138,12 +209,12 @@ export default function ContentSelectModal({
             </div>
             <div className="space-y-2">
               {raidContents.map((c) => {
-                const isSelected = tempContent.name === c.name;
+                const isSelected = tempContent.id === c.id || tempContent.name === c.name;
                 const displayName = cleanContentName(c.name);
 
                 return (
                   <div
-                    key={c.name}
+                    key={c.id}
                     className={`rounded-xl overflow-hidden border transition-all duration-200 ${
                       isSelected
                         ? "border-[var(--accent)] bg-[var(--inner-box)] shadow-md"
@@ -155,7 +226,7 @@ export default function ContentSelectModal({
                       onClick={() => {
                         setTempContent(c);
                         setTempContentCategory("레이드");
-                        if (tempContent.name !== c.name) {
+                        if (tempContent.id !== c.id) {
                           setTempDiff(c.defaultDiff);
                         }
                       }}
@@ -206,6 +277,7 @@ export default function ContentSelectModal({
           </div>
         </div>
 
+        {/* 하단 요약 바 */}
         <div className="bg-[var(--inner-box)] border border-[var(--panel-border)] p-2.5 rounded-xl flex items-center justify-between gap-2 shrink-0 animate-in fade-in duration-150">
           <div className="flex items-center gap-2 min-w-0">
             <MarkIcon 
@@ -219,7 +291,9 @@ export default function ContentSelectModal({
               colorClass="bg-[var(--accent)]" 
             />
             <span className="font-black text-xs sm:text-sm text-[var(--text-main)] truncate">
-              {cleanContentName(tempContent.name)}
+              {tempContentCategory === "어비스" && abyssBadgeLabel
+                ? abyssBadgeLabel
+                : cleanContentName(tempContent.name)}
             </span>
             <span className="px-2 py-0.5 rounded-md bg-[var(--accent)]/15 border border-[var(--accent)]/40 text-[var(--accent)] text-[11px] font-black shrink-0 whitespace-nowrap">
               {tempDiff}

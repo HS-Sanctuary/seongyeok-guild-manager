@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import ClassIcon from "@/components/common/ClassIcon";
 import MarkIcon from "@/components/common/MarkIcon";
-import { ContentItem, DIFFICULTY_COLORS, ROLE_COLORS, ROLE_GROUPS } from "./types";
+import { ContentItem, DIFFICULTY_COLORS, ROLE_COLORS, ROLE_GROUPS, ABYSS_SUB_DUNGEONS } from "./types";
 
 interface PartyCreateFormProps {
   isAdmin: boolean;
@@ -43,6 +43,8 @@ interface PartyCreateFormProps {
   setWantedRoles: (roles: string[]) => void;
   handleReservation: () => void;
   setShowBusCreateModal: (open: boolean) => void;
+  selectedSubContents?: string[];
+  setSelectedSubContents?: (val: string[]) => void;
 }
 
 export default function PartyCreateForm({
@@ -83,13 +85,24 @@ export default function PartyCreateForm({
   setWantedRoles,
   handleReservation,
   setShowBusCreateModal,
+  selectedSubContents = ["abyss_1", "abyss_2", "abyss_3"],
+  setSelectedSubContents,
 }: PartyCreateFormProps) {
   const toggleRole = (role: string, state: string[], setState: (val: string[]) => void) => {
     if (state.includes(role)) setState(state.filter((r) => r !== role));
     else setState([...state, role]);
   };
 
-  // 컨텐츠 카테고리에 따른 마크 SVG 선택
+  const toggleSubContent = (id: string) => {
+    if (!setSelectedSubContents) return;
+    if (selectedSubContents.includes(id)) {
+      if (selectedSubContents.length <= 1) return;
+      setSelectedSubContents(selectedSubContents.filter((subId) => subId !== id));
+    } else {
+      setSelectedSubContents([...selectedSubContents, id]);
+    }
+  };
+
   const contentMarkSrc = useMemo(() => {
     if (!selectedContent) return "/svgs/contens mark/레이드 마크.svg";
     return selectedContent.category === "어비스"
@@ -97,16 +110,25 @@ export default function PartyCreateForm({
       : "/svgs/contens mark/레이드 마크.svg";
   }, [selectedContent]);
 
-  // 컨텐츠 이름 중복 접두어 및 '(통합)' 원천 제거
+  // 🎯 하드코딩 제거: 전체 개수(length)를 DB 상수 기준으로 동적 판단
+  const abyssBadgeLabel = useMemo(() => {
+    if (selectedContent?.category !== "어비스") return null;
+    if (selectedSubContents.length === ABYSS_SUB_DUNGEONS.length || selectedSubContents.length === 0) return "어비스 ALL";
+    const selectedObj = ABYSS_SUB_DUNGEONS.filter((item) => selectedSubContents.includes(item.id));
+    return `어비스 ${selectedObj.map((o) => o.shortName).join("/")}`;
+  }, [selectedContent, selectedSubContents]);
+
   const displayContentName = useMemo(() => {
     if (!selectedContent) return "목표 컨텐츠 선택";
+    if (selectedContent.category === "어비스" && abyssBadgeLabel) {
+      return abyssBadgeLabel;
+    }
     return selectedContent.name
       .replace(/^(레이드|어비스)\s*-\s*/, "")
       .replace(/\s*\(통합\)/g, "")
       .trim();
-  }, [selectedContent]);
+  }, [selectedContent, abyssBadgeLabel]);
 
-  // 시작/종료 시간 오염 텍스트 정제
   const cleanTimeStart = useMemo(() => {
     if (!timeStart) return "14:00";
     return timeStart.replace(/\s*\(\+1일\)/g, "").replace(/\s*다음날/g, "").replace(/\s*\+\d+일/g, "").trim();
@@ -117,13 +139,11 @@ export default function PartyCreateForm({
     return timeEnd.replace(/\s*\(\+1일\)/g, "").replace(/\s*다음날/g, "").replace(/\s*\+\d+일/g, "").trim();
   }, [timeEnd]);
 
-  // 🎯 [연도 제거 단축 월-일 포맷터] (예: 2026-09-12 -> 09-12)
   const displayShortDate = useMemo(() => {
     if (!selectedDate) return "";
     return selectedDate.replace(/^\d{4}-/, "");
   }, [selectedDate]);
 
-  // 자정 경과 익일 스마트 판별
   const isNextDay = useMemo(() => {
     if (timeEnd?.includes("+1일") || timeEnd?.includes("다음날")) return true;
     if (!cleanTimeStart || !cleanTimeEnd) return false;
@@ -135,7 +155,7 @@ export default function PartyCreateForm({
 
   return (
     <div className="space-y-2.5 w-full min-w-0">
-      {/* 1. 상단 타이틀 & 길드 마크 적용된 길드 버스 개설 버튼 */}
+      {/* 상단 타이틀 & 길드 버스 개설 버튼 */}
       <div className="flex items-center justify-between gap-2 border-b border-[var(--panel-border)] pb-2 min-w-0">
         <h2 className="text-xs font-black text-[var(--accent)] flex items-center gap-1.5 shrink-0 whitespace-nowrap">
           <span>✨</span> 스마트 파티 매칭
@@ -158,7 +178,7 @@ export default function PartyCreateForm({
         )}
       </div>
 
-      {/* 2. 참여할 캐릭터 선택 */}
+      {/* 참여할 캐릭터 선택 */}
       <div className="space-y-1 w-full min-w-0">
         <label className="text-[11px] font-bold text-[var(--text-main)] flex items-center gap-1.5 whitespace-nowrap leading-none">
           <MarkIcon src="/svgs/UI mark/사람 마크.svg" size="sm" scale={0.8} colorClass="bg-[var(--accent)]" />
@@ -188,8 +208,8 @@ export default function PartyCreateForm({
         </div>
       </div>
 
-      {/* 3. 목표 컨텐츠 & 난이도 & 인원 뱃지 */}
-      <div className="w-full min-w-0">
+      {/* 목표 컨텐츠 & 뱃지 */}
+      <div className="w-full min-w-0 space-y-1.5">
         <button
           type="button"
           onClick={openContentModal}
@@ -217,9 +237,40 @@ export default function PartyCreateForm({
             ⚙️
           </span>
         </button>
+
+        {/* 🎯 확장형 어비스 칩: DB 배열 길이 기준 동적 렌더링 */}
+        {selectedContent?.category === "어비스" && setSelectedSubContents && (
+          <div className="bg-[var(--inner-box)] border border-[var(--panel-border)] p-2 rounded-xl space-y-1 animate-in fade-in duration-200">
+            <div className="flex justify-between items-center text-[10px] font-black text-[var(--accent)] mb-0.5">
+              <span>🎯 어비스 목표 던전 선택 (다중 선택)</span>
+              <span className="text-[var(--text-sub)] text-[9px] font-normal">
+                {selectedSubContents.length === ABYSS_SUB_DUNGEONS.length ? "전체 진행" : `${selectedSubContents.length}개 선택됨`}
+              </span>
+            </div>
+            <div className="grid grid-cols-3 gap-1">
+              {ABYSS_SUB_DUNGEONS.map((dungeon) => {
+                const isChecked = selectedSubContents.includes(dungeon.id);
+                return (
+                  <button
+                    key={dungeon.id}
+                    type="button"
+                    onClick={() => toggleSubContent(dungeon.id)}
+                    className={`py-1 px-1 rounded-lg text-[10px] font-black transition-all cursor-pointer text-center truncate border ${
+                      isChecked
+                        ? "bg-[var(--accent)] text-[var(--accent-fg)] border-transparent shadow-xs font-black"
+                        : "bg-[var(--panel)] border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)]"
+                    }`}
+                  >
+                    {isChecked ? "✓ " : ""}{dungeon.name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* 4. 🟢 [수정 완료] 매칭 희망 스케줄 (2026- 제거 -> 09-12 (토) 1줄 최적화) */}
+      {/* 매칭 희망 스케줄 */}
       <div className="w-full min-w-0">
         <button
           type="button"
@@ -250,9 +301,8 @@ export default function PartyCreateForm({
         </button>
       </div>
 
-      {/* 5. 파티 스타일 & 매칭 전략 */}
+      {/* 파티 스타일 & 매칭 전략 */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full min-w-0">
-        {/* 파티 스타일 */}
         <div className="space-y-1 w-full min-w-0">
           <label className="text-[11px] font-bold text-[var(--text-main)] flex items-center gap-1.5 whitespace-nowrap leading-none">
             <MarkIcon src="/svgs/status mark/전투력 마크.svg" size="sm" scale={1.52} colorClass="bg-[var(--accent)]" />
@@ -284,7 +334,6 @@ export default function PartyCreateForm({
           </div>
         </div>
 
-        {/* 매칭 전략 */}
         <div className="space-y-1 w-full min-w-0">
           <label className="text-[11px] font-bold text-[var(--text-main)] flex items-center gap-1.5 whitespace-nowrap leading-none">
             <MarkIcon src="/svgs/UI mark/도감 마크.svg" size="sm" scale={3.3} colorClass="bg-[var(--accent)]" />
@@ -317,92 +366,7 @@ export default function PartyCreateForm({
         </div>
       </div>
 
-      {/* 반복 뺑이 옵션 서브 패널 */}
-      {partyType === "반복 뺑이" && (
-        <div className="bg-[var(--inner-box)] p-2.5 rounded-xl border border-[var(--panel-border)] space-y-1.5 w-full min-w-0 animate-in fade-in zoom-in-95">
-          <div className="flex justify-between items-center border-b border-[var(--panel-border)] pb-1 min-w-0">
-            <span className="text-[11px] font-black text-[var(--accent)] flex items-center gap-1 whitespace-nowrap">
-              <span>🔄</span> 반복 상세 설정
-            </span>
-            <div className="flex bg-[var(--panel)] p-0.5 rounded-lg border border-[var(--panel-border)] text-[10px] shrink-0">
-              <button
-                type="button"
-                onClick={() => setLoopSubMode("회차")}
-                className={`px-2 py-0.5 rounded-md font-bold cursor-pointer ${
-                  loopSubMode === "회차" ? "bg-[var(--accent)] text-[var(--accent-fg)] font-black" : "text-[var(--text-sub)]"
-                }`}
-              >
-                회차
-              </button>
-              <button
-                type="button"
-                onClick={() => setLoopSubMode("시간")}
-                className={`px-2 py-0.5 rounded-md font-bold cursor-pointer ${
-                  loopSubMode === "시간" ? "bg-[var(--accent)] text-[var(--accent-fg)] font-black" : "text-[var(--text-sub)]"
-                }`}
-              >
-                시간
-              </button>
-            </div>
-          </div>
-
-          {loopSubMode === "회차" ? (
-            <div className="flex items-center gap-2 min-w-0">
-              <div className="flex-1 flex items-center justify-between bg-[var(--panel)] px-2 py-1 rounded-lg border border-[var(--panel-border)] min-w-0">
-                <span className="text-[10px] text-[var(--text-sub)] font-bold shrink-0">최소</span>
-                <div className="flex items-center gap-1 shrink-0">
-                  <input
-                    type="number"
-                    value={minRuns}
-                    onChange={(e) => setMinRuns(e.target.value)}
-                    className="w-8 bg-[var(--inner-box)] border border-[var(--panel-border)] text-xs font-black text-center text-[var(--text-main)] rounded-md py-0.5 outline-none"
-                  />
-                  <span className="text-xs text-[var(--text-main)] font-bold">회</span>
-                </div>
-              </div>
-              <span className="text-[var(--text-sub)] font-bold shrink-0">~</span>
-              <div className="flex-1 flex items-center justify-between bg-[var(--panel)] px-2 py-1 rounded-lg border border-[var(--panel-border)] min-w-0">
-                <span className="text-[10px] text-[var(--text-sub)] font-bold shrink-0">최대</span>
-                <div className="flex items-center gap-1 shrink-0">
-                  <input
-                    type="number"
-                    value={maxRuns}
-                    onChange={(e) => setMaxRuns(e.target.value)}
-                    className="w-8 bg-[var(--inner-box)] border border-[var(--panel-border)] text-xs font-black text-center text-[var(--text-main)] rounded-md py-0.5 outline-none"
-                  />
-                  <span className="text-xs text-[var(--text-main)] font-bold">회</span>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 min-w-0">
-              <select
-                value={loopHoursCount}
-                onChange={(e) => setLoopHoursCount(e.target.value)}
-                className="flex-1 bg-[var(--panel)] border border-[var(--panel-border)] rounded-lg px-2 py-1 text-xs font-bold text-[var(--text-main)] outline-none min-w-0"
-              >
-                <option value="0">0시간</option>
-                <option value="1">1시간</option>
-                <option value="2">2시간</option>
-                <option value="3">3시간</option>
-                <option value="4">4시간</option>
-              </select>
-              <select
-                value={loopHoursMin}
-                onChange={(e) => setLoopHoursMin(e.target.value)}
-                className="flex-1 bg-[var(--panel)] border border-[var(--panel-border)] rounded-lg px-2 py-1 text-xs font-bold text-[var(--text-main)] outline-none min-w-0"
-              >
-                <option value="00">0분</option>
-                <option value="15">15분</option>
-                <option value="30">30분</option>
-                <option value="45">45분</option>
-              </select>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* 6. 파티 메모 */}
+      {/* 파티 메모 */}
       <div className="w-full min-w-0">
         <input
           type="text"
@@ -413,49 +377,7 @@ export default function PartyCreateForm({
         />
       </div>
 
-      {/* 조합우선 세부 포지션 설정 */}
-      {matchingMode === "조합우선" && (
-        <div className="bg-[var(--inner-box)] p-2.5 rounded-xl border border-indigo-900/60 space-y-1.5 w-full min-w-0 animate-in fade-in zoom-in-95">
-          <div>
-            <label className="text-[10px] font-black text-indigo-400 mb-1 block">내 수락 가능 포지션</label>
-            <div className="flex flex-wrap gap-1">
-              {Object.keys(ROLE_GROUPS).map((role) => (
-                <button
-                  type="button"
-                  key={role}
-                  onClick={() => toggleRole(role, myRoles, setMyRoles)}
-                  className={`text-[10px] font-bold px-2 py-0.5 rounded-md border cursor-pointer whitespace-nowrap ${
-                    myRoles.includes(role) ? ROLE_COLORS[role] : "bg-[var(--panel)] border-[var(--panel-border)] text-[var(--text-sub)]"
-                  }`}
-                >
-                  {role}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div>
-            <label className="text-[10px] font-black text-rose-400 mb-1 block">구인 희망 포지션</label>
-            <div className="flex flex-wrap gap-1">
-              {Object.keys(ROLE_GROUPS).map((role) => (
-                <button
-                  type="button"
-                  key={role}
-                  onClick={() => toggleRole(role, wantedRoles, setWantedRoles)}
-                  className={`text-[10px] font-bold px-2 py-0.5 rounded-md border cursor-pointer whitespace-nowrap ${
-                    wantedRoles.includes(role)
-                      ? "bg-rose-950/60 text-rose-300 border-rose-500"
-                      : "bg-[var(--panel)] border-[var(--panel-border)] text-[var(--text-sub)]"
-                  }`}
-                >
-                  + {role}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 7. 매칭 등록 버튼 */}
+      {/* 매칭 등록 버튼 */}
       <button
         type="button"
         onClick={handleReservation}

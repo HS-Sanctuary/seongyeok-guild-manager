@@ -1,10 +1,11 @@
-"use client";
+'use client';
 
 import React, { useState } from "react";
 import MarkIcon from "@/components/common/MarkIcon";
 import PartyCard from "@/components/party/PartyCard";
 import GuildBusCard from "@/components/party/GuildBusCard";
 import { Party, DIFFICULTY_COLORS } from "@/components/party/types";
+import { formatAbyssBadgeText } from "@/lib/busUtils";
 
 const ChevronDown = ({ className }: { className?: string }) => (
   <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
@@ -49,7 +50,6 @@ export default function SynaxisPartySection({
   onRefresh,
   router,
 }: SynaxisPartySectionProps) {
-  // 아코디언 펼침 상태 관리 (파티 ID 배열)
   const [expandedPartyIds, setExpandedPartyIds] = useState<(string | number)[]>([]);
 
   const toggleAccordion = (id: string | number) => {
@@ -136,10 +136,9 @@ export default function SynaxisPartySection({
                 ? "/svgs/contens mark/어비스 마크.svg"
                 : "/svgs/contens mark/레이드 마크.svg";
 
-            const displayContentName = (party.content_name || "")
-              .replace(/^(레이드|어비스)\s*-\s*/, "")
-              .replace(/\s*\(통합\)/g, "")
-              .trim();
+            // 🎯 동적 약어 뱃지 텍스트 산출 (어비스 ALL / 어비스 허상/물길 등)
+            const subKeys = party.selected_sub_contents || party.sub_contents;
+            const displayContentName = formatAbyssBadgeText(party.content_name || "", subKeys);
 
             return (
               <div
@@ -154,7 +153,6 @@ export default function SynaxisPartySection({
                 <div className="p-2.5 sm:p-3 flex items-center justify-between gap-2 min-w-0">
                   <div className="flex items-center gap-2 min-w-0 flex-1">
                     
-                    {/* 🎯 길드버스(파란색 시그니처) vs 자유파티(딥 슬레이트) 텍스트 전용 뱃지 */}
                     <span
                       className={`px-2 py-0.5 rounded-md text-[10px] sm:text-[11px] font-black shrink-0 shadow-xs flex items-center justify-center ${
                         isGuildBus
@@ -165,7 +163,6 @@ export default function SynaxisPartySection({
                       <span>{isGuildBus ? "길드버스" : "자유파티"}</span>
                     </span>
 
-                    {/* 난이도 뱃지 */}
                     <span
                       className={`px-1.5 py-0.5 rounded text-[9.5px] sm:text-[10px] font-bold border shrink-0 hidden sm:inline-block ${
                         DIFFICULTY_COLORS[party.difficulty] || "bg-[var(--panel)] border-[var(--panel-border)] text-[var(--text-main)]"
@@ -174,7 +171,6 @@ export default function SynaxisPartySection({
                       {party.difficulty}
                     </span>
 
-                    {/* 레이드/어비스 SVG 마크 + 정제된 컨텐츠 이름 */}
                     <div className="flex items-center gap-1 min-w-0">
                       <MarkIcon src={contentMarkSrc} size="xs" scale={1.1} colorClass="bg-[var(--accent)]" />
                       <h3 className="text-xs sm:text-sm font-black text-[var(--text-main)] truncate max-w-[130px] sm:max-w-[240px]">
@@ -182,13 +178,11 @@ export default function SynaxisPartySection({
                       </h3>
                     </div>
 
-                    {/* 희망 시간 */}
                     <div className="hidden md:flex items-center gap-1 text-[11px] text-[var(--text-sub)] font-mono bg-[var(--inner-box)] px-2 py-0.5 rounded-md border border-[var(--panel-border)] shrink-0">
                       <Clock className="w-3 h-3 text-[var(--accent)]" />
                       <span>{party.time_start} ~ {party.time_end}</span>
                     </div>
 
-                    {/* 참여자 수 요약 뱃지 */}
                     <div className="flex items-center gap-1 text-[10px] sm:text-xs font-bold text-[var(--text-sub)] bg-[var(--inner-box)] px-2 py-0.5 rounded-md border border-[var(--panel-border)] shrink-0">
                       <Users className="w-3 h-3 text-[var(--accent)]" />
                       <span className="font-mono text-[var(--text-main)] font-black">
@@ -197,7 +191,6 @@ export default function SynaxisPartySection({
                     </div>
                   </div>
 
-                  {/* 우측 조작 버튼 그룹 */}
                   <div className="flex items-center gap-1.5 shrink-0">
                     {!isFull && !isJoined && (
                       <button
@@ -215,7 +208,6 @@ export default function SynaxisPartySection({
                       </span>
                     )}
 
-                    {/* 아코디언 토글 버튼 */}
                     <button
                       type="button"
                       onClick={() => toggleAccordion(party.id)}
@@ -229,7 +221,6 @@ export default function SynaxisPartySection({
                   </div>
                 </div>
 
-                {/* 2. 아코디언 펼침 시 8슬롯 풀 카드 오픈 */}
                 {isExpanded && (
                   <div className="p-2 sm:p-3 border-t border-[var(--panel-border)] bg-[var(--inner-box)]/30 animate-in fade-in duration-200">
                     {isGuildBus ? (

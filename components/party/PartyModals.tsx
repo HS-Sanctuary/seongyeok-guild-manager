@@ -94,6 +94,12 @@ interface PartyModalsProps {
 
   parties?: any[];
   guildBuses?: any[];
+
+  // 🎯 다중 선택 모달 연동 프롭
+  tempSubContents?: string[];
+  setTempSubContents?: React.Dispatch<React.SetStateAction<string[]>>;
+  busSelectedSubContents?: string[];
+  setBusSelectedSubContents?: React.Dispatch<React.SetStateAction<string[]>>;
 }
 
 export default function PartyModals(props: PartyModalsProps) {
@@ -167,6 +173,7 @@ export default function PartyModals(props: PartyModalsProps) {
         setShowLoreGuide={props.setShowLoreGuide}
       />
 
+      {/* 🎯 어비스 세부 던전 다중 선택 연동 완료 */}
       <ContentSelectModal
         showContentModal={props.showContentModal}
         setShowContentModal={props.setShowContentModal}
@@ -177,6 +184,8 @@ export default function PartyModals(props: PartyModalsProps) {
         tempDiff={props.tempDiff}
         setTempDiff={props.setTempDiff}
         applyContentModal={props.applyContentModal}
+        tempSubContents={props.tempSubContents}
+        setTempSubContents={props.setTempSubContents}
       />
 
       <ScheduleModal
@@ -224,6 +233,8 @@ export default function PartyModals(props: PartyModalsProps) {
         setBusCharSelections={props.setBusCharSelections}
         handleCreateGuildBus={props.handleCreateGuildBus}
         myCharacters={props.myCharacters}
+        busSelectedSubContents={props.busSelectedSubContents}
+        setBusSelectedSubContents={props.setBusSelectedSubContents}
       />
 
       <InspectCharacterModal

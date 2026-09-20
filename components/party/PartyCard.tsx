@@ -3,7 +3,7 @@
 import React, { useMemo } from 'react';
 import ClassIcon from '@/components/common/ClassIcon';
 import MarkIcon from '@/components/common/MarkIcon';
-import { Party, DIFFICULTY_COLORS } from '@/components/party/types';
+import { Party, DIFFICULTY_COLORS, ABYSS_SUB_DUNGEONS } from '@/components/party/types';
 import { parseCP } from '@/lib/busUtils';
 import {
   formatPartyTimeRange,
@@ -187,7 +187,6 @@ export default function PartyCard({
   const joinedMyChars = party.members.filter(m => myCharacterNames.includes(m.name || m.character_name || ''));
   const isJoined = joinedMyChars.length > 0;
 
-  // 🎯 컨텐츠 마크 SVG 경로 동적 계산 (레이드 vs 어비스)
   const contentMarkSrc = useMemo(() => {
     if (!party.content_name) return "/svgs/contens mark/레이드 마크.svg";
     const isAbyss = party.party_type === "어비스" || party.content_name.includes("어비스");
@@ -196,14 +195,50 @@ export default function PartyCard({
       : "/svgs/contens mark/레이드 마크.svg";
   }, [party.content_name, party.party_type]);
 
-  // 🎯 컨텐츠 명칭 정제 ("레이드 - ", "어비스 - ", "(통합)" 텍스트 분리)
-  const displayContentName = useMemo(() => {
-    if (!party.content_name) return "";
-    return party.content_name
-      .replace(/^(레이드|어비스)\s*-\s*/, "")
-      .replace(/\s*\(통합\)/g, "")
-      .trim();
-  }, [party.content_name]);
+  // 🎯 100% 동적 파싱 로직: 하드코딩 탈피, 배열 길이를 DB 상수 기준으로 판단
+  const abyssInfo = useMemo(() => {
+    const isAbyss = party.party_type === "어비스" || party.content_name?.includes("어비스");
+    if (!isAbyss) {
+      return {
+        title: party.content_name?.replace(/^(레이드|어비스)\s*-\s*/, "").replace(/\s*\(통합\)/g, "").trim() || "",
+        selectedDungeons: [],
+        isPartial: false
+      };
+    }
+
+    const rawSub = (party as any).selected_sub_contents || (party as any).sub_contents || [];
+    let activeIds: string[] = [];
+
+    if (Array.isArray(rawSub) && rawSub.length > 0) {
+      activeIds = rawSub;
+    } else if (typeof party.sub_content === "string") {
+      ABYSS_SUB_DUNGEONS.forEach(d => {
+        if (party.sub_content?.includes(d.name) || party.sub_content?.includes(d.shortName)) {
+          activeIds.push(d.id);
+        }
+      });
+    }
+
+    const activeDungeons = ABYSS_SUB_DUNGEONS.filter(d => 
+      activeIds.includes(d.id) || activeIds.includes(d.name) || activeIds.includes(d.shortName)
+    );
+
+    // 하드코딩(=== 3) 제거 및 DB 배열(length) 기준 동적 판단
+    if (activeDungeons.length === 0 || activeDungeons.length === ABYSS_SUB_DUNGEONS.length) {
+      return {
+        title: "어비스 ALL",
+        selectedDungeons: ABYSS_SUB_DUNGEONS,
+        isPartial: false
+      };
+    }
+
+    const shortNames = activeDungeons.map(d => d.shortName).join("/");
+    return {
+      title: `어비스 ${shortNames}`,
+      selectedDungeons: activeDungeons,
+      isPartial: true
+    };
+  }, [party.content_name, party.party_type, (party as any).selected_sub_contents, (party as any).sub_contents, party.sub_content]);
 
   const handleForceDelete = () => {
     if (confirm("⚠️ 정말로 이 파티 모집을 강제 삭제하시겠습니까?\n삭제된 데이터는 복구할 수 없습니다.")) {
@@ -401,13 +436,33 @@ export default function PartyCard({
           </div>
         </div>
 
-        {/* 🎯 컨텐츠 제목 영역: SVG 마크 아이콘 + 정제된 컨텐츠 이름 */}
+        {/* 🎯 컨텐츠 제목 영역 (동적 가공 적용) */}
         <div className="w-full min-w-0 py-0.5 flex items-center gap-1.5 sm:gap-2">
           <MarkIcon src={contentMarkSrc} size="xs" scale={1.15} colorClass="bg-[var(--accent)]" />
           <h3 className="text-base sm:text-lg md:text-xl font-black text-[var(--text-main)] whitespace-nowrap overflow-hidden text-ellipsis tracking-tight leading-snug">
-            {displayContentName}
+            {abyssInfo.title}
           </h3>
         </div>
+
+        {/* 🎯 어비스 목표 던전 시각적 피드백 뱃지 그룹 (신설) */}
+        {abyssInfo.selectedDungeons.length > 0 && (
+          <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+            {abyssInfo.selectedDungeons.map((dungeon) => (
+              <span 
+                key={dungeon.id}
+                className="px-2 py-0.5 rounded-md text-[10px] sm:text-[11px] font-black bg-[var(--accent)]/15 text-[var(--accent)] border border-[var(--accent)]/40 flex items-center gap-1 shadow-xs"
+              >
+                <span>🎯</span>
+                <span>{dungeon.name}</span>
+              </span>
+            ))}
+            {abyssInfo.isPartial && (
+              <span className="px-1.5 py-0.5 rounded-md text-[9.5px] sm:text-[10px] font-black bg-rose-500/20 text-rose-300 border border-rose-500/40">
+                {abyssInfo.selectedDungeons.length}개 던전 지정 진행
+              </span>
+            )}
+          </div>
+        )}
 
         {/* 희망 시간 영역 */}
         <div className="flex items-center justify-start w-full pt-0.5 min-w-0">

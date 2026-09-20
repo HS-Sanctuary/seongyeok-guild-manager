@@ -4,7 +4,8 @@ import { useState, useMemo, useRef, useEffect } from "react";
 import ClassIcon from "@/components/common/ClassIcon";
 import MarkIcon from "@/components/common/MarkIcon";
 import CustomTimePicker from "@/components/party/CustomTimePicker";
-import { CONTENT_DB, ContentItem } from "@/components/party/types";
+import ContentSelectModal from "@/components/party/modals/ContentSelectModal";
+import { CONTENT_DB, ContentItem, ABYSS_SUB_DUNGEONS } from "@/components/party/types";
 
 export interface BusCharSelectionConfig {
   selected: boolean;
@@ -19,6 +20,7 @@ const cleanContentName = (name: string) => {
   return name
     .replace(/^(어비스|레이드)\s*-\s*/, "")
     .replace(/\s*\(통합\)/g, "")
+    .replace("3종", "다중")
     .trim();
 };
 
@@ -60,6 +62,8 @@ interface BusCreateModalProps {
   setBusCharSelections: React.Dispatch<React.SetStateAction<Record<string, BusCharSelectionConfig>>>;
   handleCreateGuildBus: () => void;
   myCharacters: any[];
+  busSelectedSubContents?: string[];
+  setBusSelectedSubContents?: React.Dispatch<React.SetStateAction<string[]>>;
 }
 
 export default function BusCreateModal({
@@ -81,15 +85,18 @@ export default function BusCreateModal({
   setBusCharSelections,
   handleCreateGuildBus,
   myCharacters,
+  busSelectedSubContents = ["abyss_1", "abyss_2", "abyss_3"],
+  setBusSelectedSubContents,
 }: BusCreateModalProps) {
   const [currentStep, setCurrentStep] = useState<"SETTINGS" | "CHARACTERS">("SETTINGS");
 
   const [showContentModal, setShowContentModal] = useState(false);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
 
-  const [tempContentCategory, setTempContentCategory] = useState<"어비스" | "레이드">("레이드");
+  const [tempContentCategory, setTempContentCategory] = useState<"어비스" | "레이드">("어비스");
   const [tempContent, setTempContent] = useState<ContentItem>(busCreateContent);
   const [tempDiff, setTempDiff] = useState<string>(busCreateDiff);
+  const [tempSubContents, setTempSubContents] = useState<string[]>(busSelectedSubContents);
 
   const [calendarYearMonth, setCalendarYearMonth] = useState(() => {
     const d = busCreateDate ? new Date(busCreateDate + "T00:00:00") : new Date();
@@ -104,6 +111,30 @@ export default function BusCreateModal({
   const touchStartY = useRef<number | null>(null);
   const wheelAccumulator = useRef<number>(0);
   const lastWheelTime = useRef<number>(0);
+
+  const toggleSubContent = (id: string) => {
+    if (!setBusSelectedSubContents) return;
+    if (busSelectedSubContents.includes(id)) {
+      if (busSelectedSubContents.length <= 1) return;
+      setBusSelectedSubContents(busSelectedSubContents.filter((subId) => subId !== id));
+    } else {
+      setBusSelectedSubContents([...busSelectedSubContents, id]);
+    }
+  };
+
+  const abyssBadgeLabel = useMemo(() => {
+    if (busCreateContent?.category !== "어비스") return null;
+    if (busSelectedSubContents.length === 3 || busSelectedSubContents.length === 0) return "어비스 ALL";
+    const selectedObj = ABYSS_SUB_DUNGEONS.filter((item) => busSelectedSubContents.includes(item.id));
+    return `어비스 ${selectedObj.map((o) => o.shortName).join("/")}`;
+  }, [busCreateContent, busSelectedSubContents]);
+
+  const displayContentName = useMemo(() => {
+    if (busCreateContent?.category === "어비스" && abyssBadgeLabel) {
+      return abyssBadgeLabel;
+    }
+    return cleanContentName(busCreateContent.name);
+  }, [busCreateContent, abyssBadgeLabel]);
 
   const shiftMonth = (delta: number) => {
     setCalendarYearMonth((prev) => {
@@ -120,7 +151,6 @@ export default function BusCreateModal({
     });
   };
 
-  // 핵심 수정: 네이티브 스크롤 이벤트에서 타임 피커 요소 감지 시 preventDefault 예외 처리
   useEffect(() => {
     const modalEl = modalContainerRef.current;
     if (!modalEl || !showScheduleModal) return;
@@ -237,15 +267,19 @@ export default function BusCreateModal({
   };
 
   const openContentSelectModal = () => {
-    setTempContentCategory(busCreateContent.category || "레이드");
+    setTempContentCategory(busCreateContent.category || "어비스");
     setTempContent(busCreateContent);
     setTempDiff(busCreateDiff);
+    setTempSubContents(busSelectedSubContents);
     setShowContentModal(true);
   };
 
   const applyContentModal = () => {
     setBusCreateContent(tempContent);
     setBusCreateDiff(tempDiff);
+    if (setBusSelectedSubContents) {
+      setBusSelectedSubContents(tempSubContents);
+    }
     setBusCreateMemo(generateDefaultBusMemo(tempContent, tempDiff));
     setShowContentModal(false);
   };
@@ -296,9 +330,6 @@ export default function BusCreateModal({
     return `${y}-${m}-${day}`;
   }, [busCreateDate]);
 
-  const abyssContents = useMemo(() => CONTENT_DB.filter((c) => c.category === "어비스"), []);
-  const raidContents = useMemo(() => CONTENT_DB.filter((c) => c.category === "레이드"), []);
-
   if (!showBusCreateModal) return null;
 
   return (
@@ -327,7 +358,7 @@ export default function BusCreateModal({
           </button>
         </div>
 
-        {/* 2단계 순차 프로세스 바 */}
+        {/* 2단계 프로세스 바 */}
         <div className="grid grid-cols-2 border-b border-[var(--panel-border)] bg-[var(--panel)] text-xs font-black shrink-0">
           <button
             type="button"
@@ -361,42 +392,74 @@ export default function BusCreateModal({
         {/* Step Body */}
         <div className="p-3.5 sm:p-5 overflow-y-auto custom-scrollbar flex-1 space-y-3.5 overscroll-contain min-h-0">
           {currentStep === "SETTINGS" ? (
-            /* 1단계: 버스 생성 설정 */
             <div className="space-y-3">
-              {/* 1. 목표 컨텐츠 선택 카드 */}
-              <div
-                onClick={openContentSelectModal}
-                className="bg-[var(--inner-box)] border border-[var(--panel-border)] hover:border-[var(--accent)]/70 transition p-3 sm:p-3.5 rounded-2xl cursor-pointer flex items-center justify-between gap-3 shadow-xs group"
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <MarkIcon
-                    src={
-                      busCreateContent.category === "어비스"
-                        ? "/svgs/contens mark/어비스 마크.svg"
-                        : "/svgs/contens mark/레이드 마크.svg"
-                    }
-                    size="sm"
-                    scale={1.8}
-                    colorClass="bg-[var(--accent)]"
-                  />
-                  <span className="font-black text-sm sm:text-base text-[var(--text-main)] truncate">
-                    {cleanContentName(busCreateContent.name)}
-                  </span>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <span className="px-2 py-0.5 rounded-md bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] text-[11px] font-bold">
-                      {busCreateContent.size}인
+              {/* 목표 컨텐츠 선택 카드 */}
+              <div className="space-y-1.5">
+                <div
+                  onClick={openContentSelectModal}
+                  className="bg-[var(--inner-box)] border border-[var(--panel-border)] hover:border-[var(--accent)]/70 transition p-3 sm:p-3.5 rounded-2xl cursor-pointer flex items-center justify-between gap-3 shadow-xs group"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <MarkIcon
+                      src={
+                        busCreateContent.category === "어비스"
+                          ? "/svgs/contens mark/어비스 마크.svg"
+                          : "/svgs/contens mark/레이드 마크.svg"
+                      }
+                      size="sm"
+                      scale={1.8}
+                      colorClass="bg-[var(--accent)]"
+                    />
+                    <span className="font-black text-sm sm:text-base text-[var(--text-main)] truncate">
+                      {displayContentName}
                     </span>
-                    <span className="px-2 py-0.5 rounded-md bg-[var(--accent)]/20 border border-[var(--accent)]/40 text-[var(--accent)] text-[11px] font-black">
-                      {busCreateDiff}
-                    </span>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span className="px-2 py-0.5 rounded-md bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] text-[11px] font-bold">
+                        {busCreateContent.size}인
+                      </span>
+                      <span className="px-2 py-0.5 rounded-md bg-[var(--accent)]/20 border border-[var(--accent)]/40 text-[var(--accent)] text-[11px] font-black">
+                        {busCreateDiff}
+                      </span>
+                    </div>
                   </div>
+                  <span className="text-[var(--text-sub)] group-hover:text-[var(--accent)] text-sm transition shrink-0">
+                    ⚙️
+                  </span>
                 </div>
-                <span className="text-[var(--text-sub)] group-hover:text-[var(--accent)] text-sm transition shrink-0">
-                  ⚙️
-                </span>
+
+                {/* 🎯 어비스 선택 시 버스 개설 폼에서 바로 토글 가능한 칩 그룹 */}
+                {busCreateContent?.category === "어비스" && setBusSelectedSubContents && (
+                  <div className="bg-[var(--inner-box)] border border-[var(--panel-border)] p-2 rounded-xl space-y-1 animate-in fade-in duration-200">
+                    <div className="flex justify-between items-center text-[10px] font-black text-[var(--accent)] mb-0.5">
+                      <span>🎯 어비스 운행 던전 선택 (다중 선택)</span>
+                      <span className="text-[var(--text-sub)] text-[9px] font-normal">
+                        {busSelectedSubContents.length === 3 ? "전체 운행" : `${busSelectedSubContents.length}개 선택됨`}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-1">
+                      {ABYSS_SUB_DUNGEONS.map((dungeon) => {
+                        const isChecked = busSelectedSubContents.includes(dungeon.id);
+                        return (
+                          <button
+                            key={dungeon.id}
+                            type="button"
+                            onClick={() => toggleSubContent(dungeon.id)}
+                            className={`py-1 px-1 rounded-lg text-[10px] font-black transition-all cursor-pointer text-center truncate border ${
+                              isChecked
+                                ? "bg-[var(--accent)] text-[var(--accent-fg)] border-transparent shadow-xs font-black"
+                                : "bg-[var(--panel)] border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)]"
+                            }`}
+                          >
+                            {isChecked ? "✓ " : ""}{dungeon.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* 2. 출발 일시 설정 카드 */}
+              {/* 출발 일시 설정 카드 */}
               <div
                 onClick={openScheduleModal}
                 className="bg-[var(--inner-box)] border border-[var(--panel-border)] hover:border-[var(--accent)]/70 transition p-3 sm:p-3.5 rounded-2xl cursor-pointer flex items-center justify-between gap-3 shadow-xs group"
@@ -421,7 +484,7 @@ export default function BusCreateModal({
                 </span>
               </div>
 
-              {/* 3. 공지 메모 */}
+              {/* 공지 메모 */}
               <div className="pt-1">
                 <label className="text-[11px] font-black text-[var(--text-sub)] block mb-1">공지 메모</label>
                 <input
@@ -434,7 +497,6 @@ export default function BusCreateModal({
               </div>
             </div>
           ) : (
-            /* 2단계: 참여 캐릭터 선택 */
             <div className="space-y-3">
               <div className="bg-[var(--inner-box)] border border-[var(--panel-border)] p-2 rounded-xl flex items-center justify-between gap-2 text-xs">
                 <button
@@ -607,228 +669,22 @@ export default function BusCreateModal({
           )}
         </div>
 
-        {/* 서브 모달 1: 목표 컨텐츠 선택 */}
-        {showContentModal && (
-          <div
-            className="fixed inset-0 z-[300] bg-black/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 cursor-pointer overscroll-none"
-            onClick={() => setShowContentModal(false)}
-          >
-            <div
-              className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl p-4 sm:p-5 max-w-lg w-full space-y-3 shadow-2xl animate-in fade-in zoom-in-95 cursor-default max-h-[85vh] flex flex-col overflow-hidden"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex justify-between items-center border-b border-[var(--panel-border)] pb-3 shrink-0">
-                <h3 className="font-black text-sm sm:text-base text-[var(--text-main)] flex items-center gap-2">
-                  <MarkIcon src="/svgs/contens mark/여신상 마크.svg" size="sm" scale={1.8} colorClass="bg-[var(--accent)]" />
-                  <span>목표 컨텐츠 선택</span>
-                </h3>
-                <button
-                  type="button"
-                  onClick={() => setShowContentModal(false)}
-                  className="text-[var(--text-sub)] hover:text-white font-bold cursor-pointer"
-                >
-                  ✕
-                </button>
-              </div>
+        {/* 목표 컨텐츠 선택 모달 연동 */}
+        <ContentSelectModal
+          showContentModal={showContentModal}
+          setShowContentModal={setShowContentModal}
+          tempContentCategory={tempContentCategory}
+          setTempContentCategory={setTempContentCategory}
+          tempContent={tempContent}
+          setTempContent={setTempContent}
+          tempDiff={tempDiff}
+          setTempDiff={setTempDiff}
+          applyContentModal={applyContentModal}
+          tempSubContents={tempSubContents}
+          setTempSubContents={setTempSubContents}
+        />
 
-              <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 grid grid-cols-2 gap-2.5 sm:gap-3.5 min-h-0 overscroll-contain">
-                {/* 좌측: 어비스 */}
-                <div className="space-y-2 pr-1 sm:pr-2 border-r border-[var(--panel-border)]/70">
-                  <div className="flex items-center gap-1.5 pb-1.5 border-b border-[var(--panel-border)] text-xs font-black text-[var(--accent)] sticky top-0 bg-[var(--panel)] z-10">
-                    <MarkIcon src="/svgs/contens mark/어비스 마크.svg" size="sm" scale={1.6} colorClass="bg-[var(--accent)]" />
-                    <span>어비스</span>
-                  </div>
-                  <div className="space-y-2">
-                    {abyssContents.map((c) => {
-                      const isSelected = tempContent.name === c.name;
-                      const displayName = cleanContentName(c.name);
-
-                      return (
-                        <div
-                          key={c.name}
-                          className={`rounded-xl overflow-hidden border transition-all duration-200 ${
-                            isSelected
-                              ? "border-[var(--accent)] bg-[var(--inner-box)] shadow-md"
-                              : "border-[var(--panel-border)] bg-[var(--panel)] hover:border-[var(--accent)]/50"
-                          }`}
-                        >
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setTempContent(c);
-                              setTempContentCategory("어비스");
-                              if (tempContent.name !== c.name) {
-                                setTempDiff(c.defaultDiff);
-                              }
-                            }}
-                            className={`w-full p-2 sm:p-2.5 text-left text-xs font-black transition flex items-center justify-between cursor-pointer ${
-                              isSelected
-                                ? "bg-[var(--accent)] text-[var(--accent-fg)]"
-                                : "bg-[var(--inner-box)] text-[var(--text-main)] hover:bg-[var(--panel-border)]/50"
-                            }`}
-                          >
-                            <span className="truncate">{displayName}</span>
-                            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold shrink-0 ml-1 ${
-                              isSelected ? "bg-black/20 text-[var(--accent-fg)]" : "bg-[var(--panel)] text-[var(--text-sub)]"
-                            }`}>
-                              {c.size}인
-                            </span>
-                          </button>
-
-                          {isSelected && (
-                            <div className="p-2 sm:p-2.5 bg-[var(--inner-box)]/90 border-t border-[var(--accent)]/30 space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
-                              <span className="text-[10px] font-black text-[var(--text-sub)] block">
-                                난이도 선택
-                              </span>
-                              <div className="grid grid-cols-2 gap-1.5">
-                                {c.diffs.map((d) => {
-                                  const isDiffSelected = tempDiff === d;
-                                  return (
-                                    <button
-                                      key={d}
-                                      type="button"
-                                      onClick={() => setTempDiff(d)}
-                                      className={`py-1.5 px-1 text-[10px] sm:text-[11px] font-black rounded-lg border transition-all cursor-pointer text-center whitespace-nowrap break-keep ${
-                                        isDiffSelected
-                                          ? "bg-[var(--accent)] text-[var(--accent-fg)] border-transparent shadow-xs scale-[1.02]"
-                                          : "bg-[var(--panel)] border-[var(--panel-border)] text-[var(--text-sub)] hover:text-white hover:border-[var(--accent)]/50"
-                                      }`}
-                                    >
-                                      {d}
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* 우측: 레이드 */}
-                <div className="space-y-2 pl-1 sm:pl-2">
-                  <div className="flex items-center gap-1.5 pb-1.5 border-b border-[var(--panel-border)] text-xs font-black text-[var(--accent)] sticky top-0 bg-[var(--panel)] z-10">
-                    <MarkIcon src="/svgs/contens mark/레이드 마크.svg" size="sm" scale={1.6} colorClass="bg-[var(--accent)]" />
-                    <span>레이드</span>
-                  </div>
-                  <div className="space-y-2">
-                    {raidContents.map((c) => {
-                      const isSelected = tempContent.name === c.name;
-                      const displayName = cleanContentName(c.name);
-
-                      return (
-                        <div
-                          key={c.name}
-                          className={`rounded-xl overflow-hidden border transition-all duration-200 ${
-                            isSelected
-                              ? "border-[var(--accent)] bg-[var(--inner-box)] shadow-md"
-                              : "border-[var(--panel-border)] bg-[var(--panel)] hover:border-[var(--accent)]/50"
-                          }`}
-                        >
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setTempContent(c);
-                              setTempContentCategory("레이드");
-                              if (tempContent.name !== c.name) {
-                                setTempDiff(c.defaultDiff);
-                              }
-                            }}
-                            className={`w-full p-2 sm:p-2.5 text-left text-xs font-black transition flex items-center justify-between cursor-pointer ${
-                              isSelected
-                                ? "bg-[var(--accent)] text-[var(--accent-fg)]"
-                                : "bg-[var(--inner-box)] text-[var(--text-main)] hover:bg-[var(--panel-border)]/50"
-                            }`}
-                          >
-                            <span className="truncate">{displayName}</span>
-                            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold shrink-0 ml-1 ${
-                              isSelected ? "bg-black/20 text-[var(--accent-fg)]" : "bg-[var(--panel)] text-[var(--text-sub)]"
-                            }`}>
-                              {c.size}인
-                            </span>
-                          </button>
-
-                          {isSelected && (
-                            <div className="p-2 sm:p-2.5 bg-[var(--inner-box)]/90 border-t border-[var(--accent)]/30 space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
-                              <span className="text-[10px] font-black text-[var(--text-sub)] block">
-                                난이도 선택
-                              </span>
-                              <div className="grid grid-cols-2 gap-1.5">
-                                {c.diffs.map((d) => {
-                                  const isDiffSelected = tempDiff === d;
-                                  return (
-                                    <button
-                                      key={d}
-                                      type="button"
-                                      onClick={() => setTempDiff(d)}
-                                      className={`py-1.5 px-1 text-[10px] sm:text-[11px] font-black rounded-lg border transition-all cursor-pointer text-center whitespace-nowrap break-keep ${
-                                        isDiffSelected
-                                          ? "bg-[var(--accent)] text-[var(--accent-fg)] border-transparent shadow-xs scale-[1.02]"
-                                          : "bg-[var(--panel)] border-[var(--panel-border)] text-[var(--text-sub)] hover:text-white hover:border-[var(--accent)]/50"
-                                      }`}
-                                    >
-                                      {d}
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-
-              {/* 하단 미리보기 바 */}
-              <div className="bg-[var(--inner-box)] border border-[var(--panel-border)] p-2.5 rounded-xl flex items-center justify-between gap-2 shrink-0 animate-in fade-in duration-150">
-                <div className="flex items-center gap-2 min-w-0">
-                  <MarkIcon 
-                    src={
-                      tempContentCategory === "어비스"
-                        ? "/svgs/contens mark/어비스 마크.svg"
-                        : "/svgs/contens mark/레이드 마크.svg"
-                    } 
-                    size="sm" 
-                    scale={1.8} 
-                    colorClass="bg-[var(--accent)]" 
-                  />
-                  <span className="font-black text-xs sm:text-sm text-[var(--text-main)] truncate">
-                    {cleanContentName(tempContent.name)}
-                  </span>
-                  <span className="px-2 py-0.5 rounded-md bg-[var(--accent)]/15 border border-[var(--accent)]/40 text-[var(--accent)] text-[11px] font-black shrink-0 whitespace-nowrap">
-                    {tempDiff}
-                  </span>
-                </div>
-                <span className="text-xs font-bold text-[var(--text-sub)] shrink-0">
-                  {tempContent.size}인
-                </span>
-              </div>
-
-              <div className="flex gap-2 pt-1 border-t border-[var(--panel-border)] shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setShowContentModal(false)}
-                  className="flex-1 py-2.5 bg-[var(--inner-box)] border border-[var(--panel-border)] text-[var(--text-sub)] hover:text-white font-bold text-xs rounded-xl cursor-pointer transition"
-                >
-                  취소
-                </button>
-                <button
-                  type="button"
-                  onClick={applyContentModal}
-                  className="flex-2 py-2.5 bg-[var(--accent)] text-[var(--accent-fg)] font-black text-xs sm:text-sm rounded-xl cursor-pointer shadow-md hover:brightness-110 transition text-center"
-                >
-                  적용하기
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* 서브 모달 2: 출발 희망 일시 설정 */}
+        {/* 출발 희망 일시 설정 서브 모달 */}
         {showScheduleModal && (
           <div
             className="fixed inset-0 z-[300] bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 cursor-pointer overscroll-none"
@@ -856,13 +712,11 @@ export default function BusCreateModal({
               </div>
 
               <div className="space-y-3">
-                {/* 월별 내비게이션 & 연/월 피커 */}
                 <div className="flex justify-between items-center bg-[var(--inner-box)] p-2.5 rounded-xl border border-[var(--panel-border)] text-xs font-black">
                   <button
                     type="button"
                     onClick={() => shiftMonth(-1)}
                     className="p-1 hover:text-[var(--accent)] cursor-pointer text-sm"
-                    title="이전 달"
                   >
                     ◀
                   </button>
@@ -872,7 +726,6 @@ export default function BusCreateModal({
                       type="button"
                       onClick={() => setShowYearPicker(true)}
                       className="hover:text-[var(--accent)] underline decoration-dotted underline-offset-4 cursor-pointer transition"
-                      title="연도 직접 선택"
                     >
                       {calendarYearMonth.year}년
                     </button>
@@ -880,7 +733,6 @@ export default function BusCreateModal({
                       type="button"
                       onClick={() => setShowMonthPicker(true)}
                       className="hover:text-[var(--accent)] underline decoration-dotted underline-offset-4 cursor-pointer transition"
-                      title="월 직접 선택"
                     >
                       {calendarYearMonth.month + 1}월
                     </button>
@@ -890,13 +742,11 @@ export default function BusCreateModal({
                     type="button"
                     onClick={() => shiftMonth(1)}
                     className="p-1 hover:text-[var(--accent)] cursor-pointer text-sm"
-                    title="다음 달"
                   >
                     ▶
                   </button>
                 </div>
 
-                {/* 요일 헤더 */}
                 <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-black text-[var(--text-sub)] border-b border-[var(--panel-border)] pb-1">
                   <span className="text-rose-400">일</span>
                   <span>월</span>
@@ -907,7 +757,6 @@ export default function BusCreateModal({
                   <span className="text-sky-400">토</span>
                 </div>
 
-                {/* 달력 날짜 그리드 */}
                 <div className="grid grid-cols-7 gap-1">
                   {calendarDays.map((d, i) => {
                     if (!d) return <div key={i} className="h-8"></div>;
@@ -939,7 +788,6 @@ export default function BusCreateModal({
                   })}
                 </div>
 
-                {/* 시작 & 종료 타임 피커 (pickerType 명시) */}
                 <div className="flex items-center justify-between gap-1.5 sm:gap-2 pt-3 pb-1 border-t border-[var(--panel-border)] w-full min-w-0">
                   <div className="flex items-center gap-1 flex-1 min-w-0">
                     <div className="flex items-center gap-1 shrink-0">
@@ -972,7 +820,6 @@ export default function BusCreateModal({
                   </div>
                 </div>
 
-                {/* 실시간 피드백 바 */}
                 <div className="bg-[var(--inner-box)] border border-[var(--panel-border)] p-2.5 rounded-xl animate-in fade-in">
                   <div className="flex items-center gap-2 min-w-0 truncate text-xs font-black text-[var(--text-main)] leading-none">
                     <MarkIcon src="/svgs/UI mark/달력 마크.svg" size="sm" scale={2.10} colorClass="bg-[var(--accent)]" />
@@ -1028,7 +875,6 @@ export default function BusCreateModal({
                 설정 완료
               </button>
 
-              {/* 연도 선택 서브 모달 */}
               {showYearPicker && (
                 <div className="absolute inset-0 bg-black/85 backdrop-blur-xs rounded-2xl flex flex-col items-center justify-center p-4 z-[350] space-y-3">
                   <h4 className="text-xs font-black text-[var(--accent)]">연도 선택</h4>
@@ -1057,7 +903,6 @@ export default function BusCreateModal({
                 </div>
               )}
 
-              {/* 월 선택 서브 모달 */}
               {showMonthPicker && (
                 <div className="absolute inset-0 bg-black/85 backdrop-blur-xs rounded-2xl flex flex-col items-center justify-center p-4 z-[350] space-y-3">
                   <h4 className="text-xs font-black text-[var(--accent)]">월 선택</h4>
