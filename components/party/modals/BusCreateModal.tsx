@@ -104,7 +104,6 @@ export default function BusCreateModal({
   const [tempDiff, setTempDiff] = useState<string>(busCreateDiff);
   const [tempSubContents, setTempSubContents] = useState<string[]>(busSelectedSubContents);
 
-  // 🛡️ 모달이 열릴 때 선택된 어비스 던전 상태 동기화
   useEffect(() => {
     if (showBusCreateModal) {
       const current = busSelectedSubContents && busSelectedSubContents.length > 0 
@@ -304,7 +303,6 @@ export default function BusCreateModal({
     setShowContentModal(true);
   };
 
-  // 🎯 던전 선택 모달에서 전달받은 서브 던전 목록을 주입받아 처리하도록 핸들러 보정
   const applyContentModal = (selectedSubContents?: string[]) => {
     const finalSubContents = selectedSubContents || tempSubContents;
     

@@ -72,6 +72,7 @@ export interface ContentPowerReq {
   op_cp: number;
   rec_mr: number;
   op_mr: number;
+  max_members?: number; // 🛡️ Supabase DB 정격 인원수 컬럼
 }
 
 export interface NexusClassItem {
@@ -111,19 +112,20 @@ export const DIFFICULTY_COLORS: Record<string, string> = {
   "지옥 2": "text-rose-300 bg-[var(--panel)] border-[var(--panel-border)]"
 };
 
-// 🎯 번호 및 괄호 100% 제거된 순수 어비스 던전명 리스트
+// 🎯 순수 어비스 던전명 리스트
 export const ABYSS_SUB_DUNGEONS: AbyssSubDungeon[] = [
   { id: "abyss_1", name: "허상의 정박지" },
   { id: "abyss_2", name: "광기의 동굴" },
   { id: "abyss_3", name: "흩어진 물길" }
 ];
 
+// 🛡️ 기본 컨텐츠 정보 (DB 미수신 시 폴백용 규격)
 export const CONTENT_DB: ContentItem[] = [
   {
     id: "abyss_all",
     name: "어비스 - 통합 (3종)",
     category: "어비스",
-    size: 8,
+    size: 4,
     diffs: ["입문", "어려움", "매우 어려움", "지옥 1", "지옥 2"],
     defaultDiff: "어려움"
   },
@@ -131,7 +133,7 @@ export const CONTENT_DB: ContentItem[] = [
     id: "abyss_1",
     name: "어비스 - 허상의 정박지",
     category: "어비스",
-    size: 8,
+    size: 4,
     diffs: ["입문", "어려움", "매우 어려움", "지옥 1", "지옥 2"],
     defaultDiff: "어려움"
   },
@@ -139,7 +141,7 @@ export const CONTENT_DB: ContentItem[] = [
     id: "abyss_2",
     name: "어비스 - 광기의 동굴",
     category: "어비스",
-    size: 8,
+    size: 4,
     diffs: ["입문", "어려움", "매우 어려움", "지옥 1", "지옥 2"],
     defaultDiff: "어려움"
   },
@@ -147,7 +149,7 @@ export const CONTENT_DB: ContentItem[] = [
     id: "abyss_3",
     name: "어비스 - 흩어진 물길",
     category: "어비스",
-    size: 8,
+    size: 4,
     diffs: ["입문", "어려움", "매우 어려움", "지옥 1", "지옥 2"],
     defaultDiff: "어려움"
   },
@@ -163,7 +165,7 @@ export const CONTENT_DB: ContentItem[] = [
     id: "raid_succubus",
     name: "레이드 - 화이트 서큐버스",
     category: "레이드",
-    size: 8,
+    size: 4,
     diffs: ["입문", "어려움", "매우 어려움", "지옥 1", "지옥 2"],
     defaultDiff: "어려움"
   },
@@ -171,7 +173,7 @@ export const CONTENT_DB: ContentItem[] = [
     id: "raid_eirel",
     name: "레이드 - 에이렐",
     category: "레이드",
-    size: 8,
+    size: 4,
     diffs: ["입문", "어려움", "매우 어려움", "지옥 1", "지옥 2"],
     defaultDiff: "어려움"
   }

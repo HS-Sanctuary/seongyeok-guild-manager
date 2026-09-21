@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import ClassIcon from "@/components/common/ClassIcon";
 
 interface ClassItemProps {
@@ -11,6 +11,16 @@ interface ClassItemProps {
   setMinLevel: (clsName: string) => void;
   setHoldingInfo?: (info: { name: string; level: number } | null) => void;
 }
+
+const LINEAGE_GROUPS = [
+  { name: "전체", defaultClasses: [] },
+  { name: "전사 계열", defaultClasses: ["전사", "대검전사", "검술사", "기사"] },
+  { name: "마법사 계열", defaultClasses: ["마법사", "화염술사", "빙결술사", "전격술사"] },
+  { name: "궁수 계열", defaultClasses: ["궁수", "장궁병", "석궁사수"] },
+  { name: "음유시인 계열", defaultClasses: ["음유시인", "댄서", "악사"] },
+  { name: "힐러 계열", defaultClasses: ["힐러", "사제", "수도사", "암흑술사"] },
+  { name: "도적 계열", defaultClasses: ["도적", "격투가", "듀얼블레이드"] },
+];
 
 // ----------------------------------------------------
 // 모바일 클래스 행 컴포넌트
@@ -73,9 +83,9 @@ function MobileClassRow({
       setHoldingInfo({ name: cls.name, level: nextLevel });
     }
 
-    // 2. 350ms 이상 꾹 누를 때만 홀드 작동 (단발 터치 민감도 완화)
+    // 2. 350ms 이상 꾹 누를 때만 홀드 작동
     timerRef.current = setTimeout(() => {
-      let speed = 120; // 초기 홀드 속도 (120ms 간격)
+      let speed = 120; // 초기 홀드 속도
 
       const runInterval = () => {
         intervalRef.current = setInterval(() => {
@@ -216,7 +226,29 @@ export default function ClassLevelManager({
   // 모바일 누름 동작 시 상단 노출용 오버레이 상태
   const [holdingInfo, setHoldingInfo] = useState<{ name: string; level: number } | null>(null);
 
-  // 데스크톱용 레벨 직접 입력 상태 컴포넌트
+  // 계열 필터 탭 상태
+  const [selectedTab, setSelectedTab] = useState<string>("전체");
+
+  const safeClasses = dbClasses || [];
+
+  // 직업 계열 분류 판별 함수
+  const getLineageName = (clsName: string, customCategory?: string) => {
+    for (const group of LINEAGE_GROUPS) {
+      if (group.defaultClasses.includes(clsName)) return group.name;
+    }
+    if (customCategory && customCategory.trim() !== "") return customCategory;
+    return "기타 계열";
+  };
+
+  // 선택된 탭에 맞춰 필터링된 직업 목록
+  const filteredClasses = useMemo(() => {
+    if (selectedTab === "전체") return safeClasses;
+    return safeClasses.filter(
+      (cls: any) => getLineageName(cls.name, cls.category) === selectedTab
+    );
+  }, [safeClasses, selectedTab]);
+
+  // 데스크톱용 레벨 직접 입력 컴포넌트
   const DesktopLevelInput = ({ clsName, currentLevel }: { clsName: string; currentLevel: number }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [inputValue, setInputValue] = useState(String(currentLevel));
@@ -268,114 +300,140 @@ export default function ClassLevelManager({
 
   return (
     <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-2.5 md:p-4 shadow-xs space-y-3 relative">
-      <div className="border-b border-[var(--panel-border)] pb-2 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+      <div className="border-b border-[var(--panel-border)] pb-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <h3 className="font-bold text-[var(--accent)] text-xs md:text-sm whitespace-nowrap flex items-center gap-1.5">
           <span>⚡</span>
           <span>클래스 레벨 관리</span>
         </h3>
-        <p className="text-[10px] text-[var(--text-sub)] font-normal md:hidden leading-tight">
-          💡 레벨 숫자를 터치하면 직접 입력할 수 있습니다.
-        </p>
+
+        {/* 🌟 6대 계열별 빠른 필터 탭 */}
+        <div className="flex items-center gap-1 overflow-x-auto custom-scrollbar pb-0.5 max-w-full">
+          {LINEAGE_GROUPS.map((group) => {
+            const isActive = selectedTab === group.name;
+            return (
+              <button
+                key={group.name}
+                type="button"
+                onClick={() => setSelectedTab(group.name)}
+                className={`px-2 py-1 rounded-md text-[10px] md:text-xs font-bold transition whitespace-nowrap cursor-pointer ${
+                  isActive
+                    ? "bg-[var(--accent)] text-[var(--accent-fg)] font-black shadow-2xs"
+                    : "bg-[var(--inner-box)] text-[var(--text-sub)] hover:text-[var(--text-main)] border border-[var(--panel-border)]"
+                }`}
+              >
+                {group.name}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {/* 모바일 뷰 */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:hidden gap-2">
-        {dbClasses.map((cls: any) => (
-          <MobileClassRow
-            key={cls.name}
-            cls={cls}
-            currentLevel={levels[cls.name] || 1}
-            updateClassLevel={updateClassLevel}
-            setMaxLevel={setMaxLevel}
-            setMinLevel={setMinLevel}
-            setHoldingInfo={setHoldingInfo}
-          />
-        ))}
-      </div>
+      {filteredClasses.length === 0 ? (
+        <div className="text-center py-8 text-xs font-bold text-[var(--text-sub)] bg-[var(--inner-box)] rounded-xl border border-[var(--panel-border)]/50">
+          등록된 클래스가 없습니다.
+        </div>
+      ) : (
+        <>
+          {/* 모바일 뷰 */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:hidden gap-2">
+            {filteredClasses.map((cls: any) => (
+              <MobileClassRow
+                key={cls.id || cls.name}
+                cls={cls}
+                currentLevel={levels[cls.name] || 1}
+                updateClassLevel={updateClassLevel}
+                setMaxLevel={setMaxLevel}
+                setMinLevel={setMinLevel}
+                setHoldingInfo={setHoldingInfo}
+              />
+            ))}
+          </div>
 
-      {/* 데스크톱 뷰 */}
-      <div className="hidden md:grid grid-cols-2 xl:grid-cols-3 gap-2">
-        {dbClasses.map((cls: any) => {
-          const currentLevel = levels[cls.name] || 1;
-          const isMax = currentLevel === 65;
+          {/* 데스크톱 뷰 */}
+          <div className="hidden md:grid grid-cols-2 xl:grid-cols-3 gap-2">
+            {filteredClasses.map((cls: any) => {
+              const currentLevel = levels[cls.name] || 1;
+              const isMax = currentLevel === 65;
 
-          return (
-            <div
-              key={cls.name}
-              className={`flex items-center justify-between p-2 rounded-lg border transition min-w-0 ${
-                isMax
-                  ? "border-[var(--accent)] bg-[var(--accent-soft)]/20"
-                  : "bg-[var(--inner-box)] border-[var(--panel-border)]"
-              }`}
-            >
-              <div className="flex items-center gap-1.5 min-w-0 pr-1 flex-1">
-                <ClassIcon job={cls.name} className="w-5 h-5 shrink-0" />
-                <span
-                  className={`text-sm font-bold truncate ${
-                    isMax ? "text-[var(--accent)]" : "text-[var(--text-main)]"
+              return (
+                <div
+                  key={cls.id || cls.name}
+                  className={`flex items-center justify-between p-2 rounded-lg border transition min-w-0 ${
+                    isMax
+                      ? "border-[var(--accent)] bg-[var(--accent-soft)]/20"
+                      : "bg-[var(--inner-box)] border-[var(--panel-border)]"
                   }`}
                 >
-                  {cls.name}
-                </span>
-              </div>
+                  <div className="flex items-center gap-1.5 min-w-0 pr-1 flex-1">
+                    <ClassIcon job={cls.name} className="w-5 h-5 shrink-0" />
+                    <span
+                      className={`text-sm font-bold truncate ${
+                        isMax ? "text-[var(--accent)]" : "text-[var(--text-main)]"
+                      }`}
+                    >
+                      {cls.name}
+                    </span>
+                  </div>
 
-              <div className="flex items-center gap-1 shrink-0">
-                <DesktopLevelInput clsName={cls.name} currentLevel={currentLevel} />
+                  <div className="flex items-center gap-1 shrink-0">
+                    <DesktopLevelInput clsName={cls.name} currentLevel={currentLevel} />
 
-                <button
-                  type="button"
-                  onClick={() => updateClassLevel(cls.name, -10)}
-                  className="px-1 py-0.5 text-[10px] font-bold rounded bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)] cursor-pointer"
-                >
-                  -10
-                </button>
-                <button
-                  type="button"
-                  onClick={() => updateClassLevel(cls.name, -1)}
-                  className="px-1 py-0.5 text-[10px] font-bold rounded bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)] cursor-pointer"
-                >
-                  -1
-                </button>
+                    <button
+                      type="button"
+                      onClick={() => updateClassLevel(cls.name, -10)}
+                      className="px-1 py-0.5 text-[10px] font-bold rounded bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)] cursor-pointer"
+                    >
+                      -10
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => updateClassLevel(cls.name, -1)}
+                      className="px-1 py-0.5 text-[10px] font-bold rounded bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)] cursor-pointer"
+                    >
+                      -1
+                    </button>
 
-                {isMax ? (
-                  <button
-                    type="button"
-                    onClick={() => setMinLevel(cls.name)}
-                    className="px-1.5 py-0.5 text-[10px] font-black rounded bg-rose-500/20 text-rose-400 border border-rose-500/40 hover:bg-rose-500 hover:text-white transition whitespace-nowrap cursor-pointer"
-                  >
-                    MIN
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setMaxLevel(cls.name)}
-                    className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-[var(--accent-soft)] text-[var(--accent)] border border-[var(--accent)]/40 hover:bg-[var(--accent)] hover:text-[var(--accent-fg)] transition whitespace-nowrap cursor-pointer"
-                  >
-                    MAX
-                  </button>
-                )}
+                    {isMax ? (
+                      <button
+                        type="button"
+                        onClick={() => setMinLevel(cls.name)}
+                        className="px-1.5 py-0.5 text-[10px] font-black rounded bg-rose-500/20 text-rose-400 border border-rose-500/40 hover:bg-rose-500 hover:text-white transition whitespace-nowrap cursor-pointer"
+                      >
+                        MIN
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setMaxLevel(cls.name)}
+                        className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-[var(--accent-soft)] text-[var(--accent)] border border-[var(--accent)]/40 hover:bg-[var(--accent)] hover:text-[var(--accent-fg)] transition whitespace-nowrap cursor-pointer"
+                      >
+                        MAX
+                      </button>
+                    )}
 
-                <button
-                  type="button"
-                  onClick={() => updateClassLevel(cls.name, 1)}
-                  className="px-1 py-0.5 text-[10px] font-bold rounded bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)] cursor-pointer"
-                >
-                  +1
-                </button>
-                <button
-                  type="button"
-                  onClick={() => updateClassLevel(cls.name, 10)}
-                  className="px-1 py-0.5 text-[10px] font-bold rounded bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)] cursor-pointer"
-                >
-                  +10
-                </button>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+                    <button
+                      type="button"
+                      onClick={() => updateClassLevel(cls.name, 1)}
+                      className="px-1 py-0.5 text-[10px] font-bold rounded bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)] cursor-pointer"
+                    >
+                      +1
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => updateClassLevel(cls.name, 10)}
+                      className="px-1 py-0.5 text-[10px] font-bold rounded bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)] cursor-pointer"
+                    >
+                      +10
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
 
-      {/* 🌟 모바일 터치 홀드 시 손가락 가림 방지용 상단 중앙 고정 반투명 오버레이 */}
+      {/* 모바일 터치 홀드 시 손가락 가림 방지용 상단 중앙 고정 반투명 오버레이 */}
       {holdingInfo && (
         <div className="fixed top-16 left-1/2 -translate-x-1/2 z-[99999] pointer-events-none md:hidden">
           <div className="flex items-center gap-2.5 bg-zinc-950/90 border border-[var(--accent)] text-white px-4 py-2 rounded-full shadow-2xl backdrop-blur-md animate-in fade-in zoom-in-95 duration-100">

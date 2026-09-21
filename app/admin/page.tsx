@@ -12,7 +12,6 @@ import ContentAdminTab from "./components/ContentAdminTab";
 import ClassAdminTab from "./components/ClassAdminTab";
 import TradeAdminTab from "./components/TradeAdminTab";
 import MissionAdminTab from "./components/MissionAdminTab";
-import ClassTitleAdminTab from "./components/ClassTitleAdminTab";
 import GnosisAdminTab from "./components/GnosisAdminTab";
 
 interface MainTab {
@@ -30,7 +29,6 @@ const MAIN_TABS: MainTab[] = [
   { id: "classes", label: "클래스 & 역할군 관리", emoji: "🪖" },
   { id: "trade", label: "물물교환 카탈로그", emoji: "⚖️" },
   { id: "mission", label: "임무 게시판 관리", emoji: "📜" },
-  { id: "class_title", label: "칭호 & 역할 관리", emoji: "🛡️" },
   { id: "gnosis", label: "그노시스 공략 관리", emoji: "📖" },
 ];
 
@@ -68,22 +66,23 @@ export default function AdminPage() {
   if (!mounted || !user) return null;
 
   return (
-    <main className="min-h-screen bg-[var(--bg-main,#121212)] text-[var(--text-main,#d4d4d8)] font-sans pb-20 pt-8">
-      <div className="max-w-[1200px] mx-auto p-4 md:p-8 space-y-6">
-        {/* 헤더 */}
-        <div className="flex items-center gap-4 border-b border-zinc-800 pb-6">
+    <main className="min-h-screen bg-[var(--bg-main,#121212)] text-[var(--text-main,#d4d4d8)] font-sans pb-20 pt-8 transition-colors duration-300">
+      {/* 🎯 가로 영역을 1700px로 대폭 확장하여 좌우 여백 없이 알차게 활용 */}
+      <div className="max-w-[1700px] mx-auto p-4 md:p-8 space-y-6">
+        {/* 헤더 (전역 테마 변수 연동) */}
+        <div className="flex items-center gap-4 border-b border-[var(--panel-border,rgba(255,255,255,0.1))] pb-6">
           <div className="text-4xl">⚙️</div>
           <div>
             <h1 className="text-2xl md:text-3xl font-black text-[var(--accent,#e6c788)]">
               성역 넥서스 통합 관제 센터
             </h1>
-            <p className="text-sm text-zinc-400 mt-1">
+            <p className="text-sm text-[var(--text-sub,#a1a1aa)] mt-1">
               SANCTUM 길드 플랫폼의 가입 승인, 숙제/컨텐츠/클래스 카탈로그 및 시스템 설정을 제어합니다.
             </p>
           </div>
         </div>
 
-        {/* 탭 네비게이션 */}
+        {/* 탭 네비게이션 (전역 테마 바인딩) */}
         <div className="flex gap-2 flex-wrap">
           {MAIN_TABS.map((tab) => {
             const isActive = activeMainTab === tab.id;
@@ -93,15 +92,15 @@ export default function AdminPage() {
                 onClick={() => setActiveMainTab(tab.id)}
                 className={`px-4 py-2.5 rounded-xl text-xs md:text-sm font-bold transition-all cursor-pointer flex items-center gap-2 ${
                   isActive
-                    ? "bg-[var(--panel,#1c1c1e)] text-[var(--accent,#e6c788)] border border-[var(--panel-border,rgba(255,255,255,0.1))] shadow-md"
-                    : "bg-transparent text-zinc-500 hover:bg-zinc-800/50 hover:text-zinc-300"
+                    ? "bg-[var(--panel,#1c1c1e)] text-[var(--accent,#e6c788)] border border-[var(--accent,#e6c788)]/40 shadow-md"
+                    : "bg-[var(--inner-box,#252528)]/40 text-[var(--text-sub,#a1a1aa)] hover:bg-[var(--inner-box,#252528)] hover:text-[var(--text-main,#d4d4d8)] border border-[var(--panel-border,rgba(255,255,255,0.05))]"
                 }`}
               >
                 {tab.markSrc ? (
                   <MarkIcon
                     src={tab.markSrc}
                     size="xs"
-                    colorClass={isActive ? "bg-[var(--accent,#e6c788)]" : "bg-zinc-500"}
+                    colorClass={isActive ? "bg-[var(--accent,#e6c788)]" : "bg-[var(--text-sub,#a1a1aa)]"}
                   />
                 ) : (
                   <span>{tab.emoji}</span>
@@ -112,8 +111,8 @@ export default function AdminPage() {
           })}
         </div>
 
-        {/* 독립 모듈 렌더링 영역 */}
-        <div className="bg-[var(--panel,#1c1c1e)] border border-zinc-800 rounded-2xl p-6 shadow-xl min-h-[550px]">
+        {/* 독립 모듈 렌더링 영역 (전역 테마 패널) */}
+        <div className="bg-[var(--panel,#1c1c1e)] border border-[var(--panel-border,rgba(255,255,255,0.1))] rounded-2xl p-6 shadow-xl min-h-[550px] transition-colors duration-300">
           {activeMainTab === "approval" && <AccountApprovalTab currentUser={user} />}
           {activeMainTab === "banner" && <BannerAdminTab />}
           {activeMainTab === "tasks" && <TaskAdminTab />}
@@ -121,7 +120,6 @@ export default function AdminPage() {
           {activeMainTab === "classes" && <ClassAdminTab />}
           {activeMainTab === "trade" && <TradeAdminTab />}
           {activeMainTab === "mission" && <MissionAdminTab />}
-          {activeMainTab === "class_title" && <ClassTitleAdminTab />}
           {activeMainTab === "gnosis" && <GnosisAdminTab />}
         </div>
       </div>

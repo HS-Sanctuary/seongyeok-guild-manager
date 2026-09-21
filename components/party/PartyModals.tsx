@@ -97,7 +97,6 @@ interface PartyModalsProps {
   parties?: any[];
   guildBuses?: any[];
 
-  // 다중 선택 모달 연동 프롭
   tempSubContents?: string[];
   setTempSubContents?: React.Dispatch<React.SetStateAction<string[]>>;
   busSelectedSubContents?: string[];

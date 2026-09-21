@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import React, { useState, useRef } from "react";
 
 interface CharacterManageModalProps {
   isOpen: boolean;
@@ -26,6 +26,12 @@ export default function CharacterManageModal({
 
   if (!isOpen) return null;
 
+  // DB에 등록된 클래스 중 첫 번째 직업을 기본값으로 동적 채택
+  const defaultJob =
+    dbClasses && dbClasses.length > 0
+      ? dbClasses[0].name
+      : Object.keys(CLASS_TITLES)[0] || "전사";
+
   const addManageCharacter = () => {
     setManageList([
       ...manageList,
@@ -33,7 +39,7 @@ export default function CharacterManageModal({
         originalName: "",
         tempAlias: "",
         tempNickname: "새캐릭",
-        tempJob: "전사",
+        tempJob: defaultJob,
         isMain: false,
         isDeleted: false,
         sort_order: manageList.length,
@@ -67,7 +73,7 @@ export default function CharacterManageModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-2 md:p-4">
+    <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-2 md:p-4 backdrop-blur-xs">
       <div className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-xl w-[98%] max-w-2xl max-h-[88vh] overflow-hidden flex flex-col shadow-2xl">
         <div className="p-2.5 md:p-3 border-b border-[var(--panel-border)] flex justify-between items-center bg-[var(--inner-box)]">
           <h2 className="text-xs md:text-base font-black text-[var(--accent)]">
@@ -76,7 +82,7 @@ export default function CharacterManageModal({
           <button
             type="button"
             onClick={onClose}
-            className="text-[var(--text-sub)] hover:text-[var(--text-main)] text-sm cursor-pointer"
+            className="text-[var(--text-sub)] hover:text-[var(--text-main)] text-sm cursor-pointer p-1"
           >
             ✕
           </button>
@@ -141,9 +147,10 @@ export default function CharacterManageModal({
                       nw[index].tempNickname = e.target.value;
                       setManageList(nw);
                     }}
-                    className="flex-1 min-w-[48px] bg-[var(--panel)] border border-[var(--panel-border)] rounded px-1 py-1 text-[11px] text-[var(--text-main)] focus:border-[var(--accent)] outline-none"
+                    className="flex-1 min-w-[48px] bg-[var(--panel)] border border-[var(--panel-border)] rounded px-1 py-1 text-[11px] text-[var(--text-main)] focus:border-[var(--accent)] outline-none font-medium"
                   />
 
+                  {/* nexus_classes DB 실시간 연동 직업 셀렉트 박스 */}
                   <select
                     value={char.tempJob}
                     onChange={(e) => {
@@ -151,16 +158,24 @@ export default function CharacterManageModal({
                       nw[index].tempJob = e.target.value;
                       setManageList(nw);
                     }}
-                    className="w-[62px] sm:w-20 bg-[var(--panel)] border border-[var(--panel-border)] rounded px-0.5 py-1 text-[10px] sm:text-xs text-[var(--text-main)] focus:border-[var(--accent)] outline-none shrink-0"
+                    className="w-[72px] sm:w-24 bg-zinc-900 text-zinc-100 border border-zinc-700 rounded px-1 py-1 text-[10px] sm:text-xs font-bold outline-none focus:border-[var(--accent)] shrink-0 cursor-pointer"
                   >
-                    {dbClasses.length > 0
+                    {dbClasses && dbClasses.length > 0
                       ? dbClasses.map((cls: any) => (
-                          <option key={cls.name} value={cls.name}>
+                          <option
+                            key={cls.id || cls.name}
+                            value={cls.name}
+                            className="bg-zinc-900 text-zinc-100 font-bold"
+                          >
                             {cls.name}
                           </option>
                         ))
                       : Object.keys(CLASS_TITLES).map((clsName) => (
-                          <option key={clsName} value={clsName}>
+                          <option
+                            key={clsName}
+                            value={clsName}
+                            className="bg-zinc-900 text-zinc-100 font-bold"
+                          >
                             {clsName}
                           </option>
                         ))}
@@ -169,7 +184,7 @@ export default function CharacterManageModal({
                   <button
                     type="button"
                     onClick={() => handleSetMain(index)}
-                    className={`px-1.5 py-1 rounded text-[10px] sm:text-xs font-bold shrink-0 transition ${
+                    className={`px-1.5 py-1 rounded text-[10px] sm:text-xs font-bold shrink-0 transition cursor-pointer ${
                       char.isMain
                         ? "bg-[var(--accent)] text-[var(--accent-fg)]"
                         : "bg-[var(--panel)] text-[var(--text-sub)] border border-[var(--panel-border)] hover:text-[var(--text-main)]"
@@ -214,14 +229,14 @@ export default function CharacterManageModal({
           <button
             type="button"
             onClick={onClose}
-            className="px-3 py-1 rounded-lg bg-[var(--panel)] text-[var(--text-sub)] text-xs font-bold transition cursor-pointer"
+            className="px-3 py-1 rounded-lg bg-[var(--panel)] text-[var(--text-sub)] text-xs font-bold transition cursor-pointer hover:text-[var(--text-main)]"
           >
             취소
           </button>
           <button
             type="button"
             onClick={saveManageModal}
-            className="px-4 py-1 rounded-lg bg-[var(--accent)] text-[var(--accent-fg)] text-xs font-black transition cursor-pointer"
+            className="px-4 py-1 rounded-lg bg-[var(--accent)] text-[var(--accent-fg)] text-xs font-black transition cursor-pointer hover:opacity-90"
           >
             변경사항 저장
           </button>

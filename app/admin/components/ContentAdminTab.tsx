@@ -25,8 +25,8 @@ export interface ContentPowerReq {
   min_cp: number;
   rec_cp: number;
   op_cp: number;
-  rec_mr: number;
-  op_mr: number;
+  rec_mr: number; // 경고 마도저항
+  op_mr: number;  // 압도 마도저항
 }
 
 export default function ContentAdminTab() {
@@ -283,7 +283,6 @@ export default function ContentAdminTab() {
                   >
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 min-w-0 flex-1">
-                        {/* 기존 MarkIcon 컴포넌트 스펙 그대로 바인딩 */}
                         <MarkIcon
                           src={c.type === 'raid' ? "/svgs/contens mark/레이드 마크.svg" : "/svgs/contens mark/어비스 마크.svg"}
                           size="sm"
@@ -357,7 +356,7 @@ export default function ContentAdminTab() {
                 </button>
               </div>
 
-              {/* 초록 영역 스탯 컷 레이아웃 */}
+              {/* 스탯 컷 레이아웃 */}
               <div className="flex-1 overflow-y-auto space-y-4 pr-1 custom-scrollbar">
                 {currentReqs.length === 0 ? (
                   <div className="text-center text-xs md:text-sm text-zinc-500 py-16">
@@ -390,7 +389,7 @@ export default function ContentAdminTab() {
                         </div>
                       </div>
                       
-                      {/* 전투력 섹션 */}
+                      {/* 전투력 섹션 (3단계: 최소 / 권장 / 압도) */}
                       <div className="space-y-1.5">
                         <div className="text-xs font-black text-amber-400 flex items-center gap-1.5">
                           <MarkIcon src="/svgs/status mark/전투력 마크.svg" size="xs" colorClass="bg-amber-400" />
@@ -412,23 +411,23 @@ export default function ContentAdminTab() {
                         </div>
                       </div>
 
-                      {/* 마도저항 섹션 */}
+                      {/* 마도저항 섹션 (2단계: 경고 / 압도 정밀 개편) */}
                       <div className="space-y-1.5">
                         <div className="text-xs font-black text-sky-400 flex items-center gap-1.5">
                           <MarkIcon src="/svgs/status mark/마도저항 마크.svg" size="xs" colorClass="bg-sky-400" />
                           <span>마도저항</span>
                         </div>
-                        <div className="grid grid-cols-3 gap-2 bg-[var(--bg-main,#121212)] p-3 rounded-xl border border-zinc-800 text-center">
+                        <div className="grid grid-cols-2 gap-2 bg-[var(--bg-main,#121212)] p-3 rounded-xl border border-zinc-800 text-center">
                           <div>
-                            <div className="text-[11px] text-zinc-400 font-bold mb-1">최소</div>
-                            <div className="font-mono text-zinc-200 font-bold text-xs md:text-sm">-</div>
+                            <div className="text-[11px] text-emerald-400 font-bold mb-1 flex items-center justify-center gap-1">
+                              <span>경고</span>
+                            </div>
+                            <div className="font-mono text-emerald-300 font-bold text-xs md:text-sm">{d.rec_mr ? d.rec_mr.toLocaleString() : 0}</div>
                           </div>
                           <div>
-                            <div className="text-[11px] text-amber-400 font-bold mb-1">권장</div>
-                            <div className="font-mono text-amber-300 font-bold text-xs md:text-sm">{d.rec_mr ? d.rec_mr.toLocaleString() : 0}</div>
-                          </div>
-                          <div>
-                            <div className="text-[11px] text-purple-400 font-bold mb-1">압도</div>
+                            <div className="text-[11px] text-purple-400 font-bold mb-1 flex items-center justify-center gap-1">
+                              <span>압도</span>
+                            </div>
                             <div className="font-mono text-purple-300 font-bold text-xs md:text-sm">{d.op_mr ? d.op_mr.toLocaleString() : 0}</div>
                           </div>
                         </div>
@@ -558,7 +557,7 @@ export default function ContentAdminTab() {
                 />
               </div>
 
-              {/* 전투력 그룹 */}
+              {/* 전투력 그룹 (3단계) */}
               <div className="bg-[var(--bg-main,#121212)] p-3.5 rounded-xl border border-zinc-800 space-y-2">
                 <div className="text-xs font-black text-amber-400 flex items-center gap-1.5">
                   <MarkIcon src="/svgs/status mark/전투력 마크.svg" size="xs" colorClass="bg-amber-400" />
@@ -595,7 +594,7 @@ export default function ContentAdminTab() {
                 </div>
               </div>
 
-              {/* 마도저항 그룹 */}
+              {/* 마도저항 그룹 (2단계: 경고 / 압도) */}
               <div className="bg-[var(--bg-main,#121212)] p-3.5 rounded-xl border border-zinc-800 space-y-2">
                 <div className="text-xs font-black text-sky-400 flex items-center gap-1.5">
                   <MarkIcon src="/svgs/status mark/마도저항 마크.svg" size="xs" colorClass="bg-sky-400" />
@@ -603,12 +602,13 @@ export default function ContentAdminTab() {
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="text-[11px] text-amber-400 font-bold mb-1 block">권장 (REC)</label>
+                    <label className="text-[11px] text-emerald-400 font-bold mb-1 block">경고 (WARN)</label>
                     <input 
                       type="number" 
                       value={dForm.rec_mr || 0} 
                       onChange={e => setDForm({...dForm, rec_mr: Number(e.target.value)})}
-                      className="w-full bg-[var(--panel,#1c1c1e)] border border-amber-500/30 text-xs text-amber-300 font-bold p-2 rounded-lg outline-none font-mono"
+                      className="w-full bg-[var(--panel,#1c1c1e)] border border-emerald-500/30 text-xs text-emerald-300 font-bold p-2 rounded-lg outline-none font-mono"
+                      placeholder="경고 수치"
                     />
                   </div>
                   <div>
@@ -618,6 +618,7 @@ export default function ContentAdminTab() {
                       value={dForm.op_mr || 0} 
                       onChange={e => setDForm({...dForm, op_mr: Number(e.target.value)})}
                       className="w-full bg-[var(--panel,#1c1c1e)] border border-purple-500/30 text-xs text-purple-300 font-bold p-2 rounded-lg outline-none font-mono"
+                      placeholder="압도 수치"
                     />
                   </div>
                 </div>

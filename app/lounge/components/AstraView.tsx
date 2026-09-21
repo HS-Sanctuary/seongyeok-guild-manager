@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../../lib/supabase";
 import { isTaskChecked } from "../../../lib/matchingUtils";
-import ClassIcon from "../../components/ClassIcon";
+import ClassIcon from "@/components/common/ClassIcon";
 
 // --- 타입 정의 ---
 interface Character {

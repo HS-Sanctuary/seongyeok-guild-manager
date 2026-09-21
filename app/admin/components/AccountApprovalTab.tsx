@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 
 interface AccountItem {
@@ -9,16 +9,51 @@ interface AccountItem {
   code?: string;
   entry_code?: string;
   role: string;
+  status?: string;
   created_at?: string;
 }
 
 interface AccountApprovalTabProps {
-  currentUser?: any;
+  currentUser?: {
+    nickname?: string;
+    role?: string;
+    [key: string]: any;
+  };
 }
 
-const ROLES = ["가입대기", "길드원", "부마스터 대행", "부마스터", "길드마스터"];
+// 🎖️ 직책 위계 레벨 정의 (높을수록 상위 권한)
+const ROLE_HIERARCHY: Record<string, number> = {
+  승인대기: 0,
+  가입대기: 0,
+  길드원: 1,
+  "부마스터 대행": 2,
+  부마스터: 3,
+  길드마스터: 4,
+};
+
+const ALL_ROLES = ["승인대기", "가입대기", "길드원", "부마스터 대행", "부마스터", "길드마스터"];
+
+// 🛡️ 승인 대기 상태 여부 방어적 판정 헬퍼 (role/status 컬럼 및 '승인대기'/'가입대기' 통합 판정)
+const isPendingAccount = (acc: AccountItem) => {
+  const roleVal = acc.role?.trim();
+  const statusVal = acc.status?.trim();
+  return (
+    !roleVal ||
+    roleVal === "승인대기" ||
+    roleVal === "가입대기" ||
+    statusVal === "승인대기" ||
+    statusVal === "가입대기"
+  );
+};
 
 export default function AccountApprovalTab({ currentUser }: AccountApprovalTabProps) {
+  // 현재 접속한 관리자의 직책 및 레벨 연산 (기본값: 길드마스터 방어)
+  const myRole = currentUser?.role || "길드마스터";
+  const myLevel = ROLE_HIERARCHY[myRole] ?? 4;
+
+  // 서브 탭 상태: 'requests' (생텀 가입 요청) | 'members' (길드원 권한 관리)
+  const [activeSubTab, setActiveSubTab] = useState<"requests" | "members">("requests");
+
   const [accounts, setAccounts] = useState<AccountItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -26,7 +61,7 @@ export default function AccountApprovalTab({ currentUser }: AccountApprovalTabPr
   const [roleFilter, setRoleFilter] = useState<string>("전체");
   const [updatingNickname, setUpdatingNickname] = useState<string | null>(null);
 
-  // 계정 목록 조회 (상세 에러 파싱 포함)
+  // 계정 목록 전체 수집
   const fetchAccounts = useCallback(async () => {
     setLoading(true);
     setErrorMessage(null);
@@ -38,13 +73,7 @@ export default function AccountApprovalTab({ currentUser }: AccountApprovalTabPr
         .order("created_at", { ascending: false });
 
       if (error) {
-        console.error("📋 Supabase accounts fetch error details:", {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code,
-        });
-        
+        console.error("📋 Supabase accounts fetch error:", error);
         setErrorMessage(
           error.message || error.details || "Supabase 데이터베이스 연결 권한을 확인해주세요."
         );
@@ -64,21 +93,30 @@ export default function AccountApprovalTab({ currentUser }: AccountApprovalTabPr
     fetchAccounts();
   }, [fetchAccounts]);
 
-  // 권한 변경 처리
-  const handleRoleChange = async (targetNickname: string, newRole: string) => {
+  // 1. 가입 승인 처리 (승인대기/가입대기 -> 길드원 & status: 승인)
+  const handleApproveJoin = async (targetNickname: string) => {
+    if (myLevel < 2) {
+      alert("가입 승인 권한이 없습니다.");
+      return;
+    }
+
+    if (!confirm(`[${targetNickname}] 님의 생텀 가입 신청을 승인하고 '길드원' 권한을 부여하시겠습니까?`)) {
+      return;
+    }
+
     setUpdatingNickname(targetNickname);
     try {
       const { error } = await supabase
         .from("accounts")
-        .update({ role: newRole })
+        .update({ role: "길드원", status: "승인" })
         .eq("nickname", targetNickname);
 
       if (error) {
-        alert(`권한 변경 실패: ${error.message}`);
+        alert(`가입 승인 실패: ${error.message}`);
       } else {
         setAccounts((prev) =>
           prev.map((acc) =>
-            acc.nickname === targetNickname ? { ...acc, role: newRole } : acc
+            acc.nickname === targetNickname ? { ...acc, role: "길드원", status: "승인" } : acc
           )
         );
       }
@@ -89,9 +127,15 @@ export default function AccountApprovalTab({ currentUser }: AccountApprovalTabPr
     }
   };
 
-  // 계정 삭제 / 거절 처리
-  const handleDeleteAccount = async (targetNickname: string) => {
-    if (!confirm(`정말 [${targetNickname}] 계정 신청을 삭제/거절하시겠습니까?`)) {
+  // 2. 가입 거절 / 계정 삭제 처리
+  const handleRejectOrDelete = async (targetNickname: string, isKick: boolean = false) => {
+    if (myLevel < 3) {
+      alert("추방 및 거절 권한은 부마스터 이상만 실행 가능합니다.");
+      return;
+    }
+
+    const actionName = isKick ? "추방" : "거절/삭제";
+    if (!confirm(`정말 [${targetNickname}] 계정을 ${actionName}하시겠습니까?`)) {
       return;
     }
 
@@ -103,7 +147,7 @@ export default function AccountApprovalTab({ currentUser }: AccountApprovalTabPr
         .eq("nickname", targetNickname);
 
       if (error) {
-        alert(`삭제 실패: ${error.message}`);
+        alert(`${actionName} 실패: ${error.message}`);
       } else {
         setAccounts((prev) => prev.filter((acc) => acc.nickname !== targetNickname));
       }
@@ -114,48 +158,148 @@ export default function AccountApprovalTab({ currentUser }: AccountApprovalTabPr
     }
   };
 
-  // 필터링 계산
-  const filteredAccounts = accounts.filter((acc) => {
-    const matchesSearch = acc.nickname
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
-    const matchesRole =
-      roleFilter === "전체" ? true : acc.role === roleFilter;
-    return matchesSearch && matchesRole;
-  });
+  // 3. 직책 변경 처리 (길드마스터 위임 및 하위 직책 조정)
+  const handleRoleChange = async (targetAccount: AccountItem, newRole: string) => {
+    const targetNickname = targetAccount.nickname;
+    const targetLevel = ROLE_HIERARCHY[targetAccount.role || "길드원"] ?? 1;
+
+    // 동급 또는 상위 직책 변경 시도 통제
+    if (targetLevel >= myLevel) {
+      alert("본인과 동급이거나 상위 직책인 길드원의 권한은 변경할 수 없습니다.");
+      return;
+    }
+
+    // 길드마스터 직책 위임
+    if (newRole === "길드마스터") {
+      if (myRole !== "길드마스터") {
+        alert("길드마스터 권한은 현재 길드마스터만 위임할 수 있습니다.");
+        return;
+      }
+
+      const confirmTransfer = confirm(
+        `⚠️ 길드마스터 권한 위임 안내\n\n정말 [${targetNickname}] 님에게 길드마스터 직책을 위임하시겠습니까?\n\n위임 완료 후 [${currentUser?.nickname || "본인"}] 님의 직책은 '부마스터'로 변경됩니다.`
+      );
+
+      if (!confirmTransfer) return;
+
+      setUpdatingNickname(targetNickname);
+      try {
+        const { error: targetErr } = await supabase
+          .from("accounts")
+          .update({ role: "길드마스터", status: "승인" })
+          .eq("nickname", targetNickname);
+
+        if (targetErr) throw targetErr;
+
+        if (currentUser?.nickname) {
+          await supabase
+            .from("accounts")
+            .update({ role: "부마스터", status: "승인" })
+            .eq("nickname", currentUser.nickname);
+        }
+
+        alert(`[${targetNickname}] 님에게 길드마스터 권한이 성공적으로 위임되었습니다.`);
+        await fetchAccounts();
+      } catch (err: any) {
+        alert(`위임 처리 중 오류 발생: ${err.message}`);
+      } finally {
+        setUpdatingNickname(null);
+      }
+      return;
+    }
+
+    // 일반 직책 변경
+    setUpdatingNickname(targetNickname);
+    try {
+      const { error } = await supabase
+        .from("accounts")
+        .update({ role: newRole, status: "승인" })
+        .eq("nickname", targetNickname);
+
+      if (error) {
+        alert(`직책 변경 실패: ${error.message}`);
+      } else {
+        setAccounts((prev) =>
+          prev.map((acc) =>
+            acc.nickname === targetNickname ? { ...acc, role: newRole, status: "승인" } : acc
+          )
+        );
+      }
+    } catch (err: any) {
+      alert(`오류 발생: ${err.message}`);
+    } finally {
+      setUpdatingNickname(null);
+    }
+  };
+
+  // 탭별 목록 분리 (방어적 판정 함수 적용)
+  const joinRequests = useMemo(() => {
+    return accounts.filter((acc) => isPendingAccount(acc));
+  }, [accounts]);
+
+  const approvedMembers = useMemo(() => {
+    return accounts.filter((acc) => !isPendingAccount(acc));
+  }, [accounts]);
+
+  // 검색 및 필터링 적용된 회원 목록
+  const filteredMembers = useMemo(() => {
+    return approvedMembers.filter((acc) => {
+      const matchesSearch = acc.nickname
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
+      const matchesRole =
+        roleFilter === "전체" ? true : acc.role === roleFilter;
+      return matchesSearch && matchesRole;
+    });
+  }, [approvedMembers, searchTerm, roleFilter]);
+
+  // 관리자가 설정 가능한 직책 리스트 산출
+  const getAssignableRolesForTarget = (targetRole: string) => {
+    const targetLevel = ROLE_HIERARCHY[targetRole] ?? 1;
+
+    if (targetLevel >= myLevel) return [];
+
+    if (myRole === "길드마스터") {
+      return ["길드원", "부마스터 대행", "부마스터", "길드마스터"];
+    } else if (myRole === "부마스터") {
+      return ["길드원", "부마스터 대행"];
+    }
+
+    return [];
+  };
 
   return (
     <div className="space-y-6">
-      {/* 상단 툴바 (검색 & 필터 & 새로고침) */}
-      <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between bg-zinc-900/60 p-4 rounded-xl border border-zinc-800">
-        <div className="flex flex-1 gap-2">
-          <input
-            type="text"
-            placeholder="닉네임으로 검색..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="flex-1 bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-xs md:text-sm text-zinc-200 focus:outline-none focus:border-[#e6c788]"
-          />
-          <select
-            value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value)}
-            className="bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-xs md:text-sm text-zinc-300 focus:outline-none focus:border-[#e6c788]"
-          >
-            <option value="전체">모든 권한</option>
-            {ROLES.map((r) => (
-              <option key={r} value={r}>
-                {r}
-              </option>
-            ))}
-          </select>
-        </div>
+      {/* 🏛️ 최상위 2단 서브 탭 (전역 테마 바인딩) */}
+      <div className="flex border-b border-[var(--panel-border,rgba(255,255,255,0.1))] gap-2 pb-2">
+        <button
+          onClick={() => setActiveSubTab("requests")}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs md:text-sm transition-all cursor-pointer ${
+            activeSubTab === "requests"
+              ? "bg-[var(--accent,#e6c788)]/20 text-[var(--accent,#e6c788)] border border-[var(--accent,#e6c788)]/40 shadow-md"
+              : "bg-[var(--inner-box,#252528)] text-[var(--text-sub,#a1a1aa)] hover:text-[var(--text-main,#d4d4d8)] border border-[var(--panel-border,rgba(255,255,255,0.05))]"
+          }`}
+        >
+          <span>📩 생텀 가입 요청</span>
+          {joinRequests.length > 0 && (
+            <span className="px-2 py-0.5 text-[10px] rounded-full bg-amber-500/30 text-amber-300 border border-amber-500/40 font-mono">
+              {joinRequests.length}
+            </span>
+          )}
+        </button>
 
         <button
-          onClick={fetchAccounts}
-          disabled={loading}
-          className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-lg text-xs md:text-sm font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+          onClick={() => setActiveSubTab("members")}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs md:text-sm transition-all cursor-pointer ${
+            activeSubTab === "members"
+              ? "bg-[var(--accent,#e6c788)]/20 text-[var(--accent,#e6c788)] border border-[var(--accent,#e6c788)]/40 shadow-md"
+              : "bg-[var(--inner-box,#252528)] text-[var(--text-sub,#a1a1aa)] hover:text-[var(--text-main,#d4d4d8)] border border-[var(--panel-border,rgba(255,255,255,0.05))]"
+          }`}
         >
-          🔄 {loading ? "동기화 중..." : "목록 새로고침"}
+          <span>🛡️ 길드원 권한 관리</span>
+          <span className="px-2 py-0.5 text-[10px] rounded-full bg-[var(--bg-main,#121212)] text-[var(--text-sub,#a1a1aa)] font-mono border border-[var(--panel-border,rgba(255,255,255,0.1))]">
+            {approvedMembers.length}
+          </span>
         </button>
       </div>
 
@@ -168,85 +312,235 @@ export default function AccountApprovalTab({ currentUser }: AccountApprovalTabPr
           <p className="text-rose-400/90 font-mono text-[11px] break-all">
             {errorMessage}
           </p>
-          <div className="text-[11px] text-rose-300/70 pt-1 border-t border-rose-900/50">
-            * Supabase SQL Editor에서 RLS 정책(`CREATE POLICY ...`)을 실행했는지 확인해 주세요.
-          </div>
         </div>
       )}
 
-      {/* 계정 목록 (카드 형태 방어적 반응형 UI) */}
-      {loading ? (
-        <div className="py-20 text-center text-zinc-500 text-sm animate-pulse">
-          ⏳ 계정 데이터를 수집하는 중입니다...
-        </div>
-      ) : filteredAccounts.length === 0 ? (
-        <div className="py-16 text-center text-zinc-500 text-sm bg-zinc-900/30 rounded-xl border border-dashed border-zinc-800">
-          조건에 부합하는 계정이 존재하지 않습니다.
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {filteredAccounts.map((acc) => {
-            const isWaiting = acc.role === "가입대기" || !acc.role;
-            const codeDisplay = acc.code || acc.entry_code || "코드 없음";
+      {/* ========================================================= */}
+      {/* 📩 TAB 1: 생텀 가입 요청 (신청 대기자 전용) */}
+      {/* ========================================================= */}
+      {activeSubTab === "requests" && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between bg-[var(--inner-box,#252528)]/60 p-3.5 rounded-xl border border-[var(--panel-border,rgba(255,255,255,0.08))]">
+            <span className="text-xs md:text-sm text-[var(--text-sub,#a1a1aa)]">
+              생텀 스마트 플랫폼 가입 승인을 대기 중인 신청자 목록입니다.
+            </span>
+            <button
+              onClick={fetchAccounts}
+              disabled={loading}
+              className="px-3 py-1.5 bg-[var(--bg-main,#121212)] hover:bg-[var(--inner-box,#252528)] text-[var(--text-main,#d4d4d8)] border border-[var(--panel-border,rgba(255,255,255,0.1))] rounded-lg text-xs font-semibold transition-all shrink-0 cursor-pointer disabled:opacity-50"
+            >
+              🔄 {loading ? "동기화 중..." : "새로고침"}
+            </button>
+          </div>
 
-            return (
-              <div
-                key={acc.nickname}
-                className={`p-4 rounded-xl border transition-all space-y-3 flex flex-col justify-between ${
-                  isWaiting
-                    ? "bg-amber-950/20 border-amber-800/50 shadow-lg shadow-amber-950/10"
-                    : "bg-zinc-900/80 border-zinc-800 hover:border-zinc-700"
-                }`}
-              >
-                {/* 카드 상단 헤더 */}
-                <div className="flex items-start justify-between gap-2">
-                  <div className="space-y-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-sm md:text-base text-zinc-100 truncate">
-                        {acc.nickname}
-                      </span>
-                      {isWaiting && (
+          {loading ? (
+            <div className="py-20 text-center text-[var(--text-sub,#a1a1aa)] text-sm animate-pulse">
+              ⏳ 가입 신청 내역을 조회 중입니다...
+            </div>
+          ) : joinRequests.length === 0 ? (
+            <div className="py-16 text-center text-[var(--text-sub,#a1a1aa)] text-sm bg-[var(--inner-box,#252528)]/30 rounded-xl border border-dashed border-[var(--panel-border,rgba(255,255,255,0.1))]">
+              현재 승인 대기 중인 생텀 가입 신청이 없습니다.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {joinRequests.map((acc) => {
+                const codeDisplay = acc.code || acc.entry_code || "코드 미발급";
+                const isProcessing = updatingNickname === acc.nickname;
+
+                return (
+                  <div
+                    key={acc.nickname}
+                    className="p-4 bg-[var(--inner-box,#252528)] border border-amber-500/30 hover:border-amber-500/60 rounded-xl transition-all space-y-4 flex flex-col justify-between shadow-lg"
+                  >
+                    <div className="space-y-1.5 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-bold text-base text-[var(--text-main,#d4d4d8)] truncate">
+                          {acc.nickname}
+                        </span>
                         <span className="px-2 py-0.5 bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[10px] rounded-full font-semibold shrink-0">
                           승인 대기
                         </span>
+                      </div>
+                      <p className="text-xs text-[var(--text-sub,#a1a1aa)] font-mono">
+                        입장 코드: <span className="text-[var(--accent,#e6c788)] font-semibold">{codeDisplay}</span>
+                      </p>
+                      {acc.created_at && (
+                        <p className="text-[11px] text-[var(--text-sub,#a1a1aa)]">
+                          신청일: {new Date(acc.created_at).toLocaleDateString("ko-KR")}
+                        </p>
                       )}
                     </div>
-                    <p className="text-xs text-zinc-500 font-mono">
-                      입장 코드: <span className="text-zinc-300">{codeDisplay}</span>
-                    </p>
+
+                    {/* 승인 / 거절 조작 버튼 */}
+                    <div className="pt-3 border-t border-[var(--panel-border,rgba(255,255,255,0.08))] flex items-center gap-2">
+                      <button
+                        onClick={() => handleApproveJoin(acc.nickname)}
+                        disabled={isProcessing || myLevel < 2}
+                        className="flex-1 py-2 bg-emerald-600/80 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition-all shadow cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        ✅ 승인 (길드원)
+                      </button>
+
+                      {myLevel >= 3 && (
+                        <button
+                          onClick={() => handleRejectOrDelete(acc.nickname, false)}
+                          disabled={isProcessing}
+                          className="px-3 py-2 bg-rose-950/60 hover:bg-rose-900 border border-rose-800/80 text-rose-300 rounded-lg text-xs font-semibold transition-all cursor-pointer disabled:opacity-40"
+                          title="신청 거절 및 삭제"
+                        >
+                          ❌ 거절
+                        </button>
+                      )}
+                    </div>
                   </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
-                  <button
-                    onClick={() => handleDeleteAccount(acc.nickname)}
-                    disabled={updatingNickname === acc.nickname}
-                    className="text-zinc-600 hover:text-rose-400 p-1 text-xs transition-colors cursor-pointer"
-                    title="계정 삭제/거절"
-                  >
-                    ❌
-                  </button>
-                </div>
+      {/* ========================================================= */}
+      {/* 🛡️ TAB 2: 길드원 권한 관리 (승인 완료 길드원 리스트) */}
+      {/* ========================================================= */}
+      {activeSubTab === "members" && (
+        <div className="space-y-4">
+          <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between bg-[var(--inner-box,#252528)]/60 p-4 rounded-xl border border-[var(--panel-border,rgba(255,255,255,0.1))]">
+            <div className="flex flex-1 gap-2">
+              <input
+                type="text"
+                placeholder="닉네임으로 검색..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="flex-1 bg-[var(--bg-main,#121212)] border border-[var(--panel-border,rgba(255,255,255,0.15))] rounded-lg px-3 py-2 text-xs md:text-sm text-[var(--text-main,#d4d4d8)] focus:outline-none focus:border-[var(--accent,#e6c788)]"
+              />
+              <select
+                value={roleFilter}
+                onChange={(e) => setRoleFilter(e.target.value)}
+                className="bg-[var(--bg-main,#121212)] border border-[var(--panel-border,rgba(255,255,255,0.15))] rounded-lg px-3 py-2 text-xs md:text-sm text-[var(--text-sub,#a1a1aa)] focus:outline-none focus:border-[var(--accent,#e6c788)] cursor-pointer"
+              >
+                <option value="전체">모든 직책</option>
+                {ALL_ROLES.filter((r) => r !== "가입대기" && r !== "승인대기").map((r) => (
+                  <option key={r} value={r}>
+                    {r}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-                {/* 카드 하단 권한 조작 바 */}
-                <div className="pt-3 border-t border-zinc-800/80 flex items-center justify-between gap-2">
-                  <span className="text-xs text-zinc-400 font-medium shrink-0">
-                    권한 설정:
-                  </span>
-                  <select
-                    value={acc.role || "가입대기"}
-                    disabled={updatingNickname === acc.nickname}
-                    onChange={(e) => handleRoleChange(acc.nickname, e.target.value)}
-                    className="flex-1 bg-zinc-950 border border-zinc-700 text-xs text-[#e6c788] rounded-lg px-2 py-1.5 focus:outline-none focus:border-[#e6c788] font-bold cursor-pointer disabled:opacity-50"
+            <button
+              onClick={fetchAccounts}
+              disabled={loading}
+              className="px-4 py-2 bg-[var(--bg-main,#121212)] hover:bg-[var(--inner-box,#252528)] text-[var(--text-main,#d4d4d8)] border border-[var(--panel-border,rgba(255,255,255,0.1))] rounded-lg text-xs md:text-sm font-semibold transition-all cursor-pointer disabled:opacity-50 shrink-0"
+            >
+              🔄 {loading ? "동기화 중..." : "목록 새로고침"}
+            </button>
+          </div>
+
+          {loading ? (
+            <div className="py-20 text-center text-[var(--text-sub,#a1a1aa)] text-sm animate-pulse">
+              ⏳ 길드원 명단을 수집하고 있습니다...
+            </div>
+          ) : filteredMembers.length === 0 ? (
+            <div className="py-16 text-center text-[var(--text-sub,#a1a1aa)] text-sm bg-[var(--inner-box,#252528)]/30 rounded-xl border border-dashed border-[var(--panel-border,rgba(255,255,255,0.1))]">
+              조건에 부합하는 길드원이 존재하지 않습니다.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {filteredMembers.map((acc) => {
+                const targetRole = acc.role || "길드원";
+                const targetLevel = ROLE_HIERARCHY[targetRole] ?? 1;
+
+                const isLocked = targetLevel >= myLevel;
+                const isProcessing = updatingNickname === acc.nickname;
+                const assignableRoles = getAssignableRolesForTarget(targetRole);
+
+                const roleBadgeStyle =
+                  targetRole === "길드마스터"
+                    ? "bg-amber-500/20 text-amber-300 border-amber-500/40"
+                    : targetRole === "부마스터"
+                    ? "bg-purple-500/20 text-purple-300 border-purple-500/40"
+                    : targetRole === "부마스터 대행"
+                    ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
+                    : "bg-[var(--inner-box,#252528)] text-[var(--text-sub,#a1a1aa)] border-[var(--panel-border,rgba(255,255,255,0.1))]";
+
+                return (
+                  <div
+                    key={acc.nickname}
+                    className={`p-4 rounded-xl border transition-all space-y-4 flex flex-col justify-between ${
+                      isLocked
+                        ? "bg-[var(--bg-main,#121212)]/90 border-[var(--panel-border,rgba(255,255,255,0.05))] opacity-90"
+                        : "bg-[var(--inner-box,#252528)] border-[var(--panel-border,rgba(255,255,255,0.1))] hover:border-[var(--accent,#e6c788)]/40"
+                    }`}
                   >
-                    {ROLES.map((r) => (
-                      <option key={r} value={r}>
-                        {r}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            );
-          })}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="space-y-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-sm md:text-base text-[var(--text-main,#d4d4d8)] truncate">
+                            {acc.nickname}
+                          </span>
+                          <span
+                            className={`px-2 py-0.5 border text-[10px] rounded-full font-bold shrink-0 ${roleBadgeStyle}`}
+                          >
+                            {targetRole}
+                          </span>
+                        </div>
+                        <p className="text-xs text-[var(--text-sub,#a1a1aa)] font-mono">
+                          입장 코드: <span className="text-[var(--text-main,#d4d4d8)]">{acc.code || acc.entry_code || "코드 없음"}</span>
+                        </p>
+                      </div>
+
+                      {isLocked && (
+                        <span
+                          className="px-2 py-1 bg-[var(--bg-main,#121212)] text-[var(--text-sub,#a1a1aa)] border border-[var(--panel-border,rgba(255,255,255,0.1))] text-[10px] rounded-lg shrink-0 flex items-center gap-1 font-medium"
+                          title="동급 또는 상위 직책은 수정 및 추방이 잠금 처리됩니다."
+                        >
+                          🔒 수정 잠금
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="pt-3 border-t border-[var(--panel-border,rgba(255,255,255,0.08))] space-y-2.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs text-[var(--text-sub,#a1a1aa)] font-medium shrink-0">
+                          직책 부여:
+                        </span>
+
+                        {isLocked || assignableRoles.length === 0 ? (
+                          <div className="flex-1 bg-[var(--bg-main,#121212)] border border-[var(--panel-border,rgba(255,255,255,0.08))] rounded-lg px-2.5 py-1.5 text-xs text-[var(--text-sub,#a1a1aa)] font-medium text-right">
+                            변경 권한 없음
+                          </div>
+                        ) : (
+                          <select
+                            value={targetRole}
+                            disabled={isProcessing}
+                            onChange={(e) => handleRoleChange(acc, e.target.value)}
+                            className="flex-1 bg-[var(--bg-main,#121212)] border border-[var(--panel-border,rgba(255,255,255,0.15))] text-xs text-[var(--accent,#e6c788)] rounded-lg px-2 py-1.5 focus:outline-none focus:border-[var(--accent,#e6c788)] font-bold cursor-pointer disabled:opacity-50"
+                          >
+                            {assignableRoles.map((r) => (
+                              <option key={r} value={r}>
+                                {r === "길드마스터" ? "👑 길드마스터 (위임)" : r}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                      </div>
+
+                      {!isLocked && myLevel >= 3 && (
+                        <button
+                          onClick={() => handleRejectOrDelete(acc.nickname, true)}
+                          disabled={isProcessing}
+                          className="w-full py-1.5 bg-rose-950/30 hover:bg-rose-900/60 border border-rose-800/40 hover:border-rose-700 text-rose-300 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1 cursor-pointer disabled:opacity-40"
+                        >
+                          <span>🚨 길드원 추방</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
     </div>

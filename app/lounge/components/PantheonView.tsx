@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, Fragment } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "../../../lib/supabase";
-import ClassIcon from "../../components/ClassIcon";
+import ClassIcon from "@/components/common/ClassIcon";
 
 const CATEGORY_THEMES: Record<string, any> = {
   TELOS: {
@@ -91,7 +91,7 @@ const CLASS_GROUPS = [
   { name: '도적 계열', classes: ['도적', '격투가', '듀얼블레이드'] }
 ];
 
-const CLASS_TITLES: Record<string, string[]> = {
+const DEFAULT_CLASS_TITLES: Record<string, string[]> = {
   "전사": ["검투신", "검투왕", "검투사", "전사"], "대검전사": ["파괴신", "파괴왕", "광전사", "대검전사"],
   "검술사": ["검신", "검왕", "검성", "검술사"], "기사": ["수호신", "수호왕", "수호기사", "기사"],
   "마법사": ["마신", "대현자", "현자", "마법사"], "화염술사": ["화신", "염왕", "염마", "화염술사"],
@@ -193,28 +193,20 @@ interface Character {
 
 export default function PantheonView() {
   const [dbCharacters, setDbCharacters] = useState<Character[]>([]);
+  const [classTitlesMap, setClassTitlesMap] = useState<Record<string, string[]>>(DEFAULT_CLASS_TITLES);
   const [activeRankTab, setActiveRankTab] = useState<keyof typeof RANKING_INFO>('TELOS');
   const [selectedClass, setSelectedClass] = useState<string>("전체"); 
   const [isClassFilterOpen, setIsClassFilterOpen] = useState(false);
 
-  // 🌟 전역 모달 상태 관리
   const [activeModalData, setActiveModalData] = useState<{ t: any; char: Character } | null>(null);
 
-  // ⌨️ ESC 키 입력 시 모달 닫기 이벤트 리스너 추가
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setActiveModalData(null);
-      }
+      if (e.key === "Escape") setActiveModalData(null);
     };
 
-    if (activeModalData) {
-      window.addEventListener("keydown", handleKeyDown);
-    }
-
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-    };
+    if (activeModalData) window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [activeModalData]);
 
   useEffect(() => {
@@ -227,9 +219,13 @@ export default function PantheonView() {
 
   const fetchServerData = async () => {
     try {
-      const { data, error } = await supabase.from('characters').select('*');
-      if (data && !error) {
-        const mappedData: Character[] = data.map((c: any) => ({
+      const [charRes, classRes] = await Promise.all([
+        supabase.from('characters').select('*'),
+        supabase.from('nexus_classes').select('name, titles')
+      ]);
+
+      if (charRes.data && !charRes.error) {
+        const mappedData: Character[] = charRes.data.map((c: any) => ({
           id: c.nickname, name: c.nickname, owner: c.owner || c.nickname, job: c.job || '전사',
           combatPower: Number(c.combat_power) || 0, magicResist: Number(c.magic_resistance) || 0,
           lifePower: Number(c.life_energy) || 0, charm: Number(c.charm) || 0,
@@ -240,7 +236,19 @@ export default function PantheonView() {
         }));
         setDbCharacters(mappedData);
       }
-    } catch (err) { console.error("판테온 로딩 실패", err); }
+
+      if (classRes.data && !classRes.error) {
+        const titleMap = { ...DEFAULT_CLASS_TITLES };
+        classRes.data.forEach((cls: any) => {
+          if (cls.name && Array.isArray(cls.titles) && cls.titles.length >= 4) {
+            titleMap[cls.name] = cls.titles;
+          }
+        });
+        setClassTitlesMap(titleMap);
+      }
+    } catch (err) {
+      console.error("판테온 로딩 실패", err);
+    }
   };
 
   const getKratosClassRank = (char: Character): number => {
@@ -338,10 +346,10 @@ export default function PantheonView() {
     pushIfTop3('PIETAS', TOP_TITLES.PIETAS);
 
     const kratosRank = [...dbCharacters].filter(c => c.job === char.job).sort((a,b) => b.combatPower - a.combatPower).findIndex(c => c.id === char.id);
-    const kTitles = CLASS_TITLES[char.job];
+    const kTitles = classTitlesMap[char.job] || DEFAULT_CLASS_TITLES[char.job];
     if (kTitles) {
       if(kratosRank >= 0 && kratosRank < 3) titles.push({ type: 'KRATOS', name: kTitles[kratosRank], rank: kratosRank + 1, theme: CATEGORY_THEMES.KRATOS });
-      else titles.push({ type: 'KRATOS', name: kTitles[3], rank: 4, theme: { tags: ['bg-zinc-800/80 text-zinc-300 border-zinc-700 font-bold'], borders: ['border-zinc-700'], text: 'text-zinc-400' } });
+      else titles.push({ type: 'KRATOS', name: kTitles[3] || char.job, rank: 4, theme: { tags: ['bg-zinc-800/80 text-zinc-300 border-zinc-700 font-bold'], borders: ['border-zinc-700'], text: 'text-zinc-400' } });
     }
 
     pushIfTop3('TECHNE', TOP_TITLES.TECHNE);
@@ -412,7 +420,6 @@ export default function PantheonView() {
 
   return (
     <section className="space-y-3 animate-in fade-in duration-200">
-      
       <div className="grid md:hidden grid-cols-3 gap-1.5">{['TELOS', 'SYMPHONIA', 'PIETAS', 'KRATOS', 'TECHNE', 'HARMONIA'].map(k => renderRankButton(k as any))}</div>
       <div className="hidden md:grid grid-cols-6 gap-2">{['TELOS', 'SYMPHONIA', 'KRATOS', 'TECHNE', 'HARMONIA', 'PIETAS'].map(k => renderRankButton(k as any))}</div>
 
@@ -493,11 +500,8 @@ export default function PantheonView() {
         </div>
       )}
 
-      {/* 🏆 랭킹 메인 영역 */}
       {activeRankTab === 'SYMPHONIA' ? (
-        
         <div className="space-y-3">
-          {/* 모바일 뷰 */}
           <div className="grid md:hidden grid-cols-1 gap-2">
             {accountRankings.map((acc, index) => {
               const rank = index + 1;
@@ -528,7 +532,6 @@ export default function PantheonView() {
             })}
           </div>
 
-          {/* PC 뷰 */}
           <div className="hidden md:block space-y-3">
             <div className="grid grid-cols-3 gap-3">
               {accountRankings.slice(0, 3).map((acc, index) => {
@@ -594,12 +597,8 @@ export default function PantheonView() {
             )}
           </div>
         </div>
-
       ) : (
-
         <div className="space-y-3">
-          
-          {/* 모바일 뷰 */}
           <div className="grid md:hidden grid-cols-1 gap-2">
             {rankedCharacters.map((char) => {
               const earnedTitles = getAllEarnedTitles(char);
@@ -636,7 +635,6 @@ export default function PantheonView() {
             })}
           </div>
 
-          {/* PC 뷰 */}
           <div className="hidden md:block space-y-3">
             <div className="grid grid-cols-3 gap-3">
               {rankedCharacters.slice(0, 3).map((char, index) => {
@@ -679,7 +677,6 @@ export default function PantheonView() {
               })}
             </div>
 
-            {/* 4위 이하 리스트 */}
             {rankedCharacters.length > 3 && (
               <div className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-xl shadow-xs">
                 <div className="px-3 py-2 bg-[var(--inner-box)] border-b border-[var(--panel-border)] text-xs font-black text-[var(--text-sub)] flex justify-between items-center">
@@ -723,11 +720,9 @@ export default function PantheonView() {
               </div>
             )}
           </div>
-
         </div>
       )}
 
-      {/* 🌟 최상단 고정 모달 */}
       {activeModalData && (() => {
         const { t, char } = activeModalData;
         const lore = generateLore(t.name, t.rank, char.job, t.type as keyof typeof RANKING_INFO);
@@ -775,7 +770,6 @@ export default function PantheonView() {
           </div>
         );
       })()}
-
     </section>
   );
 }

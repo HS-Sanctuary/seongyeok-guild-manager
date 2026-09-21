@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useEffect } from "react";
 import MarkIcon from "@/components/common/MarkIcon";
-import { CONTENT_DB, ContentItem, ABYSS_SUB_DUNGEONS, AbyssSubDungeon } from "@/components/party/types";
+import { CONTENT_DB, ContentItem, ABYSS_SUB_DUNGEONS, AbyssSubDungeon, ContentPowerReq } from "@/components/party/types";
 import { parseAbyssInfo } from "@/lib/busUtils";
 
 const cleanContentName = (name: string) => {
@@ -25,6 +25,7 @@ interface ContentSelectModalProps {
   applyContentModal: (selectedSubContents?: string[]) => void;
   tempSubContents?: string[];
   setTempSubContents?: (val: string[]) => void;
+  powerReqs?: ContentPowerReq[];
 }
 
 export default function ContentSelectModal({
@@ -39,6 +40,7 @@ export default function ContentSelectModal({
   applyContentModal,
   tempSubContents,
   setTempSubContents,
+  powerReqs
 }: ContentSelectModalProps) {
   const abyssContents = useMemo(() => CONTENT_DB.filter((c: ContentItem) => c.category === "어비스"), []);
   const raidContents = useMemo(() => CONTENT_DB.filter((c: ContentItem) => c.category === "레이드"), []);
@@ -78,11 +80,21 @@ export default function ContentSelectModal({
     return parseAbyssInfo({ content_name: tempContent.name, category: tempContentCategory }, activeSubContents);
   }, [tempContent, tempContentCategory, activeSubContents]);
 
+  // 🛡️ Supabase DB 연동 정격 인원수 동적 계산
+  const getContentSize = (item: ContentItem) => {
+    if (powerReqs && powerReqs.length > 0) {
+      const match = powerReqs.find(r => r.content_name === item.name || item.name.includes(r.content_name));
+      if (match?.max_members) return match.max_members;
+    }
+    return item.name.includes("카브락") ? 8 : 4;
+  };
+
+  const currentSelectedSize = getContentSize(tempContent);
+
   const handleApply = () => {
     if (setTempSubContents) {
       setTempSubContents(activeSubContents);
     }
-    // 🎯 선택된 어비스 서브 던전 배열을 직접 인수로 전달하여 상위 state 유실 방지
     applyContentModal(tempContentCategory === "어비스" ? activeSubContents : undefined);
   };
 
@@ -117,6 +129,7 @@ export default function ContentSelectModal({
                 const isSelected = tempContent.id === c.id || tempContent.name === c.name;
                 const displayName = cleanContentName(c.name);
                 const isMultiAbyssCard = c.id === "abyss_all" || c.name.includes("다중") || c.name.includes("3종");
+                const itemSize = getContentSize(c);
 
                 return (
                   <div
@@ -146,7 +159,7 @@ export default function ContentSelectModal({
                       <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold shrink-0 ml-1 ${
                         isSelected ? "bg-black/20 text-[var(--accent-fg)]" : "bg-[var(--panel)] text-[var(--text-sub)]"
                       }`}>
-                        {c.size}인
+                        {itemSize}인
                       </span>
                     </button>
 
@@ -175,7 +188,7 @@ export default function ContentSelectModal({
                           })}
                         </div>
 
-                        {/* 어비스 다중 카드가 선택된 경우 */}
+                        {/* 어비스 다중 카드 */}
                         {isMultiAbyssCard && (
                           <div className="pt-2 border-t border-[var(--panel-border)]/50 space-y-1">
                             <span className="text-[10px] font-black text-[var(--accent)] block">
@@ -221,6 +234,7 @@ export default function ContentSelectModal({
               {raidContents.map((c: ContentItem) => {
                 const isSelected = tempContent.id === c.id || tempContent.name === c.name;
                 const displayName = cleanContentName(c.name);
+                const itemSize = getContentSize(c);
 
                 return (
                   <div
@@ -250,7 +264,7 @@ export default function ContentSelectModal({
                       <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold shrink-0 ml-1 ${
                         isSelected ? "bg-black/20 text-[var(--accent-fg)]" : "bg-[var(--panel)] text-[var(--text-sub)]"
                       }`}>
-                        {c.size}인
+                        {itemSize}인
                       </span>
                     </button>
 
@@ -310,7 +324,7 @@ export default function ContentSelectModal({
             </span>
           </div>
           <span className="text-xs font-bold text-[var(--text-sub)] shrink-0">
-            {tempContent.size}인
+            {currentSelectedSize}인
           </span>
         </div>
 

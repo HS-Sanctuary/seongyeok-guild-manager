@@ -135,7 +135,19 @@ export function usePartyManager() {
   const [joinTimeEnd, setJoinTimeEnd] = useState<string>("24:00");
   const [inspectCharacter, setInspectCharacter] = useState<any>(null);
 
-  // 🎯 100% DB Dynamic CP Requirements Helper
+  // 🛡️ Supabase DB 기반 정격 인원수 산출 유틸
+  const getMaxMembersForContent = useCallback((contentName: string, difficulty?: string, defaultSize: number = 4): number => {
+    if (powerReqs && powerReqs.length > 0) {
+      const match = powerReqs.find(r => 
+        (r.content_name === contentName || contentName.includes(r.content_name)) &&
+        (!difficulty || r.difficulty === difficulty)
+      );
+      if (match?.max_members) return match.max_members;
+    }
+    if (contentName.includes("카브락")) return 8;
+    return defaultSize || 4;
+  }, [powerReqs]);
+
   const getCPReqsForContent = useCallback((contentName: string, difficulty: string) => {
     const dbReq = powerReqs.find(r => r.content_name === contentName && r.difficulty === difficulty);
     if (dbReq) {
@@ -452,6 +464,8 @@ export function usePartyManager() {
       );
     }
 
+    const targetMaxMembers = getMaxMembersForContent(selectedContent.name, selectedDiff, selectedContent.size);
+
     const matchingCandidates = activeParties.filter(p => {
       if (p.status !== "모집중") return false;
       
@@ -463,7 +477,9 @@ export function usePartyManager() {
 
       const isBus = p.party_type === "1회 클리어" && p.sub_content?.includes("길드 버스");
       if (isBus) return false;
-      if (p.members.length >= p.max_members) return false;
+
+      const pMaxMembers = p.max_members || targetMaxMembers;
+      if (p.members.length >= pMaxMembers) return false;
 
       const hasSameAccount = p.members.some((m: any) => {
         const memName = m.name || m.character_name;
@@ -498,11 +514,13 @@ export function usePartyManager() {
         start_time: timeStart,
         end_time: timeEnd,
         startTime: timeStart,
-        endTime: timeEnd
+        endTime: timeEnd,
+        is_completed: false
       };
 
       const candidateList = [...existingMembers, newMember];
-      const balanced = autoBalanceAndBuildParty(candidateList, existingMatchingParty.max_members);
+      const pMaxMembers = existingMatchingParty.max_members || targetMaxMembers;
+      const balanced = autoBalanceAndBuildParty(candidateList, pMaxMembers);
 
       const membersWithTime = balanced.members.map((bm: any) => {
         const original = candidateList.find((c: any) => (c.name || c.character_name) === (bm.name || bm.character_name));
@@ -516,6 +534,7 @@ export function usePartyManager() {
           end_time: e,
           startTime: s,
           endTime: e,
+          is_completed: bm.is_completed || false
         } as any;
       });
 
@@ -532,7 +551,7 @@ export function usePartyManager() {
         wanted_roles: updatedWanted
       };
 
-      if (membersWithTime.length === existingMatchingParty.max_members) {
+      if (membersWithTime.length === pMaxMembers) {
         const timeRanges = membersWithTime.map((m: any) => ({ start: m.time_start || m.start_time || timeStart, end: m.time_end || m.end_time || timeEnd }));
         const optimalTime = calculateMidpointStartTime(timeRanges);
         updatePayload.final_start_time = optimalTime || membersWithTime[0].time_start;
@@ -585,7 +604,8 @@ export function usePartyManager() {
       start_time: timeStart,
       end_time: timeEnd,
       startTime: timeStart,
-      endTime: timeEnd
+      endTime: timeEnd,
+      is_completed: false
     };
 
     const isAbyssCategory = selectedContent.category === "어비스" || selectedContent.name.includes("어비스");
@@ -600,7 +620,7 @@ export function usePartyManager() {
       party_date: targetDate,
       time_start: timeStart,
       time_end: timeEnd,
-      max_members: selectedContent.size,
+      max_members: targetMaxMembers,
       matching_mode: matchingMode,
       wanted_roles: matchingMode === "조합우선" ? wantedRoles : [],
       members: [initialMember], 
@@ -629,6 +649,8 @@ export function usePartyManager() {
     if (selectedEntries.length === 0) {
       return alert("개설 시 버스 파티에 참여시킬 캐릭터를 최소 1개 이상 선택해주세요!");
     }
+
+    const busMaxMembers = getMaxMembersForContent(busCreateContent.name, busCreateDiff, busCreateContent.size);
 
     const initialMembers = selectedEntries.map(([charKey, config]) => {
       const charObj = myCharacters.find(c => (c.nickname || c.name || String(c.id)) === charKey) || {};
@@ -677,14 +699,14 @@ export function usePartyManager() {
 
     assembleBalancedParty(
       busCandidates,
-      busCreateContent.size || 8,
+      busMaxMembers,
       cpReqs,
       undefined,
       nexusClasses
     );
 
     const busLeaderName = initialMembers[0]?.name || user?.username || "한설";
-    const busMemoFinal = busCreateMemo.trim() || generateDefaultBusMemo(busCreateContent, busCreateDiff);
+    const busMemoFinal = busCreateMemo.trim() || generateDefaultBusMemo(busCreateContent, busCreateDiff, busCreateSubContents);
     const normBusDate = normalizeDateStr(busCreateDate);
 
     const isAbyssBus = busCreateContent.category === "어비스" || busCreateContent.name.includes("어비스");
@@ -699,7 +721,7 @@ export function usePartyManager() {
       party_date: normBusDate,
       time_start: busCreateTimeStart,
       time_end: busCreateTimeEnd,
-      max_members: busCreateContent.size,
+      max_members: busMaxMembers,
       matching_mode: "모집우선",
       wanted_roles: ["탱커", "힐러", "근딜", "원딜"],
       members: initialMembers,
@@ -761,6 +783,8 @@ export function usePartyManager() {
         p => p.content_name === targetBusParty.contentName && p.difficulty === targetBusParty.difficulty && p.sub_content?.includes("길드 버스")
       );
 
+      const targetMaxMembers = getMaxMembersForContent(targetBusParty.contentName, targetBusParty.difficulty, 8);
+
       if (existingParty) {
         const existingMemberIds = new Set(existingParty.members.map((m: any) => m.character_id || m.id || m.name || m.character_name));
         const filteredNewMembers = newMembers.filter(m => !existingMemberIds.has(m.character_id) && !existingMemberIds.has(m.name));
@@ -785,7 +809,7 @@ export function usePartyManager() {
           time_end: m.time_end || m.end_time || "23:59"
         }));
 
-        assembleBalancedParty(combinedCandidates, existingParty.max_members || 8, cpReqs, undefined, nexusClasses);
+        assembleBalancedParty(combinedCandidates, existingParty.max_members || targetMaxMembers, cpReqs, undefined, nexusClasses);
 
         const { error } = await supabase
           .from("parties")
@@ -804,7 +828,7 @@ export function usePartyManager() {
           party_date: normalizeDateStr(selectedDate),
           time_start: firstItem?.timeStart || "20:00",
           time_end: firstItem?.timeEnd || "23:59",
-          max_members: 8,
+          max_members: targetMaxMembers,
           party_type: "1회 클리어",
           sub_content: `[성역 길드 버스] ${targetBusParty.contentName} (${targetBusParty.difficulty}) 운행`,
           status: "모집중",
@@ -859,25 +883,70 @@ export function usePartyManager() {
     }
   };
 
-  const handleCompleteParty = async (party: Party) => {
-    if (!confirm(`🎉 [${party.content_name}] 던전을 완료하시겠습니까?\n참여 중인 전원의 크로노스 숙제 항목이 자동 완료 처리됩니다.`)) return;
+  // 🛡️ 과반수 완료 투표 엔진 (4인: 3명 / 8인: 5명)
+  const handleCompleteParty = async (party: Party, memberName?: string) => {
+    const maxMembers = party.max_members || getMaxMembersForContent(party.content_name, party.difficulty, 4);
+    const requiredVotes = maxMembers === 8 ? 5 : 3;
+
+    const targetName = memberName || myCharacterNames[0];
+    if (!targetName && !isAdmin) {
+      alert("완료 투표를 진행할 캐릭터 정보를 찾을 수 없습니다.");
+      return;
+    }
+
+    let hasVotedNow = false;
+    const updatedMembers = party.members.map((m: any) => {
+      if ((m.name || m.character_name) === targetName) {
+        const nextState = !(m.is_completed === true);
+        hasVotedNow = nextState;
+        return { ...m, is_completed: nextState };
+      }
+      return m;
+    });
+
+    const completedCount = updatedMembers.filter((m: any) => m.is_completed === true).length;
+    const isMajorityReached = completedCount >= requiredVotes;
 
     try {
-      const contentType = party.content_name.includes("어비스") ? "abyss" : "raid";
-      await syncKronosChecklist(party.members, contentType, party.content_name, party.difficulty);
+      if (isMajorityReached) {
+        // 과반수 동의 달성 시 파티 종료 및 KRONOS 숙제 자동 연동
+        const contentType = party.content_name.includes("어비스") ? "abyss" : "raid";
+        await syncKronosChecklist(updatedMembers, contentType, party.content_name, party.difficulty);
 
-      const { error } = await supabase
-        .from("parties")
-        .update({ status: "종료됨" })
-        .eq("id", party.id);
+        const { error } = await supabase
+          .from("parties")
+          .update({ 
+            members: updatedMembers, 
+            status: "종료됨" 
+          })
+          .eq("id", party.id);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      alert(`🎉 [${party.content_name}] 파티 클리어 및 참여원 ${party.members.length}명의 KRONOS 숙제 자동 완료가 연동되었습니다!`);
+        alert(
+          `🎉 [${party.content_name}] 파티 과반수 완료 승인! (${completedCount}/${requiredVotes}명)\n` +
+          `파티가 성공적으로 종료되었으며, 참여 파티원의 KRONOS 숙제가 자동 완료 처리되었습니다!`
+        );
+      } else {
+        // 과반수 미달 시 개인별 투표 상태만 DB 업데이트
+        const { error } = await supabase
+          .from("parties")
+          .update({ members: updatedMembers })
+          .eq("id", party.id);
+
+        if (error) throw error;
+
+        if (hasVotedNow) {
+          alert(`🗳️ 완료 투표 완료! (현재 ${completedCount}/${requiredVotes}명 찬성 - ${requiredVotes}명 도달 시 파티 종료)`);
+        } else {
+          alert(`🗳️ 완료 투표를 취소했습니다. (현재 ${completedCount}/${requiredVotes}명 찬성)`);
+        }
+      }
+
       const ownerName = user?.username || user?.nickname || user?.owner || "한설";
       fetchData(ownerName);
     } catch (err: any) {
-      alert("파티 완료 처리 중 오류가 발생했습니다: " + err.message);
+      alert("완료 투표 처리 중 오류가 발생했습니다: " + err.message);
     }
   };
 
@@ -940,7 +1009,9 @@ export function usePartyManager() {
         supabase.from("parties").select("*").eq("id", joinPopupParty.id).single()
       ]);
       const latestParty = partyRes.data;
-      if (!latestParty || latestParty.members.length >= latestParty.max_members) {
+      const latestMaxMembers = latestParty.max_members || getMaxMembersForContent(latestParty.content_name, latestParty.difficulty, 4);
+
+      if (!latestParty || latestParty.members.length >= latestMaxMembers) {
         return alert("이미 모집이 마감되었거나 정원이 초과된 파티입니다.");
       }
 
@@ -979,11 +1050,12 @@ export function usePartyManager() {
         start_time: joinTimeStart,
         end_time: joinTimeEnd,
         startTime: joinTimeStart,
-        endTime: joinTimeEnd
+        endTime: joinTimeEnd,
+        is_completed: false
       };
 
       const candidateList = [...latestParty.members, newMember];
-      const balanced = autoBalanceAndBuildParty(candidateList, latestParty.max_members);
+      const balanced = autoBalanceAndBuildParty(candidateList, latestMaxMembers);
 
       const membersWithTime = balanced.members.map((bm: any) => {
         const original = candidateList.find((c: any) => (c.name || c.character_name) === (bm.name || bm.character_name));
@@ -997,6 +1069,7 @@ export function usePartyManager() {
           end_time: e,
           startTime: s,
           endTime: e,
+          is_completed: bm.is_completed || false
         } as any;
       });
 
@@ -1004,7 +1077,7 @@ export function usePartyManager() {
       if (updatedWanted.indexOf(joinSelectedRole) > -1) updatedWanted.splice(updatedWanted.indexOf(joinSelectedRole), 1);
 
       let updatePayload: any = { members: membersWithTime, wanted_roles: updatedWanted };
-      if (membersWithTime.length === latestParty.max_members) {
+      if (membersWithTime.length === latestMaxMembers) {
         const timeRanges = membersWithTime.map((m: any) => ({ start: m.time_start || m.start_time || joinTimeStart, end: m.time_end || m.end_time || joinTimeEnd }));
         const optimalTime = calculateMidpointStartTime(timeRanges);
         updatePayload.final_start_time = optimalTime || membersWithTime[0].time_start;
@@ -1028,7 +1101,7 @@ export function usePartyManager() {
     setBusCreateContent(defaultCabrak);
     setBusCreateDiff(defaultCabrak.defaultDiff || "어려움");
     setBusCreateSubContents(["abyss_1", "abyss_2", "abyss_3"]);
-    setBusCreateMemo(generateDefaultBusMemo(defaultCabrak, defaultCabrak.defaultDiff || "어려움"));
+    setBusCreateMemo(generateDefaultBusMemo(defaultCabrak, defaultCabrak.defaultDiff || "어려움", ["abyss_1", "abyss_2", "abyss_3"]));
     
     const initialSel: Record<string, BusCharSelectionConfig> = {};
     myCharacters.forEach((c, idx) => {
@@ -1249,6 +1322,8 @@ export function usePartyManager() {
     setBusCreateDiff,
     busCreateSubContents,
     setBusCreateSubContents,
+    busSelectedSubContents: busCreateSubContents,
+    setBusSelectedSubContents: setBusCreateSubContents,
     busCreateDate,
     setBusCreateDate,
     busCreateTimeStart,

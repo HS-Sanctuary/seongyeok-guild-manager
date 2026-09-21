@@ -3,7 +3,7 @@
 import React, { useMemo } from 'react';
 import ClassIcon from '@/components/common/ClassIcon';
 import MarkIcon from '@/components/common/MarkIcon';
-import { Party, DIFFICULTY_COLORS, NexusContent, NexusClassItem } from '@/components/party/types';
+import { Party, DIFFICULTY_COLORS, NexusContent, NexusClassItem, ContentPowerReq } from '@/components/party/types';
 import { parseCP, parseAbyssInfo, getRoleByJob } from '@/lib/busUtils';
 import {
   formatPartyTimeRange,
@@ -93,11 +93,12 @@ interface PartyCardProps {
   setInspectCharacter: (char: any) => void;
   handleLeaveParty: (party: Party, charName: string) => void;
   handleDeleteParty: (partyId: string | number) => void;
-  onCompleteParty?: (party: Party) => void;
+  onCompleteParty?: (party: Party, memberName?: string) => void;
   isAdmin: boolean;
   onRefresh?: () => void;
   contentsCatalog?: NexusContent[];
   classesCatalog?: NexusClassItem[];
+  powerReqs?: ContentPowerReq[];
 }
 
 export default function PartyCard({
@@ -111,12 +112,37 @@ export default function PartyCard({
   onCompleteParty,
   isAdmin,
   contentsCatalog,
-  classesCatalog
+  classesCatalog,
+  powerReqs
 }: PartyCardProps) {
-  const isFull = party.members.length >= party.max_members;
+  // 🛡️ DB 정격 인원수 파싱
+  const maxMembers = useMemo(() => {
+    if (party.max_members && party.max_members > 0) return party.max_members;
+    if (powerReqs && powerReqs.length > 0) {
+      const match = powerReqs.find(r => r.content_name === party.content_name && r.difficulty === party.difficulty);
+      if (match?.max_members) return match.max_members;
+    }
+    return party.content_name.includes("카브락") ? 8 : 4;
+  }, [party.max_members, party.content_name, party.difficulty, powerReqs]);
 
+  // 🛡️ 과반수 기준 산출 (4인: 3명 / 8인: 5명)
+  const requiredVotes = maxMembers === 8 ? 5 : 3;
+
+  // 완료 투표 진행한 파티원 파악
+  const completedMembers = useMemo(() => {
+    return (party.members || []).filter(m => m.is_completed === true);
+  }, [party.members]);
+
+  const currentVotes = completedMembers.length;
+
+  // 본인 캐릭터의 참여 여부 및 투표 상태 파악
   const joinedMyChars = party.members.filter(m => myCharacterNames.includes(m.name || m.character_name || ''));
+  const joinedMyMember = joinedMyChars[0];
   const isJoined = joinedMyChars.length > 0;
+  const hasMyVoteCompleted = joinedMyMember?.is_completed === true;
+
+  const isFull = party.members.length >= maxMembers;
+  const isCompletedParty = party.status === "종료됨";
 
   const contentMarkSrc = useMemo(() => {
     if (!party.content_name) return "/svgs/contens mark/레이드 마크.svg";
@@ -126,13 +152,18 @@ export default function PartyCard({
       : "/svgs/contens mark/레이드 마크.svg";
   }, [party.content_name, party.party_type, party.sub_content]);
 
-  // 🎯 100% DB Dynamic Abyss Info Parsing
   const abyssInfo = useMemo(() => parseAbyssInfo(party, null, contentsCatalog), [party, contentsCatalog]);
 
   const handleForceDelete = () => {
     if (confirm("⚠️ 정말로 이 파티 모집을 강제 삭제하시겠습니까?\n삭제된 데이터는 복구할 수 없습니다.")) {
       handleDeleteParty(party.id);
     }
+  };
+
+  const handleVoteClick = () => {
+    if (!onCompleteParty) return;
+    const targetMemberName = joinedMyMember?.name || joinedMyMember?.character_name || myCharacterNames[0];
+    onCompleteParty(party, targetMemberName);
   };
 
   const rawDate = (party as any).party_date || (party as any).date || (party as any).created_at || '';
@@ -205,7 +236,7 @@ export default function PartyCard({
 
     const isConflict = maxStartMins >= minEndMins;
     const isCompleted =
-      party.members.length >= party.max_members ||
+      party.members.length >= maxMembers ||
       party.status === "completed" ||
       party.status === "매칭완료";
 
@@ -249,7 +280,7 @@ export default function PartyCard({
     };
   }, [
     party.members,
-    party.max_members,
+    maxMembers,
     party.time_start,
     party.time_end,
     party.status,
@@ -290,10 +321,13 @@ export default function PartyCard({
             <span className="px-1.5 py-0.5 rounded text-[10px] sm:text-[11px] font-bold bg-[var(--panel)] text-[var(--text-sub)] border border-[var(--panel-border)] shrink-0">
               {party.party_type}
             </span>
+            <span className="px-1.5 py-0.5 rounded text-[10px] sm:text-[11px] font-mono text-[var(--text-sub)] bg-[var(--panel)] border border-[var(--panel-border)] shrink-0">
+              {maxMembers}인
+            </span>
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">
-            {!isFull && !isJoined && (
+            {!isFull && !isJoined && !isCompletedParty && (
               <button
                 type="button"
                 onClick={() => openJoinPopup(party)}
@@ -311,16 +345,30 @@ export default function PartyCard({
               </span>
             )}
 
-            {(isJoined || isAdmin) && onCompleteParty && (
+            {/* 과반수 투표 완료 제어 버튼 */}
+            {!isCompletedParty && (isJoined || isAdmin) && onCompleteParty && (
               <button
                 type="button"
-                onClick={() => onCompleteParty(party)}
-                className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm rounded-xl shadow-md transition active:scale-95 cursor-pointer flex items-center gap-1 shrink-0"
-                title="던전 클리어 처리 및 KRONOS 숙제 자동 연동"
+                onClick={handleVoteClick}
+                className={`px-2.5 sm:px-3 py-1 font-black text-xs sm:text-sm rounded-xl shadow-md transition active:scale-95 cursor-pointer flex items-center gap-1.5 shrink-0 border ${
+                  hasMyVoteCompleted
+                    ? "bg-amber-500/20 text-amber-400 border-amber-500/50 hover:bg-amber-500/30"
+                    : "bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-500"
+                }`}
+                title={`과반수(${requiredVotes}명) 투표 완료 시 파티가 자동 종료 처리됩니다.`}
               >
                 <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                <span>완료</span>
+                <span>{hasMyVoteCompleted ? "완료 취소" : "완료 투표"}</span>
+                <span className="px-1.5 py-0.2 rounded bg-black/30 font-mono text-[10px] font-black">
+                  {currentVotes}/{requiredVotes}
+                </span>
               </button>
+            )}
+
+            {isCompletedParty && (
+              <span className="px-2.5 py-1 rounded-xl bg-zinc-800 border border-zinc-700 text-zinc-400 text-xs font-black shrink-0">
+                🎉 완료됨
+              </span>
             )}
           </div>
         </div>
@@ -333,7 +381,7 @@ export default function PartyCard({
           </h3>
         </div>
 
-        {/* 🎯 DB 카탈로그 기반 어비스 선택 던전 뱃지 태그 렌더링 */}
+        {/* 어비스 선택 던전 뱃지 태그 렌더링 */}
         {abyssInfo.isAbyss && abyssInfo.selectedDungeons.length > 0 && (
           <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
             {abyssInfo.selectedDungeons.map((dungeon) => (
@@ -363,7 +411,7 @@ export default function PartyCard({
                 {dynamicTimeInfo.finalDepartureTime}
               </span>
               <span className="text-[9px] sm:text-[10px] text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-1.5 py-0.5 rounded font-sans shrink-0 font-extrabold whitespace-nowrap">
-                매칭 완료 ({party.members.length}/{party.max_members}명)
+                매칭 완료 ({party.members.length}/{maxMembers}명)
               </span>
             </div>
           ) : (
@@ -405,18 +453,24 @@ export default function PartyCard({
         </div>
       )}
 
-      {/* 파티원 슬롯 */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3.5">
-        {Array.from({ length: party.max_members }).map((_, index) => {
+      {/* 파티원 슬롯 (4인/8인 정격 규격 가변 렌더링) */}
+      <div className={`grid gap-2 mb-3.5 ${
+        maxMembers === 4 ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-2 sm:grid-cols-4"
+      }`}>
+        {Array.from({ length: maxMembers }).map((_, index) => {
           const member = party.members[index];
 
           if (!member) {
             return (
               <div 
                 key={`empty-${index}`} 
-                className="min-h-[108px] sm:min-h-[112px] rounded-xl border border-dashed border-[var(--panel-border)] bg-[var(--inner-box)]/30 flex items-center justify-center text-xs text-[var(--text-sub)] font-bold"
+                onClick={() => !isCompletedParty && openJoinPopup(party)}
+                className={`min-h-[108px] sm:min-h-[112px] rounded-xl border border-dashed border-[var(--panel-border)] bg-[var(--inner-box)]/30 flex flex-col items-center justify-center gap-1 text-xs text-[var(--text-sub)] font-bold hover:border-[var(--accent)] hover:text-[var(--accent)] transition cursor-pointer ${
+                  isCompletedParty ? "cursor-not-allowed opacity-40" : ""
+                }`}
               >
-                빈 슬롯
+                <span className="text-base">➕</span>
+                <span>빈 슬롯</span>
               </div>
             );
           }
@@ -425,11 +479,9 @@ export default function PartyCard({
           const charObj = allCharactersMap[memName] || {};
           
           const rawJob = member.job || charObj.job || (member as any).class_name || charObj.class_name || '';
-          
           const rawExplicitRole = member.role || (member.roles && member.roles[0]) || charObj.role || (charObj.roles && charObj.roles[0]);
           const explicitRole = typeof rawExplicitRole === "string" ? rawExplicitRole.trim() : "";
 
-          // 🎯 DB(`nexus_classes`) 연동 역할군 도출
           const role = (explicitRole && ["탱커", "힐러", "원딜", "근딜", "서포터"].includes(explicitRole))
             ? explicitRole
             : getRoleByJob(rawJob, classesCatalog);
@@ -438,6 +490,7 @@ export default function PartyCard({
           const mr = parseCP(member.magic_resistance || charObj.magic_resistance || 0);
           
           const isLeader = memName === leaderMemberName;
+          const isVoted = member.is_completed === true;
 
           const memAny = member as Record<string, any>;
           const memStart = (memAny.time_start || memAny.start_time || memAny.startTime || memAny.timeStart || party.time_start || "18:00").replace(/\s*\(\+1일\)/g, "").trim();
@@ -447,13 +500,26 @@ export default function PartyCard({
             <div
               key={`mem-${memName}-${index}`}
               onClick={() => (charObj.nickname || charObj.name) && setInspectCharacter(charObj)}
-              className={`min-h-[108px] sm:min-h-[112px] rounded-xl border ${isLeader ? 'border-amber-500/60 bg-amber-500/10' : 'border-[var(--panel-border)] bg-[var(--inner-box)]'} p-2 sm:p-2.5 flex items-center gap-2 relative overflow-hidden transition hover:border-[var(--accent)] cursor-pointer min-w-0 shadow-xs`}
+              className={`min-h-[108px] sm:min-h-[112px] rounded-xl border p-2 sm:p-2.5 flex items-center gap-2 relative overflow-hidden transition hover:border-[var(--accent)] cursor-pointer min-w-0 shadow-xs ${
+                isVoted 
+                  ? 'border-amber-500/80 bg-amber-950/20 shadow-[0_0_12px_rgba(245,158,11,0.15)]' 
+                  : isLeader 
+                  ? 'border-amber-500/60 bg-amber-500/10' 
+                  : 'border-[var(--panel-border)] bg-[var(--inner-box)]'
+              }`}
             >
+              {/* 투표 완료 뱃지 */}
+              {isVoted && (
+                <div className="absolute top-0.5 right-0.5 px-1 py-0.2 rounded bg-amber-500 text-black font-black text-[8px] z-10 shadow-xs">
+                  ✓ 투표완료
+                </div>
+              )}
+
               <div className="flex flex-col items-center justify-center shrink-0">
                 <div className={`w-7 sm:w-8 h-7 sm:h-8 rounded-lg bg-[var(--panel)] border ${isLeader ? 'border-amber-400 ring-2 ring-amber-500/30' : 'border-[var(--panel-border)]'} flex items-center justify-center p-0.5 shadow-inner relative`}>
                   <ClassIcon className="w-5 h-5 text-[var(--text-main)]" job={rawJob} />
                   {isLeader && (
-                    <span className="absolute -top-1.5 -right-1.5 bg-amber-500 text-zinc-950 p-0.5 rounded-full shadow-md leading-none border border-amber-600" title="파티장 (최고 전투력)">
+                    <span className="absolute -top-1.5 -right-1.5 bg-amber-500 text-zinc-950 p-0.5 rounded-full shadow-md leading-none border border-amber-600" title="파티장">
                       <Crown className="w-2.5 h-2.5 fill-zinc-950 text-zinc-950" />
                     </span>
                   )}
