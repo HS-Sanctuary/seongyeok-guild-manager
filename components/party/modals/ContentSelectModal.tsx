@@ -2,7 +2,8 @@
 
 import { useMemo, useState, useEffect } from "react";
 import MarkIcon from "@/components/common/MarkIcon";
-import { CONTENT_DB, ContentItem, ABYSS_SUB_DUNGEONS } from "@/components/party/types";
+import { CONTENT_DB, ContentItem, ABYSS_SUB_DUNGEONS, AbyssSubDungeon } from "@/components/party/types";
+import { parseAbyssInfo } from "@/lib/busUtils";
 
 const cleanContentName = (name: string) => {
   return name
@@ -21,7 +22,7 @@ interface ContentSelectModalProps {
   setTempContent: (val: ContentItem) => void;
   tempDiff: string;
   setTempDiff: (val: string) => void;
-  applyContentModal: () => void;
+  applyContentModal: (selectedSubContents?: string[]) => void;
   tempSubContents?: string[];
   setTempSubContents?: (val: string[]) => void;
 }
@@ -39,21 +40,24 @@ export default function ContentSelectModal({
   tempSubContents,
   setTempSubContents,
 }: ContentSelectModalProps) {
-  const abyssContents = useMemo(() => CONTENT_DB.filter((c) => c.category === "어비스"), []);
-  const raidContents = useMemo(() => CONTENT_DB.filter((c) => c.category === "레이드"), []);
+  const abyssContents = useMemo(() => CONTENT_DB.filter((c: ContentItem) => c.category === "어비스"), []);
+  const raidContents = useMemo(() => CONTENT_DB.filter((c: ContentItem) => c.category === "레이드"), []);
 
-  // 🛡️ 백업 포일 상태: 프롭 전달 유무와 무관하게 다중 선택 토글이 상시 작동하도록 방어
   const [localSubContents, setLocalSubContents] = useState<string[]>(
     tempSubContents && tempSubContents.length > 0 ? tempSubContents : ["abyss_1", "abyss_2", "abyss_3"]
   );
 
   useEffect(() => {
-    if (tempSubContents && tempSubContents.length > 0) {
-      setLocalSubContents(tempSubContents);
+    if (showContentModal) {
+      if (tempSubContents && tempSubContents.length > 0) {
+        setLocalSubContents(tempSubContents);
+      } else {
+        setLocalSubContents(["abyss_1", "abyss_2", "abyss_3"]);
+      }
     }
-  }, [tempSubContents]);
+  }, [showContentModal, tempSubContents]);
 
-  const activeSubContents = tempSubContents ?? localSubContents;
+  const activeSubContents = localSubContents;
 
   const toggleSubContent = (id: string) => {
     let next: string[];
@@ -69,12 +73,18 @@ export default function ContentSelectModal({
     }
   };
 
-  const abyssBadgeLabel = useMemo(() => {
+  const abyssInfo = useMemo(() => {
     if (tempContentCategory !== "어비스") return null;
-    if (activeSubContents.length === 3 || activeSubContents.length === 0) return "어비스 ALL";
-    const selectedObj = ABYSS_SUB_DUNGEONS.filter((item) => activeSubContents.includes(item.id));
-    return `어비스 ${selectedObj.map((o) => o.shortName).join("/")}`;
-  }, [tempContentCategory, activeSubContents]);
+    return parseAbyssInfo({ content_name: tempContent.name, category: tempContentCategory }, activeSubContents);
+  }, [tempContent, tempContentCategory, activeSubContents]);
+
+  const handleApply = () => {
+    if (setTempSubContents) {
+      setTempSubContents(activeSubContents);
+    }
+    // 🎯 선택된 어비스 서브 던전 배열을 직접 인수로 전달하여 상위 state 유실 방지
+    applyContentModal(tempContentCategory === "어비스" ? activeSubContents : undefined);
+  };
 
   if (!showContentModal) return null;
 
@@ -103,7 +113,7 @@ export default function ContentSelectModal({
               <span>어비스</span>
             </div>
             <div className="space-y-2">
-              {abyssContents.map((c) => {
+              {abyssContents.map((c: ContentItem) => {
                 const isSelected = tempContent.id === c.id || tempContent.name === c.name;
                 const displayName = cleanContentName(c.name);
                 const isMultiAbyssCard = c.id === "abyss_all" || c.name.includes("다중") || c.name.includes("3종");
@@ -146,7 +156,7 @@ export default function ContentSelectModal({
                           난이도 선택
                         </span>
                         <div className="grid grid-cols-2 gap-1.5">
-                          {c.diffs.map((d) => {
+                          {c.diffs.map((d: string) => {
                             const isDiffSelected = tempDiff === d;
                             return (
                               <button
@@ -165,14 +175,14 @@ export default function ContentSelectModal({
                           })}
                         </div>
 
-                        {/* 🎯 어비스 다중 카드가 선택된 경우(핑크 영역) - 버스크리에이트 / 파티크리에이트 공통 상시 노출 */}
+                        {/* 어비스 다중 카드가 선택된 경우 */}
                         {isMultiAbyssCard && (
                           <div className="pt-2 border-t border-[var(--panel-border)]/50 space-y-1">
                             <span className="text-[10px] font-black text-[var(--accent)] block">
                               목표 던전 (다중 선택)
                             </span>
                             <div className="flex flex-col gap-1">
-                              {ABYSS_SUB_DUNGEONS.map((dungeon) => {
+                              {ABYSS_SUB_DUNGEONS.map((dungeon: AbyssSubDungeon) => {
                                 const isSubSelected = activeSubContents.includes(dungeon.id);
                                 return (
                                   <button
@@ -208,7 +218,7 @@ export default function ContentSelectModal({
               <span>레이드</span>
             </div>
             <div className="space-y-2">
-              {raidContents.map((c) => {
+              {raidContents.map((c: ContentItem) => {
                 const isSelected = tempContent.id === c.id || tempContent.name === c.name;
                 const displayName = cleanContentName(c.name);
 
@@ -250,7 +260,7 @@ export default function ContentSelectModal({
                           난이도 선택
                         </span>
                         <div className="grid grid-cols-2 gap-1.5">
-                          {c.diffs.map((d) => {
+                          {c.diffs.map((d: string) => {
                             const isDiffSelected = tempDiff === d;
                             return (
                               <button
@@ -291,8 +301,8 @@ export default function ContentSelectModal({
               colorClass="bg-[var(--accent)]" 
             />
             <span className="font-black text-xs sm:text-sm text-[var(--text-main)] truncate">
-              {tempContentCategory === "어비스" && abyssBadgeLabel
-                ? abyssBadgeLabel
+              {tempContentCategory === "어비스" && abyssInfo?.title
+                ? abyssInfo.title
                 : cleanContentName(tempContent.name)}
             </span>
             <span className="px-2 py-0.5 rounded-md bg-[var(--accent)]/15 border border-[var(--accent)]/40 text-[var(--accent)] text-[11px] font-black shrink-0 whitespace-nowrap">
@@ -314,7 +324,7 @@ export default function ContentSelectModal({
           </button>
           <button
             type="button"
-            onClick={applyContentModal}
+            onClick={handleApply}
             className="flex-2 py-2.5 bg-[var(--accent)] text-[var(--accent-fg)] font-black text-xs sm:text-sm rounded-xl cursor-pointer shadow-md hover:brightness-110 transition text-center"
           >
             적용하기

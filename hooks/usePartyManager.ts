@@ -4,30 +4,27 @@ import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { pickRandomLeader, autoBalanceAndBuildParty } from "@/lib/matchingUtils";
 import { CONTENT_DB, ContentItem, Party, Member } from "@/components/party/types";
-import { generateDefaultBusMemo, BusCharSelectionConfig } from "@/components/party/PartyModals";
+import { generateDefaultBusMemo, BusCharSelectionConfig } from "@/components/party/modals/BusCreateModal";
 import { 
   getRoleByJob,
-  getJobRole, 
   assembleBalancedParty, 
-  CONTENT_CP_REQUIREMENTS, 
   syncKronosChecklist, 
   parseCP, 
+  generateAbyssDefaultMemo,
   BusCandidate,
   ContentPowerReq,
   NexusClassItem
 } from "@/lib/busUtils";
 import {
-  timeToMinutes,
-  minutesToTime,
   isTimeOverlapping,
   calculateMidpointStartTime,
   getTodayString,
   normalizeDateStr,
   getFormattedDateWithDDay,
-  getMabinogiWeekRange
+  getMabinogiWeekRange,
+  minutesToTime
 } from "@/lib/partyDateUtils";
 
-// 파티의 실질적 종료 Date 객체를 계산하는 정밀 헬퍼
 const getPartyEndDateTime = (partyDateStr?: string, startHM?: string, endHM?: string): Date => {
   const normDate = normalizeDateStr(partyDateStr || getTodayString());
   const [eH, eM] = (endHM || "23:59").split(":").map(Number);
@@ -93,6 +90,7 @@ export function usePartyManager() {
   const [selectedChar, setSelectedChar] = useState("");
   const [selectedContent, setSelectedContent] = useState<ContentItem>(CONTENT_DB[0]);
   const [selectedDiff, setSelectedDiff] = useState(CONTENT_DB[0].defaultDiff);
+  const [selectedSubContents, setSelectedSubContents] = useState<string[]>(["abyss_1", "abyss_2", "abyss_3"]);
   const [selectedDate, setSelectedDate] = useState(() => getTodayString());
   const [timeStart, setTimeStart] = useState("18:00");
   const [timeEnd, setTimeEnd] = useState("20:00");
@@ -114,6 +112,7 @@ export function usePartyManager() {
   const [tempContentCategory, setTempContentCategory] = useState<"어비스" | "레이드">("어비스");
   const [tempContent, setTempContent] = useState<ContentItem>(CONTENT_DB[0]);
   const [tempDiff, setTempDiff] = useState(CONTENT_DB[0].defaultDiff);
+  const [tempSubContents, setTempSubContents] = useState<string[]>(["abyss_1", "abyss_2", "abyss_3"]);
 
   const defaultCabrak = useMemo(() => {
     return CONTENT_DB.find(c => c.name.includes("카브락")) || CONTENT_DB[0];
@@ -121,6 +120,7 @@ export function usePartyManager() {
 
   const [busCreateContent, setBusCreateContent] = useState<ContentItem>(defaultCabrak);
   const [busCreateDiff, setBusCreateDiff] = useState(defaultCabrak.defaultDiff || "어려움");
+  const [busCreateSubContents, setBusCreateSubContents] = useState<string[]>(["abyss_1", "abyss_2", "abyss_3"]);
   const [busCreateDate, setBusCreateDate] = useState(() => getTodayString());
   const [busCreateTimeStart, setBusCreateTimeStart] = useState("20:00");
   const [busCreateTimeEnd, setBusCreateTimeEnd] = useState("23:59");
@@ -135,7 +135,7 @@ export function usePartyManager() {
   const [joinTimeEnd, setJoinTimeEnd] = useState<string>("24:00");
   const [inspectCharacter, setInspectCharacter] = useState<any>(null);
 
-  // DB 요구스탯(content_power_reqs) 동적 조회 헬퍼
+  // 🎯 100% DB Dynamic CP Requirements Helper
   const getCPReqsForContent = useCallback((contentName: string, difficulty: string) => {
     const dbReq = powerReqs.find(r => r.content_name === contentName && r.difficulty === difficulty);
     if (dbReq) {
@@ -150,20 +150,18 @@ export function usePartyManager() {
         op: dbReq.op_cp
       };
     }
-    const fallback = CONTENT_CP_REQUIREMENTS[contentName]?.[difficulty] || { min: 0, rec: 0, op: 0, rec_mr: 0, op_mr: 0 };
     return {
-      min_cp: fallback.min,
-      rec_cp: fallback.rec,
-      op_cp: fallback.op,
-      rec_mr: fallback.rec_mr || 0,
-      op_mr: fallback.op_mr || 0,
-      min: fallback.min,
-      rec: fallback.rec,
-      op: fallback.op
+      min_cp: 0,
+      rec_cp: 0,
+      op_cp: 0,
+      rec_mr: 0,
+      op_mr: 0,
+      min: 0,
+      rec: 0,
+      op: 0
     };
   }, [powerReqs]);
 
-  // 타임아웃 검증 로직
   const checkTimeouts = useCallback((partyList: Party[], ownerName: string) => {
     if (!ownerName) return;
     const now = new Date();
@@ -206,13 +204,8 @@ export function usePartyManager() {
           .select("*")
       ]);
 
-      if (powerReqsRes.data) {
-        setPowerReqs(powerReqsRes.data);
-      }
-
-      if (classesRes.data) {
-        setNexusClasses(classesRes.data);
-      }
+      if (powerReqsRes.data) setPowerReqs(powerReqsRes.data);
+      if (classesRes.data) setNexusClasses(classesRes.data);
 
       if (charRes.data) {
         const sortedChars = [...charRes.data].sort((a, b) => {
@@ -363,12 +356,14 @@ export function usePartyManager() {
     setTempContentCategory(selectedContent.category);
     setTempContent(selectedContent);
     setTempDiff(selectedDiff);
+    setTempSubContents(selectedSubContents);
     setShowContentModal(true);
   };
 
   const applyContentModal = () => {
     setSelectedContent(tempContent);
     setSelectedDiff(tempDiff);
+    setSelectedSubContents(tempSubContents);
     setShowContentModal(false);
   };
 
@@ -560,7 +555,9 @@ export function usePartyManager() {
     }
 
     let defaultMemo = "";
-    if (partyType === "반복 뺑이") {
+    if (selectedContent.category === "어비스" || selectedContent.name.includes("어비스")) {
+      defaultMemo = generateAbyssDefaultMemo(selectedSubContents, selectedDiff);
+    } else if (partyType === "반복 뺑이") {
       if (loopSubMode === "회차") {
         defaultMemo = `매칭 시간으로부터 ${minRuns}~${maxRuns}회 반복 클리어 예정`;
       } else {
@@ -591,9 +588,13 @@ export function usePartyManager() {
       endTime: timeEnd
     };
 
+    const isAbyssCategory = selectedContent.category === "어비스" || selectedContent.name.includes("어비스");
+    const subContentsToSave = isAbyssCategory ? selectedSubContents : null;
+
     const newParty: any = {
       content_name: selectedContent.name,
       sub_content: finalSubContent || null,
+      selected_sub_contents: subContentsToSave,
       difficulty: selectedDiff,
       party_type: dbPartyType,
       party_date: targetDate,
@@ -677,16 +678,22 @@ export function usePartyManager() {
     assembleBalancedParty(
       busCandidates,
       busCreateContent.size || 8,
-      cpReqs
+      cpReqs,
+      undefined,
+      nexusClasses
     );
 
     const busLeaderName = initialMembers[0]?.name || user?.username || "한설";
     const busMemoFinal = busCreateMemo.trim() || generateDefaultBusMemo(busCreateContent, busCreateDiff);
     const normBusDate = normalizeDateStr(busCreateDate);
 
+    const isAbyssBus = busCreateContent.category === "어비스" || busCreateContent.name.includes("어비스");
+    const busSubContents = isAbyssBus ? busCreateSubContents : null;
+
     const busPartyPayload = {
       content_name: busCreateContent.name,
       sub_content: busMemoFinal,
+      selected_sub_contents: busSubContents,
       difficulty: busCreateDiff,
       party_type: "1회 클리어",
       party_date: normBusDate,
@@ -778,7 +785,7 @@ export function usePartyManager() {
           time_end: m.time_end || m.end_time || "23:59"
         }));
 
-        assembleBalancedParty(combinedCandidates, existingParty.max_members || 8, cpReqs);
+        assembleBalancedParty(combinedCandidates, existingParty.max_members || 8, cpReqs, undefined, nexusClasses);
 
         const { error } = await supabase
           .from("parties")
@@ -787,8 +794,12 @@ export function usePartyManager() {
         if (error) throw error;
       } else {
         const firstItem = selectedData[0];
+        const isTargetAbyss = targetBusParty.contentName.includes("어비스");
+        const busSubContents = isTargetAbyss ? selectedSubContents : null;
+
         const { error } = await supabase.from("parties").insert([{
           content_name: targetBusParty.contentName,
+          selected_sub_contents: busSubContents,
           difficulty: targetBusParty.difficulty,
           party_date: normalizeDateStr(selectedDate),
           time_start: firstItem?.timeStart || "20:00",
@@ -1016,6 +1027,7 @@ export function usePartyManager() {
   const openBusCreateModal = useCallback((val: boolean) => {
     setBusCreateContent(defaultCabrak);
     setBusCreateDiff(defaultCabrak.defaultDiff || "어려움");
+    setBusCreateSubContents(["abyss_1", "abyss_2", "abyss_3"]);
     setBusCreateMemo(generateDefaultBusMemo(defaultCabrak, defaultCabrak.defaultDiff || "어려움"));
     
     const initialSel: Record<string, BusCharSelectionConfig> = {};
@@ -1191,6 +1203,8 @@ export function usePartyManager() {
     setSelectedContent,
     selectedDiff,
     setSelectedDiff,
+    selectedSubContents,
+    setSelectedSubContents,
     selectedDate,
     setSelectedDate,
     timeStart,
@@ -1227,10 +1241,14 @@ export function usePartyManager() {
     setTempContent,
     tempDiff,
     setTempDiff,
+    tempSubContents,
+    setTempSubContents,
     busCreateContent,
     setBusCreateContent,
     busCreateDiff,
     setBusCreateDiff,
+    busCreateSubContents,
+    setBusCreateSubContents,
     busCreateDate,
     setBusCreateDate,
     busCreateTimeStart,

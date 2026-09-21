@@ -7,15 +7,17 @@ import {
   Party, 
   Member, 
   DIFFICULTY_COLORS,
-  ABYSS_SUB_DUNGEONS
+  ContentPowerReq,
+  NexusContent,
+  NexusClassItem
 } from '@/components/party/types';
 import { 
   assembleBalancedParty, 
   syncKronosChecklist, 
-  CONTENT_CP_REQUIREMENTS, 
   getRoleByJob,
   getShortNickname,
   parseCP,
+  parseAbyssInfo,
   BusCandidate,
   BusMember 
 } from '@/lib/busUtils';
@@ -111,6 +113,9 @@ interface GuildBusCardProps {
   onNextRoundClick?: (party: Party, completedMembers: Member[]) => void;
   onRefresh?: () => void;
   isMasterOrAdmin: boolean;
+  powerReqs?: ContentPowerReq[];
+  contentsCatalog?: NexusContent[];
+  classesCatalog?: NexusClassItem[];
 }
 
 export default function GuildBusCard({
@@ -122,7 +127,10 @@ export default function GuildBusCard({
   onDeleteClick,
   onNextRoundClick,
   onRefresh,
-  isMasterOrAdmin
+  isMasterOrAdmin,
+  powerReqs,
+  contentsCatalog,
+  classesCatalog
 }: GuildBusCardProps) {
   const [isPoolModalOpen, setIsPoolModalOpen] = useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
@@ -141,58 +149,14 @@ export default function GuildBusCard({
     setIsStarted(isBusStartedInDB);
   }, [isBusStartedInDB, party.status]);
 
+  // 🎯 범용 일원화 DB 동적 어비스 정보 분석 파서 연동
+  const abyssInfo = useMemo(() => parseAbyssInfo(party, null, contentsCatalog), [party, contentsCatalog]);
+
   const contentMarkSrc = useMemo(() => {
-    if (!party.content_name) return "/svgs/contens mark/레이드 마크.svg";
-    const isAbyss = party.party_type === "어비스" || party.content_name.includes("어비스");
-    return isAbyss
+    return abyssInfo.isAbyss
       ? "/svgs/contens mark/어비스 마크.svg"
       : "/svgs/contens mark/레이드 마크.svg";
-  }, [party.content_name, party.party_type]);
-
-  // 🎯 100% 동적 파싱 로직: 하드코딩 탈피, 배열 길이를 DB 상수 기준으로 판단
-  const abyssInfo = useMemo(() => {
-    const isAbyss = party.party_type === "어비스" || party.content_name?.includes("어비스");
-    if (!isAbyss) {
-      return {
-        title: party.content_name?.replace(/^(레이드|어비스)\s*-\s*/, "").replace(/\s*\(통합\)/g, "").trim() || "",
-        selectedDungeons: [],
-        isPartial: false
-      };
-    }
-
-    const rawSub = (party as any).selected_sub_contents || (party as any).sub_contents || [];
-    let activeIds: string[] = [];
-
-    if (Array.isArray(rawSub) && rawSub.length > 0) {
-      activeIds = rawSub;
-    } else if (typeof party.sub_content === "string") {
-      ABYSS_SUB_DUNGEONS.forEach(d => {
-        if (party.sub_content?.includes(d.name) || party.sub_content?.includes(d.shortName)) {
-          activeIds.push(d.id);
-        }
-      });
-    }
-
-    const activeDungeons = ABYSS_SUB_DUNGEONS.filter(d => 
-      activeIds.includes(d.id) || activeIds.includes(d.name) || activeIds.includes(d.shortName)
-    );
-
-    // 하드코딩(=== 3) 제거 및 DB 배열(length) 기준 동적 판단
-    if (activeDungeons.length === 0 || activeDungeons.length === ABYSS_SUB_DUNGEONS.length) {
-      return {
-        title: "어비스 ALL",
-        selectedDungeons: ABYSS_SUB_DUNGEONS,
-        isPartial: false
-      };
-    }
-
-    const shortNames = activeDungeons.map(d => d.shortName).join("/");
-    return {
-      title: `어비스 ${shortNames}`,
-      selectedDungeons: activeDungeons,
-      isPartial: true
-    };
-  }, [party.content_name, party.party_type, (party as any).selected_sub_contents, (party as any).sub_contents, party.sub_content]);
+  }, [abyssInfo.isAbyss]);
 
   const displaySubContent = useMemo(() => {
     if (!party.sub_content) return "";
@@ -209,7 +173,8 @@ export default function GuildBusCard({
     return (
       cleaned === `[성역 길드 버스] ${party.content_name} (${party.difficulty}) 운행` ||
       cleaned.startsWith(`"성역 길드 버스" [`) ||
-      cleaned.startsWith(`[성역 길드 버스]`)
+      cleaned.startsWith(`[성역 길드 버스]`) ||
+      cleaned.startsWith(`어비스 `)
     );
   }, [party.sub_content, party.content_name, party.difficulty]);
 
@@ -225,12 +190,26 @@ export default function GuildBusCard({
     time_end: m.time_end
   }));
 
-  const cpReqs = CONTENT_CP_REQUIREMENTS[party.content_name]?.[party.difficulty] || 
-                 CONTENT_CP_REQUIREMENTS[party.sub_content || '']?.[party.difficulty];
+  // 🎯 DB(`content_power_reqs`) 기반 동적 스탯 컷 조회
+  const cpReqs = useMemo(() => {
+    if (!powerReqs || powerReqs.length === 0) return null;
+    return powerReqs.find(
+      (r) =>
+        (r.content_name === party.content_name || r.content_name === party.sub_content) &&
+        r.difficulty === party.difficulty
+    ) || null;
+  }, [powerReqs, party.content_name, party.sub_content, party.difficulty]);
+
   const maxPartySize = party.max_members || 8;
 
   const activeCandidateList = reconfiguredCandidates || candidates;
-  const { selected, hasHealer, hasTanker } = assembleBalancedParty(activeCandidateList, maxPartySize, cpReqs);
+  const { selected, hasHealer, hasTanker } = assembleBalancedParty(
+    activeCandidateList, 
+    maxPartySize, 
+    cpReqs, 
+    undefined, 
+    classesCatalog
+  );
 
   const activeMembers = selected;
 
@@ -456,8 +435,8 @@ export default function GuildBusCard({
           </div>
         </div>
 
-        {/* 🎯 어비스 목표 던전 시각적 피드백 뱃지 그룹 */}
-        {abyssInfo.selectedDungeons.length > 0 && (
+        {/* 🎯 어비스 부분 및 전체 선택 던전만 정확하게 뱃지 태그로 렌더링 */}
+        {abyssInfo.isAbyss && abyssInfo.selectedDungeons.length > 0 && (
           <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
             {abyssInfo.selectedDungeons.map((dungeon) => (
               <span 
@@ -468,11 +447,6 @@ export default function GuildBusCard({
                 <span>{dungeon.name}</span>
               </span>
             ))}
-            {abyssInfo.isPartial && (
-              <span className="px-1.5 py-0.5 rounded-md text-[9.5px] sm:text-[10px] font-black bg-rose-500/20 text-rose-300 border border-rose-500/40">
-                {abyssInfo.selectedDungeons.length}개 던전 지정 운행
-              </span>
-            )}
           </div>
         )}
       </div>
@@ -518,7 +492,7 @@ export default function GuildBusCard({
           </div>
         </div>
 
-        {/* 8인 파티 출전 멤버 슬롯 */}
+        {/* 파티 출전 멤버 슬롯 */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-2.5">
           {Array.from({ length: maxPartySize }).map((_, index) => {
             const member = activeMembers[index];
@@ -534,7 +508,7 @@ export default function GuildBusCard({
               );
             }
 
-            const role = getRoleByJob(member.job);
+            const role = getRoleByJob(member.job, classesCatalog);
             const cpNum = parseCP(member.combat_power);
             const displayName = getDisplayName(member);
 

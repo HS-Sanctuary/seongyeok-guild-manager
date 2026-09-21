@@ -15,6 +15,8 @@ import JoinPartyModal from "@/components/party/modals/JoinPartyModal";
 export type { BusCharSelectionConfig };
 export { generateDefaultBusMemo };
 
+const DEFAULT_SUB_CONTENTS = ["abyss_1", "abyss_2", "abyss_3"];
+
 export const cleanContentName = (name: string) => {
   return name
     .replace(/^(어비스|레이드)\s*-\s*/, "")
@@ -95,7 +97,7 @@ interface PartyModalsProps {
   parties?: any[];
   guildBuses?: any[];
 
-  // 🎯 다중 선택 모달 연동 프롭
+  // 다중 선택 모달 연동 프롭
   tempSubContents?: string[];
   setTempSubContents?: React.Dispatch<React.SetStateAction<string[]>>;
   busSelectedSubContents?: string[];
@@ -173,7 +175,6 @@ export default function PartyModals(props: PartyModalsProps) {
         setShowLoreGuide={props.setShowLoreGuide}
       />
 
-      {/* 🎯 어비스 세부 던전 다중 선택 연동 완료 */}
       <ContentSelectModal
         showContentModal={props.showContentModal}
         setShowContentModal={props.setShowContentModal}
@@ -184,7 +185,7 @@ export default function PartyModals(props: PartyModalsProps) {
         tempDiff={props.tempDiff}
         setTempDiff={props.setTempDiff}
         applyContentModal={props.applyContentModal}
-        tempSubContents={props.tempSubContents}
+        tempSubContents={props.tempSubContents || DEFAULT_SUB_CONTENTS}
         setTempSubContents={props.setTempSubContents}
       />
 
@@ -233,7 +234,7 @@ export default function PartyModals(props: PartyModalsProps) {
         setBusCharSelections={props.setBusCharSelections}
         handleCreateGuildBus={props.handleCreateGuildBus}
         myCharacters={props.myCharacters}
-        busSelectedSubContents={props.busSelectedSubContents}
+        busSelectedSubContents={props.busSelectedSubContents || DEFAULT_SUB_CONTENTS}
         setBusSelectedSubContents={props.setBusSelectedSubContents}
       />
 

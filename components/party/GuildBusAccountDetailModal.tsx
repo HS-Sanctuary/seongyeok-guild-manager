@@ -32,7 +32,7 @@ export default function GuildBusAccountDetailModal({
     };
   }, [isOpen, onClose]);
 
-  // 🛡️ [완벽 스크롤 차단] html/body 이중 오버플로우 고정 & 휠 이벤트 전파 가로채기
+  // 🛡️ 스크롤 차단 이중 고정 & 휠 이벤트 전파 가로채기
   useEffect(() => {
     if (!isOpen) return;
 

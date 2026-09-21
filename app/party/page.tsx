@@ -66,7 +66,7 @@ function SynaxisContent() {
           </div>
         </header>
 
-        {/* 모바일 스마트 매칭 등록 토글 버튼 (접힘 시 하트비트 펄스 애니메이션 적용) */}
+        {/* 모바일 스마트 매칭 등록 토글 버튼 */}
         <div className="lg:hidden">
           <button 
             type="button"
@@ -96,6 +96,7 @@ function SynaxisContent() {
           <div className={`lg:col-span-5 xl:col-span-4 bg-[var(--panel)] rounded-2xl border border-[var(--panel-border)] p-4 sm:p-5 shadow-sm h-fit min-w-0 lg:sticky lg:top-24 lg:z-20 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto custom-scrollbar ${
             partyManager.isMobileFormOpen ? "block animate-in fade-in duration-200" : "hidden lg:block"
           }`}>
+            {/* 🎯 단선 해결: selectedSubContents 프롭스 연결 완료 */}
             <PartyCreateForm 
               isAdmin={isSubMasterOrHigher}
               myCharacterNames={partyManager.myCharacterNames}
@@ -134,6 +135,8 @@ function SynaxisContent() {
               setWantedRoles={partyManager.setWantedRoles}
               handleReservation={partyManager.handleReservation}
               setShowBusCreateModal={partyManager.openBusCreateModal}
+              selectedSubContents={(partyManager as any).tempSubContents || ["abyss_1", "abyss_2", "abyss_3"]}
+              setSelectedSubContents={(partyManager as any).setTempSubContents}
             />
           </div>
 

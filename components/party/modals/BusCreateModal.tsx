@@ -5,14 +5,20 @@ import ClassIcon from "@/components/common/ClassIcon";
 import MarkIcon from "@/components/common/MarkIcon";
 import CustomTimePicker from "@/components/party/CustomTimePicker";
 import ContentSelectModal from "@/components/party/modals/ContentSelectModal";
-import { CONTENT_DB, ContentItem, ABYSS_SUB_DUNGEONS } from "@/components/party/types";
+import { CONTENT_DB, ContentItem, ABYSS_SUB_DUNGEONS, AbyssSubDungeon } from "@/components/party/types";
+import { parseAbyssInfo, generateAbyssDefaultMemo } from "@/lib/busUtils";
 
 export interface BusCharSelectionConfig {
   selected: boolean;
   allowRepeat: boolean;
 }
 
-export function generateDefaultBusMemo(content: ContentItem, diff: string): string {
+const DEFAULT_SUB_CONTENTS = ["abyss_1", "abyss_2", "abyss_3"];
+
+export function generateDefaultBusMemo(content: ContentItem, diff: string, subContents?: string[]): string {
+  if (content.category === "어비스") {
+    return `"성역 길드 버스" [${generateAbyssDefaultMemo(subContents || DEFAULT_SUB_CONTENTS)} ${diff}]`;
+  }
   return `"성역 길드 버스" [${content.name} ${diff}]`;
 }
 
@@ -85,7 +91,7 @@ export default function BusCreateModal({
   setBusCharSelections,
   handleCreateGuildBus,
   myCharacters,
-  busSelectedSubContents = ["abyss_1", "abyss_2", "abyss_3"],
+  busSelectedSubContents = DEFAULT_SUB_CONTENTS,
   setBusSelectedSubContents,
 }: BusCreateModalProps) {
   const [currentStep, setCurrentStep] = useState<"SETTINGS" | "CHARACTERS">("SETTINGS");
@@ -97,6 +103,22 @@ export default function BusCreateModal({
   const [tempContent, setTempContent] = useState<ContentItem>(busCreateContent);
   const [tempDiff, setTempDiff] = useState<string>(busCreateDiff);
   const [tempSubContents, setTempSubContents] = useState<string[]>(busSelectedSubContents);
+
+  // 🛡️ 모달이 열릴 때 선택된 어비스 던전 상태 동기화
+  useEffect(() => {
+    if (showBusCreateModal) {
+      const current = busSelectedSubContents && busSelectedSubContents.length > 0 
+        ? busSelectedSubContents 
+        : DEFAULT_SUB_CONTENTS;
+        
+      setTempSubContents((prev) => {
+        if (JSON.stringify(prev) === JSON.stringify(current)) {
+          return prev;
+        }
+        return current;
+      });
+    }
+  }, [showBusCreateModal, busSelectedSubContents]);
 
   const [calendarYearMonth, setCalendarYearMonth] = useState(() => {
     const d = busCreateDate ? new Date(busCreateDate + "T00:00:00") : new Date();
@@ -112,29 +134,37 @@ export default function BusCreateModal({
   const wheelAccumulator = useRef<number>(0);
   const lastWheelTime = useRef<number>(0);
 
+  const activeSubContents = busSelectedSubContents && busSelectedSubContents.length > 0 
+    ? busSelectedSubContents 
+    : DEFAULT_SUB_CONTENTS;
+
   const toggleSubContent = (id: string) => {
     if (!setBusSelectedSubContents) return;
-    if (busSelectedSubContents.includes(id)) {
-      if (busSelectedSubContents.length <= 1) return;
-      setBusSelectedSubContents(busSelectedSubContents.filter((subId) => subId !== id));
+    let updated: string[];
+    if (activeSubContents.includes(id)) {
+      if (activeSubContents.length <= 1) return;
+      updated = activeSubContents.filter((subId) => subId !== id);
     } else {
-      setBusSelectedSubContents([...busSelectedSubContents, id]);
+      updated = [...activeSubContents, id];
     }
+    setBusSelectedSubContents(updated);
+    setTempSubContents(updated);
+    setBusCreateMemo(generateDefaultBusMemo(busCreateContent, busCreateDiff, updated));
   };
 
-  const abyssBadgeLabel = useMemo(() => {
-    if (busCreateContent?.category !== "어비스") return null;
-    if (busSelectedSubContents.length === 3 || busSelectedSubContents.length === 0) return "어비스 ALL";
-    const selectedObj = ABYSS_SUB_DUNGEONS.filter((item) => busSelectedSubContents.includes(item.id));
-    return `어비스 ${selectedObj.map((o) => o.shortName).join("/")}`;
-  }, [busCreateContent, busSelectedSubContents]);
+  const abyssInfo = useMemo(() => {
+    return parseAbyssInfo(
+      { content_name: busCreateContent.name, category: busCreateContent.category },
+      activeSubContents
+    );
+  }, [busCreateContent, activeSubContents]);
 
   const displayContentName = useMemo(() => {
-    if (busCreateContent?.category === "어비스" && abyssBadgeLabel) {
-      return abyssBadgeLabel;
+    if (busCreateContent?.category === "어비스" && abyssInfo.title) {
+      return abyssInfo.title;
     }
     return cleanContentName(busCreateContent.name);
-  }, [busCreateContent, abyssBadgeLabel]);
+  }, [busCreateContent, abyssInfo]);
 
   const shiftMonth = (delta: number) => {
     setCalendarYearMonth((prev) => {
@@ -270,17 +300,23 @@ export default function BusCreateModal({
     setTempContentCategory(busCreateContent.category || "어비스");
     setTempContent(busCreateContent);
     setTempDiff(busCreateDiff);
-    setTempSubContents(busSelectedSubContents);
+    setTempSubContents(activeSubContents);
     setShowContentModal(true);
   };
 
-  const applyContentModal = () => {
+  // 🎯 던전 선택 모달에서 전달받은 서브 던전 목록을 주입받아 처리하도록 핸들러 보정
+  const applyContentModal = (selectedSubContents?: string[]) => {
+    const finalSubContents = selectedSubContents || tempSubContents;
+    
     setBusCreateContent(tempContent);
     setBusCreateDiff(tempDiff);
+    
     if (setBusSelectedSubContents) {
-      setBusSelectedSubContents(tempSubContents);
+      setBusSelectedSubContents(finalSubContents);
     }
-    setBusCreateMemo(generateDefaultBusMemo(tempContent, tempDiff));
+    setTempSubContents(finalSubContents);
+    
+    setBusCreateMemo(generateDefaultBusMemo(tempContent, tempDiff, finalSubContents));
     setShowContentModal(false);
   };
 
@@ -427,18 +463,18 @@ export default function BusCreateModal({
                   </span>
                 </div>
 
-                {/* 🎯 어비스 선택 시 버스 개설 폼에서 바로 토글 가능한 칩 그룹 */}
+                {/* 어비스 선택 시 버스 개설 폼에서 바로 토글 가능한 칩 그룹 */}
                 {busCreateContent?.category === "어비스" && setBusSelectedSubContents && (
                   <div className="bg-[var(--inner-box)] border border-[var(--panel-border)] p-2 rounded-xl space-y-1 animate-in fade-in duration-200">
                     <div className="flex justify-between items-center text-[10px] font-black text-[var(--accent)] mb-0.5">
                       <span>🎯 어비스 운행 던전 선택 (다중 선택)</span>
                       <span className="text-[var(--text-sub)] text-[9px] font-normal">
-                        {busSelectedSubContents.length === 3 ? "전체 운행" : `${busSelectedSubContents.length}개 선택됨`}
+                        {activeSubContents.length === 3 ? "전체 운행" : `${activeSubContents.length}개 선택됨`}
                       </span>
                     </div>
                     <div className="grid grid-cols-3 gap-1">
-                      {ABYSS_SUB_DUNGEONS.map((dungeon) => {
-                        const isChecked = busSelectedSubContents.includes(dungeon.id);
+                      {ABYSS_SUB_DUNGEONS.map((dungeon: AbyssSubDungeon) => {
+                        const isChecked = activeSubContents.includes(dungeon.id);
                         return (
                           <button
                             key={dungeon.id}

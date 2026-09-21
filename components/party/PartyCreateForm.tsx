@@ -3,7 +3,8 @@
 import { useMemo } from "react";
 import ClassIcon from "@/components/common/ClassIcon";
 import MarkIcon from "@/components/common/MarkIcon";
-import { ContentItem, DIFFICULTY_COLORS, ROLE_COLORS, ROLE_GROUPS, ABYSS_SUB_DUNGEONS } from "./types";
+import { ContentItem, DIFFICULTY_COLORS, ABYSS_SUB_DUNGEONS, AbyssSubDungeon } from "./types";
+import { formatAbyssBadgeText } from "@/lib/busUtils";
 
 interface PartyCreateFormProps {
   isAdmin: boolean;
@@ -59,39 +60,19 @@ export default function PartyCreateForm({
   selectedDate,
   getDayOfWeekKorean,
   timeStart,
-  setTimeStart,
   timeEnd,
-  setTimeEnd,
   openScheduleModal,
   partyType,
   setPartyType,
   matchingMode,
   setMatchingMode,
-  loopSubMode,
-  setLoopSubMode,
-  minRuns,
-  setMinRuns,
-  maxRuns,
-  setMaxRuns,
-  loopHoursCount,
-  setLoopHoursCount,
-  loopHoursMin,
-  setLoopHoursMin,
   partyMemo,
   setPartyMemo,
-  myRoles,
-  setMyRoles,
-  wantedRoles,
-  setWantedRoles,
   handleReservation,
   setShowBusCreateModal,
   selectedSubContents = ["abyss_1", "abyss_2", "abyss_3"],
   setSelectedSubContents,
 }: PartyCreateFormProps) {
-  const toggleRole = (role: string, state: string[], setState: (val: string[]) => void) => {
-    if (state.includes(role)) setState(state.filter((r) => r !== role));
-    else setState([...state, role]);
-  };
 
   const toggleSubContent = (id: string) => {
     if (!setSelectedSubContents) return;
@@ -110,24 +91,16 @@ export default function PartyCreateForm({
       : "/svgs/contens mark/레이드 마크.svg";
   }, [selectedContent]);
 
-  // 🎯 하드코딩 제거: 전체 개수(length)를 DB 상수 기준으로 동적 판단
-  const abyssBadgeLabel = useMemo(() => {
-    if (selectedContent?.category !== "어비스") return null;
-    if (selectedSubContents.length === ABYSS_SUB_DUNGEONS.length || selectedSubContents.length === 0) return "어비스 ALL";
-    const selectedObj = ABYSS_SUB_DUNGEONS.filter((item) => selectedSubContents.includes(item.id));
-    return `어비스 ${selectedObj.map((o) => o.shortName).join("/")}`;
-  }, [selectedContent, selectedSubContents]);
-
   const displayContentName = useMemo(() => {
     if (!selectedContent) return "목표 컨텐츠 선택";
-    if (selectedContent.category === "어비스" && abyssBadgeLabel) {
-      return abyssBadgeLabel;
+    if (selectedContent.category === "어비스" || selectedContent.name.includes("어비스")) {
+      return formatAbyssBadgeText(selectedContent.name, selectedSubContents);
     }
     return selectedContent.name
       .replace(/^(레이드|어비스)\s*-\s*/, "")
       .replace(/\s*\(통합\)/g, "")
       .trim();
-  }, [selectedContent, abyssBadgeLabel]);
+  }, [selectedContent, selectedSubContents]);
 
   const cleanTimeStart = useMemo(() => {
     if (!timeStart) return "14:00";
@@ -150,7 +123,7 @@ export default function PartyCreateForm({
     const [sH, sM] = cleanTimeStart.split(":").map(Number);
     const [eH, eM] = cleanTimeEnd.split(":").map(Number);
     if (isNaN(sH) || isNaN(eH)) return false;
-    return (eH * 60 + (eM || 0)) <= (sH * 60 + (sM || 0));
+    return (eH * 60 + (eM || 0)) <= (sH * 60 + (eM || 0));
   }, [timeEnd, cleanTimeStart, cleanTimeEnd]);
 
   return (
@@ -238,30 +211,30 @@ export default function PartyCreateForm({
           </span>
         </button>
 
-        {/* 🎯 확장형 어비스 칩: DB 배열 길이 기준 동적 렌더링 */}
+        {/* 🎯 어비스 목표 던전 다중 선택 칩 */}
         {selectedContent?.category === "어비스" && setSelectedSubContents && (
-          <div className="bg-[var(--inner-box)] border border-[var(--panel-border)] p-2 rounded-xl space-y-1 animate-in fade-in duration-200">
-            <div className="flex justify-between items-center text-[10px] font-black text-[var(--accent)] mb-0.5">
-              <span>🎯 어비스 목표 던전 선택 (다중 선택)</span>
-              <span className="text-[var(--text-sub)] text-[9px] font-normal">
+          <div className="bg-[var(--inner-box)] border border-[var(--panel-border)] p-2 rounded-xl space-y-1.5 animate-in fade-in duration-200">
+            <div className="flex justify-between items-center text-[10.5px] font-black text-[var(--accent)] mb-0.5">
+              <span>🎯 어비스 목표 던전 선택</span>
+              <span className="text-[var(--text-sub)] text-[9.5px] font-normal">
                 {selectedSubContents.length === ABYSS_SUB_DUNGEONS.length ? "전체 진행" : `${selectedSubContents.length}개 선택됨`}
               </span>
             </div>
-            <div className="grid grid-cols-3 gap-1">
-              {ABYSS_SUB_DUNGEONS.map((dungeon) => {
+            <div className="grid grid-cols-3 gap-1.5">
+              {ABYSS_SUB_DUNGEONS.map((dungeon: AbyssSubDungeon) => {
                 const isChecked = selectedSubContents.includes(dungeon.id);
                 return (
                   <button
                     key={dungeon.id}
                     type="button"
                     onClick={() => toggleSubContent(dungeon.id)}
-                    className={`py-1 px-1 rounded-lg text-[10px] font-black transition-all cursor-pointer text-center truncate border ${
+                    className={`py-1.5 px-1.5 text-[10px] sm:text-[12px] font-black rounded-xl transition-all cursor-pointer text-center truncate border min-h-[32px] flex items-center justify-center shadow-xs ${
                       isChecked
-                        ? "bg-[var(--accent)] text-[var(--accent-fg)] border-transparent shadow-xs font-black"
-                        : "bg-[var(--panel)] border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)]"
+                        ? "bg-[var(--accent)] text-[var(--accent-fg)] border-transparent shadow-md font-black"
+                        : "bg-[var(--panel)] border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)] hover:border-[var(--accent)]/50"
                     }`}
                   >
-                    {isChecked ? "✓ " : ""}{dungeon.name}
+                    {dungeon.name}
                   </button>
                 );
               })}

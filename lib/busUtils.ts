@@ -1,25 +1,10 @@
 import { supabase } from "@/lib/supabase";
+import { NexusContent, ContentPowerReq, NexusClassItem } from "@/components/party/types";
+
+// 🎯 ts(2459) 에러 차단 및 외부 사용을 위한 Re-export 선언
+export type { NexusContent, ContentPowerReq, NexusClassItem };
 
 export type JobRole = "근딜" | "원딜" | "힐러" | "탱커" | "서포터";
-
-export interface NexusClassItem {
-  id: number;
-  name: string;
-  role: JobRole;
-}
-
-export interface ContentPowerReq {
-  id?: number;
-  content_id?: number;
-  content_type?: string;
-  content_name?: string;
-  difficulty?: string;
-  min_cp: number;
-  rec_cp: number;
-  op_cp: number;
-  rec_mr?: number;
-  op_mr?: number;
-}
 
 export interface CharacterCandidate {
   id?: number;
@@ -62,7 +47,6 @@ export interface BusMember {
   is_passenger?: boolean;
 }
 
-// 🎯 파티 밸런서 리턴 타입 인터페이스
 export interface AssemblePartyResult {
   selected: BusMember[];
   remaining: BusCandidate[];
@@ -80,122 +64,266 @@ export interface StatValidationResult {
   badgeColorClass: string;
 }
 
-// 🎯 어비스 던전 UID - 직관적 약어 매핑 카탈로그
-export const ABYSS_KEY_MAP: Record<string, string> = {
-  abyss_1: "허상",
-  abyss_2: "동굴",
-  abyss_3: "물길",
-};
+export interface AbyssDungeonInfo {
+  id: string;
+  code: string;
+  name: string;
+  shortName: string;
+  keywords: string[];
+}
 
 /**
- * 🎯 어비스 선택 던전에 따른 동적 약어 뱃지 텍스트 산출 유틸리티
+ * 🎯 DB 카탈로그(`nexus_contents`) 기반 동적 어비스 던전 매핑 리스트 추출
  */
-export function formatAbyssBadgeText(contentName: string, subContents?: any): string {
-  if (!contentName) return "";
-  const cleaned = contentName.replace(/^(레이드|어비스)\s*-\s*/, "").replace(/\s*\(통합\)/g, "").trim();
+export function getAbyssSubDungeonsFromCatalog(contentsCatalog?: NexusContent[]): AbyssDungeonInfo[] {
+  if (!contentsCatalog || contentsCatalog.length === 0) {
+    return [
+      { id: "abyss_1", code: "abyss_1", name: "허상의 정박지", shortName: "허상", keywords: ["abyss_1", "허상의 정박지", "허상", "정박지"] },
+      { id: "abyss_2", code: "abyss_2", name: "광기의 동굴", shortName: "동굴", keywords: ["abyss_2", "광기의 동굴", "광기", "동굴"] },
+      { id: "abyss_3", code: "abyss_3", name: "흩어진 물길", shortName: "물길", keywords: ["abyss_3", "흩어진 물길", "흩어진", "물길"] },
+    ];
+  }
 
-  if (!contentName.includes("어비스")) return cleaned;
+  const abyssList = contentsCatalog.filter((c) => c.type === "abyss" && c.is_active && !c.is_weekend);
 
-  let keys: string[] = [];
-  if (Array.isArray(subContents)) {
-    keys = subContents;
-  } else if (typeof subContents === "string") {
-    try {
-      const parsed = JSON.parse(subContents);
-      if (Array.isArray(parsed)) keys = parsed;
-      else keys = [subContents];
-    } catch {
-      keys = subContents.split(",").map((s) => s.trim()).filter(Boolean);
+  return abyssList.map((c, index) => {
+    const code = c.code || `abyss_${index + 1}`;
+    
+    // 🎯 '1던전 (허상의 정박지)' 형태나 괄호를 DB 정제하여 '허상의 정박지'만 자동 추출
+    const cleanName = c.name
+      .replace(/^어비스\s*-\s*/, "")
+      .replace(/^\d+던전\s*/, "")
+      .replace(/[\(\)]/g, "")
+      .trim();
+
+    const shortName = c.short_name || cleanName.slice(0, 2);
+
+    return {
+      id: code,
+      code: code,
+      name: cleanName,
+      shortName: shortName,
+      keywords: [code, c.name, cleanName, shortName].filter(Boolean),
+    };
+  });
+}
+
+/**
+ * 🎯 난이도 표기 숏네임 변환 유틸
+ */
+export function getShortDifficulty(diff?: string): string {
+  if (!diff) return "";
+  const trimmed = diff.trim();
+  if (trimmed === "어려움") return "어렴";
+  if (trimmed === "매우 어려움" || trimmed === "매우어려움") return "매어";
+  return trimmed;
+}
+
+/**
+ * 🎯 PostgreSQL 배열("{a,b}"), JSON 배열("['a','b']"), 쉼표 구분자 방어 추출기
+ */
+export function extractSubContentKeys(rawSub: any): string[] {
+  if (!rawSub) return [];
+
+  let items: string[] = [];
+
+  if (Array.isArray(rawSub)) {
+    items = rawSub.map(String);
+  } else if (typeof rawSub === "string") {
+    const trimmed = rawSub.trim();
+    if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) items = parsed.map(String);
+      } catch {
+        items = trimmed.replace(/^\[|\]$/g, "").split(",");
+      }
+    } else if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+      items = trimmed
+        .replace(/^\{|\}$/g, "")
+        .split(",")
+        .map((s) => s.replace(/^["']|["']$/g, "").trim());
+    } else {
+      items = trimmed.split(",").map((s) => s.trim());
     }
   }
 
-  if (!keys || keys.length === 0) {
-    return cleaned;
-  }
-
-  const totalAbyssKeys = Object.keys(ABYSS_KEY_MAP);
-  const validKeys = keys.filter((k) => ABYSS_KEY_MAP[k]);
-
-  if (validKeys.length === 0) return cleaned;
-
-  if (validKeys.length >= totalAbyssKeys.length) {
-    return "어비스 ALL";
-  }
-
-  const labels = validKeys.map((k) => ABYSS_KEY_MAP[k]);
-  return `어비스 ${labels.join("/")}`;
+  return items
+    .map((s) => s.replace(/[\{\}\[\]"']/g, "").trim())
+    .filter(Boolean);
 }
 
-// 비상용 백업 (Fallback) 21개 직업 역할군 맵
-export const JOB_ROLE_MAP: Record<string, JobRole> = {
-  도적: "근딜",
-  댄서: "근딜",
-  듀얼블레이드: "근딜",
-  대검전사: "근딜",
-  검술사: "근딜",
-  격투가: "근딜",
-
-  궁수: "원딜",
-  악사: "원딜",
-  석궁사수: "원딜",
-  마법사: "원딜",
-  화염술사: "원딜",
-  전격술사: "원딜",
-  장궁병: "원딜",
-  암흑술사: "원딜",
-
-  힐러: "힐러",
-  수도사: "힐러",
-  사제: "힐러",
-
-  전사: "탱커",
-  기사: "탱커",
-  빙결술사: "탱커",
-
-  음유시인: "서포터",
-};
-
-// static 요구스탯 컷 매핑 백업
-export const CONTENT_CP_REQUIREMENTS: Record<string, Record<string, { min: number; rec: number; op: number; rec_mr?: number; op_mr?: number }>> = {
-  "레이드 - 카브락": {
-    "입문": { min: 65000, rec: 72000, op: 82500, rec_mr: 0, op_mr: 0 },
-    "어려움": { min: 90000, rec: 95000, op: 109000, rec_mr: 0, op_mr: 0 },
-  },
-  "레이드 - 에이렐": {
-    "어려움": { min: 43500, rec: 50000, op: 57500, rec_mr: 0, op_mr: 0 },
-  },
-  "레이드 - 화이트 서큐버스": {
-    "어려움": { min: 0, rec: 27000, op: 31100, rec_mr: 0, op_mr: 0 },
-    "매우 어려움": { min: 50000, rec: 57500, op: 64000, rec_mr: 0, op_mr: 0 },
-  },
-  "어비스 - 허상의 정박지": {
-    "입문": { min: 50000, rec: 56000, op: 64500, rec_mr: 0, op_mr: 0 },
-    "어려움": { min: 63000, rec: 66000, op: 75000, rec_mr: 0, op_mr: 0 },
-    "매우 어려움": { min: 76000, rec: 80000, op: 92000, rec_mr: 0, op_mr: 0 },
-    "지옥1": { min: 87500, rec: 92000, op: 105000, rec_mr: 0, op_mr: 0 },
-    "지옥2": { min: 95000, rec: 100000, op: 115000, rec_mr: 0, op_mr: 0 },
+/**
+ * 🎯 어비스 중앙 100% DB 동적 분석 파서 (부분 선택 무조건 완벽 지원)
+ */
+export function parseAbyssInfo(partyOrContent: any, subContentsOverride?: any, contentsCatalog?: NexusContent[]) {
+  if (!partyOrContent) {
+    return {
+      isAbyss: false,
+      title: "",
+      selectedDungeons: [] as AbyssDungeonInfo[],
+      isPartial: false,
+    };
   }
-};
 
-export function parseCP(val: any): number {
-  if (typeof val === 'number') return val;
-  if (!val) return 0;
-  const str = String(val).replace(/,/g, '').trim();
-  const parsed = parseInt(str, 10);
-  return isNaN(parsed) ? 0 : parsed;
+  const contentName = partyOrContent.content_name || partyOrContent.name || "";
+  const partyType = partyOrContent.party_type || partyOrContent.category || "";
+  const subContentMemo = partyOrContent.sub_content || partyOrContent.memo || "";
+
+  const isAbyss =
+    partyType === "어비스" ||
+    contentName.includes("어비스") ||
+    subContentMemo.includes("어비스");
+
+  if (!isAbyss) {
+    return {
+      isAbyss: false,
+      title: contentName.replace(/^(레이드|어비스)\s*-\s*/, "").replace(/\s*\(통합\)/g, "").trim(),
+      selectedDungeons: [] as AbyssDungeonInfo[],
+      isPartial: false,
+    };
+  }
+
+  const abyssDungeons = getAbyssSubDungeonsFromCatalog(contentsCatalog);
+  const rawSub = subContentsOverride ?? partyOrContent.selected_sub_contents ?? partyOrContent.sub_contents ?? null;
+  const keys = extractSubContentKeys(rawSub);
+
+  // 🎯 던전 ID, 코드, 던전명, 숏네임, 키워드 완벽 매칭 로직
+  let matchedDungeons = abyssDungeons.filter((dungeon) =>
+    keys.some((k) => {
+      const targetKey = k.toLowerCase().trim();
+      return (
+        dungeon.id.toLowerCase() === targetKey ||
+        dungeon.code.toLowerCase() === targetKey ||
+        dungeon.name.toLowerCase() === targetKey ||
+        dungeon.shortName.toLowerCase() === targetKey ||
+        dungeon.keywords.some((kw) => kw.toLowerCase() === targetKey)
+      );
+    })
+  );
+
+  // 1. 선택된 키 배열 기반 정밀 파싱
+  if (matchedDungeons.length > 0) {
+    if (matchedDungeons.length === abyssDungeons.length) {
+      return {
+        isAbyss: true,
+        title: "어비스 ALL",
+        selectedDungeons: abyssDungeons,
+        isPartial: false,
+      };
+    }
+    const shortNames = matchedDungeons.map((d) => d.shortName).join("/");
+    return {
+      isAbyss: true,
+      title: `어비스 ${shortNames}`,
+      selectedDungeons: matchedDungeons,
+      isPartial: true,
+    };
+  }
+
+  // 2. DB 키가 없을 경우 메모 스캔
+  if (keys.length === 0 && subContentMemo) {
+    matchedDungeons = abyssDungeons.filter((dungeon) =>
+      dungeon.keywords.some((kw) => subContentMemo.includes(kw))
+    );
+    if (matchedDungeons.length > 0 && matchedDungeons.length < abyssDungeons.length) {
+      const shortNames = matchedDungeons.map((d) => d.shortName).join("/");
+      return {
+        isAbyss: true,
+        title: `어비스 ${shortNames}`,
+        selectedDungeons: matchedDungeons,
+        isPartial: true,
+      };
+    }
+  }
+
+  // 3. 기본값 (전체 선택)
+  return {
+    isAbyss: true,
+    title: "어비스 ALL",
+    selectedDungeons: abyssDungeons,
+    isPartial: false,
+  };
 }
 
+/**
+ * 🎯 어비스 자동 기본 파티 메모 생성기 (DB 카탈로그 명칭 동적 매핑)
+ */
+export function generateAbyssDefaultMemo(
+  selectedSubContents: string[],
+  difficulty?: string,
+  contentsCatalog?: NexusContent[]
+): string {
+  const keys = extractSubContentKeys(selectedSubContents);
+  const shortDiff = getShortDifficulty(difficulty);
+  const diffSuffix = shortDiff ? ` ${shortDiff}` : "";
+
+  const abyssDungeons = getAbyssSubDungeonsFromCatalog(contentsCatalog);
+
+  const matchedNames = keys
+    .map((key) => {
+      const targetKey = key.toLowerCase().trim();
+      const found = abyssDungeons.find(
+        (d) =>
+          d.id.toLowerCase() === targetKey ||
+          d.code.toLowerCase() === targetKey ||
+          d.name.toLowerCase() === targetKey ||
+          d.keywords.some((kw) => kw.toLowerCase() === targetKey)
+      );
+      return found ? found.name : key;
+    })
+    .filter((v, i, a) => v && a.indexOf(v) === i);
+
+  if (matchedNames.length >= abyssDungeons.length || matchedNames.length === 0) {
+    return `어비스 ${abyssDungeons.length}종${diffSuffix} 가실분~`;
+  }
+  if (matchedNames.length === 1) {
+    return `어비스 ${matchedNames[0]}${diffSuffix} 가실분~`;
+  }
+  if (matchedNames.length === 2) {
+    return `어비스 ${matchedNames[0]}, ${matchedNames[1]}${diffSuffix} 가실분~`;
+  }
+  return `어비스 ${abyssDungeons.length}종${diffSuffix} 가실분~`;
+}
+
+export function formatAbyssBadgeText(contentName: string, subContents?: any, contentsCatalog?: NexusContent[]): string {
+  if (!contentName) return "";
+  const parsed = parseAbyssInfo({ content_name: contentName }, subContents, contentsCatalog);
+  return parsed.title;
+}
+
+/**
+ * 🎯 100% DB(`nexus_classes`) 기반 동적 역할군 조회 함수
+ */
 export function getRoleByJob(jobName: string, classCatalog?: NexusClassItem[]): JobRole {
+  if (!jobName) return "근딜";
+  const j = jobName.trim();
+
   if (classCatalog && classCatalog.length > 0) {
-    const found = classCatalog.find((c) => c.name === jobName);
+    const found = classCatalog.find((c) => c.name === j);
     if (found && found.role) {
       return found.role;
     }
   }
-  return JOB_ROLE_MAP[jobName] || "근딜";
+
+  // Fallback 키워드 매칭
+  if (["빙결술사", "빙결", "대검전사", "기사", "전사", "성기사", "수호자"].some((k) => j.includes(k))) return "탱커";
+  if (["사제", "수도사", "힐러", "성직자", "구원자"].some((k) => j.includes(k))) return "힐러";
+  if (["음유시인", "바드", "서포터"].some((k) => j.includes(k))) return "서포터";
+  if (["궁수", "석궁사수", "마법사", "화염술사", "전격술사", "장궁병", "악사", "암흑술사"].some((k) => j.includes(k))) return "원딜";
+
+  return "근딜";
 }
 
 export const getJobRole = getRoleByJob;
+
+export function parseCP(val: any): number {
+  if (typeof val === "number") return val;
+  if (!val) return 0;
+  const str = String(val).replace(/,/g, "").trim();
+  const parsed = parseInt(str, 10);
+  return isNaN(parsed) ? 0 : parsed;
+}
 
 export function getShortNickname(name: string, maxLength: number = 6): string {
   if (!name) return "";
@@ -206,7 +334,7 @@ export function getShortNickname(name: string, maxLength: number = 6): string {
 export function validateStatRequirement(
   cp: number,
   mr: number,
-  req?: any
+  req?: ContentPowerReq | any
 ): StatValidationResult {
   if (!req) {
     return {
@@ -258,9 +386,6 @@ export function validateStatRequirement(
   };
 }
 
-/**
- * 🎯 스마트 파티 밸런서 (AssemblePartyResult 구조체 정확히 반환)
- */
 export function assembleBalancedParty(
   candidates: BusCandidate[],
   maxPartySizeOrReq?: number | ContentPowerReq | any,
@@ -281,23 +406,22 @@ export function assembleBalancedParty(
   let req: any = null;
   let targetContentKey: string | undefined = undefined;
 
-  if (typeof maxPartySizeOrReq === 'number') {
+  if (typeof maxPartySizeOrReq === "number") {
     maxPartySize = maxPartySizeOrReq;
     req = reqOrTargetKey;
-    if (typeof targetContentKeyOrSize === 'string') {
+    if (typeof targetContentKeyOrSize === "string") {
       targetContentKey = targetContentKeyOrSize;
     }
   } else {
     req = maxPartySizeOrReq;
-    if (typeof reqOrTargetKey === 'string') {
+    if (typeof reqOrTargetKey === "string") {
       targetContentKey = reqOrTargetKey;
     }
-    if (typeof targetContentKeyOrSize === 'number') {
+    if (typeof targetContentKeyOrSize === "number") {
       maxPartySize = targetContentKeyOrSize;
     }
   }
 
-  // 1. 이미 완료한 캐릭터 제외 및 미완료 우선 정렬
   const filteredCandidates = [...candidates].sort((a, b) => {
     const aCleared = targetContentKey ? !!a.raid_checks?.[targetContentKey] : false;
     const bCleared = targetContentKey ? !!b.raid_checks?.[targetContentKey] : false;
@@ -338,7 +462,6 @@ export function assembleBalancedParty(
     return true;
   };
 
-  // Step 1. 버스 기사 (압도 스탯 보유자) 우선 1선발
   if (req && (req.op_cp || req.op)) {
     const driverCandidate = filteredCandidates.find((c) => {
       const cp = parseCP(c.combat_power);
@@ -351,7 +474,6 @@ export function assembleBalancedParty(
     }
   }
 
-  // Step 2. 힐러 포지션 1선발
   const healerCandidate = filteredCandidates.find(
     (c) => getRoleByJob(c.job, classCatalog) === "힐러" && !usedAccounts.has(c.owner_account || c.character_name)
   );
@@ -359,7 +481,6 @@ export function assembleBalancedParty(
     tryAddCandidate(healerCandidate, false);
   }
 
-  // Step 3. 탱커 포지션 1선발
   const tankerCandidate = filteredCandidates.find(
     (c) => getRoleByJob(c.job, classCatalog) === "탱커" && !usedAccounts.has(c.owner_account || c.character_name)
   );
@@ -367,7 +488,6 @@ export function assembleBalancedParty(
     tryAddCandidate(tankerCandidate, false);
   }
 
-  // Step 4. 나머지 슬롯 전투력 순 채우기
   for (const cand of filteredCandidates) {
     if (selectedMembers.length >= maxPartySize) break;
     tryAddCandidate(cand, false);
@@ -397,7 +517,7 @@ export async function syncKronosChecklist(
   try {
     if (Array.isArray(target)) {
       const members = target;
-      const contentName = typeof arg3 === 'string' ? arg3 : (typeof arg2 === 'string' ? arg2 : '');
+      const contentName = typeof arg3 === "string" ? arg3 : typeof arg2 === "string" ? arg2 : "";
       if (!contentName) return false;
 
       const updatePromises = members.map(async (m: any) => {
@@ -428,7 +548,7 @@ export async function syncKronosChecklist(
 
     const characterId = Number(target);
     const contentKey = String(arg2);
-    const isCleared = typeof arg3 === 'boolean' ? arg3 : true;
+    const isCleared = typeof arg3 === "boolean" ? arg3 : true;
 
     if (!characterId) return false;
 

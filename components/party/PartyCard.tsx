@@ -3,8 +3,8 @@
 import React, { useMemo } from 'react';
 import ClassIcon from '@/components/common/ClassIcon';
 import MarkIcon from '@/components/common/MarkIcon';
-import { Party, DIFFICULTY_COLORS, ABYSS_SUB_DUNGEONS } from '@/components/party/types';
-import { parseCP } from '@/lib/busUtils';
+import { Party, DIFFICULTY_COLORS, NexusContent, NexusClassItem } from '@/components/party/types';
+import { parseCP, parseAbyssInfo, getRoleByJob } from '@/lib/busUtils';
 import {
   formatPartyTimeRange,
   getDayOfWeekKorean,
@@ -13,7 +13,6 @@ import {
   minutesToTime,
 } from '@/lib/partyDateUtils';
 
-// 모바일용 CP/MR 수치 만 단위 축약 유틸
 const formatCPShort = (cp: number) => {
   if (!cp || cp <= 0) return "-";
   if (cp >= 10000) {
@@ -23,7 +22,6 @@ const formatCPShort = (cp: number) => {
   return cp.toLocaleString();
 };
 
-// 시간 오염 세척 안전 변환 함수
 const safeTimeToMinutes = (timeStr: string | undefined, defaultVal: string): number => {
   if (!timeStr) return timeToMinutes(defaultVal);
   const cleaned = timeStr
@@ -33,77 +31,6 @@ const safeTimeToMinutes = (timeStr: string | undefined, defaultVal: string): num
     .trim();
   const mins = timeToMinutes(cleaned);
   return isNaN(mins) ? timeToMinutes(defaultVal) : mins;
-};
-
-export const getRoleByJob = (job: string): string => {
-  if (!job) return "근딜";
-  const j = job.trim();
-
-  if (
-    ["빙결술사", "빙결", "대검전사", "수호자", "수호기사", "기사", "성기사", "방패전사", "크루세이더", "디펜더"].some(
-      (k) => j.includes(k)
-    )
-  ) {
-    return "탱커";
-  }
-  if (
-    ["사제", "수도사", "힐러", "성직자", "구원자", "복음사", "마도학자", "주술사", "프리스트", "클레릭", "비숍", "샤먼"].some(
-      (k) => j.includes(k)
-    )
-  ) {
-    return "힐러";
-  }
-  if (["음유시인", "바드", "악사", "서포터", "버퍼", "인챈터"].some((k) => j.includes(k))) {
-    return "서포터";
-  }
-  if (
-    [
-      "장궁병",
-      "궁수",
-      "석궁수",
-      "석궁사수",
-      "마법사",
-      "원소술사",
-      "화염술사",
-      "전격술사",
-      "연금술사",
-      "총사",
-      "건슬링어",
-      "암흑술사",
-      "저격수",
-      "스나이퍼",
-      "아처",
-      "메이지",
-      "위저드",
-    ].some((k) => j.includes(k))
-  ) {
-    return "원딜";
-  }
-  if (
-    [
-      "도적",
-      "전사",
-      "격투가",
-      "듀얼블레이드",
-      "듀얼블레이더",
-      "듀블",
-      "검사",
-      "검술사",
-      "창기사",
-      "암살자",
-      "댄서",
-      "투사",
-      "검성",
-      "로그",
-      "어쌔신",
-      "버서커",
-      "슬레이어",
-    ].some((k) => j.includes(k))
-  ) {
-    return "근딜";
-  }
-
-  return "근딜";
 };
 
 const renderFormattedNickname = (name: string) => {
@@ -169,6 +96,8 @@ interface PartyCardProps {
   onCompleteParty?: (party: Party) => void;
   isAdmin: boolean;
   onRefresh?: () => void;
+  contentsCatalog?: NexusContent[];
+  classesCatalog?: NexusClassItem[];
 }
 
 export default function PartyCard({
@@ -180,7 +109,9 @@ export default function PartyCard({
   handleLeaveParty,
   handleDeleteParty,
   onCompleteParty,
-  isAdmin
+  isAdmin,
+  contentsCatalog,
+  classesCatalog
 }: PartyCardProps) {
   const isFull = party.members.length >= party.max_members;
 
@@ -189,56 +120,14 @@ export default function PartyCard({
 
   const contentMarkSrc = useMemo(() => {
     if (!party.content_name) return "/svgs/contens mark/레이드 마크.svg";
-    const isAbyss = party.party_type === "어비스" || party.content_name.includes("어비스");
+    const isAbyss = party.party_type === "어비스" || party.content_name.includes("어비스") || party.sub_content?.includes("어비스");
     return isAbyss
       ? "/svgs/contens mark/어비스 마크.svg"
       : "/svgs/contens mark/레이드 마크.svg";
-  }, [party.content_name, party.party_type]);
+  }, [party.content_name, party.party_type, party.sub_content]);
 
-  // 🎯 100% 동적 파싱 로직: 하드코딩 탈피, 배열 길이를 DB 상수 기준으로 판단
-  const abyssInfo = useMemo(() => {
-    const isAbyss = party.party_type === "어비스" || party.content_name?.includes("어비스");
-    if (!isAbyss) {
-      return {
-        title: party.content_name?.replace(/^(레이드|어비스)\s*-\s*/, "").replace(/\s*\(통합\)/g, "").trim() || "",
-        selectedDungeons: [],
-        isPartial: false
-      };
-    }
-
-    const rawSub = (party as any).selected_sub_contents || (party as any).sub_contents || [];
-    let activeIds: string[] = [];
-
-    if (Array.isArray(rawSub) && rawSub.length > 0) {
-      activeIds = rawSub;
-    } else if (typeof party.sub_content === "string") {
-      ABYSS_SUB_DUNGEONS.forEach(d => {
-        if (party.sub_content?.includes(d.name) || party.sub_content?.includes(d.shortName)) {
-          activeIds.push(d.id);
-        }
-      });
-    }
-
-    const activeDungeons = ABYSS_SUB_DUNGEONS.filter(d => 
-      activeIds.includes(d.id) || activeIds.includes(d.name) || activeIds.includes(d.shortName)
-    );
-
-    // 하드코딩(=== 3) 제거 및 DB 배열(length) 기준 동적 판단
-    if (activeDungeons.length === 0 || activeDungeons.length === ABYSS_SUB_DUNGEONS.length) {
-      return {
-        title: "어비스 ALL",
-        selectedDungeons: ABYSS_SUB_DUNGEONS,
-        isPartial: false
-      };
-    }
-
-    const shortNames = activeDungeons.map(d => d.shortName).join("/");
-    return {
-      title: `어비스 ${shortNames}`,
-      selectedDungeons: activeDungeons,
-      isPartial: true
-    };
-  }, [party.content_name, party.party_type, (party as any).selected_sub_contents, (party as any).sub_contents, party.sub_content]);
+  // 🎯 100% DB Dynamic Abyss Info Parsing
+  const abyssInfo = useMemo(() => parseAbyssInfo(party, null, contentsCatalog), [party, contentsCatalog]);
 
   const handleForceDelete = () => {
     if (confirm("⚠️ 정말로 이 파티 모집을 강제 삭제하시겠습니까?\n삭제된 데이터는 복구할 수 없습니다.")) {
@@ -436,7 +325,7 @@ export default function PartyCard({
           </div>
         </div>
 
-        {/* 🎯 컨텐츠 제목 영역 (동적 가공 적용) */}
+        {/* 컨텐츠 제목 영역 */}
         <div className="w-full min-w-0 py-0.5 flex items-center gap-1.5 sm:gap-2">
           <MarkIcon src={contentMarkSrc} size="xs" scale={1.15} colorClass="bg-[var(--accent)]" />
           <h3 className="text-base sm:text-lg md:text-xl font-black text-[var(--text-main)] whitespace-nowrap overflow-hidden text-ellipsis tracking-tight leading-snug">
@@ -444,8 +333,8 @@ export default function PartyCard({
           </h3>
         </div>
 
-        {/* 🎯 어비스 목표 던전 시각적 피드백 뱃지 그룹 (신설) */}
-        {abyssInfo.selectedDungeons.length > 0 && (
+        {/* 🎯 DB 카탈로그 기반 어비스 선택 던전 뱃지 태그 렌더링 */}
+        {abyssInfo.isAbyss && abyssInfo.selectedDungeons.length > 0 && (
           <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
             {abyssInfo.selectedDungeons.map((dungeon) => (
               <span 
@@ -456,11 +345,6 @@ export default function PartyCard({
                 <span>{dungeon.name}</span>
               </span>
             ))}
-            {abyssInfo.isPartial && (
-              <span className="px-1.5 py-0.5 rounded-md text-[9.5px] sm:text-[10px] font-black bg-rose-500/20 text-rose-300 border border-rose-500/40">
-                {abyssInfo.selectedDungeons.length}개 던전 지정 진행
-              </span>
-            )}
           </div>
         )}
 
@@ -513,9 +397,11 @@ export default function PartyCard({
         </div>
       </div>
 
+      {/* 파티 메모 출력 */}
       {party.sub_content && (
-        <div className="mb-3 text-xs text-[var(--text-sub)] bg-[var(--inner-box)] p-2 rounded-xl border border-[var(--panel-border)] truncate">
-          💬 {party.sub_content}
+        <div className="mb-3 text-xs text-[var(--text-sub)] bg-[var(--inner-box)] p-2 sm:p-2.5 rounded-xl border border-[var(--panel-border)] flex items-center gap-1.5 min-w-0">
+          <span className="shrink-0 text-xs">💬</span>
+          <span className="truncate font-bold text-[var(--text-main)]">{party.sub_content}</span>
         </div>
       )}
 
@@ -543,9 +429,10 @@ export default function PartyCard({
           const rawExplicitRole = member.role || (member.roles && member.roles[0]) || charObj.role || (charObj.roles && charObj.roles[0]);
           const explicitRole = typeof rawExplicitRole === "string" ? rawExplicitRole.trim() : "";
 
+          // 🎯 DB(`nexus_classes`) 연동 역할군 도출
           const role = (explicitRole && ["탱커", "힐러", "원딜", "근딜", "서포터"].includes(explicitRole))
             ? explicitRole
-            : getRoleByJob(rawJob);
+            : getRoleByJob(rawJob, classesCatalog);
 
           const cp = parseCP(member.combat_power || charObj.combat_power || 0);
           const mr = parseCP(member.magic_resistance || charObj.magic_resistance || 0);
