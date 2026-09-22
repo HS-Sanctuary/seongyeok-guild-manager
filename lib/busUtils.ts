@@ -72,6 +72,44 @@ export interface AbyssDungeonInfo {
   keywords: string[];
 }
 
+// 🌐 [Single Source of Truth] nexus_classes 전역 캐시 인스턴스
+let nexusClassesCache: NexusClassItem[] | null = null;
+let lastFetchTime = 0;
+const CACHE_TTL_MS = 1000 * 60 * 5; // 5분 캐시 타임아웃
+
+/**
+ * 🎯 Supabase `nexus_classes` DB에서 전체 활성 클래스 목록 동적 수집 (인메모리 캐싱 지원)
+ */
+export async function fetchNexusClasses(forceRefresh: boolean = false): Promise<NexusClassItem[]> {
+  const now = Date.now();
+  if (!forceRefresh && nexusClassesCache && now - lastFetchTime < CACHE_TTL_MS) {
+    return nexusClassesCache;
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from("nexus_classes")
+      .select("*")
+      .order("sort_order", { ascending: true })
+      .order("id", { ascending: true });
+
+    if (error) {
+      console.error("nexus_classes DB 조회 실패:", error);
+      return nexusClassesCache || [];
+    }
+
+    if (data) {
+      nexusClassesCache = data as NexusClassItem[];
+      lastFetchTime = now;
+      return nexusClassesCache;
+    }
+  } catch (err) {
+    console.error("fetchNexusClasses 예외 발생:", err);
+  }
+
+  return nexusClassesCache || [];
+}
+
 /**
  * 🎯 DB 카탈로그(`nexus_contents`) 기반 동적 어비스 던전 매핑 리스트 추출
  */
@@ -293,20 +331,23 @@ export function formatAbyssBadgeText(contentName: string, subContents?: any, con
 }
 
 /**
- * 🎯 100% DB(`nexus_classes`) 기반 동적 역할군 조회 함수
+ * 🎯 100% DB(`nexus_classes`) 기반 동적 역할군 조회 함수 (Single Source of Truth)
  */
 export function getRoleByJob(jobName: string, classCatalog?: NexusClassItem[]): JobRole {
   if (!jobName) return "근딜";
   const j = jobName.trim();
 
-  if (classCatalog && classCatalog.length > 0) {
-    const found = classCatalog.find((c) => c.name === j);
+  // 1. 전달받은 카탈로그에서 1차 탐색
+  const catalogToUse = (classCatalog && classCatalog.length > 0) ? classCatalog : nexusClassesCache;
+
+  if (catalogToUse && catalogToUse.length > 0) {
+    const found = catalogToUse.find((c) => c.name === j || c.name.toLowerCase() === j.toLowerCase());
     if (found && found.role) {
-      return found.role;
+      return found.role as JobRole;
     }
   }
 
-  // Fallback 키워드 매칭
+  // 2. Fallback 키워드 매칭
   if (["빙결술사", "빙결", "대검전사", "기사", "전사", "성기사", "수호자"].some((k) => j.includes(k))) return "탱커";
   if (["사제", "수도사", "힐러", "성직자", "구원자"].some((k) => j.includes(k))) return "힐러";
   if (["음유시인", "바드", "서포터"].some((k) => j.includes(k))) return "서포터";

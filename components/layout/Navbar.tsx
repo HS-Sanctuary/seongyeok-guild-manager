@@ -67,6 +67,13 @@ export default function Navbar({
     }
   };
 
+  // 🛡️ [보안 권한 제어] 부마스터 대행 이상만 관리자 메뉴 접근 가능
+  const canAccessAdmin = (role?: string) => {
+    if (!role) return false;
+    const allowedRoles = ["길드마스터", "master", "부마스터", "admin", "부마스터 대행"];
+    return allowedRoles.includes(role);
+  };
+
   return (
     <nav 
       ref={headerRef} 
@@ -83,22 +90,27 @@ export default function Navbar({
       <div className="max-w-[1600px] mx-auto px-3 xl:px-4 w-full relative">
         <div className="flex items-center justify-between min-h-[3.5rem] sm:min-h-[4rem] py-1.5 sm:py-2">
           
+          {/* 🟢 담백하고 임팩트 있는 SANCTUM 메인 타이포 SVG 로고 (캡슐 배경 제거 & 클릭 시 홈 이동) */}
           <div className="flex items-center gap-2 xl:gap-3 shrink-0">
-            <Link href="/" className="flex items-center gap-2 xl:gap-3 hover:opacity-80 transition-opacity shrink-0">
-              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center shadow-lg transition-colors border border-black/10 relative overflow-hidden shrink-0 bg-[var(--accent)] text-[var(--accent-fg)]">
-                <div className="absolute inset-0 bg-gradient-to-br from-white/30 to-transparent"></div>
-                <svg className="w-4 h-4 sm:w-5 sm:h-5 fill-current relative z-10 drop-shadow-sm text-[var(--accent-fg)]" viewBox="0 0 24 24">
-                  <path d="M12 1L15.39 8.26L23 9.27L17.5 14.14L18.81 21.02L12 17.77L5.19 21.02L6.5 14.14L1 9.27L8.61 8.26L12 1Z" />
-                </svg>
-              </div>
-              <div className="flex flex-col whitespace-nowrap">
-                <span className="text-[0.52rem] sm:text-[0.58rem] font-bold tracking-tight text-[var(--text-sub)]">
-                  데이안 성역 길드 전용 플랫폼
-                </span>
-                <span className="font-black text-base sm:text-lg leading-none tracking-wider mt-0.5 text-[var(--text-main)]">
-                  SANCTUM
-                </span>
-              </div>
+            <Link 
+              href="/" 
+              className="group relative flex items-center justify-center py-1 transition-all duration-200 shrink-0 select-none cursor-pointer"
+              title="SANCTUM 메인 홈으로 이동"
+            >
+              {/* 전역 테마 동기화 CSS Mask 타이포 로고 */}
+              <div 
+                className="h-8 sm:h-9.5 w-36 sm:w-44 bg-[var(--accent)] transition-all duration-300 drop-shadow-[0_0_10px_var(--accent)] group-hover:drop-shadow-[0_0_16px_var(--accent)] group-hover:scale-105 active:scale-95"
+                style={{
+                  maskImage: `url('/svgs/logo/생텀타이포로고.svg')`,
+                  WebkitMaskImage: `url('/svgs/logo/생텀타이포로고.svg')`,
+                  maskRepeat: 'no-repeat',
+                  WebkitMaskRepeat: 'no-repeat',
+                  maskPosition: 'left center',
+                  WebkitMaskPosition: 'left center',
+                  maskSize: 'contain',
+                  WebkitMaskSize: 'contain',
+                }}
+              />
             </Link>
 
             {/* 정령의 날개 버튼 */}
@@ -252,7 +264,19 @@ export default function Navbar({
 
                     <div className="border-t border-[var(--panel-border)] mt-2 pt-1 flex flex-col gap-1">
                       <Link href="/login" className="w-full text-center text-[0.7rem] font-bold text-[var(--accent)] hover:bg-[var(--panel-hover)] py-1.5 rounded transition">➕ 계정 추가 로그인</Link>
-                      {isAdmin && <Link href="/admin" className="w-full text-center text-[0.7rem] font-bold text-[var(--text-sub)] hover:text-[var(--text-main)] hover:bg-[var(--panel-hover)] py-1.5 rounded transition flex items-center justify-center gap-1">⚙️ SANCTUM 관리자 {pendingCount > 0 && <span className="bg-red-500 text-white px-1.5 py-0.2 rounded-full text-[0.55rem]">{pendingCount}</span>}</Link>}
+                      
+                      {/* 부마스터 대행 이상 권한 보유자에게만 노출되는 SANCTUM 관리자 링크 */}
+                      {canAccessAdmin(activeAccount.role) && (
+                        <Link href="/admin" className="w-full text-center text-[0.7rem] font-bold text-[var(--text-sub)] hover:text-[var(--text-main)] hover:bg-[var(--panel-hover)] py-1.5 rounded transition flex items-center justify-center gap-1 border border-[var(--accent)]/20 hover:border-[var(--accent)]/50 bg-[var(--inner-box)]">
+                          ⚙️ SANCTUM 관리자 
+                          {pendingCount > 0 && (
+                            <span className="bg-red-500 text-white px-1.5 py-0.2 rounded-full text-[0.55rem] font-black animate-pulse">
+                              {pendingCount}
+                            </span>
+                          )}
+                        </Link>
+                      )}
+
                       <button onClick={handleLogout} className="w-full text-center text-[0.7rem] font-bold text-red-400 hover:bg-red-950/30 py-1.5 rounded transition cursor-pointer">🚪 현재 계정 로그아웃</button>
                     </div>
                   </div>

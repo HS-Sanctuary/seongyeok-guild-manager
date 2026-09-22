@@ -229,24 +229,41 @@ export default function ClassLevelManager({
   // 계열 필터 탭 상태
   const [selectedTab, setSelectedTab] = useState<string>("전체");
 
-  const safeClasses = dbClasses || [];
+  // 🎯 DB 기반 활성화된 클래스 필터링
+  const activeClasses = useMemo(() => {
+    if (!dbClasses || dbClasses.length === 0) return [];
+    return dbClasses.filter((cls: any) => cls.is_active ?? true);
+  }, [dbClasses]);
 
-  // 직업 계열 분류 판별 함수
+  // 직업 계열 분류 판별 함수 (DB의 category 커스텀 값 정밀 연동)
   const getLineageName = (clsName: string, customCategory?: string) => {
+    if (customCategory && customCategory.trim() !== "") return customCategory;
     for (const group of LINEAGE_GROUPS) {
       if (group.defaultClasses.includes(clsName)) return group.name;
     }
-    if (customCategory && customCategory.trim() !== "") return customCategory;
     return "기타 계열";
   };
 
+  // 🎯 DB 카탈로그 기반 동적 계열 필터 탭 배열 생성
+  const dynamicLineageTabs = useMemo(() => {
+    const tabsSet = new Set<string>();
+    LINEAGE_GROUPS.forEach((g) => tabsSet.add(g.name));
+
+    activeClasses.forEach((cls: any) => {
+      const cat = getLineageName(cls.name, cls.category);
+      if (cat) tabsSet.add(cat);
+    });
+
+    return Array.from(tabsSet);
+  }, [activeClasses]);
+
   // 선택된 탭에 맞춰 필터링된 직업 목록
   const filteredClasses = useMemo(() => {
-    if (selectedTab === "전체") return safeClasses;
-    return safeClasses.filter(
+    if (selectedTab === "전체") return activeClasses;
+    return activeClasses.filter(
       (cls: any) => getLineageName(cls.name, cls.category) === selectedTab
     );
-  }, [safeClasses, selectedTab]);
+  }, [activeClasses, selectedTab]);
 
   // 데스크톱용 레벨 직접 입력 컴포넌트
   const DesktopLevelInput = ({ clsName, currentLevel }: { clsName: string; currentLevel: number }) => {
@@ -306,22 +323,22 @@ export default function ClassLevelManager({
           <span>클래스 레벨 관리</span>
         </h3>
 
-        {/* 🌟 6대 계열별 빠른 필터 탭 */}
+        {/* 🌟 nexus_classes DB 동적 연동 빠른 필터 탭 */}
         <div className="flex items-center gap-1 overflow-x-auto custom-scrollbar pb-0.5 max-w-full">
-          {LINEAGE_GROUPS.map((group) => {
-            const isActive = selectedTab === group.name;
+          {dynamicLineageTabs.map((tabName) => {
+            const isActive = selectedTab === tabName;
             return (
               <button
-                key={group.name}
+                key={tabName}
                 type="button"
-                onClick={() => setSelectedTab(group.name)}
+                onClick={() => setSelectedTab(tabName)}
                 className={`px-2 py-1 rounded-md text-[10px] md:text-xs font-bold transition whitespace-nowrap cursor-pointer ${
                   isActive
                     ? "bg-[var(--accent)] text-[var(--accent-fg)] font-black shadow-2xs"
                     : "bg-[var(--inner-box)] text-[var(--text-sub)] hover:text-[var(--text-main)] border border-[var(--panel-border)]"
                 }`}
               >
-                {group.name}
+                {tabName}
               </button>
             );
           })}
@@ -330,7 +347,7 @@ export default function ClassLevelManager({
 
       {filteredClasses.length === 0 ? (
         <div className="text-center py-8 text-xs font-bold text-[var(--text-sub)] bg-[var(--inner-box)] rounded-xl border border-[var(--panel-border)]/50">
-          등록된 클래스가 없습니다.
+          등록되었거나 활성화된 클래스가 없습니다.
         </div>
       ) : (
         <>

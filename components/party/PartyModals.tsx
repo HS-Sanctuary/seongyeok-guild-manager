@@ -101,6 +101,7 @@ interface PartyModalsProps {
   setTempSubContents?: React.Dispatch<React.SetStateAction<string[]>>;
   busSelectedSubContents?: string[];
   setBusSelectedSubContents?: React.Dispatch<React.SetStateAction<string[]>>;
+  dbClasses?: any[];
 }
 
 export default function PartyModals(props: PartyModalsProps) {

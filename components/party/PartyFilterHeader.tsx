@@ -15,6 +15,7 @@ interface PartyFilterHeaderProps {
   setPartySearchTerm: (term: string) => void;
   upcomingDates: { dateStr: string; label: string; index: number }[];
   datePartyCounts: Record<string, { total: number; recruiting: number; completed: number }>;
+  dbClasses?: any[];
 }
 
 export default function PartyFilterHeader({
@@ -28,7 +29,8 @@ export default function PartyFilterHeader({
   partySearchTerm,
   setPartySearchTerm,
   upcomingDates,
-  datePartyCounts
+  datePartyCounts,
+  dbClasses = [],
 }: PartyFilterHeaderProps) {
   // 한설 님 요청: 드롭다운에서 10일치 날짜가 한눈에 보이도록 10일로 대폭 확장
   const displayDates = upcomingDates.slice(0, 10);

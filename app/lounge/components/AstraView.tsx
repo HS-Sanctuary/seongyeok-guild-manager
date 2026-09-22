@@ -45,7 +45,7 @@ const HOMEWORK_ITEMS = [
   { label: "화석", short: "화석", keys: ['raid_succubus', 'succubus', '화석', '서큐', '서큐버스', '화이트 서큐', '화이트서큐'] },
 ];
 
-const ROLE_MAP: Record<string, string[]> = {
+const FALLBACK_ROLE_MAP: Record<string, string[]> = {
   "탱커": ["전사", "기사", "빙결술사"],
   "원딜": ["마법사", "전격술사", "화염술사", "궁수", "장궁병", "석궁사수", "악사", "암흑술사"],
   "근딜": ["대검전사", "검술사", "댄서", "도적", "격투가", "듀얼블레이드"],
@@ -53,7 +53,7 @@ const ROLE_MAP: Record<string, string[]> = {
   "서포터": ["음유시인"]
 };
 
-const ALL_CLASSES = [
+const FALLBACK_ALL_CLASSES = [
   "전사", "대검전사", "검술사", "기사", 
   "마법사", "화염술사", "빙결술사", "전격술사", 
   "궁수", "장궁병", "석궁사수", 
@@ -89,6 +89,7 @@ export default function AstraView() {
   const [parties, setParties] = useState<PartyInfo[]>([]);
   const [homeworkMap, setHomeworkMap] = useState<Record<string, any>>({});
   const [nexusContents, setNexusContents] = useState<any[]>([]);
+  const [dbClasses, setDbClasses] = useState<any[]>([]);
   const [currentUser, setCurrentUser] = useState<string>("");
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
 
@@ -106,6 +107,32 @@ export default function AstraView() {
   const [onlyOnline, setOnlyOnline] = useState<boolean>(false);
 
   const [selectedCharDetail, setSelectedCharDetail] = useState<{ char: Character; partyInfo?: PartyInfo } | null>(null);
+
+  // 🎯 DB 기반 동적 클래스 목록 및 역할군 매핑 연산
+  const dynamicClasses = useMemo(() => {
+    if (!dbClasses || dbClasses.length === 0) return FALLBACK_ALL_CLASSES;
+    return dbClasses.map((c: any) => c.name);
+  }, [dbClasses]);
+
+  const dynamicRoleMap = useMemo(() => {
+    if (!dbClasses || dbClasses.length === 0) return FALLBACK_ROLE_MAP;
+    const map: Record<string, string[]> = {
+      "탱커": [],
+      "원딜": [],
+      "근딜": [],
+      "힐러": [],
+      "서포터": []
+    };
+    dbClasses.forEach((c: any) => {
+      const role = c.role || "근딜";
+      if (map[role]) {
+        if (!map[role].includes(c.name)) map[role].push(c.name);
+      } else {
+        map[role] = [c.name];
+      }
+    });
+    return map;
+  }, [dbClasses]);
 
   const getKratosClassRank = useCallback((char?: Character): number => {
     if (!char || !char.job) return 0;
@@ -180,16 +207,18 @@ export default function AstraView() {
 
   const fetchAstraData = async () => {
     try {
-      const [charRes, partyRes, hwRes, contRes] = await Promise.all([
+      const [charRes, partyRes, hwRes, contRes, classRes] = await Promise.all([
         supabase.from('characters').select('*').order('sort_order', { ascending: true }),
         supabase.from('parties').select('*').neq('status', '종료됨'),
         supabase.from('homework_status').select('*'),
-        supabase.from('nexus_contents').select('*')
+        supabase.from('nexus_contents').select('*'),
+        supabase.from('nexus_classes').select('*').order('id', { ascending: true })
       ]);
 
       if (charRes.data) setCharacters(charRes.data);
       if (partyRes.data) setParties(partyRes.data);
       if (contRes.data) setNexusContents(contRes.data);
+      if (classRes.data) setDbClasses(classRes.data.filter((c: any) => c.is_active ?? true));
 
       if (hwRes.data) {
         const map: Record<string, any> = {};
@@ -301,7 +330,7 @@ export default function AstraView() {
     if (selectedClass !== "전체" && c.job !== selectedClass) return false;
 
     if (roleFilter !== "전체") {
-      const targetJobs = ROLE_MAP[roleFilter] || [];
+      const targetJobs = dynamicRoleMap[roleFilter] || [];
       if (!targetJobs.includes(c.job)) return false;
     }
 
@@ -321,7 +350,7 @@ export default function AstraView() {
     }
 
     return true;
-  }, [searchTerm, selectedClass, roleFilter, minCombat, minMagicResist, partyFilter, homeworkFilter, getCharPartyInfo, checkCompleted]);
+  }, [searchTerm, selectedClass, roleFilter, minCombat, minMagicResist, partyFilter, homeworkFilter, dynamicRoleMap, getCharPartyInfo, checkCompleted]);
 
   const groupedByOwner = useMemo(() => {
     const list = uniqueOwners.map(ownerKey => {
@@ -501,7 +530,7 @@ export default function AstraView() {
                 className="bg-[var(--inner-box)] border border-[var(--panel-border)] px-3 py-1.5 md:py-2 rounded-xl text-xs md:text-sm font-bold text-[var(--text-main)] outline-none focus:border-[var(--accent)] cursor-pointer w-full"
               >
                 <option value="전체">🛡️ 모든 클래스</option>
-                {ALL_CLASSES.map(cls => (
+                {dynamicClasses.map(cls => (
                   <option key={cls} value={cls}>{cls}</option>
                 ))}
               </select>

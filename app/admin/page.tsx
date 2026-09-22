@@ -36,7 +36,7 @@ export default function AdminPage() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [user, setUser] = useState<any>(null);
-  const [activeMainTab, setActiveMainTab] = useState("approval");
+  const [activeMainTab, setActiveMainTab] = useState("classes");
 
   useEffect(() => {
     setMounted(true);
@@ -66,23 +66,28 @@ export default function AdminPage() {
   if (!mounted || !user) return null;
 
   return (
-    <main className="min-h-screen bg-[var(--bg-main,#121212)] text-[var(--text-main,#d4d4d8)] font-sans pb-20 pt-8 transition-colors duration-300">
-      {/* 🎯 가로 영역을 1700px로 대폭 확장하여 좌우 여백 없이 알차게 활용 */}
-      <div className="max-w-[1700px] mx-auto p-4 md:p-8 space-y-6">
-        {/* 헤더 (전역 테마 변수 연동) */}
-        <div className="flex items-center gap-4 border-b border-[var(--panel-border,rgba(255,255,255,0.1))] pb-6">
-          <div className="text-4xl">⚙️</div>
-          <div>
-            <h1 className="text-2xl md:text-3xl font-black text-[var(--accent,#e6c788)]">
-              성역 넥서스 통합 관제 센터
-            </h1>
-            <p className="text-sm text-[var(--text-sub,#a1a1aa)] mt-1">
-              SANCTUM 길드 플랫폼의 가입 승인, 숙제/컨텐츠/클래스 카탈로그 및 시스템 설정을 제어합니다.
+    <main className="min-h-screen bg-[var(--background)] text-[var(--foreground)] font-sans pb-20 pt-6 transition-colors duration-200">
+      <div className="max-w-[1700px] mx-auto p-3 sm:p-6 space-y-4">
+        
+        {/* 🟢 슬림 컴팩트 헤더 배너 (이모지 및 성역 넥서스 문구 제거 / 전역 테마 동기화) */}
+        <header className="relative overflow-hidden rounded-2xl bg-[var(--panel)] border border-[var(--panel-border)] py-3.5 px-5 sm:px-6 shadow-xl">
+          <div className="absolute top-0 left-0 w-1.5 h-full bg-[var(--accent)] shadow-[0_0_15px_var(--accent)]"></div>
+          <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-2 md:gap-4">
+            <div className="flex items-center gap-3">
+              <h1 className="text-xl sm:text-2xl font-black text-[var(--text-main)] tracking-tight leading-none">
+                생텀 관리자 페이지
+              </h1>
+              <span className="text-[var(--accent)] text-[11px] sm:text-[12px] font-extrabold bg-[var(--inner-box)] px-2.5 py-0.5 rounded-full border border-[var(--panel-border)] shrink-0">
+                ADMIN CONSOLE
+              </span>
+            </div>
+            <p className="text-xs text-[var(--text-sub)] font-medium leading-none">
+              가입 승인, 숙제/컨텐츠/클래스 카탈로그 및 플랫폼 시스템 설정을 통합 제어합니다.
             </p>
           </div>
-        </div>
+        </header>
 
-        {/* 탭 네비게이션 (전역 테마 바인딩) */}
+        {/* 탭 네비게이션 (전역 테마 변수 바인딩) */}
         <div className="flex gap-2 flex-wrap">
           {MAIN_TABS.map((tab) => {
             const isActive = activeMainTab === tab.id;
@@ -90,17 +95,17 @@ export default function AdminPage() {
               <button
                 key={tab.id}
                 onClick={() => setActiveMainTab(tab.id)}
-                className={`px-4 py-2.5 rounded-xl text-xs md:text-sm font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer flex items-center gap-2 ${
                   isActive
-                    ? "bg-[var(--panel,#1c1c1e)] text-[var(--accent,#e6c788)] border border-[var(--accent,#e6c788)]/40 shadow-md"
-                    : "bg-[var(--inner-box,#252528)]/40 text-[var(--text-sub,#a1a1aa)] hover:bg-[var(--inner-box,#252528)] hover:text-[var(--text-main,#d4d4d8)] border border-[var(--panel-border,rgba(255,255,255,0.05))]"
+                    ? "bg-[var(--accent)] text-[var(--accent-fg)] border border-[var(--accent)] shadow-md"
+                    : "bg-[var(--panel)] text-[var(--text-sub)] hover:bg-[var(--inner-box)] hover:text-[var(--text-main)] border border-[var(--panel-border)]"
                 }`}
               >
                 {tab.markSrc ? (
                   <MarkIcon
                     src={tab.markSrc}
                     size="xs"
-                    colorClass={isActive ? "bg-[var(--accent,#e6c788)]" : "bg-[var(--text-sub,#a1a1aa)]"}
+                    colorClass={isActive ? "bg-[var(--accent-fg)]" : "bg-[var(--text-sub)]"}
                   />
                 ) : (
                   <span>{tab.emoji}</span>
@@ -112,7 +117,7 @@ export default function AdminPage() {
         </div>
 
         {/* 독립 모듈 렌더링 영역 (전역 테마 패널) */}
-        <div className="bg-[var(--panel,#1c1c1e)] border border-[var(--panel-border,rgba(255,255,255,0.1))] rounded-2xl p-6 shadow-xl min-h-[550px] transition-colors duration-300">
+        <div className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl p-4 sm:p-6 shadow-xl min-h-[550px] transition-colors duration-200">
           {activeMainTab === "approval" && <AccountApprovalTab currentUser={user} />}
           {activeMainTab === "banner" && <BannerAdminTab />}
           {activeMainTab === "tasks" && <TaskAdminTab />}

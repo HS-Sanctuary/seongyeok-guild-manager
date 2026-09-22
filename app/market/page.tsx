@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 
-// --- [타입 정의] ---
 interface CatalogItem {
   id: string;
   name: string;
@@ -19,15 +18,6 @@ interface MarketResult {
   trend: 'up' | 'down' | 'stable';
   updatedAt: string;
 }
-
-const JOB_ICONS: Record<string, string> = {
-  전사: "⚔️", 대검전사: "🗡️", 검술사: "🤺", 기사: "🛡️",
-  마법사: "🪄", 화염술사: "🔥", 빙결술사: "❄️", 전격술사: "⚡",
-  궁수: "🏹", 장궁병: "🎯", 석궁사수: "🏹",
-  음유시인: "🎵", 댄서: "💃", 악사: "🎸",
-  힐러: "💖", 사제: "🕊️", 수도사: "🙏", 암흑술사: "🌑",
-  도적: "🥷", 격투가: "🥊", 듀얼블레이드: "⚔️"
-};
 
 export default function MarketPage() {
   const router = useRouter();
@@ -46,7 +36,9 @@ export default function MarketPage() {
   // 자동완성 상태
   const [suggestions, setSuggestions] = useState<CatalogItem[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const searchWrapperRef = useRef<HTMLDivElement>(null);
+  
+  // 🟢 HTMLFormElement 타입으로 정밀 교정하여 TS2322 에러 완벽 해결
+  const searchWrapperRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -162,45 +154,49 @@ export default function MarketPage() {
   if (!mounted || !user) return null;
 
   return (
-    <main className="min-h-screen bg-[#121212] text-[#d4d4d8] font-sans pb-20 pt-8 relative">
-      <div className="max-w-[1300px] mx-auto p-4 md:p-8 space-y-6 relative">
+    <main className="min-h-screen bg-[var(--background)] text-[var(--foreground)] font-sans pb-20 pt-6 relative transition-colors duration-200">
+      <div className="max-w-[1300px] mx-auto p-3 sm:p-6 space-y-4 relative">
         
-        {/* 🟢 EMPORION 헤더 배너 (요청하신 문구 반영) */}
-        <header className="relative overflow-hidden rounded-xl bg-gradient-to-br from-[#1c1c1e] via-[#151515] to-[#1a1a1c] border border-zinc-800 py-3 px-6 shadow-xl mb-6">
-          <div className="absolute top-0 left-0 w-1.5 h-full bg-[#e6c788] shadow-[0_0_15px_#e6c788]"></div>
-          <div className="absolute bottom-0 right-0 w-32 h-32 bg-[#e6c788] opacity-5 blur-[60px] rounded-full pointer-events-none"></div>
+        {/* 🟢 EMPORION 헤더 배너 (전역 테마 적용) */}
+        <header className="relative overflow-hidden rounded-2xl bg-[var(--panel)] border border-[var(--panel-border)] py-4 px-5 sm:px-6 shadow-xl">
+          <div className="absolute top-0 left-0 w-1.5 h-full bg-[var(--accent)] shadow-[0_0_15px_var(--accent)]"></div>
+          <div className="absolute bottom-0 right-0 w-32 h-32 bg-[var(--accent)] opacity-5 blur-[60px] rounded-full pointer-events-none"></div>
           
           <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-            <div className="flex items-center gap-4 min-w-[200px]">
+            <div className="flex items-center gap-3 min-w-[200px]">
               <div className="flex flex-col items-start">
-                <h1 className="text-2xl font-black text-white tracking-widest drop-shadow-md leading-none">EMPORION</h1>
-                <span className="text-[#e6c788] text-[13px] font-bold tracking-wide mt-1.5 leading-none">엠포리온 : 실시간 거래소 정보</span>
+                <h1 className="text-2xl font-black text-[var(--text-main)] tracking-widest leading-none flex items-center gap-2">
+                  <span>🏛️</span> EMPORION
+                </h1>
+                <span className="text-[var(--accent)] text-[12px] sm:text-[13px] font-extrabold tracking-wide mt-1.5 leading-none">
+                  엠포리온 : 실시간 거래소 정보
+                </span>
               </div>
             </div>
             
-            <div className="bg-zinc-900/40 border border-zinc-700/50 px-4 py-2 rounded-lg w-full max-w-[750px] backdrop-blur-sm flex items-start gap-2.5">
+            <div className="bg-[var(--inner-box)] border border-[var(--panel-border)] px-4 py-2 rounded-xl w-full max-w-[750px] backdrop-blur-sm flex items-start gap-2.5">
               <span className="text-sm mt-0.5 opacity-80">💡</span>
-              <div className="flex flex-col text-[11px] md:text-[12px] font-bold leading-tight w-full">
-                <span className="text-zinc-300 w-full">엠포리온은 고대 그리스어로 ‘무역과 상업이 이루어지는 시장’을 뜻합니다.</span>
-                <span className="text-[#e6c788] mt-0.5">게임 접속을 하지 않아도 실시간 거래소 정보를 확인할 수 있는 공간입니다.</span>
+              <div className="flex flex-col text-[11px] sm:text-[12px] font-bold leading-tight w-full">
+                <span className="text-[var(--text-main)] w-full">엠포리온은 고대 그리스어로 ‘무역과 상업이 이루어지는 시장’을 뜻합니다.</span>
+                <span className="text-[var(--accent)] mt-0.5">게임 접속을 하지 않아도 실시간 거래소 정보를 확인할 수 있는 공간입니다.</span>
               </div>
             </div>
           </div>
         </header>
 
         {/* 검색 및 카테고리 필터 영역 */}
-        <section className="bg-[#1c1c1e] border border-zinc-800 rounded-2xl p-5 md:p-7 shadow-xl space-y-5">
+        <section className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl p-4 sm:p-6 shadow-md space-y-4">
           
-          <div className="flex gap-2 overflow-x-auto custom-scrollbar pb-1">
+          <div className="flex gap-1.5 overflow-x-auto custom-scrollbar pb-1">
             {["전체", "장비", "소모품", "재료", "기타"].map((category) => (
               <button 
                 key={category}
                 type="button"
                 onClick={() => setActiveCategory(category)}
-                className={`px-5 py-2.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap border ${
+                className={`px-4 py-2 rounded-xl text-xs font-black transition-all whitespace-nowrap border cursor-pointer ${
                   activeCategory === category 
-                    ? 'bg-[#e6c788] text-black border-[#e6c788] shadow-[0_0_15px_rgba(230,199,136,0.3)]' 
-                    : 'bg-[#121212] text-zinc-400 border-zinc-700 hover:border-zinc-500 hover:text-white'
+                    ? 'bg-[var(--accent)] text-[var(--accent-fg)] border-[var(--accent)] shadow-md' 
+                    : 'bg-[var(--inner-box)] text-[var(--text-sub)] border-[var(--panel-border)] hover:text-[var(--text-main)] hover:border-[var(--accent)]'
                 }`}
               >
                 {category}
@@ -208,6 +204,7 @@ export default function MarketPage() {
             ))}
           </div>
 
+          {/* 🟢 searchWrapperRef(HTMLFormElement)가 정상 호환되는 form 태그 */}
           <form onSubmit={handleSearchSubmit} className="relative w-full" ref={searchWrapperRef}>
             <input 
               type="text" 
@@ -215,27 +212,29 @@ export default function MarketPage() {
               value={searchQuery}
               onChange={handleInputChange}
               onFocus={() => { if (searchQuery.length > 0) setShowSuggestions(true); }}
-              className="w-full bg-[#121212] border-2 border-zinc-700 hover:border-zinc-500 focus:border-[#e6c788] text-white text-sm p-4 pl-12 rounded-xl focus:outline-none transition-all shadow-inner"
+              className="w-full bg-[var(--inner-box)] border-2 border-[var(--panel-border)] focus:border-[var(--accent)] text-[var(--text-main)] text-xs sm:text-sm py-3 pl-10 pr-24 rounded-xl focus:outline-none transition-all shadow-xs font-bold placeholder:[var(--text-sub)]"
             />
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl opacity-50">🔍</span>
+            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm opacity-60">🔍</span>
             <button 
               type="submit" 
-              className="absolute right-3 top-1/2 -translate-y-1/2 bg-[#e6c788] hover:bg-yellow-500 text-[#121212] font-black px-6 py-2 rounded-lg transition-colors shadow-md"
+              className="absolute right-2 top-1/2 -translate-y-1/2 bg-[var(--accent)] hover:bg-[var(--accent)]/90 text-[var(--accent-fg)] font-black px-4 py-1.5 rounded-lg text-xs transition-colors shadow-md cursor-pointer"
             >
               검색
             </button>
 
             {/* 자동완성 드롭다운 창 */}
             {showSuggestions && suggestions.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-[#252528] border border-zinc-600 rounded-xl shadow-2xl z-50 overflow-hidden animate-in slide-in-from-top-2 duration-200">
-                {suggestions.map((item, idx) => (
+              <div className="absolute top-full left-0 right-0 mt-2 bg-[var(--panel)] border border-[var(--panel-border)] rounded-xl shadow-2xl z-50 overflow-hidden animate-in slide-in-from-top-2 duration-200 divide-y divide-[var(--panel-border)]">
+                {suggestions.map((item) => (
                   <div 
                     key={item.id} 
                     onClick={() => handleSuggestionClick(item.name)}
-                    className={`p-3 text-sm cursor-pointer hover:bg-[#121212] flex items-center gap-3 transition-colors ${idx !== suggestions.length - 1 ? 'border-b border-zinc-700/50' : ''}`}
+                    className="p-3 text-xs cursor-pointer hover:bg-[var(--inner-box)] flex items-center gap-2.5 transition-colors"
                   >
-                    <span className="text-[10px] font-bold bg-zinc-800 text-zinc-400 px-1.5 py-0.5 rounded border border-zinc-700">{item.category}</span>
-                    <span className="text-white font-bold">{item.name}</span>
+                    <span className="text-[10px] font-black bg-[var(--inner-box)] text-[var(--accent)] px-1.5 py-0.5 rounded border border-[var(--panel-border)] shrink-0">
+                      {item.category}
+                    </span>
+                    <span className="text-[var(--text-main)] font-bold truncate">{item.name}</span>
                   </div>
                 ))}
               </div>
@@ -244,64 +243,68 @@ export default function MarketPage() {
         </section>
 
         {/* 검색 결과 리스트 */}
-        <section className="space-y-3 pt-2">
-          <div className="flex justify-between items-end mb-3 px-1">
-            <h2 className="text-sm font-bold text-zinc-300">
-              시세 검색 결과 <span className="text-[#e6c788]">{results.length}</span>건
+        <section className="space-y-3 pt-1">
+          <div className="flex justify-between items-end mb-2 px-1">
+            <h2 className="text-xs sm:text-sm font-black text-[var(--text-main)]">
+              시세 검색 결과 <span className="text-[var(--accent)]">{results.length}</span>건
             </h2>
-            <span className="text-[10px] text-zinc-500 flex items-center gap-1">
+            <span className="text-[10px] text-[var(--text-sub)] flex items-center gap-1 font-bold">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
               데이안 서버 DB 연동
             </span>
           </div>
 
           {isSearching ? (
-            <div className="w-full py-24 flex flex-col items-center justify-center text-zinc-500 space-y-3 bg-[#1c1c1e] border border-zinc-800 rounded-2xl shadow-lg">
-              <span className="text-4xl animate-spin">⏳</span>
-              <p className="text-xs font-bold animate-pulse text-[#e6c788]">거래소 시세 데이터를 동기화 중입니다...</p>
+            <div className="w-full py-20 flex flex-col items-center justify-center text-[var(--text-sub)] space-y-2 bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl shadow-lg">
+              <span className="text-3xl animate-spin">⏳</span>
+              <p className="text-xs font-black animate-pulse text-[var(--accent)]">거래소 시세 데이터를 동기화 중입니다...</p>
             </div>
           ) : results.length === 0 ? (
-            <div className="w-full py-24 flex flex-col items-center justify-center text-zinc-500 space-y-2 bg-[#1c1c1e] border border-zinc-800 rounded-2xl shadow-lg border-dashed">
-              <span className="text-4xl mb-2">📭</span>
-              <p className="text-sm font-bold text-zinc-400">검색 결과가 존재하지 않습니다.</p>
+            <div className="w-full py-20 flex flex-col items-center justify-center text-[var(--text-sub)] space-y-1.5 bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl shadow-lg border-dashed">
+              <span className="text-3xl mb-1 opacity-60">📭</span>
+              <p className="text-xs font-black text-[var(--text-main)]">검색 결과가 존재하지 않습니다.</p>
               <p className="text-[10px]">아이템 이름을 다시 확인해 주세요.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
               {results.map((item) => (
-                <div key={item.id} className="bg-[#1c1c1e] border border-zinc-800 hover:border-[#e6c788]/60 rounded-xl p-5 transition-all shadow-lg group cursor-pointer flex flex-col justify-between">
+                <div key={item.id} className="bg-[var(--panel)] border border-[var(--panel-border)] hover:border-[var(--accent)] rounded-2xl p-4 transition-all shadow-md group cursor-pointer flex flex-col justify-between">
                   
-                  <div className="flex justify-between items-start mb-4 border-b border-zinc-800/80 pb-4">
+                  <div className="flex justify-between items-start mb-3 border-b border-[var(--panel-border)] pb-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-xl bg-[#121212] border border-zinc-700 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform shadow-inner">
+                      <div className="w-10 h-10 rounded-xl bg-[var(--inner-box)] border border-[var(--panel-border)] flex items-center justify-center text-xl group-hover:scale-105 transition-transform shrink-0">
                         {item.category === '재료' ? '💎' : item.category === '장비' ? '🗡️' : item.category === '소모품' ? '🧪' : '📦'}
                       </div>
-                      <div className="flex flex-col">
-                        <span className="text-[9px] font-bold bg-zinc-800 text-zinc-400 px-1.5 py-0.5 rounded border border-zinc-700 w-fit mb-1">{item.category}</span>
-                        <h3 className="text-white font-black text-base tracking-tight">{item.name}</h3>
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-[9px] font-black bg-[var(--inner-box)] text-[var(--accent)] px-1.5 py-0.5 rounded border border-[var(--panel-border)] w-fit mb-0.5">
+                          {item.category}
+                        </span>
+                        <h3 className="text-[var(--text-main)] font-black text-sm tracking-tight truncate">{item.name}</h3>
                       </div>
                     </div>
-                    <span className="text-[10px] text-zinc-500 bg-[#121212] px-2 py-1 rounded-md border border-zinc-800">{item.updatedAt} 갱신</span>
+                    <span className="text-[10px] text-[var(--text-sub)] bg-[var(--inner-box)] px-2 py-0.5 rounded-md border border-[var(--panel-border)] shrink-0">
+                      {item.updatedAt} 갱신
+                    </span>
                   </div>
 
-                  <div className="flex justify-between items-center bg-[#121212] p-3 rounded-xl border border-zinc-800/50">
+                  <div className="flex justify-between items-center bg-[var(--inner-box)] p-3 rounded-xl border border-[var(--panel-border)]/60">
                     <div className="flex flex-col">
-                      <span className="text-[10px] text-zinc-500 font-bold mb-1">현재 최저가</span>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xl font-black text-[#e6c788]">{item.lowestPrice.toLocaleString()}</span>
-                        <span className="text-[10px] text-yellow-600 font-black">G</span>
+                      <span className="text-[10px] text-[var(--text-sub)] font-bold mb-0.5">현재 최저가</span>
+                      <div className="flex items-center gap-1">
+                        <span className="text-base sm:text-lg font-black text-[var(--accent)]">{item.lowestPrice.toLocaleString()}</span>
+                        <span className="text-[10px] text-[var(--accent)] font-black">G</span>
                       </div>
                     </div>
 
-                    <div className="w-px h-10 bg-zinc-700/50"></div>
+                    <div className="w-px h-8 bg-[var(--panel-border)]"></div>
 
                     <div className="flex flex-col items-end">
-                      <span className="text-[10px] text-zinc-500 font-bold mb-1">최근 평균 거래가</span>
+                      <span className="text-[10px] text-[var(--text-sub)] font-bold mb-0.5">최근 평균 거래가</span>
                       <div className="flex items-center gap-1.5">
-                        <span className="text-sm font-black text-zinc-300">{item.averagePrice.toLocaleString()}</span>
+                        <span className="text-xs sm:text-sm font-black text-[var(--text-main)]">{item.averagePrice.toLocaleString()}</span>
                         {item.trend === 'up' && <span className="text-rose-500 text-xs font-black animate-pulse">▲</span>}
-                        {item.trend === 'down' && <span className="text-blue-500 text-xs font-black">▼</span>}
-                        {item.trend === 'stable' && <span className="text-zinc-500 text-xs font-black">-</span>}
+                        {item.trend === 'down' && <span className="text-sky-500 text-xs font-black">▼</span>}
+                        {item.trend === 'stable' && <span className="text-[var(--text-sub)] text-xs font-black">-</span>}
                       </div>
                     </div>
                   </div>
@@ -312,13 +315,6 @@ export default function MarketPage() {
           )}
         </section>
       </div>
-
-      <style dangerouslySetInnerHTML={{__html: `
-        .custom-scrollbar::-webkit-scrollbar { height: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #e6c788; }
-      `}} />
     </main>
   );
 }

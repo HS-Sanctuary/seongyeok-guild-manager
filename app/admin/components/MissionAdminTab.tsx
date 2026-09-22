@@ -43,43 +43,43 @@ export default function MissionAdminTab() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="border-b border-zinc-800 pb-4">
-        <h2 className="text-xl font-bold text-[#e6c788]">📜 임무 게시판 카탈로그 제어</h2>
-        <p className="text-xs text-zinc-400 mt-1">길드 미션 및 현황판의 달성 목표와 보상 항목을 제어합니다.</p>
+    <div className="space-y-5">
+      <div className="border-b border-[var(--panel-border)] pb-3">
+        <h2 className="text-lg font-black text-[var(--accent)]">📜 임무 게시판 카탈로그 제어</h2>
+        <p className="text-xs text-[var(--text-sub)] font-medium mt-0.5">길드 미션 및 현황판의 달성 목표와 보상 항목을 제어합니다.</p>
       </div>
 
-      <form onSubmit={handleAddMission} className="grid grid-cols-1 sm:grid-cols-4 gap-2 bg-[#252528] p-3 rounded-xl border border-zinc-700">
+      <form onSubmit={handleAddMission} className="grid grid-cols-1 sm:grid-cols-4 gap-2 bg-[var(--inner-box)] p-3 rounded-xl border border-[var(--panel-border)]">
         <input
           type="text"
           placeholder="임무 제목 (예: 발할라 어비스 3회 클리어)"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          className="bg-[#121212] text-xs text-white p-2.5 rounded-lg border border-zinc-700 outline-none sm:col-span-2"
+          className="bg-[var(--panel)] text-xs text-[var(--text-main)] p-2.5 rounded-lg border border-[var(--panel-border)] outline-none font-bold sm:col-span-2 placeholder:[var(--text-sub)]"
         />
         <input
           type="text"
           placeholder="보상 아이템명"
           value={rewardItem}
           onChange={(e) => setRewardItem(e.target.value)}
-          className="bg-[#121212] text-xs text-white p-2.5 rounded-lg border border-zinc-700 outline-none"
+          className="bg-[var(--panel)] text-xs text-[var(--text-main)] p-2.5 rounded-lg border border-[var(--panel-border)] outline-none font-bold placeholder:[var(--text-sub)]"
         />
-        <button type="submit" className="bg-[#e6c788] text-black font-bold text-xs py-2.5 rounded-lg transition cursor-pointer">
+        <button type="submit" className="bg-[var(--accent)] text-[var(--accent-fg)] font-black text-xs py-2.5 rounded-lg transition cursor-pointer shadow-md">
           신규 임무 등록
         </button>
       </form>
 
-      <div className="bg-[#252528] rounded-xl border border-zinc-700 p-4 divide-y divide-zinc-800">
+      <div className="bg-[var(--inner-box)] rounded-xl border border-[var(--panel-border)] p-4 divide-y divide-[var(--panel-border)]">
         {loading ? (
-          <div className="text-center text-xs text-zinc-500 py-6">로딩 중...</div>
+          <div className="text-center text-xs text-[var(--text-sub)] font-bold py-6">로딩 중...</div>
         ) : missions.length === 0 ? (
-          <div className="text-center text-xs text-zinc-500 py-6">등록된 임무가 없습니다.</div>
+          <div className="text-center text-xs text-[var(--text-sub)] font-bold py-6">등록된 임무가 없습니다.</div>
         ) : (
           missions.map((m) => (
             <div key={m.id} className="py-3 flex items-center justify-between text-xs">
               <div>
-                <span className="text-white font-bold">{m.title}</span>
-                <span className="text-emerald-400 ml-2 font-semibold">(보상: {m.reward_item} {m.reward_count}개)</span>
+                <span className="text-[var(--text-main)] font-black">{m.title}</span>
+                <span className="text-emerald-400 ml-2 font-bold">(보상: {m.reward_item} {m.reward_count}개)</span>
               </div>
               <button
                 onClick={() => deleteMission(m.id)}

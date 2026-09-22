@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { supabase } from "../../../lib/supabase";
+import { supabase } from "@/lib/supabase";
 import ClassIcon from "@/components/common/ClassIcon";
 
 const CATEGORY_THEMES: Record<string, any> = {
@@ -82,7 +82,7 @@ const RANKING_INFO = {
   PIETAS: { en: 'PIETAS', kr: '피에타스', desc: '헌신과 공헌의 기록', sub: '대표 공헌도 랭킹', stat: '공헌도' },
 };
 
-const CLASS_GROUPS = [
+const DEFAULT_CLASS_GROUPS = [
   { name: '전사 계열', classes: ['전사', '대검전사', '검술사', '기사'] },
   { name: '마법사 계열', classes: ['마법사', '화염술사', '빙결술사', '전격술사'] },
   { name: '궁수 계열', classes: ['궁수', '장궁병', '석궁사수'] },
@@ -169,10 +169,20 @@ const generateLore = (title: string, rank: number, job: string, category: keyof 
 
   if (category === 'KRATOS') {
     const customLore = KRATOS_LORE[title];
-    if (customLore) { meaning = customLore.meaning; tribute = customLore.tribute; }
-    else { meaning = `끝없는 투지로 전장을 누비는 ${job}입니다.`; tribute = `성역을 위해 무기를 든 자랑스러운 전사.`; }
+    if (customLore) {
+      meaning = customLore.meaning;
+      tribute = customLore.tribute;
+    } else {
+      if (rank <= 3) {
+        meaning = `${job} 직업군에서 전적과 권능의 정점에 올라 '${title}' 칭호를 부여받은 영웅입니다.`;
+        tribute = `성역의 전장에서 ${job}의 드높은 명예와 의지를 증명한 승리자.`;
+      } else {
+        meaning = `끝없는 단련으로 ${job}의 길을 걷고 있는 성역의 굳건한 전사입니다.`;
+        tribute = `성역의 신뢰받는 동료이자 버팀목.`;
+      }
+    }
   } else {
-    meaning = LORE_DICTIONARY[title] || `${title}의 경지에 오른 자입니다.`;
+    meaning = LORE_DICTIONARY[title] || `${title}의 경지에 오른 위대한 자입니다.`;
     tribute = (TRIBUTE_MESSAGES as any)[category]?.[rank] || "꾸준한 노력과 의지로 성역의 발전에 이바지하는 자입니다.";
   }
 
@@ -194,6 +204,7 @@ interface Character {
 export default function PantheonView() {
   const [dbCharacters, setDbCharacters] = useState<Character[]>([]);
   const [classTitlesMap, setClassTitlesMap] = useState<Record<string, string[]>>(DEFAULT_CLASS_TITLES);
+  const [classGroups, setClassGroups] = useState<{ name: string; classes: string[] }[]>(DEFAULT_CLASS_GROUPS);
   const [activeRankTab, setActiveRankTab] = useState<keyof typeof RANKING_INFO>('TELOS');
   const [selectedClass, setSelectedClass] = useState<string>("전체"); 
   const [isClassFilterOpen, setIsClassFilterOpen] = useState(false);
@@ -221,11 +232,12 @@ export default function PantheonView() {
     try {
       const [charRes, classRes] = await Promise.all([
         supabase.from('characters').select('*'),
-        supabase.from('nexus_classes').select('name, titles')
+        supabase.from('nexus_classes').select('*')
       ]);
 
+      let mappedChars: Character[] = [];
       if (charRes.data && !charRes.error) {
-        const mappedData: Character[] = charRes.data.map((c: any) => ({
+        mappedChars = charRes.data.map((c: any) => ({
           id: c.nickname, name: c.nickname, owner: c.owner || c.nickname, job: c.job || '전사',
           combatPower: Number(c.combat_power) || 0, magicResist: Number(c.magic_resistance) || 0,
           lifePower: Number(c.life_energy) || 0, charm: Number(c.charm) || 0,
@@ -234,18 +246,57 @@ export default function PantheonView() {
           serverRankOverall: c.rankings?.[activeRankTab]?.overall ?? c.server_rank_overall ?? 0,
           serverRankDeian: c.rankings?.[activeRankTab]?.deian ?? c.server_rank_deian ?? 0
         }));
-        setDbCharacters(mappedData);
+        setDbCharacters(mappedChars);
       }
 
+      // 동적 칭호 및 클래스 그룹 병합 연산 (DB 우선 & Fallback)
+      const titleMap: Record<string, string[]> = { ...DEFAULT_CLASS_TITLES };
+      const groupMap: Record<string, string[]> = {};
+
+      DEFAULT_CLASS_GROUPS.forEach((g) => {
+        groupMap[g.name] = [...g.classes];
+      });
+
       if (classRes.data && !classRes.error) {
-        const titleMap = { ...DEFAULT_CLASS_TITLES };
         classRes.data.forEach((cls: any) => {
-          if (cls.name && Array.isArray(cls.titles) && cls.titles.length >= 4) {
+          if (!cls.name) return;
+
+          if (Array.isArray(cls.titles) && cls.titles.length > 0) {
             titleMap[cls.name] = cls.titles;
+          } else if (!titleMap[cls.name]) {
+            titleMap[cls.name] = [`${cls.name}신`, `${cls.name}왕`, `${cls.name}사`, cls.name];
+          }
+
+          const isGrouped = Object.values(groupMap).some((cList) => cList.includes(cls.name));
+          if (!isGrouped) {
+            const groupName = cls.group_name || cls.category || '신규 계열';
+            if (!groupMap[groupName]) groupMap[groupName] = [];
+            groupMap[groupName].push(cls.name);
           }
         });
-        setClassTitlesMap(titleMap);
       }
+
+      mappedChars.forEach((c) => {
+        if (c.job) {
+          if (!titleMap[c.job]) {
+            titleMap[c.job] = [`${c.job}신`, `${c.job}왕`, `${c.job}사`, c.job];
+          }
+          const isGrouped = Object.values(groupMap).some((cList) => cList.includes(c.job));
+          if (!isGrouped) {
+            const groupName = '신규 계열';
+            if (!groupMap[groupName]) groupMap[groupName] = [];
+            groupMap[groupName].push(c.job);
+          }
+        }
+      });
+
+      const updatedGroups = Object.keys(groupMap).map((gName) => ({
+        name: gName,
+        classes: groupMap[gName]
+      }));
+
+      setClassTitlesMap(titleMap);
+      setClassGroups(updatedGroups);
     } catch (err) {
       console.error("판테온 로딩 실패", err);
     }
@@ -346,10 +397,28 @@ export default function PantheonView() {
     pushIfTop3('PIETAS', TOP_TITLES.PIETAS);
 
     const kratosRank = [...dbCharacters].filter(c => c.job === char.job).sort((a,b) => b.combatPower - a.combatPower).findIndex(c => c.id === char.id);
-    const kTitles = classTitlesMap[char.job] || DEFAULT_CLASS_TITLES[char.job];
+    const kTitles = classTitlesMap[char.job] || DEFAULT_CLASS_TITLES[char.job] || [`${char.job}신`, `${char.job}왕`, `${char.job}사`, char.job];
+    
     if (kTitles) {
-      if(kratosRank >= 0 && kratosRank < 3) titles.push({ type: 'KRATOS', name: kTitles[kratosRank], rank: kratosRank + 1, theme: CATEGORY_THEMES.KRATOS });
-      else titles.push({ type: 'KRATOS', name: kTitles[3] || char.job, rank: 4, theme: { tags: ['bg-zinc-800/80 text-zinc-300 border-zinc-700 font-bold'], borders: ['border-zinc-700'], text: 'text-zinc-400' } });
+      if (kratosRank >= 0 && kratosRank < 3) {
+        titles.push({
+          type: 'KRATOS',
+          name: kTitles[kratosRank] || `${char.job} ${kratosRank + 1}위`,
+          rank: kratosRank + 1,
+          theme: CATEGORY_THEMES.KRATOS
+        });
+      } else {
+        titles.push({
+          type: 'KRATOS',
+          name: kTitles[3] || kTitles[kTitles.length - 1] || char.job,
+          rank: 4,
+          theme: {
+            tags: ['bg-zinc-800/80 text-zinc-300 border-zinc-700 font-bold dark:bg-zinc-800/80 dark:text-zinc-300 dark:border-zinc-700'],
+            borders: ['border-zinc-700'],
+            text: 'text-zinc-400'
+          }
+        });
+      }
     }
 
     pushIfTop3('TECHNE', TOP_TITLES.TECHNE);
@@ -473,7 +542,7 @@ export default function PantheonView() {
             )}
           </div>
           <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
-            {CLASS_GROUPS.map((group) => (
+            {classGroups.map((group) => (
               <div key={group.name} className="bg-[var(--inner-box)] p-2 rounded-lg border border-[var(--panel-border)] flex flex-col gap-1">
                 <div className="text-[0.6rem] font-black text-[var(--text-sub)] px-1 border-b border-[var(--panel-border)] pb-1 mb-0.5">
                   {group.name}

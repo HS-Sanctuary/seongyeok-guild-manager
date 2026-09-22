@@ -30,42 +30,44 @@ export default function GnosisAdminTab() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="border-b border-zinc-800 pb-4">
-        <h2 className="text-xl font-bold text-[#e6c788]">📖 그노시스 공략 게시판 제어</h2>
-        <p className="text-xs text-zinc-400 mt-1">길드원 공유 공략글 상단 고정 및 삭제 권한을 관리합니다.</p>
+    <div className="space-y-5">
+      <div className="border-b border-[var(--panel-border)] pb-3">
+        <h2 className="text-lg font-black text-[var(--accent)]">📖 그노시스 공략 게시판 제어</h2>
+        <p className="text-xs text-[var(--text-sub)] font-medium mt-0.5">길드원 공유 공략글 상단 고정 및 삭제 권한을 관리합니다.</p>
       </div>
 
-      <div className="bg-[#252528] rounded-xl border border-zinc-700 p-4 divide-y divide-zinc-800">
+      <div className="bg-[var(--inner-box)] rounded-xl border border-[var(--panel-border)] p-4 divide-y divide-[var(--panel-border)]">
         {loading ? (
-          <div className="text-center text-xs text-zinc-500 py-6">공략글 로딩 중...</div>
+          <div className="text-center text-xs text-[var(--text-sub)] font-bold py-6">공략글 로딩 중...</div>
         ) : guides.length === 0 ? (
-          <div className="text-center text-xs text-zinc-500 py-6">등록된 그노시스 공략글이 없습니다.</div>
+          <div className="text-center text-xs text-[var(--text-sub)] font-bold py-6">등록된 그노시스 공략글이 없습니다.</div>
         ) : (
           guides.map((g) => (
             <div key={g.id} className="py-3 flex items-center justify-between gap-4 text-xs">
-              <div className="space-y-0.5">
+              <div className="space-y-0.5 min-w-0">
                 <div className="flex items-center gap-2">
-                  {g.is_pinned && <span className="bg-amber-500/20 text-amber-400 text-[10px] px-1.5 py-0.5 rounded font-bold">📌 고정</span>}
-                  <span className="text-white font-bold">{g.title}</span>
+                  {g.is_pinned && <span className="bg-amber-500/20 text-amber-300 text-[10px] px-1.5 py-0.5 rounded font-black border border-amber-500/30">📌 고정</span>}
+                  <span className="text-[var(--text-main)] font-black truncate">{g.title}</span>
                 </div>
-                <div className="text-zinc-500 text-[11px]">
+                <div className="text-[var(--text-sub)] text-[11px] font-bold">
                   작성자: {g.author} | 카테고리: {g.category || "일반"} | 조회수: {g.views || 0}
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 shrink-0">
                 <button
                   onClick={() => togglePin(g.id, g.is_pinned)}
-                  className={`px-2.5 py-1 rounded text-[11px] font-bold cursor-pointer transition ${
-                    g.is_pinned ? "bg-amber-950 text-amber-400 border border-amber-800" : "bg-zinc-800 text-zinc-400"
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-black cursor-pointer transition ${
+                    g.is_pinned 
+                      ? "bg-amber-500/20 text-amber-300 border border-amber-500/30" 
+                      : "bg-[var(--panel)] text-[var(--text-sub)] border border-[var(--panel-border)]"
                   }`}
                 >
                   {g.is_pinned ? "고정 해제" : "상단 고정"}
                 </button>
                 <button
                   onClick={() => deleteGuide(g.id)}
-                  className="bg-rose-950 text-rose-300 border border-rose-800 px-2.5 py-1 rounded text-[11px] font-bold hover:bg-rose-900 cursor-pointer transition"
+                  className="bg-rose-500/15 text-rose-400 border border-rose-500/30 px-2.5 py-1 rounded-lg text-[11px] font-bold hover:bg-rose-500/25 cursor-pointer transition"
                 >
                   삭제
                 </button>

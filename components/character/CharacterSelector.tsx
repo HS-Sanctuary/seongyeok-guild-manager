@@ -1,5 +1,6 @@
 "use client";
 
+import React, { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import ClassIcon from "@/components/common/ClassIcon";
 
@@ -32,6 +33,12 @@ export default function CharacterSelector({
 }: CharacterSelectorProps) {
   const router = useRouter();
 
+  // 🎯 DB에 등록된 활성화 클래스 필터링
+  const activeDbClasses = useMemo(() => {
+    if (!dbClasses || dbClasses.length === 0) return [];
+    return dbClasses.filter((cls: any) => cls.is_active ?? true);
+  }, [dbClasses]);
+
   return (
     <div className="space-y-2">
       {/* 캐릭터 헤더 프로필 */}
@@ -39,7 +46,7 @@ export default function CharacterSelector({
         
         {/* 좌측: 주클래스 SVG + 닉네임 + 직업 선택 드롭다운 */}
         <div className="flex items-center gap-2 min-w-0 flex-1">
-          {/* 🎨 팔레트 아이콘 대신 주클래스 SVG 동적 반영 */}
+          {/* 🎨 주클래스 SVG 동적 반영 및 Rank/Aura 이펙트 연동 */}
           <div className="w-9 h-9 md:w-10 md:h-10 bg-[var(--inner-box)] rounded-xl border border-[var(--panel-border)] flex items-center justify-center shrink-0 shadow-inner">
             <ClassIcon job={profile.job || "전사"} className="w-5 h-5 md:w-6 md:h-6" />
           </div>
@@ -56,31 +63,41 @@ export default function CharacterSelector({
                 {profile.alias || profile.nickname}
               </span>
 
-              {/* 직업 선택 드롭다운 (너비 초과 방지 max-w 설정) */}
+              {/* 🎯 nexus_classes DB 동적 직업 선택 드롭다운 */}
               <select
                 value={profile.job || "전사"}
                 onChange={(e) => updateProfile("job", e.target.value)}
                 className="text-[11px] sm:text-xs bg-[var(--inner-box)] border border-[var(--panel-border)] px-1 py-0.5 rounded font-bold text-[var(--accent)] outline-none cursor-pointer hover:border-[var(--accent)] shrink-0 max-w-[90px] sm:max-w-none truncate"
               >
-                {dbClasses.length > 0
-                  ? dbClasses.map((cls: any) => (
+                {activeDbClasses.length > 0 ? (
+                  <>
+                    {/* 🛡️ 현재 프로필 직업이 비활성화되었거나 DB에 없는 경우 방어적 렌더링 */}
+                    {!activeDbClasses.some((cls: any) => cls.name === profile.job) && profile.job && (
+                      <option value={profile.job} className="bg-[var(--panel)] text-amber-400 font-bold">
+                        {profile.job} (보존)
+                      </option>
+                    )}
+                    {activeDbClasses.map((cls: any) => (
                       <option
-                        key={cls.name}
+                        key={cls.id || cls.name}
                         value={cls.name}
-                        className="bg-[var(--panel)] text-[var(--text-main)]"
+                        className="bg-[var(--panel)] text-[var(--text-main)] font-bold"
                       >
                         {cls.name}
                       </option>
-                    ))
-                  : Object.keys(CLASS_TITLES).map((clsName) => (
-                      <option
-                        key={clsName}
-                        value={clsName}
-                        className="bg-[var(--panel)] text-[var(--text-main)]"
-                      >
-                        {clsName}
-                      </option>
                     ))}
+                  </>
+                ) : (
+                  Object.keys(CLASS_TITLES).map((clsName) => (
+                    <option
+                      key={clsName}
+                      value={clsName}
+                      className="bg-[var(--panel)] text-[var(--text-main)] font-bold"
+                    >
+                      {clsName}
+                    </option>
+                  ))
+                )}
               </select>
 
               {/* 대표 캐릭터 태그 */}
@@ -127,11 +144,11 @@ export default function CharacterSelector({
       {/* 칭호 펼침 아코디언 */}
       {isTitleAccordionOpen && (
         <div className="p-2 border rounded-lg border-[var(--panel-border)] bg-[var(--inner-box)] space-y-1 text-xs">
-          {earnedTitles.length > 0 ? (
+          {earnedTitles && earnedTitles.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-1.5">
               {earnedTitles.map((t) => (
                 <div
-                  key={t.type}
+                  key={t.type || t.name}
                   className={`text-xs font-black p-1.5 rounded border text-center truncate ${t.tagClass}`}
                 >
                   {t.name}

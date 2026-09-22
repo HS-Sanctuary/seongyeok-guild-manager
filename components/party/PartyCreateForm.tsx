@@ -46,6 +46,7 @@ interface PartyCreateFormProps {
   setShowBusCreateModal: (open: boolean) => void;
   selectedSubContents?: string[];
   setSelectedSubContents?: (val: string[]) => void;
+  dbClasses?: any[];
 }
 
 export default function PartyCreateForm({
@@ -72,6 +73,7 @@ export default function PartyCreateForm({
   setShowBusCreateModal,
   selectedSubContents = ["abyss_1", "abyss_2", "abyss_3"],
   setSelectedSubContents,
+  dbClasses = [],
 }: PartyCreateFormProps) {
 
   const toggleSubContent = (id: string) => {

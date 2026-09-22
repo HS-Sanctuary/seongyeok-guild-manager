@@ -45,31 +45,31 @@ export default function BannerAdminTab() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="border-b border-zinc-800 pb-4">
-        <h2 className="text-xl font-bold text-[#e6c788]">🚨 긴급 상단 공지 배너 제어</h2>
-        <p className="text-xs text-zinc-400 mt-1">플랫폼 메인 상단에 출현할 실시간 긴급 공지를 관리합니다.</p>
+    <div className="space-y-5">
+      <div className="border-b border-[var(--panel-border)] pb-3">
+        <h2 className="text-lg font-black text-[var(--accent)]">🚨 긴급 상단 공지 배너 제어</h2>
+        <p className="text-xs text-[var(--text-sub)] font-medium mt-0.5">플랫폼 메인 상단에 출현할 실시간 긴급 공지를 관리합니다.</p>
       </div>
 
-      <form onSubmit={handleAddBanner} className="bg-[#252528] p-4 rounded-xl border border-zinc-700 space-y-3">
+      <form onSubmit={handleAddBanner} className="bg-[var(--inner-box)] p-4 rounded-xl border border-[var(--panel-border)] space-y-3">
         <div>
-          <label className="block text-xs font-bold text-zinc-300 mb-1">공지 배너 문구</label>
+          <label className="block text-xs font-bold text-[var(--text-sub)] mb-1">공지 배너 문구</label>
           <input
             type="text"
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             placeholder="예: [긴급] 오늘 22:00 발할라 어비스 길드 버스 집결 예정"
-            className="w-full bg-[#121212] border border-zinc-700 text-white text-xs rounded-lg p-2.5 outline-none focus:border-[#e6c788]"
+            className="w-full bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-main)] text-xs rounded-xl p-2.5 outline-none focus:border-[var(--accent)] font-bold placeholder:[var(--text-sub)]"
           />
         </div>
 
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <span className="text-xs text-zinc-400">컬러 테마:</span>
+            <span className="text-xs text-[var(--text-sub)] font-bold">컬러 테마:</span>
             <select
               value={bgColor}
               onChange={(e) => setBgColor(e.target.value)}
-              className="bg-[#121212] border border-zinc-700 text-white text-xs rounded-lg p-1.5 outline-none"
+              className="bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-main)] text-xs rounded-lg p-1.5 outline-none font-bold cursor-pointer"
             >
               <option value="rose">🔴 긴급 (Rose)</option>
               <option value="amber">🟡 경고 (Amber)</option>
@@ -79,38 +79,40 @@ export default function BannerAdminTab() {
 
           <button
             type="submit"
-            className="bg-[#e6c788] hover:bg-[#d8b572] text-black font-bold text-xs px-4 py-2 rounded-lg transition cursor-pointer"
+            className="bg-[var(--accent)] hover:bg-[var(--accent)]/90 text-[var(--accent-fg)] font-black text-xs px-4 py-2 rounded-xl transition cursor-pointer shadow-md"
           >
             배너 송출하기
           </button>
         </div>
       </form>
 
-      <div className="bg-[#252528] rounded-xl border border-zinc-700 p-4 divide-y divide-zinc-800">
+      <div className="bg-[var(--inner-box)] rounded-xl border border-[var(--panel-border)] p-4 divide-y divide-[var(--panel-border)]">
         {loading ? (
-          <div className="text-center text-xs text-zinc-500 py-6">로딩 중...</div>
+          <div className="text-center text-xs text-[var(--text-sub)] font-bold py-6">로딩 중...</div>
         ) : banners.length === 0 ? (
-          <div className="text-center text-xs text-zinc-500 py-6">등록된 배너가 없습니다.</div>
+          <div className="text-center text-xs text-[var(--text-sub)] font-bold py-6">등록된 배너가 없습니다.</div>
         ) : (
           banners.map((b) => (
             <div key={b.id} className="py-3 flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <span className={`w-2.5 h-2.5 rounded-full ${b.is_active ? "bg-emerald-500 animate-ping" : "bg-zinc-600"}`} />
-                <span className="text-xs font-bold text-white">{b.message}</span>
+              <div className="flex items-center gap-3 min-w-0">
+                <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${b.is_active ? "bg-emerald-500 animate-ping" : "bg-[var(--panel-border)]"}`} />
+                <span className="text-xs font-bold text-[var(--text-main)] truncate">{b.message}</span>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 shrink-0">
                 <button
                   onClick={() => toggleBanner(b.id, b.is_active)}
-                  className={`px-3 py-1 rounded text-[11px] font-bold transition cursor-pointer ${
-                    b.is_active ? "bg-emerald-950 text-emerald-400 border border-emerald-800" : "bg-zinc-800 text-zinc-400"
+                  className={`px-3 py-1 rounded-lg text-[11px] font-black transition cursor-pointer ${
+                    b.is_active 
+                      ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" 
+                      : "bg-[var(--panel)] text-[var(--text-sub)] border border-[var(--panel-border)]"
                   }`}
                 >
                   {b.is_active ? "송출 중" : "비활성"}
                 </button>
                 <button
                   onClick={() => deleteBanner(b.id)}
-                  className="bg-rose-950 text-rose-300 border border-rose-800 px-2.5 py-1 rounded text-[11px] font-bold cursor-pointer hover:bg-rose-900 transition"
+                  className="bg-rose-500/15 text-rose-400 border border-rose-500/30 px-2.5 py-1 rounded-lg text-[11px] font-bold cursor-pointer hover:bg-rose-500/25 transition"
                 >
                   삭제
                 </button>

@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useState, useEffect } from "react";
 import PartyCreateForm from "@/components/party/PartyCreateForm";
 import PartyFilterHeader from "@/components/party/PartyFilterHeader";
 import PartyCard from "@/components/party/PartyCard";
@@ -9,9 +9,30 @@ import PartyModals from "@/components/party/PartyModals";
 import GuildBusJoinModal from "@/components/party/GuildBusJoinModal";
 import { getDayOfWeekKorean } from "@/lib/partyDateUtils";
 import { usePartyManager } from "@/hooks/usePartyManager";
+import { supabase } from "@/lib/supabase";
 
 function SynaxisContent() {
   const partyManager = usePartyManager();
+  const [dbClasses, setDbClasses] = useState<any[]>([]);
+
+  // 🎯 nexus_classes DB 동적 실시간 수집
+  useEffect(() => {
+    const fetchClasses = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("nexus_classes")
+          .select("*")
+          .order("id", { ascending: true });
+        if (error) throw error;
+        if (data) {
+          setDbClasses(data.filter((c: any) => c.is_active ?? true));
+        }
+      } catch (err) {
+        console.error("nexus_classes DB 로딩 실패:", err);
+      }
+    };
+    fetchClasses();
+  }, []);
 
   if (!partyManager.mounted) return null;
 
@@ -136,6 +157,7 @@ function SynaxisContent() {
               setShowBusCreateModal={partyManager.openBusCreateModal}
               selectedSubContents={partyManager.selectedSubContents}
               setSelectedSubContents={partyManager.setSelectedSubContents}
+              dbClasses={dbClasses}
             />
           </div>
 
@@ -154,6 +176,7 @@ function SynaxisContent() {
                 datePartyCounts={partyManager.datePartyCounts}
                 partySearchTerm={partyManager.partySearchTerm}
                 statusFilter={partyManager.statusFilter}
+                dbClasses={dbClasses}
               />
 
               <div className="space-y-5 min-w-0">
@@ -347,6 +370,7 @@ function SynaxisContent() {
         setTempSubContents={partyManager.setTempSubContents}
         busSelectedSubContents={partyManager.busSelectedSubContents}
         setBusSelectedSubContents={partyManager.setBusSelectedSubContents}
+        dbClasses={dbClasses}
       />
 
       <style dangerouslySetInnerHTML={{__html: `

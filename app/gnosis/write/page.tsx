@@ -2,16 +2,29 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
+import ClassIcon from "@/components/common/ClassIcon";
 
-const JOB_ICONS: Record<string, string> = {
-  전사: "⚔️", 대검전사: "🗡️", 검술사: "🤺", 기사: "🛡️",
-  마법사: "🪄", 화염술사: "🔥", 빙결술사: "❄️", 전격술사: "⚡",
-  궁수: "🏹", 장궁병: "🎯", 석궁사수: "🏹",
-  힐러: "💖", 사제: "🕊️", 수도사: "🙏", 암흑술사: "🌑",
-  음유시인: "🎵", 댄서: "💃", 악사: "🎸",
-  도적: "🥷", 격투가: "🥊", 듀얼블레이드: "⚔️",
-  "전체 지식": "🌐", "기타 지식": "📦", "악보 지식": "🎵",
-  "채집": "🌿", "가공": "⚙️", "제작": "🔨", "데코": "🏡", "마이홈": "🏠"
+const DEFAULT_CLASS_GROUPS = [
+  { name: "전사 계열", classes: ["전사", "대검전사", "검술사", "기사"] },
+  { name: "마법사 계열", classes: ["마법사", "화염술사", "빙결술사", "전격술사"] },
+  { name: "궁수 계열", classes: ["궁수", "장궁병", "석궁사수"] },
+  { name: "힐러 계열", classes: ["힐러", "사제", "수도사", "암흑술사"] },
+  { name: "음유시인 계열", classes: ["음유시인", "댄서", "악사"] },
+  { name: "도적 계열", classes: ["도적", "격투가", "듀얼블레이드"] }
+];
+
+const LIFE_KNOWLEDGE = ["채집", "가공", "제작", "데코", "마이홈"];
+
+const EXTRA_ICONS: Record<string, string> = {
+  "전체 지식": "🌐",
+  "기타 지식": "📦",
+  "악보 지식": "🎵",
+  "채집": "🌿",
+  "가공": "⚙️",
+  "제작": "🔨",
+  "데코": "🏡",
+  "마이홈": "🏠"
 };
 
 export default function GnosisWritePage() {
@@ -21,6 +34,10 @@ export default function GnosisWritePage() {
   const [category, setCategory] = useState("전사"); 
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const pickerRef = useRef<HTMLDivElement>(null);
+
+  // DB 기반 동적 클래스 그룹
+  const [classGroups, setClassGroups] = useState<{ name: string; classes: string[] }[]>(DEFAULT_CLASS_GROUPS);
+  const [allClassNames, setAllClassNames] = useState<string[]>([]);
   
   const [useYoutube, setUseYoutube] = useState(false);
   const [useFashion, setUseFashion] = useState(false);
@@ -32,6 +49,48 @@ export default function GnosisWritePage() {
 
   const [hideMedia, setHideMedia] = useState(false);
   const [useSpoiler, setUseSpoiler] = useState(false);
+
+  useEffect(() => {
+    fetchDynamicClasses();
+  }, []);
+
+  const fetchDynamicClasses = async () => {
+    try {
+      const { data, error } = await supabase.from('nexus_classes').select('*');
+      const groupMap: Record<string, string[]> = {};
+
+      DEFAULT_CLASS_GROUPS.forEach(g => {
+        groupMap[g.name] = [...g.classes];
+      });
+
+      const classSet = new Set<string>();
+      DEFAULT_CLASS_GROUPS.forEach(g => g.classes.forEach(c => classSet.add(c)));
+
+      if (data && !error) {
+        data.forEach((cls: any) => {
+          if (!cls.name) return;
+          classSet.add(cls.name);
+
+          const isAlreadyGrouped = Object.values(groupMap).some(list => list.includes(cls.name));
+          if (!isAlreadyGrouped) {
+            const groupName = cls.group_name || cls.category || "신규 계열";
+            if (!groupMap[groupName]) groupMap[groupName] = [];
+            groupMap[groupName].push(cls.name);
+          }
+        });
+      }
+
+      const updatedGroups = Object.keys(groupMap).map(gName => ({
+        name: gName,
+        classes: groupMap[gName]
+      }));
+
+      setClassGroups(updatedGroups);
+      setAllClassNames(Array.from(classSet));
+    } catch (err) {
+      console.error("작성 에디터 클래스 로딩 실패", err);
+    }
+  };
 
   // 외부 클릭 시 카테고리 팝업 닫기
   useEffect(() => {
@@ -52,7 +111,7 @@ export default function GnosisWritePage() {
     return (match && match[2].length === 11) ? match[2] : null;
   };
 
-  // 패션 시뮬레이터 AI 붙여넣기 (500 에러 방어 가드 포함)
+  // 패션 시뮬레이터 AI 붙여넣기
   const handlePaste = async (e: React.ClipboardEvent) => {
     const items = e.clipboardData.items;
     for (let i = 0; i < items.length; i++) {
@@ -120,80 +179,91 @@ export default function GnosisWritePage() {
     router.push('/gnosis'); 
   };
 
-  const isFashionBoard = category.includes("코디") || category.includes("염색") || category.includes("패션");
+  const renderCategoryIcon = (catName: string) => {
+    if (allClassNames.includes(catName) || DEFAULT_CLASS_GROUPS.some(g => g.classes.includes(catName))) {
+      return <ClassIcon job={catName} kratosClassRank={0} size="sm" />;
+    }
+    return <span>{EXTRA_ICONS[catName] || "📂"}</span>;
+  };
 
   return (
-    <main className="min-h-screen bg-[#121212] text-[#d4d4d8] font-sans pb-20 pt-8">
-      <div className="max-w-[1000px] mx-auto p-4 md:p-8 space-y-6">
+    <main className="min-h-screen bg-[var(--background)] text-[var(--foreground)] font-sans pb-20 pt-6 transition-colors duration-200">
+      <div className="max-w-[1000px] mx-auto p-4 sm:p-6 space-y-4">
         
         {/* 헤더 배너 */}
-        <header className="relative overflow-hidden rounded-xl bg-gradient-to-br from-[#1c1c1e] via-[#151515] to-[#1a1a1c] border border-zinc-800 py-4 px-6 shadow-xl mb-4">
-          <div className="absolute top-0 left-0 w-1.5 h-full bg-[#e6c788]"></div>
-          <h1 className="text-2xl font-black text-white flex items-center gap-3"><span>✍️</span> 새 지식 기록하기</h1>
-          <div className="text-[12px] font-bold text-zinc-400 mt-2 space-y-0.5">
+        <header className="relative overflow-hidden rounded-2xl bg-[var(--panel)] border border-[var(--panel-border)] py-4 px-6 shadow-xl mb-2">
+          <div className="absolute top-0 left-0 w-1.5 h-full bg-[var(--accent)] shadow-[0_0_15px_var(--accent)]"></div>
+          <h1 className="text-2xl font-black text-[var(--text-main)] flex items-center gap-3">
+            <span>✍️</span> 새 지식 기록하기
+          </h1>
+          <div className="text-[12px] font-bold text-[var(--text-sub)] mt-1.5 space-y-0.5">
             <p>고대 그리스어로 ‘지식’과 ‘깨달음’을 뜻하는 말입니다.</p>
-            <p className="text-[#e6c788]">성역의 경험과 지혜가 모여 새로운 길을 밝히는 공간입니다.</p>
+            <p className="text-[var(--accent)] font-black">성역의 경험과 지혜가 모여 새로운 길을 밝히는 공간입니다.</p>
           </div>
         </header>
 
-        <div className="bg-[#1c1c1e] rounded-lg border border-zinc-700 overflow-hidden shadow-2xl">
-          <div className="bg-[#252528] flex flex-col border-b border-zinc-800">
+        {/* 에디터 메인 폼 박스 */}
+        <div className="bg-[var(--panel)] rounded-2xl border border-[var(--panel-border)] overflow-hidden shadow-2xl">
+          <div className="bg-[var(--inner-box)] flex flex-col border-b border-[var(--panel-border)]">
             
-            {/* 🟢 독립 게시판 및 계층형 카테고리 선택 UI */}
-            <div ref={pickerRef} className="relative border-b border-zinc-800">
+            {/* 독립 카테고리 피커 드롭다운 팝업 */}
+            <div ref={pickerRef} className="relative border-b border-[var(--panel-border)]">
               <button 
                 type="button"
                 onClick={() => setShowCategoryPicker(!showCategoryPicker)}
-                className="w-full text-left bg-[#1c1c1e] text-white text-sm font-bold px-4 py-4 focus:outline-none flex justify-between items-center hover:bg-[#252528] transition"
+                className="w-full text-left bg-[var(--panel)] text-[var(--text-main)] text-xs sm:text-sm font-black px-4 py-3.5 focus:outline-none flex justify-between items-center hover:bg-[var(--inner-box)] transition cursor-pointer"
               >
                 <span className="flex items-center gap-2">
-                  <span>{JOB_ICONS[category] || "📂"}</span>
-                  <span>{category}</span>
+                  {renderCategoryIcon(category)}
+                  <span>카테고리: [{category}]</span>
                 </span>
-                <span className={`text-xs transition-transform ${showCategoryPicker ? 'rotate-180 text-[#e6c788]' : ''}`}>▼</span>
+                <span className={`text-xs transition-transform ${showCategoryPicker ? 'rotate-180 text-[var(--accent)]' : ''}`}>▼</span>
               </button>
               
               {showCategoryPicker && (
-                <div className="absolute top-full left-0 w-full bg-[#1c1c1e] border border-zinc-700 shadow-2xl z-50 p-5 max-h-[420px] overflow-y-auto custom-scrollbar space-y-4">
+                <div className="absolute top-full left-0 w-full bg-[var(--panel)] border border-[var(--panel-border)] shadow-2xl z-50 p-4 max-h-[420px] overflow-y-auto custom-scrollbar space-y-4 rounded-b-2xl">
                   
-                  {/* 1. 상단 독립 게시판 (전체, 기타, 악보) */}
-                  <div className="grid grid-cols-3 gap-2 pb-3 border-b border-zinc-800">
+                  {/* 1. 독립 게시판 카테고리 */}
+                  <div className="grid grid-cols-3 gap-2 pb-3 border-b border-[var(--panel-border)]">
                     {["전체 지식", "기타 지식", "악보 지식"].map((board) => (
                       <button
                         key={board}
                         type="button"
                         onClick={() => { setCategory(board); setShowCategoryPicker(false); }}
-                        className={`text-xs font-black p-2.5 rounded-xl border transition flex items-center justify-center gap-1.5 ${category === board ? 'bg-[#e6c788] text-black border-[#e6c788]' : 'bg-[#151515] text-zinc-300 border-zinc-800 hover:bg-zinc-800'}`}
+                        className={`text-xs font-black p-2.5 rounded-xl border transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                          category === board 
+                            ? 'bg-[var(--accent)] text-[var(--accent-fg)] border-transparent shadow-md' 
+                            : 'bg-[var(--inner-box)] text-[var(--text-main)] border-[var(--panel-border)] hover:border-[var(--accent)]'
+                        }`}
                       >
-                        <span>{JOB_ICONS[board]}</span>
+                        <span>{EXTRA_ICONS[board]}</span>
                         <span>{board}</span>
                       </button>
                     ))}
                   </div>
 
-                  {/* 2. 클래스 지식 계열별 분류 */}
-                  <div className="space-y-3 bg-[#151515] p-3.5 rounded-xl border border-zinc-800">
-                    <h4 className="text-xs font-black text-[#e6c788] uppercase tracking-wider border-b border-zinc-800 pb-1.5">⚔️ 클래스 지식</h4>
+                  {/* 2. 클래스 지식 계열별 분류 (DB 동적 연동) */}
+                  <div className="space-y-3 bg-[var(--inner-box)] p-3.5 rounded-xl border border-[var(--panel-border)]">
+                    <h4 className="text-xs font-black text-[var(--accent)] uppercase tracking-wider border-b border-[var(--panel-border)] pb-1.5 flex items-center gap-1.5">
+                      <span>⚔️</span> 클래스 지식 (DB 연동)
+                    </h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {[
-                        { group: "전사 계열", jobs: ["전사", "대검전사", "검술사", "기사"] },
-                        { group: "마법사 계열", jobs: ["마법사", "화염술사", "빙결술사", "전격술사"] },
-                        { group: "궁수 계열", jobs: ["궁수", "장궁병", "석궁사수"] },
-                        { group: "힐러 계열", jobs: ["힐러", "사제", "수도사", "암흑술사"] },
-                        { group: "음유시인 계열", jobs: ["음유시인", "댄서", "악사"] },
-                        { group: "도적 계열", jobs: ["도적", "격투가", "듀얼블레이드"] }
-                      ].map(({ group, jobs }) => (
-                        <div key={group} className="space-y-1">
-                          <p className="text-[11px] text-zinc-500 font-bold">{group}</p>
+                      {classGroups.map(({ name: groupName, classes }) => (
+                        <div key={groupName} className="space-y-1">
+                          <p className="text-[11px] text-[var(--text-sub)] font-bold">{groupName}</p>
                           <div className="flex flex-wrap gap-1">
-                            {jobs.map(job => (
+                            {classes.map(job => (
                               <button 
                                 key={job} 
                                 type="button"
                                 onClick={() => { setCategory(job); setShowCategoryPicker(false); }} 
-                                className={`text-[11px] font-bold px-2 py-1 rounded transition flex items-center gap-1 ${category === job ? 'bg-[#e6c788] text-black' : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'}`}
+                                className={`text-[11px] font-black px-2 py-1 rounded-lg transition flex items-center gap-1 cursor-pointer border ${
+                                  category === job 
+                                    ? 'bg-[var(--accent)] text-[var(--accent-fg)] border-transparent shadow-md' 
+                                    : 'bg-[var(--panel)] text-[var(--text-sub)] border-[var(--panel-border)] hover:text-[var(--text-main)] hover:border-[var(--accent)]'
+                                }`}
                               >
-                                <span>{JOB_ICONS[job]}</span>
+                                <ClassIcon job={job} kratosClassRank={0} size="xs" />
                                 <span>{job}</span>
                               </button>
                             ))}
@@ -204,17 +274,23 @@ export default function GnosisWritePage() {
                   </div>
 
                   {/* 3. 생활 지식 분류 */}
-                  <div className="space-y-3 bg-[#151515] p-3.5 rounded-xl border border-zinc-800">
-                    <h4 className="text-xs font-black text-[#e6c788] uppercase tracking-wider border-b border-zinc-800 pb-1.5">🌿 생활 지식</h4>
+                  <div className="space-y-2 bg-[var(--inner-box)] p-3.5 rounded-xl border border-[var(--panel-border)]">
+                    <h4 className="text-xs font-black text-[var(--accent)] uppercase tracking-wider border-b border-[var(--panel-border)] pb-1.5 flex items-center gap-1.5">
+                      <span>🌿</span> 생활 지식
+                    </h4>
                     <div className="flex flex-wrap gap-1.5">
-                      {["채집", "가공", "제작", "데코", "마이홈"].map(item => (
+                      {LIFE_KNOWLEDGE.map(item => (
                         <button 
                           key={item} 
                           type="button"
                           onClick={() => { setCategory(item); setShowCategoryPicker(false); }} 
-                          className={`text-xs font-bold px-3 py-1.5 rounded transition flex items-center gap-1.5 ${category === item ? 'bg-[#e6c788] text-black' : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'}`}
+                          className={`text-xs font-black px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 cursor-pointer border ${
+                            category === item 
+                              ? 'bg-[var(--accent)] text-[var(--accent-fg)] border-transparent shadow-md' 
+                              : 'bg-[var(--panel)] text-[var(--text-sub)] border-[var(--panel-border)] hover:text-[var(--text-main)]'
+                          }`}
                         >
-                          <span>{JOB_ICONS[item]}</span>
+                          <span>{EXTRA_ICONS[item]}</span>
                           <span>{item}</span>
                         </button>
                       ))}
@@ -225,39 +301,55 @@ export default function GnosisWritePage() {
               )}
             </div>
             
-            <input type="text" placeholder="제목" value={title} onChange={(e) => setTitle(e.target.value)} className="bg-[#1c1c1e] text-white text-sm px-4 py-3 border-b border-zinc-800 focus:outline-none" />
+            {/* 제목 입력란 */}
+            <input 
+              type="text" 
+              placeholder="제목을 입력해 주세요..." 
+              value={title} 
+              onChange={(e) => setTitle(e.target.value)} 
+              className="bg-[var(--panel)] text-[var(--text-main)] font-black text-sm px-4 py-3 border-b border-[var(--panel-border)] focus:outline-none placeholder:[var(--text-sub)]/60" 
+            />
 
-            <div className="flex items-center gap-4 px-4 py-2 bg-[#252528] text-zinc-400 text-sm overflow-x-auto custom-scrollbar">
-              <div className="flex gap-3 font-serif">
-                <button type="button" className="hover:text-white font-bold">B</button>
-                <button type="button" className="hover:text-white italic">i</button>
-                <button type="button" className="hover:text-white underline">U</button>
-                <button type="button" className="hover:text-white line-through">S</button>
+            {/* 툴바 서식 바 */}
+            <div className="flex items-center gap-4 px-4 py-2 bg-[var(--inner-box)] text-[var(--text-sub)] text-xs overflow-x-auto custom-scrollbar">
+              <div className="flex gap-3 font-serif font-black">
+                <button type="button" className="hover:text-[var(--accent)]">B</button>
+                <button type="button" className="hover:text-[var(--accent)] italic">i</button>
+                <button type="button" className="hover:text-[var(--accent)] underline">U</button>
+                <button type="button" className="hover:text-[var(--accent)] line-through">S</button>
               </div>
-              <div className="w-px h-4 bg-zinc-600"></div>
-              <div className="flex gap-3 text-lg">
-                <button type="button" className="hover:text-white">🙂</button>
+              <div className="w-px h-3.5 bg-[var(--panel-border)]"></div>
+              <div className="flex gap-3 text-sm">
+                <button type="button" className="hover:text-[var(--accent)]">🙂</button>
               </div>
             </div>
           </div>
 
-          <div className="bg-[#1c1c1e] p-4 flex gap-4 border-b border-zinc-800">
+          {/* 옵션 체크박스 바 */}
+          <div className="bg-[var(--panel)] p-3.5 flex flex-wrap gap-4 border-b border-[var(--panel-border)]">
             <label className="flex items-center gap-2 cursor-pointer">
               <input type="checkbox" checked={useYoutube} onChange={(e) => setUseYoutube(e.target.checked)} className="accent-red-500 w-4 h-4" />
-              <span className="text-xs font-bold text-zinc-300">유튜브 링크 추가</span>
+              <span className="text-xs font-black text-[var(--text-main)]">유튜브 링크 추가</span>
             </label>
             
             <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" checked={useFashion} onChange={(e) => setUseFashion(e.target.checked)} className="accent-[#e6c788] w-4 h-4" />
-              <span className="text-xs font-bold text-zinc-300">패션 시뮬레이터 적용</span>
-              <span className="text-[10px] text-zinc-500">(스크린샷을 붙여넣으면 색상이 자동 스캔됩니다)</span>
+              <input type="checkbox" checked={useFashion} onChange={(e) => setUseFashion(e.target.checked)} className="accent-[var(--accent)] w-4 h-4" />
+              <span className="text-xs font-black text-[var(--text-main)]">패션 시뮬레이터 적용</span>
+              <span className="text-[10px] text-[var(--text-sub)] hidden sm:inline">(스크린샷을 붙여넣으면 색상이 자동 스캔됩니다)</span>
             </label>
           </div>
 
+          {/* 유튜브 링크 입력창 */}
           {useYoutube && (
-            <div className="px-4 py-3 bg-[#151515] border-b border-zinc-800 flex gap-2 items-center">
-              <span className="text-red-500">▶</span>
-              <input type="text" placeholder="유튜브 링크 URL을 입력하세요" value={youtubeLink} onChange={e => setYoutubeLink(e.target.value)} className="bg-transparent w-full text-xs text-white outline-none" />
+            <div className="px-4 py-3 bg-[var(--inner-box)] border-b border-[var(--panel-border)] flex gap-2 items-center">
+              <span className="text-red-500 font-bold">▶</span>
+              <input 
+                type="text" 
+                placeholder="유튜브 링크 URL을 입력하세요 (예: https://www.youtube.com/watch?v=...)" 
+                value={youtubeLink} 
+                onChange={e => setYoutubeLink(e.target.value)} 
+                className="bg-transparent w-full text-xs font-bold text-[var(--text-main)] outline-none placeholder:[var(--text-sub)]/60" 
+              />
             </div>
           )}
 
@@ -265,65 +357,79 @@ export default function GnosisWritePage() {
           {useFashion && (
             <div 
               onPaste={handlePaste} 
-              className={`m-4 border-2 border-dashed rounded-xl p-6 text-center transition ${isAnalyzing ? 'border-purple-500 bg-purple-900/10' : itemData ? 'border-emerald-500 bg-emerald-900/10' : 'border-zinc-700 hover:border-[#e6c788] bg-[#1a1a1c]'}`}
+              className={`m-4 border-2 border-dashed rounded-xl p-5 text-center transition ${
+                isAnalyzing 
+                  ? 'border-purple-500 bg-purple-900/10' 
+                  : itemData 
+                  ? 'border-emerald-500 bg-emerald-900/10' 
+                  : 'border-[var(--panel-border)] hover:border-[var(--accent)] bg-[var(--inner-box)]'
+              }`}
             >
               {isAnalyzing ? (
                 <div className="flex flex-col items-center animate-pulse">
-                  <span className="text-3xl mb-2">🤖</span>
-                  <p className="text-xs font-bold text-purple-400">AI가 이미지를 읽고 파기하는 중입니다...</p>
+                  <span className="text-2xl mb-1">🤖</span>
+                  <p className="text-xs font-black text-purple-400">AI가 이미지를 스캔하고 분석하는 중입니다...</p>
                 </div>
               ) : itemData ? (
                 <div className="flex flex-col items-center">
-                  <span className="text-3xl mb-2">✅</span>
-                  <p className="text-xs font-bold text-emerald-400">아이템 정보가 0KB로 스캔되었습니다!</p>
-                  <p className="text-[10px] text-zinc-500 mt-1">[{itemData.rarity}] {itemData.itemName} / 염색 {itemData.dyeParts?.length || 0}파트</p>
+                  <span className="text-2xl mb-1">✅</span>
+                  <p className="text-xs font-black text-emerald-400">아이템 정보 추출 완료!</p>
+                  <p className="text-[10px] text-[var(--text-sub)] mt-0.5">[{itemData.rarity}] {itemData.itemName} / 염색 {itemData.dyeParts?.length || 0}파트</p>
                 </div>
               ) : (
-                <div className="flex flex-col items-center opacity-70">
-                  <span className="text-3xl mb-2">📸</span>
-                  <p className="text-xs font-bold text-white mb-1">여기를 클릭한 후 인게임 스크린샷 붙여넣기 (Ctrl+V)</p>
-                  <p className="text-[10px] text-zinc-400">이미지는 서버에 저장되지 않고 AI가 정보만 추출합니다.</p>
+                <div className="flex flex-col items-center opacity-80">
+                  <span className="text-2xl mb-1">📸</span>
+                  <p className="text-xs font-black text-[var(--text-main)] mb-0.5">여기를 클릭한 후 인게임 스크린샷 붙여넣기 (Ctrl+V)</p>
+                  <p className="text-[10px] text-[var(--text-sub)]">이미지는 저장되지 않으며 AI가 염색 파트 정보만 자동 스캔합니다.</p>
                 </div>
               )}
             </div>
           )}
 
-          <div className="relative border-b border-zinc-800">
+          {/* 본문 에디터 텍스트 영역 */}
+          <div className="relative border-b border-[var(--panel-border)]">
             {!content && (
-              <div className="absolute top-4 left-4 right-4 pointer-events-none space-y-1 text-[11px] md:text-xs text-zinc-600 font-medium">
-                <p>- 이미지나 동영상 혹은 파일 등은 데이터베이스 관리 목적상 업로드가 불가능합니다. 양해 부탁드립니다.</p>
-                <p>- 잘못된 정보나 문제가 될 만한 내용을 다루는 게시물은 엄격히 금지합니다.</p>
-                <p>- 발견하신다면 어떤 방법으로든 길드 마스터 및 부 마스터에게 제보 부탁드립니다.</p>
-                <p>- 청결한 생텀 사용을 권장드립니다.</p>
+              <div className="absolute top-4 left-4 right-4 pointer-events-none space-y-1 text-[11px] sm:text-xs text-[var(--text-sub)] font-medium leading-relaxed">
+                <p>- 공략 및 공유용 텍스트 및 정보를 자유롭게 작성해 주세요.</p>
+                <p>- 잘못된 정보나 문제가 될 만한 내용을 다루는 게시물은 금지됩니다.</p>
+                <p>- 신규 직업 및 가이드는 성역 길드원 전체에게 큰 도움이 됩니다.</p>
               </div>
             )}
             <textarea 
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              className="w-full h-80 bg-transparent text-white p-4 text-sm focus:outline-none resize-none relative z-10 custom-scrollbar"
+              className="w-full h-80 bg-transparent text-[var(--text-main)] p-4 text-xs sm:text-sm font-medium focus:outline-none resize-none relative z-10 custom-scrollbar leading-relaxed"
             />
           </div>
 
-          <div className="bg-[#252528] divide-y divide-zinc-800">
+          {/* 추가 보안 옵션 */}
+          <div className="bg-[var(--inner-box)] divide-y divide-[var(--panel-border)]">
             <label className="flex items-center gap-2 p-3 cursor-pointer group">
-              <input type="checkbox" checked={hideMedia} onChange={e => setHideMedia(e.target.checked)} className="accent-zinc-500 bg-zinc-800 w-4 h-4" />
-              <span className="text-xs text-zinc-400 group-hover:text-zinc-200">미디어 미리보기를 숨기시겠습니까?</span>
+              <input type="checkbox" checked={hideMedia} onChange={e => setHideMedia(e.target.checked)} className="accent-[var(--accent)] w-4 h-4" />
+              <span className="text-xs text-[var(--text-sub)] group-hover:text-[var(--text-main)] font-bold">미디어 미리보기를 숨기시겠습니까?</span>
             </label>
             <label className="flex items-center gap-2 p-3 cursor-pointer group">
-              <input type="checkbox" checked={useSpoiler} onChange={e => setUseSpoiler(e.target.checked)} className="accent-zinc-500 bg-zinc-800 w-4 h-4" />
-              <span className="text-xs text-zinc-400 group-hover:text-zinc-200">스포일러 방지</span>
+              <input type="checkbox" checked={useSpoiler} onChange={e => setUseSpoiler(e.target.checked)} className="accent-[var(--accent)] w-4 h-4" />
+              <span className="text-xs text-[var(--text-sub)] group-hover:text-[var(--text-main)] font-bold">스포일러 방지 적용</span>
             </label>
           </div>
         </div>
 
+        {/* 하단 버튼 그룹 */}
         <div className="flex justify-between items-center mt-4">
-          <div className="flex items-center gap-3">
-            <button type="button" className="text-xs font-bold text-zinc-400 bg-[#1c1c1e] border border-zinc-700 px-4 py-2.5 rounded">임시 저장 0/5</button>
-          </div>
-          <div className="flex gap-2">
-            <button type="button" onClick={handleSubmit} className="text-xs font-black text-[#121212] bg-[#e6c788] hover:bg-yellow-500 px-6 py-2.5 rounded transition shadow-lg">작성 완료</button>
-          </div>
+          <button type="button" className="text-xs font-bold text-[var(--text-sub)] bg-[var(--panel)] border border-[var(--panel-border)] px-4 py-2.5 rounded-xl">
+            임시 저장 (로컬)
+          </button>
+          
+          <button 
+            type="button" 
+            onClick={handleSubmit} 
+            className="text-xs sm:text-sm font-black text-[var(--accent-fg)] bg-[var(--accent)] hover:bg-[var(--accent)]/90 px-6 py-2.5 rounded-xl transition shadow-md cursor-pointer"
+          >
+            작성 완료 ✨
+          </button>
         </div>
+
       </div>
     </main>
   );

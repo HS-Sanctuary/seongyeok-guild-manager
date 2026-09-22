@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useMemo } from "react";
 
 interface CharacterManageModalProps {
   isOpen: boolean;
@@ -24,12 +24,18 @@ export default function CharacterManageModal({
   const [isHowToOpen, setIsHowToOpen] = useState(false);
   const dragItemIndex = useRef<number | null>(null);
 
+  // 🎯 DB에 등록된 활성 클래스 목록 필터링 (is_active: true)
+  const activeDbClasses = useMemo(() => {
+    if (!dbClasses || dbClasses.length === 0) return [];
+    return dbClasses.filter((cls: any) => cls.is_active ?? true);
+  }, [dbClasses]);
+
   if (!isOpen) return null;
 
-  // DB에 등록된 클래스 중 첫 번째 직업을 기본값으로 동적 채택
+  // DB에 등록된 첫 번째 활성 직업을 기본값으로 채택
   const defaultJob =
-    dbClasses && dbClasses.length > 0
-      ? dbClasses[0].name
+    activeDbClasses.length > 0
+      ? activeDbClasses[0].name
       : Object.keys(CLASS_TITLES)[0] || "전사";
 
   const addManageCharacter = () => {
@@ -150,7 +156,7 @@ export default function CharacterManageModal({
                     className="flex-1 min-w-[48px] bg-[var(--panel)] border border-[var(--panel-border)] rounded px-1 py-1 text-[11px] text-[var(--text-main)] focus:border-[var(--accent)] outline-none font-medium"
                   />
 
-                  {/* nexus_classes DB 실시간 연동 직업 셀렉트 박스 */}
+                  {/* 🎯 nexus_classes DB 실시간 연동 동적 직업 셀렉트 박스 */}
                   <select
                     value={char.tempJob}
                     onChange={(e) => {
@@ -160,8 +166,15 @@ export default function CharacterManageModal({
                     }}
                     className="w-[72px] sm:w-24 bg-zinc-900 text-zinc-100 border border-zinc-700 rounded px-1 py-1 text-[10px] sm:text-xs font-bold outline-none focus:border-[var(--accent)] shrink-0 cursor-pointer"
                   >
-                    {dbClasses && dbClasses.length > 0
-                      ? dbClasses.map((cls: any) => (
+                    {activeDbClasses.length > 0 ? (
+                      <>
+                        {/* 🛡️ 기존 직업이 비활성화되었거나 목록에 없을 경우 방어적 옵션 표시 */}
+                        {!activeDbClasses.some((cls: any) => cls.name === char.tempJob) && char.tempJob && (
+                          <option value={char.tempJob} className="bg-zinc-900 text-amber-400 font-bold">
+                            {char.tempJob} (보존)
+                          </option>
+                        )}
+                        {activeDbClasses.map((cls: any) => (
                           <option
                             key={cls.id || cls.name}
                             value={cls.name}
@@ -169,16 +182,19 @@ export default function CharacterManageModal({
                           >
                             {cls.name}
                           </option>
-                        ))
-                      : Object.keys(CLASS_TITLES).map((clsName) => (
-                          <option
-                            key={clsName}
-                            value={clsName}
-                            className="bg-zinc-900 text-zinc-100 font-bold"
-                          >
-                            {clsName}
-                          </option>
                         ))}
+                      </>
+                    ) : (
+                      Object.keys(CLASS_TITLES).map((clsName) => (
+                        <option
+                          key={clsName}
+                          value={clsName}
+                          className="bg-zinc-900 text-zinc-100 font-bold"
+                        >
+                          {clsName}
+                        </option>
+                      ))
+                    )}
                   </select>
 
                   <button
