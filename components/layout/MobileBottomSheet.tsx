@@ -6,7 +6,6 @@ import { NavItem } from '../../types/layout';
 interface MobileBottomSheetProps {
   fabPosition: { x: number };
   handlePointerDown: (e: React.PointerEvent<HTMLDivElement>) => void;
-  handleHomeClick: () => void;
   handleMenuClick: (e: React.MouseEvent) => void;
   isFabOpen: boolean;
   setIsFabOpen: (val: boolean) => void;
@@ -21,7 +20,6 @@ interface MobileBottomSheetProps {
 export default function MobileBottomSheet({
   fabPosition,
   handlePointerDown,
-  handleHomeClick,
   handleMenuClick,
   isFabOpen,
   setIsFabOpen,
@@ -34,40 +32,80 @@ export default function MobileBottomSheet({
 }: MobileBottomSheetProps) {
   return (
     <>
-      {/* FAB 버튼 */}
+      {/* 이동 가능한 성역 메뉴 호출 버튼 */}
       <div
-        className="lg:hidden fixed bottom-6 z-[10000] flex items-center rounded-full shadow-[0_0_15px_rgba(0,0,0,0.7)] border-[1.5px] cursor-grab active:cursor-grabbing select-none bg-[var(--panel)] border-[var(--accent)] touch-none"
+        className="xl:hidden fixed bottom-5 z-[10000] flex items-center cursor-grab active:cursor-grabbing select-none touch-none"
         style={{ right: `${fabPosition.x}px` }}
         onPointerDown={handlePointerDown}
       >
-        <button onClick={handleHomeClick} className="w-[2.2rem] h-[2.2rem] flex items-center justify-center rounded-l-full transition-colors border-r border-[var(--panel-border)] hover:bg-[var(--panel-hover)] cursor-pointer">
-          <svg className="w-3.5 h-3.5 drop-shadow-sm text-[var(--accent)]" viewBox="0 0 24 24" fill="currentColor">
-             <path d="M12 1L15.39 8.26L23 9.27L17.5 14.14L18.81 21.02L12 17.77L5.19 21.02L6.5 14.14L1 9.27L8.61 8.26L12 1Z" />
-          </svg>
-        </button>
-        <button onClick={handleMenuClick} className="w-[2.2rem] h-[2.2rem] flex items-center justify-center rounded-r-full transition-colors relative hover:bg-[var(--panel-hover)] cursor-pointer">
-          {isFabOpen ? (
-            <svg className="w-4 h-4 text-[var(--text-main)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
-          ) : (
-            <svg className="w-4 h-4 text-[var(--text-main)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 6h16M4 12h16M4 18h16"></path></svg>
-          )}
+        <button
+          type="button"
+          onClick={handleMenuClick}
+          className="relative isolate w-[4.75rem] h-[2.7rem] flex items-center justify-center cursor-pointer"
+          title="성역 메뉴 열기"
+          aria-label={isFabOpen ? '성역 메뉴 닫기' : '성역 메뉴 열기'}
+          aria-expanded={isFabOpen}
+        >
+          <span
+            aria-hidden="true"
+            className="absolute -inset-2 -z-10 rounded-full opacity-[0.14] blur-[0.5px] animate-[spin_18s_linear_infinite]"
+            style={{
+              background: 'repeating-conic-gradient(from 4deg at 50% 50%, transparent 0deg 10deg, var(--text-main) 10.4deg 11.15deg, transparent 11.7deg 24deg)',
+              maskImage: 'radial-gradient(circle at center, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.75) 22%, rgba(0,0,0,0.18) 58%, transparent 76%)',
+              WebkitMaskImage: 'radial-gradient(circle at center, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.75) 22%, rgba(0,0,0,0.18) 58%, transparent 76%)',
+            }}
+          />
+          <span
+            aria-hidden="true"
+            className="absolute -inset-1 -z-10 rounded-full opacity-[0.1] blur-[2px] animate-[pulse_4s_ease-in-out_infinite]"
+            style={{
+              background: 'radial-gradient(circle at center, var(--text-main) 0%, color-mix(in srgb, var(--text-main) 45%, transparent) 13%, transparent 60%)',
+            }}
+          />
+          <span
+            aria-hidden="true"
+            className="absolute h-8 w-14 bg-[var(--accent)] opacity-20 blur-md animate-[pulse_3s_ease-in-out_infinite]"
+            style={{
+              maskImage: "url('/svgs/logo/생텀타이포로고.svg')",
+              WebkitMaskImage: "url('/svgs/logo/생텀타이포로고.svg')",
+              maskRepeat: 'no-repeat',
+              WebkitMaskRepeat: 'no-repeat',
+              maskPosition: 'center',
+              WebkitMaskPosition: 'center',
+              maskSize: 'contain',
+              WebkitMaskSize: 'contain',
+            }}
+          />
+          <span
+            className="relative h-8 w-14 bg-[var(--accent)] drop-shadow-[0_0_4px_var(--accent)] transition-transform duration-300 hover:scale-105"
+            style={{
+              maskImage: "url('/svgs/logo/생텀타이포로고.svg')",
+              WebkitMaskImage: "url('/svgs/logo/생텀타이포로고.svg')",
+              maskRepeat: 'no-repeat',
+              WebkitMaskRepeat: 'no-repeat',
+              maskPosition: 'center',
+              WebkitMaskPosition: 'center',
+              maskSize: 'contain',
+              WebkitMaskSize: 'contain',
+            }}
+          />
         </button>
       </div>
 
       {/* 🚀 바텀시트 백드롭 (Dimmed Overlay) */}
       <div 
         onClick={() => setIsFabOpen(false)}
-        className={`lg:hidden fixed inset-0 z-[9998] bg-black/60 backdrop-blur-xs transition-opacity duration-300 ${
+        className={`xl:hidden fixed inset-0 z-[9998] bg-black/60 backdrop-blur-xs transition-opacity duration-300 ${
           isFabOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
         }`}
       />
 
       {/* 모바일 뷰 바텀 메뉴 */}
       <div
-        className={`fixed inset-x-0 bottom-0 z-[9999] lg:hidden border-t-2 rounded-t-[28px] p-4 shadow-2xl flex flex-col bg-[var(--panel)] text-[var(--text-main)] border-[var(--accent)] ${
+        className={`fixed inset-x-5 sm:inset-x-8 bottom-0 z-[9999] xl:hidden max-w-[56rem] mx-auto border-2 border-b-0 rounded-t-[28px] p-4 shadow-2xl flex flex-col bg-[var(--panel)] text-[var(--text-main)] border-[var(--accent)] ${
           isDraggingSheet ? '' : 'transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]'
         }`}
-        style={{ transform: isFabOpen ? `translateY(${sheetDragY}px)` : 'translateY(100%)' }}
+        style={{ transform: isFabOpen ? `translateY(${sheetDragY}px)` : 'translateY(calc(100% + 1rem))' }}
       >
         <div onPointerDown={handleSheetDragStart} className="w-full py-2.5 flex items-center justify-center cursor-grab active:cursor-grabbing touch-none select-none" title="아래로 쓸어내려 닫기">
           <div className="w-12 h-1.5 bg-[var(--text-sub)] rounded-full opacity-60 hover:opacity-100 transition-opacity" />
@@ -105,6 +143,21 @@ export default function MobileBottomSheet({
                 </Link>
               );
             })}
+            <Link
+              href="/"
+              onClick={() => setIsFabOpen(false)}
+              className={`relative overflow-hidden flex flex-col justify-center px-4 py-3.5 rounded-xl border transition-all group ${
+                pathname === '/'
+                  ? 'bg-[var(--panel-hover)] border-l-[3px] border-l-[var(--accent)] shadow-sm'
+                  : 'bg-[var(--inner-box)] border-[var(--panel-border)] hover:border-[var(--accent)]/50'
+              }`}
+            >
+              <span className="absolute right-2 -bottom-1 text-[1.3rem] sm:text-[1.5rem] font-black italic tracking-tighter opacity-15 select-none pointer-events-none text-[var(--accent)] group-hover:opacity-25 transition-opacity">
+                SANCTUM
+              </span>
+              <span className="relative z-10 font-black text-[0.75rem] tracking-wide leading-tight whitespace-nowrap text-[var(--accent)]">생텀</span>
+              <span className="relative z-10 text-[0.55rem] font-bold mt-1 whitespace-nowrap text-[var(--text-sub)]">홈으로 이동</span>
+            </Link>
           </div>
         </div>
       </div>

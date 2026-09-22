@@ -120,14 +120,18 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const { data, error } = await supabase
-        .from("accounts")
-        .select("*")
-        .eq("nickname", trimmedNickname)
-        .eq("code", code.trim())
-        .single();
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nickname: trimmedNickname, code: code.trim() }),
+      });
+      const result = await response.json().catch(() => ({}));
 
-      if (error || !data) {
+      if (!response.ok || !result.account) {
+        if (response.status === 403) {
+          alert(result.message || "현재 가입 승인 대기 중인 계정입니다.");
+          return;
+        }
         const nextFail = failCount + 1;
         setFailCount(nextFail);
         if (nextFail >= 5) {
@@ -141,20 +145,13 @@ export default function LoginPage() {
         return;
       }
 
-      // 🛡️ 가입 승인 대기 검증
-      if (data.role === "승인대기" || data.status === "승인대기" || data.status === "pending") {
-        alert("⏳ 현재 가입 승인 대기 중인 계정입니다.\n길드마스터(한설) 또는 관리자의 승인 완료 후 접속 가능합니다!");
-        setLoading(false);
-        return;
-      }
-
       if (keepLoggedIn) {
         localStorage.setItem("sanctum_keep_logged_in", "true");
       } else {
         localStorage.removeItem("sanctum_keep_logged_in");
       }
 
-      executeLoginSuccess(data.nickname, data.role || "길드원");
+      executeLoginSuccess(result.account.id, result.account.nickname, result.account.role || "길드원");
     } catch (err) {
       console.error(err);
       alert("로그인 처리 중 오류가 발생했습니다.");
@@ -183,34 +180,15 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const { data: existingUser } = await supabase
-        .from("accounts")
-        .select("id")
-        .eq("nickname", cleanNick)
-        .maybeSingle();
+      // 1) accounts 신규 등록: 접속 코드 평문은 브라우저에서 DB로 직접 저장하지 않는다.
+      const { data: newAccounts, error: joinError } = await supabase.rpc("sanctum_request_join", {
+        input_nickname: cleanNick,
+        input_code: finalCode,
+      });
+      const newAcc = newAccounts?.[0];
 
-      if (existingUser) {
-        alert("이미 생텀에 등록된 대표 캐릭터 닉네임입니다. 기존 계정 접속을 이용해주세요!");
-        setLoading(false);
-        return;
-      }
-
-      // 1) accounts 신규 등록 (status: '승인대기', role: '승인대기')
-      const { data: newAcc, error: insertErr } = await supabase
-        .from("accounts")
-        .insert([
-          {
-            nickname: cleanNick,
-            code: finalCode,
-            role: "승인대기",
-            status: "승인대기",
-          },
-        ])
-        .select()
-        .single();
-
-      if (insertErr || !newAcc) {
-        throw insertErr;
+      if (joinError || !newAcc) {
+        throw joinError || new Error("가입 신청 계정을 만들지 못했습니다.");
       }
 
       // 2) 대표 캐릭터 정보 characters 테이블에 인서트
@@ -248,8 +226,7 @@ export default function LoginPage() {
     }
   };
 
-  const executeLoginSuccess = (userNick: string, userRole: string) => {
-    const accountId = `acc_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  const executeLoginSuccess = (accountId: string, userNick: string, userRole: string) => {
     const userTheme = "aureum";
     const userBorderColor = "#E6C788";
 

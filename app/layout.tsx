@@ -356,81 +356,55 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     return () => window.removeEventListener('resize', handleResizeAndFont);
   }, [fontSizeLevel, mounted]);
 
-  // DB에서 최신 권한 정보를 실시간 동기화하는 로직 추가
-  const syncAccountRoleWithDB = async (accList: AccountPreset[]) => {
+  // 역할과 로그인 여부는 localStorage가 아니라 HttpOnly 서버 세션에서만 확정한다.
+  const loadAccounts = async () => {
     try {
-      const { data: dbAccounts, error } = await supabase
-        .from('accounts')
-        .select('nickname, role');
-
-      if (!error && dbAccounts) {
-        const roleMap = new Map(dbAccounts.map(a => [a.nickname, a.role]));
-
-        const updatedAccounts = accList.map(acc => {
-          const latestRole = roleMap.get(acc.nickname);
-          if (latestRole && latestRole !== acc.role) {
-            return { ...acc, role: latestRole };
-          }
-          return acc;
-        });
-
-        setAccounts(updatedAccounts);
-        localStorage.setItem("sanctum_accounts", JSON.stringify(updatedAccounts));
-
-        const savedActiveId = localStorage.getItem("sanctum_active_account_id");
-        const current = updatedAccounts.find(a => a.id === savedActiveId) || updatedAccounts[0];
-        
-        if (current) {
-          setActiveAccount(current);
-          localStorage.setItem("nexus_user", JSON.stringify({ 
-            nickname: current.nickname, 
-            alias: current.alias, 
-            role: current.role,
-            borderColor: current.borderColor,
-            theme: current.theme 
-          }));
-        }
-      }
-    } catch (err) {
-      console.error("DB Role Sync Error:", err);
-    }
-  };
-
-  const loadAccounts = () => {
-    try {
-      const oldUser = localStorage.getItem("nexus_user");
       const savedAccounts = localStorage.getItem("sanctum_accounts");
-      const savedActiveId = localStorage.getItem("sanctum_active_account_id");
-
       let parsedAccounts: AccountPreset[] = [];
       if (savedAccounts) {
         try { parsedAccounts = JSON.parse(savedAccounts); } catch (e) {}
       }
 
-      if ((!parsedAccounts || parsedAccounts.length === 0) && oldUser) {
-        const parsedOld = JSON.parse(oldUser);
-        parsedAccounts = [{
-          id: 'default-id',
-          nickname: parsedOld.nickname || "한설",
-          role: parsedOld.role || "마스터",
-          alias: parsedOld.alias || parsedOld.nickname || "한설이네",
-          borderColor: parsedOld.borderColor || "#E6C788",
-          theme: parsedOld.theme || "aureum"
-        }];
-        localStorage.setItem("sanctum_accounts", JSON.stringify(parsedAccounts));
-        localStorage.setItem("sanctum_active_account_id", parsedAccounts[0].id);
+      const response = await fetch("/api/auth/session", { cache: "no-store" });
+      const result = await response.json().catch(() => ({ account: null }));
+      const dbAccount = result.account as { id: string; nickname: string; role: string } | null;
+
+      if (!dbAccount) {
+        setAccounts([]);
+        setActiveAccount(null);
+        localStorage.removeItem("nexus_user");
+        localStorage.removeItem("sanctum_accounts");
+        localStorage.removeItem("sanctum_active_account_id");
+        return;
       }
 
-      setAccounts(parsedAccounts);
-      if (parsedAccounts.length > 0) {
-        const current = parsedAccounts.find(a => a.id === savedActiveId) || parsedAccounts[0];
-        setActiveAccount(current);
-        setTempTheme(current.theme || 'aureum');
-        
-        // Supabase DB와 권한 실시간 동기화 수행
-        syncAccountRoleWithDB(parsedAccounts);
-      }
-    } catch (e) {}
+      const savedAppearance = parsedAccounts.find((account) => account.nickname === dbAccount.nickname);
+      const current: AccountPreset = {
+        id: dbAccount.id,
+        nickname: dbAccount.nickname,
+        role: dbAccount.role || "길드원",
+        alias: savedAppearance?.alias || dbAccount.nickname,
+        borderColor: savedAppearance?.borderColor || "#E6C788",
+        theme: savedAppearance?.theme || "aureum",
+      };
+
+      setAccounts([current]);
+      setActiveAccount(current);
+      setTempTheme(current.theme || "aureum");
+      localStorage.setItem("sanctum_accounts", JSON.stringify([current]));
+      localStorage.setItem("sanctum_active_account_id", current.id);
+      localStorage.setItem("nexus_user", JSON.stringify({
+        nickname: current.nickname,
+        alias: current.alias,
+        role: current.role,
+        borderColor: current.borderColor,
+        theme: current.theme,
+      }));
+    } catch (e) {
+      console.error("SANCTUM session load error:", e);
+      setAccounts([]);
+      setActiveAccount(null);
+    }
   };
 
   const switchAccount = (acc: AccountPreset) => {
@@ -500,12 +474,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     window.addEventListener('pointerup', onPointerUp);
   };
 
-  const handleHomeClick = () => {
-    if (hasMoved.current) return;
-    router.push('/');
-    setIsFabOpen(false);
-  };
-
   const handleMenuClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (hasMoved.current) return;
@@ -568,23 +536,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     fetchBanner();
   }, []);
 
-  const handleLogout = () => {
-    if (!activeAccount) return;
-    const remaining = accounts.filter(a => a.id !== activeAccount.id);
-    setAccounts(remaining);
-    localStorage.setItem("sanctum_accounts", JSON.stringify(remaining));
-
-    if (remaining.length > 0) {
-      switchAccount(remaining[0]);
-    } else {
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } finally {
+      setAccounts([]);
       setActiveAccount(null);
       localStorage.removeItem("nexus_user");
+      localStorage.removeItem("sanctum_accounts");
       localStorage.removeItem("sanctum_active_account_id");
       router.push("/login");
     }
   };
 
-  const isAdmin = !!activeAccount;
+  const isAdmin = ["길드마스터", "부마스터", "부마스터 대행"].includes(activeAccount?.role || "");
   const isLoginPage = pathname === '/login';
 
   return (
@@ -624,7 +589,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <MobileBottomSheet
               fabPosition={fabPosition}
               handlePointerDown={handlePointerDown}
-              handleHomeClick={handleHomeClick}
               handleMenuClick={handleMenuClick}
               isFabOpen={isFabOpen}
               setIsFabOpen={setIsFabOpen}

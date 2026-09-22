@@ -1,7 +1,12 @@
 "use client";
 
 import Link from 'next/link';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { NavItem, AccountPreset } from '../../types/layout';
+import NotificationInbox from './NotificationInbox';
+import SpiritWingsMenu from './SpiritWingsMenu';
+import { useNoticeNotifications } from '@/hooks/useNoticeNotifications';
 
 interface NavbarProps {
   headerRef: React.RefObject<HTMLElement | null>;
@@ -46,6 +51,18 @@ export default function Navbar({
   pendingCount,
   handleLogout
 }: NavbarProps) {
+  const router = useRouter();
+  const [isNotificationInboxOpen, setIsNotificationInboxOpen] = useState(false);
+  const {
+    browserPermission,
+    isLoaded: isNotificationsLoaded,
+    markAllAsRead,
+    markAsRead,
+    notifications,
+    readIds,
+    requestBrowserPermission,
+    unreadCount,
+  } = useNoticeNotifications(activeAccount?.nickname, activeAccount?.role);
 
   // 5단계 권한에 따른 가변 아이콘 렌더링 유틸
   const getRoleIcon = (role?: string) => {
@@ -88,18 +105,18 @@ export default function Navbar({
       )}
 
       <div className="max-w-[1600px] mx-auto px-3 xl:px-4 w-full relative">
-        <div className="flex items-center justify-between min-h-[3.5rem] sm:min-h-[4rem] py-1.5 sm:py-2">
+        <div className="flex items-center gap-2 xl:gap-3 min-h-[3.5rem] sm:min-h-[4rem] py-1.5 sm:py-2">
           
           {/* 🟢 담백하고 임팩트 있는 SANCTUM 메인 타이포 SVG 로고 (캡슐 배경 제거 & 클릭 시 홈 이동) */}
-          <div className="flex items-center gap-2 xl:gap-3 shrink-0">
+          <div className="flex items-center shrink-0 w-auto">
             <Link 
               href="/" 
-              className="group relative flex items-center justify-center py-1 transition-all duration-200 shrink-0 select-none cursor-pointer"
+              className="group relative flex w-auto items-center gap-2 rounded-xl py-1.5 pr-1.5 transition-all duration-200 shrink-0 select-none cursor-pointer hover:bg-[var(--accent)]/8"
               title="SANCTUM 메인 홈으로 이동"
             >
-              {/* 전역 테마 동기화 CSS Mask 타이포 로고 */}
+              {/* SVG의 800:520 비율을 유지해 문양이 잘리지 않게 표시한다. */}
               <div 
-                className="h-8 sm:h-9.5 w-36 sm:w-44 bg-[var(--accent)] transition-all duration-300 drop-shadow-[0_0_10px_var(--accent)] group-hover:drop-shadow-[0_0_16px_var(--accent)] group-hover:scale-105 active:scale-95"
+                className="h-10 sm:h-11 w-[3.9rem] sm:w-[4.3rem] shrink-0 bg-[var(--accent)] transition-all duration-300 drop-shadow-[0_0_8px_var(--accent)] group-hover:drop-shadow-[0_0_14px_var(--accent)] group-hover:scale-105 active:scale-95"
                 style={{
                   maskImage: `url('/svgs/logo/생텀타이포로고.svg')`,
                   WebkitMaskImage: `url('/svgs/logo/생텀타이포로고.svg')`,
@@ -111,10 +128,14 @@ export default function Navbar({
                   WebkitMaskSize: 'contain',
                 }}
               />
+              <span className="hidden sm:flex min-w-0 flex-col leading-none">
+                <strong className="text-[0.8rem] tracking-[0.14em] font-black text-[var(--text-main)]">SANCTUM</strong>
+                <span className="mt-1 text-[0.52rem] tracking-[0.08em] font-bold text-[var(--accent)]">성역 길드 전용 플랫폼</span>
+              </span>
             </Link>
 
             {/* 정령의 날개 버튼 */}
-            <div className="relative z-[100] ml-0.5 xl:ml-1 shrink-0" ref={wingsRef}>
+            <div className="hidden" aria-hidden="true">
               <button 
                 onClick={() => setIsWingsOpen(!isWingsOpen)}
                 className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-xl border transition-all duration-200 hover:scale-110 active:scale-95 bg-[var(--inner-box)] border-[var(--panel-border)] hover:border-[var(--accent)] shadow-sm text-base sm:text-lg select-none cursor-pointer"
@@ -178,20 +199,20 @@ export default function Navbar({
             </div>
           </div>
 
-          <div className="hidden lg:flex items-center space-x-0.5 xl:space-x-2">
+          <div className="hidden xl:flex flex-1 min-w-0 items-center justify-center gap-0.5 2xl:gap-1.5">
             {navItems.map((item) => {
               const isActive = pathname === item.path;
               return (
                 <Link
                   key={item.en}
                   href={item.path}
-                  className={`group relative flex items-center justify-center rounded-md transition-all overflow-hidden h-11 px-2 xl:px-3.5 shrink-0 ${
+                  className={`group relative flex items-center justify-center rounded-md transition-all overflow-hidden h-11 px-1.5 2xl:px-3 shrink-0 ${
                     isActive ? 'bg-[var(--panel-hover)] border-b-2 shadow-sm border-[var(--accent)]' : 'hover:bg-[var(--panel-hover)]/50'
                   }`}
                 >
                   <div className="flex flex-col items-center transition-transform duration-300 transform group-hover:-translate-y-12">
-                    <span className="font-black text-[0.68rem] xl:text-[0.75rem] leading-tight whitespace-nowrap text-[var(--text-main)]">{item.kr}</span>
-                    <span className="text-[0.52rem] xl:text-[0.55rem] font-bold mt-0.5 whitespace-nowrap text-[var(--accent)]">{item.sub}</span>
+                    <span className="font-black text-[0.67rem] 2xl:text-[0.75rem] leading-tight whitespace-nowrap text-[var(--text-main)]">{item.kr}</span>
+                    <span className="text-[0.5rem] 2xl:text-[0.55rem] font-bold mt-0.5 whitespace-nowrap text-[var(--accent)]">{item.sub}</span>
                   </div>
                   <div className="absolute inset-0 flex items-center justify-center transition-all duration-300 transform translate-y-12 opacity-0 group-hover:translate-y-0 group-hover:opacity-100">
                     <span className="font-black tracking-widest text-[0.62rem] xl:text-[0.7rem] whitespace-nowrap text-[var(--accent)]">{item.en}</span>
@@ -201,7 +222,12 @@ export default function Navbar({
             })}
           </div>
 
-          <div className="flex items-center gap-1.5 xl:gap-2.5 relative shrink-0">
+          <div className="ml-auto flex items-center gap-1.5 xl:gap-2 relative shrink-0">
+            <SpiritWingsMenu
+              isOpen={isWingsOpen}
+              menuRef={wingsRef}
+              setIsOpen={setIsWingsOpen}
+            />
             <button 
               onClick={() => setIsThemeModalOpen(true)}
               className="hidden sm:flex w-8 h-8 sm:w-9 sm:h-9 border rounded-xl transition cursor-pointer items-center justify-center shadow-sm border-[var(--panel-border)] hover:border-[var(--accent)] hover:scale-105 text-base select-none bg-[var(--inner-box)] shrink-0"
@@ -210,14 +236,23 @@ export default function Navbar({
               🎨
             </button>
 
-            <div 
-              className="flex w-8 h-8 sm:w-9 sm:h-9 border rounded-xl transition cursor-pointer items-center justify-center shadow-sm border-[var(--panel-border)] hover:border-[var(--accent)] hover:scale-105 text-[var(--accent)] bg-[var(--inner-box)] shrink-0" 
-              title="메일함"
-            >
-              <svg className="w-4 h-4 text-[var(--accent)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
-              </svg>
-            </div>
+            <NotificationInbox
+              browserPermission={browserPermission}
+              isOpen={isNotificationInboxOpen}
+              isLoaded={isNotificationsLoaded}
+              markAllAsRead={markAllAsRead}
+              markAsRead={markAsRead}
+              notifications={notifications}
+              onClose={() => setIsNotificationInboxOpen(false)}
+              onOpenNotice={(notification) => {
+                setIsNotificationInboxOpen(false);
+                if (notification.href) router.push(notification.href);
+              }}
+              onToggle={() => setIsNotificationInboxOpen((current) => !current)}
+              readIds={readIds}
+              requestBrowserPermission={requestBrowserPermission}
+              unreadCount={unreadCount}
+            />
 
             {mounted && activeAccount ? (
               <div className="relative shrink-0" ref={accountMenuRef}>

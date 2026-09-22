@@ -1,13 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { supabase } from "@/lib/supabase";
 
 interface AccountItem {
-  id?: string;
+  id: string;
   nickname: string;
-  code?: string;
-  entry_code?: string;
   role: string;
   status?: string;
   created_at?: string;
@@ -61,16 +58,14 @@ export default function AccountApprovalTab({ currentUser }: AccountApprovalTabPr
     setErrorMessage(null);
 
     try {
-      const { data, error } = await supabase
-        .from("accounts")
-        .select("*")
-        .order("created_at", { ascending: false });
+      const response = await fetch("/api/admin/accounts", { cache: "no-store" });
+      const result = await response.json().catch(() => ({}));
 
-      if (error) {
-        setErrorMessage(error.message || error.details || "Supabase 데이터베이스 연결 권한을 확인해주세요.");
+      if (!response.ok) {
+        setErrorMessage(result.message || "계정 목록을 불러올 권한이 없거나 연결에 실패했습니다.");
         setAccounts([]);
       } else {
-        setAccounts(data || []);
+        setAccounts(result.accounts || []);
       }
     } catch (err: any) {
       setErrorMessage(err?.message || "알 수 없는 네트워크 오류가 발생했습니다.");
@@ -89,12 +84,14 @@ export default function AccountApprovalTab({ currentUser }: AccountApprovalTabPr
 
     setUpdatingNickname(targetNickname);
     try {
-      const { error } = await supabase
-        .from("accounts")
-        .update({ role: "길드원", status: "승인" })
-        .eq("nickname", targetNickname);
+      const response = await fetch("/api/admin/accounts", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "approve", nickname: targetNickname }),
+      });
+      const result = await response.json().catch(() => ({}));
 
-      if (error) alert(`가입 승인 실패: ${error.message}`);
+      if (!response.ok) alert(`가입 승인 실패: ${result.message || "알 수 없는 오류"}`);
       else {
         setAccounts((prev) =>
           prev.map((acc) => (acc.nickname === targetNickname ? { ...acc, role: "길드원", status: "승인" } : acc))
@@ -115,9 +112,10 @@ export default function AccountApprovalTab({ currentUser }: AccountApprovalTabPr
 
     setUpdatingNickname(targetNickname);
     try {
-      const { error } = await supabase.from("accounts").delete().eq("nickname", targetNickname);
+      const response = await fetch(`/api/admin/accounts?nickname=${encodeURIComponent(targetNickname)}`, { method: "DELETE" });
+      const result = await response.json().catch(() => ({}));
 
-      if (error) alert(`${actionName} 실패: ${error.message}`);
+      if (!response.ok) alert(`${actionName} 실패: ${result.message || "알 수 없는 오류"}`);
       else setAccounts((prev) => prev.filter((acc) => acc.nickname !== targetNickname));
     } catch (err: any) {
       alert(`오류 발생: ${err.message}`);
@@ -142,19 +140,13 @@ export default function AccountApprovalTab({ currentUser }: AccountApprovalTabPr
 
       setUpdatingNickname(targetNickname);
       try {
-        const { error: targetErr } = await supabase
-          .from("accounts")
-          .update({ role: "길드마스터", status: "승인" })
-          .eq("nickname", targetNickname);
-
-        if (targetErr) throw targetErr;
-
-        if (currentUser?.nickname) {
-          await supabase
-            .from("accounts")
-            .update({ role: "부마스터", status: "승인" })
-            .eq("nickname", currentUser.nickname);
-        }
+        const response = await fetch("/api/admin/accounts", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "change_role", nickname: targetNickname, role: newRole }),
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(result.message || "권한 위임에 실패했습니다.");
 
         alert(`[${targetNickname}] 님에게 길드마스터 권한이 성공적으로 위임되었습니다.`);
         await fetchAccounts();
@@ -168,12 +160,14 @@ export default function AccountApprovalTab({ currentUser }: AccountApprovalTabPr
 
     setUpdatingNickname(targetNickname);
     try {
-      const { error } = await supabase
-        .from("accounts")
-        .update({ role: newRole, status: "승인" })
-        .eq("nickname", targetNickname);
+      const response = await fetch("/api/admin/accounts", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "change_role", nickname: targetNickname, role: newRole }),
+      });
+      const result = await response.json().catch(() => ({}));
 
-      if (error) alert(`직책 변경 실패: ${error.message}`);
+      if (!response.ok) alert(`직책 변경 실패: ${result.message || "알 수 없는 오류"}`);
       else {
         setAccounts((prev) =>
           prev.map((acc) => (acc.nickname === targetNickname ? { ...acc, role: newRole, status: "승인" } : acc))
@@ -275,8 +269,6 @@ export default function AccountApprovalTab({ currentUser }: AccountApprovalTabPr
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {joinRequests.map((acc) => {
-                const codeDisplay = acc.code || acc.entry_code || "코드 미발급";
-
                 return (
                   <div
                     key={acc.nickname}
@@ -289,9 +281,7 @@ export default function AccountApprovalTab({ currentUser }: AccountApprovalTabPr
                           승인 대기
                         </span>
                       </div>
-                      <p className="text-xs text-[var(--text-sub)] font-mono">
-                        입장 코드: <span className="text-[var(--accent)] font-bold">{codeDisplay}</span>
-                      </p>
+                      <p className="text-xs text-[var(--text-sub)]">접속 코드는 해시로 안전하게 보관됩니다.</p>
                     </div>
 
                     <div className="pt-2.5 border-t border-[var(--panel-border)] flex items-center gap-2">
@@ -388,9 +378,7 @@ export default function AccountApprovalTab({ currentUser }: AccountApprovalTabPr
                             {targetRole}
                           </span>
                         </div>
-                        <p className="text-xs text-[var(--text-sub)] font-mono">
-                          입장 코드: <span className="text-[var(--text-main)] font-bold">{acc.code || acc.entry_code || "없음"}</span>
-                        </p>
+                        <p className="text-xs text-[var(--text-sub)]">접속 코드는 관리자에게도 표시되지 않습니다.</p>
                       </div>
 
                       {isLocked && (
