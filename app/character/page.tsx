@@ -500,7 +500,7 @@ export default function CharacterPage() {
       if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
       toastTimerRef.current = setTimeout(() => {
         setSaveToast('idle');
-      }, 1000);
+      }, 2500);
 
     } catch (error) { 
       setSaveToast('error');
@@ -509,6 +509,7 @@ export default function CharacterPage() {
 
   useEffect(() => {
     if (isInitialLoad.current) return;
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     setSaveToast('saving');
     const timer = setTimeout(() => {
       saveProgress();
@@ -749,14 +750,10 @@ export default function CharacterPage() {
       
       {/* 토스트 알림 */}
       {saveToast !== 'idle' && (
-        <div className={`fixed top-4 right-4 z-[110] px-3.5 py-1.5 rounded-full border shadow-lg text-xs font-bold transition-all duration-300 flex items-center gap-1.5 backdrop-blur-md ${
-          saveToast === 'saving' ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 animate-pulse' :
-          saveToast === 'error' ? 'bg-rose-500/20 text-rose-300 border-rose-500/50' :
-          saveToast === 'reset_daily' ? 'bg-blue-500/30 text-blue-300 border-blue-400' :
-          saveToast === 'reset_weekly' ? 'bg-purple-500/30 text-purple-300 border-purple-400' :
-          'bg-emerald-500/20 text-emerald-300 border-emerald-500/50'
+        <div role="status" aria-live="polite" className={`fixed bottom-[5.5rem] md:bottom-6 left-1/2 -translate-x-1/2 z-[110] max-w-[calc(100vw-1rem)] px-3.5 py-2 rounded-lg border shadow-xl text-[0.75rem] font-bold flex items-center justify-center gap-1.5 text-center bg-[var(--panel)] text-[var(--text-main)] ${
+          saveToast === 'error' ? 'border-rose-500' : 'border-[var(--accent)]'
         }`}>
-          {saveToast === 'saving' ? '⏳ 저장 중...' : 
+          {saveToast === 'saving' ? '⏳ 저장 중… 완료 표시가 나온 뒤 새로고침해 주세요.' :
            saveToast === 'error' ? '⚠️ 저장 실패' : 
            saveToast === 'reset_daily' ? '☀️ 일일 컨텐츠 정보가 초기화 됐습니다.' :
            saveToast === 'reset_weekly' ? '🌙 모든 컨텐츠 정보가 초기화 되었습니다.' :
