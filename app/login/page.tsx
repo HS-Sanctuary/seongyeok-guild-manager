@@ -120,18 +120,15 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nickname: trimmedNickname, code: code.trim() }),
-      });
-      const result = await response.json().catch(() => ({}));
+      // 운영 DB에 서버 세션 마이그레이션을 적용하기 전까지 기존 계정 구조로 인증한다.
+      const { data, error } = await supabase
+        .from("accounts")
+        .select("id, nickname, role, status")
+        .eq("nickname", trimmedNickname)
+        .eq("code", code.trim())
+        .single();
 
-      if (!response.ok || !result.account) {
-        if (response.status === 403) {
-          alert(result.message || "현재 가입 승인 대기 중인 계정입니다.");
-          return;
-        }
+      if (error || !data) {
         const nextFail = failCount + 1;
         setFailCount(nextFail);
         if (nextFail >= 5) {
@@ -145,13 +142,18 @@ export default function LoginPage() {
         return;
       }
 
+      if (data.role === "승인대기" || data.status === "승인대기" || data.status === "pending") {
+        alert("현재 가입 승인 대기 중인 계정입니다. 운영진 승인 후 접속할 수 있습니다.");
+        return;
+      }
+
       if (keepLoggedIn) {
         localStorage.setItem("sanctum_keep_logged_in", "true");
       } else {
         localStorage.removeItem("sanctum_keep_logged_in");
       }
 
-      executeLoginSuccess(result.account.id, result.account.nickname, result.account.role || "길드원");
+      executeLoginSuccess(data.id, data.nickname, data.role || "길드원");
     } catch (err) {
       console.error(err);
       alert("로그인 처리 중 오류가 발생했습니다.");
@@ -180,15 +182,31 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // 1) accounts 신규 등록: 접속 코드 평문은 브라우저에서 DB로 직접 저장하지 않는다.
-      const { data: newAccounts, error: joinError } = await supabase.rpc("sanctum_request_join", {
-        input_nickname: cleanNick,
-        input_code: finalCode,
-      });
-      const newAcc = newAccounts?.[0];
+      const { data: existingUser } = await supabase
+        .from("accounts")
+        .select("id")
+        .eq("nickname", cleanNick)
+        .maybeSingle();
 
-      if (joinError || !newAcc) {
-        throw joinError || new Error("가입 신청 계정을 만들지 못했습니다.");
+      if (existingUser) {
+        alert("이미 생텀에 등록된 대표 캐릭터 닉네임입니다. 기존 계정 접속을 이용해주세요!");
+        return;
+      }
+
+      // 운영 DB 마이그레이션 전의 기존 가입 경로를 유지한다.
+      const { data: newAcc, error: insertErr } = await supabase
+        .from("accounts")
+        .insert([{
+          nickname: cleanNick,
+          code: finalCode,
+          role: "승인대기",
+          status: "승인대기",
+        }])
+        .select()
+        .single();
+
+      if (insertErr || !newAcc) {
+        throw insertErr || new Error("가입 신청 계정을 만들지 못했습니다.");
       }
 
       // 2) 대표 캐릭터 정보 characters 테이블에 인서트

@@ -356,54 +356,70 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     return () => window.removeEventListener('resize', handleResizeAndFont);
   }, [fontSizeLevel, mounted]);
 
-  // 역할과 로그인 여부는 localStorage가 아니라 HttpOnly 서버 세션에서만 확정한다.
-  const loadAccounts = async () => {
+  // 서버 세션 마이그레이션 전까지 저장된 계정을 복원하고 DB의 최신 역할만 동기화한다.
+  const syncAccountRoleWithDB = async (accList: AccountPreset[]) => {
     try {
+      const { data: dbAccounts, error } = await supabase.from('accounts').select('nickname, role');
+      if (!error && dbAccounts) {
+        const roleMap = new Map(dbAccounts.map(account => [account.nickname, account.role]));
+        const updatedAccounts = accList.map(account => ({
+          ...account,
+          role: roleMap.get(account.nickname) || account.role,
+        }));
+        setAccounts(updatedAccounts);
+        localStorage.setItem("sanctum_accounts", JSON.stringify(updatedAccounts));
+
+        const savedActiveId = localStorage.getItem("sanctum_active_account_id");
+        const current = updatedAccounts.find(account => account.id === savedActiveId) || updatedAccounts[0];
+        if (current) {
+          setActiveAccount(current);
+          localStorage.setItem("nexus_user", JSON.stringify({
+            nickname: current.nickname,
+            alias: current.alias,
+            role: current.role,
+            borderColor: current.borderColor,
+            theme: current.theme,
+          }));
+        }
+      }
+    } catch (error) {
+      console.error("DB Role Sync Error:", error);
+    }
+  };
+
+  const loadAccounts = () => {
+    try {
+      const oldUser = localStorage.getItem("nexus_user");
       const savedAccounts = localStorage.getItem("sanctum_accounts");
+      const savedActiveId = localStorage.getItem("sanctum_active_account_id");
       let parsedAccounts: AccountPreset[] = [];
       if (savedAccounts) {
-        try { parsedAccounts = JSON.parse(savedAccounts); } catch (e) {}
+        try { parsedAccounts = JSON.parse(savedAccounts); } catch (error) {}
       }
 
-      const response = await fetch("/api/auth/session", { cache: "no-store" });
-      const result = await response.json().catch(() => ({ account: null }));
-      const dbAccount = result.account as { id: string; nickname: string; role: string } | null;
-
-      if (!dbAccount) {
-        setAccounts([]);
-        setActiveAccount(null);
-        localStorage.removeItem("nexus_user");
-        localStorage.removeItem("sanctum_accounts");
-        localStorage.removeItem("sanctum_active_account_id");
-        return;
+      if (parsedAccounts.length === 0 && oldUser) {
+        const parsedOld = JSON.parse(oldUser);
+        parsedAccounts = [{
+          id: 'default-id',
+          nickname: parsedOld.nickname || "한설",
+          role: parsedOld.role || "길드원",
+          alias: parsedOld.alias || parsedOld.nickname || "한설이네",
+          borderColor: parsedOld.borderColor || "#E6C788",
+          theme: parsedOld.theme || "aureum",
+        }];
+        localStorage.setItem("sanctum_accounts", JSON.stringify(parsedAccounts));
+        localStorage.setItem("sanctum_active_account_id", parsedAccounts[0].id);
       }
 
-      const savedAppearance = parsedAccounts.find((account) => account.nickname === dbAccount.nickname);
-      const current: AccountPreset = {
-        id: dbAccount.id,
-        nickname: dbAccount.nickname,
-        role: dbAccount.role || "길드원",
-        alias: savedAppearance?.alias || dbAccount.nickname,
-        borderColor: savedAppearance?.borderColor || "#E6C788",
-        theme: savedAppearance?.theme || "aureum",
-      };
-
-      setAccounts([current]);
-      setActiveAccount(current);
-      setTempTheme(current.theme || "aureum");
-      localStorage.setItem("sanctum_accounts", JSON.stringify([current]));
-      localStorage.setItem("sanctum_active_account_id", current.id);
-      localStorage.setItem("nexus_user", JSON.stringify({
-        nickname: current.nickname,
-        alias: current.alias,
-        role: current.role,
-        borderColor: current.borderColor,
-        theme: current.theme,
-      }));
-    } catch (e) {
-      console.error("SANCTUM session load error:", e);
-      setAccounts([]);
-      setActiveAccount(null);
+      setAccounts(parsedAccounts);
+      if (parsedAccounts.length > 0) {
+        const current = parsedAccounts.find(account => account.id === savedActiveId) || parsedAccounts[0];
+        setActiveAccount(current);
+        setTempTheme(current.theme || 'aureum');
+        void syncAccountRoleWithDB(parsedAccounts);
+      }
+    } catch (error) {
+      console.error("Account load error:", error);
     }
   };
 
@@ -536,14 +552,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     fetchBanner();
   }, []);
 
-  const handleLogout = async () => {
-    try {
-      await fetch("/api/auth/logout", { method: "POST" });
-    } finally {
+  const handleLogout = () => {
+    if (!activeAccount) return;
+    const remaining = accounts.filter(account => account.id !== activeAccount.id);
+    setAccounts(remaining);
+    localStorage.setItem("sanctum_accounts", JSON.stringify(remaining));
+
+    if (remaining.length > 0) {
+      switchAccount(remaining[0]);
+    } else {
       setAccounts([]);
       setActiveAccount(null);
       localStorage.removeItem("nexus_user");
-      localStorage.removeItem("sanctum_accounts");
       localStorage.removeItem("sanctum_active_account_id");
       router.push("/login");
     }
