@@ -6,6 +6,8 @@
 >
 > **중요:** 이 문서는 실제 데이터·입장 코드·API 키를 포함하지 않는다. 데이터베이스 구조의 현재 확인본이지, 추측으로 완성한 설계도가 아니다.
 
+> **2026-09-23 23:34 KST 권한 갱신:** Phase B/C/D SQL을 운영 DB에 적용했다. 익명·authenticated 쓰기 가능 public 테이블 수는 각각 0, `accounts.code`·`code_hash`와 `inquiries`의 익명 읽기 권한은 모두 false로 확인했다. 아래의 과거 권한 표·설명은 적용 전 스냅샷이며 현재 권한으로 해석하지 않는다.
+
 ## 1. 이 문서를 쓰는 방법
 
 - 영겁과 순월은 DB 관련 작업 전 이 문서를 먼저 확인한다.
@@ -137,7 +139,8 @@
 
 - `supabase/migrations/20260922_account_code_hash_and_login_rpc.sql`은 과거 초안이다. `accounts.code`가 `NOT NULL`인 현재 구조에서 해시만 쓰는 가입이 실패하므로 **실행하지 않는다**.
 - `supabase/migrations/20260923_accounts_prepare.sql`(Phase A)은 운영 DB에 적용됐다. 기존 코드의 bcrypt 해시 갱신, 구버전 롤백 호환용 코드 동기화 트리거, 서버 전용 로그인·가입·시도 제한 함수와 `sanctum_sessions`·`sanctum_login_attempts` 테이블을 추가했다. 기존 계정·코드·캐릭터 행을 삭제하거나 제약을 약화하지 않았다. 신규 가입 코드도 전환 기간에는 기존 컬럼에 남으므로 별도 승인된 회전·평문 제거 작업이 필요하다.
-- `supabase/migrations/20260923_accounts_lockdown.sql`은 별도 승인 단계다. 서버 전용 키 설정, 준비 SQL 적용, 새 로그인·가입·승인 흐름의 실제 검증 후에만 `accounts`의 `PUBLIC`·`anon`·`authenticated` 접근과 과다 허용 정책을 차단한다.
+- `supabase/migrations/20260923_accounts_lockdown.sql`(Phase B)은 2026-09-23 별도 승인과 실동작 검증을 거쳐 적용했다. `accounts`의 `PUBLIC`·`anon`·`authenticated` 접근과 과다 허용 정책을 차단한다.
+- **2026-09-23 23:34 KST 적용 결과:** Phase B/C/D 모두 한설이 SQL Editor에서 성공 실행했다. 공개 계정 권한·정책과 나머지 public 테이블의 브라우저 쓰기 권한을 차단했다. `inquiries` 공개 SELECT도 차단했다. 익명·authenticated 쓰기 테이블 각각 0, 코드·해시·문의 공개 읽기 false. 기존 행 삭제 없음. Phase D 뒤 캐릭터 저장·파티 삭제·문의/답변 조회를 한설이 확인했다.
 - 한설이 서버 전용 `SUPABASE_SERVICE_ROLE_KEY`를 Vercel Production·Preview에 저장했다고 확인했다. 새 배포부터 적용된다. 읽기 전용 확인 결과 운영 계정 13개 모두 해시를 보유하고 누락은 0이며 새 테이블·함수는 모두 존재한다.
 - 최근 자동 백업은 2026-09-23 08:14:31 KST다. 전체 복원은 이후 기록을 잃을 수 있어 기본 복구 방법으로 삼지 않는다. `accounts.code` 평문 제거는 로그인 전환 검증 후 별도 결정한다. 계정 외 다른 관리자 테이블의 브라우저 쓰기·RLS도 확대 베타 전 조사한다.
 

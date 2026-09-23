@@ -13,6 +13,7 @@ interface KronosCheckboardSectionProps {
   accountProgressRate: number;
   checkTaskDone: (char: any, item: any, type: "daily" | "weekly" | "raid") => boolean;
   onToggleTask?: (char: any, item: any, type: "daily" | "weekly" | "raid") => void;
+  taskSaveStatus?: "idle" | "saving" | "saved" | "error";
   formatName: (fullName: string) => string;
   router: any;
 }
@@ -26,6 +27,7 @@ export default function KronosCheckboardSection({
   accountProgressRate,
   checkTaskDone,
   onToggleTask,
+  taskSaveStatus = "idle",
   formatName,
   router,
 }: KronosCheckboardSectionProps) {
@@ -76,6 +78,10 @@ export default function KronosCheckboardSection({
           </button>
         </div>
 
+      </div>
+
+      <div role="status" aria-live="polite" className="min-h-[1.1rem] text-[0.7rem] font-bold text-[var(--text-sub)]">
+        {taskSaveStatus === "saving" ? "저장 중… 완료 표시가 나올 때까지 새로고침하지 마세요." : taskSaveStatus === "saved" ? "저장 완료" : taskSaveStatus === "error" ? "저장 실패 — 다시 시도해주세요." : ""}
       </div>
       
       {/* 2. 캐릭터별 숙제 그리드 카드 (모바일 2열 ~ PC 6열) */}
@@ -154,6 +160,7 @@ export default function KronosCheckboardSection({
                           <button
                             type="button"
                             key={a.id}
+                            disabled={taskSaveStatus === "saving"}
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation(); // 카드 상세 이동 방지
@@ -195,6 +202,7 @@ export default function KronosCheckboardSection({
                           <button
                             type="button"
                             key={r.id}
+                            disabled={taskSaveStatus === "saving"}
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation(); // 카드 상세 이동 방지

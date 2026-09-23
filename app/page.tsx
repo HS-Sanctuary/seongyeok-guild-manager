@@ -65,6 +65,7 @@ export default function Home() {
   const [user, setUser] = useState<any>(null);
 
   const [myCharacters, setMyCharacters] = useState<any[]>([]);
+  const [taskSaveStatus, setTaskSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [allCharactersMap, setAllCharactersMap] = useState<Record<string, string>>({});
   const [allCharactersList, setAllCharactersList] = useState<any[]>([]);
   const [nexusContents, setNexusContents] = useState<any[]>([]);
@@ -439,7 +440,7 @@ export default function Home() {
   };
 
   const handleToggleTask = async (char: any, item: any, type: "daily" | "weekly" | "raid") => {
-    if (!char) return;
+    if (!char || taskSaveStatus === "saving") return;
     const fieldMap: Record<string, string> = { daily: "daily_checks", weekly: "weekly_checks", raid: "raid_checks" };
     const field = fieldMap[type] || "raid_checks";
     
@@ -477,6 +478,7 @@ export default function Home() {
       updatedPayload = arrCopy;
     }
 
+    setTaskSaveStatus("saving");
     setMyCharacters((prev) =>
       prev.map((c) => {
         if ((c.id && c.id === char.id) || (c.nickname && c.nickname === char.nickname)) {
@@ -486,12 +488,16 @@ export default function Home() {
       })
     );
 
-    if (char.id) {
-      try {
-        await memberMutationOrThrow({ table: "characters", action: "update", filter: { column: "id", value: char.id }, payload: { [field]: updatedPayload } });
-      } catch (err) {
-        console.error("Supabase 숙제 업데이트 실패:", err);
-      }
+    try {
+      if (!char.id) throw new Error("캐릭터 ID가 없습니다.");
+      await memberMutationOrThrow({ table: "characters", action: "update", filter: { column: "id", value: char.id }, payload: { [field]: updatedPayload } });
+      setTaskSaveStatus("saved");
+      setTimeout(() => setTaskSaveStatus((current) => current === "saved" ? "idle" : current), 2500);
+    } catch (err) {
+      console.error("Supabase 숙제 업데이트 실패:", err);
+      setMyCharacters((prev) => prev.map((current) => current.id === char.id ? { ...current, [field]: raw } : current));
+      setTaskSaveStatus("error");
+      alert("숙제 체크를 저장하지 못했습니다. 다시 시도해주세요.");
     }
   };
 
@@ -649,6 +655,7 @@ export default function Home() {
         accountProgressRate={accountProgressRate}
         checkTaskDone={checkTaskDone}
         onToggleTask={handleToggleTask}
+        taskSaveStatus={taskSaveStatus}
         formatName={formatName}
         router={router}
       />
