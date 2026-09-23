@@ -41,6 +41,8 @@
 
 `abyss_reports`, `boards`, `content_power_reqs`, `deep_holes`, `gnosis_guides`, `guild_settings`, `nexus_banners`, `nexus_contents`, `nexus_missions`, `nexus_purchases`, `nexus_tasks`, `nexus_titles`, `nexus_trades`, `notice_comments`, `notices`, `server_events`, `sync_batches`, `weekly_stat_snapshots`.
 
+2026-09-23 운영 DB 읽기 전용 재검사에서 위 18개 테이블 **모두** `anon`에 INSERT·UPDATE·DELETE 중 하나 이상의 쓰기 권한이 있고 RLS가 꺼진 것으로 확인됐다. `accounts.code`와 `accounts.code_hash`도 `anon` SELECT 권한이 참이다. 실제 권한 변경은 아직 하지 않았다. 브라우저의 기존 직접 쓰기와 외부 동기화 호출을 서버 인증 경로로 옮기기 전에 일괄 차단하면 기능이 중단될 수 있다.
+
 `notices`는 정책 2개가 존재하지만 RLS가 꺼져 있어 현재 정책이 적용되지 않는다. RLS를 켜기만 하면 브라우저의 기존 직접 호출이 멈출 수 있으므로, 인증 방식과 서버 Route Handler 정비 없이 일괄 활성화하지 않는다.
 
 ## 4. 핵심 테이블 상세

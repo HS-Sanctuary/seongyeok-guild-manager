@@ -208,6 +208,7 @@ app/layout.tsx
 
 - 현재 확인된 Supabase 테이블 목록에는 `members`, `homework_status`가 없지만, `CharacterStats.tsx`와 `AstraView.tsx`에서 이 이름을 조회한다. 이는 과거 테이블 잔재, 별도 스키마, 또는 실제 런타임 오류 후보이므로 베타 점검 첫 단계에서 확인한다.
 - 확인된 테이블 중 `boards`, `lounge_posts`, `notice_comments`, `weekly_stat_snapshots`, `sync_batches`, `nexus_titles`, `guild_settings` 등은 현재 소스 직접 호출 여부·운영 목적을 별도 점검 대상으로 둔다. "테이블이 존재한다"와 "현재 화면이 사용한다"를 같은 뜻으로 취급하지 않는다.
+- 2026-09-23 읽기 전용 검사에서 `accounts.code`·`code_hash`의 anon SELECT와 RLS가 꺼진 18개 테이블의 anon 쓰기 권한이 확인됐다. 이번 검증 문서 push는 구조 변경 없음. 실제 권한 차단은 현재 브라우저 직접 쓰기·외부 동기화를 서버 경로로 옮기고 별도 승인받은 뒤에만 한다.
 
 ### 자산·테마 구조
 

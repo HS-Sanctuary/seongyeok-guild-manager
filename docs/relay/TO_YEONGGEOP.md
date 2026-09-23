@@ -37,6 +37,9 @@
 19. 한설이 Phase A를 운영 SQL Editor에서 성공 실행했다. 읽기 전용 검증 결과 계정 13개, 해시 누락 0, 세션·로그인 제한 테이블 및 로그인·가입·제한 함수 모두 true. Vercel Production 서버 키도 저장 완료. push 전 원격 fetch를 시도했으나 현재 Codex 사용량 제한으로 `.git/FETCH_HEAD` 권한 승인 검토가 거절되어 push는 실행하지 못했다. 운영 계정 공개 권한 차단 Phase B는 아직 실행하지 않았다.
 20. 사용량 복구 후 `git fetch origin`과 `git pull --ff-only`에 성공했고 원격 `main`과 로컬 HEAD가 같음을 확인했다. 한설이 Vercel Preview에도 서버 전용 키를 저장했다. v1.96 Preview 후보로 서버 인증 및 누적 UI 수정·인계 문서·SQL을 묶어 push 준비 중이다. Preview `/api/auth/health`와 실제 로그인·가입·승인·캐릭터·공지·파티 확인 전에는 Production 완료나 베타 오픈으로 표시하지 않는다.
 21. v1.96 Preview 후보를 `codex/v1-96-beta` 브랜치 커밋 `480359a`로 push했다. Vercel Preview Ready, 한설이 health `ready: true`·본인 로그인·관리자 계정 13명 목록과 대기 0건을 확인했다. 기존 `/api/sync-client`·`/api/sync-weekly`가 서버 키 활성화 후 무인증 고권한 쓰기를 허용하는 P0을 발견해 운영진 인증을 추가하고 Tampermonkey v8.3에서 전송 직전 코드 재확인을 준비했다. 이 후속 패치의 Preview 재배포와 비인증 403 확인 전에는 Production push 금지. 신규 가입·승인·캐릭터·공지·파티 검증도 미완료다.
+22. 동기화 API 인증 패치를 `fee4b78`로 Preview 브랜치에 push했다. 로컬 두 POST의 무인증 요청은 각각 403이었고 타입·빌드·스크립트 문법 검사를 통과했다. 운영 읽기 전용 SQL에서 `accounts.code`·`code_hash` anon SELECT 참, RLS 꺼진 18개 테이블 모두 anon 쓰기 가능을 확인했다. `main`은 여전히 `d7d3758`; Phase B도 미실행. 20~40명 베타 오픈 완료 선언 금지. 익명 권한 차단 전 서버 인증 쓰기 경로를 만들어 기존 기능을 보존해야 한다.
+23. 한설이 Preview에서 새 테스트 계정 신청→대기 목록 1건→승인→새 계정 로그인·첫 캐릭터·공지·파티 읽기→일반 길드원의 `/admin` 접근 차단까지 확인했다. 처음 수기 재입력 코드는 틀렸지만 DB 저장 코드·해시는 정상이고 원문 붙여넣기로 로그인 성공했다. 한설이 테스트 계정 `code`를 DB에서 직접 변경한 뒤에도 해시 일치가 확인됐다. 값은 받지 않았다. 테스트 계정은 임의 삭제하지 않는다. Production push/Phase B는 아직 하지 않았다.
+24. 한설이 퇴근 후 집 영겁에게 이어받도록 요청했다. 순월은 검증·진단 문서를 `codex/v1-96-beta`에 마감 push하고 멈춘다. 영겁은 `main`이 아닌 이 브랜치를 먼저 pull할 것. Production v1.95는 아직 변경하지 않았고, `accounts` Phase B 및 18개 익명 쓰기 테이블 권한 변경도 미실행이다. 확대 베타 초대 전 P0 판단이 필요하다. 수신 확인(ACK) 전까지 순월의 누적 인계를 지우지 말 것.
 
 ### 현재 상태
 
