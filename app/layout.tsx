@@ -26,6 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const [tempTheme, setTempTheme] = useState('aureum');
 
   const [isFabOpen, setIsFabOpen] = useState(false);
+  const [isNotificationInboxOpen, setIsNotificationInboxOpen] = useState(false);
   const [fabPosition, setFabPosition] = useState<{ x: number }>({ x: 20 });
   const [fontSizeLevel, setFontSizeLevel] = useState('normal');
   
@@ -54,6 +55,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
   const wingsRef = useRef<HTMLDivElement>(null);
   const accountMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isFabOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = previousOverflow; };
+  }, [isFabOpen]);
 
   const [pendingCount, setPendingCount] = useState(0);
   const [banner, setBanner] = useState<any>(null);
@@ -356,21 +364,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     return () => window.removeEventListener('resize', handleResizeAndFont);
   }, [fontSizeLevel, mounted]);
 
-  // 서버 세션 마이그레이션 전까지 저장된 계정을 복원하고 DB의 최신 역할만 동기화한다.
+  // 브라우저에 저장된 계정 표시는 서버 세션과 일치할 때만 신뢰한다.
   const syncAccountRoleWithDB = async (accList: AccountPreset[]) => {
     try {
-      const { data: dbAccounts, error } = await supabase.from('accounts').select('nickname, role');
-      if (!error && dbAccounts) {
-        const roleMap = new Map(dbAccounts.map(account => [account.nickname, account.role]));
+      const response = await fetch('/api/auth/session', { cache: 'no-store' });
+      if (!response.ok) return;
+      const { account: sessionAccount } = await response.json();
+      if (sessionAccount) {
         const updatedAccounts = accList.map(account => ({
           ...account,
-          role: roleMap.get(account.nickname) || account.role,
+          role: account.id === sessionAccount.id ? sessionAccount.role : account.role,
         }));
         setAccounts(updatedAccounts);
         localStorage.setItem("sanctum_accounts", JSON.stringify(updatedAccounts));
 
         const savedActiveId = localStorage.getItem("sanctum_active_account_id");
-        const current = updatedAccounts.find(account => account.id === savedActiveId) || updatedAccounts[0];
+        const current = updatedAccounts.find(account => account.id === sessionAccount.id);
         if (current) {
           setActiveAccount(current);
           localStorage.setItem("nexus_user", JSON.stringify({
@@ -380,7 +389,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             borderColor: current.borderColor,
             theme: current.theme,
           }));
+        } else {
+          localStorage.removeItem("nexus_user");
+          setActiveAccount(null);
         }
+      } else {
+        localStorage.removeItem("nexus_user");
+        setActiveAccount(null);
       }
     } catch (error) {
       console.error("DB Role Sync Error:", error);
@@ -423,7 +438,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     }
   };
 
-  const switchAccount = (acc: AccountPreset) => {
+  const switchAccount = async (acc: AccountPreset) => {
+    const response = await fetch('/api/auth/switch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accountId: acc.id }),
+    });
+    if (!response.ok) {
+      alert('이 계정의 로그인 기간이 끝났어. 접속 코드를 다시 입력해 줘.');
+      router.push('/login');
+      return;
+    }
+    const { account: verifiedAccount } = await response.json();
+    acc = { ...acc, role: verifiedAccount.role };
     setActiveAccount(acc);
     setTempTheme(acc.theme || 'aureum');
 
@@ -493,6 +520,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const handleMenuClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (hasMoved.current) return;
+    setIsWingsOpen(false);
+    setIsAccountMenuOpen(false);
+    setIsNotificationInboxOpen(false);
     setIsFabOpen((prev) => !prev);
   };
 
@@ -552,8 +582,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     fetchBanner();
   }, []);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (!activeAccount) return;
+    await fetch('/api/auth/logout', { method: 'POST' });
     const remaining = accounts.filter(account => account.id !== activeAccount.id);
     setAccounts(remaining);
     localStorage.setItem("sanctum_accounts", JSON.stringify(remaining));
@@ -569,7 +600,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     }
   };
 
-  const isAdmin = ["길드마스터", "부마스터", "부마스터 대행"].includes(activeAccount?.role || "");
   const isLoginPage = pathname === '/login';
 
   return (
@@ -590,6 +620,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               navItems={navItems}
               wingsRef={wingsRef}
               isWingsOpen={isWingsOpen}
+              isNotificationInboxOpen={isNotificationInboxOpen}
+              setIsNotificationInboxOpen={setIsNotificationInboxOpen}
               setIsWingsOpen={setIsWingsOpen}
               setIsThemeModalOpen={setIsThemeModalOpen}
               mounted={mounted}
@@ -599,7 +631,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               isAccountMenuOpen={isAccountMenuOpen}
               setIsAccountMenuOpen={setIsAccountMenuOpen}
               switchAccount={switchAccount}
-              isAdmin={isAdmin}
               pendingCount={pendingCount}
               handleLogout={handleLogout}
             />
@@ -638,7 +669,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               router={router}
             />
 
-            <main className="max-w-[1600px] mx-auto px-4 py-6 w-full relative bg-transparent min-h-screen">
+            <main className="max-w-[1600px] mx-auto px-4 pt-6 pb-24 lg:pb-6 w-full relative bg-transparent min-h-screen">
               
               <StickerCanvas
                 layer="back"

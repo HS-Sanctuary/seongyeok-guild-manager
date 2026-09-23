@@ -61,11 +61,9 @@ function KerygmaContent() {
   // DB 계정, 직업, 칭호 데이터 및 캐릭터 스탯 일괄 수집
   const fetchAccounts = async () => {
     try {
-      const { data, error } = await supabase
-        .from("accounts")
-        .select("nickname, role, equipped_title, titles, job, main_class");
-
-      if (!error && data) {
+      const response = await fetch('/api/accounts/directory', { cache: 'no-store' });
+      const { accounts: data } = await response.json();
+      if (response.ok && data) {
         const map: Record<string, any> = {};
         data.forEach((acc: any) => {
           map[acc.nickname] = {

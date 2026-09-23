@@ -81,7 +81,7 @@ export default function TradeAdminTab() {
       </div>
 
       <form onSubmit={handleAddTrade} className="bg-[var(--inner-box)] p-4 rounded-xl border border-[var(--panel-border)] space-y-3">
-        <div className="grid grid-cols-2 md:grid-cols-6 gap-2 text-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-6 gap-2 text-xs">
           <input type="text" placeholder="맵 (예: 두갈드)" value={mapName} onChange={(e) => setMapName(e.target.value)} className="bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-main)] p-2.5 rounded-lg outline-none font-bold placeholder:[var(--text-sub)]" />
           <input type="text" placeholder="NPC (예: 앨빈)" value={npcName} onChange={(e) => setNpcName(e.target.value)} className="bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-main)] p-2.5 rounded-lg outline-none font-bold placeholder:[var(--text-sub)]" />
           <input type="text" placeholder="보상 (예: 상급 목재)" value={rewardName} onChange={(e) => setRewardName(e.target.value)} className="bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-main)] p-2.5 rounded-lg outline-none font-bold placeholder:[var(--text-sub)]" />
@@ -97,7 +97,7 @@ export default function TradeAdminTab() {
         </div>
 
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1">
-          <div className="flex items-center gap-3 text-xs w-full sm:w-auto font-bold">
+          <div className="flex flex-wrap items-center gap-3 text-xs w-full sm:w-auto font-bold">
             <div className="flex items-center gap-1">
               <span className="text-[var(--text-sub)]">상한(Max):</span>
               <input type="number" min="1" value={maxLimit} onChange={(e) => setMaxLimit(Number(e.target.value))} className="w-16 bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--accent)] p-1.5 rounded-lg text-center outline-none font-black" />
@@ -118,8 +118,8 @@ export default function TradeAdminTab() {
         </div>
       </form>
 
-      <div className="bg-[var(--inner-box)] border border-[var(--panel-border)] rounded-xl overflow-hidden">
-        <table className="w-full text-left border-collapse text-xs">
+      <div className="bg-[var(--inner-box)] border border-[var(--panel-border)] rounded-xl overflow-x-auto">
+        <table className="min-w-[760px] w-full text-left border-collapse text-xs">
           <thead>
             <tr className="bg-[var(--panel)] text-[var(--text-sub)] border-b border-[var(--panel-border)]">
               <th className="p-3 font-black">맵 / NPC</th>

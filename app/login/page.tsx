@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
 
 interface AccountPreset {
   id: string;
@@ -120,15 +119,17 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // 운영 DB에 서버 세션 마이그레이션을 적용하기 전까지 기존 계정 구조로 인증한다.
-      const { data, error } = await supabase
-        .from("accounts")
-        .select("id, nickname, role, status")
-        .eq("nickname", trimmedNickname)
-        .eq("code", code.trim())
-        .single();
-
-      if (error || !data) {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nickname: trimmedNickname, code: code.trim(), keepLoggedIn }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        if (response.status !== 401) {
+          alert(result.message || "로그인을 확인하지 못했습니다.");
+          return;
+        }
         const nextFail = failCount + 1;
         setFailCount(nextFail);
         if (nextFail >= 5) {
@@ -142,10 +143,7 @@ export default function LoginPage() {
         return;
       }
 
-      if (data.role === "승인대기" || data.status === "승인대기" || data.status === "pending") {
-        alert("현재 가입 승인 대기 중인 계정입니다. 운영진 승인 후 접속할 수 있습니다.");
-        return;
-      }
+      const data = result.account;
 
       if (keepLoggedIn) {
         localStorage.setItem("sanctum_keep_logged_in", "true");
@@ -182,48 +180,13 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const { data: existingUser } = await supabase
-        .from("accounts")
-        .select("id")
-        .eq("nickname", cleanNick)
-        .maybeSingle();
-
-      if (existingUser) {
-        alert("이미 생텀에 등록된 대표 캐릭터 닉네임입니다. 기존 계정 접속을 이용해주세요!");
-        return;
-      }
-
-      // 운영 DB 마이그레이션 전의 기존 가입 경로를 유지한다.
-      const { data: newAcc, error: insertErr } = await supabase
-        .from("accounts")
-        .insert([{
-          nickname: cleanNick,
-          code: finalCode,
-          role: "승인대기",
-          status: "승인대기",
-        }])
-        .select()
-        .single();
-
-      if (insertErr || !newAcc) {
-        throw insertErr || new Error("가입 신청 계정을 만들지 못했습니다.");
-      }
-
-      // 2) 대표 캐릭터 정보 characters 테이블에 인서트
-      const { error: charErr } = await supabase.from("characters").insert([
-        {
-          owner: cleanNick,
-          name: cleanNick,
-          job: selectedJob,
-          combat_power: Number(combatPower) || 0,
-          magic_resistance: Number(magicResist) || 0,
-          is_main: true,
-        },
-      ]);
-
-      if (charErr) {
-        console.warn("Character insert warning:", charErr);
-      }
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nickname: cleanNick, code: finalCode, job: selectedJob, combatPower: Number(combatPower) || 0, magicResistance: Number(magicResist) || 0 }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.message || "가입 신청을 저장하지 못했습니다.");
 
       alert(
         `📋 성역 가입 신청이 성공적으로 완료되었습니다!\n\n닉네임: ${cleanNick}\n주 직업: ${selectedJob}\n발급된 비밀코드: ${finalCode}\n\n⚠️ 생성된 비밀코드를 반드시 복사하거나 기억해 두세요!\n길드마스터(한설) 또는 관리자의 승인 처리 후 접속 가능합니다.`

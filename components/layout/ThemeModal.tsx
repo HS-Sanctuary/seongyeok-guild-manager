@@ -1,5 +1,8 @@
 "use client";
 
+import { useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
+import MarkIcon from '@/components/common/MarkIcon';
 import { AccountPreset, Sticker } from '../../types/layout';
 
 interface ThemeModalProps {
@@ -11,13 +14,13 @@ interface ThemeModalProps {
   globalStickerInputRef: React.RefObject<HTMLInputElement | null>;
   handleResetStickerPositions: () => void;
   stickers: Sticker[];
-  updateSticker: (id: string, key: keyof Sticker, val: any) => void;
+  updateSticker: (id: string, key: keyof Sticker, val: Sticker[keyof Sticker]) => void;
   setSelectedStickerId: (id: string | null) => void;
   deleteSticker: (id: string) => void;
   fontSizeLevel: string;
   setFontSizeLevel: (val: string) => void;
   handleSaveThemeSettings: () => void;
-  router: any;
+  router: ReturnType<typeof useRouter>;
 }
 
 export default function ThemeModal({
@@ -37,17 +40,48 @@ export default function ThemeModal({
   handleSaveThemeSettings,
   router
 }: ThemeModalProps) {
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!isThemeModalOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    const previousFocus = document.activeElement as HTMLElement | null;
+    document.body.style.overflow = 'hidden';
+    closeButtonRef.current?.focus();
+    const handleTab = (event: KeyboardEvent) => {
+      if (event.key !== 'Tab') return;
+      const dialog = closeButtonRef.current?.closest('[role="dialog"]');
+      const controls = dialog?.querySelectorAll<HTMLElement>('button:not(:disabled), a[href], input:not(:disabled)');
+      if (!controls?.length) return;
+      const first = controls[0];
+      const last = controls[controls.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener('keydown', handleTab);
+    return () => {
+      document.removeEventListener('keydown', handleTab);
+      document.body.style.overflow = previousOverflow;
+      previousFocus?.focus();
+    };
+  }, [isThemeModalOpen]);
+
   if (!isThemeModalOpen) return null;
 
   return (
-    <div className="sticker-modal fixed inset-0 z-[11000] flex items-center justify-center p-4 bg-black/70 animate-in fade-in duration-200">
-      <div className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
-        <div className="bg-[var(--panel-hover)] p-4 border-b border-[var(--panel-border)] flex justify-between items-center">
-          <h3 className="text-[var(--text-main)] font-black text-base flex items-center gap-2"><span>🎨</span> 생텀 페이지 설정 ({activeAccount?.nickname})</h3>
-          <button onClick={() => setIsThemeModalOpen(false)} className="text-[var(--text-sub)] hover:text-[var(--text-main)] text-xl cursor-pointer">&times;</button>
+    <div className="sticker-modal fixed inset-0 z-[11000] flex items-center justify-center overflow-y-auto p-3 sm:p-4 bg-black/70 animate-in fade-in duration-200" onPointerDown={(event) => { if (event.target === event.currentTarget) setIsThemeModalOpen(false); }}>
+      <div role="dialog" aria-modal="true" aria-labelledby="theme-modal-title" className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl shadow-2xl w-full max-w-md max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-2rem)] overflow-hidden flex flex-col">
+        <div className="bg-[var(--panel-hover)] p-3 sm:p-4 border-b border-[var(--panel-border)] flex justify-between items-center gap-3 shrink-0">
+          <h3 id="theme-modal-title" className="min-w-0 break-keep text-[var(--text-main)] font-black text-[0.9rem] sm:text-base flex items-center gap-2"><MarkIcon src="/svgs/UI mark/테마 팔레트 마크.svg" size="md" colorClass="bg-[var(--accent)]" /><span>생텀 페이지 설정 ({activeAccount?.nickname})</span></h3>
+          <button ref={closeButtonRef} type="button" onClick={() => setIsThemeModalOpen(false)} className="shrink-0 w-8 h-8 rounded-lg text-[var(--text-sub)] hover:bg-[var(--inner-box)] hover:text-[var(--text-main)] text-xl cursor-pointer" aria-label="설정 닫기">&times;</button>
         </div>
 
-        <div className="p-6 space-y-6 max-h-[80vh] overflow-y-auto custom-scrollbar">
+        <div className="min-h-0 flex-1 p-3 sm:p-6 space-y-6 overflow-y-auto custom-scrollbar">
           <div className="space-y-3">
             <label className="text-xs font-bold text-[var(--text-sub)] uppercase tracking-wider block">기본 테마 프리셋</label>
             <div className="grid grid-cols-3 gap-2.5">
@@ -79,9 +113,9 @@ export default function ThemeModal({
           </div>
 
           <div className="pt-3 border-t border-[var(--panel-border)] space-y-2">
-            <div className="grid grid-cols-2 gap-2">
-              <button onClick={() => globalStickerInputRef.current?.click()} className="py-2.5 px-2 rounded-xl bg-[var(--accent)] text-[var(--accent-fg)] hover:opacity-90 text-[0.7rem] font-black shadow-md transition flex items-center justify-center gap-1 cursor-pointer whitespace-nowrap">🏷️ 커스텀 스티커 추가</button>
-              <button onClick={handleResetStickerPositions} className="py-2.5 px-2 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 text-[0.7rem] font-bold transition flex items-center justify-center gap-1 cursor-pointer whitespace-nowrap" title="구석에 박힌 스티커 구출">🧹 스티커 위치 전체 리셋</button>
+            <div className="grid grid-cols-1 min-[380px]:grid-cols-2 gap-2">
+              <button onClick={() => globalStickerInputRef.current?.click()} className="min-w-0 py-2.5 px-2 rounded-xl bg-[var(--accent)] text-[var(--accent-fg)] hover:opacity-90 text-[0.7rem] font-black shadow-md transition flex items-center justify-center gap-1 cursor-pointer break-keep">🏷️ 커스텀 스티커 추가</button>
+              <button onClick={handleResetStickerPositions} className="min-w-0 py-2.5 px-2 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 text-[0.7rem] font-bold transition flex items-center justify-center gap-1 cursor-pointer break-keep" title="구석에 박힌 스티커 구출">🧹 스티커 위치 전체 리셋</button>
             </div>
 
             {stickers.length > 0 && (
@@ -103,7 +137,7 @@ export default function ThemeModal({
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-1 shrink-0">
+                        <div className="flex flex-wrap items-center justify-end gap-1 shrink-0">
                           <button onClick={() => { updateSticker(stk.id, 'isLocked', false); setSelectedStickerId(stk.id); setIsThemeModalOpen(false); }} className="px-2 py-1 rounded text-[0.6rem] font-bold bg-[var(--panel-hover)] text-amber-300 border border-[var(--panel-border)] hover:border-amber-400 cursor-pointer whitespace-nowrap">✏️ 편집</button>
                           <button onClick={() => updateSticker(stk.id, 'zIndex', isBehind ? 30 : 5)} className="px-2 py-1 rounded text-[0.6rem] font-bold bg-[var(--panel-hover)] text-[var(--accent)] border border-[var(--panel-border)] hover:border-[var(--accent)] cursor-pointer whitespace-nowrap">{isBehind ? '⬆️ 카드앞' : '⬇️ 카드뒤'}</button>
                           <button onClick={() => deleteSticker(stk.id)} className="px-1.5 py-1 rounded text-[0.6rem] font-bold bg-red-600/80 text-white hover:bg-red-600 cursor-pointer">🗑️</button>
@@ -117,7 +151,7 @@ export default function ThemeModal({
           </div>
         </div>
 
-        <div className="bg-[var(--panel-hover)] p-3.5 md:p-4 border-t border-[var(--panel-border)] flex flex-col gap-2.5">
+        <div className="bg-[var(--panel-hover)] p-3 sm:p-4 border-t border-[var(--panel-border)] flex flex-col gap-2.5 shrink-0">
           <div className="flex items-center justify-between gap-2 w-full">
             <button onClick={() => { setIsThemeModalOpen(false); router.push('/customize'); }} className="px-3.5 py-2 rounded-xl bg-[var(--inner-box)] border border-[var(--panel-border)] text-[var(--text-main)] hover:border-[var(--accent)] text-xs font-black transition shadow flex items-center justify-center gap-1.5 cursor-pointer"><span>✨</span> 테마 스튜디오</button>
             

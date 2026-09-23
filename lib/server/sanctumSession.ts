@@ -5,6 +5,12 @@ import { createClient } from "@supabase/supabase-js";
 
 export const SANCTUM_SESSION_COOKIE = "sanctum_session";
 export const SANCTUM_SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
+const ACCOUNT_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function savedSessionCookieName(accountId: string) {
+  if (!ACCOUNT_ID_PATTERN.test(accountId)) return null;
+  return `sanctum_saved_${accountId.replaceAll("-", "").toLowerCase()}`;
+}
 
 export type SanctumSessionAccount = {
   id: string;

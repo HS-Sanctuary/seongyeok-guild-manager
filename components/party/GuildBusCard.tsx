@@ -311,12 +311,10 @@ export default function GuildBusCard({
         return;
       }
 
-      const { data: accounts, error } = await supabase
-        .from('accounts')
-        .select('nickname, role')
-        .in('nickname', candidateOwnerNicknames);
-
-      if (error) throw error;
+      const response = await fetch('/api/accounts/directory', { cache: 'no-store' });
+      if (!response.ok) throw new Error('계정 목록 조회 실패');
+      const { accounts: directory } = await response.json();
+      const accounts = (directory || []).filter((account: { nickname: string }) => candidateOwnerNicknames.includes(account.nickname));
 
       const admins = (accounts || []).filter((acc: any) => {
         const r = acc.role || '';

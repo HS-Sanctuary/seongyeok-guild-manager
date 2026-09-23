@@ -1,0 +1,21 @@
+/* 관리자 모듈은 전역 PC 글자 단계(18/20/22px)를 rem으로 따르되 화면 밀도를 낮춘다. */
+@media (min-width: 640px) {
+  .sanctum-admin {
+    font-size: 0.9rem;
+    --text-xs: 0.68rem;
+    --text-sm: 0.78rem;
+    --text-base: 0.9rem;
+    --text-lg: 1.04rem;
+    --text-xl: 1.15rem;
+    --text-2xl: 1.35rem;
+    --text-3xl: 1.65rem;
+  }
+}
+
+/* 기존 px 배지·보조 문구도 세 단계에 맞춰 움직이며 모바일 최소 크기를 지킨다. */
+.sanctum-admin .text-\[10px\] { font-size: max(0.6rem, 12px); }
+.sanctum-admin .text-\[11px\] { font-size: max(0.65rem, 12px); }
+.sanctum-admin .text-\[12px\] { font-size: max(0.7rem, 12px); }
+
+.sanctum-admin :is(input, select, textarea) { min-width: 0; max-width: 100%; }
+.sanctum-admin :is(button, label) { word-break: keep-all; }

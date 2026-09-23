@@ -57,72 +57,73 @@ export default function SanctumHeaderWidgets({
 
       {/* 1. 모바일 전용 컴팩트 미니 그리드 (기본 요약 뷰: 위 3개 / 아래 3개) */}
       {!isWidgetExpandedMobile && (
-        <div className="grid grid-cols-3 gap-1.5 md:hidden">
-          {/* [1] ASTRA (마크 크기 sm으로 확대 보정) */}
+        <div className="grid grid-cols-2 min-[380px]:grid-cols-3 gap-1.5 md:hidden">
+          {/* 모바일 요약: 작은 마크를 왼쪽에 고정하고 이름·수치를 오른쪽에 정리한다. */}
+          {/* [1] ASTRA */}
           <div 
             onClick={() => router.push('/lounge?tab=ASTRA')}
-            className="rounded-lg border backdrop-blur p-2 flex flex-col items-center justify-center text-center cursor-pointer transition active:scale-95 bg-[var(--panel)] border-[var(--panel-border)] hover:border-[var(--accent)] min-w-0"
+            className="rounded-lg border backdrop-blur p-2 flex items-center gap-1.5 min-h-[4.5rem] text-left cursor-pointer transition active:scale-95 bg-[var(--panel)] border-[var(--panel-border)] hover:border-[var(--accent)] min-w-0"
           >
-            <div className="flex items-center gap-1 mb-0.5">
-              <MarkIcon src="/svgs/UI mark/길드 마크.svg" size="sm" colorClass="bg-[var(--accent)]" />
-              <span className="text-[0.58rem] font-black tracking-tight text-[var(--accent)] truncate">ASTRA</span>
+            <MarkIcon src="/svgs/UI mark/길드 마크.svg" size="md" scale={1} maskZoom={2.4} colorClass="bg-[var(--accent)]" />
+            <div className="flex min-w-0 flex-col gap-0.5 leading-tight">
+              <span className="text-[0.67rem] font-black tracking-tight text-[var(--accent)]">ASTRA</span>
+              <span className="text-[0.67rem] font-black text-[var(--text-main)] break-keep">{uniqueAccountsCount}계정 / {totalCharactersCount}캐릭</span>
             </div>
-            <span className="text-[0.65rem] font-black text-[var(--text-main)] truncate">{uniqueAccountsCount}계정 / {totalCharactersCount}캐릭</span>
           </div>
 
-          {/* [2] 올라운더 (마크 크기 sm으로 확대 보정) */}
-          <div className="rounded-lg border backdrop-blur p-2 flex flex-col items-center justify-center text-center bg-[var(--panel)] border-[var(--panel-border)] min-w-0">
-            <div className="flex items-center gap-1 mb-0.5">
-              <MarkIcon src="/svgs/UI mark/도감 마크.svg" size="sm" colorClass="bg-[var(--accent)]" />
-              <span className="text-[0.58rem] font-bold text-[var(--text-sub)] truncate">올라운더</span>
+          {/* [2] 올라운더 */}
+          <div className="rounded-lg border backdrop-blur p-2 flex items-center gap-1.5 min-h-[4.5rem] text-left bg-[var(--panel)] border-[var(--panel-border)] min-w-0">
+            <MarkIcon src="/svgs/UI mark/도감 마크.svg" size="md" scale={1.15} maskZoom={3.3} colorClass="bg-[var(--accent)]" />
+            <div className="flex min-w-0 flex-col gap-0.5 leading-tight">
+              <span className="text-[0.67rem] font-bold text-[var(--text-sub)] break-keep">올라운더</span>
+              <span className="text-[0.67rem] font-black text-[var(--accent)] break-keep">{allRounderLevel} LV</span>
             </div>
-            <span className="text-[0.65rem] font-black text-[var(--accent)] truncate">{allRounderLevel} LV</span>
           </div>
 
           {/* [3] 필드보스 */}
-          <div className={`rounded-lg border backdrop-blur p-2 flex flex-col items-center justify-center text-center bg-[var(--panel)] min-w-0 ${
+          <div className={`rounded-lg border backdrop-blur p-2 flex items-center gap-1.5 min-h-[4.5rem] text-left bg-[var(--panel)] min-w-0 ${
             fieldBossEvent.status === 'imminent' || fieldBossEvent.status === 'active' 
               ? 'border-yellow-500' 
               : 'border-[var(--panel-border)]'
           }`}>
-            <div className="flex items-center gap-1 mb-0.5">
-              <MarkIcon src="/svgs/contens mark/필드보스 마크.svg" size="xs" colorClass="bg-yellow-400" />
-              <span className="text-[0.58rem] font-bold text-[var(--text-sub)] truncate">필드보스</span>
+            <MarkIcon src="/svgs/contens mark/필드보스 마크.svg" size="md" scale={1.1} colorClass="bg-yellow-400" />
+            <div className="flex min-w-0 flex-col gap-0.5 leading-tight">
+              <span className="text-[0.67rem] font-bold text-[var(--text-sub)] break-keep">필드보스</span>
+              <span className={`text-[0.67rem] font-black break-keep ${
+                fieldBossEvent.status === 'imminent' || fieldBossEvent.status === 'active' ? 'text-yellow-400' : 'text-[var(--text-main)]'
+              }`}>
+                {fieldBossEvent.status === 'imminent' ? '출현 임박!' : fieldBossEvent.status === 'active' ? '출현중!' : formatTimeHM(fieldBossEvent.sec)}
+              </span>
             </div>
-            <span className={`text-[0.65rem] font-black truncate ${
-              fieldBossEvent.status === 'imminent' || fieldBossEvent.status === 'active' ? 'text-yellow-400' : 'text-[var(--text-main)]'
-            }`}>
-              {fieldBossEvent.status === 'imminent' ? '출현 임박!' : fieldBossEvent.status === 'active' ? '출현중!' : formatTimeHM(fieldBossEvent.sec)}
-            </span>
           </div>
 
           {/* [4] 소환의 결계 */}
-          <div className={`rounded-lg border backdrop-blur p-2 flex flex-col items-center justify-center text-center bg-[var(--panel)] min-w-0 ${
+          <div className={`rounded-lg border backdrop-blur p-2 flex items-center gap-1.5 min-h-[4.5rem] text-left bg-[var(--panel)] min-w-0 ${
             barrierEvent.status === 'imminent' || barrierEvent.status === 'active' 
               ? 'border-red-500' 
               : 'border-[var(--panel-border)]'
           }`}>
-            <div className="flex items-center gap-1 mb-0.5">
-              <MarkIcon src="/svgs/contens mark/여신상 마크.svg" size="xs" colorClass="bg-red-400" />
-              <span className="text-[0.58rem] font-bold text-[var(--text-sub)] truncate">소환결계</span>
+            <MarkIcon src="/svgs/contens mark/여신상 마크.svg" size="md" colorClass="bg-red-400" />
+            <div className="flex min-w-0 flex-col gap-0.5 leading-tight">
+              <span className="text-[0.67rem] font-bold text-[var(--text-sub)] break-keep">소환결계</span>
+              <span className={`text-[0.67rem] font-black break-keep ${
+                barrierEvent.status === 'imminent' || barrierEvent.status === 'active' ? 'text-red-400' : 'text-[var(--text-main)]'
+              }`}>
+                {barrierEvent.status === 'imminent' ? '곧 출현!' : barrierEvent.status === 'active' ? '출현중!' : formatTimeHM(barrierEvent.sec)}
+              </span>
             </div>
-            <span className={`text-[0.65rem] font-black truncate ${
-              barrierEvent.status === 'imminent' || barrierEvent.status === 'active' ? 'text-red-400' : 'text-[var(--text-main)]'
-            }`}>
-              {barrierEvent.status === 'imminent' ? '곧 출현!' : barrierEvent.status === 'active' ? '출현중!' : formatTimeHM(barrierEvent.sec)}
-            </span>
           </div>
 
           {/* [5] 어비스 구멍 */}
           <div 
             onClick={() => setIsAbyssModalOpen(true)}
-            className="rounded-lg border backdrop-blur p-2 flex flex-col items-center justify-center text-center cursor-pointer transition active:scale-95 bg-[var(--panel)] border-[var(--panel-border)] hover:border-[var(--accent)] min-w-0"
+            className="rounded-lg border backdrop-blur p-2 flex items-center gap-1.5 min-h-[4.5rem] text-left cursor-pointer transition active:scale-95 bg-[var(--panel)] border-[var(--panel-border)] hover:border-[var(--accent)] min-w-0"
           >
-            <div className="flex items-center gap-1 mb-0.5">
-              <MarkIcon src="/svgs/contens mark/어비스 마크.svg" size="xs" colorClass="bg-[var(--accent)]" />
-              <span className="text-[0.55rem] font-bold text-[var(--accent)] truncate">어비스 구멍</span>
+            <MarkIcon src="/svgs/contens mark/어비스 마크.svg" size="md" scale={1.25} colorClass="bg-[var(--accent)]" />
+            <div className="flex min-w-0 flex-col gap-0.5 leading-tight">
+              <span className="text-[0.67rem] font-bold text-[var(--accent)] break-keep">어비스 구멍</span>
+              <span className="text-[0.67rem] font-black text-[var(--text-main)] break-keep">{abyssDisplay.timeText}</span>
             </div>
-            <span className="text-[0.65rem] font-black text-[var(--text-main)] truncate">{abyssDisplay.timeText}</span>
           </div>
 
           {/* [6] 심층 구멍 */}
@@ -134,21 +135,19 @@ export default function SanctumHeaderWidgets({
             return (
               <div 
                 onClick={() => setIsDeepModalOpen(true)}
-                className={`rounded-lg border backdrop-blur p-1.5 flex flex-col items-center justify-center text-center cursor-pointer transition active:scale-95 bg-[var(--panel)] min-w-0 ${
+                className={`rounded-lg border backdrop-blur p-1.5 flex items-center gap-1.5 min-h-[4.5rem] text-left cursor-pointer transition active:scale-95 bg-[var(--panel)] min-w-0 ${
                   hasActiveHole 
                     ? 'border-red-500/80 bg-red-950/20 shadow-sm' 
                     : 'border-[var(--panel-border)] hover:border-red-400'
                 }`}
               >
-                <div className="flex items-center gap-1 mb-0.5">
-                  <MarkIcon src="/svgs/contens mark/레이드 마크.svg" size="xs" colorClass="bg-red-400" />
-                  <span className="text-[0.55rem] font-bold text-red-400 truncate">심층구멍</span>
-                </div>
-                <div className="flex flex-col items-center leading-tight min-w-0 w-full">
-                  <span className={`text-[0.58rem] font-black truncate w-full ${hasActiveHole ? 'text-red-400 font-extrabold' : 'text-[var(--text-main)]'}`}>
+                <MarkIcon src="/svgs/contens mark/레이드 마크.svg" size="md" colorClass="bg-red-400" />
+                <div className="flex min-w-0 flex-col gap-0.5 leading-tight">
+                  <span className="text-[0.67rem] font-bold text-red-400 break-keep">심층구멍</span>
+                  <span className={`text-[0.67rem] font-black break-keep ${hasActiveHole ? 'text-red-400 font-extrabold' : 'text-[var(--text-main)]'}`}>
                     창백한 산 {changbaekStatusText}
                   </span>
-                  <span className="text-[0.5rem] font-mono text-[var(--text-sub)] mt-0.5 whitespace-nowrap">
+                  <span className="text-[0.67rem] font-mono text-[var(--text-sub)] break-keep">
                     {deepTimer} 초기화
                   </span>
                 </div>

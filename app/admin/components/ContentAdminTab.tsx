@@ -253,14 +253,14 @@ export default function ContentAdminTab() {
                         : "bg-[var(--panel)] border-[var(--panel-border)] hover:border-[var(--accent)]/40"
                     }`}
                   >
-                    <div className="flex items-center justify-between gap-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="flex items-center gap-2 min-w-0 flex-1">
                         <MarkIcon
                           src={c.type === 'raid' ? "/svgs/contens mark/레이드 마크.svg" : "/svgs/contens mark/어비스 마크.svg"}
                           size="sm"
                           colorClass={isSelected ? "bg-[var(--accent)]" : c.type === "raid" ? "bg-indigo-400" : "bg-teal-400"}
                         />
-                        <span className="text-sm font-black text-[var(--text-main)] truncate">{c.name}</span>
+                        <span className="min-w-0 text-sm font-black text-[var(--text-main)] break-words [overflow-wrap:anywhere]">{c.name}</span>
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
                         <button 

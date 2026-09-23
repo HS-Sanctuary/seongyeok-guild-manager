@@ -286,12 +286,11 @@ export default function ClassAdminTab() {
                       key={cls.id}
                       className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-xl p-3 flex flex-col justify-between space-y-2.5 hover:border-[var(--accent)]/60 transition-all shadow-2xs"
                     >
-                      <div className="flex items-center justify-between gap-2 border-b border-[var(--panel-border)]/50 pb-2">
+                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--panel-border)]/50 pb-2">
                         <div className="flex items-center gap-2 min-w-0 flex-1">
                           <ClassIcon job={cls.name} size="md" />
                           <span
-                            className="font-black text-sm text-[var(--text-main)] truncate"
-                            title={cls.name}
+                            className="min-w-0 font-black text-sm text-[var(--text-main)] break-words [overflow-wrap:anywhere]"
                           >
                             {cls.name}
                           </span>
@@ -301,19 +300,13 @@ export default function ClassAdminTab() {
                         </span>
                       </div>
 
-                      <div className="bg-[var(--inner-box)] border border-[var(--panel-border)] rounded-lg p-1.5 space-y-1">
-                        <div className="grid grid-cols-4 text-center text-[10px] font-black text-[var(--text-sub)] border-b border-[var(--panel-border)] pb-1">
-                          <span>1위</span>
-                          <span>2위</span>
-                          <span>3위</span>
-                          <span>기본</span>
-                        </div>
-                        <div className="grid grid-cols-4 text-center text-[11px] font-bold gap-0.5">
-                          <span className="text-amber-300 truncate" title={cls.titles[0] || '-'}>{cls.titles[0] || '-'}</span>
-                          <span className="text-slate-300 truncate" title={cls.titles[1] || '-'}>{cls.titles[1] || '-'}</span>
-                          <span className="text-amber-600 truncate" title={cls.titles[2] || '-'}>{cls.titles[2] || '-'}</span>
-                          <span className="text-[var(--text-sub)] truncate" title={cls.titles[3] || cls.name}>{cls.titles[3] || cls.name}</span>
-                        </div>
+                      <div className="grid grid-cols-2 gap-1 rounded-lg border border-[var(--panel-border)] bg-[var(--inner-box)] p-1.5">
+                        {[0, 1, 2, 3].map((index) => (
+                          <div key={index} className="min-w-0 rounded bg-[var(--panel)]/70 p-1.5">
+                            <span className="block text-[10px] font-black text-[var(--text-sub)]">{["1위", "2위", "3위", "기본"][index]}</span>
+                            <span className="block text-[11px] font-bold text-[var(--text-main)] break-words [overflow-wrap:anywhere]">{cls.titles[index] || (index === 3 ? cls.name : "-")}</span>
+                          </div>
+                        ))}
                       </div>
 
                       <div className="flex items-center justify-between gap-1.5 pt-0.5">

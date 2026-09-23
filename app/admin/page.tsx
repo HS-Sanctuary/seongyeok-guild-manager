@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import MarkIcon from "@/components/common/MarkIcon";
+import "./admin.css";
 
 // 통폐합 어드민 탭 컴포넌트 목록
 import AccountApprovalTab from "./components/AccountApprovalTab";
@@ -40,40 +41,31 @@ export default function AdminPage() {
 
   useEffect(() => {
     setMounted(true);
-    const savedUser = localStorage.getItem("nexus_user");
-    if (!savedUser) {
-      router.push("/login");
-      return;
-    }
-    const parsedUser = JSON.parse(savedUser);
-
-    const isAdmin =
-      parsedUser.nickname === "한설" ||
-      parsedUser.role === "길드마스터" ||
-      parsedUser.role === "부마스터" ||
-      parsedUser.role === "부마스터 대행" ||
-      parsedUser.role === "admin" ||
-      parsedUser.role === "master";
-
-    if (!isAdmin) {
-      alert("관리자 권한이 필요합니다.");
-      router.push("/");
-      return;
-    }
-    setUser(parsedUser);
+    if (new URLSearchParams(window.location.search).get("tab") === "approval") setActiveMainTab("approval");
+    void fetch('/api/auth/session', { cache: 'no-store' }).then(async response => {
+      if (!response.ok) throw new Error('세션 확인 실패');
+      const { account } = await response.json();
+      if (!account) return router.push('/login');
+      if (!["길드마스터", "부마스터", "부마스터 대행"].includes(account.role)) {
+        alert('관리자 권한이 필요합니다.');
+        router.push('/');
+        return;
+      }
+      setUser(account);
+    }).catch(() => router.push('/login'));
   }, [router]);
 
   if (!mounted || !user) return null;
 
   return (
-    <main className="min-h-screen bg-[var(--background)] text-[var(--foreground)] font-sans pb-20 pt-6 transition-colors duration-200">
+    <main className="sanctum-admin min-h-screen bg-[var(--background)] text-[var(--foreground)] font-sans pb-20 pt-6 transition-colors duration-200">
       <div className="max-w-[1700px] mx-auto p-3 sm:p-6 space-y-4">
         
         {/* 🟢 슬림 컴팩트 헤더 배너 (이모지 및 성역 넥서스 문구 제거 / 전역 테마 동기화) */}
         <header className="relative overflow-hidden rounded-2xl bg-[var(--panel)] border border-[var(--panel-border)] py-3.5 px-5 sm:px-6 shadow-xl">
           <div className="absolute top-0 left-0 w-1.5 h-full bg-[var(--accent)] shadow-[0_0_15px_var(--accent)]"></div>
           <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-2 md:gap-4">
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
               <h1 className="text-xl sm:text-2xl font-black text-[var(--text-main)] tracking-tight leading-none">
                 생텀 관리자 페이지
               </h1>
@@ -95,7 +87,7 @@ export default function AdminPage() {
               <button
                 key={tab.id}
                 onClick={() => setActiveMainTab(tab.id)}
-                className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                className={`max-w-full px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer flex items-center gap-2 break-keep ${
                   isActive
                     ? "bg-[var(--accent)] text-[var(--accent-fg)] border border-[var(--accent)] shadow-md"
                     : "bg-[var(--panel)] text-[var(--text-sub)] hover:bg-[var(--inner-box)] hover:text-[var(--text-main)] border border-[var(--panel-border)]"

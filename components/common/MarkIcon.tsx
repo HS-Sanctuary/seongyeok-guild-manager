@@ -13,6 +13,8 @@ export interface MarkIconProps {
   colorClass?: string;
   /** 호출부 전용 커스텀 배율 오버라이드 (예: scale={1.35}) */
   scale?: number;
+  /** 원본 SVG viewBox의 과도한 빈 여백을 마스크 영역 안에서 잘라낼 때 쓰는 배율 */
+  maskZoom?: number;
   /** 마크 요소 추가 클래스 */
   className?: string;
   /** badge/glow 모드 시 외각 박스 추가 클래스 */
@@ -48,6 +50,7 @@ export function MarkIcon({
   size = "md",
   colorClass = "bg-[var(--accent)]",
   scale,
+  maskZoom,
   className = "",
   badgeClassName = "",
 }: MarkIconProps) {
@@ -60,6 +63,7 @@ export function MarkIcon({
   const finalScaleMultiplier = scale !== undefined ? scale : defaultScale;
 
   const sizeConfig = SIZE_MAP[size] || SIZE_MAP.md;
+  const maskSize = maskZoom ? `${maskZoom * 100}% auto` : "contain";
 
   const maskElement = (
     <span
@@ -67,8 +71,8 @@ export function MarkIcon({
       style={{
         maskImage: `url("${encodeURI(src)}")`,
         WebkitMaskImage: `url("${encodeURI(src)}")`,
-        maskSize: "contain",
-        WebkitMaskSize: "contain",
+        maskSize,
+        WebkitMaskSize: maskSize,
         maskRepeat: "no-repeat",
         WebkitMaskRepeat: "no-repeat",
         maskPosition: "center",

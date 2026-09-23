@@ -2,6 +2,16 @@
 
 이 문서는 **공식 push 직전 또는 직후** 현재 코드 상태를 다음 Codex 세션과 한설님에게 전달하기 위한 문서다.
 
+## v1.96 Preview 인계 — 2026-09-23 16:15 KST
+
+- 운영 서비스는 아직 정상 기준선 v1.95(`13a62ec`, Vercel 배포 `6604812049`)다. 이 커밋은 Preview 후보이며 Production 실제 로그인 검증 전에는 베타 초대를 확대하지 않는다.
+- 한설이 운영 DB에 `supabase/migrations/20260923_accounts_prepare.sql`(Phase A)을 실행했다. 읽기 전용 결과: 계정 13개, 해시 누락 0, 세션·로그인 제한 테이블 및 로그인·가입·제한 함수 모두 존재. Vercel Production·Preview에 서버 전용 키가 저장됐고 값은 공유받지 않았다.
+- `supabase/migrations/20260923_accounts_lockdown.sql`(Phase B)은 미실행이다. 공개 계정 권한과 다른 관리자 테이블의 직접 쓰기 문제는 남아 있다. 새 로그인·가입·승인 및 핵심 화면을 실제 확인한 뒤 별도 승인으로 적용한다.
+- 최근 자동 백업은 2026-09-23 08:14:31 KST다. 전체 복원은 이후 기록을 잃을 수 있다. 코드 배포 문제는 우선 직전 v1.95 배포로 되돌리고 Phase A의 호환 DB 객체는 유지한다.
+- 새 배포에서는 기존 사용자가 접속 코드를 한 번 다시 입력해야 한다. 다중 계정 전환도 각 계정에 대해 다시 로그인한 뒤 서버 쿠키로 동작한다.
+- Preview에서 `/api/auth/health`가 `{"ready":true}`인지 확인한다. 그 뒤 한설이 로그인·가입 신청·관리자 승인 목록·캐릭터·공지·파티를 확인하고 Production 전환을 판단한다.
+- 순월의 누적 작업 상세와 영겁에게 보낼 ACK 메시지는 `docs/relay/TO_YEONGGEOP.md`에 있다.
+
 ## 현재 기준 — v1.95, 2026-09-23 11:06 KST
 
 - 작업 폴더: `C:\Users\sungw\sanc\seongyeok-guild-manager`

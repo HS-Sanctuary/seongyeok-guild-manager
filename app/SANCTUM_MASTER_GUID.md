@@ -120,7 +120,7 @@ public/
 | URL / 파일 | 역할 | 주요 연결 |
 | --- | --- | --- |
 | `/` · `app/page.tsx` | SANCTUM 홈 대시보드. 숙제, 심연 제보, 파티 요약과 헤더 위젯을 조합한다. | `characters`, `nexus_tasks`, `nexus_contents`, `parties`, `deep_holes`, `abyss_reports`; `components/sanctum/*` |
-| `/login` · `app/login/page.tsx` | 닉네임·입장 코드 로그인, 가입 신청·승인대기 처리, 최초 캐릭터 생성 흐름. | `accounts`, `characters`, 브라우저 `localStorage` |
+| `/login` · `app/login/page.tsx` | 닉네임·입장 코드 로그인, 가입 신청·승인대기 처리, 최초 캐릭터 생성 흐름. | `/api/auth/login`, `/api/auth/register`, HttpOnly 세션 쿠키, 브라우저 표시 설정 |
 | `/character` · `app/character/page.tsx` | KRONOS. 캐릭터 선택/편집, 숙제·교환·구매 체크, 대표 캐릭터와 기여도 관리. | `characters`, `nexus_classes`, `nexus_tasks`, `nexus_contents`, `nexus_trades`, `nexus_purchases`; `components/character/*` |
 | `/character/detail` · `app/character/detail/page.tsx` | 특정 캐릭터 상세 조회 화면. | `characters` |
 | `/kerygma` · `app/kerygma/page.tsx` | 공지 목록·상세, 고정/삭제, 투표·댓글 관련 화면, 공지 Realtime 구독. | `notices`, `accounts`, `characters`; `components/kerygma/*` |
@@ -133,7 +133,7 @@ public/
 | `/gnosis/write` | GNOSIS 작성 화면. | `nexus_classes` |
 | `/support` · `app/support/page.tsx` | LOGOS 문의 작성·조회·운영진 답변 상태 처리. | `inquiries` |
 | `/customize` · `app/customize/page.tsx` | 테마·스티커 개인화 화면. | `ThemeModal`, `StickerCanvas`, 브라우저 저장소 |
-| `/admin` · `app/admin/page.tsx` | 관리자 탭 허브. 가입 승인, 배너, 클래스, 컨텐츠, 교환, 임무, GNOSIS 관리. | `app/admin/components/*`, 현재 클라이언트 역할값 경로 점검 필요 |
+| `/admin` · `app/admin/page.tsx` | 관리자 탭 허브. 가입 승인, 배너, 클래스, 컨텐츠, 교환, 임무, GNOSIS 관리. PC 글자 단계에 따른 관리자 전용 밀도 조정. | `/api/auth/session`으로 진입 역할 확인, `app/admin/components/*`, `app/admin/admin.css`; 다른 관리자 테이블 직접 쓰기는 후속 보안 과제 |
 
 ### 서버 API 상세 지도
 
@@ -145,6 +145,9 @@ public/
 | `/api/guild-characters` | 길드 캐릭터 이름 목록 제공. | `characters` | 공개 범위·호출 권한 점검 필요 |
 | `/api/sync-client` | 캐릭터 동기화/보정 관련 처리. | `characters` | 중복 호출과 동시 수정 방어 필요 |
 | `/api/sync-weekly` | 주간 교환/체크 상태 동기화. | `nexus_trades`, `characters` | 주간 초기화 기준과 대상 범위 확인 필요 |
+| `/api/auth/login`, `/api/auth/register`, `/api/auth/session`, `/api/auth/logout`, `/api/auth/switch` | 서버 로그인·가입·세션 확인·종료·저장 계정 전환. | `accounts`, `sanctum_sessions`, `sanctum_login_attempts`, `characters` | 서버 전용 키 사용; Preview 실제 로그인 검증 전 |
+| `/api/auth/health` | 서버 키와 인증 DB 객체 연결 점검. | 인증 함수·세션·시도 제한 테이블 | 응답에 계정·키를 담지 않음 |
+| `/api/admin/accounts`, `/api/admin/pending`, `/api/accounts/directory` | 운영진 가입 승인·대기 알림·길드원 표시 정보. | `accounts`, 서버 세션 | 계정 목록은 비밀 코드를 반환하지 않음 |
 
 ### 전역 레이아웃·상태 흐름
 
@@ -164,11 +167,11 @@ app/layout.tsx
        └─ 일반 UI와 분리된 최상위 장식 레이어
 ```
 
-- v1.95 현재 로그인은 운영 DB의 기존 `accounts` 구조와 브라우저 저장소를 사용한다. v1.94에서 미적용 서버 세션 구조를 먼저 연결해 발생한 전체 로그인 장애를 복구했으며, 준비된 서버 세션 API는 운영 DB 마이그레이션 승인·적용·검증 전까지 로그인 UI에 연결하지 않는다. 화면의 역할 표시는 편의 기능으로 보고, 관리자 저장·삭제 권한은 서버/DB에서도 재검증해야 한다.
+- v1.96 Preview 후보는 서버 전용 로그인·가입 API와 HttpOnly 세션 쿠키를 사용한다. 운영 DB Phase A가 적용됐고 계정 13개의 해시 및 새 객체를 읽기 전용으로 확인했다. Production 배포·실로그인 검증·계정 공개 권한 차단 Phase B는 아직 완료되지 않았다. 다른 관리자 테이블의 브라우저 직접 쓰기도 후속 보안 과제다.
 - 파티 상태는 `usePartyManager.ts`에 집중되어 있으며 `parties` Realtime 채널(`realtime-parties-sync`)을 구독한다. 파티 생성, 참여, 수정, 종료·삭제, 길드 버스 흐름을 이 훅과 모달 컴포넌트가 나눠 맡는다.
 - `lib/supabase.ts`는 브라우저 측 Supabase 클라이언트의 공통 진입점이다. 서버 전용 키가 필요한 로직은 Route Handler로 분리한다.
 - `hooks/useNoticeNotifications.ts`는 로그인한 계정별로 KERYGMA `notices`를 읽고 새 공지를 Realtime으로 감지한다. 읽음 상태는 현재 해당 브라우저의 `localStorage`에만 저장한다.
-- `components/layout/NotificationInbox.tsx`는 Navbar에서 열리는 알림함이다. 알림 권한은 사용자가 버튼을 눌렀을 때만 요청하며, 허용된 경우 SANCTUM을 열어 둔 동안 새 공지를 운영체제 브라우저 알림으로 표시한다.
+- `components/layout/NotificationInbox.tsx`는 Navbar에서 열리는 알림함이다. 알림 권한은 사용자가 버튼을 눌렀을 때만 요청하며, 허용된 경우 SANCTUM을 열어 둔 동안 새 공지를 운영체제 브라우저 알림으로 표시한다. 날개·알림·계정 드롭다운은 하나씩만 열리고, 작은 화면에서는 최대 높이 안에서 내용만 스크롤하며 긴 제목을 숨기지 않는다. `ThemeModal.tsx`는 배경 클릭·Escape로 닫히고 열려 있는 동안 배경 스크롤과 키보드 초점 이탈을 막는다.
 
 ### 컴포넌트 책임 상세 지도
 
@@ -183,6 +186,8 @@ app/layout.tsx
 | 관리자 | `AccountApprovalTab`, `BannerAdminTab`, `ClassAdminTab`, `ContentAdminTab`, `TradeAdminTab`, `TaskAdminTab`, `MissionAdminTab`, `GnosisAdminTab` | 운영 데이터별 CRUD와 승인 처리 |
 | 공통 로직 | `usePartyManager`, `usePressAndHold`, `busUtils`, `matchingUtils`, `partyDateUtils`, `imageUtils` | 파티 상태/길게 누르기/버스 배정/매칭/날짜/이미지 처리 |
 | 알림 | `useNoticeNotifications`, `NotificationInbox` | 공지 Realtime 감지, 계정별 읽음 상태, 상단 알림함, 사용자 선택형 브라우저 알림 |
+
+홈의 테크네 Top 3는 AGORA 판테온과 동일하게 계정(`owner`)별 최고 생활력 캐릭터 한 명만 선발한다. 모바일 요약 위젯은 작은 마크를 왼쪽, 이름·수치를 오른쪽에 놓는다. 길드·도감 마크의 과도한 원본 `viewBox` 여백만 `MarkIcon.maskZoom`으로 해당 화면 안에서 보정하며 다른 화면의 원본 SVG와 배율에는 영향을 주지 않는다.
 
 ### 데이터 호출 실제 지도
 
@@ -207,7 +212,7 @@ app/layout.tsx
 ### 자산·테마 구조
 
 - `public/svgs/classes/`: 21개 직업 SVG. `ClassIcon`에서 표시한다.
-- `public/svgs/UI mark/`, `status mark/`, `contens mark/`, `logo/`: 메뉴·상태·컨텐츠·브랜드 SVG. `MarkIcon` 또는 페이지별 이미지로 사용한다.
+- `public/svgs/UI mark/`, `status mark/`, `contens mark/`, `logo/`: 메뉴·상태·컨텐츠·브랜드 SVG. 상단 도구는 신규 `정령의 날개 마크.svg`·`테마 팔레트 마크.svg`와 기존 `우편함 마크.svg`를 `MarkIcon` 마스크로 표시해 전역 테마 색을 따른다.
 - `public/images/bg-login-pc.webp`, `bg-login-mobile.webp`: 로그인 반응형 배경.
 - `public/items_catalog.json`: 엠포리온 아이템 검색의 로컬 카탈로그.
 - `app/globals.css`: AUREUM, LUMEN, NEMETON, VESPER, ROSARIUM, ELYSIUM의 전역 CSS 변수와 공통 스타일의 기준점.
@@ -216,6 +221,7 @@ app/layout.tsx
 
 - 전역 테마, 일반 UI, `StickerCanvas`는 서로 레이어를 분리한다.
 - 모바일은 단순 축소가 아니라 바텀시트, 터치 조작, 정보 밀도를 고려해 재배치한다.
+- `sm` 경계(640px)까지는 모바일로 취급한다. 3열 카드·6열 탭·가로형 Top 3는 `md`(768px)부터 사용하며, 고정 플로팅 메뉴와 본문이 겹치지 않도록 전역 하단 안전 여백을 둔다.
 - 직업 SVG는 `ClassIcon`, 컨텐츠/UI SVG는 `MarkIcon`을 우선 사용한다.
 - 테마 색상은 하드코딩보다 `var(--panel)`, `var(--accent)`, `var(--text-main)`, `var(--text-sub)` 등 전역 변수를 우선한다.
 
@@ -283,6 +289,8 @@ RLS가 켜진 테이블은 `accounts`, `activity_logs`, `characters`, `inquiries
 3. **방어적 레이아웃:** 긴 닉네임, 큰 수치, 빈 데이터, 로딩/실패 상태에서도 깨지지 않게 한다.
 4. **실용적 미니멀리즘:** 장식보다 길드원이 즉시 읽고 행동할 수 있는 정보 구조를 우선한다.
 5. **테마 일관성:** 신규 컴포넌트도 6개 전역 테마에서 읽을 수 있어야 한다.
+6. **글자 단계와 정보 보존:** PC는 전역 18/20/22px 루트 단계에 맞춰 rem으로 비례하고, 모바일은 18px 루트와 최소 보조 글자 크기를 지킨다. 관리자 전용 비례 토큰은 `app/admin/admin.css`를 사용한다. 12자 닉네임·제목·값은 말줄임 대신 행/열 재배치와 안전한 줄바꿈으로 전체를 읽게 한다.
+7. **전역 탐색 헤더:** `components/layout/Navbar.tsx`는 메뉴를 보여 줄 수 있는 중간 폭에서 로고 문양만 남겨 공간을 확보하고, 모바일에서는 로고 옆 브랜드 설명을 표시한다. 영어 메뉴명은 호버·키보드 포커스 시 전체가 보이는 세로 슬롯 전환을 사용한다. 우측 정령의 날개는 버튼과 열린 메뉴 모두 `정령날개 마크.svg`, 테마 설정은 `테마 팔레트 마크.svg`, 알림함은 인게임 형상의 `우편함 마크.svg`를 전역 테마색으로 사용한다. 상단 드롭다운은 겹치지 않게 하나씩 열리고 열린 패널은 화면 높이 안에서 스크롤된다. `components/layout/MobileBottomSheet.tsx`의 단일 플로팅 호출점은 실제 모바일 폭에서만 나타나고, `메뉴/닫기` 표기와 절제된 맥동으로 조작 가능성을 알린다. 모션 감소 설정에서는 반복 애니메이션을 끈다.
 
 ---
 
@@ -310,7 +318,7 @@ RLS가 켜진 테이블은 `accounts`, `activity_logs`, `characters`, `inquiries
 - Git 푸시는 한설의 명시적 요청이 있을 때만 한다.
 - 푸시 전 변경 파일, 빌드 결과, 버전 상승안, 릴리스 노트 초안을 확인한다.
 - 기존 최신 Git 기능 표기 `v1.9`를 보존한다. 기능 단위는 `v1.9 → v2.0`처럼 다음 `0.1`/정수 마일스톤으로, 그보다 작은 후속·핫픽스는 `v1.91 → v1.92`처럼 세부 버전으로 올린다.
-- 매 push에는 `docs/RELEASE_NOTES.md`(KST 시간·변경·검증·Vercel 결과), `docs/HANDOFF.md`(다음 세션 인계), 이 마스터 가이드의 실제 구조 변경을 함께 갱신한다.
+- 매 push에는 `docs/RELEASE_NOTES.md`(KST 시간·변경·검증·Vercel 결과), `docs/HANDOFF.md`(프로젝트 전체 상태), 이 마스터 가이드의 실제 구조 변경, 현재 호스트의 Codex 릴레이 발신함을 함께 갱신한다.
 - 구조 변경이 없으면 업데이트 노트에 명시하며, 구조 변경이 있으면 페이지·컴포넌트·API·DB·권한 중 바뀐 부분만 근거를 가지고 갱신한다.
 - `docs/DECISIONS.md`에는 장기 운영 결정을, `docs/BETA_FEEDBACK.md`에는 한설이 전달한 베타 피드백의 처리 상태를 기록한다.
 
@@ -335,7 +343,7 @@ RLS가 켜진 테이블은 `accounts`, `activity_logs`, `characters`, `inquiries
 | P1 | 다음 베타 배포 우선 | 캐릭터·공지·파티·가입 승인 오류, 모바일에서 조작을 막는 UI |
 | P2 | 피드백에 기록 후 보류 | 취향성 UI 조정, 새로운 장기 아이디어, 엠포리온·그노시스 로고스 확장 |
 
-한설이 직접 우선 구현을 지정하면 P2도 진행할 수 있으나, 영겁은 베타 핵심 일정에 주는 영향을 먼저 알린다.
+한설이 직접 우선 구현을 지정하면 P2도 진행할 수 있으나, 현재 작업 중인 영겁 또는 순월은 베타 핵심 일정에 주는 영향을 먼저 알린다.
 
 ---
 

@@ -1,10 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  getServerSupabase,
-  getSessionAccount,
-  SANCTUM_SESSION_COOKIE,
-  type SanctumSessionAccount,
-} from "@/lib/server/sanctumSession";
+import { getServerSupabase, getSessionAccount, SANCTUM_SESSION_COOKIE } from "@/lib/server/sanctumSession";
 
 const ROLE_HIERARCHY: Record<string, number> = {
   승인대기: 0,
@@ -25,9 +20,26 @@ function level(role: string) {
   return ROLE_HIERARCHY[role] ?? -1;
 }
 
+function getAccountClient() {
+  return getServerSupabase();
+}
+
 async function requireOperator(request: NextRequest, minimumLevel = 2) {
   const actor = await getSessionAccount(request.cookies.get(SANCTUM_SESSION_COOKIE)?.value);
-  if (!actor || level(actor.role) < minimumLevel) return null;
+  if (!actor || level(actor.role) < minimumLevel || ["승인대기", "가입대기", "pending"].includes(actor.status ?? "")) return null;
+  let code = "";
+  try {
+    code = decodeURIComponent(request.headers.get("x-sanctum-code") || "").trim();
+  } catch {
+    return null;
+  }
+  if (!code) return null;
+  const { data, error } = await getAccountClient().rpc("sanctum_verify_login", {
+    input_nickname: actor.nickname,
+    input_code: code,
+  });
+  if (error) throw error;
+  if (data?.[0]?.id !== actor.id) return null;
   return actor;
 }
 
@@ -43,19 +55,27 @@ function accountResponse(account: { id: string; nickname: string; role: string; 
 
 export async function GET(request: NextRequest) {
   try {
-    if (!(await requireOperator(request))) {
-      return NextResponse.json({ message: "관리자 권한이 필요합니다." }, { status: 403 });
+    const actor = await requireOperator(request);
+    if (!actor) {
+      return NextResponse.json({ message: "본인 접속 코드가 맞지 않거나 가입 승인 권한이 없습니다." }, { status: 403 });
     }
 
-    const { data, error } = await getServerSupabase()
+    const { data, error } = await getAccountClient()
       .from("accounts")
       .select("id, nickname, role, status, created_at")
       .order("created_at", { ascending: false });
     if (error) throw error;
 
-    return NextResponse.json({ accounts: (data ?? []).map(accountResponse) });
+    return NextResponse.json(
+      { actor: { nickname: actor.nickname, role: actor.role }, accounts: (data ?? []).map(accountResponse) },
+      { headers: { "Cache-Control": "private, no-store" } }
+    );
   } catch (error) {
     console.error("Admin account list error:", error);
+    const message = error instanceof Error ? error.message : String((error as { message?: unknown })?.message ?? "");
+    if (/fetch failed|network|ENOTFOUND|ECONN/i.test(message)) {
+      return NextResponse.json({ message: "서버에서 계정 DB에 연결하지 못했습니다. 잠시 뒤 다시 시도해 주세요." }, { status: 503 });
+    }
     return NextResponse.json({ message: "계정 목록을 불러오지 못했습니다." }, { status: 500 });
   }
 }
@@ -73,7 +93,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ message: "요청 정보가 올바르지 않습니다." }, { status: 400 });
     }
 
-    const supabase = getServerSupabase();
+    const supabase = getAccountClient();
     const { data: target, error: targetError } = await supabase
       .from("accounts")
       .select("id, nickname, role, status")
@@ -82,6 +102,9 @@ export async function PATCH(request: NextRequest) {
     if (targetError || !target) return NextResponse.json({ message: "대상 계정을 찾지 못했습니다." }, { status: 404 });
 
     if (action === "approve") {
+      if (![target.role, target.status].some((value) => ["승인대기", "가입대기", "pending"].includes(value ?? ""))) {
+        return NextResponse.json({ message: "이미 승인된 계정입니다." }, { status: 409 });
+      }
       const { error } = await supabase.from("accounts").update({ role: "길드원", status: "승인" }).eq("id", target.id);
       if (error) throw error;
       return NextResponse.json({ account: { ...target, role: "길드원", status: "승인" } });
@@ -119,7 +142,7 @@ export async function DELETE(request: NextRequest) {
     const nickname = new URL(request.url).searchParams.get("nickname")?.trim();
     if (!nickname) return NextResponse.json({ message: "대상 닉네임이 필요합니다." }, { status: 400 });
 
-    const supabase = getServerSupabase();
+    const supabase = getAccountClient();
     const { data: target } = await supabase.from("accounts").select("id, role").eq("nickname", nickname).maybeSingle();
     if (!target) return NextResponse.json({ message: "대상 계정을 찾지 못했습니다." }, { status: 404 });
     if (level(target.role) >= level(actor.role)) {

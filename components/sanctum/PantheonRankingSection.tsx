@@ -33,7 +33,7 @@ export default function PantheonRankingSection({
   return (
     <section className="bg-transparent p-0.5 md:p-1">
       {/* 🎯 1. 시낙시스 규격과 100% 동일한 파란색 헤더 영역 */}
-      <div className="flex flex-row justify-between items-center mb-2.5 pb-2 border-b gap-1.5 md:gap-2 border-[var(--panel-border)]">
+      <div className="flex flex-wrap justify-between items-center mb-2.5 pb-2 border-b gap-1.5 md:gap-2 border-[var(--panel-border)]">
         <div className="flex items-center gap-2 min-w-0 flex-1">
           <MarkIcon src="/svgs/UI mark/랭킹 마크.svg" size="md" colorClass="bg-[var(--accent)]" />
           <div className="min-w-0 flex flex-col items-start justify-center">
@@ -62,7 +62,7 @@ export default function PantheonRankingSection({
       </div>
 
       {/* 🎯 2. 판테온 뷰 6대 정규 랭킹 카테고리 탭 버튼 (상단 영어 + 하단 랭킹 분류 명시) */}
-      <div className="mb-3 grid grid-cols-3 sm:grid-cols-6 gap-1.5">
+      <div className="mb-3 grid grid-cols-2 min-[420px]:grid-cols-3 md:grid-cols-6 gap-1.5">
         {PANTHEON_CATEGORIES.map((cat, i) => {
           const isActive = i === pantheonSlideIdx;
           return (
@@ -70,14 +70,14 @@ export default function PantheonRankingSection({
               key={cat.id}
               type="button"
               onClick={() => setPantheonSlideIdx(i)}
-              className={`py-1.5 px-2 rounded-lg transition-all border text-center truncate cursor-pointer flex flex-col items-center justify-center ${
+              className={`min-w-0 py-1.5 px-1.5 md:px-2 rounded-lg transition-all border text-center cursor-pointer flex flex-col items-center justify-center ${
                 isActive
                   ? "bg-[var(--accent)] text-[var(--accent-fg)] border-[var(--accent)] shadow-xs scale-[1.02]"
                   : "bg-[var(--panel)] text-[var(--text-sub)] border-[var(--panel-border)] hover:text-[var(--text-main)] hover:border-[var(--accent)]/50"
               }`}
             >
-              <span className="font-black text-[10px] sm:text-xs leading-tight">{cat.nameEn}</span>
-              <span className={`text-[8.5px] mt-0.5 font-bold leading-tight ${isActive ? "text-[var(--accent-fg)]/90" : "text-[var(--text-sub)]"}`}>
+              <span className="max-w-full font-black text-[0.65rem] md:text-xs leading-tight whitespace-nowrap overflow-hidden text-ellipsis">{cat.nameEn}</span>
+                <span className={`text-[0.58rem] mt-0.5 font-bold leading-tight whitespace-nowrap ${isActive ? "text-[var(--accent-fg)]/90" : "text-[var(--text-sub)]"}`}>
                 {cat.rankLabel}
               </span>
             </button>
@@ -93,7 +93,7 @@ export default function PantheonRankingSection({
       </div>
 
       {/* 🎯 3. Top 3 랭커 카드 리스트 (1열 풀와이드 레이아웃) */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 min-h-[110px]">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-2 min-h-[110px]">
         {currentPantheonRankers.length === 0 ? (
           <div className="col-span-full text-center py-8 rounded-xl border bg-[var(--panel)] border-[var(--panel-border)] text-xs font-bold text-[var(--text-sub)]">
             랭킹 데이터가 아직 집계되지 않았습니다.
@@ -102,7 +102,7 @@ export default function PantheonRankingSection({
           currentPantheonRankers.map((ranker, idx) => (
             <div 
               key={ranker.nickname + idx} 
-              className="flex items-center gap-3 backdrop-blur p-2.5 rounded-xl border shadow-xs min-w-0 bg-[var(--panel)] border-[var(--panel-border)] hover:border-[var(--accent)]/60 transition-all duration-200"
+              className="flex flex-wrap md:flex-nowrap items-center gap-2 md:gap-3 backdrop-blur p-2.5 rounded-xl border shadow-xs min-w-0 bg-[var(--panel)] border-[var(--panel-border)] hover:border-[var(--accent)]/60 transition-all duration-200"
             >
               {/* 순위 뱃지 (1위 골드 / 2위 실버 / 3위 브론즈) */}
               <div 
@@ -123,8 +123,8 @@ export default function PantheonRankingSection({
               </div>
 
               {/* 닉네임 및 스탯 수치 */}
-              <div className="flex-1 flex justify-between items-center min-w-0 gap-2">
-                <span className="font-black text-xs sm:text-sm truncate text-[var(--text-main)]">
+              <div className="flex-1 flex flex-wrap justify-between items-center min-w-0 gap-2">
+                <span className="min-w-0 flex-1 font-black text-xs md:text-sm break-keep overflow-wrap-anywhere text-[var(--text-main)]">
                   {ranker.nickname}
                 </span>
                 <div className="flex items-center gap-1 shrink-0 bg-[var(--inner-box)] px-2 py-0.5 rounded-md border border-[var(--panel-border)]">

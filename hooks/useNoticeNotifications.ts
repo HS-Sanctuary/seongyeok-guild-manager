@@ -16,6 +16,12 @@ export type SanctumNotification = {
 
 const MAX_NOTIFICATIONS = 30;
 
+const joinNotificationId = (id: string) => {
+  let hash = 0;
+  for (const char of id) hash = (Math.imul(hash, 31) + char.charCodeAt(0)) | 0;
+  return -(Math.abs(hash) + 1);
+};
+
 const getReadStorageKey = (nickname?: string) =>
   `sanctum_notice_reads_${nickname || "guest"}`;
 
@@ -138,7 +144,10 @@ export function useNoticeNotifications(nickname?: string, role?: string) {
       }
 
       const nextNotifications = data.map((notice) => toNotification(notice));
-      setNotifications(nextNotifications);
+      setNotifications((current) => [
+        ...current.filter((item) => item.type === "운영 · 가입 승인"),
+        ...nextNotifications,
+      ].slice(0, MAX_NOTIFICATIONS));
 
       const initializedKey = getInitializedStorageKey(nickname);
       if (!localStorage.getItem(initializedKey)) {
@@ -203,14 +212,6 @@ export function useNoticeNotifications(nickname?: string, role?: string) {
         const isParticipant = asMembers(party.members).some((member) => [member.owner, member.owner_account, member.nickname, member.name, member.character_name].map(String).includes(nickname));
         if (completed && isParticipant) appendOperationalNotification(makeNotification("SYNAXIS · 매칭 완료", `${String(party.content_name || "파티")} 매칭이 완료되었습니다.`, "/party"), `party-matched-${String(party.id)}`);
       }).subscribe();
-
-    const accountChannel = isOperator(role)
-      ? supabase.channel(`sanctum-approval-notification-${nickname}`).on("postgres_changes", { event: "INSERT", schema: "public", table: "accounts" }, ({ new: row }) => {
-          const account = row as Record<string, unknown>;
-          const pending = ["승인대기", "가입대기"].includes(String(account.status || account.role || ""));
-          if (pending) appendOperationalNotification(makeNotification("운영 · 가입 승인", `${String(account.nickname || "새 길드원")}님의 가입 승인을 기다리고 있습니다.`, "/admin"), `join-request-${String(account.id || account.nickname)}`);
-        }).subscribe()
-      : null;
 
     const pantheonStorageKey = "sanctum_pantheon_top3_snapshot";
     const refreshPantheonSnapshot = async () => {
@@ -280,9 +281,62 @@ export function useNoticeNotifications(nickname?: string, role?: string) {
       supabase.removeChannel(partyChannel);
       supabase.removeChannel(characterChannel);
       if (pantheonTimer) window.clearTimeout(pantheonTimer);
-      if (accountChannel) supabase.removeChannel(accountChannel);
     };
   }, [nickname, role, appendOperationalNotification]);
+
+  useEffect(() => {
+    if (!nickname || !isOperator(role)) return;
+    let active = true;
+
+    const refreshJoinRequests = async () => {
+      const response = await fetch('/api/admin/pending', { cache: 'no-store' });
+      if (!response.ok) return;
+      const { accounts: data }: { accounts: { id: string; nickname: string; role: string; status: string | null; created_at: string | null }[] } = await response.json();
+      if (!active || !data) return;
+
+      const pending = data.filter((account) => [account.role, account.status].some((value) => ["승인대기", "가입대기", "pending"].includes(String(value || ""))));
+      const pendingNotifications: SanctumNotification[] = pending.map((account) => ({
+        id: joinNotificationId(String(account.id)),
+        title: `${account.nickname}님의 가입 승인을 기다리고 있습니다.`,
+        type: "운영 · 가입 승인",
+        href: "/admin?tab=approval",
+        author: "SANCTUM 시스템",
+        created_at: String(account.created_at || new Date().toISOString()),
+        is_pinned: false,
+      }));
+      setNotifications((current) => [
+        ...pendingNotifications,
+        ...current.filter((item) => item.type !== "운영 · 가입 승인"),
+      ].slice(0, MAX_NOTIFICATIONS));
+
+      if ("Notification" in window && window.Notification.permission === "granted") {
+        const unseen = pendingNotifications.filter((notification) => {
+          const seenKey = `sanctum_join_browser_alert_${nickname}_${notification.id}`;
+          if (localStorage.getItem(seenKey)) return false;
+          localStorage.setItem(seenKey, "true");
+          return true;
+        });
+        if (unseen.length > 0) new window.Notification("SANCTUM 가입 신청", {
+          body: unseen.length === 1 ? unseen[0].title : `새 가입 신청 ${unseen.length}건이 승인 대기 중입니다.`,
+          icon: "/favicon.ico",
+          tag: "sanctum-join-requests",
+        });
+      }
+    };
+
+    void refreshJoinRequests();
+    const timer = window.setInterval(() => void refreshJoinRequests(), 45_000);
+    window.addEventListener("sanctum_approval_changed", refreshJoinRequests);
+    const channel = supabase.channel(`sanctum-approval-notification-${nickname}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "accounts" }, () => void refreshJoinRequests())
+      .subscribe();
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+      window.removeEventListener("sanctum_approval_changed", refreshJoinRequests);
+      supabase.removeChannel(channel);
+    };
+  }, [nickname, role]);
 
   const unreadCount = useMemo(
     () => notifications.filter((notification) => !readIds.includes(notification.id)).length,

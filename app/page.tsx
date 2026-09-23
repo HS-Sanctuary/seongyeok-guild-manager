@@ -344,6 +344,27 @@ export default function Home() {
       }));
     }
 
+    if (catId === 'TECHNE') {
+      // 생활력은 계정에서 공유되므로 판테온 본 화면과 동일하게 계정별 최고 캐릭터만 남긴다.
+      const ownerMap = new Map<string, (typeof allCharactersList)[number]>();
+      allCharactersList.forEach((c) => {
+        const ownerKey = c.owner?.trim() || c.nickname;
+        const current = ownerMap.get(ownerKey);
+        if (!current || getScore(c, 'TECHNE') > getScore(current, 'TECHNE')) {
+          ownerMap.set(ownerKey, c);
+        }
+      });
+
+      return Array.from(ownerMap.values())
+        .sort((a, b) => getScore(b, 'TECHNE') - getScore(a, 'TECHNE'))
+        .slice(0, 3)
+        .map(c => ({
+          nickname: c.nickname,
+          job: c.job || '전사',
+          val: getScore(c, 'TECHNE').toLocaleString()
+        }));
+    }
+
     if (catId === 'SYMPHONIA') {
       const accountMap: Record<string, any> = {};
       allCharactersList.forEach(c => {

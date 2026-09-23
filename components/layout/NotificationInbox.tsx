@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { SanctumNotification } from "@/hooks/useNoticeNotifications";
+import MarkIcon from "@/components/common/MarkIcon";
 
 interface NotificationInboxProps {
   browserPermission: NotificationPermission | "unsupported";
@@ -87,10 +88,10 @@ export default function NotificationInbox({
         className="relative flex w-8 h-8 sm:w-9 sm:h-9 border rounded-xl transition cursor-pointer items-center justify-center shadow-sm border-[var(--panel-border)] hover:border-[var(--accent)] hover:scale-105 text-[var(--accent)] bg-[var(--inner-box)] shrink-0"
         title={unreadCount > 0 ? `읽지 않은 알림 ${unreadCount}개` : "알림함"}
         aria-label="알림함 열기"
+        aria-expanded={isOpen}
+        aria-controls="sanctum-notification-inbox"
       >
-        <svg className="w-4 h-4 text-[var(--accent)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-        </svg>
+        <MarkIcon src="/svgs/UI mark/우편함 마크.svg" size="lg" scale={1} maskZoom={3.8} colorClass="bg-[var(--accent)]" />
         {unreadCount > 0 && (
           <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-red-500 text-white text-[0.55rem] leading-4 font-black shadow-sm">
             {unreadCount > 9 ? "9+" : unreadCount}
@@ -99,8 +100,8 @@ export default function NotificationInbox({
       </button>
 
       {isOpen && (
-        <div className="fixed sm:absolute right-3 sm:right-0 top-16 sm:top-full mt-2 w-[min(28rem,calc(100vw-24px))] max-h-[min(36rem,calc(100vh-88px))] overflow-hidden rounded-2xl border border-[var(--accent)]/45 bg-[var(--panel)] shadow-2xl z-[120]">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--panel-border)] bg-[var(--panel)]">
+        <div id="sanctum-notification-inbox" className="fixed sm:absolute right-3 sm:right-0 top-16 sm:top-full mt-2 w-[min(28rem,calc(100vw-24px))] max-h-[calc(100dvh-5rem)] overflow-hidden flex flex-col rounded-2xl border border-[var(--panel-border)] bg-[var(--panel)] shadow-2xl z-[120]">
+          <div className="flex items-start justify-between gap-2 px-3 sm:px-4 py-3 border-b border-[var(--panel-border)] bg-[var(--panel)] shrink-0">
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-[1rem] font-black tracking-tight text-[var(--text-main)]">알림함</h2>
@@ -112,7 +113,7 @@ export default function NotificationInbox({
               </div>
               <p className="text-[0.7rem] font-medium text-[var(--text-sub)] mt-0.5">새 공지와 시스템 업데이트를 알려드립니다.</p>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 shrink-0">
               {unreadCount > 0 && (
                 <button type="button" onClick={markAllAsRead} className="text-[0.7rem] font-black px-2 py-1 rounded-md text-[var(--accent)] hover:bg-[var(--accent)]/10 cursor-pointer">
                   모두 읽음
@@ -123,9 +124,9 @@ export default function NotificationInbox({
           </div>
 
           {browserPermission !== "granted" && (
-          <div className="p-2.5 border-b border-[var(--panel-border)] bg-[var(--inner-box)]">
-            <div className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-lg bg-[var(--panel)] text-[var(--text-main)] border border-[var(--accent)]/35">
-              <span className="min-w-0 text-[0.75rem] font-black truncate">🔔 {browserNotificationLabel}</span>
+          <div className="p-2.5 border-b border-[var(--panel-border)] bg-[var(--inner-box)] overflow-y-auto shrink min-h-0">
+            <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5 rounded-lg bg-[var(--panel)] text-[var(--text-main)] border border-[var(--accent)]/35">
+              <span className="min-w-0 text-[0.75rem] font-black break-keep">🔔 {browserNotificationLabel}</span>
               {canRequestPermission && (
                 <button
                   type="button"
@@ -162,7 +163,7 @@ export default function NotificationInbox({
           </div>
           )}
 
-          <div className="overflow-y-auto max-h-[22.5rem] custom-scrollbar p-2">
+          <div className="min-h-0 flex-1 overflow-y-auto custom-scrollbar p-2">
             {!isLoaded ? (
               <div className="px-3 py-8 text-center text-[0.8rem] text-[var(--text-sub)]">알림을 불러오는 중...</div>
             ) : notifications.length === 0 ? (
@@ -185,7 +186,7 @@ export default function NotificationInbox({
                         <span className="text-[0.65rem] font-black text-[var(--accent)]">{notification.type}</span>
                         {notification.is_pinned && <span className="text-[0.65rem] font-black text-rose-400">필독</span>}
                       </div>
-                      <p className="mt-1 text-[0.85rem] font-black text-[var(--text-main)] truncate">{notification.title}</p>
+                      <p className="mt-1 text-[0.85rem] font-black text-[var(--text-main)] break-keep">{notification.title}</p>
                       <p className="mt-1 text-[0.65rem] font-medium text-[var(--text-sub)]">{notification.author} · {formatDate(notification.created_at)}</p>
                     </div>
                   </div>

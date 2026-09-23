@@ -163,3 +163,44 @@ html, body {
 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
 .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--panel-border); border-radius: 10px; }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: var(--text-sub); }
+
+/* 상단 메뉴: 첫 면이 위로 말리고 영어 면이 아래에서 올라오는 슬롯 전환. */
+.sanctum-nav-link { perspective: 520px; }
+.sanctum-nav-primary,
+.sanctum-nav-reveal {
+  backface-visibility: hidden;
+  transition: transform 430ms cubic-bezier(0.22, 0.8, 0.2, 1), opacity 330ms ease;
+}
+
+/* 좁은 폭에서 닉네임·수치가 카드 밖으로 밀려나지 않게 하는 공통 방어 유틸리티 */
+.overflow-wrap-anywhere { overflow-wrap: anywhere; }
+.sanctum-nav-primary { transform-origin: center top; }
+.sanctum-nav-reveal {
+  opacity: 0;
+  transform: translateY(95%) rotateX(-65deg);
+  transform-origin: center bottom;
+}
+.sanctum-nav-link:hover .sanctum-nav-primary,
+.sanctum-nav-link:focus-visible .sanctum-nav-primary {
+  opacity: 0;
+  transform: translateY(-95%) rotateX(65deg);
+}
+.sanctum-nav-link:hover .sanctum-nav-reveal,
+.sanctum-nav-link:focus-visible .sanctum-nav-reveal {
+  opacity: 1;
+  transform: translateY(0) rotateX(0);
+}
+
+/* 버튼 틀 없이 문양과 '메뉴' 글자로 진입점을 알리고, 드문 2박 광원만 준다. */
+.sanctum-menu-mark { animation: sanctum-menu-heartbeat 7s ease-in-out infinite; }
+@keyframes sanctum-menu-heartbeat {
+  0%, 73%, 82%, 90%, 100% { transform: scale(1); filter: brightness(1); }
+  77% { transform: scale(1.12); filter: brightness(1.35); }
+  86% { transform: scale(1.08); filter: brightness(1.2); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sanctum-nav-primary,
+  .sanctum-nav-reveal { transition: none; }
+  .sanctum-menu-mark { animation: none; }
+}

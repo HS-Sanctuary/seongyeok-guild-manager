@@ -76,8 +76,8 @@ export default function MissionAdminTab() {
           <div className="text-center text-xs text-[var(--text-sub)] font-bold py-6">등록된 임무가 없습니다.</div>
         ) : (
           missions.map((m) => (
-            <div key={m.id} className="py-3 flex items-center justify-between text-xs">
-              <div>
+            <div key={m.id} className="py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs">
+              <div className="min-w-0 break-words [overflow-wrap:anywhere]">
                 <span className="text-[var(--text-main)] font-black">{m.title}</span>
                 <span className="text-emerald-400 ml-2 font-bold">(보상: {m.reward_item} {m.reward_count}개)</span>
               </div>

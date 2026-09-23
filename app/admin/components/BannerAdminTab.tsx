@@ -63,7 +63,7 @@ export default function BannerAdminTab() {
           />
         </div>
 
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <span className="text-xs text-[var(--text-sub)] font-bold">컬러 테마:</span>
             <select
@@ -93,13 +93,13 @@ export default function BannerAdminTab() {
           <div className="text-center text-xs text-[var(--text-sub)] font-bold py-6">등록된 배너가 없습니다.</div>
         ) : (
           banners.map((b) => (
-            <div key={b.id} className="py-3 flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3 min-w-0">
+            <div key={b.id} className="py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex items-start gap-3 min-w-0">
                 <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${b.is_active ? "bg-emerald-500 animate-ping" : "bg-[var(--panel-border)]"}`} />
-                <span className="text-xs font-bold text-[var(--text-main)] truncate">{b.message}</span>
+                <span className="min-w-0 text-xs font-bold text-[var(--text-main)] break-words [overflow-wrap:anywhere]">{b.message}</span>
               </div>
 
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
                 <button
                   onClick={() => toggleBanner(b.id, b.is_active)}
                   className={`px-3 py-1 rounded-lg text-[11px] font-black transition cursor-pointer ${

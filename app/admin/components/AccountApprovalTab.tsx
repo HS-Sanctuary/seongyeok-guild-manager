@@ -42,8 +42,11 @@ const isPendingAccount = (acc: AccountItem) => {
 };
 
 export default function AccountApprovalTab({ currentUser }: AccountApprovalTabProps) {
-  const myRole = currentUser?.role || "길드마스터";
-  const myLevel = ROLE_HIERARCHY[myRole] ?? 4;
+  const [operatorCode, setOperatorCode] = useState("");
+  const [codeInput, setCodeInput] = useState("");
+  const [verifiedRole, setVerifiedRole] = useState<string | null>(null);
+  const myRole = verifiedRole || "";
+  const myLevel = ROLE_HIERARCHY[myRole] ?? -1;
 
   const [activeSubTab, setActiveSubTab] = useState<"requests" | "members">("requests");
   const [accounts, setAccounts] = useState<AccountItem[]>([]);
@@ -53,26 +56,39 @@ export default function AccountApprovalTab({ currentUser }: AccountApprovalTabPr
   const [roleFilter, setRoleFilter] = useState<string>("전체");
   const [updatingNickname, setUpdatingNickname] = useState<string | null>(null);
 
+  const operatorHeaders = useCallback((contentType = false): HeadersInit => ({
+    "x-sanctum-operator": encodeURIComponent(currentUser?.nickname || ""),
+    "x-sanctum-code": encodeURIComponent(operatorCode),
+    ...(contentType ? { "Content-Type": "application/json" } : {}),
+  }), [currentUser?.nickname, operatorCode]);
+
   const fetchAccounts = useCallback(async () => {
+    if (!operatorCode || !currentUser?.nickname) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setErrorMessage(null);
 
     try {
-      const response = await fetch("/api/admin/accounts", { cache: "no-store" });
+      const response = await fetch("/api/admin/accounts", { cache: "no-store", headers: operatorHeaders() });
       const result = await response.json().catch(() => ({}));
 
       if (!response.ok) {
         setErrorMessage(result.message || "계정 목록을 불러올 권한이 없거나 연결에 실패했습니다.");
         setAccounts([]);
+        setVerifiedRole(null);
+        if (response.status === 403) setOperatorCode("");
       } else {
         setAccounts(result.accounts || []);
+        setVerifiedRole(result.actor?.role || null);
       }
     } catch (err: any) {
       setErrorMessage(err?.message || "알 수 없는 네트워크 오류가 발생했습니다.");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentUser?.nickname, operatorCode, operatorHeaders]);
 
   useEffect(() => {
     fetchAccounts();
@@ -86,7 +102,7 @@ export default function AccountApprovalTab({ currentUser }: AccountApprovalTabPr
     try {
       const response = await fetch("/api/admin/accounts", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: operatorHeaders(true),
         body: JSON.stringify({ action: "approve", nickname: targetNickname }),
       });
       const result = await response.json().catch(() => ({}));
@@ -96,6 +112,7 @@ export default function AccountApprovalTab({ currentUser }: AccountApprovalTabPr
         setAccounts((prev) =>
           prev.map((acc) => (acc.nickname === targetNickname ? { ...acc, role: "길드원", status: "승인" } : acc))
         );
+        window.dispatchEvent(new Event("sanctum_approval_changed"));
       }
     } catch (err: any) {
       alert(`오류 발생: ${err.message}`);
@@ -112,11 +129,14 @@ export default function AccountApprovalTab({ currentUser }: AccountApprovalTabPr
 
     setUpdatingNickname(targetNickname);
     try {
-      const response = await fetch(`/api/admin/accounts?nickname=${encodeURIComponent(targetNickname)}`, { method: "DELETE" });
+      const response = await fetch(`/api/admin/accounts?nickname=${encodeURIComponent(targetNickname)}`, { method: "DELETE", headers: operatorHeaders() });
       const result = await response.json().catch(() => ({}));
 
       if (!response.ok) alert(`${actionName} 실패: ${result.message || "알 수 없는 오류"}`);
-      else setAccounts((prev) => prev.filter((acc) => acc.nickname !== targetNickname));
+      else {
+        setAccounts((prev) => prev.filter((acc) => acc.nickname !== targetNickname));
+        window.dispatchEvent(new Event("sanctum_approval_changed"));
+      }
     } catch (err: any) {
       alert(`오류 발생: ${err.message}`);
     } finally {
@@ -142,7 +162,7 @@ export default function AccountApprovalTab({ currentUser }: AccountApprovalTabPr
       try {
         const response = await fetch("/api/admin/accounts", {
           method: "PATCH",
-          headers: { "Content-Type": "application/json" },
+          headers: operatorHeaders(true),
           body: JSON.stringify({ action: "change_role", nickname: targetNickname, role: newRole }),
         });
         const result = await response.json().catch(() => ({}));
@@ -162,7 +182,7 @@ export default function AccountApprovalTab({ currentUser }: AccountApprovalTabPr
     try {
       const response = await fetch("/api/admin/accounts", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: operatorHeaders(true),
         body: JSON.stringify({ action: "change_role", nickname: targetNickname, role: newRole }),
       });
       const result = await response.json().catch(() => ({}));
@@ -202,6 +222,42 @@ export default function AccountApprovalTab({ currentUser }: AccountApprovalTabPr
 
   return (
     <div className="space-y-5">
+      {!verifiedRole && (
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!codeInput.trim()) return;
+            setErrorMessage(null);
+            setOperatorCode(codeInput.trim());
+            setCodeInput("");
+          }}
+          className="rounded-2xl border-2 border-[var(--accent)] bg-[var(--panel)] p-4 sm:p-6 shadow-lg space-y-4"
+        >
+          <div className="flex items-start gap-3">
+            <span aria-hidden="true" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--accent)] text-[var(--accent-fg)] text-xl">🔐</span>
+            <div className="min-w-0 space-y-1">
+              <h3 className="text-base sm:text-lg font-black text-[var(--text-main)]">먼저 본인 확인을 해주세요</h3>
+              <p className="text-sm text-[var(--text-sub)]">가입 신청과 길드원 목록은 확인이 끝난 뒤 표시됩니다.</p>
+            </div>
+          </div>
+          <label htmlFor="sanctum-operator-code" className="block text-sm font-bold text-[var(--text-main)]">
+            {currentUser?.nickname || "현재 로그인한 계정"}님의 접속 코드
+          </label>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <input
+              id="sanctum-operator-code"
+              type="password"
+              autoComplete="off"
+              value={codeInput}
+              onChange={(event) => setCodeInput(event.target.value)}
+              placeholder="로그인할 때 사용한 본인 코드 입력"
+              className="min-w-0 flex-1 rounded-lg border border-[var(--panel-border)] bg-[var(--inner-box)] px-4 py-3 text-base text-[var(--text-main)] outline-none focus:border-[var(--accent)]"
+            />
+            <button type="submit" disabled={loading || !codeInput.trim()} className="rounded-lg bg-[var(--accent)] px-5 py-3 text-sm font-black text-[var(--accent-fg)] disabled:opacity-50">{loading ? "확인 중..." : "본인 확인하고 목록 열기"}</button>
+          </div>
+          <p className="text-xs text-[var(--text-sub)]">신청자 코드가 아닌 본인의 로그인 코드입니다. 이 화면을 벗어나면 입력값은 지워집니다.</p>
+        </form>
+      )}
       {/* 🏛️ 최상위 2단 서브 탭 (전역 테마 동기화) */}
       <div className="flex border-b border-[var(--panel-border)] gap-2 pb-2">
         <button
@@ -237,8 +293,9 @@ export default function AccountApprovalTab({ currentUser }: AccountApprovalTabPr
 
       {errorMessage && (
         <div className="p-3.5 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-400 text-xs space-y-1">
-          <div className="font-bold">🚨 데이터베이스 연결 에러</div>
-          <p className="font-mono text-[11px] break-all">{errorMessage}</p>
+          <div className="font-bold">🚨 가입 승인 내역을 불러오지 못했습니다</div>
+          <p className="text-sm break-words">{errorMessage}</p>
+          {operatorCode && <button type="button" onClick={fetchAccounts} disabled={loading} className="mt-2 rounded-lg border border-rose-500/40 px-3 py-2 font-bold disabled:opacity-50">다시 연결</button>}
         </div>
       )}
 
@@ -262,6 +319,10 @@ export default function AccountApprovalTab({ currentUser }: AccountApprovalTabPr
             <div className="py-16 text-center text-[var(--text-sub)] text-xs font-bold animate-pulse">
               ⏳ 가입 신청 내역을 조회 중입니다...
             </div>
+          ) : !verifiedRole ? (
+            <div className="py-16 text-center text-[var(--text-sub)] text-xs font-bold bg-[var(--inner-box)]/50 rounded-xl border border-dashed border-[var(--panel-border)]">
+              본인 확인 후 가입 신청 내역이 표시됩니다.
+            </div>
           ) : joinRequests.length === 0 ? (
             <div className="py-16 text-center text-[var(--text-sub)] text-xs font-bold bg-[var(--inner-box)]/50 rounded-xl border border-dashed border-[var(--panel-border)]">
               현재 승인 대기 중인 생텀 가입 신청이 없습니다.
@@ -276,12 +337,12 @@ export default function AccountApprovalTab({ currentUser }: AccountApprovalTabPr
                   >
                     <div className="space-y-1.5 min-w-0">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="font-black text-sm text-[var(--text-main)] truncate">{acc.nickname}</span>
+                        <span className="min-w-0 font-black text-sm text-[var(--text-main)] break-words [overflow-wrap:anywhere]">{acc.nickname}</span>
                         <span className="px-2 py-0.5 bg-amber-500/15 text-amber-400 border border-amber-500/30 text-[10px] rounded-full font-bold shrink-0">
                           승인 대기
                         </span>
                       </div>
-                      <p className="text-xs text-[var(--text-sub)]">접속 코드는 해시로 안전하게 보관됩니다.</p>
+                      <p className="text-xs text-[var(--text-sub)]">신청자의 접속 코드는 관리자 화면에 표시되지 않습니다.</p>
                     </div>
 
                     <div className="pt-2.5 border-t border-[var(--panel-border)] flex items-center gap-2">
@@ -348,12 +409,19 @@ export default function AccountApprovalTab({ currentUser }: AccountApprovalTabPr
             <div className="py-16 text-center text-[var(--text-sub)] text-xs font-bold animate-pulse">
               ⏳ 길드원 명단을 수집하고 있습니다...
             </div>
+          ) : !verifiedRole ? (
+            <div className="py-16 text-center text-[var(--text-sub)] text-xs font-bold bg-[var(--inner-box)]/50 rounded-xl border border-dashed border-[var(--panel-border)]">
+              본인 확인 후 길드원 목록이 표시됩니다.
+            </div>
           ) : filteredMembers.length === 0 ? (
             <div className="py-16 text-center text-[var(--text-sub)] text-xs font-bold bg-[var(--inner-box)]/50 rounded-xl border border-dashed border-[var(--panel-border)]">
               조건에 부합하는 길드원이 존재하지 않습니다.
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="overflow-hidden rounded-xl border border-[var(--panel-border)] bg-[var(--inner-box)]">
+              <div className="hidden lg:grid lg:grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)_minmax(0,1.7fr)_minmax(7rem,0.8fr)] gap-4 border-b border-[var(--panel-border)] bg-[var(--panel)] px-4 py-2 text-xs font-bold text-[var(--text-sub)]">
+                <span>닉네임</span><span>현재 직책</span><span>직책 변경</span><span className="text-right">계정 관리</span>
+              </div>
               {filteredMembers.map((acc) => {
                 const targetRole = acc.role || "길드원";
                 const targetLevel = ROLE_HIERARCHY[targetRole] ?? 1;
@@ -364,63 +432,48 @@ export default function AccountApprovalTab({ currentUser }: AccountApprovalTabPr
                 return (
                   <div
                     key={acc.nickname}
-                    className={`p-4 rounded-xl border transition-all space-y-3 flex flex-col justify-between ${
+                    className={`grid min-w-0 grid-cols-1 gap-3 border-b border-[var(--panel-border)] p-4 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)_minmax(0,1.7fr)_minmax(7rem,0.8fr)] lg:items-center lg:gap-4 ${
                       isLocked
-                        ? "bg-[var(--panel)] border-[var(--panel-border)] opacity-80"
-                        : "bg-[var(--inner-box)] border-[var(--panel-border)] hover:border-[var(--accent)]"
+                        ? "bg-[var(--panel)]/50"
+                        : "hover:bg-[var(--panel-hover)]"
                     }`}
                   >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="space-y-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-black text-sm text-[var(--text-main)] truncate">{acc.nickname}</span>
-                          <span className="px-2 py-0.5 bg-[var(--panel)] text-[var(--accent)] border border-[var(--accent)]/30 text-[10px] rounded-full font-bold shrink-0">
-                            {targetRole}
-                          </span>
-                        </div>
-                        <p className="text-xs text-[var(--text-sub)]">접속 코드는 관리자에게도 표시되지 않습니다.</p>
-                      </div>
-
-                      {isLocked && (
-                        <span className="px-2 py-0.5 bg-[var(--panel)] text-[var(--text-sub)] border border-[var(--panel-border)] text-[10px] rounded-lg shrink-0 font-bold">
-                          🔒 수정 잠금
-                        </span>
+                    <div className="min-w-0">
+                      <span className="block text-xs font-bold text-[var(--text-sub)] lg:hidden">닉네임</span>
+                      <span className="block min-w-0 text-sm font-black text-[var(--text-main)] break-words [overflow-wrap:anywhere]">{acc.nickname}</span>
+                    </div>
+                    <div className="min-w-0">
+                      <span className="block text-xs font-bold text-[var(--text-sub)] lg:hidden">현재 직책</span>
+                      <span className="inline-block max-w-full rounded-lg border border-[var(--panel-border)] bg-[var(--panel)] px-2 py-1 text-xs font-bold text-[var(--accent)] break-words [overflow-wrap:anywhere]">{targetRole}</span>
+                    </div>
+                    <div className="min-w-0">
+                      <span className="block text-xs font-bold text-[var(--text-sub)] lg:hidden">직책 변경</span>
+                      {isLocked || assignableRoles.length === 0 ? (
+                        <span className="block text-xs text-[var(--text-sub)]">{isLocked ? "동급·상위 직책 변경 불가" : "변경 권한 없음"}</span>
+                      ) : (
+                        <select
+                          aria-label={`${acc.nickname} 직책 변경`}
+                          value={targetRole}
+                          disabled={updatingNickname === acc.nickname}
+                          onChange={(e) => handleRoleChange(acc, e.target.value)}
+                          className="w-full min-w-0 rounded-lg border border-[var(--panel-border)] bg-[var(--panel)] px-2 py-2 text-xs font-bold text-[var(--accent)] outline-none focus:border-[var(--accent)] disabled:opacity-50"
+                        >
+                          {assignableRoles.map((r) => (
+                            <option key={r} value={r}>{r === "길드마스터" ? "👑 길드마스터 (위임)" : r}</option>
+                          ))}
+                        </select>
                       )}
                     </div>
-
-                    <div className="pt-2.5 border-t border-[var(--panel-border)] space-y-2">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs text-[var(--text-sub)] font-bold shrink-0">직책 부여:</span>
-
-                        {isLocked || assignableRoles.length === 0 ? (
-                          <div className="flex-1 bg-[var(--panel)] border border-[var(--panel-border)] rounded-lg px-2.5 py-1 text-xs text-[var(--text-sub)] font-bold text-right">
-                            변경 권한 없음
-                          </div>
-                        ) : (
-                          <select
-                            value={targetRole}
-                            disabled={updatingNickname === acc.nickname}
-                            onChange={(e) => handleRoleChange(acc, e.target.value)}
-                            className="flex-1 bg-[var(--panel)] border border-[var(--panel-border)] text-xs text-[var(--accent)] rounded-lg px-2 py-1 outline-none focus:border-[var(--accent)] font-bold cursor-pointer disabled:opacity-50"
-                          >
-                            {assignableRoles.map((r) => (
-                              <option key={r} value={r}>
-                                {r === "길드마스터" ? "👑 길드마스터 (위임)" : r}
-                              </option>
-                            ))}
-                          </select>
-                        )}
-                      </div>
-
-                      {!isLocked && myLevel >= 3 && (
+                    <div className="min-w-0 sm:col-span-2 lg:col-span-1 lg:text-right">
+                      {!isLocked && myLevel >= 3 ? (
                         <button
                           onClick={() => handleRejectOrDelete(acc.nickname, true)}
                           disabled={updatingNickname === acc.nickname}
-                          className="w-full py-1 bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-400 rounded-lg text-xs font-bold transition cursor-pointer disabled:opacity-40"
+                          className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs font-bold text-rose-400 hover:bg-rose-500/20 disabled:opacity-40"
                         >
-                          🚨 길드원 추방
+                          길드원 추방
                         </button>
-                      )}
+                      ) : <span className="text-xs text-[var(--text-sub)]">🔒 수정 잠금</span>}
                     </div>
                   </div>
                 );

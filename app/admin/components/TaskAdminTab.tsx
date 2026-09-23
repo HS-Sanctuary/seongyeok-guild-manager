@@ -121,15 +121,15 @@ export default function TaskAdminTab() {
       {loading && <div className="text-center py-6 text-xs text-[var(--text-sub)] font-bold animate-pulse">⏳ 숙제 목록 동기화 중...</div>}
 
       {!loading && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-4">
           {/* 일일 콘텐츠 */}
           <div className="bg-[var(--inner-box)] border border-[var(--panel-border)] rounded-2xl p-4 space-y-3 flex flex-col justify-between min-h-[420px]">
             <div className="space-y-3">
               <h3 className="text-sm font-black text-amber-400 flex items-center gap-1.5">🌼 일일 콘텐츠</h3>
               <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
                 {tasks.filter((t) => t.type === "daily").map((t) => (
-                  <div key={t.id} className="bg-[var(--panel)] p-2.5 rounded-xl border border-[var(--panel-border)] flex items-center justify-between text-xs">
-                    <span className="font-bold text-[var(--text-main)] truncate max-w-[140px]">{t.name}</span>
+                  <div key={t.id} className="bg-[var(--panel)] p-2.5 rounded-xl border border-[var(--panel-border)] flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <span className="min-w-0 flex-1 basis-32 font-bold text-[var(--text-main)] break-words [overflow-wrap:anywhere]">{t.name}</span>
                     <div className="flex items-center gap-1 shrink-0">
                       <button onClick={() => setEditingTask({ ...t })} className="px-2 py-1 bg-[var(--inner-box)] hover:bg-[var(--panel-border)] text-[var(--text-main)] rounded-md text-[11px] font-bold cursor-pointer">수정</button>
                       <button onClick={() => handleDeleteTask(t.id)} className="px-2 py-1 bg-rose-500/15 hover:bg-rose-500/25 text-rose-400 rounded-md text-[11px] font-bold cursor-pointer">삭제</button>
@@ -150,8 +150,8 @@ export default function TaskAdminTab() {
               <h3 className="text-sm font-black text-sky-400 flex items-center gap-1.5">🌙 주간 콘텐츠</h3>
               <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
                 {tasks.filter((t) => t.type === "weekly").map((t) => (
-                  <div key={t.id} className="bg-[var(--panel)] p-2.5 rounded-xl border border-[var(--panel-border)] flex items-center justify-between text-xs">
-                    <span className="font-bold text-[var(--text-main)] truncate max-w-[140px]">{t.name}</span>
+                  <div key={t.id} className="bg-[var(--panel)] p-2.5 rounded-xl border border-[var(--panel-border)] flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <span className="min-w-0 flex-1 basis-32 font-bold text-[var(--text-main)] break-words [overflow-wrap:anywhere]">{t.name}</span>
                     <div className="flex items-center gap-1 shrink-0">
                       <button onClick={() => setEditingTask({ ...t })} className="px-2 py-1 bg-[var(--inner-box)] hover:bg-[var(--panel-border)] text-[var(--text-main)] rounded-md text-[11px] font-bold cursor-pointer">수정</button>
                       <button onClick={() => handleDeleteTask(t.id)} className="px-2 py-1 bg-rose-500/15 hover:bg-rose-500/25 text-rose-400 rounded-md text-[11px] font-bold cursor-pointer">삭제</button>
@@ -172,11 +172,11 @@ export default function TaskAdminTab() {
               <h3 className="text-sm font-black text-purple-400 flex items-center gap-1.5">🔄 반복 콘텐츠</h3>
               <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
                 {tasks.filter((t) => t.type === "repeat").map((t) => (
-                  <div key={t.id} className="bg-[var(--panel)] p-2.5 rounded-xl border border-[var(--panel-border)] flex items-center justify-between text-xs">
-                    <div>
-                      <div className="flex items-center gap-1.5">
+                  <div key={t.id} className="bg-[var(--panel)] p-2.5 rounded-xl border border-[var(--panel-border)] flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <div className="min-w-0 flex-1 basis-32">
+                      <div className="flex flex-wrap items-center gap-1.5">
                         <span className="text-[10px] font-bold text-purple-400 border border-purple-500/30 bg-purple-500/10 px-1 rounded">{t.repeat_cycle === "daily" ? "일간" : "주간"}</span>
-                        <span className="font-bold text-[var(--text-main)] truncate max-w-[100px]">{t.name}</span>
+                        <span className="min-w-0 font-bold text-[var(--text-main)] break-words [overflow-wrap:anywhere]">{t.name}</span>
                       </div>
                       <div className="text-[10px] text-[var(--text-sub)] font-mono mt-0.5">Max: {t.max_count}회</div>
                     </div>
