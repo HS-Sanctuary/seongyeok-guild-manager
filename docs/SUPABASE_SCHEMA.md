@@ -109,6 +109,8 @@
 | `sync_batches` | `id`, `started_at`, `status`, `total_targets`, `matched`, `failed`, `requested_by` |
 | `weekly_stat_snapshots` | `id`, `character_id`, `character_nickname`, `combat_power`, `life_energy`, `charm`, `week_start_date`, `created_at` |
 
+2026-09-23 Preview 저장 실패를 계기로 공개 DB에 `bg_color` 컬럼이 **없음**을 읽기 전용 조회(42703)로 확인했다. 배너 저장에서는 이 필드를 보내지 않는다.
+
 `nexus_missions`, `nexus_purchases`, `nexus_titles`, `notice_comments`는 존재와 RLS 현황은 확인했지만, 이번 컬럼 추출 범위 밖이다. 최신 스키마 추출 전에는 컬럼을 가정하지 않는다.
 
 ## 5. 코드와 DB의 확인 필요 항목

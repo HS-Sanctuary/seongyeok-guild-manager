@@ -7,7 +7,6 @@ import { adminCatalogWrite } from "@/lib/adminCatalogClient";
 export default function BannerAdminTab() {
   const [banners, setBanners] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState("");
-  const [bgColor, setBgColor] = useState("rose");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -26,7 +25,7 @@ export default function BannerAdminTab() {
     if (!newMessage.trim()) return alert("공지 메시지를 입력해 주세요.");
 
     try {
-      await adminCatalogWrite("nexus_banners", "insert", { message: newMessage.trim(), bg_color: bgColor, is_active: true });
+      await adminCatalogWrite("nexus_banners", "insert", { message: newMessage.trim(), is_active: true });
       setNewMessage("");
       fetchBanners();
     } catch (error) {
@@ -69,18 +68,7 @@ export default function BannerAdminTab() {
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-[var(--text-sub)] font-bold">컬러 테마:</span>
-            <select
-              value={bgColor}
-              onChange={(e) => setBgColor(e.target.value)}
-              className="bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-main)] text-xs rounded-lg p-1.5 outline-none font-bold cursor-pointer"
-            >
-              <option value="rose">🔴 긴급 (Rose)</option>
-              <option value="amber">🟡 경고 (Amber)</option>
-              <option value="cyan">🔵 안내 (Cyan)</option>
-            </select>
-          </div>
+          <span className="text-xs text-[var(--text-sub)] font-bold">상단 공지 배너로 표시됩니다.</span>
 
           <button
             type="submit"
