@@ -5,7 +5,6 @@ import { cleanItemName, isTaskChecked } from "@/lib/matchingUtils";
 
 interface ContentChecklistProps {
   activeTab: string;
-  saveStatus: string;
   visibleDailyList: any[];
   visibleWeeklyList: any[];
   abyssList: any[];
@@ -29,7 +28,6 @@ interface ContentChecklistProps {
 
 export default function ContentChecklist({
   activeTab,
-  saveStatus,
   visibleDailyList = [],
   visibleWeeklyList = [],
   abyssList = [],
@@ -337,9 +335,6 @@ export default function ContentChecklist({
 
   return (
     <div className="space-y-2.5">
-      <div role="status" aria-live="polite" className={`sticky top-[4.5rem] z-30 rounded-lg border px-3 py-2 text-[0.72rem] font-bold bg-[var(--panel)] text-[var(--text-main)] ${saveStatus === "error" ? "border-rose-500" : "border-[var(--panel-border)]"}`}>
-        {saveStatus === "saving" ? "⏳ 저장 중… 완료 표시가 나온 뒤 새로고침해 주세요." : saveStatus === "saved" ? "✅ 저장 완료" : saveStatus === "error" ? "⚠️ 저장 실패 — 다시 시도해주세요." : "숙제 체크 변경 사항은 자동 저장됩니다."}
-      </div>
       {total > 0 && (
         <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-2.5 shadow-xs space-y-1">
           <div className="flex justify-between items-center text-xs font-bold">
