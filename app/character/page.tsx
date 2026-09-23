@@ -454,7 +454,11 @@ export default function CharacterPage() {
         raid_checks: Array.from(new Set([...abyssChecks, ...raidChecks])), trade_checks: tradePayload, updated_at: now
       };
       
-      await memberMutationOrThrow({ table: "characters", action: "upsert", payload });
+      if (existingIndex !== -1) {
+        await memberMutationOrThrow({ table: "characters", action: "update", filter: { column: "nickname", value: profile.nickname }, payload });
+      } else {
+        await memberMutationOrThrow({ table: "characters", action: "upsert", payload });
+      }
       const contributionValue = Number(accountContribution) || 0;
       const needsContributionSync = allCharacters.some((char: any) => char.owner === user.nickname && Number(char.contribution || 0) !== contributionValue);
       if (needsContributionSync) {

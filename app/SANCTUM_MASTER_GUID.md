@@ -135,7 +135,7 @@ public/
 | `/customize` · `app/customize/page.tsx` | 테마·스티커 개인화 화면. | `ThemeModal`, `StickerCanvas`, 브라우저 저장소 |
 | `/admin` · `app/admin/page.tsx` | 관리자 탭 허브. 가입 승인, 배너, 클래스, 컨텐츠, 교환, 임무, GNOSIS 관리. PC 글자 단계에 따른 관리자 전용 밀도 조정. | `/api/auth/session`으로 진입 역할 확인, `app/admin/components/*`, `app/admin/admin.css`; 다른 관리자 테이블 직접 쓰기는 후속 보안 과제 |
 
-캐릭터 관리 상세의 숙제 체크는 500ms 디바운스 뒤 서버 세션 경로로 자동 저장된다. 변경되지 않은 대표·기여도·계정 공통 교환 정보는 별도 서버 요청으로 다시 쓰지 않는다. `app/character/page.tsx`의 저장 상태 알림은 홈 체크보드의 상태 표시와 별개다. v1.991부터 `document.body` 포털의 작은 반투명 플로팅 알림만 잠깐 표시한다. 완료 표시 뒤 새로고침해야 한다.
+캐릭터 관리 상세의 숙제 체크는 500ms 디바운스 뒤 서버 세션 경로로 자동 저장된다. 변경되지 않은 대표·기여도·계정 공통 교환 정보는 별도 서버 요청으로 다시 쓰지 않는다. 기존 캐릭터의 일반 저장은 `nickname`과 로그인 계정 `owner`를 동시에 조건으로 건 단일 수정 요청이며, 새 캐릭터는 기존 등록 경로를 사용한다. `app/character/page.tsx`의 저장 상태 알림은 홈 체크보드의 상태 표시와 별개다. v1.991부터 `document.body` 포털의 작은 반투명 플로팅 알림만 잠깐 표시한다. 완료 표시 뒤 새로고침해야 한다.
 
 ### 서버 API 상세 지도
 
@@ -153,7 +153,7 @@ public/
 | `/api/admin/catalog` | 운영진 카탈로그 8개 테이블의 서버 저장·수정·삭제. | `nexus_*`, `content_power_reqs`, `gnosis_guides` | 운영진 세션·요청 출처 검사. Phase C 적용 전 Preview 쓰기 확인 |
 | `/api/notices/mutate` | 공지 저장·고정·삭제와 로그인 이용자 투표·댓글. | `notices` | 작성 권한과 댓글 작성자 확인. Phase C 적용 전 검증 |
 | `/api/reports` | 로그인 이용자의 심층/어비스 제보. | `deep_holes`, `abyss_reports` | 제보자 이름은 세션에서 설정 |
-| `/api/member-mutations` | 본인 캐릭터, 참여 파티, 문의의 서버 저장·수정·삭제. | `characters`, `parties`, `inquiries` | 세션·소유자/참여자·운영진 권한 확인. Phase D 전 핵심 쓰기 검증 |
+| `/api/member-mutations` | 본인 캐릭터, 참여 파티, 문의의 서버 저장·수정·삭제. 기존 캐릭터의 닉네임 기준 수정은 소유자 조건을 같은 DB 요청에 적용. | `characters`, `parties`, `inquiries` | 세션·소유자/참여자·운영진 권한 확인. Phase D 적용 후에도 서버 경로 유지 |
 | `/api/parties/sync-checklist` | 파티 완료 시 참여 캐릭터 숙제 체크 동기화. | `parties`, `characters` | 파티 참가자/운영진만 요청 가능 |
 | `/api/inquiries` | 본인 문의 또는 운영진 문의 목록·대기 건수. | `inquiries` | 비로그인·타인 문의 조회 차단. Phase D에서 공개 SELECT 제거 |
 

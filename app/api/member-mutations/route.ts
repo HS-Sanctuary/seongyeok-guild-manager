@@ -38,6 +38,7 @@ export async function POST(request: NextRequest) {
     const supabase = getServerSupabase();
     const isAdmin = ADMIN_ROLES.has(account.role);
     let cleanPayload = isRecord(payload) ? { ...payload } : {};
+    const ownedNicknameUpdate = table === "characters" && action === "update" && filter?.column === "nickname" && typeof filter.value === "string" && !filter.exceptNickname;
 
     if (table === "characters") {
       if (action === "insert" || action === "upsert") {
@@ -47,6 +48,9 @@ export async function POST(request: NextRequest) {
         const { data: existing } = await supabase.from("characters").select("owner").eq("nickname", cleanPayload.nickname).maybeSingle();
         if (existing && existing.owner !== account.nickname) return NextResponse.json({ message: "다른 계정의 캐릭터는 수정할 수 없습니다." }, { status: 403 });
         cleanPayload.owner = account.nickname;
+      } else if (ownedNicknameUpdate) {
+        // The write itself is scoped to the signed-in owner; no separate owner lookup is needed.
+        delete cleanPayload.owner;
       } else {
         const { data: targets, error } = await supabase.from("characters").select("id, owner").eq(filter!.column, filter!.value).limit(100);
         if (error || (!targets?.length && filter!.column !== "owner") || targets?.some((target) => target.owner !== account.nickname)) {
@@ -109,6 +113,7 @@ export async function POST(request: NextRequest) {
     else if (action === "upsert" && table === "characters") query = supabase.from(table).upsert(cleanPayload, { onConflict: "nickname" }).select();
     else if (action === "update") {
       query = supabase.from(table).update(cleanPayload).eq(filter!.column, filter!.value);
+      if (ownedNicknameUpdate) query = query.eq("owner", account.nickname);
       if (table === "characters" && filter?.exceptNickname) query = query.neq("nickname", filter.exceptNickname);
       query = query.select();
     } else if (action === "delete") query = supabase.from(table).delete().eq(filter!.column, filter!.value).select();
@@ -117,6 +122,9 @@ export async function POST(request: NextRequest) {
     if (error) {
       console.error("SANCTUM member mutation failed:", table, action, error.message);
       return NextResponse.json({ message: "변경 사항을 저장하지 못했습니다." }, { status: 500 });
+    }
+    if (ownedNicknameUpdate && (!data || data.length === 0)) {
+      return NextResponse.json({ message: "본인 캐릭터만 수정할 수 있습니다." }, { status: 403 });
     }
     return NextResponse.json({ data });
   } catch (error) {
