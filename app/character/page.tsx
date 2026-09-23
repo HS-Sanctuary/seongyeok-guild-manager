@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { memberMutationOrThrow } from "@/lib/memberMutationClient";
@@ -749,8 +750,8 @@ export default function CharacterPage() {
     <div className="max-w-[1400px] mx-auto text-[var(--text-main)] font-sans pb-28 md:pb-16 pt-1 md:pt-4 px-2 md:px-6 relative bg-transparent [-webkit-text-size-adjust:100%]">
       
       {/* 토스트 알림 */}
-      {saveToast !== 'idle' && (
-        <div role="status" aria-live="polite" className={`fixed bottom-[5.5rem] md:bottom-6 left-1/2 -translate-x-1/2 z-[110] max-w-[calc(100vw-1rem)] px-3.5 py-2 rounded-lg border shadow-xl text-[0.75rem] font-bold flex items-center justify-center gap-1.5 text-center bg-[var(--panel)] text-[var(--text-main)] ${
+      {mounted && saveToast !== 'idle' && createPortal(
+        <div role="status" aria-live="polite" className={`fixed bottom-[5.5rem] md:bottom-6 left-1/2 -translate-x-1/2 z-[10000] pointer-events-none max-w-[calc(100vw-1rem)] px-3.5 py-2 rounded-lg border shadow-xl text-[0.75rem] font-bold flex items-center justify-center gap-1.5 text-center bg-[var(--panel)] text-[var(--text-main)] ${
           saveToast === 'error' ? 'border-rose-500' : 'border-[var(--accent)]'
         }`}>
           {saveToast === 'saving' ? '⏳ 저장 중… 완료 표시가 나온 뒤 새로고침해 주세요.' :
@@ -758,7 +759,8 @@ export default function CharacterPage() {
            saveToast === 'reset_daily' ? '☀️ 일일 컨텐츠 정보가 초기화 됐습니다.' :
            saveToast === 'reset_weekly' ? '🌙 모든 컨텐츠 정보가 초기화 되었습니다.' :
            '✅ 저장 완료'}
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* 캐릭터 관리 모달 */}
@@ -874,6 +876,7 @@ export default function CharacterPage() {
           {(activeTab === 'all' || activeTab === 'weekly_daily' || activeTab === 'abyss_raid') && (
             <ContentChecklist
               activeTab={activeTab}
+              saveStatus={saveToast}
               visibleDailyList={visibleDailyList}
               visibleWeeklyList={visibleWeeklyList}
               abyssList={abyssList}
