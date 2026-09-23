@@ -427,7 +427,8 @@ export default function CharacterPage() {
     if (isInitialLoad.current || !profile.nickname.trim() || !user?.nickname) return;
     try {
       setSaveToast('saving');
-      if (profile.isMain) {
+      const needsMainSync = profile.isMain && myCharacters.some((char: any) => char.nickname !== profile.nickname && char.is_main);
+      if (needsMainSync) {
         await memberMutationOrThrow({ table: "characters", action: "update", filter: { column: "owner", value: user.nickname, exceptNickname: profile.nickname }, payload: { is_main: false } });
       }
 
@@ -454,14 +455,18 @@ export default function CharacterPage() {
       };
       
       await memberMutationOrThrow({ table: "characters", action: "upsert", payload });
-      await memberMutationOrThrow({ table: "characters", action: "update", filter: { column: "owner", value: user.nickname }, payload: { contribution: Number(accountContribution) || 0 } });
+      const contributionValue = Number(accountContribution) || 0;
+      const needsContributionSync = allCharacters.some((char: any) => char.owner === user.nickname && Number(char.contribution || 0) !== contributionValue);
+      if (needsContributionSync) {
+        await memberMutationOrThrow({ table: "characters", action: "update", filter: { column: "owner", value: user.nickname }, payload: { contribution: contributionValue } });
+      }
 
       setLastUpdatedAt(now.toISOString());
 
       setAllCharacters(prev => {
         const exists = prev.some(c => c.nickname === profile.nickname);
         if (exists) {
-          return prev.map(c => c.nickname === profile.nickname ? { ...c, ...payload } : c);
+          return prev.map(c => c.nickname === profile.nickname ? { ...c, ...payload } : needsContributionSync && c.owner === user.nickname ? { ...c, contribution: contributionValue } : c);
         }
         return [...prev, payload];
       });
@@ -476,7 +481,15 @@ export default function CharacterPage() {
         }
       });
 
-      if (Object.keys(accountWidePayload).length > 0) {
+      const accountWideEntries = Object.entries(accountWidePayload);
+      const needsAccountWideSync = accountWideEntries.length > 0 && (allCharacters.length === 0 || allCharacters.some((char: any) => {
+        if (char.owner !== user.nickname || char.nickname === profile.nickname) return false;
+        return accountWideEntries.some(([id, value]: [string, any]) => {
+          const saved = char.trade_checks?.[id];
+          return Number(saved?.count ?? saved ?? 0) !== value.count || String(saved?.completed_by ?? "") !== String(value.completed_by ?? "");
+        });
+      }));
+      if (needsAccountWideSync) {
         const { data: myChars } = await supabase.from('characters').select('nickname, trade_checks').eq('owner', user.nickname);
         if (myChars) {
           await Promise.all(
@@ -488,13 +501,14 @@ export default function CharacterPage() {
                 } })
               )
           );
+          setAllCharacters(prev => prev.map(char => char.owner === user.nickname && char.nickname !== profile.nickname ? { ...char, trade_checks: { ...(char.trade_checks || {}), ...accountWidePayload } } : char));
         }
       }
 
       if (existingIndex === -1) {
         setMyCharacters((prev: any[]) => [...prev, { nickname: profile.nickname, alias: profile.alias, sort_order: currentSortOrder, job: profile.job, is_main: profile.isMain }]);
       } else {
-        setMyCharacters((prev: any[]) => prev.map(c => c.nickname === profile.nickname ? { ...c, alias: profile.alias, job: profile.job, is_main: profile.isMain } : c));
+        setMyCharacters((prev: any[]) => prev.map(c => c.nickname === profile.nickname ? { ...c, alias: profile.alias, job: profile.job, is_main: profile.isMain } : needsMainSync ? { ...c, is_main: false } : c));
       }
 
       setSaveToast('saved');
@@ -514,7 +528,7 @@ export default function CharacterPage() {
     setSaveToast('saving');
     const timer = setTimeout(() => {
       saveProgress();
-    }, 800);
+    }, 500);
     return () => clearTimeout(timer);
   }, [profile, accountContribution, levels, dailyChecks, weeklyChecks, repeatChecks, abyssChecks, raidChecks, tradeProgress, tradeCompletedBy]);
 

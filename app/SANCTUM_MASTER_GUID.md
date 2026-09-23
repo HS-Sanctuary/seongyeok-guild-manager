@@ -135,7 +135,7 @@ public/
 | `/customize` · `app/customize/page.tsx` | 테마·스티커 개인화 화면. | `ThemeModal`, `StickerCanvas`, 브라우저 저장소 |
 | `/admin` · `app/admin/page.tsx` | 관리자 탭 허브. 가입 승인, 배너, 클래스, 컨텐츠, 교환, 임무, GNOSIS 관리. PC 글자 단계에 따른 관리자 전용 밀도 조정. | `/api/auth/session`으로 진입 역할 확인, `app/admin/components/*`, `app/admin/admin.css`; 다른 관리자 테이블 직접 쓰기는 후속 보안 과제 |
 
-캐릭터 관리 상세의 숙제 체크는 약 800ms 디바운스 뒤 서버 세션 경로로 자동 저장된다. `app/character/page.tsx`의 저장 상태 알림은 홈 체크보드의 상태 표시와 별개다. v1.991부터 `document.body` 포털의 작은 반투명 플로팅 알림만 잠깐 표시한다. 완료 표시 뒤 새로고침해야 한다.
+캐릭터 관리 상세의 숙제 체크는 500ms 디바운스 뒤 서버 세션 경로로 자동 저장된다. 변경되지 않은 대표·기여도·계정 공통 교환 정보는 별도 서버 요청으로 다시 쓰지 않는다. `app/character/page.tsx`의 저장 상태 알림은 홈 체크보드의 상태 표시와 별개다. v1.991부터 `document.body` 포털의 작은 반투명 플로팅 알림만 잠깐 표시한다. 완료 표시 뒤 새로고침해야 한다.
 
 ### 서버 API 상세 지도
 
