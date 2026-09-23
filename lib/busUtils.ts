@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { memberMutation } from "@/lib/memberMutationClient";
 import { NexusContent, ContentPowerReq, NexusClassItem } from "@/components/party/types";
 
 // 🎯 ts(2459) 에러 차단 및 외부 사용을 위한 Re-export 선언
@@ -553,7 +554,8 @@ export async function syncKronosChecklist(
   target: any,
   arg2?: string,
   arg3?: string | boolean,
-  arg4?: string
+  arg4?: string,
+  partyId?: string | number
 ): Promise<boolean> {
   try {
     if (Array.isArray(target)) {
@@ -561,30 +563,13 @@ export async function syncKronosChecklist(
       const contentName = typeof arg3 === "string" ? arg3 : typeof arg2 === "string" ? arg2 : "";
       if (!contentName) return false;
 
-      const updatePromises = members.map(async (m: any) => {
-        const charId = m.character_id || m.id;
-        if (!charId) return;
-
-        const { data: charData } = await supabase
-          .from("characters")
-          .select("raid_checks")
-          .eq("id", charId)
-          .single();
-
-        const currentChecks = charData?.raid_checks || {};
-        const updatedChecks = {
-          ...currentChecks,
-          [contentName]: true,
-        };
-
-        await supabase
-          .from("characters")
-          .update({ raid_checks: updatedChecks })
-          .eq("id", charId);
+      if (!partyId) return false;
+      const response = await fetch("/api/parties/sync-checklist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ partyId, completedNames: members.map((member: any) => member.character_name || member.name) }),
       });
-
-      await Promise.all(updatePromises);
-      return true;
+      return response.ok;
     }
 
     const characterId = Number(target);
@@ -607,10 +592,7 @@ export async function syncKronosChecklist(
       [contentKey]: isCleared,
     };
 
-    const { error: updateErr } = await supabase
-      .from("characters")
-      .update({ raid_checks: updatedChecks })
-      .eq("id", characterId);
+    const { error: updateErr } = await memberMutation({ table: "characters", action: "update", filter: { column: "id", value: characterId }, payload: { raid_checks: updatedChecks } });
 
     return !updateErr;
   } catch (err) {

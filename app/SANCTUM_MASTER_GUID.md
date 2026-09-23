@@ -148,6 +148,12 @@ public/
 | `/api/auth/login`, `/api/auth/register`, `/api/auth/session`, `/api/auth/logout`, `/api/auth/switch` | 서버 로그인·가입·세션 확인·종료·저장 계정 전환. | `accounts`, `sanctum_sessions`, `sanctum_login_attempts`, `characters` | 서버 전용 키 사용; Preview 실제 로그인 검증 전 |
 | `/api/auth/health` | 서버 키와 인증 DB 객체 연결 점검. | 인증 함수·세션·시도 제한 테이블 | 응답에 계정·키를 담지 않음 |
 | `/api/admin/accounts`, `/api/admin/pending`, `/api/accounts/directory` | 운영진 가입 승인·대기 알림·길드원 표시 정보. | `accounts`, 서버 세션 | 계정 목록은 비밀 코드를 반환하지 않음 |
+| `/api/admin/catalog` | 운영진 카탈로그 8개 테이블의 서버 저장·수정·삭제. | `nexus_*`, `content_power_reqs`, `gnosis_guides` | 운영진 세션·요청 출처 검사. Phase C 적용 전 Preview 쓰기 확인 |
+| `/api/notices/mutate` | 공지 저장·고정·삭제와 로그인 이용자 투표·댓글. | `notices` | 작성 권한과 댓글 작성자 확인. Phase C 적용 전 검증 |
+| `/api/reports` | 로그인 이용자의 심층/어비스 제보. | `deep_holes`, `abyss_reports` | 제보자 이름은 세션에서 설정 |
+| `/api/member-mutations` | 본인 캐릭터, 참여 파티, 문의의 서버 저장·수정·삭제. | `characters`, `parties`, `inquiries` | 세션·소유자/참여자·운영진 권한 확인. Phase D 전 핵심 쓰기 검증 |
+| `/api/parties/sync-checklist` | 파티 완료 시 참여 캐릭터 숙제 체크 동기화. | `parties`, `characters` | 파티 참가자/운영진만 요청 가능 |
+| `/api/inquiries` | 본인 문의 또는 운영진 문의 목록·대기 건수. | `inquiries` | 비로그인·타인 문의 조회 차단. Phase D에서 공개 SELECT 제거 |
 
 ### 전역 레이아웃·상태 흐름
 
@@ -259,6 +265,8 @@ app/layout.tsx
 ### RLS 확인 결과
 
 RLS가 켜진 테이블은 `accounts`, `activity_logs`, `characters`, `inquiries`, `lounge_posts`, `nexus_classes`, `parties`다. 나머지 다수의 public 테이블은 RLS가 꺼져 있다.
+
+2026-09-23 정책 상세 확인에서 위 테이블의 RLS가 켜져 있어도 `PUBLIC` 대상 `true` 쓰기 정책이 남아 있음을 확인했다. 서버 쓰기 경로를 배포·검증한 뒤 Phase B/C/D SQL로 공개 권한을 차단한다. SQL은 아직 미적용이다.
 
 특히 `notices`는 정책이 존재하지만 RLS 자체가 꺼져 있으므로 정책이 적용되지 않는다. RLS를 한꺼번에 활성화하면 기존 클라이언트 직접 호출이 중단될 수 있으므로, 베타 전에는 핵심 테이블부터 코드와 함께 단계적으로 정비한다.
 

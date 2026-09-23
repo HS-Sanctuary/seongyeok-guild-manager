@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../lib/supabase";
+import { memberMutationOrThrow } from "@/lib/memberMutationClient";
 import { 
   calculateOptimalStartTime, 
   isScheduleConflict, 
@@ -487,7 +488,7 @@ export default function Home() {
 
     if (char.id) {
       try {
-        await supabase.from("characters").update({ [field]: updatedPayload }).eq("id", char.id);
+        await memberMutationOrThrow({ table: "characters", action: "update", filter: { column: "id", value: char.id }, payload: { [field]: updatedPayload } });
       } catch (err) {
         console.error("Supabase 숙제 업데이트 실패:", err);
       }
@@ -497,15 +498,24 @@ export default function Home() {
   const submitDeepHole = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user?.nickname) return alert('로그인 정보가 없습니다.');
-    await supabase.from('deep_holes').insert([{ zone: deepZoneUID, channel: deepCount, reporter_name: user.nickname }]);
+    const response = await fetch('/api/reports', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'deep_hole', zone: deepZoneUID, channel: deepCount }),
+    });
+    if (!response.ok) return alert('심층 구멍 제보를 저장하지 못했습니다. 다시 시도해주세요.');
     setDeepCount('0'); setIsDeepModalOpen(false); fetchDashboardData(user);
   };
 
   const submitAbyssHole = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user?.nickname || !abyssMins) return alert('남은 분을 입력해주세요!');
-    const targetTime = new Date(Date.now() + Number(abyssMins) * 60000).toISOString();
-    await supabase.from('abyss_reports').insert([{ reporter_name: user.nickname, channel: abyssMins, hole_time: targetTime, status: 'pending' }]);
+    const response = await fetch('/api/reports', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'abyss', minutes: abyssMins }),
+    });
+    if (!response.ok) return alert('어비스 제보를 저장하지 못했습니다. 다시 시도해주세요.');
     setAbyssMins(''); setIsAbyssModalOpen(false); fetchDashboardData(user);
   };
 
@@ -521,7 +531,7 @@ export default function Home() {
 
   const handleDeleteParty = async (id: string | number) => {
     if (confirm("정말로 이 파티 모집을 취소하시겠습니까?")) {
-      await supabase.from('parties').delete().eq('id', id);
+      await memberMutationOrThrow({ table: "parties", action: "delete", filter: { column: "id", value: id } });
       fetchDashboardData(user); 
     }
   };
@@ -580,8 +590,7 @@ export default function Home() {
         updatePayload.status = "모집중";
       }
 
-      const { error: updateErr } = await supabase.from('parties').update(updatePayload).eq('id', joinPopupParty.id);
-      if (updateErr) throw updateErr;
+      await memberMutationOrThrow({ table: "parties", action: "update", filter: { column: "id", value: joinPopupParty.id }, payload: updatePayload });
 
       alert(updatePayload.status === "모집완료" ? "🎉 시낙시스 파티 매칭 완료!" : "파티 대기열 등록 완료");
       setJoinPopupParty(null);

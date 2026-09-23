@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
+import { adminCatalogWrite } from "@/lib/adminCatalogClient";
 import ClassIcon from "@/components/common/ClassIcon";
 
 interface ClassData {
@@ -89,12 +90,7 @@ export default function ClassAdminTab() {
 
   const handleRoleChange = async (id: number, newRole: string) => {
     try {
-      const { error } = await supabase
-        .from("nexus_classes")
-        .update({ role: newRole })
-        .eq("id", id);
-
-      if (error) throw error;
+      await adminCatalogWrite("nexus_classes", "update", { role: newRole }, id);
 
       setClasses((prev) =>
         prev.map((c) => (c.id === id ? { ...c, role: newRole } : c))
@@ -150,20 +146,15 @@ export default function ClassAdminTab() {
 
     try {
       if (editingClass) {
-        const { error } = await supabase
-          .from("nexus_classes")
-          .update({
+        await adminCatalogWrite("nexus_classes", "update", {
             name: className,
             role: formData.role,
             titles: payloadTitles,
             category: formData.category,
             icon: iconValue,
-          })
-          .eq("id", editingClass.id);
-
-        if (error) throw error;
+          }, editingClass.id);
       } else {
-        const { error } = await supabase.from("nexus_classes").insert({
+        await adminCatalogWrite("nexus_classes", "insert", {
           name: className,
           role: formData.role,
           titles: payloadTitles,
@@ -171,8 +162,6 @@ export default function ClassAdminTab() {
           icon: iconValue,
           is_active: true,
         });
-
-        if (error) throw error;
       }
 
       setIsModalOpen(false);
@@ -203,8 +192,7 @@ export default function ClassAdminTab() {
     }
 
     try {
-      const { error } = await supabase.from("nexus_classes").delete().eq("id", deleteTarget.id);
-      if (error) throw error;
+      await adminCatalogWrite("nexus_classes", "delete", undefined, deleteTarget.id);
 
       setDeleteTarget(null);
       fetchClassData();

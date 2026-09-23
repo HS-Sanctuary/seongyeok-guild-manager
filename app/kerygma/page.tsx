@@ -3,6 +3,7 @@
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { mutateNotice } from "@/lib/noticeClient";
 import { Notice, CommentItem, PollData } from "@/types/kerygma";
 
 import KerygmaHeader from "@/components/kerygma/KerygmaHeader";
@@ -57,6 +58,16 @@ function KerygmaContent() {
 
   const canWriteNotice = isMaster || isSubMaster;
   const currentNickname = user?.nickname || "방문자";
+  const withViewerVotes = (notice: Notice) => {
+    if (!notice.poll) return notice;
+    return {
+      ...notice,
+      poll: {
+        ...notice.poll,
+        userVotes: notice.poll.options.filter(option => option.voters?.includes(currentNickname)).map(option => option.id),
+      },
+    };
+  };
 
   // DB 계정, 직업, 칭호 데이터 및 캐릭터 스탯 일괄 수집
   const fetchAccounts = async () => {
@@ -156,7 +167,7 @@ function KerygmaContent() {
     if (noticeIdParam && notices.length > 0) {
       const found = notices.find((n) => Number(n.id) === Number(noticeIdParam));
       if (found) {
-        setSelectedNotice(found);
+        setSelectedNotice(withViewerVotes(found));
         const rawComments = (found as any).comments || [];
         setCommentsTree(Array.isArray(rawComments) ? rawComments : []);
       } else {
@@ -168,7 +179,7 @@ function KerygmaContent() {
           .then(({ data, error }) => {
             if (data && !error) {
               const n = data as Notice;
-              setSelectedNotice(n);
+              setSelectedNotice(withViewerVotes(n));
               const rawComments = (n as any).comments || [];
               setCommentsTree(Array.isArray(rawComments) ? rawComments : []);
             }
@@ -183,30 +194,22 @@ function KerygmaContent() {
   const handleTogglePin = async (id: number, currentPinned: boolean) => {
     if (!canWriteNotice) return alert("필독 고정 권한이 없습니다.");
 
-    const { error } = await supabase
-      .from("notices")
-      .update({ is_pinned: !currentPinned })
-      .eq("id", id);
-
-    if (error) {
-      alert(`고정 변경 실패: ${error.message}`);
-    } else {
+    try {
+      await mutateNotice({ action: "pin", id });
       fetchNotices();
-    }
+    } catch (error) { alert(`고정 변경 실패: ${(error as Error).message}`); }
   };
 
   const handleDeleteNotice = async (id: number) => {
     if (!canWriteNotice) return alert("삭제 권한이 없습니다.");
     if (!confirm("정말 이 공지글을 삭제하시겠습니까?")) return;
 
-    const { error } = await supabase.from("notices").delete().eq("id", id);
-    if (error) {
-      alert(`삭제 실패: ${error.message}`);
-    } else {
+    try {
+      await mutateNotice({ action: "delete", id });
       alert("공지글이 삭제되었습니다.");
       router.replace("/kerygma");
       fetchNotices();
-    }
+    } catch (error) { alert(`삭제 실패: ${(error as Error).message}`); }
   };
 
   const handleOpenNotice = (notice: Notice) => {
@@ -222,45 +225,10 @@ function KerygmaContent() {
   const handleVoteOption = async (optionId: string) => {
     if (!selectedNotice || !selectedNotice.poll) return;
 
-    const currentPoll = selectedNotice.poll;
-    const userVotes = currentPoll.userVotes || [];
-    let updatedVotes: string[] = [];
-
-    if (currentPoll.allowMultiple) {
-      if (userVotes.includes(optionId)) {
-        updatedVotes = userVotes.filter((id) => id !== optionId);
-      } else {
-        updatedVotes = [...userVotes, optionId];
-      }
-    } else {
-      updatedVotes = userVotes.includes(optionId) ? [] : [optionId];
-    }
-
-    const updatedOptions = currentPoll.options.map((opt) => {
-      const wasVoted = userVotes.includes(opt.id);
-      const isNowVoted = updatedVotes.includes(opt.id);
-
-      let votesCount = opt.votes || 0;
-      if (!wasVoted && isNowVoted) votesCount += 1;
-      if (wasVoted && !isNowVoted) votesCount = Math.max(0, votesCount - 1);
-
-      return { ...opt, votes: votesCount };
-    });
-
-    const updatedPoll = {
-      ...currentPoll,
-      options: updatedOptions,
-      userVotes: updatedVotes,
-    };
-
-    const { error } = await supabase
-      .from("notices")
-      .update({ poll: updatedPoll })
-      .eq("id", selectedNotice.id);
-
-    if (!error) {
-      setSelectedNotice({ ...selectedNotice, poll: updatedPoll });
-    }
+    try {
+      const result = await mutateNotice<{ poll: PollData }>({ action: "vote", id: selectedNotice.id, optionId });
+      setSelectedNotice({ ...selectedNotice, poll: result.poll });
+    } catch (error) { alert(`투표 실패: ${(error as Error).message}`); }
   };
 
   // 대대대댓글 재귀 탐색 삽입
@@ -316,19 +284,17 @@ function KerygmaContent() {
       updatedTree = [...commentsTree, newComment];
     }
 
-    const { error } = await supabase
-      .from("notices")
-      .update({ comments: updatedTree })
-      .eq("id", selectedNotice.id);
-
-    if (error) {
-      console.error("댓글 DB 저장 실패:", error);
-      alert(`⚠️ 댓글 DB 저장 실패: ${error.message}\n\nSupabase 'notices' 테이블에 'comments' (jsonb) 컬럼을 생성해 주셨는지 확인해 주세요!`);
+    let savedComments: CommentItem[];
+    try {
+      const result = await mutateNotice<{ comments: CommentItem[] }>({ action: "comment", id: selectedNotice.id, content: text, parentId });
+      savedComments = result.comments;
+    } catch (error) {
+      alert(`댓글 저장 실패: ${(error as Error).message}`);
       return;
     }
 
-    setCommentsTree(updatedTree);
-    setSelectedNotice({ ...selectedNotice, comments: updatedTree } as any);
+    setCommentsTree(savedComments);
+    setSelectedNotice({ ...selectedNotice, comments: savedComments } as any);
     if (parentId) {
       setReplyText("");
       setReplyingTo(null);
@@ -345,18 +311,17 @@ function KerygmaContent() {
 
     const updatedTree = deleteRecursive(commentsTree, commentId);
 
-    const { error } = await supabase
-      .from("notices")
-      .update({ comments: updatedTree })
-      .eq("id", selectedNotice.id);
-
-    if (error) {
-      alert(`댓글 삭제 실패: ${error.message}`);
+    let savedComments: CommentItem[];
+    try {
+      const result = await mutateNotice<{ comments: CommentItem[] }>({ action: "delete_comment", id: selectedNotice.id, commentId });
+      savedComments = result.comments;
+    } catch (error) {
+      alert(`댓글 삭제 실패: ${(error as Error).message}`);
       return;
     }
 
-    setCommentsTree(updatedTree);
-    setSelectedNotice({ ...selectedNotice, comments: updatedTree } as any);
+    setCommentsTree(savedComments);
+    setSelectedNotice({ ...selectedNotice, comments: savedComments } as any);
     fetchNotices();
   };
 

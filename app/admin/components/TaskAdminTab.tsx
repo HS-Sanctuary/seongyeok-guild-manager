@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
+import { adminCatalogWrite } from "@/lib/adminCatalogClient";
 
 export interface TaskItem {
   id: string | number;
@@ -61,8 +62,7 @@ export default function TaskAdminTab() {
     };
 
     try {
-      const { data, error } = await supabase.from("nexus_tasks").insert([payload]).select();
-      if (error) throw error;
+      const data = await adminCatalogWrite<TaskItem>("nexus_tasks", "insert", payload);
       
       if (data && data[0]) {
         setTasks((prev) => [...prev, data[0]]);
@@ -80,22 +80,21 @@ export default function TaskAdminTab() {
 
   const handleDeleteTask = async (id: string | number) => {
     if (!confirm("해당 숙제 항목을 삭제하시겠습니까?")) return;
-    setTasks((prev) => prev.filter((t) => t.id !== id));
-    await supabase.from("nexus_tasks").delete().eq("id", id);
+    try {
+      await adminCatalogWrite("nexus_tasks", "delete", undefined, id);
+      setTasks((prev) => prev.filter((t) => t.id !== id));
+    } catch (error) { alert((error as Error).message); }
   };
 
   const handleSaveEdit = async () => {
     if (!editingTask) return;
     try {
-      await supabase
-        .from("nexus_tasks")
-        .update({
+      await adminCatalogWrite("nexus_tasks", "update", {
           name: editingTask.name,
           max_count: editingTask.max_count,
           repeat_cycle: editingTask.repeat_cycle,
           is_active: editingTask.is_active !== false
-        })
-        .eq("id", editingTask.id);
+        }, editingTask.id);
 
       setTasks((prev) => prev.map((t) => (t.id === editingTask.id ? editingTask : t)));
       setEditingTask(null);

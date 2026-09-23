@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { mutateNotice } from "@/lib/noticeClient";
 import { Notice, PollData } from "@/types/kerygma";
 import KerygmaPollModal from "@/components/kerygma/KerygmaPollModal";
 import KerygmaEditorToolbar from "@/components/kerygma/KerygmaEditorToolbar";
@@ -969,30 +970,11 @@ export default function KerygmaWritePage() {
       dislikes: 0,
     };
 
-    if (isEditMode && editId) {
-      const { error } = await supabase.from("notices").update(payload).eq("id", editId);
-      if (error) {
-        console.error("Supabase update error:", error);
-        return alert(
-          `[DB 수정 실패] ${error.message}\n\n※ Supabase SQL Editor에서 알맞은 컬럼(poll, link 등) 추가 및 RLS 비활성화 쿼리를 실행해 주셨는지 확인하세요.`
-        );
-      }
-    } else {
-      const { data, error } = await supabase
-        .from("notices")
-        .insert([payload])
-        .select();
-
-      if (error) {
-        console.error("Supabase insert error:", error);
-        return alert(
-          `[DB 저장 실패] ${error.message}\n\n※ Supabase SQL Editor에서 알맞은 컬럼(poll, link 등) 추가 및 RLS 비활성화 쿼리를 실행해 주셨는지 확인하세요.`
-        );
-      }
-
-      if (data && data.length > 0 && data[0].id) {
-        finalId = data[0].id;
-      }
+    try {
+      const result = await mutateNotice<{ id: number }>({ action: "save", id: isEditMode ? editId : undefined, payload });
+      finalId = result.id;
+    } catch (error) {
+      return alert(`[공지 저장 실패] ${(error as Error).message}`);
     }
 
     localStorage.removeItem("kerygma_notice_draft");

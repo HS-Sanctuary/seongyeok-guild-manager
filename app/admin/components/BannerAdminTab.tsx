@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
+import { adminCatalogWrite } from "@/lib/adminCatalogClient";
 
 export default function BannerAdminTab() {
   const [banners, setBanners] = useState<any[]>([]);
@@ -24,24 +25,28 @@ export default function BannerAdminTab() {
     e.preventDefault();
     if (!newMessage.trim()) return alert("공지 메시지를 입력해 주세요.");
 
-    const { error } = await supabase.from("nexus_banners").insert([
-      { message: newMessage.trim(), bg_color: bgColor, is_active: true }
-    ]);
-
-    if (error) return alert("배너 등록 실패: " + error.message);
-    setNewMessage("");
-    fetchBanners();
+    try {
+      await adminCatalogWrite("nexus_banners", "insert", { message: newMessage.trim(), bg_color: bgColor, is_active: true });
+      setNewMessage("");
+      fetchBanners();
+    } catch (error) {
+      alert("배너 등록 실패: " + (error as Error).message);
+    }
   };
 
   const toggleBanner = async (id: number, currentActive: boolean) => {
-    await supabase.from("nexus_banners").update({ is_active: !currentActive }).eq("id", id);
-    fetchBanners();
+    try {
+      await adminCatalogWrite("nexus_banners", "update", { is_active: !currentActive }, id);
+      fetchBanners();
+    } catch (error) { alert((error as Error).message); }
   };
 
   const deleteBanner = async (id: number) => {
     if (!confirm("삭제하시겠습니까?")) return;
-    await supabase.from("nexus_banners").delete().eq("id", id);
-    fetchBanners();
+    try {
+      await adminCatalogWrite("nexus_banners", "delete", undefined, id);
+      fetchBanners();
+    } catch (error) { alert((error as Error).message); }
   };
 
   return (

@@ -2,6 +2,14 @@
 
 이 문서는 **공식 push 직전 또는 직후** 현재 코드 상태를 다음 Codex 세션과 한설님에게 전달하기 위한 문서다.
 
+## 2026-09-23 22:35 KST — 자정 베타 오픈 준비 중
+
+- 집 영겁이 `codex/v1-96-beta`에서 익명 쓰기 차단 전 서버 경로를 추가했다. 관리자 카탈로그, 공지, 제보, 캐릭터, 파티, 문의가 대상이다. 1:1 문의 조회도 서버 세션 기준으로 분리했다.
+- 타입 검사와 Production 빌드는 통과했다. 새 경로의 Preview 로그인 실사용 검증, Production 배포 및 운영 DB Phase B/C/D는 아직 하지 않았다. 검증 전 SQL을 실행하면 기존 쓰기 기능이 중단될 수 있다.
+- 한설은 검증 후 Preview·main 푸시와 DB 권한 차단 순서에 동의했다. SQL은 대상·영향·복구 방법을 직전에 안내하고 한설이 Supabase SQL Editor에서 직접 실행한다.
+- 운영 정책 상세 결과: `accounts`의 공개 SELECT/UPDATE/DELETE/ALL, `characters`·`parties`의 공개 ALL, `inquiries`의 공개 ALL, `activity_logs`·`lounge_posts`의 공개 INSERT, `nexus_classes` 공개 ALL. 확대 초대 전 권한 재검사 필수.
+- 남은 순서: Preview 배포→한설이 로그인 상태 핵심 쓰기(캐릭터 저장, 파티 생성/참여, 공지·문의, 관리자 항목)를 확인→main 배포→Production 로그인·핵심 쓰기 확인→Phase B/C/D SQL 순차 적용→읽기 전용 권한 검증→같은 핵심 쓰기 재확인→초대 판단. 실패 시 초대 중단, 영향을 받은 권한만 검토 후 복구.
+
 ## v1.96 운영 배포 전 인계 — 2026-09-23 17:10 KST
 
 - **퇴근 인계(17:13 KST):** 사무실 순월은 `codex/v1-96-beta` 브랜치만 push하고 멈춘다. 집 영겁은 먼저 `git fetch` 후 해당 브랜치를 checkout/pull하고 이 문서·`docs/relay/TO_YEONGGEOP.md`를 읽는다. `main`은 v1.95(`d7d3758`) 그대로이며 Production push·Phase B 운영 SQL은 미실행이다.

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
+import { memberMutation } from "@/lib/memberMutationClient";
 
 export default function SupportPage() {
   const [user, setUser] = useState<any>(null);
@@ -42,26 +42,20 @@ export default function SupportPage() {
   }, []);
 
   // 🟢 1:1 맞춤형 데이터 불러오기 (한설 = 전부 다 보임 / 일반유저 = 내 것만 보임)
-  const fetchInquiries = async (nickname: string) => {
+  const fetchInquiries = async (_nickname: string) => {
     setIsLoading(true);
-    let query = supabase.from('inquiries').select('*').order('created_at', { ascending: false });
-    
-    if (nickname !== "한설") {
-      query = query.eq('author', nickname);
+    const response = await fetch('/api/inquiries');
+    if (response.ok) {
+      const result = await response.json();
+      setInquiries(result.data || []);
     }
-
-    const { data, error } = await query;
-    if (!error) setInquiries(data || []);
     setIsLoading(false);
   };
 
   const handleSubmit = async () => {
     if (!newInquiry.title.trim() || !newInquiry.content.trim()) return alert("제목과 내용을 모두 입력해주세요!");
     
-    const authorName = user?.nickname || "길드원"; 
-    const { error } = await supabase.from('inquiries').insert([{
-      category: newInquiry.category, title: newInquiry.title, content: newInquiry.content, author: authorName, status: "대기중"
-    }]);
+    const { error } = await memberMutation({ table: "inquiries", action: "insert", payload: newInquiry });
 
     if (!error) {
       setIsWriteModalOpen(false);
@@ -76,10 +70,7 @@ export default function SupportPage() {
   const handleReplySubmit = async (id: number) => {
     if (!replyText.trim()) return alert("답변 내용을 입력해주세요!");
 
-    const { error } = await supabase.from('inquiries').update({ 
-      reply: replyText, 
-      status: "답변완료" 
-    }).eq('id', id);
+    const { error } = await memberMutation({ table: "inquiries", action: "update", filter: { column: "id", value: id }, payload: { reply: replyText } });
 
     if (!error) {
       alert("답변이 등록되었습니다.");

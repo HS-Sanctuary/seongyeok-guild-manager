@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../../lib/supabase";
+import { memberMutationOrThrow } from "@/lib/memberMutationClient";
 import { isTaskChecked } from "../../../lib/matchingUtils";
 import ClassIcon from "@/components/common/ClassIcon";
 
@@ -169,10 +170,7 @@ export default function AstraView() {
 
   const updateUserLastSeen = async (username: string) => {
     try {
-      await supabase
-        .from('characters')
-        .update({ updated_at: new Date().toISOString() })
-        .eq('owner', username);
+      await memberMutationOrThrow({ table: "characters", action: "update", filter: { column: "owner", value: username }, payload: { updated_at: new Date().toISOString() } });
     } catch (e) {
       console.error("접속 시간 업데이트 실패", e);
     }

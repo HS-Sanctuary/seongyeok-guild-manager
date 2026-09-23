@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
+import { adminCatalogWrite } from "@/lib/adminCatalogClient";
 import MarkIcon from "@/components/common/MarkIcon";
 
 export interface NexusContent {
@@ -108,9 +109,9 @@ export default function ContentAdminTab() {
 
     try {
       if (cForm.id) {
-        await supabase.from("nexus_contents").update(payload).eq("id", cForm.id);
+        await adminCatalogWrite("nexus_contents", "update", payload, cForm.id);
       } else {
-        await supabase.from("nexus_contents").insert([payload]);
+        await adminCatalogWrite("nexus_contents", "insert", payload);
       }
       setIsContentModalOpen(false);
       fetchData();
@@ -121,9 +122,11 @@ export default function ContentAdminTab() {
 
   const handleDeleteContent = async (id: number) => {
     if (!confirm("이 컨텐츠를 삭제하시겠습니까? 연결된 스탯 컷 데이터도 함께 삭제됩니다.")) return;
-    await supabase.from("nexus_contents").delete().eq("id", id);
-    if (selectedContentId === id) setSelectedContentId(null);
-    fetchData();
+    try {
+      await adminCatalogWrite("nexus_contents", "delete", undefined, id);
+      if (selectedContentId === id) setSelectedContentId(null);
+      fetchData();
+    } catch (error) { alert((error as Error).message); }
   };
 
   const openNewReqModal = () => {
@@ -151,9 +154,9 @@ export default function ContentAdminTab() {
       };
 
       if (dForm.id) {
-        await supabase.from("content_power_reqs").update(payload).eq("id", dForm.id);
+        await adminCatalogWrite("content_power_reqs", "update", payload, dForm.id);
       } else {
-        await supabase.from("content_power_reqs").upsert([payload], { onConflict: "content_id,difficulty" });
+        await adminCatalogWrite("content_power_reqs", "upsert", payload);
       }
       setIsReqModalOpen(false);
       fetchData();
@@ -164,8 +167,10 @@ export default function ContentAdminTab() {
 
   const handleDeletePowerReq = async (id: number) => {
     if (!confirm("해당 난이도의 스탯 컷 설정을 삭제하시겠습니까?")) return;
-    await supabase.from("content_power_reqs").delete().eq("id", id);
-    fetchData();
+    try {
+      await adminCatalogWrite("content_power_reqs", "delete", undefined, id);
+      fetchData();
+    } catch (error) { alert((error as Error).message); }
   };
 
   const filteredContents = contents.filter(c => c.type === activeTab);

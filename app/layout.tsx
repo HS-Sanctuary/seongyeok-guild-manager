@@ -564,8 +564,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   }, [activeAccount]);
 
   const checkPendingInquiries = async () => {
-    const { count, error } = await supabase.from('inquiries').select('*', { count: 'exact', head: true }).eq('status', '대기중');
-    if (!error && count !== null) setPendingCount(count);
+    const response = await fetch('/api/inquiries?count=pending');
+    if (response.ok) {
+      const result = await response.json();
+      setPendingCount(result.count ?? 0);
+    }
   };
 
   useEffect(() => {

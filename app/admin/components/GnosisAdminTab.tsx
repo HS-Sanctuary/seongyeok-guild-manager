@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
+import { adminCatalogWrite } from "@/lib/adminCatalogClient";
 
 export default function GnosisAdminTab() {
   const [guides, setGuides] = useState<any[]>([]);
@@ -19,14 +20,18 @@ export default function GnosisAdminTab() {
   };
 
   const togglePin = async (id: number, currentPin: boolean) => {
-    await supabase.from("gnosis_guides").update({ is_pinned: !currentPin }).eq("id", id);
-    fetchGuides();
+    try {
+      await adminCatalogWrite("gnosis_guides", "update", { is_pinned: !currentPin }, id);
+      fetchGuides();
+    } catch (error) { alert((error as Error).message); }
   };
 
   const deleteGuide = async (id: number) => {
     if (!confirm("이 공략글을 삭제하시겠습니까?")) return;
-    await supabase.from("gnosis_guides").delete().eq("id", id);
-    fetchGuides();
+    try {
+      await adminCatalogWrite("gnosis_guides", "delete", undefined, id);
+      fetchGuides();
+    } catch (error) { alert((error as Error).message); }
   };
 
   return (

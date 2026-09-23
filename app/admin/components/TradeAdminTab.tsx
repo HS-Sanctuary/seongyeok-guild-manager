@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
+import { adminCatalogWrite } from "@/lib/adminCatalogClient";
 
 interface TradeItem {
   id: string | number;
@@ -45,8 +46,8 @@ export default function TradeAdminTab() {
     e.preventDefault();
     if (!rewardName.trim() || !costName.trim()) return alert("획득 보상과 소모 재화를 모두 입력해 주세요.");
 
-    const { error } = await supabase.from("nexus_trades").insert([
-      {
+    try {
+      await adminCatalogWrite("nexus_trades", "insert", {
         map_name: mapName.trim() || "전역",
         npc_name: npcName.trim() || "NPC",
         reward_name: rewardName.trim(),
@@ -56,21 +57,19 @@ export default function TradeAdminTab() {
         max_limit: maxLimit,
         reset_cycle: resetCycle,
         scope,
-      },
-    ]);
-
-    if (error) alert("등록 실패: " + error.message);
-    else {
+      });
       setRewardName("");
       setCostName("");
       fetchTrades();
-    }
+    } catch (error) { alert("등록 실패: " + (error as Error).message); }
   };
 
   const handleDeleteTrade = async (id: string | number) => {
     if (!confirm("해당 물물교환 카탈로그 품목을 삭제하시겠습니까?")) return;
-    await supabase.from("nexus_trades").delete().eq("id", id);
-    fetchTrades();
+    try {
+      await adminCatalogWrite("nexus_trades", "delete", undefined, id);
+      fetchTrades();
+    } catch (error) { alert((error as Error).message); }
   };
 
   return (

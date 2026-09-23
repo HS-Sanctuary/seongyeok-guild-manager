@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
+import { adminCatalogWrite } from "@/lib/adminCatalogClient";
 
 export default function MissionAdminTab() {
   const [missions, setMissions] = useState<any[]>([]);
@@ -25,21 +26,21 @@ export default function MissionAdminTab() {
     e.preventDefault();
     if (!title.trim() || !rewardItem.trim()) return alert("임무 제목과 보상 아이템을 입력해 주세요.");
 
-    const { error } = await supabase.from("nexus_missions").insert([
-      { title: title.trim(), reward_item: rewardItem.trim(), reward_count: rewardCount, is_active: true }
-    ]);
-
-    if (error) return alert("임무 추가 실패: " + error.message);
-    setTitle("");
-    setRewardItem("");
-    setRewardCount(1);
-    fetchMissions();
+    try {
+      await adminCatalogWrite("nexus_missions", "insert", { title: title.trim(), reward_item: rewardItem.trim(), reward_count: rewardCount, is_active: true });
+      setTitle("");
+      setRewardItem("");
+      setRewardCount(1);
+      fetchMissions();
+    } catch (error) { alert("임무 추가 실패: " + (error as Error).message); }
   };
 
   const deleteMission = async (id: number) => {
     if (!confirm("이 임무 항목을 삭제하시겠습니까?")) return;
-    await supabase.from("nexus_missions").delete().eq("id", id);
-    fetchMissions();
+    try {
+      await adminCatalogWrite("nexus_missions", "delete", undefined, id);
+      fetchMissions();
+    } catch (error) { alert((error as Error).message); }
   };
 
   return (

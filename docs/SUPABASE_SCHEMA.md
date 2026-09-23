@@ -27,6 +27,8 @@
 
 ### RLS 사용 중
 
+2026-09-23 추가 정책 상세 조회: `accounts`는 `PUBLIC` SELECT/UPDATE/DELETE/ALL, `characters`·`parties`·`nexus_classes`는 `PUBLIC` ALL, `inquiries`는 `PUBLIC` ALL, `activity_logs`·`lounge_posts`는 `PUBLIC` INSERT 정책을 포함한다. 정책 조건은 모두 `true`이거나 무조건 허용이다. RLS가 켜져 있다는 사실만으로 사용자별 격리가 되는 상태가 아니다. 운영 변경은 아직 없다.
+
 | 테이블 | 정책 수 | 비고 |
 | --- | ---: | --- |
 | `accounts` | 4 | 로그인·가입·역할의 핵심 테이블 |
@@ -128,6 +130,8 @@
 8. 공식 push 시 마스터 가이드, 릴리스 노트, 인계 문서를 함께 갱신한다.
 
 ## 6-1. 계정 보안 단계별 적용 상태 — 2026-09-23
+
+- Phase C `supabase/migrations/20260923_anon_writes_lockdown.sql`은 RLS-off 18개와 `nexus_classes`의 공개 쓰기를 차단하는 준비 SQL이다. Phase D `supabase/migrations/20260923_member_writes_lockdown.sql`은 `characters`, `parties`, `inquiries`, `activity_logs`, `lounge_posts`의 공개 쓰기와 1:1 문의 공개 읽기를 차단한다. 두 SQL 모두 미적용이며, 서버 경로 배포·핵심 쓰기 확인 후 한설이 적용한다.
 
 - `supabase/migrations/20260922_account_code_hash_and_login_rpc.sql`은 과거 초안이다. `accounts.code`가 `NOT NULL`인 현재 구조에서 해시만 쓰는 가입이 실패하므로 **실행하지 않는다**.
 - `supabase/migrations/20260923_accounts_prepare.sql`(Phase A)은 운영 DB에 적용됐다. 기존 코드의 bcrypt 해시 갱신, 구버전 롤백 호환용 코드 동기화 트리거, 서버 전용 로그인·가입·시도 제한 함수와 `sanctum_sessions`·`sanctum_login_attempts` 테이블을 추가했다. 기존 계정·코드·캐릭터 행을 삭제하거나 제약을 약화하지 않았다. 신규 가입 코드도 전환 기간에는 기존 컬럼에 남으므로 별도 승인된 회전·평문 제거 작업이 필요하다.

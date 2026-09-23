@@ -21,7 +21,7 @@ import {
   BusCandidate,
   BusMember 
 } from '@/lib/busUtils';
-import { supabase } from '@/lib/supabase';
+import { memberMutation } from '@/lib/memberMutationClient';
 import PoolStatusModal from '@/components/party/modals/PoolStatusModal';
 
 const Users = ({ className, title }: { className?: string; title?: string }) => (
@@ -224,10 +224,7 @@ export default function GuildBusCard({
   const handleStartBus = async () => {
     if (activeMembers.length === 0) return alert("출전 파티원이 없습니다.");
     try {
-      const { error } = await supabase
-        .from("parties")
-        .update({ status: "운행중" })
-        .eq("id", party.id);
+      const { error } = await memberMutation({ table: "parties", action: "update", filter: { column: "id", value: party.id }, payload: { status: "운행중" } });
 
       if (error) throw error;
 
@@ -263,7 +260,7 @@ export default function GuildBusCard({
       setPrevMemberNames(activeNames);
 
       const contentType = party.party_type === "어비스" || party.content_name.includes("어비스") ? "abyss" : "raid";
-      await syncKronosChecklist(activeMembers, contentType, party.content_name, party.difficulty);
+      await syncKronosChecklist(activeMembers, contentType, party.content_name, party.difficulty, party.id);
 
       if (onNextRoundClick) {
         const completedMemberList = party.members.filter((m: any) => 
@@ -345,10 +342,7 @@ export default function GuildBusCard({
     }
 
     try {
-      const { error } = await supabase
-        .from('parties')
-        .update({ leader_name: selectedAdmin })
-        .eq('id', party.id);
+      const { error } = await memberMutation({ table: "parties", action: "update", filter: { column: "id", value: party.id }, payload: { leader_name: selectedAdmin } });
 
       if (error) throw error;
 
@@ -371,10 +365,7 @@ export default function GuildBusCard({
         return m;
       });
 
-      const { error } = await supabase
-        .from('parties')
-        .update({ members: updatedMembers })
-        .eq('id', party.id);
+      const { error } = await memberMutation({ table: "parties", action: "update", filter: { column: "id", value: party.id }, payload: { members: updatedMembers } });
 
       if (error) throw error;
       if (onRefresh) onRefresh();

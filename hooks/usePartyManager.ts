@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
+import { memberMutation, memberMutationOrThrow } from "@/lib/memberMutationClient";
 import { pickRandomLeader, autoBalanceAndBuildParty } from "@/lib/matchingUtils";
 import { CONTENT_DB, ContentItem, Party, Member } from "@/components/party/types";
 import { generateDefaultBusMemo, BusCharSelectionConfig } from "@/components/party/modals/BusCreateModal";
@@ -262,13 +263,13 @@ export function usePartyManager() {
   const handleExtendTimeout = async (party: Party, extensionType: "30M" | "1H" | "TOMORROW" | "CANCEL") => {
     try {
       if (extensionType === "CANCEL") {
-        await supabase.from("parties").delete().eq("id", party.id);
+        await memberMutationOrThrow({ table: "parties", action: "delete", filter: { column: "id", value: party.id } });
         alert("파티 모집이 취소되었습니다.");
       } else if (extensionType === "TOMORROW") {
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
         const tomorrowStr = tomorrow.toISOString().split("T")[0];
-        await supabase.from("parties").update({ party_date: tomorrowStr }).eq("id", party.id);
+        await memberMutationOrThrow({ table: "parties", action: "update", filter: { column: "id", value: party.id }, payload: { party_date: tomorrowStr } });
         alert(`📅 파티 모집 날짜가 내일(${tomorrowStr})로 연장되었습니다.`);
       } else {
         const addMinutes = extensionType === "30M" ? 30 : 60;
@@ -277,7 +278,7 @@ export function usePartyManager() {
         if (endMins >= 1440) endMins -= 1440;
         const newTimeEnd = minutesToTime(endMins);
 
-        await supabase.from("parties").update({ time_end: newTimeEnd }).eq("id", party.id);
+        await memberMutationOrThrow({ table: "parties", action: "update", filter: { column: "id", value: party.id }, payload: { time_end: newTimeEnd } });
         alert(`⏰ 희망 종료 시간이 ${newTimeEnd}까지 연장되었습니다.`);
       }
       setTimeoutParty(null);
@@ -561,7 +562,7 @@ export function usePartyManager() {
         updatePayload.status = "모집중";
       }
 
-      const { error } = await supabase.from("parties").update(updatePayload).eq("id", existingMatchingParty.id);
+      const { error } = await memberMutation({ table: "parties", action: "update", filter: { column: "id", value: existingMatchingParty.id }, payload: updatePayload });
       if (!error) {
         alert(updatePayload.status === "매칭 완료" ? `🎉 파티 완성!` : `✨ 자동 매칭 성공!`);
         setPartyMemo("");
@@ -628,7 +629,7 @@ export function usePartyManager() {
       leader_name: selectedChar
     };
 
-    const { error } = await supabase.from("parties").insert([newParty]);
+    const { error } = await memberMutation({ table: "parties", action: "insert", payload: newParty });
     if (!error) {
       alert(`[${getFormattedDateWithDDay(targetDate)} / ${selectedChar}] 매칭 대기 파티가 신규 개설되었습니다!`);
       setPartyMemo("");
@@ -729,7 +730,7 @@ export function usePartyManager() {
       leader_name: busLeaderName
     };
 
-    const { error } = await supabase.from("parties").insert([busPartyPayload]);
+    const { error } = await memberMutation({ table: "parties", action: "insert", payload: busPartyPayload });
     if (!error) {
       alert(`🚌 ${getFormattedDateWithDDay(normBusDate)}\n성역 길드 버스 파티가 성공적으로 개설되었습니다! (${initialMembers.length}개 캐릭터 등록)`);
       setShowBusCreateModal(false);
@@ -811,17 +812,14 @@ export function usePartyManager() {
 
         assembleBalancedParty(combinedCandidates, existingParty.max_members || targetMaxMembers, cpReqs, undefined, nexusClasses);
 
-        const { error } = await supabase
-          .from("parties")
-          .update({ members: combinedMembers })
-          .eq("id", existingParty.id);
+        const { error } = await memberMutation({ table: "parties", action: "update", filter: { column: "id", value: existingParty.id }, payload: { members: combinedMembers } });
         if (error) throw error;
       } else {
         const firstItem = selectedData[0];
         const isTargetAbyss = targetBusParty.contentName.includes("어비스");
         const busSubContents = isTargetAbyss ? selectedSubContents : null;
 
-        const { error } = await supabase.from("parties").insert([{
+        const { error } = await memberMutation({ table: "parties", action: "insert", payload: {
           content_name: targetBusParty.contentName,
           selected_sub_contents: busSubContents,
           difficulty: targetBusParty.difficulty,
@@ -835,7 +833,7 @@ export function usePartyManager() {
           matching_mode: "조합우선",
           members: newMembers,
           leader_name: newMembers[0]?.name || "한설"
-        }]);
+        } });
         if (error) throw error;
       }
 
@@ -851,7 +849,7 @@ export function usePartyManager() {
 
   const handleNextRound = async (targetParty: Party, completedMembers: Member[]) => {
     const contentType = targetParty.content_name.includes("어비스") ? "abyss" : "raid";
-    await syncKronosChecklist(completedMembers, contentType, targetParty.content_name, targetParty.difficulty);
+    await syncKronosChecklist(completedMembers, contentType, targetParty.content_name, targetParty.difficulty, targetParty.id);
 
     const completedNames = completedMembers.map(m => m.character_name || m.name);
     const completedSet = new Set(completedNames);
@@ -864,13 +862,10 @@ export function usePartyManager() {
     });
 
     try {
-      const { error } = await supabase
-        .from("parties")
-        .update({ 
+      const { error } = await memberMutation({ table: "parties", action: "update", filter: { column: "id", value: targetParty.id }, payload: {
           members: updatedMembers,
           status: "운행중"
-        })
-        .eq("id", targetParty.id);
+        } });
 
       if (error) throw error;
 
@@ -911,15 +906,12 @@ export function usePartyManager() {
       if (isMajorityReached) {
         // 과반수 동의 달성 시 파티 종료 및 KRONOS 숙제 자동 연동
         const contentType = party.content_name.includes("어비스") ? "abyss" : "raid";
-        await syncKronosChecklist(updatedMembers, contentType, party.content_name, party.difficulty);
+        await syncKronosChecklist(updatedMembers, contentType, party.content_name, party.difficulty, party.id);
 
-        const { error } = await supabase
-          .from("parties")
-          .update({ 
+        const { error } = await memberMutation({ table: "parties", action: "update", filter: { column: "id", value: party.id }, payload: {
             members: updatedMembers, 
             status: "종료됨" 
-          })
-          .eq("id", party.id);
+          } });
 
         if (error) throw error;
 
@@ -929,10 +921,7 @@ export function usePartyManager() {
         );
       } else {
         // 과반수 미달 시 개인별 투표 상태만 DB 업데이트
-        const { error } = await supabase
-          .from("parties")
-          .update({ members: updatedMembers })
-          .eq("id", party.id);
+        const { error } = await memberMutation({ table: "parties", action: "update", filter: { column: "id", value: party.id }, payload: { members: updatedMembers } });
 
         if (error) throw error;
 
@@ -951,7 +940,7 @@ export function usePartyManager() {
   };
 
   const handleDeleteParty = async (id: number | string) => {
-    await supabase.from("parties").delete().eq("id", id);
+    await memberMutationOrThrow({ table: "parties", action: "delete", filter: { column: "id", value: id } });
     const ownerName = user?.username || user?.nickname || user?.owner || "한설";
     fetchData(ownerName);
   };
@@ -963,7 +952,7 @@ export function usePartyManager() {
       const remainingMembers = party.members.filter((m: any) => m.name !== charName && m.character_name !== charName);
 
       if (remainingMembers.length === 0) {
-        await supabase.from("parties").delete().eq("id", party.id);
+        await memberMutationOrThrow({ table: "parties", action: "delete", filter: { column: "id", value: party.id } });
         alert("모든 파티원이 탈퇴하여 파티 모집이 자동 삭제되었습니다.");
       } else {
         let updatedWanted = [...(party.wanted_roles || [])];
@@ -977,7 +966,7 @@ export function usePartyManager() {
           final_start_time: null,
           leader_name: remainingMembers[0]?.name || remainingMembers[0]?.character_name || null
         };
-        const { error } = await supabase.from("parties").update(updatePayload).eq("id", party.id);
+        const { error } = await memberMutation({ table: "parties", action: "update", filter: { column: "id", value: party.id }, payload: updatePayload });
         if (error) throw error;
         alert(`[${charName}] 파티 탈퇴가 완료되었습니다.`);
       }
@@ -1087,7 +1076,7 @@ export function usePartyManager() {
         updatePayload.status = "모집중";
       }
 
-      const { error } = await supabase.from("parties").update(updatePayload).eq("id", joinPopupParty.id);
+      const { error } = await memberMutation({ table: "parties", action: "update", filter: { column: "id", value: joinPopupParty.id }, payload: updatePayload });
       if (error) throw error;
 
       alert(updatePayload.status === "매칭 완료" ? `🎉 파티 매칭 완료!` : `[${joinSelectedChar}] 합류 완료!`);

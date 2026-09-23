@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { memberMutationOrThrow } from "@/lib/memberMutationClient";
 
 import CharacterStats from "@/components/character/CharacterStats";
 import ClassLevelManager from "@/components/character/ClassLevelManager";
@@ -426,7 +427,7 @@ export default function CharacterPage() {
     try {
       setSaveToast('saving');
       if (profile.isMain) {
-        await supabase.from('characters').update({ is_main: false }).eq('owner', user.nickname).neq('nickname', profile.nickname);
+        await memberMutationOrThrow({ table: "characters", action: "update", filter: { column: "owner", value: user.nickname, exceptNickname: profile.nickname }, payload: { is_main: false } });
       }
 
       const existingIndex = myCharacters.findIndex((c: any) => c.nickname === profile.nickname);
@@ -451,8 +452,8 @@ export default function CharacterPage() {
         raid_checks: Array.from(new Set([...abyssChecks, ...raidChecks])), trade_checks: tradePayload, updated_at: now
       };
       
-      await supabase.from('characters').upsert(payload, { onConflict: 'nickname' }); 
-      await supabase.from('characters').update({ contribution: Number(accountContribution) || 0 }).eq('owner', user.nickname);
+      await memberMutationOrThrow({ table: "characters", action: "upsert", payload });
+      await memberMutationOrThrow({ table: "characters", action: "update", filter: { column: "owner", value: user.nickname }, payload: { contribution: Number(accountContribution) || 0 } });
 
       setLastUpdatedAt(now.toISOString());
 
@@ -481,9 +482,9 @@ export default function CharacterPage() {
             myChars
               .filter(char => char.nickname !== profile.nickname)
               .map(char => 
-                supabase.from('characters').update({
+                memberMutationOrThrow({ table: "characters", action: "update", filter: { column: "nickname", value: char.nickname }, payload: {
                   trade_checks: { ...(char.trade_checks || {}), ...accountWidePayload }
-                }).eq('nickname', char.nickname)
+                } })
               )
           );
         }
@@ -642,7 +643,7 @@ export default function CharacterPage() {
 
     const toDelete = manageList.filter(c => c.isDeleted && !c.isNew);
     for (const char of toDelete) {
-      await supabase.from('characters').delete().eq('originalName', char.originalName);
+      await memberMutationOrThrow({ table: "characters", action: "delete", filter: { column: "nickname", value: char.originalName } });
     }
 
     for (const char of activeChars) {
@@ -657,10 +658,10 @@ export default function CharacterPage() {
       
       if (char.isNew) {
         payload.nickname = char.tempNickname.trim();
-        await supabase.from('characters').insert([payload]);
+        await memberMutationOrThrow({ table: "characters", action: "insert", payload });
       } else {
         if (char.originalName !== char.tempNickname.trim()) payload.nickname = char.tempNickname.trim();
-        await supabase.from('characters').update(payload).eq('nickname', char.originalName);
+        await memberMutationOrThrow({ table: "characters", action: "update", filter: { column: "nickname", value: char.originalName }, payload });
       }
     }
 
