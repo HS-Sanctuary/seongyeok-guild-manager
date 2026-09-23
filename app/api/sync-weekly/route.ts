@@ -1,12 +1,13 @@
-import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSupabase } from '@/lib/server/sanctumSession';
+import { canRunSanctumSync } from '@/lib/server/sanctumSyncAuth';
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key';
-    
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    if (!(await canRunSanctumSync(req))) {
+      return NextResponse.json({ success: false, error: '운영진 인증이 필요합니다.' }, { status: 403 });
+    }
+    const supabase = getServerSupabase();
 
     const body = await req.json();
     const { items, isWeeklyReset, isDailyReset } = body;

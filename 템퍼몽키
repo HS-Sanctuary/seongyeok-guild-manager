@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         SANCTUM Seamless Auto-Sync & Logger (v8.2)
+// @name         SANCTUM Seamless Auto-Sync & Logger (v8.3)
 // @namespace    http://tampermonkey.net/
-// @version      8.2
+// @version      8.3
 // @description  모비라이프 API 전면 배제! 100% UI 물리 클릭 매크로 방식으로 4대 랭킹 완벽 수집
 // @author       GuildMaster
 // @match        https://mabimobi.life/*
@@ -20,6 +20,50 @@
     let isStopped = false;
 
     const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+    function requestSyncCredentials() {
+        return new Promise(resolve => {
+            const backdrop = document.createElement('div');
+            backdrop.style.cssText = 'position:fixed;inset:0;z-index:2147483647;background:#000b;display:grid;place-items:center;padding:16px';
+            const panel = document.createElement('form');
+            panel.style.cssText = 'width:min(100%,360px);display:grid;gap:12px;padding:22px;border:1px solid #d6b873;border-radius:16px;background:#181818;color:#fff;font:15px sans-serif';
+            const title = document.createElement('strong');
+            title.textContent = 'SANCTUM 동기화 인증';
+            const note = document.createElement('span');
+            note.textContent = '운영진 닉네임과 접속 코드를 입력해 주세요. 이 창을 닫으면 코드는 저장되지 않습니다.';
+            const nickname = document.createElement('input');
+            nickname.placeholder = '운영진 닉네임';
+            nickname.maxLength = 12;
+            nickname.required = true;
+            const code = document.createElement('input');
+            code.type = 'password';
+            code.placeholder = '접속 코드';
+            code.autocomplete = 'off';
+            code.required = true;
+            const actions = document.createElement('div');
+            actions.style.cssText = 'display:flex;gap:8px;justify-content:flex-end';
+            const cancel = document.createElement('button');
+            cancel.type = 'button';
+            cancel.textContent = '취소';
+            const submit = document.createElement('button');
+            submit.type = 'submit';
+            submit.textContent = '인증하고 전송';
+            for (const input of [nickname, code]) input.style.cssText = 'box-sizing:border-box;width:100%;padding:10px;border:1px solid #777;border-radius:8px;background:#252525;color:#fff';
+            for (const button of [cancel, submit]) button.style.cssText = 'padding:9px 12px;border:1px solid #d6b873;border-radius:8px;background:#252525;color:#fff;cursor:pointer';
+            const finish = value => { backdrop.remove(); resolve(value); };
+            cancel.addEventListener('click', () => finish(null));
+            panel.addEventListener('submit', event => {
+                event.preventDefault();
+                finish({ nickname: nickname.value.trim(), code: code.value });
+                code.value = '';
+            });
+            actions.append(cancel, submit);
+            panel.append(title, note, nickname, code, actions);
+            backdrop.append(panel);
+            document.body.append(backdrop);
+            nickname.focus();
+        });
+    }
 
     const urlParams = new URLSearchParams(window.location.search);
     const isAutoSync = urlParams.get('autoSync') === 'true';
@@ -399,12 +443,21 @@
             return;
         }
 
+        const credentials = await requestSyncCredentials();
+        if (!credentials) {
+            resetUI();
+            return;
+        }
         btnSync.innerHTML = '⏳ SANCTUM DB에 전송 중...';
         GM_xmlhttpRequest({
             method: "POST",
             url: `${SANCTUM_BASE_URL}/api/sync-client`,
-            headers: { "Content-Type": "application/json" },
-            data: JSON.stringify({ items: gatheredData, requestedBy: 'Tampermonkey_v8.2' }),
+            headers: {
+                "Content-Type": "application/json",
+                "x-sanctum-nickname": credentials.nickname,
+                "x-sanctum-code": credentials.code,
+            },
+            data: JSON.stringify({ items: gatheredData, requestedBy: 'Tampermonkey_v8.3' }),
             onload: function(syncRes) {
                 try {
                     const syncResult = JSON.parse(syncRes.responseText);

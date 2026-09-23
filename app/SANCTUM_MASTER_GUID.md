@@ -143,8 +143,8 @@ public/
 | `/api/analyze-item` | Gemini 기반 아이템 이미지 분석 요청. | Gemini API | API 키는 서버 환경변수만 사용 |
 | `/api/game-events` | 게임 이벤트 데이터 제공. | `server_events` | 데이터 갱신 주기 확인 필요 |
 | `/api/guild-characters` | 길드 캐릭터 이름 목록 제공. | `characters` | 공개 범위·호출 권한 점검 필요 |
-| `/api/sync-client` | 캐릭터 동기화/보정 관련 처리. | `characters` | 중복 호출과 동시 수정 방어 필요 |
-| `/api/sync-weekly` | 주간 교환/체크 상태 동기화. | `nexus_trades`, `characters` | 주간 초기화 기준과 대상 범위 확인 필요 |
+| `/api/sync-client` | 캐릭터 동기화/보정 처리. 관리자 세션 또는 운영진 닉네임·접속 코드 재확인 후 실행한다. | `characters`, Tampermonkey v8.3 | 기존 무인증 호출 차단, 스크립트 갱신 필요. 중복 호출과 동시 수정 방어 후속 과제 |
+| `/api/sync-weekly` | 주간 교환/체크 상태 동기화. 관리자 세션 또는 운영진 코드 재확인 후 실행한다. | `nexus_trades`, `characters` | 기존 무인증 호출 차단. 주간 초기화 기준과 대상 범위 확인 필요 |
 | `/api/auth/login`, `/api/auth/register`, `/api/auth/session`, `/api/auth/logout`, `/api/auth/switch` | 서버 로그인·가입·세션 확인·종료·저장 계정 전환. | `accounts`, `sanctum_sessions`, `sanctum_login_attempts`, `characters` | 서버 전용 키 사용; Preview 실제 로그인 검증 전 |
 | `/api/auth/health` | 서버 키와 인증 DB 객체 연결 점검. | 인증 함수·세션·시도 제한 테이블 | 응답에 계정·키를 담지 않음 |
 | `/api/admin/accounts`, `/api/admin/pending`, `/api/accounts/directory` | 운영진 가입 승인·대기 알림·길드원 표시 정보. | `accounts`, 서버 세션 | 계정 목록은 비밀 코드를 반환하지 않음 |

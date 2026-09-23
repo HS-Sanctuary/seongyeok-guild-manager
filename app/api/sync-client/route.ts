@@ -1,13 +1,13 @@
-import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSupabase } from '@/lib/server/sanctumSession';
+import { canRunSanctumSync } from '@/lib/server/sanctumSyncAuth';
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
-    // Service Role Key를 활용하여 RLS 권한 문제 없이 서버에서 DB 업데이트 가능하도록 설정
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-    );
+    if (!(await canRunSanctumSync(req))) {
+      return NextResponse.json({ success: false, error: '운영진 인증이 필요합니다.' }, { status: 403 });
+    }
+    const supabase = getServerSupabase();
 
     const body = await req.json();
     const { items } = body;

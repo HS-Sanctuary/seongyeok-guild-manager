@@ -36,6 +36,7 @@
 18. 최근 자동 백업은 2026-09-23 08:14:31 KST로 확인했다. 준비 SQL에 기존 UI 가입의 해시 동기화 트리거와 서버 측 로그인 시도 제한을 추가했다. 신규 가입 코드는 구버전 롤백 시 로그인 가능하도록 기존 `code` 컬럼에도 전환 기간 동안 저장하며, `NOT NULL` 제약은 유지한다. 새 보안 배포 뒤 별도 승인으로 평문 제거·코드 회전을 계획해야 한다. 운영 DB 변경과 push는 아직 하지 않았다.
 19. 한설이 Phase A를 운영 SQL Editor에서 성공 실행했다. 읽기 전용 검증 결과 계정 13개, 해시 누락 0, 세션·로그인 제한 테이블 및 로그인·가입·제한 함수 모두 true. Vercel Production 서버 키도 저장 완료. push 전 원격 fetch를 시도했으나 현재 Codex 사용량 제한으로 `.git/FETCH_HEAD` 권한 승인 검토가 거절되어 push는 실행하지 못했다. 운영 계정 공개 권한 차단 Phase B는 아직 실행하지 않았다.
 20. 사용량 복구 후 `git fetch origin`과 `git pull --ff-only`에 성공했고 원격 `main`과 로컬 HEAD가 같음을 확인했다. 한설이 Vercel Preview에도 서버 전용 키를 저장했다. v1.96 Preview 후보로 서버 인증 및 누적 UI 수정·인계 문서·SQL을 묶어 push 준비 중이다. Preview `/api/auth/health`와 실제 로그인·가입·승인·캐릭터·공지·파티 확인 전에는 Production 완료나 베타 오픈으로 표시하지 않는다.
+21. v1.96 Preview 후보를 `codex/v1-96-beta` 브랜치 커밋 `480359a`로 push했다. Vercel Preview Ready, 한설이 health `ready: true`·본인 로그인·관리자 계정 13명 목록과 대기 0건을 확인했다. 기존 `/api/sync-client`·`/api/sync-weekly`가 서버 키 활성화 후 무인증 고권한 쓰기를 허용하는 P0을 발견해 운영진 인증을 추가하고 Tampermonkey v8.3에서 전송 직전 코드 재확인을 준비했다. 이 후속 패치의 Preview 재배포와 비인증 403 확인 전에는 Production push 금지. 신규 가입·승인·캐릭터·공지·파티 검증도 미완료다.
 
 ### 현재 상태
 
