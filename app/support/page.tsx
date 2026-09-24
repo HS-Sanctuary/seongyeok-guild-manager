@@ -62,6 +62,15 @@ export default function SupportPage() {
   }, []);
 
   useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const tab = new URLSearchParams(window.location.search).get("tab");
+      if (tab === "bug") setActiveTab("생텀 버그 제보");
+      if (tab === "idea") setActiveTab("생텀 건의사항");
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
     const abort = new AbortController();
     fetch("/api/auth/session", { cache: "no-store", signal: abort.signal })
       .then((response) => response.json())
@@ -76,6 +85,17 @@ export default function SupportPage() {
   const visible = items.filter((item) => isReport ? item.category === activeTab : !REPORT_TABS.has(item.category as Tab));
   const isMaster = user?.role === "길드마스터";
   const isOperator = ["길드마스터", "부마스터", "부마스터 대행"].includes(user?.role ?? "");
+
+  function selectTab(tab: Tab) {
+    const url = new URL(window.location.href);
+    if (tab === "문의") url.searchParams.delete("tab");
+    else url.searchParams.set("tab", tab === "생텀 버그 제보" ? "bug" : "idea");
+    window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+    setActiveTab(tab);
+    setExpandedId(null);
+    setWriting(false);
+    setError("");
+  }
 
   async function attachFiles(files: File[]) {
     if (!isReport || !files.length) return;
@@ -178,7 +198,7 @@ export default function SupportPage() {
       </header>
 
       <nav aria-label="로고스 글 종류" className="grid grid-cols-1 gap-2 rounded-2xl border border-[var(--panel-border)] bg-[var(--panel)] p-2 sm:grid-cols-3">
-        {TABS.map((tab) => <button key={tab.id} type="button" aria-pressed={activeTab === tab.id} onClick={() => { setActiveTab(tab.id); setExpandedId(null); setWriting(false); setError(""); }} className={`rounded-xl px-3 py-2.5 text-sm font-bold transition ${activeTab === tab.id ? "bg-[var(--accent)] text-[var(--accent-fg)]" : "bg-[var(--inner-box)] text-[var(--text-main)] hover:bg-[var(--panel-hover)]"}`}>{tab.icon} {tab.label}</button>)}
+        {TABS.map((tab) => <button key={tab.id} type="button" aria-pressed={activeTab === tab.id} onClick={() => selectTab(tab.id)} className={`rounded-xl px-3 py-2.5 text-sm font-bold transition ${activeTab === tab.id ? "bg-[var(--accent)] text-[var(--accent-fg)]" : "bg-[var(--inner-box)] text-[var(--text-main)] hover:bg-[var(--panel-hover)]"}`}>{tab.icon} {tab.label}</button>)}
       </nav>
 
       {error && <div role="alert" className="rounded-xl border border-rose-500/40 bg-rose-500/10 p-3 text-sm text-rose-600 dark:text-rose-300">{error}</div>}

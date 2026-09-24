@@ -55,6 +55,10 @@ const reports = [
     await page.screenshot({ path: path.join(output, role + "-390.png"), fullPage: true });
     await page.getByRole("button", { name: "등록하기" }).click();
     await page.getByRole("button", { name: /＋ 새 글 작성/ }).waitFor();
+    assert.equal(new URL(page.url()).searchParams.get("tab"), "bug");
+    await page.reload();
+    await page.locator('nav[aria-label="로고스 글 종류"] button[aria-pressed="true"]').getByText(/생텀 버그 제보/).waitFor();
+    await page.getByRole("button", { name: /QA 버튼 오류/ }).waitFor();
     for (const width of [320, 390, 768, 1280]) {
       await page.setViewportSize({ width, height: 900 });
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1), false, `${role} overflow ${width}`);

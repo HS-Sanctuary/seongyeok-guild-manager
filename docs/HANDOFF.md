@@ -4,6 +4,8 @@
 
 ## 2026-09-24 — 로컬 로그인 복구·가입 프로필 준비 (미배포)
 
+- v1.994 Preview `2c0e378` Vercel 배포 완료. 한설이 Preview에 로그인해 로고스 버그 제보의 사진 3장 첨부·글 작성·길드마스터 답변·새로고침 후 지속을 확인했다. 새로고침 시 선택 탭이 1:1 문의로 돌아오는 피드백은 URL `tab` 동기화로 수정했고 합성 테스트·빌드를 통과해 같은 Preview 브랜치에 후속 push한다. Production `main`은 변경하지 않는다. 일반/부마스터 계정의 타인 제보 차단, 베타 핵심 동선 전체와 사진 보존 정책은 계속 확인해야 한다.
+
 - v1.994 Preview 후보로 이번 로컬 묶음을 push한다. 원격 `main`은 v1.993 `db06f7e`와 일치했고, Production은 이 push로 바꾸지 않는다. `npx tsc --noEmit`, `npm run build`, 관련 ESLint, 크로노스·로고스 합성 UI 검증 통과. Preview Ready와 실제 로그인/권한/작성·조회 검증 결과는 별도로 확인해야 한다. 자세한 공개 판정은 `docs/BETA_OPEN_AUDIT_20260924.md`를 따른다.
 
 - LOGOS 로컬 확장: 기존 1:1 문의 옆에 생텀 버그 제보·건의사항 탭, 기본 작성 폼, 길드마스터 전체 조회/답변, 일반 이용자 본인 글 조회를 구현했다. 제보 사진은 브라우저 WebP 350KB 이하·최대 3장으로 줄여 비공개 Storage에 저장하고 5분 서명 URL로 보여주는 코드/SQL을 준비했다. 새 제보의 본인 조회/사진 열람은 닉네임이 아닌 `reporter_account_id`로 판단한다. 한설이 백업 확인 후 `supabase/migrations/20260924_logos_private_report_images.sql` 실행 성공을 보고했고, 읽기 전용 진단에서 두 컬럼·비공개 버킷 true, anon 읽기·authenticated 직접 쓰기 false를 확인했다. Preview 역할별 검증 전에는 새 사진 기능 배포 금지. 메일 발송은 구현하지 않았다. 합성 UI·압축·4개 폭의 밝은/어두운 테마, 타입·빌드, 비로그인 새 API 401 통과. SQL 격리 검증은 초기 마이그레이션에서 통과했고 계정 ID 컬럼 추가 뒤에는 PGlite 모듈 부재로 재실행하지 못했다. 상세 공개 조건과 사진 보존/계정 삭제 정책은 `docs/BETA_OPEN_AUDIT_20260924.md` 참고.

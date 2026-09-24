@@ -152,7 +152,7 @@ public/
 | `/gnosis` · `app/gnosis/page.tsx` | GNOSIS 가이드 목록·필터·카드 UI. | `nexus_classes`, `app/gnosis/[id]`, `app/gnosis/write` |
 | `/gnosis/[id]` | GNOSIS 개별 글 상세. | 라우트 파라미터 `id` |
 | `/gnosis/write` | GNOSIS 작성 화면. | `nexus_classes` |
-| `/support` · `app/support/page.tsx` | LOGOS 1:1 문의·생텀 버그 제보·건의사항의 탭/작성/조회/길드마스터 답변. 제보 사진 붙여넣기·WebP 축소 미리보기. | `inquiries`, 비공개 `logos-reports` Storage(SQL 성공·읽기 전용 진단 확인) |
+| `/support` · `app/support/page.tsx` | LOGOS 1:1 문의·생텀 버그 제보·건의사항의 탭/작성/조회/길드마스터 답변. `?tab=bug|idea`로 새로고침 후 선택 탭 유지(로컬 후속 수정). 제보 사진 붙여넣기·WebP 축소 미리보기. | `inquiries`, 비공개 `logos-reports` Storage(SQL 성공·읽기 전용 진단 확인) |
 | `/customize` · `app/customize/page.tsx` | 테마·스티커 개인화 화면. | `ThemeModal`, `StickerCanvas`, 브라우저 저장소 |
 | `/admin` · `app/admin/page.tsx` | 관리자 탭 허브. 가입 승인, 배너, 클래스, 컨텐츠, 교환, 임무, GNOSIS 관리. PC 글자 단계에 따른 관리자 전용 밀도 조정. | `/api/auth/session`으로 진입 역할 확인, `app/admin/components/*`, `app/admin/admin.css`; 다른 관리자 테이블 직접 쓰기는 후속 보안 과제 |
 
