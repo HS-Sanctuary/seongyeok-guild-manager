@@ -175,7 +175,7 @@ export default function GnosisPage() {
                   <span></span> GNOSIS
                 </h1>
                 <span className="text-[var(--accent)] text-[12px] sm:text-[13px] font-extrabold tracking-wide mt-1.5 leading-none">
-                　그노시스 : 지식공유
+                　그노시스 : 지식 공유 · 개발 중
                 </span>
               </div>
             </div>
@@ -185,7 +185,7 @@ export default function GnosisPage() {
               <span className="text-sm mt-0.5 opacity-80">💡</span>
               <div className="flex flex-col text-[11px] sm:text-[12px] font-bold leading-tight w-full">
                 <span className="text-[var(--text-main)]">그노시스는 고대 그리스어로 ‘지식’과 ‘깨달음’을 뜻하는 말입니다.</span>
-                <span className="text-[var(--accent)] mt-0.5">성역의 경험과 지혜가 모여 새로운 길을 밝히는 공간입니다.</span>
+                <span className="text-[var(--text-sub)] mt-0.5">현재 개발 중인 공간입니다. 일부 게시물과 기능은 예시로 표시되며, 정식 공략 자료가 아닙니다.</span>
               </div>
             </div>
             

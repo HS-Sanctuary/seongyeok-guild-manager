@@ -169,7 +169,7 @@ export default function MarketPage() {
                   <span>🏛️</span> EMPORION
                 </h1>
                 <span className="text-[var(--accent)] text-[12px] sm:text-[13px] font-extrabold tracking-wide mt-1.5 leading-none">
-                  엠포리온 : 실시간 거래소 정보
+                  엠포리온 : 거래소 정보 · 개발 중
                 </span>
               </div>
             </div>
@@ -178,7 +178,7 @@ export default function MarketPage() {
               <span className="text-sm mt-0.5 opacity-80">💡</span>
               <div className="flex flex-col text-[11px] sm:text-[12px] font-bold leading-tight w-full">
                 <span className="text-[var(--text-main)] w-full">엠포리온은 고대 그리스어로 ‘무역과 상업이 이루어지는 시장’을 뜻합니다.</span>
-                <span className="text-[var(--accent)] mt-0.5">게임 접속을 하지 않아도 실시간 거래소 정보를 확인할 수 있는 공간입니다.</span>
+                <span className="text-[var(--text-sub)] mt-0.5">현재 개발 중인 화면입니다. 표시된 가격은 시험용 예시이며 실시간 거래 가격이 아닙니다.</span>
               </div>
             </div>
           </div>
