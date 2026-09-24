@@ -8,6 +8,8 @@ interface AccountItem {
   role: string;
   status?: string;
   created_at?: string;
+  favorite_word?: string | null;
+  birthday_mmdd?: string | null;
 }
 
 interface AccountApprovalTabProps {
@@ -55,6 +57,9 @@ export default function AccountApprovalTab({ currentUser }: AccountApprovalTabPr
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [roleFilter, setRoleFilter] = useState<string>("전체");
   const [updatingNickname, setUpdatingNickname] = useState<string | null>(null);
+  const [editingProfile, setEditingProfile] = useState<string | null>(null);
+  const [favoriteDraft, setFavoriteDraft] = useState("");
+  const [birthdayDraft, setBirthdayDraft] = useState("");
 
   const operatorHeaders = useCallback((contentType = false): HeadersInit => ({
     "x-sanctum-operator": encodeURIComponent(currentUser?.nickname || ""),
@@ -200,6 +205,27 @@ export default function AccountApprovalTab({ currentUser }: AccountApprovalTabPr
     }
   };
 
+  const saveProfile = async (targetNickname: string) => {
+    setUpdatingNickname(targetNickname);
+    try {
+      const response = await fetch("/api/admin/accounts", {
+        method: "PATCH",
+        headers: operatorHeaders(true),
+        body: JSON.stringify({ action: "update_profile", nickname: targetNickname, favoriteWord: favoriteDraft, birthdayMMDD: birthdayDraft }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.message || "프로필을 저장하지 못했습니다.");
+      setAccounts((previous) => previous.map((account) => account.nickname === targetNickname
+        ? { ...account, favorite_word: result.account.favorite_word, birthday_mmdd: result.account.birthday_mmdd }
+        : account));
+      setEditingProfile(null);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "프로필을 저장하지 못했습니다.");
+    } finally {
+      setUpdatingNickname(null);
+    }
+  };
+
   const joinRequests = useMemo(() => accounts.filter((acc) => isPendingAccount(acc)), [accounts]);
   const approvedMembers = useMemo(() => accounts.filter((acc) => !isPendingAccount(acc)), [accounts]);
 
@@ -208,7 +234,7 @@ export default function AccountApprovalTab({ currentUser }: AccountApprovalTabPr
       const matchesSearch = acc.nickname.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesRole = roleFilter === "전체" ? true : acc.role === roleFilter;
       return matchesSearch && matchesRole;
-    });
+    }).sort((a, b) => (ROLE_HIERARCHY[b.role] ?? -1) - (ROLE_HIERARCHY[a.role] ?? -1));
   }, [approvedMembers, searchTerm, roleFilter]);
 
   const getAssignableRolesForTarget = (targetRole: string) => {
@@ -418,8 +444,8 @@ export default function AccountApprovalTab({ currentUser }: AccountApprovalTabPr
               조건에 부합하는 길드원이 존재하지 않습니다.
             </div>
           ) : (
-            <div className="overflow-hidden rounded-xl border border-[var(--panel-border)] bg-[var(--inner-box)]">
-              <div className="hidden lg:grid lg:grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)_minmax(0,1.7fr)_minmax(7rem,0.8fr)] gap-4 border-b border-[var(--panel-border)] bg-[var(--panel)] px-4 py-2 text-xs font-bold text-[var(--text-sub)]">
+            <div className="space-y-2 rounded-xl border border-[var(--panel-border)] bg-[var(--inner-box)] p-2">
+              <div className="hidden lg:grid lg:grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)_minmax(0,1.7fr)_minmax(7rem,0.8fr)] gap-4 px-4 py-2 text-xs font-bold text-[var(--text-sub)]">
                 <span>닉네임</span><span>현재 직책</span><span>직책 변경</span><span className="text-right">계정 관리</span>
               </div>
               {filteredMembers.map((acc) => {
@@ -432,10 +458,10 @@ export default function AccountApprovalTab({ currentUser }: AccountApprovalTabPr
                 return (
                   <div
                     key={acc.nickname}
-                    className={`grid min-w-0 grid-cols-1 gap-3 border-b border-[var(--panel-border)] p-4 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)_minmax(0,1.7fr)_minmax(7rem,0.8fr)] lg:items-center lg:gap-4 ${
+                    className={`sanctum-member-card grid min-w-0 grid-cols-1 gap-3 rounded-xl border border-[var(--panel-border)] border-l-[3px] border-l-[var(--accent)] bg-[var(--panel)] p-4 shadow-sm sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)_minmax(0,1.7fr)_minmax(7rem,0.8fr)] lg:items-center lg:gap-4 ${
                       isLocked
-                        ? "bg-[var(--panel)]/50"
-                        : "hover:bg-[var(--panel-hover)]"
+                        ? "border-l-[var(--text-sub)]"
+                        : "hover:border-[var(--accent)] hover:bg-[var(--panel-hover)]"
                     }`}
                   >
                     <div className="min-w-0">
@@ -475,6 +501,31 @@ export default function AccountApprovalTab({ currentUser }: AccountApprovalTabPr
                         </button>
                       ) : <span className="text-xs text-[var(--text-sub)]">🔒 수정 잠금</span>}
                     </div>
+                    {myRole === "길드마스터" && <div className="min-w-0 space-y-2 border-t border-[var(--panel-border)] pt-3 sm:col-span-2 lg:col-span-4">
+                      {editingProfile === acc.nickname ? (
+                        <form className="flex flex-wrap items-end gap-2" onSubmit={(event) => { event.preventDefault(); void saveProfile(acc.nickname); }}>
+                          <label className="min-w-[8rem] flex-1 text-xs font-bold text-[var(--text-sub)]">
+                            좋아하는 것
+                            <input value={favoriteDraft} maxLength={7} onChange={(event) => setFavoriteDraft(event.target.value.replace(/\s/g, ""))}
+                              className="mt-1 w-full rounded-lg border border-[var(--panel-border)] bg-[var(--panel)] px-3 py-2 text-sm text-[var(--text-main)]" />
+                          </label>
+                          <label className="w-32 text-xs font-bold text-[var(--text-sub)]">
+                            생일 (월일)
+                            <input value={birthdayDraft} maxLength={4} inputMode="numeric" onChange={(event) => setBirthdayDraft(event.target.value.replace(/\D/g, ""))}
+                              placeholder="MMDD" className="mt-1 w-full rounded-lg border border-[var(--panel-border)] bg-[var(--panel)] px-3 py-2 text-sm text-[var(--text-main)]" />
+                          </label>
+                          <button type="submit" disabled={updatingNickname === acc.nickname} className="rounded-lg bg-[var(--accent)] px-3 py-2 text-xs font-bold text-[var(--accent-fg)] disabled:opacity-50">저장</button>
+                          <button type="button" onClick={() => setEditingProfile(null)} className="rounded-lg border border-[var(--panel-border)] px-3 py-2 text-xs font-bold text-[var(--text-sub)]">취소</button>
+                        </form>
+                      ) : (
+                        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-[var(--text-sub)]">
+                          <span>좋아하는 것 <strong className="ml-1 text-[var(--text-main)]">{acc.favorite_word || "미등록"}</strong></span>
+                          <span>생일 <strong className="ml-1 text-[var(--text-main)]">{acc.birthday_mmdd ? `${Number(acc.birthday_mmdd.slice(0, 2))}월 ${Number(acc.birthday_mmdd.slice(2))}일` : "미등록"}</strong></span>
+                          <button type="button" onClick={() => { setEditingProfile(acc.nickname); setFavoriteDraft(acc.favorite_word || ""); setBirthdayDraft(acc.birthday_mmdd || ""); }}
+                            className="rounded-lg border border-[var(--panel-border)] px-2.5 py-1.5 font-bold text-[var(--accent)] hover:bg-[var(--panel-hover)]">정보 수정</button>
+                        </div>
+                      )}
+                    </div>}
                   </div>
                 );
               })}

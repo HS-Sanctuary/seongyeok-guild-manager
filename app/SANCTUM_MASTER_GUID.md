@@ -1,5 +1,26 @@
 # 🏛️ SANCTUM Master Guide
 
+## 2026-09-24 가입 프로필·로그인 화면 로컬 보완 (미배포)
+
+- 로컬 로그인 실패는 서버 DB 네트워크 연결 문제로 확인됐고, 서버 재시작 뒤 한설이 한글 코드 직접 입력 로그인을 확인했다. 기존/신규 접속 코드는 한글을 영문 키로 변환하지 않는다.
+- `components/common/SecretCodeInput.tsx` 안내 문구의 배경 대비와 `app/login/page.tsx` 자물쇠 위치를 보정했다.
+- `app/api/auth/register/route.ts`는 좋아하는 것과 월일 생일을 새 서버 등록 함수에 전달한다. `app/api/admin/accounts/route.ts`와 `AccountApprovalTab.tsx`는 길드마스터 재확인 뒤 길드원 프로필을 조회·수정한다. 목록은 계정별 직책·프로필을 독립 카드로 묶고 길드마스터→부마스터→부마스터 대행→길드원 순으로 표시한다. 부마스터·대행 응답에는 접속 코드의 재료인 두 값이 포함되지 않는다. 기존 계정은 프로필을 직접 등록하지 않았다면 미등록이며 접속 코드는 응답에 포함하지 않는다.
+- 추가 SQL: `supabase/migrations/20260924_account_profile_registration.sql` (한설이 운영 Success와 읽기 전용 권한 확인 완료). 공개 생일 배너는 구상 단계이며 이번 변경에 포함하지 않는다.
+
+## 2026-09-24 크로노스 확장 — 로컬 구현, 운영 미배포
+
+- `app/login/page.tsx` → `components/common/SecretCodeInput.tsx`: 한글 IME용 text 입력과 CSS 시각적 마스킹, 보기/숨김, 조합 중 Enter 제출 방어. 코드 내용을 변환하지 않으며 가입 후 로그인칸에 자동 삽입하지 않는다.
+- `app/admin/page.tsx` → `TradeAdminTab`: 확인된 `nexus_trades` 실제 컬럼 사용. 별도 상점 탭은 `kronos_shop_items`에 골드 구매 카탈로그 등록. 두 카탈로그 모두 확인창을 거친 삭제와 기존 행 수정 지원. `MissionAdminTab`은 `kronos_missions`에 5개 마을·내용·최대 횟수·보상 1~6개 등록/수정/삭제, 모바일에서 보상과 횟수를 분리해 표시.
+- `app/api/admin/catalog/route.ts`: 세션 기반 운영진 GET 카탈로그 읽기 추가; 신규 카탈로그 POST 입력 검증. 미적용 테이블은 준비 오류로 표시한다.
+- `app/character/page.tsx`: 6개 다중 선택 탭, 선택 없음=전체, 고정 순서. 기존 `ContentChecklist` 진행률 옆 리마인드 진입점. `CharacterSelector` 관리 버튼은 테마 강조색·10초 주기 짧은 톱니 회전(reduced-motion 제외).
+- `components/character/KronosWorkspace.tsx` → `/api/kronos`: 상점 검색·횟수·북마크·MAX/MIN(상한 전량 완료/0으로 복귀), 단가×상한 고정 `총합` 골드 안내, 즉시 화면 반영과 연속 조작 묶음 저장. 임무는 마을 탭 없이 전체 표시·마을 이름 검색, 즐겨찾기 우선과 이멘마하→반호르→콜헨→던바튼→티르코네일 순 정렬, 임무 MAX/MIN 지원. 카드의 `임무`/`보상` 이름 시작선을 맞추고 보상 수량은 품목 바로 뒤에 붙이며, 제목 옆에 현재 캐릭터 배지와 `초기화: 매주 월 06시`를 표시한다. 실제 주간 카운터는 한국 시간 월요일 06시에 새 기간으로 계산한다. 임무 내용/소모는 호박색, 보상은 청록색으로 구분하며 라이트 테마에서는 더 짙은 색을 쓴다. 물물교환·상점·임무의 초기화/범위/마을 배지는 공통 규격, 물품 수량은 `× N` 표기다. ☆/★는 모두 카드 제목 왼쪽에 배치해 횟수 조작과 분리한다. 현재 캐릭터의 메모 읽기. 구매 ID와 물물교환 ID를 섞지 않는다.
+- `components/character/ReminderWindows.tsx`: 캐릭터별 2개 메모, 제목·본문·색·글꼴·크기, 이동·크기 조절·활성 창 전면 표시. 위치와 미저장 초안은 계정/캐릭터별 localStorage, 저장 버튼은 서버. 다른 숙제를 함께 조작하는 비모달 창으로 바깥 클릭 시 유지, X/Escape로 닫는다.
+- `app/api/kronos/route.ts` → `kronos_shop_items`, `kronos_missions`, `kronos_progress`, `kronos_reminders`: 세션·캐릭터 소유 확인. 진행은 `sanctum_kronos_progress`의 원자적 갱신. `supabase/migrations/20260924_kronos_progress_batch.sql`은 한설이 운영 Success를 보고했고, 함수의 ±9999 증감 허용으로 MAX/연속 클릭을 한 요청에 저장한다. 메모는 슬롯별 갱신/삭제. 공개 DB 직접 읽기·쓰기 없음.
+- `lib/kronos.ts`: 카탈로그 타입, 5개 마을/모바일 줄임말, 한국 시간 월요일 06시 주간 기준. 자세한 적용 순서는 `docs/KRONOS_MORNING_CHECKLIST.md`.
+- `components/layout/MobileBottomSheet.tsx`: 닫힌 메뉴는 transform뿐 아니라 visibility/inert로 숨긴다.
+
+기존 `nexus_purchases`·`nexus_missions`는 컬럼·제약 미확인으로 보존한다. 운영 SQL 적용과 실제 로그인/개인 기록 저장 확인 후 배포를 결정한다.
+
 > **문서 기준일:** 2026-09-23 (KST)
 >
 > **문서 성격:** Git push 때마다 실제 구조·운영 규약을 갱신하는 살아있는 기준 문서
@@ -131,7 +152,7 @@ public/
 | `/gnosis` · `app/gnosis/page.tsx` | GNOSIS 가이드 목록·필터·카드 UI. | `nexus_classes`, `app/gnosis/[id]`, `app/gnosis/write` |
 | `/gnosis/[id]` | GNOSIS 개별 글 상세. | 라우트 파라미터 `id` |
 | `/gnosis/write` | GNOSIS 작성 화면. | `nexus_classes` |
-| `/support` · `app/support/page.tsx` | LOGOS 문의 작성·조회·운영진 답변 상태 처리. | `inquiries` |
+| `/support` · `app/support/page.tsx` | LOGOS 1:1 문의·생텀 버그 제보·건의사항의 탭/작성/조회/길드마스터 답변. 제보 사진 붙여넣기·WebP 축소 미리보기. | `inquiries`, 비공개 `logos-reports` Storage(SQL 성공·읽기 전용 진단 확인) |
 | `/customize` · `app/customize/page.tsx` | 테마·스티커 개인화 화면. | `ThemeModal`, `StickerCanvas`, 브라우저 저장소 |
 | `/admin` · `app/admin/page.tsx` | 관리자 탭 허브. 가입 승인, 배너, 클래스, 컨텐츠, 교환, 임무, GNOSIS 관리. PC 글자 단계에 따른 관리자 전용 밀도 조정. | `/api/auth/session`으로 진입 역할 확인, `app/admin/components/*`, `app/admin/admin.css`; 다른 관리자 테이블 직접 쓰기는 후속 보안 과제 |
 
@@ -155,7 +176,8 @@ public/
 | `/api/reports` | 로그인 이용자의 심층/어비스 제보. | `deep_holes`, `abyss_reports` | 제보자 이름은 세션에서 설정 |
 | `/api/member-mutations` | 본인 캐릭터, 참여 파티, 문의의 서버 저장·수정·삭제. 기존 캐릭터의 닉네임 기준 수정은 소유자 조건을 같은 DB 요청에 적용. | `characters`, `parties`, `inquiries` | 세션·소유자/참여자·운영진 권한 확인. Phase D 적용 후에도 서버 경로 유지 |
 | `/api/parties/sync-checklist` | 파티 완료 시 참여 캐릭터 숙제 체크 동기화. | `parties`, `characters` | 파티 참가자/운영진만 요청 가능 |
-| `/api/inquiries` | 본인 문의 또는 운영진 문의 목록·대기 건수. | `inquiries` | 비로그인·타인 문의 조회 차단. Phase D에서 공개 SELECT 제거 |
+| `/api/inquiries` | 본인 문의 또는 운영진 문의 목록·대기 건수. 새 제보·건의의 타인 기록은 길드마스터만 조회. | `inquiries` | 비로그인·타인 제보 조회 차단. Phase D에서 공개 SELECT 제거 |
+| `/api/inquiries/reports`, `/api/inquiries/attachments` | 새 제보·건의의 글/사진 저장, 작성자·길드마스터의 비공개 사진 URL 조회. | `inquiries.attachment_paths`, `inquiries.reporter_account_id`, 비공개 `logos-reports` Storage | SQL·읽기 전용 진단 확인. Preview 역할별 검증 전 배포 금지. 계정 ID 권한 확인·용량·형식 검사; 사진 URL 5분 유효 |
 
 ### 전역 레이아웃·상태 흐름
 

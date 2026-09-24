@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import SecretCodeInput from "@/components/common/SecretCodeInput";
+import { isValidBirthdayMMDD } from "@/lib/accountProfile";
 
 interface AccountPreset {
   id: string;
@@ -169,8 +171,8 @@ export default function LoginPage() {
 
     if (!cleanNick) return alert("대표 캐릭터 닉네임을 입력해주세요!");
     if (!cleanFav) return alert("좋아하는 것(단어/사물)을 입력해주세요!");
-    if (!cleanBirth || !/^\d{4}$/.test(cleanBirth)) {
-      return alert("생일은 4자리 숫자(예: 0923)로 입력해주세요!");
+    if (!isValidBirthdayMMDD(cleanBirth)) {
+      return alert("생일은 올바른 월일 4자리(예: 0923)로 입력해주세요!");
     }
     if (selectedSpecials.length < 2) {
       return alert("접속 코드용 특수문자 2개를 선택해 주세요!");
@@ -183,7 +185,7 @@ export default function LoginPage() {
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nickname: cleanNick, code: finalCode, job: selectedJob, combatPower: Number(combatPower) || 0, magicResistance: Number(magicResist) || 0 }),
+        body: JSON.stringify({ nickname: cleanNick, code: finalCode, favoriteWord: cleanFav, birthdayMMDD: cleanBirth, job: selectedJob, combatPower: Number(combatPower) || 0, magicResistance: Number(magicResist) || 0 }),
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.message || "가입 신청을 저장하지 못했습니다.");
@@ -193,7 +195,7 @@ export default function LoginPage() {
       );
 
       setNickname(cleanNick);
-      setCode(finalCode);
+      setCode("");
       setActiveTab("login");
       setRegNickname("");
       setRegFavWord("");
@@ -416,18 +418,16 @@ export default function LoginPage() {
               />
             </div>
 
-            <div className="relative flex items-center">
-              <span className="absolute left-3.5 z-20 pointer-events-none drop-shadow-[0_0_8px_rgba(255,224,130,0.9)]">
+            <div className="relative">
+              <span className="absolute left-3.5 top-3 sm:top-2.5 z-20 pointer-events-none drop-shadow-[0_0_8px_rgba(255,224,130,0.9)]">
                 <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="#FFE082" strokeWidth="2.2" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                 </svg>
               </span>
-              <input
-                type="password"
+              <SecretCodeInput
                 value={code}
-                onChange={(e) => setCode(e.target.value)}
-                className="w-full pl-11 pr-4 py-2.5 sm:py-2 bg-[#050608]/35 backdrop-blur-md border border-[#D4AF37]/35 text-white rounded-xl text-[11px] sm:text-xs focus:outline-none focus:border-[#FFE082] focus:ring-1 focus:ring-[#FFE082]/60 focus:shadow-[0_0_15px_rgba(212,175,55,0.35)] transition placeholder:text-zinc-300/80 shadow-[0_8px_20px_rgba(0,0,0,0.5)]"
-                placeholder="생성하신 접속 코드를 입력하세요."
+                onChange={setCode}
+                className="w-full pl-11 pr-16 py-2.5 sm:py-2 bg-[#050608]/35 backdrop-blur-md border border-[#D4AF37]/35 text-white rounded-xl text-sm focus:outline-none focus:border-[#FFE082] focus:ring-1 focus:ring-[#FFE082]/60 transition placeholder:text-zinc-300/80"
               />
             </div>
 
@@ -544,7 +544,7 @@ export default function LoginPage() {
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <div className="inline-block mb-1 px-2 py-0.5 rounded-md bg-black/10 backdrop-blur-[2px]">
-                  <label className="block text-xs font-normal text-[#D4AF37]">좋아하는 것 (7글자)</label>
+                  <label className="block text-xs font-normal text-[#D4AF37]">좋아하는 것 (최대 7글자)</label>
                 </div>
                 <input
                   type="text"
@@ -558,7 +558,7 @@ export default function LoginPage() {
 
               <div>
                 <div className="inline-block mb-1 px-2 py-0.5 rounded-md bg-black/10 backdrop-blur-[2px]">
-                  <label className="block text-xs font-normal text-[#D4AF37]">생일 (4자리)</label>
+                  <label className="block text-xs font-normal text-[#D4AF37]">생일 (월일 4자리)</label>
                 </div>
                 <input
                   type="text"

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerSupabase } from "@/lib/server/sanctumSession";
+import { isValidBirthdayMMDD, matchesSignupCode } from "@/lib/accountProfile";
 
 const ALLOWED_JOBS = new Set([
   "검술사", "격투가", "궁수", "기사", "대검전사", "댄서", "도적", "듀얼블레이드", "마법사", "빙결술사",
@@ -11,21 +12,28 @@ export async function POST(request: Request) {
     const body = await request.json();
     const nickname = typeof body.nickname === "string" ? body.nickname.trim() : "";
     const code = typeof body.code === "string" ? body.code.trim() : "";
+    const favoriteWord = typeof body.favoriteWord === "string" ? body.favoriteWord.trim() : "";
+    const birthdayMMDD = typeof body.birthdayMMDD === "string" ? body.birthdayMMDD.trim() : "";
     const job = typeof body.job === "string" ? body.job : "";
     const combatPower = Number(body.combatPower);
     const magicResistance = Number(body.magicResistance);
 
-    if (!nickname || nickname.length > 12 || code.length < 6 || code.length > 128 || !ALLOWED_JOBS.has(job)
+    if (!nickname || nickname.length > 12 || code.length < 6 || code.length > 128
+      || !favoriteWord || favoriteWord.length > 7 || /\s/.test(favoriteWord)
+      || !isValidBirthdayMMDD(birthdayMMDD) || !matchesSignupCode(code, favoriteWord, birthdayMMDD)
+      || !ALLOWED_JOBS.has(job)
       || !Number.isSafeInteger(combatPower) || combatPower < 0 || !Number.isSafeInteger(magicResistance) || magicResistance < 0) {
       return NextResponse.json({ message: "가입 정보를 다시 확인해 주세요." }, { status: 400 });
     }
 
-    const { data, error } = await getServerSupabase().rpc("sanctum_register_account", {
+    const { data, error } = await getServerSupabase().rpc("sanctum_register_account_with_profile", {
       input_nickname: nickname,
       input_code: code,
       input_job: job,
       input_combat_power: String(combatPower),
       input_magic_resistance: String(magicResistance),
+      input_favorite_word: favoriteWord,
+      input_birthday_mmdd: birthdayMMDD,
     });
     if (error) {
       if (error.code === "23505" || /이미 등록된/.test(error.message)) {

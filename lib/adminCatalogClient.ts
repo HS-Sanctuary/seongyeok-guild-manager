@@ -1,5 +1,12 @@
 type AdminCatalogAction = "insert" | "update" | "upsert" | "delete";
 
+export async function adminCatalogRead<T>(table: string): Promise<T[]> {
+  const response = await fetch(`/api/admin/catalog?table=${encodeURIComponent(table)}`, { cache: "no-store" });
+  const result = await response.json();
+  if (!response.ok) throw new Error(result.message || "카탈로그 조회 실패");
+  return result.data || [];
+}
+
 export async function adminCatalogWrite<T = Record<string, unknown>>(
   table: string,
   action: AdminCatalogAction,

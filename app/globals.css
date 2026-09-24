@@ -37,6 +37,8 @@
   --accent-secondary-fg: #000000;
   --accent-secondary2: #34D399;
   --accent-secondary2-fg: #000000;
+  --kronos-reward: #34D399;
+  --kronos-cost: #FBBF24;
 }
 
 /* 2. LUMEN (Light) */
@@ -57,6 +59,8 @@
   --accent-secondary-fg: #FFFFFF;
   --accent-secondary2: #10B981;
   --accent-secondary2-fg: #FFFFFF;
+  --kronos-reward: #047857;
+  --kronos-cost: #92400E;
 }
 
 /* 3. NEMETON (Mint) */
@@ -137,6 +141,28 @@
   --accent-secondary-fg: #FFFFFF;
   --accent-secondary2: #059669;
   --accent-secondary2-fg: #FFFFFF;
+  --kronos-reward: #065F46;
+  --kronos-cost: #78350F;
+}
+
+.kronos-meta-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.5rem;
+  padding: 0.125rem 0.375rem;
+  border: 1px solid var(--panel-border);
+  border-radius: 0.25rem;
+  background: var(--panel);
+  color: var(--text-sub);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.125rem;
+  white-space: nowrap;
+}
+
+.kronos-character-badge {
+  padding-inline: 0.25rem;
+  font-size: 0.6667rem;
 }
 
 * { 
@@ -204,3 +230,9 @@ html, body {
   .sanctum-nav-reveal { transition: none; }
   .sanctum-menu-mark { animation: none; }
 }
+@keyframes kronos-gear-turn {
+  0%, 85% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+.kronos-manage-gear { display: inline-block; animation: kronos-gear-turn 10s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .kronos-manage-gear { animation: none; } }

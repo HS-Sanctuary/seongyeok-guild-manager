@@ -1,5 +1,29 @@
 # SANCTUM Supabase 구조 기준서
 
+## 2026-09-24 LOGOS 사진 확장 — 한설이 SQL 성공·읽기 전용 진단 확인
+
+`supabase/migrations/20260924_logos_private_report_images.sql`은 기존 `inquiries` 행을 보존하면서 `attachment_paths text[]`와 `reporter_account_id uuid`를 추가하고, 공개 정책 없는 비공개 Storage 버킷 `logos-reports`를 준비한다. 한설이 백업 확인 후 SQL 실행 성공을 보고했고, 읽기 전용 진단에서 두 컬럼과 비공개 버킷은 존재하며 anon 문의 읽기·authenticated 직접 쓰기는 불가로 확인했다. 새 제보의 작성자 확인에는 재사용 가능한 닉네임이 아닌 계정 ID를 쓴다. 사진은 브라우저에서 WebP/350KB 이하로 줄인 뒤 서버 세션을 통해 업로드하며, DB에는 사진 바이트 대신 경로만 저장한다. Preview의 실제 역할별 검증 전에는 사진 제보를 운영에서 열지 않는다. 계정 삭제 시 첨부 보존/삭제 방침은 아직 결정하지 않았다.
+
+## 2026-09-24 가입 프로필 추가 — 운영 SQL·권한 검증 완료
+
+한설이 `supabase/migrations/20260924_account_profile_registration.sql`의 운영 SQL Editor 실행 Success를 보고했다. 기존 `accounts`에 nullable `favorite_word`(7글자 이하)·`birthday_mmdd`(월일 4자리) 컬럼과 서버 전용 `sanctum_register_account_with_profile` 함수를 추가한다. 기존 코드·해시·계정 행은 변경하지 않는다. 함수는 현재 등록 함수를 호출한 뒤 같은 DB 요청에서 프로필을 저장하므로 저장 오류가 나면 전체 가입이 취소된다. 기존 계정의 두 값은 미등록이며 길드마스터 화면에서 별도로 보완한다. `supabase/diagnostics/20260924_account_profile_verify_readonly.sql` 결과는 두 컬럼·함수 존재 true, anon/authenticated 계정 SELECT false, anon 함수 실행 false다. 한설이 로컬 관리자 목록에서 `미등록` 표시를 확인했다.
+
+## 2026-09-24 크로노스 추가 구조 — 운영 적용·권한 확인
+
+`supabase/migrations/20260924_kronos_workspace.sql`은 한설이 운영 SQL Editor에서 Success를 확인했다. 읽기 전용 조회에서 아래 네 테이블 모두 존재·RLS 활성화·service_role 접근 true, anon 읽기/쓰기와 authenticated 쓰기 false, `sanctum_kronos_progress` 함수 존재 true를 확인했다. 기존 `nexus_purchases`, `nexus_missions`의 미확인 컬럼은 변경하지 않고 보존했다. 앱의 실제 저장 연동은 아직 확인 전이다.
+
+| 추가 객체 | 컬럼/역할 | 접근 |
+| --- | --- | --- |
+| `kronos_shop_items` | bigint `id`, `map`, `npc`, `reward`, `reward_cnt`, `cost_cnt`(골드), `limit`, `reset_type`, `scope`, `is_active`, `created_at` | 서버 전용; 카탈로그 편집은 운영진 |
+| `kronos_missions` | bigint `id`, `town`, `title`, `description`, `max_count`, `rewards` JSONB(이름·수량 1~6개), `is_active`, `created_at` | 서버 전용; 카탈로그 편집은 운영진 |
+| `kronos_progress` | `account_id`, nullable `character_name`, generated `target_key`, `kind`, `item_id`, `period_start`, `count`, `bookmarked`; 계정+대상+종류+항목 복합 PK | 서버 세션의 본인 계정만; 계정당 구매는 character_name=null |
+| `kronos_reminders` | 계정+캐릭터+`slot`(0/1) PK, `title`, `content`, `color`, `font`, `font_size`, `updated_at` | 본인만 조회·수정, 계정/캐릭터 삭제 시 연동 삭제 |
+| `sanctum_kronos_progress` | 계정/캐릭터 소유 확인, 활성 카탈로그 조회, 한국 시간 06시 일간/주간 초기화, 원자적 ±1·북마크 갱신 | service_role 전용 실행 |
+
+`supabase/migrations/20260924_kronos_progress_batch.sql`은 상점 연속 클릭·MAX를 한 요청으로 저장하도록 함수의 허용 증감량을 ±9999로 넓힌다. 한설이 최근 백업을 확인한 뒤 운영 SQL Editor에서 `Success`를 보고했다. 테이블·기존 기록은 변경하지 않는다. 한설이 로컬 UI에서 MAX 저장·새로고침 유지를 확인했다.
+
+새 테이블은 모두 RLS 활성화, public/anon/authenticated 접근 차단이다. 메모와 북마크는 주간 초기화로 지우지 않는다. 준비 SQL 재실행은 기존 행을 보존한다. 적용 후 읽기 전용 검사: `supabase/diagnostics/20260924_kronos_workspace_verify_readonly.sql`.
+
 > **스냅샷 기준:** 2026-09-22 KST
 >
 > **출처:** 한설이 Supabase SQL Editor에서 실행해 전달한 public 스키마 컬럼 목록(최대 100행), RLS 현황 JSON, `db backup/0919` CSV의 헤더

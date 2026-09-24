@@ -114,7 +114,7 @@ export default function MobileBottomSheet({
         className={`fixed inset-x-3 sm:inset-x-8 bottom-0 z-[9999] lg:hidden max-w-[56rem] mx-auto border border-b-0 rounded-t-[24px] p-3 sm:p-4 shadow-2xl flex flex-col bg-[var(--panel)] text-[var(--text-main)] border-[var(--panel-border)] ${
           isDraggingSheet ? '' : 'transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]'
         }`}
-        style={{ transform: isFabOpen ? `translateY(${sheetDragY}px)` : 'translateY(calc(100% + 1rem))' }}
+        style={{ visibility: isFabOpen ? 'visible' : 'hidden', pointerEvents: isFabOpen ? 'auto' : 'none', transform: isFabOpen ? `translateY(${sheetDragY}px)` : 'translateY(calc(100% + 1rem))' }}
       >
         <div onPointerDown={handleSheetDragStart} className="w-full py-2.5 flex items-center justify-center cursor-grab active:cursor-grabbing touch-none select-none" title="아래로 쓸어내려 닫기">
           <div className="w-12 h-1.5 bg-[var(--text-sub)] rounded-full opacity-60 hover:opacity-100 transition-opacity" />

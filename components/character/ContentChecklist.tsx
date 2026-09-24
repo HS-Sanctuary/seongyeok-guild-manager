@@ -4,6 +4,8 @@ import React from "react";
 import { cleanItemName, isTaskChecked } from "@/lib/matchingUtils";
 
 interface ContentChecklistProps {
+  onRemind?: () => void;
+  hideSections?: boolean;
   activeTab: string;
   visibleDailyList: any[];
   visibleWeeklyList: any[];
@@ -27,6 +29,8 @@ interface ContentChecklistProps {
 }
 
 export default function ContentChecklist({
+  onRemind,
+  hideSections = false,
   activeTab,
   visibleDailyList = [],
   visibleWeeklyList = [],
@@ -335,13 +339,14 @@ export default function ContentChecklist({
 
   return (
     <div className="space-y-2.5">
-      {total > 0 && (
+      {(total > 0 || onRemind) && (
         <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-2.5 shadow-xs space-y-1">
-          <div className="flex justify-between items-center text-xs font-bold">
+          <div className="flex flex-wrap gap-2 justify-between items-center text-xs font-bold">
             <span className="text-[var(--text-sub)]">🎯 숙제 달성률</span>
             <span className="text-[var(--accent)] font-mono">
               {completed} / {total} ({percent}%)
             </span>
+            {onRemind && <button type="button" onClick={onRemind} className="rounded-lg px-3 py-1 bg-[var(--accent)] text-[var(--accent-fg)]">리마인드</button>}
           </div>
           <div className="w-full bg-[var(--inner-box)] h-2 rounded-full overflow-hidden border border-[var(--panel-border)]">
             <div
@@ -354,7 +359,7 @@ export default function ContentChecklist({
 
       {/* 모바일 레이아웃 */}
       <div className="block md:hidden space-y-2.5">
-        {(activeTab === "all" || activeTab === "weekly_daily") &&
+        {!hideSections && (activeTab === "all" || activeTab === "weekly_daily") &&
           mobileRepeatTasks.length > 0 && (
             <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-2 shadow-xs space-y-1.5">
               <h3 className="font-bold text-[var(--accent)] text-xs border-b border-[var(--panel-border)] pb-1">
@@ -371,7 +376,7 @@ export default function ContentChecklist({
             </div>
           )}
 
-        {(activeTab === "all" || activeTab === "weekly_daily") && (
+        {!hideSections && (activeTab === "all" || activeTab === "weekly_daily") && (
           <div className="grid grid-cols-2 gap-1.5">
             <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-1.5 shadow-xs flex flex-col min-w-0">
               <div className="flex justify-between items-center mb-1 border-b border-[var(--panel-border)] pb-1">
@@ -411,7 +416,7 @@ export default function ContentChecklist({
           </div>
         )}
 
-        {(activeTab === "all" || activeTab === "abyss_raid") && (
+        {!hideSections && (activeTab === "all" || activeTab === "abyss_raid") && (
           <div className="grid grid-cols-2 gap-1.5">
             <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-1.5 shadow-xs flex flex-col min-w-0">
               <div className="flex justify-between items-center mb-1 border-b border-[var(--panel-border)] pb-1">
@@ -450,7 +455,7 @@ export default function ContentChecklist({
 
       {/* PC / 태블릿 뷰 */}
       <div className="hidden md:grid grid-cols-2 lg:grid-cols-4 gap-2.5">
-        {(activeTab === "all" || activeTab === "weekly_daily") && (
+        {!hideSections && (activeTab === "all" || activeTab === "weekly_daily") && (
           <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-3 shadow-xs flex flex-col">
             <div className="flex justify-between items-center mb-3 border-b border-[var(--panel-border)] pb-2 gap-2">
               <h3 className="font-bold text-amber-400 text-sm whitespace-nowrap">
@@ -474,7 +479,7 @@ export default function ContentChecklist({
           </div>
         )}
 
-        {(activeTab === "all" || activeTab === "weekly_daily") && (
+        {!hideSections && (activeTab === "all" || activeTab === "weekly_daily") && (
           <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-3 shadow-xs flex flex-col">
             <div className="flex justify-between items-center mb-3 border-b border-[var(--panel-border)] pb-2 gap-2">
               <h3 className="font-bold text-blue-400 text-sm whitespace-nowrap">
@@ -498,7 +503,7 @@ export default function ContentChecklist({
           </div>
         )}
 
-        {(activeTab === "all" || activeTab === "abyss_raid") && (
+        {!hideSections && (activeTab === "all" || activeTab === "abyss_raid") && (
           <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-3 shadow-xs flex flex-col">
             <div className="flex justify-between items-center mb-3 border-b border-[var(--panel-border)] pb-2 gap-2">
               <h3 className="font-bold text-emerald-400 text-sm whitespace-nowrap">
@@ -522,7 +527,7 @@ export default function ContentChecklist({
           </div>
         )}
 
-        {(activeTab === "all" || activeTab === "abyss_raid") && (
+        {!hideSections && (activeTab === "all" || activeTab === "abyss_raid") && (
           <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-3 shadow-xs flex flex-col">
             <div className="flex justify-between items-center mb-3 border-b border-[var(--panel-border)] pb-2 gap-2">
               <h3 className="font-bold text-emerald-400 text-sm whitespace-nowrap">

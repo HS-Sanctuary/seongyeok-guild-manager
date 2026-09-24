@@ -1,9 +1,23 @@
 "use client";
 
+interface TradeRow {
+  id: number;
+  map?: string;
+  npc?: string;
+  reward?: string;
+  reward_cnt?: number;
+  cost?: string;
+  cost_cnt?: number;
+  limit?: number;
+  max_count?: number;
+  reset_type?: string;
+  scope?: string;
+}
+
 interface TradeListProps {
   categoryType: "barter" | "shop";
   title: string;
-  items?: any[];
+  items?: TradeRow[];
   tradeProgress: Record<number, number>;
   tradeCompletedBy: Record<number, string>;
   pinnedTrades: number[];
@@ -21,7 +35,6 @@ interface TradeListProps {
 }
 
 export default function TradeList({
-  categoryType,
   title,
   items = [],
   tradeProgress = {},
@@ -82,7 +95,7 @@ export default function TradeList({
           </h3>
 
           {/* flex-1로 양끝 여백을 가득 채우며 min-w-[280px] 이하 감지 시 2줄로 이동 */}
-          <div className="flex-1 min-w-[280px] order-3 sm:order-2 w-full sm:w-auto">
+          <div className="flex-1 min-w-0 basis-full md:basis-0 order-3 sm:order-2 w-full sm:w-auto">
             <input
               type="text"
               value={tradeSearch}
@@ -107,7 +120,7 @@ export default function TradeList({
       {/* 카드 그리드 */}
       {filteredItems.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2.5 md:gap-3.5 items-start">
-          {filteredItems.map((trade: any) => {
+          {filteredItems.map((trade) => {
             const currentVal = tradeProgress[trade.id] || 0;
             const limit = trade.limit || trade.max_count || 1;
             const isMax = currentVal >= limit;
@@ -124,18 +137,21 @@ export default function TradeList({
                 }`}
               >
                 {/* 상단 NPC 정보 */}
-                <div className="flex items-center justify-between mb-2 min-w-0 gap-1.5">
+                <div className="flex flex-wrap items-center justify-between mb-2 min-w-0 gap-1.5">
                   <div className="flex items-center gap-1.5 min-w-0">
                     <button
                       type="button"
+                      aria-label="즐겨찾기"
+                      aria-pressed={isPinned}
+                      title={isPinned ? "즐겨찾기 해제" : "즐겨찾기 추가"}
                       onClick={() => togglePinTrade(trade.id)}
                       className={`text-xs md:text-sm cursor-pointer shrink-0 ${
                         isPinned ? "opacity-100" : "opacity-30 hover:opacity-70"
                       }`}
                     >
-                      📌
+                      {isPinned ? "★" : "☆"}
                     </button>
-                    <span className="font-bold text-xs md:text-sm text-[var(--accent)] truncate">
+                    <span className="font-bold text-xs md:text-sm text-[var(--accent)] break-words [overflow-wrap:anywhere]">
                       {trade.npc || "NPC"}{" "}
                       <span className="text-[var(--text-main)] font-normal text-xs">
                         ({trade.map || "맵"})
@@ -144,38 +160,32 @@ export default function TradeList({
                   </div>
 
                   <div className="flex items-center gap-1 shrink-0">
-                    <span className="text-xs font-bold px-1.5 py-0.5 rounded border bg-[var(--panel)] text-[var(--text-sub)] border-[var(--panel-border)] whitespace-nowrap">
+                    <span className="kronos-meta-badge">
                       {trade.reset_type || "주간"}
                     </span>
 
                     {trade.scope === "계정당" && buyerNick && (
-                      <span className="text-xs font-bold text-purple-200 bg-purple-900/80 px-1.5 py-0.5 rounded border border-purple-700/80 whitespace-nowrap">
+                      <span className="kronos-meta-badge">
                         {buyerNick}
                       </span>
                     )}
 
-                    <span
-                      className={`text-xs font-bold px-1.5 py-0.5 rounded border whitespace-nowrap ${
-                        trade.scope === "계정당"
-                          ? "bg-purple-600 text-white border-purple-700 shadow-xs"
-                          : "bg-[var(--panel)] text-[var(--text-sub)] border-[var(--panel-border)]"
-                      }`}
-                    >
+                    <span className="kronos-meta-badge">
                       {trade.scope || "캐릭당"}
                     </span>
                   </div>
                 </div>
 
                 {/* 하단 보상/소모 및 조작부 */}
-                <div className="flex items-end justify-between gap-2 mt-1">
+                <div className="flex flex-wrap items-end justify-between gap-2 mt-1">
                   <div className="min-w-0 flex-1 space-y-1">
-                    <div className="text-xs md:text-sm font-bold text-emerald-400 leading-tight break-keep">
+                    <div className="text-xs md:text-sm font-bold text-[var(--kronos-reward)] leading-tight break-keep">
                       <span className="text-xs text-[var(--text-sub)] mr-1.5 font-normal">보상</span>
-                      {trade.reward} {trade.reward_cnt ? `(${trade.reward_cnt}개)` : ""}
+                      {trade.reward}{trade.reward_cnt ? ` × ${trade.reward_cnt.toLocaleString()}` : ""}
                     </div>
-                    <div className="text-xs md:text-sm font-bold text-amber-400 leading-tight break-keep">
+                    <div className="text-xs md:text-sm font-bold text-[var(--kronos-cost)] leading-tight break-keep">
                       <span className="text-xs text-[var(--text-sub)] mr-1.5 font-normal">소모</span>
-                      {trade.cost} {trade.cost_cnt ? `(${trade.cost_cnt}개)` : ""}
+                      {trade.cost}{trade.cost_cnt ? ` × ${trade.cost_cnt.toLocaleString()}` : ""}
                     </div>
                   </div>
 
@@ -187,7 +197,7 @@ export default function TradeList({
                           trade.id,
                           -1,
                           limit,
-                          trade.scope
+                          trade.scope || "캐릭당"
                         )
                       }
                       className="w-5 h-5 md:w-6 md:h-6 flex justify-center items-center rounded bg-[var(--inner-box)] text-xs font-black text-[var(--text-sub)] hover:text-[var(--text-main)] active:scale-95 transition cursor-pointer"
@@ -197,7 +207,7 @@ export default function TradeList({
                     <span
                       className={`text-xs md:text-sm font-black min-w-[28px] text-center font-mono ${
                         isMax
-                          ? "text-emerald-400"
+                          ? "text-[var(--kronos-reward)]"
                           : "text-[var(--text-main)]"
                       }`}
                     >
@@ -210,7 +220,7 @@ export default function TradeList({
                           trade.id,
                           1,
                           limit,
-                          trade.scope
+                          trade.scope || "캐릭당"
                         )
                       }
                       className="w-5 h-5 md:w-6 md:h-6 flex justify-center items-center rounded bg-[var(--accent)] text-[var(--accent-fg)] font-black text-xs active:scale-95 transition cursor-pointer"

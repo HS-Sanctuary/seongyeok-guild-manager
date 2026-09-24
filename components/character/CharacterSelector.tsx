@@ -165,7 +165,7 @@ export default function CharacterSelector({
 
       {/* 캐릭터 스위처 버튼 목록 */}
       <div className="bg-[var(--panel)] rounded-xl border border-[var(--panel-border)] p-1.5 md:p-2.5 shadow-xs space-y-2">
-        <div className="flex items-center justify-between gap-1 text-xs font-bold text-[var(--text-sub)] px-1">
+        <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-bold text-[var(--text-sub)] px-1">
           <span className="flex items-center gap-1 whitespace-nowrap shrink-0 text-xs md:text-sm">
             캐릭터 선택
             <span className="text-[12px] text-[var(--text-sub)] font-normal md:hidden">
@@ -175,9 +175,9 @@ export default function CharacterSelector({
           <button
             type="button"
             onClick={openManageModal}
-            className="text-[11px] md:text-xs bg-[var(--inner-box)] text-[var(--text-main)] font-bold px-2 py-1 rounded-md border border-[var(--panel-border)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent)] transition shadow-xs cursor-pointer flex items-center gap-1 whitespace-nowrap shrink-0"
+            className="text-xs bg-[var(--accent)] text-[var(--accent-fg)] font-bold px-3 py-2 rounded-lg border border-[var(--accent)] hover:opacity-90 transition shadow-sm cursor-pointer flex items-center gap-2"
           >
-            ⚙️ 캐릭터 등록 및 관리
+            <span className="kronos-manage-gear" aria-hidden="true">⚙</span> 캐릭터 등록 및 관리
           </button>
         </div>
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSupabase, getSessionAccount, SANCTUM_SESSION_COOKIE } from "@/lib/server/sanctumSession";
+import { isValidBirthdayMMDD } from "@/lib/accountProfile";
 
 const ROLE_HIERARCHY: Record<string, number> = {
   승인대기: 0,
@@ -43,13 +44,14 @@ async function requireOperator(request: NextRequest, minimumLevel = 2) {
   return actor;
 }
 
-function accountResponse(account: { id: string; nickname: string; role: string; status: string | null; created_at: string | null }) {
+function accountResponse(account: { id: string; nickname: string; role: string; status: string | null; created_at: string | null; favorite_word: string | null; birthday_mmdd: string | null }, includeProfile: boolean) {
   return {
     id: account.id,
     nickname: account.nickname,
     role: account.role,
     status: account.status,
     created_at: account.created_at,
+    ...(includeProfile ? { favorite_word: account.favorite_word, birthday_mmdd: account.birthday_mmdd } : {}),
   };
 }
 
@@ -62,12 +64,12 @@ export async function GET(request: NextRequest) {
 
     const { data, error } = await getAccountClient()
       .from("accounts")
-      .select("id, nickname, role, status, created_at")
+      .select("id, nickname, role, status, created_at, favorite_word, birthday_mmdd")
       .order("created_at", { ascending: false });
     if (error) throw error;
 
     return NextResponse.json(
-      { actor: { nickname: actor.nickname, role: actor.role }, accounts: (data ?? []).map(accountResponse) },
+      { actor: { nickname: actor.nickname, role: actor.role }, accounts: (data ?? []).map((item) => accountResponse(item, actor.role === "길드마스터")) },
       { headers: { "Cache-Control": "private, no-store" } }
     );
   } catch (error) {
@@ -87,9 +89,9 @@ export async function PATCH(request: NextRequest) {
 
     const body = await request.json();
     const nickname = typeof body.nickname === "string" ? body.nickname.trim() : "";
-    const action = body.action as "approve" | "change_role";
+    const action = body.action as "approve" | "change_role" | "update_profile";
     const requestedRole = typeof body.role === "string" ? body.role : "";
-    if (!nickname || !["approve", "change_role"].includes(action)) {
+    if (!nickname || !["approve", "change_role", "update_profile"].includes(action)) {
       return NextResponse.json({ message: "요청 정보가 올바르지 않습니다." }, { status: 400 });
     }
 
@@ -100,6 +102,25 @@ export async function PATCH(request: NextRequest) {
       .eq("nickname", nickname)
       .maybeSingle();
     if (targetError || !target) return NextResponse.json({ message: "대상 계정을 찾지 못했습니다." }, { status: 404 });
+
+    if (action === "update_profile") {
+      if (actor.role !== "길드마스터") {
+        return NextResponse.json({ message: "가입 프로필은 길드마스터만 관리할 수 있습니다." }, { status: 403 });
+      }
+      const favoriteWord = typeof body.favoriteWord === "string" ? body.favoriteWord.trim() : "";
+      const birthdayMMDD = typeof body.birthdayMMDD === "string" ? body.birthdayMMDD.trim() : "";
+      if (favoriteWord.length > 7 || /\s/.test(favoriteWord)
+        || (birthdayMMDD && !isValidBirthdayMMDD(birthdayMMDD))) {
+        return NextResponse.json({ message: "좋아하는 것은 7글자 이내, 생일은 올바른 월일 4자리로 입력해 주세요." }, { status: 400 });
+      }
+      const { data: updated, error: updateError } = await supabase.from("accounts")
+        .update({ favorite_word: favoriteWord || null, birthday_mmdd: birthdayMMDD || null })
+        .eq("id", target.id)
+        .select("favorite_word, birthday_mmdd")
+        .single();
+      if (updateError) throw updateError;
+      return NextResponse.json({ account: { ...target, ...updated } });
+    }
 
     if (action === "approve") {
       if (![target.role, target.status].some((value) => ["승인대기", "가입대기", "pending"].includes(value ?? ""))) {

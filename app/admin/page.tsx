@@ -29,6 +29,7 @@ const MAIN_TABS: MainTab[] = [
   { id: "contents", label: "어비스/레이드 관리", markSrc: "/svgs/contens mark/레이드 마크.svg" },
   { id: "classes", label: "클래스 & 역할군 관리", emoji: "🪖" },
   { id: "trade", label: "물물교환 카탈로그", emoji: "⚖️" },
+  { id: "shop", label: "상점 구매 카탈로그", emoji: "🛒" },
   { id: "mission", label: "임무 게시판 관리", emoji: "📜" },
   { id: "gnosis", label: "그노시스 공략 관리", emoji: "📖" },
 ];
@@ -116,6 +117,7 @@ export default function AdminPage() {
           {activeMainTab === "contents" && <ContentAdminTab />}
           {activeMainTab === "classes" && <ClassAdminTab />}
           {activeMainTab === "trade" && <TradeAdminTab />}
+          {activeMainTab === "shop" && <TradeAdminTab shop />}
           {activeMainTab === "mission" && <MissionAdminTab />}
           {activeMainTab === "gnosis" && <GnosisAdminTab />}
         </div>

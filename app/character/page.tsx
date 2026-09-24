@@ -10,6 +10,8 @@ import CharacterStats from "@/components/character/CharacterStats";
 import ClassLevelManager from "@/components/character/ClassLevelManager";
 import ContentChecklist from "@/components/character/ContentChecklist";
 import TradeList from "@/components/character/TradeList";
+import KronosWorkspace from "@/components/character/KronosWorkspace";
+import { kronosPeriodStart } from "@/lib/kronos";
 import CharacterSelector from "@/components/character/CharacterSelector";
 import CharacterManageModal from "@/components/character/CharacterManageModal";
 
@@ -37,14 +39,7 @@ const CLASS_TITLES: Record<string, string[]> = {
   "도적": ["독왕", "트릭스터", "땅거미", "도적"], "격투가": ["권신", "권왕", "권호", "격투가"], "듀얼블레이드": ["유성천침", "쌍극난무", "질풍쌍화", "듀얼블레이드"],
 };
 
-const getMonday = (d: Date) => {
-  const dClone = new Date(d.getTime());
-  const day = dClone.getDay();
-  const diff = dClone.getDate() - day + (day === 0 ? -6 : 1);
-  dClone.setDate(diff);
-  dClone.setHours(0, 0, 0, 0);
-  return dClone.getTime();
-};
+const getMonday = (d: Date) => kronosPeriodStart(d);
 
 export default function CharacterPage() {
   const router = useRouter();
@@ -55,14 +50,16 @@ export default function CharacterPage() {
   const isInitialLoad = useRef(true);
   const toastTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const [activeTab, setActiveTab] = useState<'all' | 'weekly_daily' | 'abyss_raid' | 'barter' | 'shop' | 'levels'>('all');
+  const [selectedTabs, setSelectedTabs] = useState<string[]>([]);
+  const [reminderRequest, setReminderRequest] = useState(0);
+  const sectionVisible = (id: string) => selectedTabs.length === 0 || selectedTabs.includes(id);
+  const activeTab = sectionVisible('weekly_daily') && sectionVisible('abyss_raid') ? 'all' : sectionVisible('weekly_daily') ? 'weekly_daily' : sectionVisible('abyss_raid') ? 'abyss_raid' : 'all';
   const [statViewMode, setStatViewMode] = useState<'character' | 'account'>('character');
 
   const [dbClasses, setDbClasses] = useState<any[]>([]);
   const [dbTasks, setDbTasks] = useState<any[]>([]);
   const [dbContents, setDbContents] = useState<any[]>([]);
   const [dbTrades, setDbTrades] = useState<any[]>([]); 
-  const [dbPurchases, setDbPurchases] = useState<any[]>([]);
   const [allCharacters, setAllCharacters] = useState<any[]>([]);
 
   const [myCharacters, setMyCharacters] = useState<any[]>([]);
@@ -179,12 +176,11 @@ export default function CharacterPage() {
   };
 
   const fetchMasterData = async (loginUserNick: string) => {
-    const [clsRes, taskRes, contRes, tradeRes, purchRes, allCharsRes] = await Promise.all([
+    const [clsRes, taskRes, contRes, tradeRes, allCharsRes] = await Promise.all([
       supabase.from('nexus_classes').select('*').eq('is_active', true).order('id'),
       supabase.from('nexus_tasks').select('*').eq('is_active', true).order('id'),
       supabase.from('nexus_contents').select('*').eq('is_active', true).order('id'),
       supabase.from('nexus_trades').select('*').order('id'),
-      supabase.from('nexus_purchases').select('*').order('id'),
       supabase.from('characters').select('*')
     ]);
     
@@ -193,7 +189,6 @@ export default function CharacterPage() {
     setDbTasks(taskRes.data || []);
     setDbContents(contRes.data || []);
     setDbTrades(loadedTrades);
-    setDbPurchases(purchRes.data || []);
     setAllCharacters(allCharsRes.data || []);
     
     await fetchAccountData(loginUserNick);
@@ -867,19 +862,20 @@ export default function CharacterPage() {
         {/* 탭 메뉴 */}
         <div className="grid grid-cols-3 md:grid-cols-6 gap-1 md:gap-1.5 bg-[var(--inner-box)] p-1 md:p-1.5 rounded-xl border border-[var(--panel-border)]">
           {[
-            { id: 'all', label: 'ALL' },
             { id: 'weekly_daily', label: '주간/일일' },
             { id: 'abyss_raid', label: '어비스/레이드' },
             { id: 'barter', label: '물물 교환' },
             { id: 'shop', label: '상점 구매' },
+            { id: 'missions', label: '임무 게시판' },
             { id: 'levels', label: '클래스' }
           ].map((tab) => (
             <button
               key={tab.id}
               type="button"
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`py-2 px-1 text-[10.5px] sm:text-xs md:text-sm font-black text-center transition cursor-pointer whitespace-nowrap leading-none truncate rounded-lg ${
-                activeTab === tab.id 
+              aria-pressed={selectedTabs.includes(tab.id)}
+              onClick={() => setSelectedTabs(old => old.includes(tab.id) ? old.filter(id => id !== tab.id) : [...old, tab.id])}
+              className={`py-2 px-1 text-xs md:text-sm font-black text-center transition cursor-pointer break-keep leading-snug rounded-lg ${
+                selectedTabs.includes(tab.id)
                   ? 'bg-[var(--accent)] text-[var(--accent-fg)] shadow-xs' 
                   : 'text-[var(--text-sub)] hover:text-[var(--text-main)] hover:bg-[var(--panel)]'
               }`}
@@ -889,11 +885,14 @@ export default function CharacterPage() {
           ))}
         </div>
 
+        <p className="text-xs text-[var(--text-sub)]">여러 항목을 선택할 수 있습니다. 선택을 모두 해제하면 전체를 보여줍니다.</p>
         {/* 메인 콘텐츠 영역 */}
         <div className="space-y-3 md:space-y-4">
-          {(activeTab === 'all' || activeTab === 'weekly_daily' || activeTab === 'abyss_raid') && (
+          {(
             <ContentChecklist
               activeTab={activeTab}
+              hideSections={!sectionVisible("weekly_daily") && !sectionVisible("abyss_raid")}
+              onRemind={() => setReminderRequest(v => v + 1)}
               visibleDailyList={visibleDailyList}
               visibleWeeklyList={visibleWeeklyList}
               abyssList={abyssList}
@@ -916,7 +915,7 @@ export default function CharacterPage() {
             />
           )}
 
-          {(activeTab === 'all' || activeTab === 'barter') && (
+          {sectionVisible('barter') && (
             <TradeList
               categoryType="barter"
               title="⚖️ 물물 교환 목록"
@@ -933,28 +932,9 @@ export default function CharacterPage() {
             />
           )}
 
-          {(activeTab === 'all' || activeTab === 'shop') && (
-            <TradeList
-              categoryType="shop"
-              title="🛒 주간 상점 구매 목록"
-              items={
-                Array.isArray(dbPurchases) && dbPurchases.length > 0
-                  ? dbPurchases
-                  : (Array.isArray(dbTrades) ? dbTrades : []).filter((t: any) => t.category === 'shop')
-              }
-              tradeProgress={tradeProgress}
-              tradeCompletedBy={tradeCompletedBy}
-              pinnedTrades={pinnedTrades}
-              togglePinTrade={togglePinTrade}
-              updateTradeProgress={updateTradeProgress}
-              tradeSearch={tradeSearch}
-              setTradeSearch={setTradeSearch}
-              tradeSortOrder={tradeSortOrder}
-              setTradeSortOrder={setTradeSortOrder}
-            />
-          )}
+          {profile.nickname && <KronosWorkspace key={user.nickname + ':' + profile.nickname} account={user.nickname} character={profile.nickname} shopVisible={sectionVisible('shop')} missionVisible={sectionVisible('missions')} reminderRequest={reminderRequest}/>}
 
-          {(activeTab === 'all' || activeTab === 'levels') && (
+          {sectionVisible('levels') && (
             <ClassLevelManager
               dbClasses={dbClasses}
               levels={levels}

@@ -93,8 +93,12 @@ export async function POST(request: NextRequest) {
 
     if (table === "inquiries") {
       if (action === "insert") {
+        const category = String(cleanPayload.category ?? "기타");
+        if (!["질문", "건의", "버그", "기타"].includes(category)) {
+          return NextResponse.json({ message: "제보와 건의는 로고스 전용 작성창에서 등록해 주세요." }, { status: 400 });
+        }
         cleanPayload = {
-          category: String(cleanPayload.category ?? "기타").slice(0, 60),
+          category,
           title: String(cleanPayload.title ?? "").trim().slice(0, 200),
           content: String(cleanPayload.content ?? "").trim().slice(0, 10000),
           author: account.nickname,
@@ -102,6 +106,13 @@ export async function POST(request: NextRequest) {
         };
         if (!cleanPayload.title || !cleanPayload.content) return NextResponse.json({ message: "제목과 내용을 입력해주세요." }, { status: 400 });
       } else if (action === "update" && isAdmin && filter?.column === "id") {
+        const { data: existingInquiry, error: inquiryError } = await supabase.from("inquiries")
+          .select("category").eq("id", filter.value).maybeSingle();
+        if (inquiryError) throw inquiryError;
+        if (!existingInquiry) return NextResponse.json({ message: "문의를 찾지 못했습니다." }, { status: 404 });
+        if (["생텀 버그 제보", "생텀 건의사항"].includes(existingInquiry.category) && account.role !== "길드마스터") {
+          return NextResponse.json({ message: "길드마스터만 이 글에 답변할 수 있습니다." }, { status: 403 });
+        }
         cleanPayload = { reply: String(cleanPayload.reply ?? "").slice(0, 10000), status: "답변완료" };
       } else {
         return NextResponse.json({ message: "문의 수정 권한이 없습니다." }, { status: 403 });
