@@ -9,8 +9,8 @@ const theme = process.env.LOGOS_TEST_THEME || "aureum";
 const output = path.join(os.tmpdir(), "sanctum-logos-ui-" + theme);
 const base = process.env.LOGOS_TEST_URL || "http://localhost:3000";
 const reports = [
-  { id: 1, category: "생텀 버그 제보", title: "QA 버튼 오류", content: "버튼을 누르면 열리지 않음", author: "QA길드원", status: "대기중", created_at: "2026-09-24T06:00:00Z", reply: null, attachment_paths: [] },
-  { id: 2, category: "생텀 건의사항", title: "QA 메뉴 제안", content: "메뉴 위치 개선", author: "QA길드원", status: "대기중", created_at: "2026-09-24T06:01:00Z", reply: null, attachment_paths: [] },
+  { id: 1, category: "생텀 버그 제보", title: "QA 버튼 오류", content: "버튼을 누르면 열리지 않음", author: "QA길드원", status: "대기중", created_at: "2026-09-24T06:00:00Z", retention_review_at: "2020-01-01T00:00:00Z", reply: null, attachment_paths: [] },
+  { id: 2, category: "생텀 건의사항", title: "QA 메뉴 제안", content: "메뉴 위치 개선", author: "QA길드원", status: "대기중", created_at: "2026-09-24T06:01:00Z", retention_review_at: "2020-01-01T00:00:00Z", reply: null, attachment_paths: [] },
   { id: 3, category: "질문", title: "QA 일반 문의", content: "문의 내용", author: "QA길드원", status: "답변완료", created_at: "2026-09-24T06:02:00Z", reply: "확인했습니다.", attachment_paths: [] },
 ];
 
@@ -18,6 +18,7 @@ const reports = [
   fs.mkdirSync(output, { recursive: true });
   const browser = await chromium.launch({ channel: "msedge", headless: true });
   for (const role of ["길드원", "길드마스터"]) {
+    let fixtureReports = reports.map((item) => ({ ...item }));
     const context = await browser.newContext({ viewport: { width: 390, height: 900 }, reducedMotion: "reduce" });
     const account = { id: "00000000-0000-0000-0000-000000000001", nickname: role === "길드마스터" ? "QA길드마스터" : "QA길드원", role, theme };
     await context.addInitScript((value) => {
@@ -29,7 +30,18 @@ const reports = [
       const url = new URL(route.request().url());
       const send = (data, status = 200) => route.fulfill({ status, contentType: "application/json", body: JSON.stringify(data) });
       if (url.pathname === "/api/auth/session") return send({ account });
-      if (url.pathname === "/api/inquiries" && route.request().method() === "GET") return send({ data: reports });
+      if (url.pathname === "/api/inquiries" && route.request().method() === "GET") return send({ data: fixtureReports });
+      if (url.pathname === "/api/inquiries/retention") {
+        if (role !== "길드마스터") return send({ message: "Forbidden" }, 403);
+        if (route.request().method() === "GET") return send({ data: fixtureReports.filter((item) => item.retention_review_at && Date.parse(item.retention_review_at) <= Date.now()) });
+        const id = route.request().method() === "DELETE" ? Number(url.searchParams.get("id")) : Number(JSON.parse(route.request().postData() || "{}").id);
+        if (route.request().method() === "POST") {
+          fixtureReports = fixtureReports.map((item) => item.id === id ? { ...item, retention_review_at: "2099-01-01T00:00:00Z" } : item);
+          return send({ data: { id, retention_review_at: "2099-01-01T00:00:00Z" } });
+        }
+        fixtureReports = fixtureReports.filter((item) => item.id !== id);
+        return send({ ok: true });
+      }
       if (url.pathname === "/api/inquiries/reports" && route.request().method() === "POST") {
         const body = route.request().postData() || "";
         assert.match(body, /생텀 버그 제보/);
@@ -45,6 +57,22 @@ const reports = [
     await page.waitForFunction((expectedTheme) => document.documentElement.getAttribute("data-theme") === expectedTheme, theme);
     await page.getByRole("button", { name: /생텀 버그 제보/ }).click();
     await page.getByRole("button", { name: /QA 버튼 오류/ }).waitFor();
+    if (role === "길드마스터") {
+      await page.getByRole("button", { name: /QA 버튼 오류/ }).click();
+      await page.getByRole("button", { name: "60일 보류" }).click();
+      await page.getByRole("button", { name: /QA 버튼 오류/ }).waitFor();
+      assert.equal(await page.getByRole("button", { name: "60일 보류" }).count(), 0);
+      await page.locator('nav[aria-label="로고스 글 종류"]').getByRole("button", { name: /생텀 건의사항/ }).click();
+      await page.getByRole("button", { name: /QA 메뉴 제안/ }).click();
+      page.once("dialog", (dialog) => dialog.accept());
+      await page.getByRole("button", { name: "글·사진 삭제" }).click();
+      await page.getByRole("button", { name: /QA 메뉴 제안/ }).waitFor({ state: "detached" });
+      await page.locator('nav[aria-label="로고스 글 종류"]').getByRole("button", { name: /생텀 버그 제보/ }).click();
+    } else {
+      await page.getByRole("button", { name: /QA 버튼 오류/ }).click();
+      assert.equal(await page.getByRole("button", { name: "60일 보류" }).count(), 0);
+      await page.getByRole("button", { name: /QA 버튼 오류/ }).click();
+    }
     assert.equal(await page.getByRole("button", { name: /QA 일반 문의/ }).count(), 0);
     await page.getByRole("button", { name: /＋ 새 글 작성/ }).click();
     await page.getByRole("textbox", { name: "제목" }).fill("QA 새 버그");

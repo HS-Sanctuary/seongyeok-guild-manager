@@ -53,6 +53,7 @@ export async function POST(request: NextRequest) {
     const { data, error } = await db.from("inquiries").insert({
       category, title, content, author: account.nickname, status: "대기중",
       is_secret: true, attachment_paths: uploaded, reporter_account_id: account.id,
+      retention_review_at: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
     }).select("id, category, title, content, author, status, created_at, reply, attachment_paths").single();
     if (error) throw error;
     saved = true;

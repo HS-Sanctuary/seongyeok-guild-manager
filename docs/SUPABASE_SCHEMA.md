@@ -1,5 +1,9 @@
 # SANCTUM Supabase 구조 기준서
 
+## 2026-09-25 LOGOS 60일 검토 준비 — 운영 SQL 적용·읽기 전용 검증 완료, 앱 미배포
+
+`supabase/migrations/20260925_logos_retention_review.sql`은 `inquiries.retention_review_at timestamptz`를 추가하고 기존 생텀 제보·건의 글의 검토일을 작성일+60일로 채운다. 한설이 운영 SQL Editor 실행 성공을 보고했다. 읽기 전용 진단 결과 검토일 컬럼 존재 true, 익명 문의 SELECT 불가 true, authenticated 직접 DELETE 불가 true, 검토일 없는 제보 0, 사진 버킷 비공개 true다. 원본 글·답변·사진은 자동 삭제되지 않는다. 새 제보 API는 작성일+60일을 기록한다. 길드마스터 세션만 만기 목록 조회, 60일 보류, 글·비공개 Storage 사진 삭제를 실행할 수 있다. 1:1 문의는 제외한다. 앱 변경은 아직 Preview·Production에 배포하지 않았다. Storage와 DB는 단일 트랜잭션이 아니므로 삭제 도중 실패 시 사진이 먼저 제거되고 글이 남을 수 있으며, 재시도로 정리한다.
+
 ## 2026-09-24 LOGOS 사진 확장 — 한설이 SQL 성공·읽기 전용 진단 확인
 
 `supabase/migrations/20260924_logos_private_report_images.sql`은 기존 `inquiries` 행을 보존하면서 `attachment_paths text[]`와 `reporter_account_id uuid`를 추가하고, 공개 정책 없는 비공개 Storage 버킷 `logos-reports`를 준비한다. 한설이 백업 확인 후 SQL 실행 성공을 보고했고, 읽기 전용 진단에서 두 컬럼과 비공개 버킷은 존재하며 anon 문의 읽기·authenticated 직접 쓰기는 불가로 확인했다. 새 제보의 작성자 확인에는 재사용 가능한 닉네임이 아닌 계정 ID를 쓴다. 사진은 브라우저에서 WebP/350KB 이하로 줄인 뒤 서버 세션을 통해 업로드하며, DB에는 사진 바이트 대신 경로만 저장한다. Preview의 실제 역할별 검증 전에는 사진 제보를 운영에서 열지 않는다. 계정 삭제 시 첨부 보존/삭제 방침은 아직 결정하지 않았다.

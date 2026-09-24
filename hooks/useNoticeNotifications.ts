@@ -145,7 +145,7 @@ export function useNoticeNotifications(nickname?: string, role?: string) {
 
       const nextNotifications = data.map((notice) => toNotification(notice));
       setNotifications((current) => [
-        ...current.filter((item) => item.type === "운영 · 가입 승인"),
+        ...current.filter((item) => item.type === "운영 · 가입 승인" || item.type === "LOGOS · 정리 검토"),
         ...nextNotifications,
       ].slice(0, MAX_NOTIFICATIONS));
 
@@ -335,6 +335,48 @@ export function useNoticeNotifications(nickname?: string, role?: string) {
       window.clearInterval(timer);
       window.removeEventListener("sanctum_approval_changed", refreshJoinRequests);
       supabase.removeChannel(channel);
+    };
+  }, [nickname, role]);
+
+  useEffect(() => {
+    if (!nickname || role !== "길드마스터") return;
+    let active = true;
+    const refreshRetentionReviews = async () => {
+      try {
+        const response = await fetch("/api/inquiries/retention", { cache: "no-store" });
+        if (!response.ok) return;
+        const result: { data?: { id: number; title: string; category: string; retention_review_at: string }[] } = await response.json();
+        if (!active) return;
+        const due = (result.data ?? []).map((item): SanctumNotification => ({
+          id: joinNotificationId(`logos-retention-${item.id}-${item.retention_review_at}`),
+          title: `「${item.title}」 보존 또는 삭제를 결정해 주세요.`,
+          type: "LOGOS · 정리 검토",
+          href: `/support?tab=${item.category === "생텀 버그 제보" ? "bug" : "idea"}&review=${item.id}`,
+          author: "SANCTUM 시스템",
+          created_at: item.retention_review_at,
+          is_pinned: false,
+        }));
+        setNotifications((current) => [
+          ...due,
+          ...current.filter((item) => item.type !== "LOGOS · 정리 검토"),
+        ].slice(0, MAX_NOTIFICATIONS));
+        if ("Notification" in window && window.Notification.permission === "granted") {
+          for (const item of due) {
+            const key = `sanctum_retention_browser_alert_${nickname}_${item.id}`;
+            if (localStorage.getItem(key)) continue;
+            localStorage.setItem(key, "true");
+            new window.Notification("SANCTUM 제보 정리 검토", { body: item.title, icon: "/favicon.ico", tag: key });
+          }
+        }
+      } catch { /* The next refresh retries; reports are never deleted on a read failure. */ }
+    };
+    void refreshRetentionReviews();
+    const timer = window.setInterval(() => void refreshRetentionReviews(), 5 * 60_000);
+    window.addEventListener("sanctum_retention_changed", refreshRetentionReviews);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+      window.removeEventListener("sanctum_retention_changed", refreshRetentionReviews);
     };
   }, [nickname, role]);
 

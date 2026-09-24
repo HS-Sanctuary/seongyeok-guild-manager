@@ -152,7 +152,7 @@ public/
 | `/gnosis` · `app/gnosis/page.tsx` | GNOSIS 가이드 목록·필터·카드 UI. | `nexus_classes`, `app/gnosis/[id]`, `app/gnosis/write` |
 | `/gnosis/[id]` | GNOSIS 개별 글 상세. | 라우트 파라미터 `id` |
 | `/gnosis/write` | GNOSIS 작성 화면. | `nexus_classes` |
-| `/support` · `app/support/page.tsx` | LOGOS 1:1 문의·생텀 버그 제보·건의사항의 탭/작성/조회/길드마스터 답변. `?tab=bug|idea`로 새로고침 후 선택 탭 유지(로컬 후속 수정). 제보 사진 붙여넣기·WebP 축소 미리보기. | `inquiries`, 비공개 `logos-reports` Storage(SQL 성공·읽기 전용 진단 확인) |
+| `/support` · `app/support/page.tsx` | LOGOS 1:1 문의·생텀 버그 제보·건의사항의 탭/작성/조회/길드마스터 답변. `?tab=bug|idea`로 새로고침 후 선택 탭 유지. 제보 사진 붙여넣기·WebP 축소 미리보기. 2026-09-25 로컬 후속: 제보·건의의 60일 검토 안내와 길드마스터의 글별 삭제/60일 보류 UI. | `inquiries`, 비공개 `logos-reports` Storage |
 | `/customize` · `app/customize/page.tsx` | 테마·스티커 개인화 화면. | `ThemeModal`, `StickerCanvas`, 브라우저 저장소 |
 | `/admin` · `app/admin/page.tsx` | 관리자 탭 허브. 가입 승인, 배너, 클래스, 컨텐츠, 교환, 임무, GNOSIS 관리. PC 글자 단계에 따른 관리자 전용 밀도 조정. | `/api/auth/session`으로 진입 역할 확인, `app/admin/components/*`, `app/admin/admin.css`; 다른 관리자 테이블 직접 쓰기는 후속 보안 과제 |
 
@@ -178,6 +178,7 @@ public/
 | `/api/parties/sync-checklist` | 파티 완료 시 참여 캐릭터 숙제 체크 동기화. | `parties`, `characters` | 파티 참가자/운영진만 요청 가능 |
 | `/api/inquiries` | 본인 문의 또는 운영진 문의 목록·대기 건수. 새 제보·건의의 타인 기록은 길드마스터만 조회. | `inquiries` | 비로그인·타인 제보 조회 차단. Phase D에서 공개 SELECT 제거 |
 | `/api/inquiries/reports`, `/api/inquiries/attachments` | 새 제보·건의의 글/사진 저장, 작성자·길드마스터의 비공개 사진 URL 조회. | `inquiries.attachment_paths`, `inquiries.reporter_account_id`, 비공개 `logos-reports` Storage | SQL·읽기 전용 진단 확인. Preview 역할별 검증 전 배포 금지. 계정 ID 권한 확인·용량·형식 검사; 사진 URL 5분 유효 |
+| `/api/inquiries/retention` | 2026-09-25 로컬 후속: 길드마스터 전용 만기 제보 목록·60일 보류·글/첨부 삭제. 상단 알림함은 사이트가 열려 있을 때 만기 항목을 조회한다. | `inquiries.retention_review_at`, `logos-reports` Storage | 신규 SQL `20260925_logos_retention_review.sql` 운영 적용·읽기 전용 진단 통과, 앱 미배포. 자동 삭제·종료 상태 푸시 없음. 1:1 문의 제외 |
 
 ### 전역 레이아웃·상태 흐름
 

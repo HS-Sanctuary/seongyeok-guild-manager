@@ -37,6 +37,13 @@ export async function GET(request: NextRequest) {
         .order("created_at", { ascending: false }).limit(200);
       if (error) throw error;
       visible = data ?? [];
+      const reviewId = Number(request.nextUrl.searchParams.get("review"));
+      if (Number.isSafeInteger(reviewId) && reviewId > 0 && !visible.some((item) => item.id === reviewId)) {
+        const { data: reviewed, error: reviewError } = await supabase.from("inquiries")
+          .select("*").eq("id", reviewId).in("category", [...MASTER_ONLY_CATEGORIES]).maybeSingle();
+        if (reviewError) throw reviewError;
+        if (reviewed) visible = [reviewed, ...visible];
+      }
     }
     return NextResponse.json({ data: visible }, { headers: { "Cache-Control": "private, no-store" } });
   } catch (error) {
