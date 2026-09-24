@@ -1,5 +1,7 @@
 # SANCTUM Supabase 구조 기준서
 
+> 2026-09-25 v2.0 운영 배포 후보: 아래 계정 프로필·크로노스·로고스/60일 검토 SQL은 한설이 이미 운영 SQL Editor에서 적용했고 읽기 전용 진단을 확인했다. 이번 `main` push는 SQL을 재실행하지 않는다. 앱 배포 성공과 실제 화면 확인은 별도로 필요하다.
+
 ## 2026-09-25 LOGOS 60일 검토 준비 — 운영 SQL 적용·읽기 전용 검증 완료, 앱 미배포
 
 `supabase/migrations/20260925_logos_retention_review.sql`은 `inquiries.retention_review_at timestamptz`를 추가하고 기존 생텀 제보·건의 글의 검토일을 작성일+60일로 채운다. 한설이 운영 SQL Editor 실행 성공을 보고했다. 읽기 전용 진단 결과 검토일 컬럼 존재 true, 익명 문의 SELECT 불가 true, authenticated 직접 DELETE 불가 true, 검토일 없는 제보 0, 사진 버킷 비공개 true다. 원본 글·답변·사진은 자동 삭제되지 않는다. 새 제보 API는 작성일+60일을 기록한다. 길드마스터 세션만 만기 목록 조회, 60일 보류, 글·비공개 Storage 사진 삭제를 실행할 수 있다. 1:1 문의는 제외한다. 앱 변경은 아직 Preview·Production에 배포하지 않았다. Storage와 DB는 단일 트랜잭션이 아니므로 삭제 도중 실패 시 사진이 먼저 제거되고 글이 남을 수 있으며, 재시도로 정리한다.
