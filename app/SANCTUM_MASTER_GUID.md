@@ -1,5 +1,9 @@
 # 🏛️ SANCTUM Master Guide
 
+## 2026-09-25 v2.021 로고·버전 정렬
+
+- `components/layout/Navbar.tsx`의 로고 오른쪽에 `SANCTUM`, 길드 플랫폼 설명, `BETA v2.021`을 3줄로 배치한다. 중간 폭은 메뉴 가용 공간을 위해 버전만 축약 표시한다. 버전 값은 `lib/release.ts`에서 관리한다. DB·API 구조 변경 없음.
+
 ## 2026-09-25 v2.02 베타 메뉴 안내
 
 - 버전 표시는 홈 본문 대신 모든 비로그인 제외 페이지의 `components/layout/Navbar.tsx` 로고 아래에서 `lib/release.ts` 값을 사용한다.

@@ -130,7 +130,6 @@ export default function Navbar({
               title="SANCTUM 메인 홈으로 이동"
             >
               {/* SVG의 800:520 비율을 유지해 문양이 잘리지 않게 표시한다. */}
-              <span className="flex shrink-0 flex-col items-center leading-none">
               <span
                 aria-hidden="true"
                 className="h-10 sm:h-11 w-[3.9rem] sm:w-[4.3rem] shrink-0 bg-[var(--accent)] transition-all duration-300 drop-shadow-[0_0_8px_var(--accent)] group-hover:drop-shadow-[0_0_14px_var(--accent)] group-hover:scale-105 active:scale-95"
@@ -145,12 +144,12 @@ export default function Navbar({
                   WebkitMaskSize: 'contain',
                 }}
               />
-                <span className="mt-0.5 whitespace-nowrap text-[0.67rem] font-black text-[var(--accent)]">BETA {SANCTUM_BETA_VERSION}</span>
-              </span>
-              <span className="flex max-[340px]:hidden min-w-0 flex-col leading-none lg:hidden 2xl:flex">
+              <span className="flex max-[340px]:hidden min-w-0 flex-col justify-center leading-none lg:hidden 2xl:flex">
                 <strong className="text-[0.8rem] tracking-[0.14em] font-black text-[var(--text-main)]">SANCTUM</strong>
-                <span className="mt-1 text-[0.52rem] tracking-[0.08em] font-bold text-[var(--accent)]">성역 길드 전용 플랫폼</span>
+                <span className="mt-1 text-[0.67rem] tracking-[0.04em] font-bold text-[var(--accent)] whitespace-nowrap">성역 길드 전용 플랫폼</span>
+                <span className="mt-1 text-[0.67rem] font-black text-[var(--accent)] whitespace-nowrap">BETA {SANCTUM_BETA_VERSION}</span>
               </span>
+              <span className="hidden lg:inline 2xl:hidden text-[0.67rem] font-black text-[var(--accent)] whitespace-nowrap">BETA {SANCTUM_BETA_VERSION}</span>
             </Link>
 
           </div>
