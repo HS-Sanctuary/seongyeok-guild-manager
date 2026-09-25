@@ -503,7 +503,7 @@ export default function LoginPage() {
             <div className="grid grid-cols-3 gap-2">
               <div>
                 <div className="inline-block mb-1 px-2 py-0.5 rounded-md bg-black/10 backdrop-blur-[2px]">
-                  <label className="block text-[11px] font-normal text-[#D4AF37]">주 직업</label>
+                  <label className="block text-[11px] font-normal text-[#FFFDF0]">주 직업</label>
                 </div>
                 <select
                   value={selectedJob}
@@ -518,7 +518,7 @@ export default function LoginPage() {
 
               <div>
                 <div className="inline-block mb-1 px-2 py-0.5 rounded-md bg-black/10 backdrop-blur-[2px]">
-                  <label className="block text-[11px] font-normal text-amber-400">전투력 (CP)</label>
+                  <label className="block text-[11px] font-normal text-[#fff000]">전투력 (CP)</label>
                 </div>
                 <input
                   type="number"
@@ -544,7 +544,7 @@ export default function LoginPage() {
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <div className="inline-block mb-1 px-2 py-0.5 rounded-md bg-black/10 backdrop-blur-[2px]">
-                  <label className="block text-xs font-normal text-[#D4AF37]">좋아하는 것 (최대 7글자)</label>
+                  <label className="block text-xs font-normal text-[#FFFDF0]">좋아하는 것 (7글자)</label>
                 </div>
                 <input
                   type="text"
@@ -558,7 +558,7 @@ export default function LoginPage() {
 
               <div>
                 <div className="inline-block mb-1 px-2 py-0.5 rounded-md bg-black/10 backdrop-blur-[2px]">
-                  <label className="block text-xs font-normal text-[#D4AF37]">생일 (월일 4자리)</label>
+                  <label className="block text-xs font-normal text-[#FFFDF0]">생일 (월일 4자리)</label>
                 </div>
                 <input
                   type="text"
@@ -574,7 +574,7 @@ export default function LoginPage() {
             {/* 특수문자 선택 */}
             <div className="space-y-1 pt-0.5">
               <div className="inline-block px-2 py-0.5 rounded-md bg-black/10 backdrop-blur-[2px]">
-                <label className="block text-xs font-normal text-[#D4AF37]">특수문자 2개 선택!</label>
+                <label className="block text-xs font-normal text-[#FFFDF0]">특수문자 2개 선택!</label>
               </div>
 
               <div className="grid grid-cols-10 gap-1 p-1 bg-[#050608]/30 backdrop-blur-md border border-[#D4AF37]/30 rounded-xl">
