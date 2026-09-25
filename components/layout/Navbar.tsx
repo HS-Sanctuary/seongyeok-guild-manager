@@ -6,6 +6,7 @@ import { NavItem, AccountPreset } from '../../types/layout';
 import NotificationInbox from './NotificationInbox';
 import SpiritWingsMenu from './SpiritWingsMenu';
 import MarkIcon from '@/components/common/MarkIcon';
+import { SANCTUM_BETA_VERSION } from '@/lib/release';
 import { useNoticeNotifications } from '@/hooks/useNoticeNotifications';
 
 interface NavbarProps {
@@ -129,7 +130,9 @@ export default function Navbar({
               title="SANCTUM 메인 홈으로 이동"
             >
               {/* SVG의 800:520 비율을 유지해 문양이 잘리지 않게 표시한다. */}
-              <div 
+              <span className="flex shrink-0 flex-col items-center leading-none">
+              <span
+                aria-hidden="true"
                 className="h-10 sm:h-11 w-[3.9rem] sm:w-[4.3rem] shrink-0 bg-[var(--accent)] transition-all duration-300 drop-shadow-[0_0_8px_var(--accent)] group-hover:drop-shadow-[0_0_14px_var(--accent)] group-hover:scale-105 active:scale-95"
                 style={{
                   maskImage: `url('/svgs/logo/생텀타이포로고.svg')`,
@@ -142,6 +145,8 @@ export default function Navbar({
                   WebkitMaskSize: 'contain',
                 }}
               />
+                <span className="mt-0.5 whitespace-nowrap text-[0.67rem] font-black text-[var(--accent)]">BETA {SANCTUM_BETA_VERSION}</span>
+              </span>
               <span className="flex max-[340px]:hidden min-w-0 flex-col leading-none lg:hidden 2xl:flex">
                 <strong className="text-[0.8rem] tracking-[0.14em] font-black text-[var(--text-main)]">SANCTUM</strong>
                 <span className="mt-1 text-[0.52rem] tracking-[0.08em] font-bold text-[var(--accent)]">성역 길드 전용 플랫폼</span>
@@ -153,6 +158,17 @@ export default function Navbar({
           <div className="hidden lg:flex flex-1 min-w-0 items-center justify-center gap-0.5 2xl:gap-1.5">
             {navItems.map((item) => {
               const isActive = pathname === item.path;
+              if (item.comingSoon) {
+                return (
+                  <div key={item.en} aria-label={`${item.kr} 준비중`} className="relative flex h-11 min-w-0 flex-1 items-center justify-center overflow-hidden rounded-md opacity-75 select-none">
+                    <span className="flex flex-col items-center opacity-40" aria-hidden="true">
+                      <span className="font-black text-[0.67rem] 2xl:text-[0.75rem] leading-tight whitespace-nowrap text-[var(--text-main)]">{item.kr}</span>
+                      <span className="text-[0.5rem] 2xl:text-[0.55rem] font-bold mt-0.5 whitespace-nowrap text-[var(--accent)]">{item.sub}</span>
+                    </span>
+                    <span className="absolute rounded-md border border-[var(--panel-border)] bg-[var(--panel)] px-1.5 py-0.5 text-[0.6rem] font-black text-[var(--text-main)] whitespace-nowrap">[준비중]</span>
+                  </div>
+                );
+              }
               return (
                 <Link
                   key={item.en}

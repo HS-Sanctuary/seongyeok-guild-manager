@@ -1,5 +1,10 @@
 # 🏛️ SANCTUM Master Guide
 
+## 2026-09-25 v2.02 베타 메뉴 안내
+
+- 버전 표시는 홈 본문 대신 모든 비로그인 제외 페이지의 `components/layout/Navbar.tsx` 로고 아래에서 `lib/release.ts` 값을 사용한다.
+- `types/layout.ts`의 엠포리온·그노시스 메뉴 항목을 `comingSoon`으로 지정했다. PC `Navbar`와 모바일 `MobileBottomSheet`는 링크 대신 `[준비중]` 비활성 항목을 렌더링한다. `/market`·`/gnosis` 라우트 자체와 직접 주소 접근은 유지한다. DB·API 구조 변경 없음.
+
 ## 2026-09-25 v2.01 베타 화면 안내
 
 - 홈 `app/page.tsx`는 `lib/release.ts`의 버전을 `SANCTUM BETA` 배지로 표시한다. 공식 버전이 바뀔 때 표시값도 릴리스 노트와 함께 수동 갱신한다.

@@ -17,7 +17,6 @@ import KronosCheckboardSection from "../components/sanctum/KronosCheckboardSecti
 import SynaxisPartySection from "../components/sanctum/SynaxisPartySection";
 import PantheonRankingSection from "../components/sanctum/PantheonRankingSection";
 import SanctumModals from "../components/sanctum/SanctumModals";
-import { SANCTUM_BETA_VERSION } from "@/lib/release";
 
 interface DeepHole {
   id: string;
@@ -626,11 +625,6 @@ export default function Home() {
 
   return (
     <div className="max-w-[1400px] mx-auto px-2 md:px-6 pt-1 md:pt-2 pb-6 md:pb-8 space-y-4 md:space-y-6 animate-in fade-in duration-300">
-      <div className="flex justify-end" aria-label={`SANCTUM 베타 ${SANCTUM_BETA_VERSION}`}>
-        <span className="inline-flex items-center gap-2 rounded-full border border-[var(--panel-border)] bg-[var(--panel)] px-3 py-1 text-[0.7rem] font-bold text-[var(--text-sub)]">
-          <span className="text-[var(--accent)]">●</span> SANCTUM BETA <span className="text-[var(--text-main)]">{SANCTUM_BETA_VERSION}</span>
-        </span>
-      </div>
       
       {/* 1. 상단 타이머 및 ASTRA 위젯 섹션 */}
       <SanctumHeaderWidgets

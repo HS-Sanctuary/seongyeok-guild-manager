@@ -130,6 +130,14 @@ export default function MobileBottomSheet({
           <div className="grid grid-cols-2 gap-2">
             {navItems.map((item) => {
               const isActive = pathname === item.path;
+              if (item.comingSoon) {
+                return (
+                  <div key={item.en} aria-label={`${item.kr} 준비중`} className="relative overflow-hidden flex flex-col justify-center px-4 py-3.5 rounded-xl border border-[var(--panel-border)] bg-[var(--inner-box)] opacity-75 select-none">
+                    <span className="font-black text-[0.75rem] text-[var(--text-sub)]">{item.kr}</span>
+                    <span className="mt-1 text-[0.67rem] font-bold text-[var(--text-main)]">[준비중]</span>
+                  </div>
+                );
+              }
               return (
                 <Link 
                   key={item.en} 
