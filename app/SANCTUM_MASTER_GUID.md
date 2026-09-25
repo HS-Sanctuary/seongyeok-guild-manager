@@ -1,5 +1,9 @@
 # 🏛️ SANCTUM Master Guide
 
+## 2026-09-25 v2.022 시낙시스 권한 핫픽스
+
+- `hooks/usePartyManager.ts`의 길드 버스 생성 전 역할 판정을 `app/api/member-mutations/route.ts`의 운영진 역할(길드마스터·부마스터·부마스터 대행)과 일치시켰다. 세션 없는 클라이언트의 관리자 기본값도 제거했다. API·DB 구조 변경 없음.
+
 ## 2026-09-25 v2.021 로고·버전 정렬
 
 - `components/layout/Navbar.tsx`의 로고 오른쪽에 `SANCTUM`, 길드 플랫폼 설명, `BETA v2.021`을 3줄로 배치한다. 중간 폭은 메뉴 가용 공간을 위해 버전만 축약 표시한다. 버전 값은 `lib/release.ts`에서 관리한다. DB·API 구조 변경 없음.

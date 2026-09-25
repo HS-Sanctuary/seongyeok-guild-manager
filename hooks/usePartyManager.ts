@@ -338,13 +338,13 @@ export function usePartyManager() {
         const parsed = JSON.parse(savedUser);
         setUser(parsed);
         ownerName = parsed.username || parsed.nickname || parsed.owner || "한설";
-        if (parsed.nickname === "한설" || parsed.role === "admin") setIsAdmin(true);
+        setIsAdmin(["길드마스터", "부마스터", "부마스터 대행"].includes(parsed.role ?? parsed.account_role));
       } catch (e) {
-        setIsAdmin(true);
+        setIsAdmin(false);
       }
     } else {
       setUser({ username: "한설" });
-      setIsAdmin(true);
+      setIsAdmin(false);
     }
 
     fetchData(ownerName);
