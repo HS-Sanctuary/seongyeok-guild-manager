@@ -691,6 +691,10 @@ export default function KerygmaReaderView({
     return nodes.reduce((acc, cur) => acc + 1 + (cur.children ? countTotalComments(cur.children) : 0), 0);
   };
 
+  const externalLink = typeof selectedNotice.link === "string" && /^https?:\/\//i.test(selectedNotice.link.trim())
+    ? selectedNotice.link.trim()
+    : null;
+
   return (
     <div className="max-w-[1400px] mx-auto px-3 sm:px-4 md:px-6 space-y-4 sm:space-y-6 animate-fadeIn pb-12 overflow-x-hidden">
       {/* 1. 상단 액션 바 */}
@@ -810,6 +814,18 @@ export default function KerygmaReaderView({
           className="prose-editor min-h-[160px] text-[var(--text-main)] text-sm md:text-base leading-relaxed p-1 sm:p-2 box-border max-w-full overflow-hidden break-all [word-break:break-all] [overflow-wrap:anywhere] whitespace-normal [&_*]:whitespace-normal [&_*]:break-all [&_*]:[word-break:break-all] [&_*]:[overflow-wrap:anywhere] [&_*]:max-w-full [&_*]:box-border"
           dangerouslySetInnerHTML={{ __html: selectedNotice.content }}
         />
+
+        {externalLink && (
+          <a
+            href={externalLink}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--accent)]/60 bg-[var(--accent-soft)] px-4 py-3 text-sm font-black text-[var(--accent)] transition hover:border-[var(--accent)] hover:bg-[var(--accent)]/15"
+          >
+            🔗 생텀 가이드 열기
+            <span aria-hidden="true">↗</span>
+          </a>
+        )}
 
         {selectedNotice.poll && (
           <div className="p-3 sm:p-4 bg-[var(--inner-box)] border border-[var(--panel-border)] rounded-xl space-y-3 my-4">

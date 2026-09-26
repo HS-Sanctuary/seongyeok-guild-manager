@@ -217,10 +217,15 @@ function KerygmaContent() {
   };
 
   const handleCloseReader = () => {
+    setSelectedCategory("전체");
     router.replace("/kerygma");
     setSelectedNotice(null);
     setCommentsTree([]);
   };
+
+  useEffect(() => {
+    if (!noticeIdParam) setSelectedCategory("전체");
+  }, [noticeIdParam]);
 
   const handleVoteOption = async (optionId: string) => {
     if (!selectedNotice || !selectedNotice.poll) return;

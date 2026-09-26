@@ -1,5 +1,10 @@
 # 🏛️ SANCTUM Master Guide
 
+## 2026-09-26 케리그마 가이드 링크 핫픽스
+
+- `app/kerygma/page.tsx`는 목록 복귀와 링크 없는 목록 진입에서 카테고리를 `전체`로 초기화한다.
+- `components/kerygma/KerygmaReaderView.tsx`는 `Notice.link`가 유효한 http(s) URL일 때 `생텀 가이드 열기` 링크를 새 탭으로 표시한다. 버전·DB·API 구조 변경 없음.
+
 ## 2026-09-25 v2.022 시낙시스 권한 핫픽스
 
 - `hooks/usePartyManager.ts`의 길드 버스 생성 전 역할 판정을 `app/api/member-mutations/route.ts`의 운영진 역할(길드마스터·부마스터·부마스터 대행)과 일치시켰다. 세션 없는 클라이언트의 관리자 기본값도 제거했다. API·DB 구조 변경 없음.
