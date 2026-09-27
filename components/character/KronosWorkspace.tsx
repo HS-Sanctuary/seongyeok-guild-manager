@@ -284,15 +284,15 @@ export default function KronosWorkspace({
             {matchingMissions.map((m) => (
                 <article
                   key={m.id}
-                  className="min-w-0 rounded-xl border border-[var(--panel-border)] border-l-[3px] border-l-[var(--accent)] bg-[var(--inner-box)] p-3 text-sm break-words [overflow-wrap:anywhere]"
+                  className="min-w-0 rounded-xl border border-[var(--panel-border)] border-l-[3px] border-l-[var(--accent)] bg-[var(--inner-box)] p-2.5 text-sm break-words [overflow-wrap:anywhere]"
                 >
                   <div className="flex items-start justify-between gap-2"><div className="flex min-w-0 items-start gap-1">{bookmarkButton("mission", m.id)}<h4 className="font-bold text-[var(--accent)]">{m.title}</h4></div><span className="kronos-meta-badge shrink-0">{m.town}</span></div>
-                  <div className="mt-2 grid grid-cols-[2.25rem_minmax(0,1fr)] items-baseline gap-1.5 text-xs leading-relaxed">
+                  <div className="mt-1.5 grid grid-cols-[2.25rem_minmax(0,1fr)] items-baseline gap-1.5 text-xs leading-snug">
                     <span className="text-[var(--text-sub)]">임무</span>
                     <p className="min-w-0 whitespace-pre-wrap font-semibold text-[var(--kronos-cost)]">{m.description}</p>
                   </div>
-                  <div className="mt-2 border-t border-[var(--panel-border)] pt-2">
-                    <ul className="space-y-1 text-xs leading-relaxed">
+                  <div className="mt-1.5 flex flex-wrap items-end justify-between gap-x-3 gap-y-1.5 border-t border-[var(--panel-border)] pt-1.5">
+                    <ul className="min-w-[13rem] flex-1 space-y-0.5 text-xs leading-snug">
                       {m.rewards.map((reward, index) => (
                         <li key={index} className="grid grid-cols-[2.25rem_minmax(0,1fr)] items-baseline gap-1.5">
                           <span className="text-[var(--text-sub)]">{index === 0 ? "보상" : ""}</span>
@@ -300,7 +300,7 @@ export default function KronosWorkspace({
                         </li>
                       ))}
                     </ul>
-                    <div className="mt-2 flex justify-end">{controls("mission", m.id, m.max_count, false, true, true)}</div>
+                    <div className="ml-auto shrink-0">{controls("mission", m.id, m.max_count, false, true, true)}</div>
                   </div>
                 </article>
               ))}

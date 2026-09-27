@@ -1,63 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import MarkIcon from "../common/MarkIcon";
 import ClassIcon from "../common/ClassIcon";
-
-function CustomTimePicker({ value, onChange }: { value: string, onChange: (val: string) => void }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [h, m] = value.split(':');
-  const hours = Array.from({length: 24}, (_, i) => String(i).padStart(2, '0'));
-  const minutes = ["00", "15", "30", "45"];
-
-  return (
-    <div className="relative flex-1">
-      {isOpen && <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)}></div>}
-      <div 
-        onClick={() => setIsOpen(!isOpen)} 
-        className="relative z-50 border rounded p-2 text-[0.8rem] font-bold cursor-pointer text-center transition flex justify-center items-center gap-1 bg-[var(--inner-box)] border-[var(--panel-border)] text-[var(--text-main)] hover:border-[var(--accent)]"
-      >
-        <span>{h}:{m}</span>
-        <span className="text-[0.6rem] text-[var(--text-sub)] transition-transform">▼</span>
-      </div>
-      {isOpen && (
-        <div className="absolute top-full left-0 mt-1 w-[140px] border rounded-lg shadow-2xl z-50 p-2 flex gap-2 bg-[var(--panel)] border-[var(--panel-border)]">
-          <div className="flex-1 h-32 overflow-y-auto custom-scrollbar pr-1 space-y-1">
-            {hours.map(hour => (
-              <button 
-                key={hour} 
-                onClick={() => onChange(`${hour}:${m}`)} 
-                className={`w-full text-center py-1 rounded text-[0.7rem] font-bold transition ${
-                  h === hour 
-                    ? 'bg-[var(--accent)] text-[var(--accent-fg)] shadow' 
-                    : 'text-[var(--text-sub)] hover:bg-[var(--panel-hover)] hover:text-[var(--text-main)]'
-                }`}
-              >
-                {hour}시
-              </button>
-            ))}
-          </div>
-          <div className="w-px bg-[var(--panel-border)]"></div>
-          <div className="flex-1 h-32 overflow-y-auto custom-scrollbar pr-1 space-y-1">
-            {minutes.map(minute => (
-              <button 
-                key={minute} 
-                onClick={() => { onChange(`${h}:${minute}`); setIsOpen(false); }} 
-                className={`w-full text-center py-1 rounded text-[0.7rem] font-bold transition ${
-                  m === minute 
-                    ? 'bg-[var(--accent)] text-[var(--accent-fg)] shadow' 
-                    : 'text-[var(--text-sub)] hover:bg-[var(--panel-hover)] hover:text-[var(--text-main)]'
-                }`}
-              >
-                {minute}분
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
 
 interface SanctumModalsProps {
   isAbyssModalOpen: boolean;
@@ -83,18 +27,6 @@ interface SanctumModalsProps {
   allCharactersMap: Record<string, string>;
   formatRoleText: (roleStr: string) => string;
 
-  joinPopupParty: any;
-  setJoinPopupParty: (party: any) => void;
-  joinSelectedChar: string;
-  setJoinSelectedChar: (char: string) => void;
-  joinSelectedRole: string;
-  setJoinSelectedRole: (role: string) => void;
-  joinTimeStart: string;
-  setJoinTimeStart: (time: string) => void;
-  joinTimeEnd: string;
-  setJoinTimeEnd: (time: string) => void;
-  myCharacters: any[];
-  executeJoinParty: () => void;
 }
 
 export default function SanctumModals({
@@ -121,18 +53,6 @@ export default function SanctumModals({
   allCharactersMap,
   formatRoleText,
 
-  joinPopupParty,
-  setJoinPopupParty,
-  joinSelectedChar,
-  setJoinSelectedChar,
-  joinSelectedRole,
-  setJoinSelectedRole,
-  joinTimeStart,
-  setJoinTimeStart,
-  joinTimeEnd,
-  setJoinTimeEnd,
-  myCharacters,
-  executeJoinParty,
 }: SanctumModalsProps) {
   return (
     <>
@@ -283,67 +203,6 @@ export default function SanctumModals({
         </div>
       )}
       
-      {/* 파티 참여 신청 모달 */}
-      {joinPopupParty && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="border rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col bg-[var(--panel)] border-[var(--panel-border)]">
-            <div className="p-4 border-b flex justify-between items-center gap-2 bg-[var(--inner-box)] border-[var(--panel-border)]">
-              <h2 className="text-[0.85rem] font-black whitespace-nowrap text-[var(--text-main)]">⚔️ 파티 참여 신청</h2>
-              <button onClick={() => setJoinPopupParty(null)} className="text-xl shrink-0 hover:opacity-80 text-[var(--text-sub)]">&times;</button>
-            </div>
-            
-            <div className="p-4 space-y-3.5">
-              <div className="p-2.5 rounded-lg border bg-[var(--panel)] border-[var(--panel-border)]">
-                <p className="text-[0.75rem] font-black text-[var(--text-main)]">{joinPopupParty.content_name}</p>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-[0.55rem] px-1.5 py-0.2 rounded border bg-[var(--inner-box)] border-[var(--panel-border)] text-purple-400">{joinPopupParty.difficulty}</span>
-                  <span className="text-[0.55rem] text-[var(--text-sub)] font-mono">{joinPopupParty.time_start} ~ {joinPopupParty.time_end}</span>
-                </div>
-              </div>
-
-              <div>
-                <label className="text-[0.65rem] font-bold mb-1 block text-[var(--text-sub)]">참여할 내 캐릭터</label>
-                <select 
-                  value={joinSelectedChar} 
-                  onChange={(e) => setJoinSelectedChar(e.target.value)}
-                  className="w-full text-[0.75rem] p-2 rounded border outline-none bg-[var(--inner-box)] border-[var(--panel-border)] text-[var(--text-main)]"
-                >
-                  {myCharacters.map(c => (
-                    <option key={c.id || c.nickname} value={c.nickname}>{c.nickname} (Lv.{c.level || 1})</option>
-                  ))}
-                  {myCharacters.length === 0 && <option value="">등록된 캐릭터가 없습니다</option>}
-                </select>
-              </div>
-
-              <div>
-                <label className="text-[0.65rem] font-bold mb-1 block text-[var(--text-sub)]">수행 포지션 (5대 직군)</label>
-                <div className="grid grid-cols-5 gap-1">
-                  {['탱커', '근딜', '원딜', '힐러', '서포터'].map(r => (
-                    <label key={r} className={`flex flex-col items-center justify-center p-2 rounded border cursor-pointer transition ${joinSelectedRole === r ? 'bg-[var(--accent)] text-[var(--accent-fg)] border-[var(--accent)] font-bold' : 'bg-[var(--inner-box)] border-[var(--panel-border)] text-[var(--text-sub)]'}`}>
-                      <input type="radio" name="role" value={r} checked={joinSelectedRole === r} onChange={(e) => setJoinSelectedRole(e.target.value)} className="hidden" />
-                      <span className="text-[0.65rem] truncate">{r}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="text-[0.65rem] font-bold mb-1 block text-[var(--text-sub)]">나의 실제 참여 가능 시간 (파티와 조율됨)</label>
-                <div className="flex items-center gap-2">
-                  <CustomTimePicker value={joinTimeStart} onChange={setJoinTimeStart} />
-                  <span className="text-[var(--text-sub)] font-bold text-xs">~</span>
-                  <CustomTimePicker value={joinTimeEnd} onChange={setJoinTimeEnd} />
-                </div>
-              </div>
-            </div>
-
-            <div className="p-3 border-t flex justify-end gap-2 bg-[var(--inner-box)] border-[var(--panel-border)]">
-              <button onClick={() => setJoinPopupParty(null)} className="px-3.5 py-1.5 rounded text-[0.7rem] font-bold transition bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] hover:text-[var(--text-main)]">취소</button>
-              <button onClick={executeJoinParty} className="px-3.5 py-1.5 rounded text-[0.7rem] font-black transition shadow hover:opacity-90 bg-[var(--accent)] text-[var(--accent-fg)]">신청 확정</button>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 }

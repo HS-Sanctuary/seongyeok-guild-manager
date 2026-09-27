@@ -42,33 +42,19 @@ export default function MobileBottomSheet({
         <button
           type="button"
           onClick={handleMenuClick}
-          className="relative isolate w-[4.75rem] h-[3.7rem] flex flex-col items-center justify-center cursor-pointer"
-          title="성역 메뉴 열기"
+          className="sanctum-menu-trigger relative flex h-[3.6rem] w-[5.5rem] items-center justify-center cursor-pointer"
+          title={isFabOpen ? '성역 메뉴 닫기' : '성역 메뉴 열기'}
           aria-label={isFabOpen ? '성역 메뉴 닫기' : '성역 메뉴 열기'}
           aria-expanded={isFabOpen}
         >
+          <span aria-hidden="true" className="sanctum-menu-halo pointer-events-none absolute -inset-2" />
+          <span aria-hidden="true" className="sanctum-menu-center absolute h-[3.1rem] w-[5rem] bg-[var(--panel)]" />
           <span
             aria-hidden="true"
-            className="absolute -inset-2 -z-10 rounded-full opacity-[0.1] blur-[0.5px]"
+            className="sanctum-menu-brand relative h-[3.1rem] w-[5rem] shrink-0 bg-[var(--accent)]"
             style={{
-              background: 'repeating-conic-gradient(from 4deg at 50% 50%, transparent 0deg 10deg, var(--text-main) 10.4deg 11.15deg, transparent 11.7deg 24deg)',
-              maskImage: 'radial-gradient(circle at center, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.75) 22%, rgba(0,0,0,0.18) 58%, transparent 76%)',
-              WebkitMaskImage: 'radial-gradient(circle at center, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.75) 22%, rgba(0,0,0,0.18) 58%, transparent 76%)',
-            }}
-          />
-          <span
-            aria-hidden="true"
-            className="absolute -inset-1 -z-10 rounded-full opacity-[0.1] blur-[2px]"
-            style={{
-              background: 'radial-gradient(circle at center, var(--text-main) 0%, color-mix(in srgb, var(--text-main) 45%, transparent) 13%, transparent 60%)',
-            }}
-          />
-          <span
-            aria-hidden="true"
-            className="absolute top-2 h-8 w-14 bg-[var(--accent)] opacity-20 blur-md"
-            style={{
-              maskImage: "url('/svgs/logo/생텀타이포로고.svg')",
-              WebkitMaskImage: "url('/svgs/logo/생텀타이포로고.svg')",
+              maskImage: "url('/svgs/logo/바텀메뉴버튼.svg')",
+              WebkitMaskImage: "url('/svgs/logo/바텀메뉴버튼.svg')",
               maskRepeat: 'no-repeat',
               WebkitMaskRepeat: 'no-repeat',
               maskPosition: 'center',
@@ -77,22 +63,6 @@ export default function MobileBottomSheet({
               WebkitMaskSize: 'contain',
             }}
           />
-          <span
-            className={`relative h-8 w-14 bg-[var(--accent)] drop-shadow-[0_0_4px_var(--accent)] ${isFabOpen ? '' : 'sanctum-menu-mark'}`}
-            style={{
-              maskImage: "url('/svgs/logo/생텀타이포로고.svg')",
-              WebkitMaskImage: "url('/svgs/logo/생텀타이포로고.svg')",
-              maskRepeat: 'no-repeat',
-              WebkitMaskRepeat: 'no-repeat',
-              maskPosition: 'center',
-              WebkitMaskPosition: 'center',
-              maskSize: 'contain',
-              WebkitMaskSize: 'contain',
-            }}
-          />
-          <span className="relative mt-0.5 text-[0.67rem] font-black tracking-[0.18em] text-[var(--text-main)] drop-shadow-[0_1px_4px_var(--panel)]">
-            {isFabOpen ? '닫기' : '메뉴'}
-          </span>
         </button>
       </div>
 

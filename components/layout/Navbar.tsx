@@ -149,7 +149,6 @@ export default function Navbar({
                 <span className="mt-1 text-[0.67rem] tracking-[0.04em] font-bold text-[var(--accent)] whitespace-nowrap">성역 길드 전용 플랫폼</span>
                 <span className="mt-1 text-[0.67rem] font-black text-[var(--accent)] whitespace-nowrap">BETA {SANCTUM_BETA_VERSION}</span>
               </span>
-              <span className="hidden lg:inline 2xl:hidden text-[0.67rem] font-black text-[var(--accent)] whitespace-nowrap">BETA {SANCTUM_BETA_VERSION}</span>
             </Link>
 
           </div>

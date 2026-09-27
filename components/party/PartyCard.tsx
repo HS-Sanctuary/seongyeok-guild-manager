@@ -3,6 +3,7 @@
 import React, { useMemo } from 'react';
 import ClassIcon from '@/components/common/ClassIcon';
 import MarkIcon from '@/components/common/MarkIcon';
+import styles from './PartyCard.module.css';
 import { Party, DIFFICULTY_COLORS, NexusContent, NexusClassItem, ContentPowerReq } from '@/components/party/types';
 import { parseCP, parseAbyssInfo, getRoleByJob } from '@/lib/busUtils';
 import {
@@ -12,15 +13,6 @@ import {
   timeToMinutes,
   minutesToTime,
 } from '@/lib/partyDateUtils';
-
-const formatCPShort = (cp: number) => {
-  if (!cp || cp <= 0) return "-";
-  if (cp >= 10000) {
-    const man = cp / 10000;
-    return `${(Math.floor(man * 10) / 10).toFixed(1)}만`;
-  }
-  return cp.toLocaleString();
-};
 
 const safeTimeToMinutes = (timeStr: string | undefined, defaultVal: string): number => {
   if (!timeStr) return timeToMinutes(defaultVal);
@@ -35,37 +27,13 @@ const safeTimeToMinutes = (timeStr: string | undefined, defaultVal: string): num
 
 const renderFormattedNickname = (name: string) => {
   if (!name) return null;
-  const len = name.length;
-
-  if (len <= 6) {
-    const fontSizeClass =
-      len <= 3
-        ? "text-xs sm:text-sm font-black"
-        : len <= 4
-        ? "text-xs font-black"
-        : "text-[11px] sm:text-xs font-black tracking-tighter";
-
-    return (
-      <span
-        className={`text-[var(--text-main)] whitespace-nowrap leading-tight text-left block truncate ${fontSizeClass}`}
-        title={name}
-      >
-        {name}
-      </span>
-    );
-  }
-
-  const line1 = name.slice(0, 6);
-  const line2 = name.slice(6, 12);
-
   return (
-    <div
-      className="flex flex-col items-start justify-center text-left leading-tight text-[10px] sm:text-[11px] font-black text-[var(--text-main)] w-full min-w-0"
+    <span
+      className="block min-w-0 break-keep text-left text-xs sm:text-sm font-black leading-snug text-[var(--text-main)] [overflow-wrap:anywhere]"
       title={name}
     >
-      <span className="truncate w-full text-left">{line1}</span>
-      <span className="truncate w-full text-left">{line2}</span>
-    </div>
+      {name}
+    </span>
   );
 };
 
@@ -309,7 +277,7 @@ export default function PartyCard({
   }, [party.members, party.leader_name, allCharactersMap]);
 
   return (
-    <div className="w-full rounded-2xl border border-[var(--panel-border)] border-t-4 border-t-[var(--accent)] bg-[var(--panel)] p-3.5 sm:p-5 shadow-lg transition-all duration-200 hover:border-[var(--accent)] relative overflow-hidden">
+    <div className={`${styles.cardContainer} w-full rounded-2xl border border-[var(--panel-border)] border-t-4 border-t-[var(--accent)] bg-[var(--panel)] p-3.5 sm:p-5 shadow-lg transition-all duration-200 hover:border-[var(--accent)] relative overflow-hidden`}>
       
       {/* 카드 헤더 래퍼 */}
       <div className="-mx-3.5 -mt-3.5 sm:-mx-5 sm:-mt-5 p-3.5 sm:p-4 bg-[var(--inner-box)] border-b border-[var(--panel-border)] rounded-t-2xl mb-3.5 flex flex-col gap-2">
@@ -454,9 +422,7 @@ export default function PartyCard({
       )}
 
       {/* 파티원 슬롯 (4인/8인 정격 규격 가변 렌더링) */}
-      <div className={`grid gap-2 mb-3.5 ${
-        maxMembers === 4 ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-2 sm:grid-cols-4"
-      }`}>
+      <div className={`${styles.memberGrid} grid gap-2 mb-3.5`}>
         {Array.from({ length: maxMembers }).map((_, index) => {
           const member = party.members[index];
 
@@ -465,7 +431,7 @@ export default function PartyCard({
               <div 
                 key={`empty-${index}`} 
                 onClick={() => !isCompletedParty && openJoinPopup(party)}
-                className={`min-h-[108px] sm:min-h-[112px] rounded-xl border border-dashed border-[var(--panel-border)] bg-[var(--inner-box)]/30 flex flex-col items-center justify-center gap-1 text-xs text-[var(--text-sub)] font-bold hover:border-[var(--accent)] hover:text-[var(--accent)] transition cursor-pointer ${
+                className={`min-h-[150px] rounded-xl border border-dashed border-[var(--panel-border)] bg-[var(--inner-box)]/30 flex flex-col items-center justify-center gap-1 text-xs text-[var(--text-sub)] font-bold hover:border-[var(--accent)] hover:text-[var(--accent)] transition cursor-pointer ${
                   isCompletedParty ? "cursor-not-allowed opacity-40" : ""
                 }`}
               >
@@ -500,7 +466,7 @@ export default function PartyCard({
             <div
               key={`mem-${memName}-${index}`}
               onClick={() => (charObj.nickname || charObj.name) && setInspectCharacter(charObj)}
-              className={`min-h-[108px] sm:min-h-[112px] rounded-xl border p-2 sm:p-2.5 flex items-center gap-2 relative overflow-hidden transition hover:border-[var(--accent)] cursor-pointer min-w-0 shadow-xs ${
+              className={`min-h-[150px] rounded-xl border p-2.5 flex flex-col gap-2 relative transition hover:border-[var(--accent)] cursor-pointer min-w-0 shadow-xs ${
                 isVoted 
                   ? 'border-amber-500/80 bg-amber-950/20 shadow-[0_0_12px_rgba(245,158,11,0.15)]' 
                   : isLeader 
@@ -510,51 +476,43 @@ export default function PartyCard({
             >
               {/* 투표 완료 뱃지 */}
               {isVoted && (
-                <div className="absolute top-0.5 right-0.5 px-1 py-0.2 rounded bg-amber-500 text-black font-black text-[8px] z-10 shadow-xs">
+                <div className="absolute top-0.5 right-0.5 px-1 py-0.5 rounded bg-amber-500 text-black font-black text-[0.6rem] z-10 shadow-xs">
                   ✓ 투표완료
                 </div>
               )}
 
-              <div className="flex flex-col items-center justify-center shrink-0">
-                <div className={`w-7 sm:w-8 h-7 sm:h-8 rounded-lg bg-[var(--panel)] border ${isLeader ? 'border-amber-400 ring-2 ring-amber-500/30' : 'border-[var(--panel-border)]'} flex items-center justify-center p-0.5 shadow-inner relative`}>
-                  <ClassIcon className="w-5 h-5 text-[var(--text-main)]" job={rawJob} />
-                  {isLeader && (
-                    <span className="absolute -top-1.5 -right-1.5 bg-amber-500 text-zinc-950 p-0.5 rounded-full shadow-md leading-none border border-amber-600" title="파티장">
-                      <Crown className="w-2.5 h-2.5 fill-zinc-950 text-zinc-950" />
-                    </span>
-                  )}
+              <div className={`flex w-full min-w-0 items-start gap-2 ${isVoted ? 'pt-4' : ''}`}>
+                <div className="flex shrink-0 flex-col items-center gap-1">
+                  <div className={`w-8 h-8 rounded-lg bg-[var(--panel)] border ${isLeader ? 'border-amber-400 ring-2 ring-amber-500/30' : 'border-[var(--panel-border)]'} flex items-center justify-center p-0.5 shadow-inner relative`}>
+                    <ClassIcon className="w-5 h-5 text-[var(--text-main)]" job={rawJob} />
+                    {isLeader && (
+                      <span className="absolute -top-1.5 -right-1.5 bg-amber-500 text-zinc-950 p-0.5 rounded-full shadow-md leading-none border border-amber-600" title="파티장">
+                        <Crown className="w-2.5 h-2.5 fill-zinc-950 text-zinc-950" />
+                      </span>
+                    )}
+                  </div>
+                  <span className="px-1 py-0.5 text-[0.67rem] font-black rounded bg-[var(--accent)] text-[var(--accent-fg)] leading-none whitespace-nowrap shadow-xs">
+                    {role}
+                  </span>
                 </div>
-                <span className="mt-1 px-1.5 py-0.5 text-[9px] font-black rounded bg-[var(--accent)] text-[var(--accent-fg)] leading-none whitespace-nowrap shadow-xs">
-                  {role}
-                </span>
+                <div className="min-w-0 flex-1 pt-0.5">{renderFormattedNickname(memName)}</div>
               </div>
 
-              <div className="flex-1 min-w-0 flex flex-col justify-center gap-1 py-0.5">
-                <div className="min-w-0 flex items-center justify-start w-full">
-                  {renderFormattedNickname(memName)}
+              <div className="w-full min-w-0 space-y-1.5 border-t border-[var(--panel-border)] pt-2 text-[0.7rem] leading-snug">
+                <div className="flex items-center gap-1.5 whitespace-nowrap text-amber-700 dark:text-amber-400 font-mono font-black">
+                  <MarkIcon src="/svgs/status mark/전투력 마크.svg" size="sm" colorClass="bg-amber-600 dark:bg-amber-400" />
+                  <span className="sr-only">전투력 </span>
+                  <span>{cp > 0 ? cp.toLocaleString() : "-"}</span>
                 </div>
-
-                <div className="flex flex-col gap-1 min-w-0">
-                  <div className="flex items-center gap-1.5 text-amber-700 dark:text-amber-400 font-mono font-black text-xs sm:text-sm whitespace-nowrap leading-none">
-                    <MarkIcon src="/svgs/status mark/전투력 마크.svg" size="xs" scale={0.9} colorClass="bg-amber-600 dark:bg-amber-400" />
-                    <span className="truncate text-xs sm:text-sm font-black font-mono tracking-tight">
-                      <span className="sm:hidden">{formatCPShort(cp)}</span>
-                      <span className="hidden sm:inline">{cp > 0 ? cp.toLocaleString() : "-"}</span>
-                    </span>
-                  </div>
-                  
-                  <div className="flex items-center gap-1.5 text-purple-700 dark:text-purple-400 font-mono font-black text-xs sm:text-sm whitespace-nowrap leading-none">
-                    <MarkIcon src="/svgs/status mark/마도저항 마크.svg" size="xs" scale={0.85} colorClass="bg-purple-600 dark:bg-purple-400" />
-                    <span className="truncate text-xs sm:text-sm font-black font-mono tracking-tight">
-                      <span className="sm:hidden">{formatCPShort(mr)}</span>
-                      <span className="hidden sm:inline">{mr > 0 ? mr.toLocaleString() : "-"}</span>
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-0.5 text-[9.5px] sm:text-[10px] text-[var(--text-sub)] font-mono truncate leading-none pt-1 border-t border-[var(--panel-border)]">
-                    <span className="opacity-70 text-[8px]">⏱️</span>
-                    <span className="truncate font-semibold">{memStart}~{memEnd}</span>
-                  </div>
+                <div className="flex items-center gap-1.5 whitespace-nowrap text-purple-700 dark:text-purple-400 font-mono font-black">
+                  <MarkIcon src="/svgs/status mark/마도저항 마크.svg" size="sm" colorClass="bg-purple-600 dark:bg-purple-400" />
+                  <span className="sr-only">마도저항 </span>
+                  <span>{mr > 0 ? mr.toLocaleString() : "-"}</span>
+                </div>
+                <div className="flex items-center gap-1 whitespace-nowrap border-t border-[var(--panel-border)] pt-1.5 text-[var(--text-sub)] font-mono">
+                  <span aria-hidden="true">⏱</span>
+                  <span className="sr-only">신청 시간 </span>
+                  <span className="font-semibold">{memStart} ~ {memEnd}</span>
                 </div>
               </div>
             </div>

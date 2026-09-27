@@ -56,6 +56,13 @@ export default function AdminPage() {
     }).catch(() => router.push('/login'));
   }, [router]);
 
+  useEffect(() => {
+    if (!user) return;
+    // 인증 확인 중 빈 화면에서 브라우저가 이전 스크롤 위치를 복원하면 제목이 고정 헤더 뒤에 놓인다.
+    const frame = window.requestAnimationFrame(() => window.scrollTo(0, 0));
+    return () => window.cancelAnimationFrame(frame);
+  }, [user]);
+
   if (!mounted || !user) return null;
 
   return (

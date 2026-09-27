@@ -572,17 +572,37 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   };
 
   useEffect(() => {
+    let active = true;
+    let latestRequest = 0;
     const fetchBanner = async () => {
+      const request = ++latestRequest;
       try {
-        const { data, error } = await supabase.from('nexus_banners').select('*').eq('is_active', true);
-        if (!error && data && data.length > 0) {
-          setBanner(data.sort((a, b) => b.id - a.id)[0]);
-        } else {
-          setBanner(null);
-        }
-      } catch (err) {}
+        const { data, error } = await supabase.from('nexus_banners')
+          .select('id, message, is_active, created_at')
+          .eq('is_active', true)
+          .order('created_at', { ascending: false })
+          .order('id', { ascending: false })
+          .limit(1);
+        if (active && request === latestRequest && !error) setBanner(data?.[0] ?? null);
+      } catch { /* The next realtime event or visible-tab refresh retries. */ }
     };
-    fetchBanner();
+    const refreshVisibleBanner = () => {
+      if (document.visibilityState === 'visible') void fetchBanner();
+    };
+    void fetchBanner();
+    const channel = supabase.channel('sanctum-active-banner')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'nexus_banners' }, () => void fetchBanner())
+      .subscribe();
+    const timer = window.setInterval(refreshVisibleBanner, 30_000);
+    document.addEventListener('visibilitychange', refreshVisibleBanner);
+    window.addEventListener('sanctum_banner_changed', fetchBanner);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', refreshVisibleBanner);
+      window.removeEventListener('sanctum_banner_changed', fetchBanner);
+      void supabase.removeChannel(channel);
+    };
   }, []);
 
   const handleLogout = async () => {

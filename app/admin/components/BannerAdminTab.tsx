@@ -27,6 +27,7 @@ export default function BannerAdminTab() {
     try {
       await adminCatalogWrite("nexus_banners", "insert", { message: newMessage.trim(), is_active: true });
       setNewMessage("");
+      window.dispatchEvent(new Event("sanctum_banner_changed"));
       fetchBanners();
     } catch (error) {
       alert("배너 등록 실패: " + (error as Error).message);
@@ -36,6 +37,7 @@ export default function BannerAdminTab() {
   const toggleBanner = async (id: number, currentActive: boolean) => {
     try {
       await adminCatalogWrite("nexus_banners", "update", { is_active: !currentActive }, id);
+      window.dispatchEvent(new Event("sanctum_banner_changed"));
       fetchBanners();
     } catch (error) { alert((error as Error).message); }
   };
@@ -44,6 +46,7 @@ export default function BannerAdminTab() {
     if (!confirm("삭제하시겠습니까?")) return;
     try {
       await adminCatalogWrite("nexus_banners", "delete", undefined, id);
+      window.dispatchEvent(new Event("sanctum_banner_changed"));
       fetchBanners();
     } catch (error) { alert((error as Error).message); }
   };

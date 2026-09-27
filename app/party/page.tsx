@@ -1,6 +1,7 @@
 "use client";
 
-import { Suspense, useState, useEffect } from "react";
+import { Suspense, useState, useEffect, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import PartyCreateForm from "@/components/party/PartyCreateForm";
 import PartyFilterHeader from "@/components/party/PartyFilterHeader";
 import PartyCard from "@/components/party/PartyCard";
@@ -13,7 +14,20 @@ import { supabase } from "@/lib/supabase";
 
 function SynaxisContent() {
   const partyManager = usePartyManager();
+  const joinFromHomeId = useSearchParams().get("join");
+  const openedJoinIdRef = useRef<string | null>(null);
   const [dbClasses, setDbClasses] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!joinFromHomeId || openedJoinIdRef.current === joinFromHomeId) return;
+    const party = partyManager.filteredParties.find((item) => String(item.id) === joinFromHomeId);
+    if (!party) return;
+    openedJoinIdRef.current = joinFromHomeId;
+    partyManager.openJoinPopup(party);
+    const url = new URL(window.location.href);
+    url.searchParams.delete("join");
+    window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+  }, [joinFromHomeId, partyManager.filteredParties, partyManager.openJoinPopup]);
 
   // 🎯 nexus_classes DB 동적 실시간 수집
   useEffect(() => {

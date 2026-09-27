@@ -3,6 +3,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { formatWeeklyResetRemaining, getWeeklyReminderKey } from "@/lib/weeklyReset";
+import {
+  buildPantheonRankSnapshot,
+  describePantheonRankChanges,
+  PANTHEON_NOTIFICATION_CATEGORIES,
+  type PantheonRankSnapshot,
+} from "@/lib/pantheonNotifications";
 
 export type SanctumNotification = {
   id: number;
@@ -130,33 +136,61 @@ export function useNoticeNotifications(nickname?: string, role?: string) {
     }
 
     let active = true;
+    let initialFetchFinished = false;
+    let latestRequest = 0;
+    const knownNoticeIds = new Set<number>();
+
+    const showBrowserNotice = (notice: SanctumNotification) => {
+      if (!("Notification" in window) || window.Notification.permission !== "granted") return;
+      const browserNotification = new window.Notification("SANCTUM 새 공지", {
+        body: `[${notice.type}] ${notice.title}`,
+        icon: "/favicon.ico",
+        tag: `sanctum-notice-${notice.id}`,
+      });
+      browserNotification.onclick = () => {
+        window.focus();
+        browserNotification.close();
+      };
+    };
 
     const fetchNotices = async () => {
-      const { data, error } = await supabase
-        .from("notices")
-        .select("id, title, type, author, created_at, is_pinned")
-        .order("created_at", { ascending: false })
-        .limit(MAX_NOTIFICATIONS);
+      const request = ++latestRequest;
+      try {
+        const { data, error } = await supabase
+          .from("notices")
+          .select("id, title, type, author, created_at, is_pinned")
+          .order("created_at", { ascending: false })
+          .limit(MAX_NOTIFICATIONS);
 
-      if (!active || error || !data) {
+        if (!active || request !== latestRequest || error || !data) {
+          if (active) setIsLoaded(true);
+          return;
+        }
+
+        const nextNotifications = data.map((notice) => toNotification(notice));
+        const newNotices = initialFetchFinished
+          ? nextNotifications.filter((notice) => !knownNoticeIds.has(notice.id))
+          : [];
+        nextNotifications.forEach((notice) => knownNoticeIds.add(notice.id));
+        initialFetchFinished = true;
+        setNotifications((current) => [
+          ...current.filter((item) => item.id < 0),
+          ...nextNotifications,
+        ].slice(0, MAX_NOTIFICATIONS));
+
+        const initializedKey = getInitializedStorageKey(nickname);
+        if (!localStorage.getItem(initializedKey)) {
+          // 첫 방문에 과거 공지를 모두 새 알림으로 취급하지 않는다.
+          persistReadIds(nextNotifications.map((notice) => notice.id));
+          localStorage.setItem(initializedKey, "true");
+        }
+
+        if (newNotices.length > 0) showBrowserNotice(newNotices[0]);
+
+        setIsLoaded(true);
+      } catch {
         if (active) setIsLoaded(true);
-        return;
       }
-
-      const nextNotifications = data.map((notice) => toNotification(notice));
-      setNotifications((current) => [
-        ...current.filter((item) => item.type === "운영 · 가입 승인" || item.type === "LOGOS · 정리 검토"),
-        ...nextNotifications,
-      ].slice(0, MAX_NOTIFICATIONS));
-
-      const initializedKey = getInitializedStorageKey(nickname);
-      if (!localStorage.getItem(initializedKey)) {
-        // 첫 방문에 과거 공지를 모두 새 알림으로 취급하지 않는다.
-        persistReadIds(nextNotifications.map((notice) => notice.id));
-        localStorage.setItem(initializedKey, "true");
-      }
-
-      setIsLoaded(true);
     };
 
     fetchNotices();
@@ -170,27 +204,27 @@ export function useNoticeNotifications(nickname?: string, role?: string) {
           if (!active || !payload.new) return;
 
           const nextNotification = toNotification(payload.new as Record<string, unknown>);
+          if (knownNoticeIds.has(nextNotification.id)) return;
+          latestRequest++;
+          knownNoticeIds.add(nextNotification.id);
           setNotifications((current) => [nextNotification, ...current.filter((item) => item.id !== nextNotification.id)].slice(0, MAX_NOTIFICATIONS));
-
-          if (typeof window !== "undefined" && "Notification" in window && window.Notification.permission === "granted") {
-            const browserNotification = new window.Notification("SANCTUM 새 공지", {
-              body: `[${nextNotification.type}] ${nextNotification.title}`,
-              icon: "/favicon.ico",
-              tag: `sanctum-notice-${nextNotification.id}`,
-            });
-
-            browserNotification.onclick = () => {
-              window.focus();
-              browserNotification.close();
-            };
-          }
+          showBrowserNotice(nextNotification);
+          void fetchNotices();
         }
       )
       .subscribe();
 
+    const refreshVisibleNotices = () => {
+      if (document.visibilityState === "visible") void fetchNotices();
+    };
+    const timer = window.setInterval(refreshVisibleNotices, 30_000);
+    document.addEventListener("visibilitychange", refreshVisibleNotices);
+
     return () => {
       active = false;
-      supabase.removeChannel(channel);
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", refreshVisibleNotices);
+      void supabase.removeChannel(channel);
     };
   }, [nickname, persistReadIds]);
 
@@ -213,37 +247,34 @@ export function useNoticeNotifications(nickname?: string, role?: string) {
         if (completed && isParticipant) appendOperationalNotification(makeNotification("SYNAXIS · 매칭 완료", `${String(party.content_name || "파티")} 매칭이 완료되었습니다.`, "/party"), `party-matched-${String(party.id)}`);
       }).subscribe();
 
-    const pantheonStorageKey = "sanctum_pantheon_top3_snapshot";
+    const pantheonStorageKey = "sanctum_pantheon_top3_snapshot_v3";
+    let pantheonRequest = 0;
     const refreshPantheonSnapshot = async () => {
+      const request = ++pantheonRequest;
       const { data } = await supabase.from("characters").select("nickname, owner, is_main, combat_power, life_energy, charm, contribution");
-      if (!data?.length) return;
-      const score = (character: Record<string, unknown>, category: string) => {
-        const cp = Number(character.combat_power) || 0;
-        const life = Number(character.life_energy) || 0;
-        const charm = Number(character.charm) || 0;
-        if (category === "KRATOS") return cp;
-        if (category === "TECHNE") return life;
-        if (category === "HARMONIA") return charm;
-        if (category === "PIETAS") return Number(character.contribution) || 0;
-        return cp + life + charm;
+      if (!data?.length || request !== pantheonRequest) return;
+      const snapshot = buildPantheonRankSnapshot(data);
+      let previous: PantheonRankSnapshot | null = null;
+      try {
+        const stored = localStorage.getItem(pantheonStorageKey);
+        if (stored) previous = JSON.parse(stored) as PantheonRankSnapshot;
+      } catch { /* 손상된 로컬 스냅샷은 새 기준으로 다시 시작한다. */ }
+      localStorage.setItem(pantheonStorageKey, JSON.stringify(snapshot));
+      if (!previous) return;
+
+      const categoryNames = {
+        TELOS: "텔로스", SYMPHONIA: "심포니아", KRATOS: "크라토스",
+        TECHNE: "테크네", HARMONIA: "하르모니아", PIETAS: "피에타스",
       };
-      const scoreSnapshot = ["TELOS", "KRATOS", "TECHNE", "HARMONIA", "PIETAS"].map((category) =>
-        `${category}:${[...data].sort((a, b) => score(b, category) - score(a, category)).slice(0, 3).map((character) => character.nickname).join(",")}`
-      );
-      const accounts = new Map<string, { nickname: string; score: number }>();
-      data.forEach((character) => {
-        const owner = String(character.owner || character.nickname);
-        const total = (Number(character.combat_power) || 0) + (Number(character.life_energy) || 0) + (Number(character.charm) || 0);
-        const current = accounts.get(owner) || { nickname: owner, score: 0 };
-        current.score += total;
-        accounts.set(owner, current);
-      });
-      const symphonia = Array.from(accounts.values()).sort((a, b) => b.score - a.score).slice(0, 3).map((account) => account.nickname).join(",");
-      const snapshot = [...scoreSnapshot, `SYMPHONIA:${symphonia}`].join("|");
-      const previous = localStorage.getItem(pantheonStorageKey);
-      localStorage.setItem(pantheonStorageKey, snapshot);
-      if (previous && previous !== snapshot) {
-        appendOperationalNotification(makeNotification("AGORA · 판테온", "판테온 Top 3 순위권에 변동이 있습니다.", "/lounge?tab=PANTHEON"), `pantheon-${snapshot}`);
+      for (const category of PANTHEON_NOTIFICATION_CATEGORIES) {
+        const changes = describePantheonRankChanges(previous, snapshot, category);
+        if (changes.length === 0) continue;
+        const oldKeys = previous[category]?.map((entry) => entry.key).join(",") || "";
+        const nextKeys = snapshot[category].map((entry) => entry.key).join(",");
+        appendOperationalNotification(
+          makeNotification("AGORA · 판테온", `${categoryNames[category]}: ${changes.join(" · ")}`, "/lounge?tab=PANTHEON"),
+          `pantheon-v3-${category}-${oldKeys}>${nextKeys}`
+        );
       }
     };
     void refreshPantheonSnapshot();

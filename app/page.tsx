@@ -5,9 +5,6 @@ import { useRouter } from "next/navigation";
 import { supabase } from "../lib/supabase";
 import { memberMutationOrThrow } from "@/lib/memberMutationClient";
 import { 
-  calculateOptimalStartTime, 
-  isScheduleConflict, 
-  pickRandomLeader, 
   isTaskChecked,
   cleanItemName
 } from "../lib/matchingUtils";
@@ -100,11 +97,6 @@ export default function Home() {
   const [abyssReports, setAbyssReports] = useState<AbyssReport[]>([]);
   const [abyssMins, setAbyssMins] = useState(''); 
 
-  const [joinPopupParty, setJoinPopupParty] = useState<any>(null);
-  const [joinSelectedChar, setJoinSelectedChar] = useState<string>("");
-  const [joinSelectedRole, setJoinSelectedRole] = useState<string>("근딜");
-  const [joinTimeStart, setJoinTimeStart] = useState<string>("18:00");
-  const [joinTimeEnd, setJoinTimeEnd] = useState<string>("24:00");
   const [detailModalParty, setDetailModalParty] = useState<any>(null);
 
   const formatTimeHM = (totalSeconds: number) => {
@@ -543,65 +535,7 @@ export default function Home() {
   };
 
   const openJoinPopup = (party: any) => {
-    setJoinPopupParty(party);
-    setJoinSelectedChar(myCharacters.length > 0 ? myCharacters[0].nickname : "");
-    if (party.wanted_roles && party.wanted_roles.length > 0) setJoinSelectedRole(party.wanted_roles[0]);
-    else setJoinSelectedRole("근딜");
-    setJoinTimeStart(party.time_start);
-    setJoinTimeEnd(party.time_end);
-  };
-
-  const executeJoinParty = async () => {
-    if (!joinSelectedChar) return alert("참여할 캐릭터를 선택해주세요!");
-    if (!joinSelectedRole) return alert("수행할 포지션을 선택해주세요!");
-
-    try {
-      const [partyRes, allActivePartiesRes] = await Promise.all([
-        supabase.from('parties').select('*').eq('id', joinPopupParty.id).single(),
-        supabase.from('parties').select('*').neq('status', '종료됨')
-      ]);
-      
-      const latestParty = partyRes.data;
-      if (!latestParty) return alert("파티를 찾을 수 없습니다.");
-      if (latestParty.members.length >= latestParty.max_members) return alert("마감되었습니다!");
-      if (latestParty.members.some((m: any) => m.name === joinSelectedChar)) return alert("이미 참여 중입니다!");
-
-      const mySchedules = allActivePartiesRes.data?.filter(p => p.members.some((m: any) => m.name === joinSelectedChar)).map(p => {
-          const dur = p.content_name.includes("통합") || p.content_name.includes("3종") ? 45 : 15;
-          const myMemInfo = p.members.find((m: any) => m.name === joinSelectedChar);
-          const st = p.final_start_time || myMemInfo?.time_start || p.time_start;
-          return { start: st, duration: dur };
-      }) || [];
-      
-      const newDur = latestParty.content_name.includes("통합") || latestParty.content_name.includes("3종") ? 45 : 15;
-      if (isScheduleConflict(joinTimeStart, newDur, mySchedules)) return alert(`⚠️ [충돌 경고]\n일정이 겹칩니다!`);
-
-      const myJob = allCharactersMap[joinSelectedChar] || "전사";
-      const newMember = { name: joinSelectedChar, job: myJob, roles: [joinSelectedRole], time_start: joinTimeStart, time_end: joinTimeEnd };
-      const updatedMembers = [...latestParty.members, newMember];
-
-      let updatedWanted = [...(latestParty.wanted_roles || [])];
-      const roleIndex = updatedWanted.indexOf(joinSelectedRole);
-      if (roleIndex > -1) updatedWanted.splice(roleIndex, 1);
-
-      let updatePayload: any = { members: updatedMembers, wanted_roles: updatedWanted };
-
-      if (updatedMembers.length === latestParty.max_members) {
-        const timeRanges = updatedMembers.map(m => ({ start: m.time_start, end: m.time_end }));
-        const optimalTime = calculateOptimalStartTime(timeRanges);
-        updatePayload.final_start_time = optimalTime || latestParty.members[0].time_start;
-        updatePayload.status = "모집완료";
-        updatePayload.leader_name = pickRandomLeader(updatedMembers);
-      } else {
-        updatePayload.status = "모집중";
-      }
-
-      await memberMutationOrThrow({ table: "parties", action: "update", filter: { column: "id", value: joinPopupParty.id }, payload: updatePayload });
-
-      alert(updatePayload.status === "모집완료" ? "🎉 시낙시스 파티 매칭 완료!" : "파티 대기열 등록 완료");
-      setJoinPopupParty(null);
-      fetchDashboardData(user);
-    } catch (err) { alert("오류 발생"); }
+    router.push(`/party?join=${encodeURIComponent(String(party.id))}`);
   };
 
   const formatName = (fullName: string) => fullName.replace('어비스 - ', '').replace('레이드 - ', '').substring(0, 2);
@@ -708,18 +642,6 @@ export default function Home() {
         allCharactersMap={allCharactersMap}
         formatRoleText={formatRoleText}
 
-        joinPopupParty={joinPopupParty}
-        setJoinPopupParty={setJoinPopupParty}
-        joinSelectedChar={joinSelectedChar}
-        setJoinSelectedChar={setJoinSelectedChar}
-        joinSelectedRole={joinSelectedRole}
-        setJoinSelectedRole={setJoinSelectedRole}
-        joinTimeStart={joinTimeStart}
-        setJoinTimeStart={setJoinTimeStart}
-        joinTimeEnd={joinTimeEnd}
-        setJoinTimeEnd={setJoinTimeEnd}
-        myCharacters={myCharacters}
-        executeJoinParty={executeJoinParty}
       />
 
     </div>

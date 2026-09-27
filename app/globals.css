@@ -217,18 +217,103 @@ html, body {
   transform: translateY(0) rotateX(0);
 }
 
-/* 버튼 틀 없이 문양과 '메뉴' 글자로 진입점을 알리고, 드문 2박 광원만 준다. */
-.sanctum-menu-mark { animation: sanctum-menu-heartbeat 7s ease-in-out infinite; }
-@keyframes sanctum-menu-heartbeat {
-  0%, 73%, 82%, 90%, 100% { transform: scale(1); filter: brightness(1); }
-  77% { transform: scale(1.12); filter: brightness(1.35); }
-  86% { transform: scale(1.08); filter: brightness(1.2); }
+/* 원본 로고의 형태는 유지하고 색은 전역 테마의 강조색을 따른다. */
+.sanctum-menu-halo {
+  background: radial-gradient(ellipse at 50% 52%, color-mix(in srgb, var(--accent) 38%, transparent) 0%, color-mix(in srgb, var(--accent) 16%, transparent) 38%, transparent 72%);
+  opacity: .55;
+  transition: opacity 150ms ease, transform 150ms ease;
 }
-
+.sanctum-menu-trigger[aria-expanded="false"] .sanctum-menu-halo {
+  animation: sanctum-menu-halo-heartbeat 7.2s ease-in-out infinite;
+}
+.sanctum-menu-trigger[aria-expanded="false"] .sanctum-menu-brand {
+  animation: sanctum-menu-brand-heartbeat 7.2s ease-in-out infinite;
+}
+@keyframes sanctum-menu-halo-heartbeat {
+  0%, 70%, 76%, 83%, 100% { opacity: .55; }
+  73% { opacity: .75; }
+  79% { opacity: .9; }
+}
+@keyframes sanctum-menu-brand-heartbeat {
+  0%, 70%, 76%, 83%, 100% { transform: scale(1); }
+  73% { transform: scale(1.035); }
+  79% { transform: scale(1.065); }
+}
+.sanctum-menu-center {
+  clip-path: ellipse(42% 20% at 50% 68%);
+  transition: transform 150ms ease;
+}
+.sanctum-menu-brand {
+  filter: drop-shadow(0 1px 2px var(--panel)) drop-shadow(0 0 3px var(--panel));
+  transition: filter 150ms ease, transform 150ms ease;
+}
+.sanctum-menu-trigger:is(:hover, :focus-visible) .sanctum-menu-brand {
+  animation: none;
+  transform: translateY(-2px);
+  filter: drop-shadow(0 1px 2px var(--panel)) drop-shadow(0 0 5px var(--accent));
+}
+.sanctum-menu-trigger:active[aria-expanded] .sanctum-menu-brand {
+  animation: none;
+  transform: translateY(2px) scale(.88);
+  filter: drop-shadow(0 0 6px var(--accent)) brightness(1.25);
+}
+.sanctum-menu-trigger:active[aria-expanded] .sanctum-menu-center {
+  transform: translateY(2px) scale(.88);
+}
+.sanctum-menu-trigger:active[aria-expanded] .sanctum-menu-halo {
+  animation: none;
+  opacity: 1;
+  transform: scale(.9);
+}
+.sanctum-menu-trigger[aria-expanded="true"] .sanctum-menu-brand,
+.sanctum-menu-trigger[aria-expanded="true"] .sanctum-menu-center {
+  transform: scale(.94);
+}
+.sanctum-menu-trigger[aria-expanded="true"] .sanctum-menu-halo {
+  opacity: .85;
+}
+.sanctum-menu-trigger:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-radius: 0.5rem;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sanctum-menu-halo,
+  .sanctum-menu-brand { animation: none !important; transition: none; }
+  .sanctum-menu-center { transition: none; }
+}
+.class-level-range {
+  appearance: none;
+  height: 0.42rem;
+  border-radius: 9999px;
+}
+.class-level-range:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 0.35rem;
+}
+.class-level-number::-webkit-outer-spin-button,
+.class-level-number::-webkit-inner-spin-button { appearance: none; margin: 0; }
+.class-level-number { -moz-appearance: textfield; }
+.class-level-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid var(--panel);
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.class-level-range::-moz-range-thumb {
+  width: 0.8rem;
+  height: 0.8rem;
+  border: 2px solid var(--panel);
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
 @media (prefers-reduced-motion: reduce) {
   .sanctum-nav-primary,
   .sanctum-nav-reveal { transition: none; }
-  .sanctum-menu-mark { animation: none; }
 }
 @keyframes kronos-gear-turn {
   0%, 85% { transform: rotate(0deg); }

@@ -76,7 +76,7 @@ export default function PantheonRankingSection({
                   : "bg-[var(--panel)] text-[var(--text-sub)] border-[var(--panel-border)] hover:text-[var(--text-main)] hover:border-[var(--accent)]/50"
               }`}
             >
-              <span className="max-w-full font-black text-[0.65rem] md:text-xs leading-tight whitespace-nowrap overflow-hidden text-ellipsis">{cat.nameEn}</span>
+              <span className="max-w-full font-black text-[clamp(0.6rem,1.2vw,0.75rem)] tracking-[-0.025em] leading-tight whitespace-nowrap">{cat.nameEn}</span>
                 <span className={`text-[0.58rem] mt-0.5 font-bold leading-tight whitespace-nowrap ${isActive ? "text-[var(--accent-fg)]/90" : "text-[var(--text-sub)]"}`}>
                 {cat.rankLabel}
               </span>
@@ -102,7 +102,7 @@ export default function PantheonRankingSection({
           currentPantheonRankers.map((ranker, idx) => (
             <div 
               key={ranker.nickname + idx} 
-              className="flex flex-wrap md:flex-nowrap items-center gap-2 md:gap-3 backdrop-blur p-2.5 rounded-xl border shadow-xs min-w-0 bg-[var(--panel)] border-[var(--panel-border)] hover:border-[var(--accent)]/60 transition-all duration-200"
+              className="grid grid-cols-[auto_auto_minmax(0,1fr)] items-center gap-x-2 gap-y-1.5 backdrop-blur p-2.5 rounded-xl border shadow-xs min-w-0 bg-[var(--panel)] border-[var(--panel-border)] hover:border-[var(--accent)]/60 transition-all duration-200"
             >
               {/* 순위 뱃지 (1위 골드 / 2위 실버 / 3위 브론즈) */}
               <div 
@@ -123,16 +123,12 @@ export default function PantheonRankingSection({
               </div>
 
               {/* 닉네임 및 스탯 수치 */}
-              <div className="flex-1 flex flex-wrap justify-between items-center min-w-0 gap-2">
-                <span className="min-w-0 flex-1 font-black text-xs md:text-sm break-keep overflow-wrap-anywhere text-[var(--text-main)]">
-                  {ranker.nickname}
-                </span>
-                <div className="flex items-center gap-1 shrink-0 bg-[var(--inner-box)] px-2 py-0.5 rounded-md border border-[var(--panel-border)]">
-                  <MarkIcon src="/svgs/status mark/전투력 마크.svg" size="xs" colorClass="bg-[var(--accent)]" />
-                  <span className="font-mono font-black text-xs whitespace-nowrap text-[var(--accent)]">
-                    {ranker.val} <span className="text-[9px] font-normal text-[var(--text-sub)]">{currentPantheonCat?.unit || ''}</span>
-                  </span>
-                </div>
+              <span className="min-w-0 font-black text-xs md:text-sm break-keep [overflow-wrap:anywhere] text-[var(--text-main)]">
+                {ranker.nickname}
+              </span>
+              <div className="col-start-3 min-w-0 justify-self-start inline-flex items-center gap-1 bg-[var(--inner-box)] px-2 py-0.5 rounded-md border border-[var(--panel-border)]">
+                <MarkIcon src="/svgs/status mark/전투력 마크.svg" size="xs" colorClass="bg-[var(--accent)]" />
+                <span className="font-mono font-black text-xs whitespace-nowrap text-[var(--accent)]">{ranker.val}</span>
               </div>
             </div>
           ))

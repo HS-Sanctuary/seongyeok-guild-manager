@@ -1,5 +1,17 @@
 # 🏛️ SANCTUM Master Guide
 
+## 2026-09-27 관리자 헤더·전역 알림·시낙시스 카드 로컬 수정
+
+- `components/layout/MobileBottomSheet.tsx`와 `app/globals.css`: 모바일 플로팅 메뉴는 `public/svgs/logo/바텀메뉴버튼.svg`를 전역 `--accent` 색 마스크로 표시하고 중앙 내부는 `--panel`로 채운다. 로고 뒤 단일 후광과 닫힌 상태의 드문 두 박자 하트비트를 사용한다. 누르는 동안 로고·중앙 배경이 같이 축소되고 열린 상태는 약간 작은 로고·강한 후광으로 구별한다. 동작 감소 설정에서는 반복 애니메이션을 중지한다. 접근성 이름과 클릭·드래그는 유지한다.
+- `components/character/KronosWorkspace.tsx`: 임무 카드의 안쪽 간격을 줄이고 보상 목록과 횟수 조작을 넓은 카드에서는 나란히, 좁은 카드에서는 줄바꿈 배치한다. 보상명·수량과 임무 설명은 말줄임 없이 표시한다. 데이터 구조 변경 없음.
+- `components/character/ClassLevelManager.tsx`: 640px 이상 클래스 카드의 첫 줄에 마크·전체 클래스명·레벨 직접 입력, 둘째 줄에 1~65 범위 게이지를 표시한다. 이 구간의 증감/MAX/MIN 버튼은 제거하고 게이지 드래그·키보드 또는 숫자 입력으로 수정한다. 640px 미만의 기존 모바일 버튼은 유지한다. API·DB 구조 변경 없음.
+
+- `app/admin/page.tsx`: 서버 세션 확인으로 관리자 본문이 늦게 나타날 때 이전 스크롤 복원을 맨 위로 되돌려 고정 메뉴가 제목을 가리지 않게 한다.
+- `app/layout.tsx`의 `nexus_banners`는 Realtime 변경 이벤트와 열린 탭 30초 재조회로 새 활성 배너를 반영한다. `BannerAdminTab`은 저장 직후 같은 탭의 전역 헤더 갱신 이벤트를 보낸다. `hooks/useNoticeNotifications.ts`의 `notices` 알림도 Realtime과 30초 재조회로 갱신하며, 공지 외 운영 알림을 재조회 시 보존한다. DB publication·스키마·권한은 변경하지 않았다.
+- `components/party/PartyCard.tsx`·`PartyCard.module.css`: 파티원 슬롯의 아이콘·닉네임을 상단에 배치한다. 전투력·마도저항은 큰 상태 아이콘과 전체 숫자만 각각 한 줄로, 신청 시간은 시계 아이콘과 시간만 한 줄로 표시한다. 카드 컨테이너 폭에 따라 슬롯을 1·2·4열로 전환해 좁은 목록 열에서 닉네임이 한 글자씩 꺾이거나 시간이 넘치지 않도록 한다. 보조 문구는 화면 판독기용으로 유지한다. 데이터 구조 변경 없음.
+- `PantheonRankingSection`의 홈 Top 3 수치는 단위를 제거하고 닉네임과 다른 행에 놓는다. 긴 카테고리 탭명은 한 줄을 유지하되 화면 폭에 비례한 rem 최소·최대 글자 크기로 축소하고 말줄임을 쓰지 않는다. `useNoticeNotifications`는 판테온 이전/현재 Top 3를 비교해 순위별 변경자를 다음 알림부터 표시한다. 홈 `SynaxisPartySection`의 신청 버튼은 `app/page.tsx`에서 `/party?join=ID`로 이동하고 `app/party/page.tsx`가 해당 파티에 대해 공통 `JoinPartyModal`을 연다. 별도 홈 신청 모달과 저장 함수는 제거했다. DB·권한 구조 변경 없음.
+- `lib/pantheonNotifications.ts`는 알림용 Top 3 스냅샷과 변동 설명을 만든다. 테크네는 계정별 최고 생활력 캐릭터, 피에타스는 계정별 메인 캐릭터(없으면 최고 공헌도)를 대표로 점수를 산정하되 알림의 순위 식별자는 캐릭터 닉네임이 아닌 계정 소유자다. 심포니아도 계정 단위로 비교한다. `useNoticeNotifications`는 v3 로컬 스냅샷으로 최초 기준값을 세우며 대표 캐릭터만 바뀌었을 때는 알리지 않는다. DB·권한 구조 변경 없음.
+
 ## 2026-09-26 케리그마 가이드 링크 핫픽스
 
 - `app/kerygma/page.tsx`는 목록 복귀와 링크 없는 목록 진입에서 카테고리를 `전체`로 초기화한다.
