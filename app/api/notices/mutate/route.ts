@@ -56,6 +56,9 @@ export async function POST(request: NextRequest) {
       const input = body.payload;
       if (!input || typeof input !== "object" || Array.isArray(input)) return NextResponse.json({ message: "공지 내용이 올바르지 않습니다." }, { status: 400 });
       const title = typeof input.title === "string" ? input.title.trim() : "";
+      if (input.type === "생텀 업데이트" && account.role !== "길드마스터") {
+        return NextResponse.json({ message: "생텀 업데이트 작성 권한이 없습니다." }, { status: 403 });
+      }
       if (!title || title.length > 200 || typeof input.content !== "string" || input.content.length > 2_000_000) {
         return NextResponse.json({ message: "제목 또는 본문 길이를 확인해주세요." }, { status: 400 });
       }
@@ -68,7 +71,19 @@ export async function POST(request: NextRequest) {
         if (error) throw error;
         return NextResponse.json({ id: data.id });
       }
-      payload.author = account.nickname;
+      if (input.type === "생텀 업데이트") {
+        const { data: existing, error: duplicateError } = await supabase
+          .from("notices")
+          .select("id")
+          .eq("type", "생텀 업데이트")
+          .eq("title", title)
+          .limit(1);
+        if (duplicateError) throw duplicateError;
+        if (existing?.length) {
+          return NextResponse.json({ message: "같은 제목의 업데이트 공지가 이미 있습니다." }, { status: 409 });
+        }
+      }
+      payload.author = input.type === "생텀 업데이트" ? "SANCTUM 시스템" : account.nickname;
       payload.created_at = new Date().toISOString();
       const { data, error } = await supabase.from("notices").insert(payload).select("id").single();
       if (error) throw error;

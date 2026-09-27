@@ -31,6 +31,12 @@ export default function KerygmaCategoryTabs({
     if (cat === "전체") return "공지 전체";
     return cat;
   };
+  const getCompactLabel = (cat: string) => ({
+    "길드 공지사항": "길드 공지",
+    "생텀 공지사항": "생텀 공지",
+    "생텀 업데이트": "업데이트",
+    "모비노기 공식": "모비노기",
+  }[cat] || cat);
 
   // 🎯 PC/데스크톱 전용 카테고리별 활성 네온 글로우 스타일링
   const getDesktopTabStyle = (cat: string, isActive: boolean) => {
@@ -61,21 +67,23 @@ export default function KerygmaCategoryTabs({
       {/* ========================================================================= */}
       {/* 1. PC/데스크톱 뷰 (sm:flex) - 이모지 제거 & 네온 글로우 탭 유지 */}
       {/* ========================================================================= */}
-      <div className="hidden sm:flex w-full bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl p-2.5 sm:p-3 items-center justify-between gap-3 shadow-xs">
+      <div className="hidden min-[700px]:block w-full bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl p-2.5 sm:p-3 shadow-xs">
         {/* 카테고리 버튼 가로 탭 목록 */}
-        <div className="flex items-center gap-2 overflow-x-auto custom-scrollbar py-0.5">
+        <div className="grid grid-cols-7 gap-1 min-w-0 py-0.5">
           {CATEGORIES.map((cat) => {
             const isActive = activeCategory === cat;
             return (
               <button
                 key={cat}
                 onClick={() => onSelectCategory(cat)}
-                className={`px-3.5 py-1.5 rounded-xl text-xs sm:text-[12.5px] border transition-all cursor-pointer whitespace-nowrap active:scale-95 ${getDesktopTabStyle(
+                title={cat}
+                className={`min-w-0 px-1 py-1.5 rounded-xl text-[0.6rem] lg:text-[0.65rem] border transition-all cursor-pointer whitespace-nowrap active:scale-95 ${getDesktopTabStyle(
                   cat,
                   isActive
                 )}`}
               >
-                {cat}
+                <span className="lg:hidden">{getCompactLabel(cat)}</span>
+                <span className="hidden lg:inline">{cat}</span>
               </button>
             );
           })}
@@ -83,7 +91,7 @@ export default function KerygmaCategoryTabs({
 
         {/* 우측 구분선 + 공지 작성 버튼 (관리자 전용) */}
         {canWriteNotice && (
-          <div className="flex items-center gap-3 shrink-0 border-l border-[var(--panel-border)] pl-3">
+          <div className="flex justify-end mt-2 pt-2 border-t border-[var(--panel-border)]">
             <button
               onClick={() => router.push("/kerygma/write")}
               className="px-4 py-2 bg-[var(--accent)] hover:bg-[var(--accent-strong)] text-[var(--accent-fg)] text-xs font-extrabold rounded-xl transition shadow-xs flex items-center cursor-pointer active:scale-95 whitespace-nowrap"
@@ -97,7 +105,7 @@ export default function KerygmaCategoryTabs({
       {/* ========================================================================= */}
       {/* 2. 모바일 뷰 (sm:hidden) - 이모지 제거 3-버튼 모바일 전용 컴팩트 바 */}
       {/* ========================================================================= */}
-      <div className="flex sm:hidden w-full bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl p-2 items-center justify-between gap-2 shadow-xs">
+      <div className="flex min-[700px]:hidden w-full bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl p-2 items-center justify-between gap-2 shadow-xs">
         {/* 좌측: 현재 선택 카테고리 뱃지 & 변경 버튼 */}
         <div className="flex items-center gap-2 min-w-0 flex-1">
           {/* 현재 선택된 카테고리 표시 */}
