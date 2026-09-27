@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { filterApprovedCharacters, getApprovedAccountNames } from "@/lib/approvedCharacters";
 import { formatWeeklyResetRemaining, getWeeklyReminderKey } from "@/lib/weeklyReset";
 import {
   buildPantheonRankSnapshot,
@@ -251,9 +252,12 @@ export function useNoticeNotifications(nickname?: string, role?: string) {
     let pantheonRequest = 0;
     const refreshPantheonSnapshot = async () => {
       const request = ++pantheonRequest;
-      const { data } = await supabase.from("characters").select("nickname, owner, is_main, combat_power, life_energy, charm, contribution");
-      if (!data?.length || request !== pantheonRequest) return;
-      const snapshot = buildPantheonRankSnapshot(data);
+      const [{ data, error }, approvedNames] = await Promise.all([
+        supabase.from("characters").select("nickname, owner, is_main, combat_power, life_energy, charm, contribution"),
+        getApprovedAccountNames().catch(() => null),
+      ]);
+      if (error || !data || !approvedNames || request !== pantheonRequest) return;
+      const snapshot = buildPantheonRankSnapshot(filterApprovedCharacters(data, approvedNames));
       let previous: PantheonRankSnapshot | null = null;
       try {
         const stored = localStorage.getItem(pantheonStorageKey);

@@ -6,6 +6,8 @@ import { supabase } from "../../../lib/supabase";
 import { memberMutationOrThrow } from "@/lib/memberMutationClient";
 import { isTaskChecked } from "../../../lib/matchingUtils";
 import ClassIcon from "@/components/common/ClassIcon";
+import { filterApprovedCharacters, getApprovedAccountNames } from "@/lib/approvedCharacters";
+import { isCurrentParty, isPartyInProgress } from "@/lib/activeParty";
 
 // --- 타입 정의 ---
 interface Character {
@@ -34,7 +36,9 @@ interface PartyInfo {
   time_start: string;
   time_end: string;
   final_start_time?: string;
-  members?: Array<{ name: string }>;
+  party_date?: string;
+  created_at?: string;
+  members?: Array<{ name?: string; character_name?: string }>;
 }
 
 const HOMEWORK_ITEMS = [
@@ -93,6 +97,8 @@ export default function AstraView() {
   const [dbClasses, setDbClasses] = useState<any[]>([]);
   const [currentUser, setCurrentUser] = useState<string>("");
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
+  const [dataError, setDataError] = useState("");
+  const [nowTick, setNowTick] = useState(() => Date.now());
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -168,6 +174,11 @@ export default function AstraView() {
     fetchAstraData();
   }, []);
 
+  useEffect(() => {
+    const timer = window.setInterval(() => setNowTick(Date.now()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
   const updateUserLastSeen = async (username: string) => {
     try {
       await memberMutationOrThrow({ table: "characters", action: "update", filter: { column: "owner", value: username }, payload: { updated_at: new Date().toISOString() } });
@@ -205,16 +216,20 @@ export default function AstraView() {
 
   const fetchAstraData = async () => {
     try {
-      const [charRes, partyRes, hwRes, contRes, classRes] = await Promise.all([
+      const [charRes, partyRes, hwRes, contRes, classRes, approvedNames] = await Promise.all([
         supabase.from('characters').select('*').order('sort_order', { ascending: true }),
         supabase.from('parties').select('*').neq('status', '종료됨'),
         supabase.from('homework_status').select('*'),
         supabase.from('nexus_contents').select('*'),
-        supabase.from('nexus_classes').select('*').order('id', { ascending: true })
+        supabase.from('nexus_classes').select('*').order('id', { ascending: true }),
+        getApprovedAccountNames(),
       ]);
 
-      if (charRes.data) setCharacters(charRes.data);
+      if (charRes.error) throw charRes.error;
+      if (partyRes.error) throw partyRes.error;
+      setCharacters(filterApprovedCharacters(charRes.data || [], approvedNames));
       if (partyRes.data) setParties(partyRes.data);
+      setDataError("");
       if (contRes.data) setNexusContents(contRes.data);
       if (classRes.data) setDbClasses(classRes.data.filter((c: any) => c.is_active ?? true));
 
@@ -230,6 +245,9 @@ export default function AstraView() {
       }
     } catch (err) {
       console.error("아스트라 데이터 불러오기 실패", err);
+      setCharacters([]);
+      setParties([]);
+      setDataError("길드원 명단을 확인하지 못했습니다. 잠시 후 새로고침해 주세요.");
     }
   };
 
@@ -287,8 +305,8 @@ export default function AstraView() {
   }, [uniqueOwners, characters, checkAccountOnline]);
 
   const getCharPartyInfo = useCallback((nickname: string) => {
-    return parties.find(p => p.members?.some((m: any) => m.name === nickname));
-  }, [parties]);
+    return parties.find(p => isCurrentParty(p, nowTick) && p.members?.some(m => (m.name || m.character_name) === nickname));
+  }, [parties, nowTick]);
 
   const handleResetFilters = () => {
     setSearchTerm("");
@@ -336,7 +354,7 @@ export default function AstraView() {
     if (minMagicResist !== "" && (Number(c.magic_resistance) || 0) < Number(minMagicResist)) return false;
 
     if (partyFilter === "모집중" && (!partyInfo || partyInfo.status === '종료됨' || partyInfo.status === '모집완료')) return false;
-    if (partyFilter === "확정" && (!partyInfo || partyInfo.status !== '모집완료')) return false;
+    if (partyFilter === "확정" && (!partyInfo || !['모집완료', '매칭 완료'].includes(partyInfo.status))) return false;
     if (partyFilter === "미참여" && partyInfo) return false;
 
     if (homeworkFilter !== "전체") {
@@ -413,6 +431,7 @@ export default function AstraView() {
 
   return (
     <section className="space-y-2.5 md:space-y-4 animate-in fade-in duration-200 select-none relative">
+      {dataError && <p role="alert" className="rounded-xl border border-rose-500/50 bg-rose-950/20 px-3 py-2 text-sm text-rose-300">{dataError}</p>}
       
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-[10000] bg-[var(--panel)] border border-[var(--accent)] text-[var(--text-main)] px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2 text-xs font-black animate-in slide-in-from-bottom-5 duration-300">
@@ -616,7 +635,7 @@ export default function AstraView() {
                         </span>
                         {isLfg && (
                           <span className="text-[0.48rem] bg-rose-600 text-white font-black px-1 rounded shrink-0 animate-pulse">
-                            파티중
+                            {partyInfo && isPartyInProgress(partyInfo, nowTick) ? "파티중" : "파티 예정"}
                           </span>
                         )}
                       </div>
@@ -656,7 +675,7 @@ export default function AstraView() {
                       </div>
                       {isLfg && (
                         <span className="text-[0.58rem] bg-rose-600 text-white font-black px-1.5 py-0.5 rounded shrink-0 animate-pulse">
-                          파티중
+                          {partyInfo && isPartyInProgress(partyInfo, nowTick) ? "파티중" : "파티 예정"}
                         </span>
                       )}
                     </div>
@@ -755,7 +774,7 @@ export default function AstraView() {
                               </span>
                               {isLfg && (
                                 <span className="text-[0.48rem] bg-rose-600 text-white font-black px-1 rounded shrink-0 animate-pulse">
-                                  파티중
+                                  {partyInfo && isPartyInProgress(partyInfo, nowTick) ? "파티중" : "파티 예정"}
                                 </span>
                               )}
                             </div>
@@ -796,7 +815,7 @@ export default function AstraView() {
                             </div>
                             {isLfg && (
                               <span className="text-[0.58rem] bg-rose-600 text-white font-black px-1.5 py-0.5 rounded shrink-0 animate-pulse">
-                                파티중
+                                {partyInfo && isPartyInProgress(partyInfo, nowTick) ? "파티중" : "파티 예정"}
                               </span>
                             )}
                           </div>

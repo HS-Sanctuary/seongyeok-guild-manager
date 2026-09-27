@@ -270,6 +270,7 @@ export default function Navbar({
                     )}
 
                     <div className="border-t border-[var(--panel-border)] mt-2 pt-1 flex flex-col gap-1">
+                      <Link href="/account/settings" onClick={() => setIsAccountMenuOpen(false)} className="w-full rounded-lg py-2.5 text-center text-[0.7rem] font-bold text-[var(--text-main)] hover:bg-[var(--panel-hover)]">⚙️ 개인 설정 · 접속 코드 변경</Link>
                       <Link href="/login" onClick={() => setIsAccountMenuOpen(false)} className="w-full text-center text-[0.7rem] font-bold text-[var(--accent)] hover:bg-[var(--panel-hover)] py-2.5 rounded transition">➕ 계정 추가 로그인</Link>
                       
                       {/* 부마스터 대행 이상 권한 보유자에게만 노출되는 SANCTUM 관리자 링크 */}

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import ClassIcon from "@/components/common/ClassIcon";
+import { filterApprovedCharacters, getApprovedAccountNames } from "@/lib/approvedCharacters";
 
 const CATEGORY_THEMES: Record<string, any> = {
   TELOS: {
@@ -203,6 +204,7 @@ interface Character {
 
 export default function PantheonView() {
   const [dbCharacters, setDbCharacters] = useState<Character[]>([]);
+  const [directoryError, setDirectoryError] = useState(false);
   const [classTitlesMap, setClassTitlesMap] = useState<Record<string, string[]>>(DEFAULT_CLASS_TITLES);
   const [classGroups, setClassGroups] = useState<{ name: string; classes: string[] }[]>(DEFAULT_CLASS_GROUPS);
   const [activeRankTab, setActiveRankTab] = useState<keyof typeof RANKING_INFO>('TELOS');
@@ -237,7 +239,8 @@ export default function PantheonView() {
 
       let mappedChars: Character[] = [];
       if (charRes.data && !charRes.error) {
-        mappedChars = charRes.data.map((c: any) => ({
+        const approvedNames = await getApprovedAccountNames();
+        mappedChars = filterApprovedCharacters(charRes.data, approvedNames).map((c: any) => ({
           id: c.nickname, name: c.nickname, owner: c.owner || c.nickname, job: c.job || '전사',
           combatPower: Number(c.combat_power) || 0, magicResist: Number(c.magic_resistance) || 0,
           lifePower: Number(c.life_energy) || 0, charm: Number(c.charm) || 0,
@@ -247,6 +250,7 @@ export default function PantheonView() {
           serverRankDeian: c.rankings?.[activeRankTab]?.deian ?? c.server_rank_deian ?? 0
         }));
         setDbCharacters(mappedChars);
+        setDirectoryError(false);
       }
 
       // 동적 칭호 및 클래스 그룹 병합 연산 (DB 우선 & Fallback)
@@ -299,6 +303,8 @@ export default function PantheonView() {
       setClassGroups(updatedGroups);
     } catch (err) {
       console.error("판테온 로딩 실패", err);
+      setDbCharacters([]);
+      setDirectoryError(true);
     }
   };
 
@@ -489,6 +495,7 @@ export default function PantheonView() {
 
   return (
     <section className="space-y-3 animate-in fade-in duration-200">
+      {directoryError && <p role="alert" className="rounded-xl border border-rose-500/50 bg-rose-950/20 px-3 py-2 text-sm text-rose-300">길드원 명단을 확인하지 못했습니다. 순위는 새로고침 후 다시 확인해 주세요.</p>}
       <div className="grid md:hidden grid-cols-3 gap-1.5">{['TELOS', 'SYMPHONIA', 'PIETAS', 'KRATOS', 'TECHNE', 'HARMONIA'].map(k => renderRankButton(k as any))}</div>
       <div className="hidden md:grid grid-cols-6 gap-2">{['TELOS', 'SYMPHONIA', 'KRATOS', 'TECHNE', 'HARMONIA', 'PIETAS'].map(k => renderRankButton(k as any))}</div>
 

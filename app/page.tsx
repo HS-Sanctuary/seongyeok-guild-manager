@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../lib/supabase";
 import { memberMutationOrThrow } from "@/lib/memberMutationClient";
+import { filterApprovedCharacters, getApprovedAccountNames } from "@/lib/approvedCharacters";
 import { 
   isTaskChecked,
   cleanItemName
@@ -69,6 +70,7 @@ export default function Home() {
   
   const [uniqueAccountsCount, setUniqueAccountsCount] = useState(1);
   const [totalCharactersCount, setTotalCharactersCount] = useState(0);
+  const [accountDirectoryError, setAccountDirectoryError] = useState(false);
   const [allRounderLevel, setAllRounderLevel] = useState(0);
 
   const [dailyTasks, setDailyTasks] = useState<any[]>([]);
@@ -248,11 +250,18 @@ export default function Home() {
     if (contRes.data) setNexusContents(contRes.data);
 
     if (charRes.data) {
-      const allChars = charRes.data;
+      let allChars: typeof charRes.data = [];
+      try {
+        allChars = filterApprovedCharacters(charRes.data, await getApprovedAccountNames());
+        setAccountDirectoryError(false);
+      } catch (error) {
+        console.error("홈 길드원 명단 확인 실패", error);
+        setAccountDirectoryError(true);
+      }
       setAllCharactersList(allChars);
       setTotalCharactersCount(allChars.length);
       const uniqueOwners = new Set(allChars.map((c: any) => c.owner).filter(Boolean));
-      setUniqueAccountsCount(Math.max(1, uniqueOwners.size));
+      setUniqueAccountsCount(uniqueOwners.size);
 
       const jobMap: Record<string, string> = {};
       allChars.forEach(c => { jobMap[c.nickname] = c.job || "전사"; });
@@ -559,6 +568,7 @@ export default function Home() {
 
   return (
     <div className="max-w-[1400px] mx-auto px-2 md:px-6 pt-1 md:pt-2 pb-6 md:pb-8 space-y-4 md:space-y-6 animate-in fade-in duration-300">
+      {accountDirectoryError && <p role="alert" className="rounded-xl border border-rose-500/50 bg-rose-950/20 px-3 py-2 text-sm text-rose-300">길드원 명단을 확인하지 못했습니다. 캐릭터 현황은 새로고침 후 다시 확인해 주세요.</p>}
       
       {/* 1. 상단 타이머 및 ASTRA 위젯 섹션 */}
       <SanctumHeaderWidgets

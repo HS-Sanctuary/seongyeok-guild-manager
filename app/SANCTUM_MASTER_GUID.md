@@ -193,12 +193,14 @@ public/
 | --- | --- | --- |
 | `/` · `app/page.tsx` | SANCTUM 홈 대시보드. 숙제, 심연 제보, 파티 요약과 헤더 위젯을 조합한다. | `characters`, `nexus_tasks`, `nexus_contents`, `parties`, `deep_holes`, `abyss_reports`; `components/sanctum/*` |
 | `/login` · `app/login/page.tsx` | 닉네임·입장 코드 로그인, 가입 신청·승인대기 처리, 최초 캐릭터 생성 흐름. | `/api/auth/login`, `/api/auth/register`, HttpOnly 세션 쿠키, 브라우저 표시 설정 |
+| `/account/settings` · `app/account/settings/page.tsx` | 계정 드롭다운에서 들어가는 개인 설정. 현재 접속 코드를 확인한 뒤 새 코드로 변경하고 재로그인한다. | `/api/auth/session`, `/api/auth/change-code`, `accounts`, `sanctum_sessions` |
 | `/character` · `app/character/page.tsx` | KRONOS. 캐릭터 선택/편집, 숙제·교환·구매 체크, 대표 캐릭터와 기여도 관리. | `characters`, `nexus_classes`, `nexus_tasks`, `nexus_contents`, `nexus_trades`, `nexus_purchases`; `components/character/*` |
 | `/character/detail` · `app/character/detail/page.tsx` | 특정 캐릭터 상세 조회 화면. | `characters` |
 | `/kerygma` · `app/kerygma/page.tsx` | 공지 목록·상세, 고정/삭제, 투표·댓글 관련 화면, 공지 Realtime 구독. | `notices`, `accounts`, `characters`; `components/kerygma/*` |
 | `/kerygma/write` · `app/kerygma/write/page.tsx` | 공지 작성·수정 에디터. | `notices`, `KerygmaEditorToolbar`, `KerygmaPollModal` |
 | `/party` · `app/party/page.tsx` | SYNAXIS 파티와 길드 버스 화면의 진입점. | `hooks/usePartyManager.ts`, `components/party/*`, `nexus_classes` |
 | `/lounge` · `app/lounge/page.tsx` | AGORA 컨테이너. ASTRA 길드원 현황과 PANTHEON 랭킹을 전환한다. | `AstraView`, `PantheonView` |
+
 | `/market` · `app/market/page.tsx` | EMPORION 검색·카탈로그·가격 비교 UI. | `public/items_catalog.json`, `/api/market`; 현재 화면 가격 시뮬레이션 존재 |
 | `/gnosis` · `app/gnosis/page.tsx` | GNOSIS 가이드 목록·필터·카드 UI. | `nexus_classes`, `app/gnosis/[id]`, `app/gnosis/write` |
 | `/gnosis/[id]` | GNOSIS 개별 글 상세. | 라우트 파라미터 `id` |
@@ -206,6 +208,8 @@ public/
 | `/support` · `app/support/page.tsx` | LOGOS 1:1 문의·생텀 버그 제보·건의사항의 탭/작성/조회/길드마스터 답변. `?tab=bug|idea`로 새로고침 후 선택 탭 유지. 제보 사진 붙여넣기·WebP 축소 미리보기. 2026-09-25 로컬 후속: 제보·건의의 60일 검토 안내와 길드마스터의 글별 삭제/60일 보류 UI. | `inquiries`, 비공개 `logos-reports` Storage |
 | `/customize` · `app/customize/page.tsx` | 테마·스티커 개인화 화면. | `ThemeModal`, `StickerCanvas`, 브라우저 저장소 |
 | `/admin` · `app/admin/page.tsx` | 관리자 탭 허브. 가입 승인, 배너, 클래스, 컨텐츠, 교환, 임무, GNOSIS 관리. PC 글자 단계에 따른 관리자 전용 밀도 조정. | `/api/auth/session`으로 진입 역할 확인, `app/admin/components/*`, `app/admin/admin.css`; 다른 관리자 테이블 직접 쓰기는 후속 보안 과제 |
+
+아스트라의 파티 배지는 `lib/activeParty.ts`에서 KST 날짜와 시작·종료 시각을 확인한다. 지난 파티는 참가자로 표시하지 않는다. `lib/approvedCharacters.ts`는 승인 계정 디렉터리와 캐릭터 소유자를 대조하며 아스트라·판테온·홈 요약·판테온 알림에 적용된다. 조회 실패 시 오래된 길드원 데이터를 그대로 노출하지 않는다. 추방 계정의 기존 캐릭터/파티 레코드는 보존하며, 정리는 별도 운영 승인 과제다.
 
 캐릭터 관리 상세의 숙제 체크는 500ms 디바운스 뒤 서버 세션 경로로 자동 저장된다. 변경되지 않은 대표·기여도·계정 공통 교환 정보는 별도 서버 요청으로 다시 쓰지 않는다. 기존 캐릭터의 일반 저장은 `nickname`과 로그인 계정 `owner`를 동시에 조건으로 건 단일 수정 요청이며, 새 캐릭터는 기존 등록 경로를 사용한다. `app/character/page.tsx`의 저장 상태 알림은 홈 체크보드의 상태 표시와 별개다. v1.991부터 `document.body` 포털의 작은 반투명 플로팅 알림만 잠깐 표시한다. 완료 표시 뒤 새로고침해야 한다.
 
@@ -220,6 +224,7 @@ public/
 | `/api/sync-client` | 캐릭터 동기화/보정 처리. 관리자 세션 또는 운영진 닉네임·접속 코드 재확인 후 실행한다. | `characters`, Tampermonkey v8.3 | 기존 무인증 호출 차단, 스크립트 갱신 필요. 중복 호출과 동시 수정 방어 후속 과제 |
 | `/api/sync-weekly` | 주간 교환/체크 상태 동기화. 관리자 세션 또는 운영진 코드 재확인 후 실행한다. | `nexus_trades`, `characters` | 기존 무인증 호출 차단. 주간 초기화 기준과 대상 범위 확인 필요 |
 | `/api/auth/login`, `/api/auth/register`, `/api/auth/session`, `/api/auth/logout`, `/api/auth/switch` | 서버 로그인·가입·세션 확인·종료·저장 계정 전환. | `accounts`, `sanctum_sessions`, `sanctum_login_attempts`, `characters` | 서버 전용 키 사용; Preview 실제 로그인 검증 전 |
+| `/api/auth/change-code` | 현재 코드·세션·요청 출처를 검증하고 새 코드를 저장한다. 기존 모든 세션은 변경 전에 무효화한다. | `accounts.code`와 기존 해시 트리거, `sanctum_sessions`, 로그인 시도 제한 RPC | 운영 계정의 실제 변경은 미검증; 새 코드 로그인과 다른 기기 로그아웃을 전용 테스트 계정으로 확인 필요 |
 | `/api/auth/health` | 서버 키와 인증 DB 객체 연결 점검. | 인증 함수·세션·시도 제한 테이블 | 응답에 계정·키를 담지 않음 |
 | `/api/admin/accounts`, `/api/admin/pending`, `/api/accounts/directory` | 운영진 가입 승인·대기 알림·길드원 표시 정보. | `accounts`, 서버 세션 | 계정 목록은 비밀 코드를 반환하지 않음 |
 | `/api/admin/catalog` | 운영진 카탈로그 8개 테이블의 서버 저장·수정·삭제. | `nexus_*`, `content_power_reqs`, `gnosis_guides` | 운영진 세션·요청 출처 검사. Phase C 적용 전 Preview 쓰기 확인 |
