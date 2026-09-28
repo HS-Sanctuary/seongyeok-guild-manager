@@ -49,6 +49,9 @@ export default function CharacterPage() {
   const [saveToast, setSaveToast] = useState<string>('idle');
   const isInitialLoad = useRef(true);
   const toastTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const progressSavesRef = useRef<Set<Promise<void>>>(new Set());
+  const manageSaveLockRef = useRef(false);
+  const skipNextAutosaveRef = useRef(false);
 
   const [selectedTabs, setSelectedTabs] = useState<string[]>([]);
   const [reminderRequest, setReminderRequest] = useState(0);
@@ -90,6 +93,16 @@ export default function CharacterPage() {
   const [isTitleAccordionOpen, setIsTitleAccordionOpen] = useState(false);
   const [isManageModalOpen, setIsManageModalOpen] = useState(false);
   const [manageList, setManageList] = useState<any[]>([]);
+  const manageOriginalRef = useRef<Array<{
+    originalName: string;
+    tempNickname: string;
+    tempAlias: string;
+    tempJob: string;
+    isMain: boolean;
+    sort_order: number;
+  }>>([]);
+  const [isManageSaving, setIsManageSaving] = useState(false);
+  const [manageSaveError, setManageSaveError] = useState("");
 
   const abyssList = dbContents.filter((c: any) => c.type === 'abyss');
   const raidList = dbContents.filter((c: any) => c.type === 'raid');
@@ -238,11 +251,11 @@ export default function CharacterPage() {
           target = loginUserNick;
         }
         
-        loadCharacterData(target, contentsList, tradesList);
+        await loadCharacterData(target, contentsList, tradesList);
       } else {
         const initialChar = { nickname: loginUserNick, alias: "", sort_order: 0, owner: loginUserNick, job: '전사', is_main: true };
         setMyCharacters([initialChar]);
-        loadCharacterData(loginUserNick, contentsList, tradesList);
+        await loadCharacterData(loginUserNick, contentsList, tradesList);
       }
     } catch (e) {}
   };
@@ -413,13 +426,13 @@ export default function CharacterPage() {
     } finally {
       setTimeout(() => {
         isInitialLoad.current = false;
-        setSaveToast('idle');
+        setSaveToast(current => current === 'saving' ? 'idle' : current);
       }, 500);
     }
   };
 
-  const saveProgress = async () => {
-    if (isInitialLoad.current || !profile.nickname.trim() || !user?.nickname) return;
+  const performSaveProgress = async () => {
+    if (isInitialLoad.current || manageSaveLockRef.current || isManageModalOpen || !profile.nickname.trim() || !user?.nickname) return;
     try {
       setSaveToast('saving');
       const needsMainSync = profile.isMain && myCharacters.some((char: any) => char.nickname !== profile.nickname && char.is_main);
@@ -521,15 +534,26 @@ export default function CharacterPage() {
     }
   };
 
+  const saveProgress = () => {
+    const task = performSaveProgress();
+    progressSavesRef.current.add(task);
+    void task.finally(() => progressSavesRef.current.delete(task));
+    return task;
+  };
+
   useEffect(() => {
-    if (isInitialLoad.current) return;
+    if (skipNextAutosaveRef.current) {
+      skipNextAutosaveRef.current = false;
+      return;
+    }
+    if (isInitialLoad.current || isManageModalOpen || manageSaveLockRef.current) return;
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     setSaveToast('saving');
     const timer = setTimeout(() => {
       saveProgress();
     }, 500);
     return () => clearTimeout(timer);
-  }, [profile, accountContribution, levels, dailyChecks, weeklyChecks, repeatChecks, abyssChecks, raidChecks, tradeProgress, tradeCompletedBy]);
+  }, [profile, accountContribution, levels, dailyChecks, weeklyChecks, repeatChecks, abyssChecks, raidChecks, tradeProgress, tradeCompletedBy, isManageModalOpen]);
 
   const switchCharacter = async (targetName: string) => { 
     if (targetName === profile.nickname) return;
@@ -628,6 +652,10 @@ export default function CharacterPage() {
   };
 
   const openManageModal = () => {
+    if (manageSaveLockRef.current) return;
+    if (progressSavesRef.current.size === 0) {
+      setSaveToast(current => current === 'saving' ? 'idle' : current);
+    }
     const editList = myCharacters.map((c, i) => ({
       ...c, 
       originalName: c.nickname, 
@@ -638,11 +666,14 @@ export default function CharacterPage() {
       isDeleted: false, 
       sort_order: i
     }));
+    manageOriginalRef.current = editList.map(c => ({ ...c }));
+    setManageSaveError("");
     setManageList(editList);
     setIsManageModalOpen(true);
   };
 
   const saveManageModal = async () => {
+    if (manageSaveLockRef.current) return;
     const activeChars = manageList.filter(c => !c.isDeleted);
     if (activeChars.length === 0) {
       alert("최소 1개의 캐릭터는 유지되어야 합니다."); return;
@@ -653,62 +684,75 @@ export default function CharacterPage() {
         alert("캐릭터 닉네임은 빈 칸일 수 없습니다."); return;
       }
     }
-    
+
+    const names = activeChars.map(c => c.tempNickname.trim());
+    if (new Set(names).size !== names.length) {
+      alert("같은 닉네임의 캐릭터를 두 번 등록할 수 없습니다."); return;
+    }
+
+    manageSaveLockRef.current = true;
+    setIsManageSaving(true);
+    setManageSaveError("");
     isInitialLoad.current = true;
+    try {
+      // Let any already-started automatic save finish before changing the same rows.
+      await Promise.all([...progressSavesRef.current]);
 
-    const toDelete = manageList.filter(c => c.isDeleted && !c.isNew);
-    for (const char of toDelete) {
-      await memberMutationOrThrow({ table: "characters", action: "delete", filter: { column: "nickname", value: char.originalName } });
-    }
+      const originalByName = new Map(manageOriginalRef.current.map(c => [c.originalName, c]));
+      const changedChars = activeChars.filter(c => {
+        if (c.isNew) return true;
+        const original = originalByName.get(c.originalName);
+        return !original || c.tempNickname.trim() !== original.tempNickname.trim()
+          || c.tempAlias !== original.tempAlias || c.tempJob !== original.tempJob
+          || c.isMain !== original.isMain || c.sort_order !== original.sort_order;
+      });
 
-    for (const char of activeChars) {
-      const payload: any = {
-        owner: user.nickname, 
-        sort_order: char.sort_order, 
-        job: char.tempJob,
-        alias: char.tempAlias.slice(0, 3),
-        is_main: char.isMain,
-        contribution: Number(accountContribution) || 0
-      };
-      
-      if (char.isNew) {
-        payload.nickname = char.tempNickname.trim();
-        await memberMutationOrThrow({ table: "characters", action: "insert", payload });
-      } else {
-        if (char.originalName !== char.tempNickname.trim()) payload.nickname = char.tempNickname.trim();
-        await memberMutationOrThrow({ table: "characters", action: "update", filter: { column: "nickname", value: char.originalName }, payload });
+      // Clear the former representative before setting a new one.
+      changedChars.sort((a, b) => Number(a.isMain) - Number(b.isMain));
+      for (const char of changedChars) {
+        const payload: any = {
+          sort_order: char.sort_order,
+          job: char.tempJob,
+          alias: char.tempAlias.slice(0, 3),
+          is_main: char.isMain,
+        };
+        if (char.isNew) {
+          payload.nickname = char.tempNickname.trim();
+          payload.owner = user.nickname;
+          payload.contribution = Number(accountContribution) || 0;
+          await memberMutationOrThrow({ table: "characters", action: "insert", payload });
+        } else {
+          if (char.originalName !== char.tempNickname.trim()) payload.nickname = char.tempNickname.trim();
+          await memberMutationOrThrow({ table: "characters", action: "update", filter: { column: "nickname", value: char.originalName }, payload });
+        }
       }
-    }
 
-    setIsManageModalOpen(false);
+      const toDelete = manageList.filter(c => c.isDeleted && !c.isNew);
+      for (const char of toDelete) {
+        await memberMutationOrThrow({ table: "characters", action: "delete", filter: { column: "nickname", value: char.originalName } });
+      }
 
-    const targetNick = activeChars.find(c => c.originalName === profile.nickname)?.tempNickname.trim() || activeChars[0].tempNickname.trim();
-    const updatedCurrentChar = activeChars.find(c => c.originalName === profile.nickname || c.tempNickname.trim() === targetNick);
-
-    if (updatedCurrentChar) {
-      setProfile(prev => ({
-        ...prev,
-        nickname: updatedCurrentChar.tempNickname.trim(),
-        alias: updatedCurrentChar.tempAlias.slice(0, 3),
-        job: updatedCurrentChar.tempJob,
-        isMain: updatedCurrentChar.isMain
-      }));
-    }
-
-    setMyCharacters(activeChars.map(c => ({
-      nickname: c.tempNickname.trim(),
-      alias: c.tempAlias.slice(0, 3),
-      job: c.tempJob,
-      is_main: c.isMain,
-      sort_order: c.sort_order
-    })));
-
-    await fetchMasterData(user.nickname); 
-    window.history.replaceState(null, '', `?char=${encodeURIComponent(targetNick)}`);
-
-    setTimeout(() => {
+      const targetNick = activeChars.find(c => c.originalName === profile.nickname)?.tempNickname.trim()
+        || activeChars.find(c => c.isMain)?.tempNickname.trim()
+        || activeChars[0].tempNickname.trim();
+      profileRef.current = { ...profileRef.current, nickname: targetNick };
+      window.history.replaceState(null, '', `?char=${encodeURIComponent(targetNick)}`);
+      await fetchMasterData(user.nickname);
+      skipNextAutosaveRef.current = true;
+      setIsManageModalOpen(false);
+      setSaveToast('saved');
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+      toastTimerRef.current = setTimeout(() => setSaveToast('idle'), 2500);
+    } catch {
+      setManageSaveError("저장에 실패했습니다. 일부 변경은 반영됐을 수 있으니 창을 닫고 다시 열어 확인해 주세요.");
+      setSaveToast('error');
+      // Re-read the server before the modal can be opened again; keep the edits visible for review.
+      try { await fetchMasterData(user.nickname); } catch { /* Keep the original error visible. */ }
+    } finally {
       isInitialLoad.current = false;
-    }, 500);
+      manageSaveLockRef.current = false;
+      setIsManageSaving(false);
+    }
   };
 
   const getScore = (c: any, type: string) => {
@@ -779,7 +823,14 @@ export default function CharacterPage() {
       {/* 캐릭터 관리 모달 */}
       <CharacterManageModal
         isOpen={isManageModalOpen}
-        onClose={() => setIsManageModalOpen(false)}
+        onClose={() => {
+          if (!manageSaveLockRef.current) {
+            skipNextAutosaveRef.current = true;
+            setIsManageModalOpen(false);
+          }
+        }}
+        isSaving={isManageSaving}
+        saveError={manageSaveError}
         manageList={manageList}
         setManageList={setManageList}
         dbClasses={dbClasses}
@@ -859,8 +910,16 @@ export default function CharacterPage() {
           />
         </div>
 
-        {/* 탭 메뉴 */}
-        <div className="grid grid-cols-3 md:grid-cols-6 gap-1 md:gap-1.5 bg-[var(--inner-box)] p-1 md:p-1.5 rounded-xl border border-[var(--panel-border)]">
+        {/* 원하는 크로노스 기능만 골라 표시하는 필터 */}
+        <div
+          className="rounded-xl border bg-[var(--inner-box)] p-2 md:p-2.5"
+          style={{
+            borderColor: 'color-mix(in srgb, var(--accent) 55%, var(--panel-border))',
+            boxShadow: '0 0 0 1px color-mix(in srgb, var(--accent) 16%, transparent), 0 0 16px color-mix(in srgb, var(--accent) 9%, transparent)',
+          }}
+        >
+          <p className="mb-2 px-1 text-xs font-black text-[var(--accent)]">✦ 표시할 기능 선택 <span className="font-medium text-[var(--text-sub)]">· 원하는 항목을 눌러 골라보세요</span></p>
+          <div className="grid grid-cols-3 md:grid-cols-6 gap-1.5">
           {[
             { id: 'weekly_daily', label: '주간/일일' },
             { id: 'abyss_raid', label: '어비스/레이드' },
@@ -874,18 +933,18 @@ export default function CharacterPage() {
               type="button"
               aria-pressed={selectedTabs.includes(tab.id)}
               onClick={() => setSelectedTabs(old => old.includes(tab.id) ? old.filter(id => id !== tab.id) : [...old, tab.id])}
-              className={`py-2 px-1 text-xs md:text-sm font-black text-center transition cursor-pointer break-keep leading-snug rounded-lg ${
+              className={`min-h-12 py-2 px-1 text-xs md:text-sm font-black text-center transition cursor-pointer break-keep leading-snug rounded-lg border focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] ${
                 selectedTabs.includes(tab.id)
-                  ? 'bg-[var(--accent)] text-[var(--accent-fg)] shadow-xs' 
-                  : 'text-[var(--text-sub)] hover:text-[var(--text-main)] hover:bg-[var(--panel)]'
+                  ? 'bg-[var(--accent)] text-[var(--accent-fg)] border-[var(--accent)] shadow-sm'
+                  : 'bg-[var(--panel)] text-[var(--text-main)] border-[var(--panel-border)] hover:border-[var(--accent)] hover:bg-[var(--accent-soft)]'
               }`}
             >
               {tab.label}
             </button>
           ))}
+          </div>
         </div>
 
-        <p className="text-xs text-[var(--text-sub)]">여러 항목을 선택할 수 있습니다. 선택을 모두 해제하면 전체를 보여줍니다.</p>
         {/* 메인 콘텐츠 영역 */}
         <div className="space-y-3 md:space-y-4">
           {(

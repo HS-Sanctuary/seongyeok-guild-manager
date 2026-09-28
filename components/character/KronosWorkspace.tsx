@@ -10,6 +10,7 @@ import {
   type Reminder,
 } from "@/lib/kronos";
 import ReminderWindows from "./ReminderWindows";
+import ProgressiveGrid from "./ProgressiveGrid";
 
 type QueuedProgress = {
   confirmed: Progress | undefined;
@@ -17,6 +18,12 @@ type QueuedProgress = {
   running: boolean;
   timer: ReturnType<typeof setTimeout> | null;
 };
+
+function shopRequirement(item: ShopItem) {
+  if (item.reward === "사포" && ["앨빈", "델렌"].includes(item.npc)) return "구매 조건: 생활력 7,000";
+  if (item.npc === "조셀린" && item.reward === "상급 설비 증축 도면") return "구매 조건: 아르바이트 Lv.15";
+  return null;
+}
 
 export default function KronosWorkspace({
   character,
@@ -53,6 +60,14 @@ export default function KronosWorkspace({
       - Number(!!progress.find((p) => p.kind === "mission" && p.item_id === a.id)?.bookmarked)
       || townOrder.indexOf(a.town as typeof townOrder[number]) - townOrder.indexOf(b.town as typeof townOrder[number])
       || a.title.localeCompare(b.title, "ko"));
+  const matchingShops = shops
+    .filter((s) => [s.map, s.npc, s.reward].join(" ").toLowerCase().includes(shopSearch.trim().toLowerCase()))
+    .sort((a, b) =>
+      Number(!!progress.find((p) => p.kind === "shop" && p.item_id === b.id)?.bookmarked)
+      - Number(!!progress.find((p) => p.kind === "shop" && p.item_id === a.id)?.bookmarked)
+      || a.map.localeCompare(b.map, "ko")
+      || a.npc.localeCompare(b.npc, "ko")
+      || a.reward.localeCompare(b.reward, "ko"));
   useEffect(() => {
     const abort = new AbortController();
     fetch("/api/kronos?character=" + encodeURIComponent(character), {
@@ -229,23 +244,13 @@ export default function KronosWorkspace({
             onChange={(e) => setShopSearch(e.target.value)}
             className={searchClass}
           />
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-            {shops
-              .filter((s) =>
-                [s.map, s.npc, s.reward]
-                  .join(" ")
-                  .toLowerCase()
-                  .includes(shopSearch.toLowerCase()),
-              )
-              .sort(
-                (a, b) =>
-                  Number(!!row("shop", b.id)?.bookmarked) -
-                    Number(!!row("shop", a.id)?.bookmarked) ||
-                  a.map.localeCompare(b.map, "ko"),
-              )
-              .map((s) => (
+          <ProgressiveGrid
+            key={shopSearch}
+            items={matchingShops}
+            columns={3}
+            className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3"
+            renderItem={(s) => (
                 <article
-                  key={s.id}
                   className="min-w-0 rounded-xl border border-[var(--panel-border)] bg-[var(--inner-box)] p-3 text-sm break-words [overflow-wrap:anywhere]"
                 >
                   <div className="flex items-center justify-between gap-1">
@@ -253,13 +258,14 @@ export default function KronosWorkspace({
                     <span className="flex shrink-0 items-center gap-1"><span className="kronos-meta-badge">{s.reset_type}</span><span className="kronos-meta-badge">{s.scope}</span></span>
                   </div>
                   <div className="mt-2 grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-2 text-sm"><strong className="min-w-0 text-[var(--kronos-reward)]">{s.reward} × {s.reward_cnt.toLocaleString()}</strong><strong className="whitespace-nowrap text-[var(--kronos-cost)]">{s.cost_cnt.toLocaleString()} 골드</strong></div>
+                  {shopRequirement(s) && <p className="mt-1 text-xs text-[var(--text-sub)]">{shopRequirement(s)}</p>}
                   <div className="mt-2 flex flex-wrap items-center justify-between gap-2 border-t border-[var(--panel-border)] pt-2"><span className="text-xs text-[var(--text-sub)]">총합 <strong className="text-[var(--kronos-cost)]">{(s.cost_cnt * s.limit).toLocaleString()} 골드</strong></span>{controls("shop", s.id, s.limit, s.reset_type === "일간", true, true)}</div>
                 </article>
-              ))}
-          </div>
-          {ready && shops.length === 0 && (
+              )}
+          />
+          {ready && matchingShops.length === 0 && (
             <p className="text-sm text-[var(--text-sub)]">
-              등록된 상점 구매 품목이 없습니다.
+              {shopSearch ? "검색 결과가 없습니다." : "등록된 상점 구매 품목이 없습니다."}
             </p>
           )}
         </section>
@@ -280,10 +286,13 @@ export default function KronosWorkspace({
             onChange={(e) => setMissionSearch(e.target.value)}
             className={searchClass}
           />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {matchingMissions.map((m) => (
+          <ProgressiveGrid
+            key={missionSearch}
+            items={matchingMissions}
+            columns={2}
+            className="grid grid-cols-1 md:grid-cols-2 gap-3"
+            renderItem={(m) => (
                 <article
-                  key={m.id}
                   className="min-w-0 rounded-xl border border-[var(--panel-border)] border-l-[3px] border-l-[var(--accent)] bg-[var(--inner-box)] p-2.5 text-sm break-words [overflow-wrap:anywhere]"
                 >
                   <div className="flex items-start justify-between gap-2"><div className="flex min-w-0 items-start gap-1">{bookmarkButton("mission", m.id)}<h4 className="font-bold text-[var(--accent)]">{m.title}</h4></div><span className="kronos-meta-badge shrink-0">{m.town}</span></div>
@@ -303,8 +312,8 @@ export default function KronosWorkspace({
                     <div className="ml-auto shrink-0">{controls("mission", m.id, m.max_count, false, true, true)}</div>
                   </div>
                 </article>
-              ))}
-          </div>
+              )}
+          />
           {ready && matchingMissions.length === 0 && <p className="text-sm text-[var(--text-sub)]">{missionSearch ? "검색 결과가 없습니다." : "등록된 임무가 없습니다."}</p>}
         </section>
       )}

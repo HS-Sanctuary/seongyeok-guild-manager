@@ -5,6 +5,8 @@ import React, { useState, useRef, useMemo } from "react";
 interface CharacterManageModalProps {
   isOpen: boolean;
   onClose: () => void;
+  isSaving: boolean;
+  saveError: string;
   manageList: any[];
   setManageList: React.Dispatch<React.SetStateAction<any[]>>;
   dbClasses: any[];
@@ -15,6 +17,8 @@ interface CharacterManageModalProps {
 export default function CharacterManageModal({
   isOpen,
   onClose,
+  isSaving,
+  saveError,
   manageList,
   setManageList,
   dbClasses,
@@ -55,10 +59,12 @@ export default function CharacterManageModal({
   };
 
   const handleDragStart = (e: React.DragEvent, index: number) => {
+    if (isSaving) { e.preventDefault(); return; }
     dragItemIndex.current = index;
   };
 
   const handleDragEnter = (e: React.DragEvent, index: number) => {
+    if (isSaving) return;
     if (
       dragItemIndex.current === null ||
       dragItemIndex.current === index
@@ -80,7 +86,7 @@ export default function CharacterManageModal({
 
   return (
     <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-2 md:p-4 backdrop-blur-xs">
-      <div className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-xl w-[98%] max-w-2xl max-h-[88vh] overflow-hidden flex flex-col shadow-2xl">
+      <div role="dialog" aria-modal="true" aria-label="캐릭터 등록 및 관리" aria-busy={isSaving} className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-xl w-[98%] max-w-2xl max-h-[88vh] overflow-hidden flex flex-col shadow-2xl">
         <div className="p-2.5 md:p-3 border-b border-[var(--panel-border)] flex justify-between items-center bg-[var(--inner-box)]">
           <h2 className="text-xs md:text-base font-black text-[var(--accent)]">
             ⚙️ 캐릭터 등록 및 관리
@@ -88,6 +94,7 @@ export default function CharacterManageModal({
           <button
             type="button"
             onClick={onClose}
+            disabled={isSaving}
             className="text-[var(--text-sub)] hover:text-[var(--text-main)] text-sm cursor-pointer p-1"
           >
             ✕
@@ -95,9 +102,11 @@ export default function CharacterManageModal({
         </div>
 
         <div className="p-1.5 md:p-3 overflow-y-auto custom-scrollbar flex-1 space-y-1.5">
+          {saveError && <p role="alert" className="rounded-lg border border-rose-700 bg-rose-950/30 px-2 py-2 text-xs text-rose-300 break-keep">{saveError}</p>}
           <button
             type="button"
             onClick={() => setIsHowToOpen(!isHowToOpen)}
+            disabled={isSaving}
             className="w-full text-left text-xs text-[var(--accent)] bg-[var(--inner-box)] border border-[var(--panel-border)] px-2 py-1 rounded-lg font-bold hover:bg-[var(--accent-soft)] transition flex justify-between items-center cursor-pointer"
           >
             <span>📖 [사용 방법]</span>
@@ -118,7 +127,7 @@ export default function CharacterManageModal({
               !char.isDeleted && (
                 <div
                   key={index}
-                  draggable
+                  draggable={!isSaving}
                   onDragStart={(e) => handleDragStart(e, index)}
                   onDragEnter={(e) => handleDragEnter(e, index)}
                   onDragOver={(e) => e.preventDefault()}
@@ -134,6 +143,7 @@ export default function CharacterManageModal({
                   </div>
 
                   <input
+                    disabled={isSaving}
                     value={char.tempAlias}
                     maxLength={3}
                     placeholder="애칭(3자)"
@@ -146,6 +156,7 @@ export default function CharacterManageModal({
                   />
 
                   <input
+                    disabled={isSaving}
                     value={char.tempNickname}
                     placeholder="닉네임"
                     onChange={(e) => {
@@ -158,6 +169,7 @@ export default function CharacterManageModal({
 
                   {/* 🎯 nexus_classes DB 실시간 연동 동적 직업 셀렉트 박스 */}
                   <select
+                    disabled={isSaving}
                     value={char.tempJob}
                     onChange={(e) => {
                       const nw = [...manageList];
@@ -199,6 +211,7 @@ export default function CharacterManageModal({
 
                   <button
                     type="button"
+                    disabled={isSaving}
                     onClick={() => handleSetMain(index)}
                     className={`px-1.5 py-1 rounded text-[10px] sm:text-xs font-bold shrink-0 transition cursor-pointer ${
                       char.isMain
@@ -211,6 +224,7 @@ export default function CharacterManageModal({
 
                   <button
                     type="button"
+                    disabled={isSaving}
                     onClick={() => {
                       if (
                         confirm(
@@ -234,6 +248,7 @@ export default function CharacterManageModal({
 
           <button
             type="button"
+            disabled={isSaving}
             onClick={addManageCharacter}
             className="w-full border border-dashed border-[var(--accent)] text-[var(--accent)] py-1.5 rounded-lg hover:bg-[var(--accent-soft)] font-bold text-xs transition cursor-pointer"
           >
@@ -241,10 +256,12 @@ export default function CharacterManageModal({
           </button>
         </div>
 
-        <div className="p-2 border-t border-[var(--panel-border)] bg-[var(--inner-box)] flex justify-end gap-1.5">
+        <div className="p-2 border-t border-[var(--panel-border)] bg-[var(--inner-box)] flex flex-wrap justify-end gap-1.5">
+          {isSaving && <span role="status" className="mr-auto w-full sm:w-auto self-center text-xs text-[var(--accent)]">⏳ 변경사항 저장 중…</span>}
           <button
             type="button"
             onClick={onClose}
+            disabled={isSaving}
             className="px-3 py-1 rounded-lg bg-[var(--panel)] text-[var(--text-sub)] text-xs font-bold transition cursor-pointer hover:text-[var(--text-main)]"
           >
             취소
@@ -252,9 +269,10 @@ export default function CharacterManageModal({
           <button
             type="button"
             onClick={saveManageModal}
+            disabled={isSaving || !!saveError}
             className="px-4 py-1 rounded-lg bg-[var(--accent)] text-[var(--accent-fg)] text-xs font-black transition cursor-pointer hover:opacity-90"
           >
-            변경사항 저장
+            {isSaving ? "저장 중…" : "변경사항 저장"}
           </button>
         </div>
       </div>

@@ -586,6 +586,8 @@ export default function KerygmaReaderView({
 }: KerygmaReaderViewProps) {
   const router = useRouter();
   const [readers, setReaders] = useState<ReaderRecord[]>([]);
+  const [readersLoading, setReadersLoading] = useState(false);
+  const [readersError, setReadersError] = useState("");
   const [showReaders, setShowReaders] = useState(false);
   const [showMainEmojiPicker, setShowMainEmojiPicker] = useState(false);
 
@@ -655,26 +657,40 @@ export default function KerygmaReaderView({
   };
 
   useEffect(() => {
-    if (!selectedNotice) return;
-    const storageKey = `sanctum_notice_readers_${selectedNotice.id}`;
-    const existing: ReaderRecord[] = JSON.parse(
-      localStorage.getItem(storageKey) || "[]"
-    );
-
-    if (currentNickname && currentNickname !== "방문자") {
-      const alreadyRead = existing.some((r) => r.nickname === currentNickname);
-      if (!alreadyRead) {
-        const updated = [
-          ...existing,
-          { nickname: currentNickname, read_at: new Date().toISOString() },
-        ];
-        localStorage.setItem(storageKey, JSON.stringify(updated));
-        setReaders(updated);
-        return;
+    if (!currentNickname || currentNickname === "방문자") return;
+    const controller = new AbortController();
+    const loadReaders = async () => {
+      setReaders([]);
+      setReadersError("");
+      setReadersLoading(canWriteNotice);
+      try {
+        const saved = await fetch("/api/notices/reads", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: selectedNotice.id }),
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        if (!saved.ok) throw new Error("읽음 기록을 저장하지 못했습니다.");
+        if (!canWriteNotice) return;
+        const response = await fetch(`/api/notices/reads?id=${selectedNotice.id}`, {
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        if (!response.ok) throw new Error("읽은 길드원 목록을 불러오지 못했습니다.");
+        const result = await response.json() as { readers?: ReaderRecord[] };
+        if (!controller.signal.aborted) setReaders(result.readers ?? []);
+      } catch (error) {
+        if (!controller.signal.aborted && canWriteNotice) {
+          setReadersError(error instanceof Error ? error.message : "읽음 기록을 확인하지 못했습니다.");
+        }
+      } finally {
+        if (!controller.signal.aborted) setReadersLoading(false);
       }
-    }
-    setReaders(existing);
-  }, [selectedNotice.id, currentNickname]);
+    };
+    void loadReaders();
+    return () => controller.abort();
+  }, [selectedNotice.id, currentNickname, canWriteNotice]);
 
   const formatTimeShort = (isoStr: string) => {
     if (!isoStr) return "";
@@ -771,7 +787,7 @@ export default function KerygmaReaderView({
                 onClick={() => setShowReaders(!showReaders)}
               >
                 <span className="font-bold text-xs sm:text-sm text-[var(--accent)] tracking-tight">
-                  읽은 길드원 목록 ({readers.length}명)
+                  읽은 길드원 목록 {readersLoading || readersError ? "" : `(${readers.length}명)`}
                 </span>
                 <span className="text-[11px] text-[var(--text-sub)] font-medium">
                   {showReaders ? "접기 ▲" : "펼치기 ▼"}
@@ -780,9 +796,13 @@ export default function KerygmaReaderView({
 
               {showReaders && (
                 <div className="mt-2 pt-2 border-t border-[var(--panel-border)] flex flex-wrap gap-1.5 sm:gap-2 max-h-44 overflow-y-auto custom-scrollbar">
-                  {readers.length === 0 ? (
+                  {readersLoading ? (
+                    <span className="text-[var(--text-sub)] text-xs">읽음 기록을 불러오는 중입니다.</span>
+                  ) : readersError ? (
+                    <span role="alert" className="text-red-400 text-xs">{readersError} 잠시 후 공지를 다시 열어주세요.</span>
+                  ) : readers.length === 0 ? (
                     <span className="text-[var(--text-sub)] text-[11px]">
-                      아직 읽은 길드원이 없습니다.
+                      서버에 기록된 읽은 길드원이 아직 없습니다. 이 기능 적용 전 기기별 기록은 합쳐지지 않습니다.
                     </span>
                   ) : (
                     readers.map((r) => {

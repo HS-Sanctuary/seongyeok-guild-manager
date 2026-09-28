@@ -17,6 +17,13 @@ function KerygmaContent() {
   const searchParams = useSearchParams();
   const noticeIdParam = searchParams.get("id");
 
+  // Opening/closing a notice changes only the query string, so reset the
+  // retained scroll position before the fixed banner/header covers its actions.
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => window.scrollTo(0, 0));
+    return () => window.cancelAnimationFrame(frame);
+  }, [noticeIdParam]);
+
   const [user, setUser] = useState<any>(null);
   const [notices, setNotices] = useState<Notice[]>([]);
   const [accountsMap, setAccountsMap] = useState<Record<string, { role?: string; equipped_title?: string; titles?: string[]; job?: string; main_class?: string }>>({});

@@ -1,4 +1,5 @@
 "use client";
+import ProgressiveGrid from "./ProgressiveGrid";
 
 interface TradeRow {
   id: number;
@@ -119,8 +120,12 @@ export default function TradeList({
 
       {/* 카드 그리드 */}
       {filteredItems.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2.5 md:gap-3.5 items-start">
-          {filteredItems.map((trade) => {
+        <ProgressiveGrid
+          key={`${tradeSearch}:${tradeSortOrder}`}
+          items={filteredItems}
+          columns={3}
+          className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2.5 md:gap-3.5 items-start"
+          renderItem={(trade) => {
             const currentVal = tradeProgress[trade.id] || 0;
             const limit = trade.limit || trade.max_count || 1;
             const isMax = currentVal >= limit;
@@ -129,7 +134,6 @@ export default function TradeList({
 
             return (
               <div
-                key={trade.id}
                 className={`flex flex-col justify-between p-3 rounded-lg border transition-all ${
                   isPinned
                     ? "bg-[var(--accent-soft)]/20 border-[var(--accent)]"
@@ -231,8 +235,8 @@ export default function TradeList({
                 </div>
               </div>
             );
-          })}
-        </div>
+          }}
+        />
       ) : (
         <div className="text-center py-10 text-xs md:text-sm text-[var(--text-sub)]">
           등록되거나 검색된 품목이 없습니다.

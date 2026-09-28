@@ -1,5 +1,12 @@
 # 🏛️ SANCTUM Master Guide
 
+## 2026-09-28 v2.13 공지·헤더·크로노스 목록
+
+- `KerygmaReaderView`의 운영진용 `읽은 길드원 목록`은 기존 브라우저별 `sanctum_notice_readers_*` 값 대신 `/api/notices/reads`를 사용하도록 변경했다. 서버는 로그인 세션의 계정 ID로 공지당 최초 읽음 1건만 기록하고, 목록은 길드마스터·부마스터에게만 제공한다. `supabase/migrations/20260928_notice_reads.sql`의 비공개 `notice_reads` 테이블은 한설이 운영 적용했고 RLS·역할별 권한을 읽기 전용으로 검증했다. 적용 전 기기별 읽음 기록은 신뢰할 수 없어 합치지 않는다. 알림함 자체의 읽지 않음 상태는 기존 기기별 localStorage 그대로다.
+- `app/layout.tsx`는 페이지 이동 시 상단 스크롤과 헤더 표시를 복원하고, 배너로 고정 헤더 높이가 늘어날 때 사용자가 상단 근처에 있으면 가려진 조작부가 다시 보이도록 맨 위로 정렬한다. `app/kerygma/page.tsx`는 공지 열기·닫기처럼 같은 경로의 쿼리만 바뀔 때도 상단으로 이동한다. DB 영향 없음.
+- `components/character/ProgressiveGrid.tsx`는 물물교환·상점·임무의 기존 즐겨찾기 우선 결과를 반응형 1/2/3열에서 6줄씩 노출한다. 검색어가 바뀌면 첫 6줄로 돌아간다. `app/character/page.tsx`의 중복 필터 안내 문장은 제거했다.
+- `components/character/KronosWorkspace.tsx`는 상점의 마을·NPC·품목 안정 정렬과 사포/도면 구매 조건 표시를 추가했다. `supabase/migrations/20260928_kronos_weekly_shop_catalog.sql`의 128개 원본 품목은 한설이 운영에 적용했고 기존 앨빈 사포를 건너뛰어 127개가 추가됐다. 사전 1행·사후 128행, 중복 0, RLS/익명 접근 차단을 읽기 전용으로 확인했다. DB 구조·RLS·API 형태 변경 없음.
+
 ## 2026-09-27 v2.11 케리그마 화면·업데이트 게시
 
 - `KerygmaCategoryTabs`: 700px 이상에서는 7개 카테고리를 스크롤 없는 단일 행 그리드로 보여 주고, 중간 폭의 긴 라벨을 짧게 표시한다. 운영진용 작성 버튼은 그 아래 줄로 분리한다. 700px 미만은 기존 카테고리 선택 모달을 유지한다.

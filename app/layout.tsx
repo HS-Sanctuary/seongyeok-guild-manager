@@ -37,6 +37,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const [headerHeight, setHeaderHeight] = useState(60);
   const lastScrollY = useRef(0);
   const headerRef = useRef<HTMLElement>(null);
+  const lastMeasuredHeaderHeight = useRef(0);
 
   const [stickers, setStickers] = useState<Sticker[]>([]);
   const stickersRef = useRef<Sticker[]>([]);
@@ -70,17 +71,28 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     const el = headerRef.current;
     if (!el) return;
 
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        if (entry.target) {
-          setHeaderHeight(entry.target.clientHeight);
-        }
+    const measureHeader = () => {
+      const nextHeight = Math.ceil(el.getBoundingClientRect().height);
+      if (nextHeight > lastMeasuredHeaderHeight.current && window.scrollY > 0 && window.scrollY < nextHeight) {
+        // A banner that expands the fixed header can otherwise cover the page's first controls.
+        window.scrollTo(0, 0);
       }
-    });
+      lastMeasuredHeaderHeight.current = nextHeight;
+      setHeaderHeight(previous => previous === nextHeight ? previous : nextHeight);
+    };
 
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [mounted]);
+    // Measure immediately when the banner or account changes, not only after ResizeObserver fires.
+    measureHeader();
+    const frame = window.requestAnimationFrame(measureHeader);
+    const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measureHeader) : null;
+    observer?.observe(el);
+    window.addEventListener('resize', measureHeader);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      observer?.disconnect();
+      window.removeEventListener('resize', measureHeader);
+    };
+  }, [mounted, banner?.message, activeAccount?.nickname, fontSizeLevel]);
 
   useEffect(() => {
     let ticking = false;
@@ -103,6 +115,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // A fixed header (and its optional banner) must not cover the top of a newly opened page.
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      window.scrollTo(0, 0);
+      lastScrollY.current = 0;
+      setShowNavbar(true);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [pathname]);
 
   useEffect(() => {
     const handleGlobalClickOutside = (event: MouseEvent | TouchEvent) => {

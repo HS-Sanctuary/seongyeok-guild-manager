@@ -1,5 +1,9 @@
 # SANCTUM Supabase 구조 기준서
 
+> 2026-09-28 상점 데이터 추가 완료: `supabase/migrations/20260928_kronos_weekly_shop_catalog.sql`은 한설 승인과 최근 백업 `2026-09-27 23:13:52 UTC` 확인 뒤 운영 SQL Editor에서 적용 성공했다. 기존 `kronos_shop_items` 앨빈 사포 1행을 유지하고 주간 골드 품목 127행을 더해 총 128행이다. 적용 전 최대 ID 1, 적용 후 앨빈 중복 1행·전체 중복 키 0, RLS 활성 true, anon SELECT/INSERT false를 읽기 전용 쿼리로 확인했다. 테이블·컬럼·RLS·함수와 기존 구매/즐겨찾기 기록은 변경하지 않았다. 생활력/아르바이트 조건은 컬럼이 없어 앱 표시로만 제공한다.
+
+> 2026-09-28 한설이 `supabase/migrations/20260928_notice_reads.sql`의 운영 SQL Editor 실행 성공을 보고했다. 이후 읽기 전용 진단에서 테이블 존재·RLS 활성화 true, anon/authenticated의 SELECT·INSERT false, service_role 읽기·쓰기 true를 확인했다. 이 SQL은 공지별·계정별 최초 읽음 시각을 저장하며 기존 공지·계정·기기별 로컬 읽음 기록은 변경하거나 소급 이관하지 않는다. 실제 계정별 기록 테스트와 앱 배포는 아직 대기 중이다.
+
 > 2026-09-25 v2.0 운영 배포 후보: 아래 계정 프로필·크로노스·로고스/60일 검토 SQL은 한설이 이미 운영 SQL Editor에서 적용했고 읽기 전용 진단을 확인했다. 이번 `main` push는 SQL을 재실행하지 않는다. 앱 배포 성공과 실제 화면 확인은 별도로 필요하다.
 
 ## 2026-09-25 LOGOS 60일 검토 준비 — 운영 SQL 적용·읽기 전용 검증 완료, 앱 미배포
