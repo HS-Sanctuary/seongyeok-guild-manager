@@ -192,7 +192,7 @@ export default function KronosWorkspace({
     const count = currentProgress(p, daily, now);
     const wait = busy.includes(kind + id);
     return (
-      <div className={compact ? "flex items-center gap-1" : "flex flex-wrap items-center gap-2 mt-3"}>
+      <div className={compact ? "flex items-center gap-1 whitespace-nowrap" : "flex flex-wrap items-center gap-2 mt-3"}>
         <button
           aria-label="횟수 줄이기"
           disabled={count === 0}
@@ -202,7 +202,7 @@ export default function KronosWorkspace({
           −
         </button>
         <span className={"font-mono font-bold whitespace-nowrap " + (wait ? "opacity-70" : "")} aria-live="polite">
-          {count}/{max}
+          <span className={count >= max ? "text-[var(--kronos-reward)]" : ""}>{count}/{max}</span>
         </span>
         <button
           aria-label="횟수 늘리기"
@@ -248,19 +248,25 @@ export default function KronosWorkspace({
             key={shopSearch}
             items={matchingShops}
             columns={3}
-            className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3"
+            className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 items-stretch gap-3"
             renderItem={(s) => (
+              (() => {
+                const completed = currentProgress(row("shop", s.id), s.reset_type === "일간", now) >= s.limit;
+                return (
                 <article
-                  className="min-w-0 rounded-xl border border-[var(--panel-border)] bg-[var(--inner-box)] p-3 text-sm break-words [overflow-wrap:anywhere]"
+                  aria-label={completed ? `${s.npc} ${s.reward} 구매 완료` : undefined}
+                  className={`flex h-full min-h-[10.5rem] min-w-0 flex-col rounded-xl border border-[var(--panel-border)] border-l-[3px] bg-[var(--inner-box)] p-3 text-sm break-words [overflow-wrap:anywhere] ${completed ? "!border-[var(--kronos-reward)] !border-l-[var(--kronos-reward)]" : "border-l-[var(--accent)]"}`}
                 >
-                  <div className="flex items-center justify-between gap-1">
-                    <div className="flex min-w-0 items-center gap-1">{bookmarkButton("shop", s.id)}<h4 className="min-w-0 font-bold text-[var(--accent)]">{s.npc} <span className="font-normal text-[var(--text-main)]">({s.map})</span></h4></div>
+                  <div className="flex min-h-10 items-start justify-between gap-2">
+                    <div className="flex min-w-0 flex-1 items-start gap-1"><div className="shrink-0">{bookmarkButton("shop", s.id)}</div><h4 className="min-w-0 font-bold leading-tight text-[var(--accent)]">{s.npc} <span className="whitespace-nowrap font-normal text-[var(--text-main)]">({s.map})</span></h4></div>
                     <span className="flex shrink-0 items-center gap-1"><span className="kronos-meta-badge">{s.reset_type}</span><span className="kronos-meta-badge">{s.scope}</span></span>
                   </div>
-                  <div className="mt-2 grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-2 text-sm"><strong className="min-w-0 text-[var(--kronos-reward)]">{s.reward} × {s.reward_cnt.toLocaleString()}</strong><strong className="whitespace-nowrap text-[var(--kronos-cost)]">{s.cost_cnt.toLocaleString()} 골드</strong></div>
+                  <div className="mt-2 grid min-h-10 grid-cols-[minmax(0,1fr)_auto] items-start gap-2 text-sm"><strong className="min-w-0 text-[var(--kronos-reward)]">{s.reward} × {s.reward_cnt.toLocaleString()}</strong><strong className="whitespace-nowrap text-[var(--kronos-cost)]">{s.cost_cnt.toLocaleString()} 골드</strong></div>
                   {shopRequirement(s) && <p className="mt-1 text-xs text-[var(--text-sub)]">{shopRequirement(s)}</p>}
-                  <div className="mt-2 flex flex-wrap items-center justify-between gap-2 border-t border-[var(--panel-border)] pt-2"><span className="text-xs text-[var(--text-sub)]">총합 <strong className="text-[var(--kronos-cost)]">{(s.cost_cnt * s.limit).toLocaleString()} 골드</strong></span>{controls("shop", s.id, s.limit, s.reset_type === "일간", true, true)}</div>
+                  <div className="mt-auto flex flex-wrap items-center gap-2 border-t border-[var(--panel-border)] pt-2"><span className="text-xs text-[var(--text-sub)]">총합 <strong className="text-[var(--kronos-cost)]">{(s.cost_cnt * s.limit).toLocaleString()} 골드</strong></span><div className="ml-auto">{controls("shop", s.id, s.limit, s.reset_type === "일간", true, true)}</div></div>
                 </article>
+                );
+              })()
               )}
           />
           {ready && matchingShops.length === 0 && (
@@ -290,17 +296,21 @@ export default function KronosWorkspace({
             key={missionSearch}
             items={matchingMissions}
             columns={2}
-            className="grid grid-cols-1 md:grid-cols-2 gap-3"
+            className="grid grid-cols-1 items-stretch md:grid-cols-2 gap-3"
             renderItem={(m) => (
+              (() => {
+                const completed = currentProgress(row("mission", m.id), false, now) >= m.max_count;
+                return (
                 <article
-                  className="min-w-0 rounded-xl border border-[var(--panel-border)] border-l-[3px] border-l-[var(--accent)] bg-[var(--inner-box)] p-2.5 text-sm break-words [overflow-wrap:anywhere]"
+                  aria-label={completed ? `${m.title} 임무 완료` : undefined}
+                  className={`flex h-full min-h-[11rem] min-w-0 flex-col rounded-xl border border-[var(--panel-border)] border-l-[3px] bg-[var(--inner-box)] p-2.5 text-sm break-words [overflow-wrap:anywhere] ${completed ? "!border-[var(--kronos-reward)] !border-l-[var(--kronos-reward)]" : "border-l-[var(--accent)]"}`}
                 >
-                  <div className="flex items-start justify-between gap-2"><div className="flex min-w-0 items-start gap-1">{bookmarkButton("mission", m.id)}<h4 className="font-bold text-[var(--accent)]">{m.title}</h4></div><span className="kronos-meta-badge shrink-0">{m.town}</span></div>
-                  <div className="mt-1.5 grid grid-cols-[2.25rem_minmax(0,1fr)] items-baseline gap-1.5 text-xs leading-snug">
+                  <div className="flex min-h-10 items-start justify-between gap-2"><div className="flex min-w-0 items-start gap-1">{bookmarkButton("mission", m.id)}<h4 className="font-bold text-[var(--accent)]">{m.title}</h4></div><span className="kronos-meta-badge shrink-0">{m.town}</span></div>
+                  <div className="mt-1 grid grid-cols-[2.25rem_minmax(0,1fr)] items-baseline gap-1.5 text-xs leading-snug">
                     <span className="text-[var(--text-sub)]">임무</span>
                     <p className="min-w-0 whitespace-pre-wrap font-semibold text-[var(--kronos-cost)]">{m.description}</p>
                   </div>
-                  <div className="mt-1.5 flex flex-wrap items-end justify-between gap-x-3 gap-y-1.5 border-t border-[var(--panel-border)] pt-1.5">
+                  <div className="mt-auto flex flex-wrap items-end justify-between gap-x-3 gap-y-1 border-t border-[var(--panel-border)] pt-1.5">
                     <ul className="min-w-[13rem] flex-1 space-y-0.5 text-xs leading-snug">
                       {m.rewards.map((reward, index) => (
                         <li key={index} className="grid grid-cols-[2.25rem_minmax(0,1fr)] items-baseline gap-1.5">
@@ -312,6 +322,8 @@ export default function KronosWorkspace({
                     <div className="ml-auto shrink-0">{controls("mission", m.id, m.max_count, false, true, true)}</div>
                   </div>
                 </article>
+                );
+              })()
               )}
           />
           {ready && matchingMissions.length === 0 && <p className="text-sm text-[var(--text-sub)]">{missionSearch ? "검색 결과가 없습니다." : "등록된 임무가 없습니다."}</p>}

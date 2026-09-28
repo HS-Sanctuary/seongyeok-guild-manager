@@ -39,7 +39,25 @@ const CLASS_TITLES: Record<string, string[]> = {
   "도적": ["독왕", "트릭스터", "땅거미", "도적"], "격투가": ["권신", "권왕", "권호", "격투가"], "듀얼블레이드": ["유성천침", "쌍극난무", "질풍쌍화", "듀얼블레이드"],
 };
 
-const getMonday = (d: Date) => kronosPeriodStart(d);
+const getTradePeriodStart = (resetType: string, now = new Date()) =>
+  kronosPeriodStart(now, resetType === '일간');
+
+function isCurrentTradePeriod(
+  periodStart: unknown,
+  periodVersion: unknown,
+  resetType: string,
+  now: Date,
+) {
+  // 이전 trade_checks에는 품목별 기간 정보가 없었으므로 현재 주차로
+  // 추정하지 않는다. 화면에는 0으로 보이되 원본은 별도로 보존한다.
+  if (periodVersion !== 2) return false;
+  const parsed = typeof periodStart === 'number'
+    ? periodStart
+    : typeof periodStart === 'string'
+      ? Date.parse(periodStart)
+      : Number.NaN;
+  return Number.isFinite(parsed) && parsed === getTradePeriodStart(resetType, now);
+}
 
 export default function CharacterPage() {
   const router = useRouter();
@@ -84,6 +102,9 @@ export default function CharacterPage() {
 
   const [tradeProgress, setTradeProgress] = useState<Record<number, number>>({});
   const [tradeCompletedBy, setTradeCompletedBy] = useState<Record<number, string>>({});
+  const tradeRecordsRef = useRef<Record<number, any>>({});
+  const dirtyTradeIdsRef = useRef<Set<number>>(new Set());
+  const tradeEditVersionsRef = useRef<Record<number, number>>({});
   const [pinnedTrades, setPinnedTrades] = useState<number[]>([]);
 
   const [tradeSearch, setTradeSearch] = useState<string>("");
@@ -269,18 +290,14 @@ export default function CharacterPage() {
         .or(`owner.eq.${user?.nickname || charName},nickname.eq.${charName}`);
 
       const now = new Date();
-      const mondayNow = getMonday(now);
-      const todayStr = now.toDateString();
 
       const accountWideProgress: Record<number, number> = {};
       const accountWideBuyers: Record<number, string> = {};
+      const accountWideRecords: Record<number, any> = {};
 
       if (allOwnedChars) {
         allOwnedChars.forEach((c: any) => {
           const rawTrade = c.trade_checks || {};
-          const charUpdatedAt = c.updated_at ? new Date(c.updated_at) : new Date(0);
-          const charMonday = getMonday(charUpdatedAt);
-          const charDateStr = charUpdatedAt.toDateString();
 
           Object.keys(rawTrade).forEach((kStr) => {
             const id = Number(kStr);
@@ -290,17 +307,15 @@ export default function CharacterPage() {
             const val = rawTrade[kStr];
             let count = typeof val === 'object' && val !== null ? Number(val.count || 0) : Number(val || 0);
             let buyer = typeof val === 'object' && val !== null ? String(val.completed_by || c.nickname) : c.nickname;
+            const periodStart = typeof val === 'object' && val !== null ? val.period_start : undefined;
+            const periodVersion = typeof val === 'object' && val !== null ? val.period_version : undefined;
 
-            let isExpired = false;
-            if (resetType === '일간' && charDateStr !== todayStr) {
-              isExpired = true;
-            } else if (resetType === '주간' && charMonday < mondayNow) {
-              isExpired = true;
-            }
+            const isExpired = !isCurrentTradePeriod(periodStart, periodVersion, resetType, now);
 
-            if (!isExpired && count > (accountWideProgress[id] || 0)) {
+            if (tradeMeta?.scope === '계정당' && !isExpired && count > (accountWideProgress[id] || 0)) {
               accountWideProgress[id] = count;
               accountWideBuyers[id] = buyer;
+              accountWideRecords[id] = val;
             }
           });
         });
@@ -381,11 +396,6 @@ export default function CharacterPage() {
         const parsedProgress: Record<number, number> = {};
         const parsedNicknames: Record<number, string> = {};
 
-        const lastUpdated = data.updated_at ? new Date(data.updated_at) : new Date(0);
-        const lastMonday = getMonday(lastUpdated);
-        const isDifferentDay = now.toDateString() !== lastUpdated.toDateString();
-        const isDifferentWeek = lastMonday < mondayNow;
-
         Object.keys(rawTrade).forEach((k: any) => {
           const tradeId = Number(k);
           const tradeMeta = (tradesList || []).find((t: any) => t.id === tradeId);
@@ -394,10 +404,10 @@ export default function CharacterPage() {
           const val = rawTrade[k];
           let count = typeof val === 'object' && val !== null ? Number(val.count || 0) : Number(val || 0);
           let buyer = typeof val === 'object' && val !== null ? String(val.completed_by || charName) : charName;
+          const periodStart = typeof val === 'object' && val !== null ? val.period_start : undefined;
+          const periodVersion = typeof val === 'object' && val !== null ? val.period_version : undefined;
 
-          if (resetType === '일간' && isDifferentDay) {
-            count = 0;
-          } else if (resetType === '주간' && isDifferentWeek) {
+          if (!isCurrentTradePeriod(periodStart, periodVersion, resetType, now)) {
             count = 0;
           }
 
@@ -414,6 +424,9 @@ export default function CharacterPage() {
           }
         });
 
+        tradeRecordsRef.current = { ...rawTrade, ...accountWideRecords };
+        dirtyTradeIdsRef.current.clear();
+        tradeEditVersionsRef.current = {};
         setTradeProgress(parsedProgress);
         setTradeCompletedBy(parsedNicknames);
       } else {
@@ -421,6 +434,9 @@ export default function CharacterPage() {
         setProfile({ ...defaultProfile, nickname: charName });
         setLevels({}); setDailyChecks([]); setWeeklyChecks([]); setRepeatChecks({});
         setAbyssChecks([]); setRaidChecks([]); setTradeProgress({}); setTradeCompletedBy({});
+        tradeRecordsRef.current = {};
+        dirtyTradeIdsRef.current.clear();
+        tradeEditVersionsRef.current = {};
       }
     } catch (e) {
     } finally {
@@ -443,16 +459,21 @@ export default function CharacterPage() {
       const existingIndex = myCharacters.findIndex((c: any) => c.nickname === profile.nickname);
       const currentSortOrder = existingIndex !== -1 ? (myCharacters[existingIndex].sort_order ?? myCharacters.length) : myCharacters.length;
 
-      const tradePayload: Record<number, any> = {};
-      Object.keys(tradeProgress).forEach((kStr) => {
-        const id = Number(kStr);
+      const now = new Date();
+      // 다른 설정을 저장해도 교환 품목의 원래 기간·레거시 기록은 다시 찍거나 지우지 않는다.
+      const tradePayload: Record<number, any> = { ...tradeRecordsRef.current };
+      const changedTradeIds = Array.from(dirtyTradeIdsRef.current);
+      const savedTradeVersions = Object.fromEntries(changedTradeIds.map(id => [id, tradeEditVersionsRef.current[id]]));
+      changedTradeIds.forEach((id) => {
+        const tradeMeta = dbTrades.find((trade: any) => trade.id === id);
         tradePayload[id] = {
           count: tradeProgress[id] || 0,
-          completed_by: tradeCompletedBy[id] || null
+          completed_by: tradeCompletedBy[id] || null,
+          period_version: 2,
+          period_start: getTradePeriodStart(tradeMeta?.reset_type || '주간', now),
         };
       });
 
-      const now = new Date();
       const payload = {
         nickname: profile.nickname, alias: profile.alias.slice(0, 3), owner: user.nickname, sort_order: currentSortOrder,
         job: profile.job || "전사", combat_power: Number(profile.combatPower) || 0, magic_resistance: Number(profile.magicResistance) || 0,
@@ -467,6 +488,10 @@ export default function CharacterPage() {
       } else {
         await memberMutationOrThrow({ table: "characters", action: "upsert", payload });
       }
+      tradeRecordsRef.current = tradePayload;
+      changedTradeIds.forEach(id => {
+        if (tradeEditVersionsRef.current[id] === savedTradeVersions[id]) dirtyTradeIdsRef.current.delete(id);
+      });
       const contributionValue = Number(accountContribution) || 0;
       const needsContributionSync = allCharacters.some((char: any) => char.owner === user.nickname && Number(char.contribution || 0) !== contributionValue);
       if (needsContributionSync) {
@@ -485,12 +510,7 @@ export default function CharacterPage() {
 
       const accountWidePayload: Record<number, any> = {};
       (dbTrades || []).filter((t: any) => t.scope === '계정당').forEach((t: any) => {
-        if (tradeProgress[t.id] !== undefined) {
-          accountWidePayload[t.id] = {
-            count: tradeProgress[t.id],
-            completed_by: tradeCompletedBy[t.id] || profile.nickname
-          };
-        }
+        if (changedTradeIds.includes(t.id)) accountWidePayload[t.id] = tradePayload[t.id];
       });
 
       const accountWideEntries = Object.entries(accountWidePayload);
@@ -498,7 +518,7 @@ export default function CharacterPage() {
         if (char.owner !== user.nickname || char.nickname === profile.nickname) return false;
         return accountWideEntries.some(([id, value]: [string, any]) => {
           const saved = char.trade_checks?.[id];
-          return Number(saved?.count ?? saved ?? 0) !== value.count || String(saved?.completed_by ?? "") !== String(value.completed_by ?? "");
+          return Number(saved?.count ?? saved ?? 0) !== value.count || String(saved?.completed_by ?? "") !== String(value.completed_by ?? "") || saved?.period_start !== value.period_start || saved?.period_version !== value.period_version;
         });
       }));
       if (needsAccountWideSync) {
@@ -557,8 +577,8 @@ export default function CharacterPage() {
 
   const switchCharacter = async (targetName: string) => { 
     if (targetName === profile.nickname) return;
-    saveProgress(); 
-    loadCharacterData(targetName, dbContents, dbTrades); 
+    await saveProgress();
+    await loadCharacterData(targetName, dbContents, dbTrades);
     window.history.replaceState(null, '', `?char=${encodeURIComponent(targetName)}`);
   };
 
@@ -595,6 +615,8 @@ export default function CharacterPage() {
   };
 
   const updateTradeProgress = (tradeId: number, delta: number, max: number, scope: string) => {
+    dirtyTradeIdsRef.current.add(tradeId);
+    tradeEditVersionsRef.current[tradeId] = (tradeEditVersionsRef.current[tradeId] || 0) + 1;
     setTradeProgress(prev => {
       const current = prev[tradeId] || 0;
       let next = current + delta;

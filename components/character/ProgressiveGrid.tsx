@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 
-const ROW_STEP = 6;
+const ROW_STEP = 3;
 
 export default function ProgressiveGrid<T extends { id: number }>({
   items,
@@ -21,10 +21,12 @@ export default function ProgressiveGrid<T extends { id: number }>({
     items.length > minItems && (
       <button
         type="button"
-        className={`${responsiveClass} mx-auto min-h-10 rounded-lg border border-[var(--accent)] px-5 py-2 text-sm font-bold text-[var(--accent)] hover:bg-[var(--accent-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]`}
+        className={`${responsiveClass} kronos-more-divider`}
+        aria-label="더보기: 다음 3줄 표시"
         onClick={() => setVisibleRows((rows) => rows + ROW_STEP)}
       >
-        더보기 ↓
+        <span className="kronos-more-shadow" aria-hidden="true" />
+        <span className="kronos-more-mark" aria-hidden="true" />
       </button>
     );
 
@@ -42,11 +44,13 @@ export default function ProgressiveGrid<T extends { id: number }>({
           return <div key={item.id} className={visibility}>{renderItem(item)}</div>;
         })}
       </div>
-      <div className="flex justify-center pt-2">
-        {moreButton(visibleRows, "inline-flex md:hidden")}
-        {moreButton(visibleRows * 2, columns === 3 ? "hidden md:inline-flex xl:hidden" : "hidden md:inline-flex")}
-        {columns === 3 && moreButton(visibleRows * 3, "hidden xl:inline-flex")}
-      </div>
+      {items.length > visibleRows && (
+        <div className="kronos-more-slot">
+          {moreButton(visibleRows, "inline-flex md:hidden")}
+          {moreButton(visibleRows * 2, columns === 3 ? "hidden md:inline-flex xl:hidden" : "hidden md:inline-flex")}
+          {columns === 3 && moreButton(visibleRows * 3, "hidden xl:inline-flex")}
+        </div>
+      )}
     </>
   );
 }

@@ -134,15 +134,16 @@ export default function TradeList({
 
             return (
               <div
-                className={`flex flex-col justify-between p-3 rounded-lg border transition-all ${
+                aria-label={isMax ? `${trade.npc || "교환"} 완료` : undefined}
+                className={`flex min-h-[8.5rem] flex-col p-3 rounded-lg border transition-all ${
                   isPinned
                     ? "bg-[var(--accent-soft)]/20 border-[var(--accent)]"
                     : "bg-[var(--inner-box)] border-[var(--panel-border)] hover:border-[var(--accent)]/40"
-                }`}
+                } border-l-[3px] ${isMax ? "!border-[var(--kronos-reward)] !border-l-[var(--kronos-reward)]" : "border-l-[var(--accent)]"}`}
               >
                 {/* 상단 NPC 정보 */}
-                <div className="flex flex-wrap items-center justify-between mb-2 min-w-0 gap-1.5">
-                  <div className="flex items-center gap-1.5 min-w-0">
+                <div className="flex min-h-10 flex-wrap items-start justify-between gap-x-2 gap-y-1 mb-2 min-w-0">
+                  <div className="flex min-w-[9rem] flex-1 items-start gap-1.5">
                     <button
                       type="button"
                       aria-label="즐겨찾기"
@@ -155,15 +156,15 @@ export default function TradeList({
                     >
                       {isPinned ? "★" : "☆"}
                     </button>
-                    <span className="font-bold text-xs md:text-sm text-[var(--accent)] break-words [overflow-wrap:anywhere]">
+                    <span className="min-w-0 font-bold text-xs leading-tight md:text-sm text-[var(--accent)] break-words [overflow-wrap:anywhere]">
                       {trade.npc || "NPC"}{" "}
-                      <span className="text-[var(--text-main)] font-normal text-xs">
+                      <span className="whitespace-nowrap text-[var(--text-main)] font-normal text-xs">
                         ({trade.map || "맵"})
                       </span>
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-1 shrink-0">
+                  <div className="flex shrink-0 items-center gap-1 whitespace-nowrap">
                     <span className="kronos-meta-badge">
                       {trade.reset_type || "주간"}
                     </span>
@@ -181,8 +182,8 @@ export default function TradeList({
                 </div>
 
                 {/* 하단 보상/소모 및 조작부 */}
-                <div className="flex flex-wrap items-end justify-between gap-2 mt-1">
-                  <div className="min-w-0 flex-1 space-y-1">
+                <div className="mt-auto pt-1">
+                  <div className="space-y-1">
                     <div className="text-xs md:text-sm font-bold text-[var(--kronos-reward)] leading-tight break-keep">
                       <span className="text-xs text-[var(--text-sub)] mr-1.5 font-normal">보상</span>
                       {trade.reward}{trade.reward_cnt ? ` × ${trade.reward_cnt.toLocaleString()}` : ""}
@@ -193,7 +194,7 @@ export default function TradeList({
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1 bg-[var(--panel)] px-2 py-1 rounded-lg border border-[var(--panel-border)] shrink-0 self-end">
+                  <div className="mt-2 flex w-full justify-end items-center gap-1 bg-[var(--panel)] px-2 py-1 rounded-lg border border-[var(--panel-border)]">
                     <button
                       type="button"
                       onClick={() =>
@@ -230,6 +231,14 @@ export default function TradeList({
                       className="w-5 h-5 md:w-6 md:h-6 flex justify-center items-center rounded bg-[var(--accent)] text-[var(--accent-fg)] font-black text-xs active:scale-95 transition cursor-pointer"
                     >
                       +
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={isMax ? "교환 횟수 모두 초기화" : "교환 횟수 모두 완료"}
+                      onClick={() => updateTradeProgress(trade.id, isMax ? -currentVal : limit - currentVal, limit, trade.scope || "캐릭당")}
+                      className="h-5 rounded border border-[var(--accent)] px-1 text-[0.6rem] font-black text-[var(--accent)] hover:bg-[var(--accent-soft)] md:h-6 md:px-1.5 md:text-xs"
+                    >
+                      {isMax ? "MIN" : "MAX"}
                     </button>
                   </div>
                 </div>

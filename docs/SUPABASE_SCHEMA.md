@@ -108,6 +108,8 @@
 
 `combat_power`, `magic_resistance`, `life_energy`, `charm`은 text 타입이다. 숫자 정렬/계산 전 안전하게 숫자로 변환해야 한다. JSONB는 부분 수정 시 전체 객체 덮어쓰기와 동시 저장 충돌에 주의한다.
 
+`characters.trade_checks`의 신규 변경 품목은 ID별 `{count, completed_by, period_version: 2, period_start}` 객체로 저장한다. `period_start`는 한국 시간 06시 기준 일간/주간 시작 Unix 밀리초다. 구형 숫자/객체는 현재 기간 완료로 추정하지 않지만 다른 설정의 저장 시 원본 JSON을 보존한다. v2.14는 이 JSONB 내부 기록 방식만 바꾸며 테이블 컬럼·정책 마이그레이션이나 운영 DB 직접 수정은 없다.
+
 ### `notices`
 
 백업 헤더에서 확인된 컬럼은 `id`, `type`, `title`, `content`, `author`, `is_pinned`, `created_at`, `poll`, `link`, `likes`, `dislikes`, `comments`다.

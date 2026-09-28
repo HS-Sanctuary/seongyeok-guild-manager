@@ -1,5 +1,11 @@
 # 🏛️ SANCTUM Master Guide
 
+## 2026-09-28 v2.14 크로노스 카드·교환 기간
+
+- `components/character/ProgressiveGrid.tsx`는 기존 즐겨찾기 우선 목록을 반응형 열 수에 따라 첫 3줄, 버튼마다 추가 3줄씩 보인다. `public/svgs/logo/더보기.svg`를 `app/globals.css`의 테마색 마스크·어두운 글자 음영과 함께 카드 경계에 겹친 얇은 디바이더로 사용한다.
+- `TradeList`와 `KronosWorkspace`의 물물교환·상점·임무 카드는 왼쪽 강조선, 제목/내용/하단 횟수 조작 영역, 한도 도달 시 초록 테두리·수량 표시를 공유한다. 물물교환도 MAX/MIN을 제공하며 긴 이름은 버튼과 겹치지 않도록 감싼다.
+- `app/character/page.tsx`의 교환 횟수는 `lib/kronos.ts`의 한국 시간 06시 일간·주간 시작값과 각 품목의 `period_version: 2`/`period_start`를 비교한다. 구형 기록은 현재 완료로 보지 않되 JSON 원본은 보존한다. 실제 수정한 품목만 기간을 갱신하고 계정당 교환의 기간·횟수·완료자를 함께 동기화한다. DB 테이블·RLS·API 변경 없음.
+
 ## 2026-09-28 v2.13 공지·헤더·크로노스 목록
 
 - `KerygmaReaderView`의 운영진용 `읽은 길드원 목록`은 기존 브라우저별 `sanctum_notice_readers_*` 값 대신 `/api/notices/reads`를 사용하도록 변경했다. 서버는 로그인 세션의 계정 ID로 공지당 최초 읽음 1건만 기록하고, 목록은 길드마스터·부마스터에게만 제공한다. `supabase/migrations/20260928_notice_reads.sql`의 비공개 `notice_reads` 테이블은 한설이 운영 적용했고 RLS·역할별 권한을 읽기 전용으로 검증했다. 적용 전 기기별 읽음 기록은 신뢰할 수 없어 합치지 않는다. 알림함 자체의 읽지 않음 상태는 기존 기기별 localStorage 그대로다.
