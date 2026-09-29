@@ -72,6 +72,7 @@ export default function KerygmaWritePage() {
 
   const [isEditMode, setIsEditMode] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
+  const [originalNoticeType, setOriginalNoticeType] = useState<string | null>(null);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
 
   const [newNotice, setNewNotice] = useState({
@@ -180,6 +181,7 @@ export default function KerygmaWritePage() {
               link: data.link || "",
               isPinned: data.is_pinned || false,
             });
+            setOriginalNoticeType(data.type);
             if (data.poll) {
               setPendingPoll(data.poll);
               setPollForm(data.poll);
@@ -929,6 +931,7 @@ export default function KerygmaWritePage() {
   // 🎯 [Supabase 100% 직결 및 router.replace 히스토리 대체 적용]
   const handleSubmit = async () => {
     if (!newNotice.title.trim()) return alert("제목을 입력해주세요.");
+    if (isEditMode && !originalNoticeType) return alert("수정할 공지를 불러오는 중입니다. 잠시 후 다시 시도해주세요.");
 
     const currentContent = editorRef.current
       ? editorRef.current.innerHTML
@@ -941,11 +944,19 @@ export default function KerygmaWritePage() {
     if (!isLinkOnly && !cleanedContent.trim() && !pendingPoll) {
       return alert("내용 또는 투표를 작성해주세요.");
     }
-    if (
-      (newNotice.type === "생텀 업데이트" || newNotice.type === "생텀 공지사항") &&
-      !isMaster
-    ) {
-      return alert("해당 카테고리는 길드마스터/관리자 전용입니다.");
+    if (!isMaster) {
+      if (originalNoticeType === "생텀 공지사항") {
+        return alert("생텀 공지사항은 길드마스터만 수정할 수 있습니다.");
+      }
+      if (newNotice.type === "생텀 공지사항") {
+        return alert("생텀 공지사항은 길드마스터만 저장할 수 있습니다.");
+      }
+      if (newNotice.type === "생텀 업데이트" && (!isEditMode || originalNoticeType !== "생텀 업데이트")) {
+        return alert("새 생텀 업데이트는 길드마스터만 발행할 수 있습니다.");
+      }
+      if (originalNoticeType === "생텀 업데이트" && newNotice.type !== "생텀 업데이트") {
+        return alert("생텀 업데이트의 카테고리는 변경할 수 없습니다.");
+      }
     }
 
     const payloadSizeKB = Math.round(new Blob([cleanedContent]).size / 1024);

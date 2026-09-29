@@ -56,17 +56,38 @@ export async function POST(request: NextRequest) {
       const input = body.payload;
       if (!input || typeof input !== "object" || Array.isArray(input)) return NextResponse.json({ message: "공지 내용이 올바르지 않습니다." }, { status: 400 });
       const title = typeof input.title === "string" ? input.title.trim() : "";
-      if (input.type === "생텀 업데이트" && account.role !== "길드마스터") {
-        return NextResponse.json({ message: "생텀 업데이트 작성 권한이 없습니다." }, { status: 403 });
+      const isEdit = body.id != null;
+      let originalType: string | null = null;
+      if (isEdit) {
+        if (!Number.isInteger(id) || id <= 0) return NextResponse.json({ message: "공지 ID가 올바르지 않습니다." }, { status: 400 });
+        const { data: original, error: originalError } = await supabase.from("notices").select("type").eq("id", id).single();
+        if (originalError || !original) return NextResponse.json({ message: "수정할 공지를 찾지 못했습니다." }, { status: 404 });
+        originalType = original.type;
+      }
+      if (account.role !== "길드마스터") {
+        if (originalType === "생텀 공지사항") {
+          return NextResponse.json({ message: "생텀 공지사항은 길드마스터만 수정할 수 있습니다." }, { status: 403 });
+        }
+        if (input.type === "생텀 공지사항") {
+          return NextResponse.json({ message: "생텀 공지사항은 길드마스터만 저장할 수 있습니다." }, { status: 403 });
+        }
+        if (input.type === "생텀 업데이트" && originalType !== "생텀 업데이트") {
+          return NextResponse.json({ message: "새 생텀 업데이트는 길드마스터만 발행할 수 있습니다." }, { status: 403 });
+        }
+        if (originalType === "생텀 업데이트" && input.type !== "생텀 업데이트") {
+          return NextResponse.json({ message: "생텀 업데이트의 카테고리는 변경할 수 없습니다." }, { status: 403 });
+        }
       }
       if (!title || title.length > 200 || typeof input.content !== "string" || input.content.length > 2_000_000) {
         return NextResponse.json({ message: "제목 또는 본문 길이를 확인해주세요." }, { status: 400 });
       }
       const payload: Record<string, unknown> = {};
-      for (const field of MANAGED_FIELDS) if (field in input) payload[field] = input[field];
+      for (const field of MANAGED_FIELDS) {
+        if (isEdit && (field === "likes" || field === "dislikes")) continue;
+        if (field in input) payload[field] = input[field];
+      }
       payload.title = title;
-      if (body.id != null) {
-        if (!Number.isInteger(id)) return NextResponse.json({ message: "공지 ID가 올바르지 않습니다." }, { status: 400 });
+      if (isEdit) {
         const { data, error } = await supabase.from("notices").update(payload).eq("id", id).select("id").single();
         if (error) throw error;
         return NextResponse.json({ id: data.id });
