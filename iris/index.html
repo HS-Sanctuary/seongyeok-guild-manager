@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IRIS · 로컬 미리보기</title>
+  <style>
+    :root{font-family:system-ui,sans-serif;color:#f4ead5;background:#101114}*{box-sizing:border-box}body{max-width:820px;margin:0 auto;padding:32px 20px}header{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}h1{margin:0;color:#e8ca8a;letter-spacing:.1em}p{color:#b4b1ad}.badge{padding:8px 12px;border:1px solid #6b5d43;border-radius:999px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-top:26px}.card{background:#1b1d22;border:1px solid #34343a;border-radius:16px;padding:20px;min-width:0}.label{color:#b4b1ad;font-size:.9rem}.value{display:block;font-size:1.8rem;font-weight:750;margin-top:8px;overflow-wrap:anywhere}.sub{font-size:.85rem;color:#b4b1ad;margin-top:8px}.error{color:#ffb0a5}.note{border-top:1px solid #34343a;margin-top:26px;padding-top:18px;font-size:.9rem}button{background:#e8ca8a;color:#17140e;border:0;border-radius:9px;padding:11px 16px;font:inherit;font-weight:700;cursor:pointer}button:disabled{opacity:.55;cursor:wait}
+  </style>
+</head>
+<body>
+  <header><div><h1>IRIS</h1><p>게임 데이터 읽기 · 로컬 시제품</p></div><span class="badge" id="status">연결 확인 중</span></header>
+  <section class="card" style="margin-top:24px"><strong>생텀 연결 미리보기</strong><p>승인하면 이 브라우저의 생텀 화면에서 30분 동안 게임 데이터를 읽어 미리 볼 수 있습니다. 생텀 DB에는 저장되지 않습니다.</p><button id="pair" type="button">생텀에서 미리보기 승인</button><div class="sub" id="pair-status"></div></section>
+  <main class="grid">
+    <section class="card"><span class="label">캐릭터</span><strong class="value" id="character">—</strong><div class="sub" id="level">—</div></section>
+    <section class="card"><span class="label">전투력</span><strong class="value" id="combat">—</strong></section>
+    <section class="card"><span class="label">생활력</span><strong class="value" id="living">—</strong></section>
+    <section class="card"><span class="label">매력</span><strong class="value" id="charm">—</strong></section>
+    <section class="card"><span class="label">마도저항</span><strong class="value" id="resistance">—</strong></section>
+    <section class="card"><span class="label">데코점수</span><strong class="value" id="decor">—</strong></section>
+    <section class="card"><span class="label">은동전</span><strong class="value" id="silver">—</strong></section>
+    <section class="card"><span class="label">마족 공물</span><strong class="value" id="tribute">—</strong></section>
+    <section class="card"><span class="label">가공기 현황</span><strong class="value" id="processing">—</strong><div class="sub" id="facilities">—</div></section>
+    <section class="card"><span class="label">일일 숙제</span><strong class="value" id="daily">—</strong><div class="sub" id="daily-received">—</div></section>
+    <section class="card"><span class="label">주간 숙제</span><strong class="value" id="weekly">—</strong><div class="sub" id="weekly-received">—</div></section>
+    <section class="card"><span class="label">주간 어비스·레이드·필드보스</span><strong class="value" id="activities" style="font-size:1rem;line-height:1.7">—</strong><div class="sub">주간 숙제 횟수만 표시합니다. 특정 콘텐츠 클리어 내역은 아닙니다.</div></section>
+  </main>
+  <p class="note">이 화면은 이 PC에서만 열립니다. 게임 데이터는 저장하거나 생텀 DB로 전송하지 않습니다. 채집·제작·수령 명령도 실행하지 않습니다.<br><span id="updated">—</span></p>
+  <script>
+    const show=(id,value)=>{document.getElementById(id).textContent=value};
+    const count=(value)=>typeof value==='number'?value.toLocaleString('ko-KR'):'—';
+    document.getElementById('pair').addEventListener('click',async(event)=>{
+      const button=event.currentTarget;
+      button.disabled=true;
+      try{
+        const response=await fetch('/api/bridge/pair',{method:'POST'});
+        if(!response.ok)throw new Error('연결 승인을 시작하지 못했습니다.');
+        const {token}=await response.json();
+        location.href=`http://localhost:3000/iris#pair=${encodeURIComponent(token)}`;
+      }catch(error){show('pair-status',error.message);button.disabled=false}
+    });
+    let refreshing=false;
+    async function refresh(){
+      if(refreshing)return;
+      refreshing=true;
+      try{
+        const result=await fetch('/api/snapshot',{cache:'no-store'}).then(r=>r.json());
+        if(result.status!=='connected')throw new Error(result.message||'연결되지 않음');
+        const {character,processing,missions,currencies,observedAt}=result.data;
+        show('status','게임 연결됨');show('character',character.job);show('level',character.level==null?'레벨 확인 중':`Lv.${count(character.level)}`);
+        show('combat',count(character.combatScore));show('living',count(character.livingScore));show('charm',count(character.attractivenessScore));show('resistance',count(character.arcaneResistance));show('decor',count(character.decorScore));
+        show('silver',currencies.available?count(currencies.silverCoins):'조회 불가');show('tribute',currencies.available?count(currencies.demonTributes):'조회 불가');
+        show('processing',processing.available?`${count(processing.facilityCount)}개 시설 · 완료 ${count(processing.completed)}건`:'조회 불가');
+        show('facilities',processing.available?(processing.facilities.map(f=>`${f.name} (가동 ${f.active}, 완료 ${f.completed})`).join(' · ')||'진행 중인 가공 없음'):'가공기 연결을 확인해 주세요');
+        for(const period of ['daily','weekly']){
+          const item=missions[period];
+          show(period,item.available?`${count(item.completed)} / ${count(item.total)} 완료`:'조회 불가');
+          show(`${period}-received`,item.available?`보상 수령 ${count(item.received)}건`:'게임 연결 상태를 확인해 주세요');
+        }
+        show('activities',missions.weeklyActivityProgress.map(item=>`${item.label}: ${item.goals.length?item.goals.map(goal=>`${count(goal.current)}/${count(goal.goal)}`).join(', '):'항목 없음'}`).join(' · '));
+        show('updated',`마지막 조회: ${new Date(observedAt).toLocaleTimeString('ko-KR')}`);
+        document.getElementById('status').classList.remove('error');
+      }catch(error){show('status','연결 대기');show('updated',error.message);document.getElementById('status').classList.add('error')}
+      finally{refreshing=false}
+    }
+    refresh();setInterval(refresh,15000);
+  </script>
+</body>
+</html>

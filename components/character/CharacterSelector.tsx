@@ -3,6 +3,7 @@
 import React, { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import ClassIcon from "@/components/common/ClassIcon";
+import OwnedCharacterPicker from "@/components/character/OwnedCharacterPicker";
 
 interface CharacterSelectorProps {
   profile: any;
@@ -181,52 +182,7 @@ export default function CharacterSelector({
           </button>
         </div>
 
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-1.5 md:gap-2 w-full">
-          {myCharacters.map((char: any) => {
-            const mobileAlias = (char.alias || char.nickname).slice(0, 3);
-            const isSelected = char.nickname === profile.nickname;
-
-            return (
-              <button
-                key={char.nickname}
-                type="button"
-                onClick={() => switchCharacter(char.nickname)}
-                className={`flex flex-col items-center justify-center p-1.5 rounded-lg border transition cursor-pointer select-none w-full min-w-0 ${
-                  isSelected
-                    ? "bg-[var(--accent-soft)] border-[var(--accent)] shadow-xs"
-                    : "bg-[var(--inner-box)] border-[var(--panel-border)] hover:border-[var(--accent)]/50"
-                }`}
-              >
-                <span className="md:hidden text-xs font-black leading-none text-center truncate w-full">
-                  <span
-                    className={
-                      isSelected
-                        ? "text-[var(--accent)]"
-                        : "text-[var(--text-main)]"
-                    }
-                  >
-                    {mobileAlias}
-                  </span>
-                </span>
-
-                <div className="hidden md:flex flex-col items-center justify-center w-full gap-0.5 min-w-0 text-center">
-                  <span
-                    className={`text-xs font-black truncate w-full text-center ${
-                      isSelected
-                        ? "text-[var(--accent)]"
-                        : "text-[var(--text-main)]"
-                    }`}
-                  >
-                    {char.nickname}
-                  </span>
-                  <span className="text-[10px] text-[var(--text-sub)] font-bold truncate w-full text-center">
-                    {char.job || "전사"}
-                  </span>
-                </div>
-              </button>
-            );
-          })}
-        </div>
+        <OwnedCharacterPicker characters={myCharacters} selectedNickname={profile.nickname} onSelect={switchCharacter} />
       </div>
     </div>
   );
