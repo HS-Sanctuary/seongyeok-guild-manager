@@ -477,7 +477,7 @@ export default function GuildBusCard({
         )}
       </div>
 
-      {displaySubContent && !isDefaultSubContent && (
+      {displaySubContent && (
         <div className="mb-2 sm:mb-3 text-xs text-[var(--text-main)] bg-[var(--inner-box)] p-2 rounded-lg border border-[var(--panel-border)] flex items-start gap-1.5">
           <AlertCircle className="w-4 h-4 text-[var(--accent)] shrink-0 mt-0.5" />
           <span className="break-all leading-snug font-medium min-w-0 flex-1">{displaySubContent}</span>
