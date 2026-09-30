@@ -129,7 +129,7 @@ export default function SynaxisPartySection({
               myCharacterNames.includes(m.name || m.character_name || "")
             );
             const isJoined = joinedMyChars.length > 0;
-            const isFull = members.length >= (party.max_members || 8);
+            const isFull = !isGuildBus && members.length >= (party.max_members || 8);
 
             const contentMarkSrc =
               party.party_type === "어비스" || (party.content_name && party.content_name.includes("어비스"))
@@ -186,7 +186,7 @@ export default function SynaxisPartySection({
                     <div className="flex items-center gap-1 text-[10px] sm:text-xs font-bold text-[var(--text-sub)] bg-[var(--inner-box)] px-2 py-0.5 rounded-md border border-[var(--panel-border)] shrink-0">
                       <Users className="w-3 h-3 text-[var(--accent)]" />
                       <span className="font-mono text-[var(--text-main)] font-black">
-                        {members.length}/{party.max_members || 8}
+                        {isGuildBus ? `${members.length}캐릭터 참여` : `${members.length}/${party.max_members || 8}`}
                       </span>
                     </div>
                   </div>
