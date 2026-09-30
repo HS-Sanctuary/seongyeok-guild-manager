@@ -67,6 +67,7 @@ export default function Home() {
   const [allCharactersMap, setAllCharactersMap] = useState<Record<string, string>>({});
   const [allCharactersList, setAllCharactersList] = useState<any[]>([]);
   const [nexusContents, setNexusContents] = useState<any[]>([]);
+  const [nexusClasses, setNexusClasses] = useState<any[]>([]);
   
   const [uniqueAccountsCount, setUniqueAccountsCount] = useState(1);
   const [totalCharactersCount, setTotalCharactersCount] = useState(0);
@@ -236,18 +237,20 @@ export default function Home() {
   };
 
   const fetchDashboardData = async (currentUser: any) => {
-    const [charRes, taskRes, contRes, partyRes, deepRes, abyssRes] = await Promise.all([
+    const [charRes, taskRes, contRes, partyRes, deepRes, abyssRes, classesRes] = await Promise.all([
       supabase.from('characters').select('*'),
       supabase.from('nexus_tasks').select('*').eq('is_active', true),
       supabase.from('nexus_contents').select('*').eq('is_active', true),
       supabase.from('parties').select('*').order('created_at', { ascending: false }).limit(20),
       supabase.from('deep_holes').select('*').order('reported_at', { ascending: false }).limit(20),
-      supabase.from('abyss_reports').select('*').order('hole_time', { ascending: false }).limit(10)
+      supabase.from('abyss_reports').select('*').order('hole_time', { ascending: false }).limit(10),
+      supabase.from('nexus_classes').select('*').eq('is_active', true).order('id', { ascending: true })
     ]);
     
     if (deepRes.data) setDeepHoles(deepRes.data);
     if (abyssRes.data) setAbyssReports(abyssRes.data);
     if (contRes.data) setNexusContents(contRes.data);
+    if (classesRes.data) setNexusClasses(classesRes.data);
 
     if (charRes.data) {
       let allChars: typeof charRes.data = [];
@@ -633,6 +636,8 @@ export default function Home() {
         openJoinPopup={openJoinPopup}
         setDetailModalParty={setDetailModalParty}
         handleDeleteParty={handleDeleteParty}
+        classesCatalog={nexusClasses}
+        currentUserAccountId={user?.id}
         router={router}
       />
 

@@ -33,6 +33,8 @@ interface SynaxisPartySectionProps {
   onNextRoundClick?: (party: any, completedMembers: any[]) => void;
   setInspectCharacter?: (char: any) => void;
   onRefresh?: () => void;
+  classesCatalog?: any[];
+  currentUserAccountId?: string;
   router: any;
 }
 
@@ -48,6 +50,8 @@ export default function SynaxisPartySection({
   onNextRoundClick,
   setInspectCharacter = () => {},
   onRefresh,
+  classesCatalog = [],
+  currentUserAccountId,
   router,
 }: SynaxisPartySectionProps) {
   const [expandedPartyIds, setExpandedPartyIds] = useState<(string | number)[]>([]);
@@ -227,6 +231,8 @@ export default function SynaxisPartySection({
                       <GuildBusCard
                         party={party}
                         currentUserNickname={user?.nickname || ""}
+                        currentUserAccountId={currentUserAccountId}
+                        classesCatalog={classesCatalog}
                         currentUserRole={user?.role}
                         onJoinClick={openJoinPopup}
                         onLeaveClick={(p, charName) => handleLeaveParty(p, charName || "")}
