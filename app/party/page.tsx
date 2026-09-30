@@ -208,6 +208,7 @@ function SynaxisContent() {
                         party={party}
                         currentUserNickname={partyManager.user?.nickname || partyManager.user?.username || "한설"}
                         currentUserAccountId={partyManager.user?.id}
+                        classesCatalog={partyManager.nexusClasses}
                         currentUserRole={userRole}
                         onJoinClick={() => partyManager.openJoinPopup(party)}
                         onLeaveClick={(p, charName) => partyManager.handleLeaveParty(p, charName || "")}
