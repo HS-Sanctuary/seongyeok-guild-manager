@@ -406,18 +406,37 @@ export default function Home() {
 
   useEffect(() => {
     setMounted(true);
-    const loadUserAndData = () => {
-      const savedUser = localStorage.getItem("nexus_user");
-      if (!savedUser) { 
-        router.push("/login"); 
-      } else { 
-        const parsedUser = JSON.parse(savedUser);
-        setUser(parsedUser);
-        fetchDashboardData(parsedUser);
+    const loadUserAndData = async () => {
+      try {
+        const sessionResponse = await fetch("/api/auth/session", { cache: "no-store" });
+        const sessionResult = sessionResponse.ok
+          ? await sessionResponse.json() as { account?: { id: string; nickname: string; role: string } | null }
+          : { account: null };
+        const sessionAccount = sessionResult.account;
+
+        if (!sessionAccount) {
+          localStorage.removeItem("nexus_user");
+          router.push("/login");
+          return;
+        }
+
+        const savedUser = localStorage.getItem("nexus_user");
+        const parsedUser = savedUser ? JSON.parse(savedUser) : {};
+        const currentUser = {
+          ...parsedUser,
+          id: sessionAccount.id,
+          nickname: sessionAccount.nickname,
+          role: sessionAccount.role,
+        };
+        setUser(currentUser);
+        await fetchDashboardData(currentUser);
+      } catch (error) {
+        console.error("홈 세션 확인 실패", error);
+        router.push("/login");
       }
     };
 
-    loadUserAndData();
+    void loadUserAndData();
   }, [router]);
 
   const checkTaskDone = (char: any, item: any, type: "daily" | "weekly" | "raid") => {

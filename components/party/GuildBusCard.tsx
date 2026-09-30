@@ -23,6 +23,7 @@ import {
 } from '@/lib/busUtils';
 import { memberMutation } from '@/lib/memberMutationClient';
 import PoolStatusModal from '@/components/party/modals/PoolStatusModal';
+import { eligibleBusCandidates, formatBusRoster, isBusOperator } from '@/lib/guildBusPolicy';
 
 const Users = ({ className, title }: { className?: string; title?: string }) => (
   <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -106,6 +107,7 @@ const getDisplayName = (m: any) => {
 interface GuildBusCardProps {
   party: Party;
   currentUserNickname: string;
+  currentUserAccountId?: string;
   currentUserRole?: string;
   onJoinClick: (party: Party) => void;
   onLeaveClick: (party: Party, charName?: string) => void;
@@ -121,6 +123,7 @@ interface GuildBusCardProps {
 export default function GuildBusCard({
   party,
   currentUserNickname,
+  currentUserAccountId,
   currentUserRole = "",
   onJoinClick,
   onLeaveClick,
@@ -144,6 +147,13 @@ export default function GuildBusCard({
   const [eligibleAdmins, setEligibleAdmins] = useState<{ nickname: string; role: string }[]>([]);
   const [selectedAdmin, setSelectedAdmin] = useState<string>('');
   const [isLoadingAdmins, setIsLoadingAdmins] = useState<boolean>(false);
+  const [busNow, setBusNow] = useState(() => new Date());
+  const [isCopyingRoster, setIsCopyingRoster] = useState(false);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setBusNow(new Date()), 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     setIsStarted(isBusStartedInDB);
@@ -161,6 +171,8 @@ export default function GuildBusCard({
   const displaySubContent = useMemo(() => {
     if (!party.sub_content) return "";
     return party.sub_content
+      .replace(/^\s*\[성역 길드 버스\]\s*/i, "")
+      .replace(/^\s*"성역 길드 버스"\s*\[[^\]]*\]\s*/i, "")
       .replace(/^(레이드|어비스)\s*-\s*/, "")
       .replace(/(레이드|어비스)\s*-\s*/g, "")
       .replace(/\s*\(통합\)/g, "")
@@ -173,7 +185,6 @@ export default function GuildBusCard({
     return (
       cleaned === `[성역 길드 버스] ${party.content_name} (${party.difficulty}) 운행` ||
       cleaned.startsWith(`"성역 길드 버스" [`) ||
-      cleaned.startsWith(`[성역 길드 버스]`) ||
       cleaned.startsWith(`어비스 `)
     );
   }, [party.sub_content, party.content_name, party.difficulty]);
@@ -202,7 +213,13 @@ export default function GuildBusCard({
 
   const maxPartySize = party.max_members || 8;
 
-  const activeCandidateList = reconfiguredCandidates || candidates;
+  const scheduledCandidates = useMemo(
+    () => eligibleBusCandidates(candidates, party, busNow),
+    [candidates, party, busNow]
+  );
+  const activeCandidateList = reconfiguredCandidates
+    ? eligibleBusCandidates(reconfiguredCandidates, party, busNow)
+    : scheduledCandidates;
   const { selected, hasHealer, hasTanker } = assembleBalancedParty(
     activeCandidateList, 
     maxPartySize, 
@@ -218,8 +235,26 @@ export default function GuildBusCard({
     : 0;
 
   const isSubMasterOrHigherRole = ["길드마스터", "부마스터", "부마스터 대행", "master", "admin", "sub_master"].includes(currentUserRole.toLowerCase());
-  const isLeader = party.leader_name === currentUserNickname;
-  const canManage = isMasterOrAdmin || isSubMasterOrHigherRole || isLeader;
+  const leaderMember = candidates.find((candidate) => candidate.character_name === party.leader_name);
+  const canManage = isBusOperator(
+    party.leader_name,
+    currentUserNickname,
+    [currentUserAccountId, currentUserNickname].filter(Boolean) as string[],
+    isMasterOrAdmin || isSubMasterOrHigherRole
+  );
+
+  const handleCopyRoster = async () => {
+    if (!canManage || activeMembers.length === 0) return;
+    setIsCopyingRoster(true);
+    try {
+      await navigator.clipboard.writeText(formatBusRoster(activeMembers.map((member) => member.character_name), candidates));
+      alert("구성 안내를 클립보드에 복사했습니다.");
+    } catch {
+      alert("클립보드 복사에 실패했습니다. 브라우저 권한을 확인해주세요.");
+    } finally {
+      setIsCopyingRoster(false);
+    }
+  };
 
   const handleStartBus = async () => {
     if (activeMembers.length === 0) return alert("출전 파티원이 없습니다.");
@@ -589,6 +624,15 @@ export default function GuildBusCard({
             >
               <RefreshCw className="w-3 h-3 shrink-0 text-white" />
               <span className="text-white">파티 재구성</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleCopyRoster}
+              disabled={isCopyingRoster || activeMembers.length === 0}
+              className="w-full sm:w-auto px-2 py-1 rounded-md sm:rounded-lg text-[10.5px] sm:text-xs font-black bg-sky-600 hover:bg-sky-500 text-white border border-sky-700 disabled:opacity-50 transition-all flex items-center justify-center gap-1 cursor-pointer active:scale-95"
+            >
+              <span className="text-white">{isCopyingRoster ? '복사 중...' : '구성 안내'}</span>
             </button>
 
             <button

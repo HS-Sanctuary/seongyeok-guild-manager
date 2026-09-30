@@ -344,6 +344,8 @@ export function getRoleByJob(jobName: string, classCatalog?: NexusClassItem[]): 
   if (catalogToUse && catalogToUse.length > 0) {
     const found = catalogToUse.find((c) => c.name === j || c.name.toLowerCase() === j.toLowerCase());
     if (found && found.role) {
+      // 서포터는 음유시인 클래스에만 허용한다.
+      if (found.role === "서포터" && j !== "음유시인") return "근딜";
       return found.role as JobRole;
     }
   }
@@ -351,7 +353,7 @@ export function getRoleByJob(jobName: string, classCatalog?: NexusClassItem[]): 
   // 2. Fallback 키워드 매칭
   if (["빙결술사", "빙결", "대검전사", "기사", "전사", "성기사", "수호자"].some((k) => j.includes(k))) return "탱커";
   if (["사제", "수도사", "힐러", "성직자", "구원자"].some((k) => j.includes(k))) return "힐러";
-  if (["음유시인", "바드", "서포터"].some((k) => j.includes(k))) return "서포터";
+  if (j === "음유시인") return "서포터";
   if (["궁수", "석궁사수", "마법사", "화염술사", "전격술사", "장궁병", "악사", "암흑술사"].some((k) => j.includes(k))) return "원딜";
 
   return "근딜";

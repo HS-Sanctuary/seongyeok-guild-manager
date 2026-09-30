@@ -200,16 +200,17 @@ function SynaxisContent() {
                   </div>
                 ) : (
                   partyManager.filteredParties.map(party => {
-                    const isBus = party.sub_content?.includes("길드 버스") || (party.party_type === "1회 클리어" && party.sub_content?.includes("버스"));
+                    const isBus = party.party_type === "길드버스" || party.sub_content?.includes("길드 버스") || party.sub_content?.includes("성역 길드 버스");
                     
                     return isBus ? (
                       <GuildBusCard 
                         key={party.id}
                         party={party}
                         currentUserNickname={partyManager.user?.nickname || partyManager.user?.username || "한설"}
+                        currentUserAccountId={partyManager.user?.id}
                         currentUserRole={userRole}
                         onJoinClick={() => partyManager.openJoinPopup(party)}
-                        onLeaveClick={(p) => partyManager.handleLeaveParty(p, partyManager.user?.nickname || partyManager.user?.username || "한설")}
+                        onLeaveClick={(p, charName) => partyManager.handleLeaveParty(p, charName || "")}
                         onDeleteClick={(id) => partyManager.handleDeleteParty(id)}
                         onNextRoundClick={partyManager.handleNextRound}
                         onRefresh={() => {
@@ -314,6 +315,8 @@ function SynaxisContent() {
           onSubmit={partyManager.handleBusSubmit}
           contentName={partyManager.targetBusParty.contentName}
           difficulty={partyManager.targetBusParty.difficulty}
+          busTimeStart={partyManager.targetBusParty.timeStart}
+          busTimeEnd={partyManager.targetBusParty.timeEnd}
         />
       )}
 

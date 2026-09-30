@@ -10,6 +10,19 @@ const isRecord = (value: unknown): value is Record<string, unknown> => !!value &
 const memberName = (value: unknown) => isRecord(value)
   ? [value.name, value.character_name, value.nickname].find((part) => typeof part === "string") as string | undefined
   : undefined;
+const sameMember = (left: unknown, right: unknown) => {
+  const leftRecord = isRecord(left) ? left : {};
+  const rightRecord = isRecord(right) ? right : {};
+  const leftId = leftRecord.character_id ?? leftRecord.id;
+  const rightId = rightRecord.character_id ?? rightRecord.id;
+  if (leftId != null && rightId != null) return String(leftId) === String(rightId);
+  return memberName(left) === memberName(right);
+};
+const memberKey = (value: unknown) => {
+  const record = isRecord(value) ? value : {};
+  const id = record.character_id ?? record.id;
+  return id != null ? `id:${String(id)}` : `name:${memberName(value) ?? ""}`;
+};
 
 export async function POST(request: NextRequest) {
   try {
@@ -70,16 +83,46 @@ export async function POST(request: NextRequest) {
         }
       } else {
         if (filter?.column !== "id") return NextResponse.json({ message: "파티 ID가 필요합니다." }, { status: 400 });
-        const { data: party } = await supabase.from("parties").select("id, leader_name, members").eq("id", filter.value).maybeSingle();
+        const { data: party } = await supabase.from("parties").select("id, leader_name, members, sub_content, party_type").eq("id", filter.value).maybeSingle();
         if (!party) return NextResponse.json({ message: "파티를 찾을 수 없습니다." }, { status: 404 });
         const oldMembers = Array.isArray(party.members) ? party.members : [];
         const actorInParty = oldMembers.some((member) => ownNames.has(memberName(member) ?? ""));
         const isLeader = ownNames.has(party.leader_name ?? "");
-        if (!isAdmin && !actorInParty && !isLeader) {
+        const isGuildBus = party.party_type === "길드버스" || String(party.sub_content || "").includes("길드 버스") || String(party.sub_content || "").includes("성역 길드 버스");
+        const isBusJoinRequest = isGuildBus && cleanPayload._busJoin === true;
+        const isBusLeaveRequest = isGuildBus && cleanPayload._busLeave === true;
+        delete cleanPayload._busJoin;
+        delete cleanPayload._busLeave;
+        if (isBusLeaveRequest) {
+          const nextMembers = Array.isArray(cleanPayload.members) ? cleanPayload.members : null;
+          const nextKeys = new Set(nextMembers?.map(memberKey) ?? []);
+          const removed = oldMembers.filter((member) => !nextKeys.has(memberKey(member)) && !nextMembers?.some((next) => memberName(next) === memberName(member)));
+          const added = nextMembers?.filter((member) => !oldMembers.some((old) => memberKey(old) === memberKey(member) || memberName(old) === memberName(member))) ?? [];
+          if (!nextMembers || !removed.length || added.length || !removed.every((member) => ownNames.has(memberName(member) ?? ""))) {
+            return NextResponse.json({ message: "본인 캐릭터만 길드 버스에서 탈퇴할 수 있습니다." }, { status: 403 });
+          }
+        }
+        const controllerFields = ["status", "leader_name"];
+        const requestsControllerChange = isGuildBus && Object.keys(cleanPayload).some((key) => controllerFields.includes(key));
+        const isBusController = isLeader || account.nickname === party.leader_name;
+        if (isGuildBus && requestsControllerChange && !isBusController && !isBusLeaveRequest) {
+          return NextResponse.json({ message: "현재 길드 버스 운행자만 컨트롤러 작업을 할 수 있습니다." }, { status: 403 });
+        }
+        if (isGuildBus && !isBusController && !isBusLeaveRequest) {
+          const nextMembers = action === "update" && Array.isArray(cleanPayload.members) ? cleanPayload.members : null;
+          const nextKeys = new Set(nextMembers?.map(memberKey) ?? []);
+          const oldKeys = new Set(oldMembers.map(memberKey));
+          const preserved = nextMembers && oldMembers.every((member) => nextKeys.has(memberKey(member)) || nextMembers.some((next) => memberName(next) === memberName(member)));
+          const added = nextMembers?.filter((next) => !oldKeys.has(memberKey(next)) && !oldMembers.some((old) => memberName(old) === memberName(next))) ?? [];
+          if (!preserved || !added.length || !added.every((member) => ownNames.has(memberName(member) ?? ""))) {
+            return NextResponse.json({ message: "현재 길드 버스 운행자만 구성을 변경할 수 있습니다." }, { status: 403 });
+          }
+        }
+        if (!isBusJoinRequest && !isBusLeaveRequest && !isAdmin && !actorInParty && !isLeader) {
           if (action !== "update" || !Array.isArray(cleanPayload.members)) return NextResponse.json({ message: "파티 수정 권한이 없습니다." }, { status: 403 });
           const nextMembers = cleanPayload.members;
-          const preserved = oldMembers.every((member) => nextMembers.some((next) => JSON.stringify(next) === JSON.stringify(member)));
-          const added = nextMembers.filter((member) => !oldMembers.some((old) => JSON.stringify(old) === JSON.stringify(member)));
+          const preserved = oldMembers.every((member) => nextMembers.some((next) => sameMember(next, member)));
+          const added = nextMembers.filter((member) => !oldMembers.some((old) => sameMember(old, member)));
           const allowedFields = Object.keys(cleanPayload).every((key) => ["members", "status", "wanted_roles", "final_start_time", "leader_name"].includes(key));
           if (!preserved || !added.length || !added.every((member) => ownNames.has(memberName(member) ?? "")) || !allowedFields) {
             return NextResponse.json({ message: "본인 캐릭터로만 파티에 합류할 수 있습니다." }, { status: 403 });

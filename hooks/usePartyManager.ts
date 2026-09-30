@@ -60,7 +60,7 @@ export function usePartyManager() {
   const [showBusCreateModal, setShowBusCreateModal] = useState(false);
 
   const [isBusModalOpen, setIsBusModalOpen] = useState(false);
-  const [targetBusParty, setTargetBusParty] = useState<{ contentName: string; difficulty: string } | null>(null);
+  const [targetBusParty, setTargetBusParty] = useState<{ contentName: string; difficulty: string; timeStart: string; timeEnd: string } | null>(null);
 
   const [timeoutParty, setTimeoutParty] = useState<Party | null>(null);
 
@@ -476,7 +476,7 @@ export function usePartyManager() {
       if (p.difficulty !== selectedDiff) return false;
       if (p.party_type !== dbPartyType) return false;
 
-      const isBus = p.party_type === "1회 클리어" && p.sub_content?.includes("길드 버스");
+      const isBus = String(p.party_type || "") === "길드버스" || p.sub_content?.includes("길드 버스");
       if (isBus) return false;
 
       const pMaxMembers = p.max_members || targetMaxMembers;
@@ -707,11 +707,23 @@ export function usePartyManager() {
     );
 
     const busLeaderName = initialMembers[0]?.name || user?.username || "한설";
-    const busMemoFinal = busCreateMemo.trim() || generateDefaultBusMemo(busCreateContent, busCreateDiff, busCreateSubContents);
+    const rawBusMemo = busCreateMemo.trim() || generateDefaultBusMemo(busCreateContent, busCreateDiff, busCreateSubContents);
+    const busMemoFinal = rawBusMemo.includes("길드 버스")
+      ? rawBusMemo
+      : `[성역 길드 버스] ${rawBusMemo}`;
     const normBusDate = normalizeDateStr(busCreateDate);
 
     const isAbyssBus = busCreateContent.category === "어비스" || busCreateContent.name.includes("어비스");
     const busSubContents = isAbyssBus ? busCreateSubContents : null;
+
+    const configuredRoles = [...new Set(
+      nexusClasses
+        .map((item) => getRoleByJob(item.name, nexusClasses))
+        .filter((role) => ["탱커", "근딜", "원딜", "힐러", "서포터"].includes(role))
+    )];
+    const defaultBusRoles = configuredRoles.length > 0
+      ? configuredRoles
+      : ["탱커", "힐러", "근딜", "원딜"];
 
     const busPartyPayload = {
       content_name: busCreateContent.name,
@@ -724,7 +736,7 @@ export function usePartyManager() {
       time_end: busCreateTimeEnd,
       max_members: busMaxMembers,
       matching_mode: "모집우선",
-      wanted_roles: ["탱커", "힐러", "근딜", "원딜"],
+      wanted_roles: defaultBusRoles,
       members: initialMembers,
       status: "모집중",
       leader_name: busLeaderName
@@ -741,8 +753,8 @@ export function usePartyManager() {
     }
   };
 
-  const openGuildBusModal = (contentName: string, difficulty: string) => {
-    setTargetBusParty({ contentName, difficulty });
+  const openGuildBusModal = (contentName: string, difficulty: string, timeStart = "20:00", timeEnd = "23:59") => {
+    setTargetBusParty({ contentName, difficulty, timeStart, timeEnd });
     setIsBusModalOpen(true);
   };
 
@@ -812,7 +824,7 @@ export function usePartyManager() {
 
         assembleBalancedParty(combinedCandidates, existingParty.max_members || targetMaxMembers, cpReqs, undefined, nexusClasses);
 
-        const { error } = await memberMutation({ table: "parties", action: "update", filter: { column: "id", value: existingParty.id }, payload: { members: combinedMembers } });
+        const { error } = await memberMutation({ table: "parties", action: "update", filter: { column: "id", value: existingParty.id }, payload: { members: combinedMembers, _busJoin: true } });
         if (error) throw error;
       } else {
         const firstItem = selectedData[0];
@@ -959,14 +971,17 @@ export function usePartyManager() {
         if (leavingMember && leavingMember.roles && leavingMember.roles.length > 0) {
           updatedWanted.push(leavingMember.roles[0]);
         }
+        const isGuildBus = party.party_type === "길드버스" || party.sub_content?.includes("길드 버스") || party.sub_content?.includes("성역 길드 버스");
         const updatePayload: any = {
           members: remainingMembers,
           wanted_roles: updatedWanted,
-          status: party.status === "운행중" ? "운행중" : "모집중",
-          final_start_time: null,
-          leader_name: remainingMembers[0]?.name || remainingMembers[0]?.character_name || null
+          ...(isGuildBus ? {} : {
+            status: party.status === "운행중" ? "운행중" : "모집중",
+            final_start_time: null,
+            leader_name: remainingMembers[0]?.name || remainingMembers[0]?.character_name || null
+          })
         };
-        const { error } = await memberMutation({ table: "parties", action: "update", filter: { column: "id", value: party.id }, payload: updatePayload });
+        const { error } = await memberMutation({ table: "parties", action: "update", filter: { column: "id", value: party.id }, payload: isGuildBus ? { ...updatePayload, _busLeave: true } : updatePayload });
         if (error) throw error;
         alert(`[${charName}] 파티 탈퇴가 완료되었습니다.`);
       }
@@ -980,7 +995,7 @@ export function usePartyManager() {
   const openJoinPopup = (party: Party) => {
     const isBus = party.sub_content?.includes("길드 버스");
     if (isBus) {
-      openGuildBusModal(party.content_name, party.difficulty);
+      openGuildBusModal(party.content_name, party.difficulty, party.time_start, party.time_end);
       return;
     }
 
