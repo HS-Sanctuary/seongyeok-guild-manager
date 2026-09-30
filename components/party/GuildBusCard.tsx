@@ -169,25 +169,27 @@ export default function GuildBusCard({
   }, [abyssInfo.isAbyss]);
 
   const displaySubContent = useMemo(() => {
-    if (!party.sub_content) return "";
-    return party.sub_content
+    const rawContent = party.sub_content || party.memo || "";
+    if (!rawContent) return "";
+    return rawContent
       .replace(/^\s*\[성역 길드 버스\]\s*/i, "")
       .replace(/^\s*"성역 길드 버스"\s*\[[^\]]*\]\s*/i, "")
       .replace(/^(레이드|어비스)\s*-\s*/, "")
       .replace(/(레이드|어비스)\s*-\s*/g, "")
       .replace(/\s*\(통합\)/g, "")
       .trim();
-  }, [party.sub_content]);
+  }, [party.sub_content, party.memo]);
 
   const isDefaultSubContent = useMemo(() => {
-    if (!party.sub_content) return true;
-    const cleaned = party.sub_content.trim();
+    const rawContent = party.sub_content || party.memo || "";
+    if (!rawContent) return true;
+    const cleaned = rawContent.trim();
     return (
       cleaned === `[성역 길드 버스] ${party.content_name} (${party.difficulty}) 운행` ||
       cleaned.startsWith(`"성역 길드 버스" [`) ||
       cleaned.startsWith(`어비스 `)
     );
-  }, [party.sub_content, party.content_name, party.difficulty]);
+  }, [party.sub_content, party.memo, party.content_name, party.difficulty]);
 
   const candidates: BusCandidate[] = (party.members || []).map((m: any) => ({
     character_id: m.character_id || m.id,
