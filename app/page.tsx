@@ -244,7 +244,7 @@ export default function Home() {
       supabase.from('parties').select('*').order('created_at', { ascending: false }).limit(20),
       supabase.from('deep_holes').select('*').order('reported_at', { ascending: false }).limit(20),
       supabase.from('abyss_reports').select('*').order('hole_time', { ascending: false }).limit(10),
-      supabase.from('nexus_classes').select('*').eq('is_active', true).order('id', { ascending: true })
+      supabase.from('nexus_classes').select('*').order('id', { ascending: true })
     ]);
     
     if (deepRes.data) setDeepHoles(deepRes.data);

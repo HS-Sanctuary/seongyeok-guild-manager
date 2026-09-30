@@ -173,7 +173,6 @@ export default function GuildBusCard({
     if (!rawContent) return "";
     return rawContent
       .replace(/^\s*\[성역 길드 버스\]\s*/i, "")
-      .replace(/^\s*"성역 길드 버스"\s*\[[^\]]*\]\s*/i, "")
       .replace(/^(레이드|어비스)\s*-\s*/, "")
       .replace(/(레이드|어비스)\s*-\s*/g, "")
       .replace(/\s*\(통합\)/g, "")
