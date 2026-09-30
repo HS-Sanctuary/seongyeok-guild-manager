@@ -728,6 +728,7 @@ export function usePartyManager() {
     const busPartyPayload = {
       content_name: busCreateContent.name,
       sub_content: busMemoFinal,
+      memo: busMemoFinal,
       selected_sub_contents: busSubContents,
       difficulty: busCreateDiff,
       party_type: "1회 클리어",
@@ -841,6 +842,7 @@ export function usePartyManager() {
           max_members: targetMaxMembers,
           party_type: "1회 클리어",
           sub_content: `[성역 길드 버스] ${targetBusParty.contentName} (${targetBusParty.difficulty}) 운행`,
+          memo: `[성역 길드 버스] ${targetBusParty.contentName} (${targetBusParty.difficulty}) 운행`,
           status: "모집중",
           matching_mode: "조합우선",
           members: newMembers,
