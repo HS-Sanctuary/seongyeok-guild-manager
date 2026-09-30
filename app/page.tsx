@@ -569,6 +569,24 @@ export default function Home() {
     router.push(`/party?join=${encodeURIComponent(String(party.id))}`);
   };
 
+  const handleLeaveParty = async (party: any, charName: string) => {
+    if (!charName || !confirm(`'${charName}' 캐릭터를 이 파티에서 탈퇴 처리하시겠습니까?`)) return;
+    const members = Array.isArray(party.members) ? party.members : [];
+    const remaining = members.filter((member: any) => (member.character_name || member.name) !== charName);
+    if (remaining.length === members.length) return;
+    try {
+      await memberMutationOrThrow({
+        table: "parties",
+        action: "update",
+        filter: { column: "id", value: party.id },
+        payload: { members: remaining, _busLeave: true },
+      });
+      await fetchDashboardData(user);
+    } catch (error: any) {
+      alert(`탈퇴 처리 중 오류: ${error?.message || "알 수 없는 오류"}`);
+    }
+  };
+
   const formatName = (fullName: string) => fullName.replace('어비스 - ', '').replace('레이드 - ', '').substring(0, 2);
 
   let totalAccountCurrent = 0, totalAccountMax = 0;
@@ -636,6 +654,8 @@ export default function Home() {
         openJoinPopup={openJoinPopup}
         setDetailModalParty={setDetailModalParty}
         handleDeleteParty={handleDeleteParty}
+        handleLeaveParty={handleLeaveParty}
+        onRefresh={() => { if (user) void fetchDashboardData(user); }}
         classesCatalog={nexusClasses}
         currentUserAccountId={user?.id}
         router={router}

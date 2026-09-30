@@ -114,7 +114,12 @@ export async function POST(request: NextRequest) {
           const oldKeys = new Set(oldMembers.map(memberKey));
           const preserved = nextMembers && oldMembers.every((member) => nextKeys.has(memberKey(member)) || nextMembers.some((next) => memberName(next) === memberName(member)));
           const added = nextMembers?.filter((next) => !oldKeys.has(memberKey(next)) && !oldMembers.some((old) => memberName(old) === memberName(next))) ?? [];
-          if (!preserved || !added.length || !added.every((member) => ownNames.has(memberName(member) ?? ""))) {
+          const changed = nextMembers?.filter((next) => {
+            const old = oldMembers.find((candidate) => sameMember(candidate, next));
+            return old && JSON.stringify(old) !== JSON.stringify(next);
+          }) ?? [];
+          const isOwnUpdate = changed.length > 0 && changed.every((member) => ownNames.has(memberName(member) ?? ""));
+          if (!preserved || (!added.length && !isOwnUpdate) || (added.length && !added.every((member) => ownNames.has(memberName(member) ?? "")))) {
             return NextResponse.json({ message: "현재 길드 버스 운행자만 구성을 변경할 수 있습니다." }, { status: 403 });
           }
         }
