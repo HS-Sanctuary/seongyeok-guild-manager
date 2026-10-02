@@ -1,5 +1,27 @@
 # 🏛️ SANCTUM Master Guide
 
+## 2026-10-02 v2.15 공식 배포 범위
+
+- 한설의 공식 push/공지 게시 요청에 따라 아래 10월 1~2일 로컬 시낙시스·크로노스 변경을 v2.15에 통합한다. `lib/release.ts`가 화면 버전 기준이다. 구조는 아래 공통 카탈로그/액션/체크 병합/카드 이름 측정 항목을 따른다. 신규 DB 객체·RLS·SQL 변경은 없다.
+- 공지는 기존 `/kerygma/write`→`/api/notices/mutate`의 길드마스터 권한 경로로 게시하며 새 `생텀 업데이트`의 서버 작성자는 `SANCTUM 시스템`이다. 배포 성공 및 운영 화면 확인 뒤 제목별 중복 방어를 사용한다. 실제 결과는 RELEASE_NOTES/HANDOFF에 기록한다. IRIS 내부 시제품은 이번 공개 노트 범위 밖이다.
+
+## 2026-10-02 길드버스 카드·목록 헤더 반응형 — 로컬 수정, 미배포
+
+- 공통 `GuildBusCard`의 본문만 `GuildBusCard.module.css`의 `guild-bus-card` 크기 쿼리 컨테이너가 된다. 실제 카드 폭에 따라 출전자 1/2/4열(20rem/39rem)을 적용한다. 출전자 칸은 클래스/역할/전체 전투력 윗줄과 이름 아랫줄의 2줄이다. `ResponsiveMemberName.tsx`가 실제 전체 이름 폭을 관찰해 들어갈 때 전체 닉네임, 부족하면 저장 애칭 최대 3자 또는 이름 앞 3자를 선택한다. 한설의 후속 승인으로 항상 전체 이름을 줄바꿈하던 이전 동작을 대체한다. 컨트롤러 버튼 전체 줄바꿈, 본인 캐릭터 칩 래핑은 유지한다. 화면 전체 폭으로 중첩 홈 카드를 4열로 강제하지 않는다. fixed 인계/참가 모달은 쿼리 컨테이너 밖에 유지한다.
+- `PartyFilterHeader.module.css`가 제목·탭 래핑 및 실제 헤더 폭 기준 검색/필터 행 전환(42rem)을 담당한다. 테마 변수·전역 rem 글자 크기와 기존 콜백을 유지한다. API/DB/권한 구조 변경 없음. 내부 합성 브라우저 검증 도구는 `tests/party-layout-preview.mjs`, 기록은 BETA-061/HANDOFF를 따른다.
+- 저장 애칭은 버스 참가 JSON이 아닌 캐릭터 프로필이 기준이다. 홈 `allCharactersList`→`SynaxisPartySection.characterProfiles`와 `/party`의 기존 `allCharactersMap`→`GuildBusCard.characterProfiles`→이름 위젯으로 전달해 두 화면이 같은 현재 애칭을 사용한다. 추가 DB 요청이나 참가 JSON 보정은 없다.
+
+## 2026-10-01 길드버스/크로노스 공통 경로 — 로컬 수정, 미배포
+
+- 홈 `SynaxisPartySection`과 `/party`는 동일 `PartyCard`/`GuildBusCard` 및 필수 `PartyCatalog`를 사용한다. `hooks/usePartyCatalog.ts`가 `nexus_classes`, `nexus_contents`, `content_power_reqs`를 병렬 조회하고 60초 캐시·탭 활성/주기 갱신·중복 요청 방어를 제공한다. 역할은 현재 클래스 설정이 과거 저장 역할보다 우선하며 서포터는 음유시인 전용이다.
+- `/party`→`PartyModals`→`ContentSelectModal` 및 `BusCreateModal`의 내부 선택 모달도 같은 필수 카탈로그를 사용한다. `lib/partyContentCatalog.ts`는 기존 `CONTENT_DB`의 ID/이름을 유지하되 선택 가능한 난이도는 DB의 종류+콘텐츠명으로만 구성하며 어비스 다중은 공통 난이도만 허용한다. 난이도별 정격 인원 및 레거시 지옥 공백 조회를 호환한다. 로딩/오류/미등록 시 적용·신청/개설을 방어하며 현재 유효 콘텐츠/난이도를 적용 콜백으로 전달한다. DB 객체·기존 파티 일괄 변경 없음.
+- `lib/guildBusPolicy.ts`의 버스 판별·시간 eligibility·운행자 판정을 공통 사용한다. `GuildBusCard`→`lib/guildBusActions.ts`→`/api/member-mutations`의 `_busMemberAction`으로 반복/선택 탈퇴/대기 순서 재구성을 처리한다. 서버는 본인 소유 캐릭터와 현재 운행자 권한을 확인하고 최신 `members` JSON을 조건 비교해 저장한다. 탑승은 모달에 전달된 파티 ID로 최신 행을 읽는다.
+- `lib/busUtils.ts`는 콘텐츠 접두사 정규화 후 난이도별 기준을 조회한다. 계정별 후보를 함께 평가하여 4인 각 전투력 등급 1~2명, 8인 압도 3명·권장 2~3명·그 외 2~3명 목표를 적용한다. 부족한 등급은 가능한 후보로 충원하고 중복 계정은 제외한다. `parties.members[].selection_order`는 재구성/회차 이후 우선순위를 보존하는 앱 JSON 메타데이터다.
+- `/api/parties/sync-checklist`의 `finishRound`가 실제 출전자 숙제를 콘텐츠 ID로 추가하고 그 멤버만 완료 처리/순서 갱신한다. 길드버스는 현재 운행자 전용이다. 여러 행은 단일 트랜잭션이 아니며 일부 저장 실패를 사용자에게 반환한다. 일반 파티도 동기화 실패를 무시하고 종료하지 않는다.
+- `lib/matchingUtils.ts`가 구형 체크 JSON 읽기·완료/해제·기준값 대비 병합을 공유한다. 홈 `_checklistAction`은 해당 항목만, 크로노스 `_checklistBase`는 로드 이후 직접 수정한 항목만 최신 서버 상태에 반영한다. 크로노스 저장 요청은 직렬 처리한다. 새 DB 객체·RLS·운영 SQL 변경 없음. 과거 실제 손실 복구는 별도 승인/백업 과제다.
+- 검증/남은 실제 화면 확인은 `docs/HANDOFF.md` 2026-10-01 항목을 따른다. 이번 작업은 한설 지시로 다음 릴리스에 노트를 통합하며 버전·공개 공지는 변경하지 않는다.
+- 일반 자동 매칭의 난이도 비교도 `normalizeDifficulty`를 사용해 기존 `지옥 1`과 DB 표준 `지옥1` 신청이 같은 파티 후보에 포함되도록 한다. 기존 파티 저장값을 일괄 수정하지 않는다.
+
 `527c134` main push 후 운영 공개 경로와 비로그인 IRIS API 차단을 1차 확인했다. 이어지는 운영 확인 문서 push에는 구조·DB·권한 변경이 없다.
 
 ## 2026-09-28 PC 동반 프로그램 시제품 — 로컬·운영 미배포

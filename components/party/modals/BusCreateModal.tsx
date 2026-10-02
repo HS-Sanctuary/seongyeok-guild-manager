@@ -7,6 +7,7 @@ import CustomTimePicker from "@/components/party/CustomTimePicker";
 import ContentSelectModal from "@/components/party/modals/ContentSelectModal";
 import { CONTENT_DB, ContentItem, ABYSS_SUB_DUNGEONS, AbyssSubDungeon } from "@/components/party/types";
 import { parseAbyssInfo, generateAbyssDefaultMemo } from "@/lib/busUtils";
+import type { PartyCatalog } from "@/hooks/usePartyCatalog";
 
 export interface BusCharSelectionConfig {
   selected: boolean;
@@ -50,6 +51,7 @@ const formatShortDateDisplay = (dateStr: string) => {
 };
 
 interface BusCreateModalProps {
+  catalog: PartyCatalog;
   showBusCreateModal: boolean;
   setShowBusCreateModal: (val: boolean) => void;
   busCreateContent: ContentItem;
@@ -73,6 +75,7 @@ interface BusCreateModalProps {
 }
 
 export default function BusCreateModal({
+  catalog,
   showBusCreateModal,
   setShowBusCreateModal,
   busCreateContent,
@@ -303,18 +306,20 @@ export default function BusCreateModal({
     setShowContentModal(true);
   };
 
-  const applyContentModal = (selectedSubContents?: string[]) => {
+  const applyContentModal = (selectedSubContents?: string[], selection?: {content: ContentItem; difficulty: string}) => {
     const finalSubContents = selectedSubContents || tempSubContents;
+    const content = selection?.content || tempContent;
+    const difficulty = selection?.difficulty || tempDiff;
     
-    setBusCreateContent(tempContent);
-    setBusCreateDiff(tempDiff);
+    setBusCreateContent(content);
+    setBusCreateDiff(difficulty);
     
     if (setBusSelectedSubContents) {
       setBusSelectedSubContents(finalSubContents);
     }
     setTempSubContents(finalSubContents);
     
-    setBusCreateMemo(generateDefaultBusMemo(tempContent, tempDiff, finalSubContents));
+    setBusCreateMemo(generateDefaultBusMemo(content, difficulty, finalSubContents));
     setShowContentModal(false);
   };
 
@@ -705,6 +710,7 @@ export default function BusCreateModal({
 
         {/* 목표 컨텐츠 선택 모달 연동 */}
         <ContentSelectModal
+          catalog={catalog}
           showContentModal={showContentModal}
           setShowContentModal={setShowContentModal}
           tempContentCategory={tempContentCategory}

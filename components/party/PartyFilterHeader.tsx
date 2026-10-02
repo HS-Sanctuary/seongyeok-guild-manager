@@ -2,6 +2,7 @@
 
 import React from 'react';
 import MarkIcon from '@/components/common/MarkIcon';
+import styles from './PartyFilterHeader.module.css';
 
 interface PartyFilterHeaderProps {
   activeDateFilter: string;
@@ -42,27 +43,27 @@ export default function PartyFilterHeader({
   ];
 
   return (
-    <div className="bg-[var(--inner-box)]/90 backdrop-blur-md p-3 sm:p-4 rounded-2xl border border-[var(--panel-border)] shadow-lg space-y-2.5 sm:space-y-3 min-w-0">
+    <div className={`${styles.filterHeader} bg-[var(--inner-box)]/90 backdrop-blur-md p-3 sm:p-4 rounded-2xl border border-[var(--panel-border)] shadow-lg space-y-2.5 sm:space-y-3 min-w-0`}>
       
       {/* ──────────────── 1. 최상단: 브랜드 타이틀 & 메인 언더라인 탭 ──────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[var(--panel-border)]/80 pb-2 gap-2">
+      <div className={`${styles.headingRow} border-b border-[var(--panel-border)]/80 pb-2`}>
         
         {/* 타이틀 & 라이브 스태터스 */}
-        <div className="flex items-center gap-2">
-          <span className="relative flex h-2.5 w-2.5">
+        <div className={`${styles.titleGroup} flex items-center gap-2`}>
+          <span className="relative flex h-2.5 w-2.5 shrink-0">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
           </span>
           <h2 className="text-xs sm:text-sm font-black tracking-tight text-[var(--text-main)] flex items-center gap-1.5">
             <span>실시간 파티 매칭</span>
-            <span className="text-[10px] font-mono text-[var(--accent)] font-semibold uppercase tracking-wider hidden sm:inline">
+            <span className="text-[.67rem] font-mono text-[var(--accent)] font-semibold uppercase tracking-wider hidden sm:inline">
               [LIVE]
             </span>
           </h2>
         </div>
 
         {/* [메인 탭] 🔴/🟡 전역 MarkIcon 동기화 글로우 언더라인 탭 */}
-        <div className="flex items-center gap-1 sm:gap-2">
+        <div className={styles.categoryTabs}>
           {categoryTabs.map((cat) => {
             const isActive = selectedCategoryFilter === cat.id;
             return (
@@ -94,7 +95,7 @@ export default function PartyFilterHeader({
       </div>
 
       {/* ──────────────── 2. 하단: 통합 검색바 + 스마트 드롭다운 필터 ──────────────── */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-0.5 min-w-0">
+      <div className={`${styles.filterRow} pt-0.5`}>
         
         {/* [좌측] 라이브 통합 검색바 */}
         <div className="relative flex-1 min-w-0">
@@ -125,7 +126,7 @@ export default function PartyFilterHeader({
         </div>
 
         {/* [우측] 세련된 드롭다운 필터 그룹 */}
-        <div className="flex items-center gap-1.5 shrink-0 min-w-0 justify-between sm:justify-end">
+        <div className={styles.filterControls}>
           
           {/* 1. 모집 상태 드롭다운 칩 */}
           <div className="relative flex-1 sm:flex-initial min-w-0">

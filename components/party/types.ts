@@ -2,6 +2,8 @@ export interface Member {
   name: string;
   character_name?: string;
   nickname?: string;
+  alias?: string;
+  tempAlias?: string;
   job: string;
   roles: string[];
   role?: string;

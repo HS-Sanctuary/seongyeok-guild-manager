@@ -6,6 +6,8 @@ import PartyCard from "@/components/party/PartyCard";
 import GuildBusCard from "@/components/party/GuildBusCard";
 import { Party, DIFFICULTY_COLORS } from "@/components/party/types";
 import { formatAbyssBadgeText } from "@/lib/busUtils";
+import type { PartyCatalog } from '@/hooks/usePartyCatalog';
+import { isGuildBusParty } from '@/lib/guildBusPolicy';
 
 const ChevronDown = ({ className }: { className?: string }) => (
   <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
@@ -24,16 +26,16 @@ interface SynaxisPartySectionProps {
   user: any;
   myCharacters: any[];
   allCharactersMap: Record<string, any>;
+  characterProfiles?: Record<string, { alias?: string }>;
   formatRoleText?: (role: string) => string;
   openJoinPopup: (party: any) => void;
   setDetailModalParty?: (party: any) => void;
   handleDeleteParty: (partyId: string | number) => void;
   handleLeaveParty?: (party: any, charName: string) => void;
   onCompleteParty?: (party: any) => void;
-  onNextRoundClick?: (party: any, completedMembers: any[]) => void;
   setInspectCharacter?: (char: any) => void;
-  onRefresh?: () => void;
-  classesCatalog?: any[];
+  onRefresh: () => void | Promise<void>;
+  catalog: PartyCatalog;
   currentUserAccountId?: string;
   router: any;
 }
@@ -43,14 +45,14 @@ export default function SynaxisPartySection({
   user,
   myCharacters,
   allCharactersMap,
+  characterProfiles,
   openJoinPopup,
   handleDeleteParty,
   handleLeaveParty = () => {},
   onCompleteParty,
-  onNextRoundClick,
   setInspectCharacter = () => {},
   onRefresh,
-  classesCatalog = [],
+  catalog,
   currentUserAccountId,
   router,
 }: SynaxisPartySectionProps) {
@@ -69,6 +71,7 @@ export default function SynaxisPartySection({
   const isAdmin =
     user?.role === "길드마스터" ||
     user?.role === "부마스터" ||
+    user?.role === "부마스터 대행" ||
     user?.role === "ADMIN" ||
     user?.role === "MASTER" ||
     user?.role === "SUB_MASTER";
@@ -121,11 +124,7 @@ export default function SynaxisPartySection({
           </div>
         ) : (
           activeParties.map((party: any) => {
-            const isGuildBus =
-              party.party_type === "길드버스" ||
-              party.is_guild_bus ||
-              (party.sub_content && party.sub_content.includes("길드 버스")) ||
-              (party.content_name && party.content_name.includes("길드 버스"));
+            const isGuildBus = isGuildBusParty(party);
 
             const isExpanded = expandedPartyIds.includes(party.id);
             const members = party.members || [];
@@ -232,18 +231,19 @@ export default function SynaxisPartySection({
                         party={party}
                         currentUserNickname={user?.nickname || ""}
                         currentUserAccountId={currentUserAccountId}
-                        classesCatalog={classesCatalog}
+                        catalog={catalog}
+                        characterProfiles={characterProfiles}
+                        myCharacterNames={myCharacterNames}
                         currentUserRole={user?.role}
                         onJoinClick={openJoinPopup}
-                        onLeaveClick={(p, charName) => handleLeaveParty(p, charName || "")}
                         onDeleteClick={handleDeleteParty}
-                        onNextRoundClick={onNextRoundClick}
                         onRefresh={onRefresh}
                         isMasterOrAdmin={isAdmin}
                       />
                     ) : (
                       <PartyCard
                         party={party}
+                        catalog={catalog}
                         myCharacterNames={myCharacterNames}
                         allCharactersMap={allCharactersMap}
                         openJoinPopup={openJoinPopup}

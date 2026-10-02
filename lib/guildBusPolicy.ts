@@ -1,6 +1,11 @@
 export type BusWindow = { party_date?: string; time_start: string; time_end: string };
 export type BusEntry = { character_name: string; time_start?: string; time_end?: string; is_completed?: boolean; allow_repeat?: boolean };
 
+export function isGuildBusParty(party: {party_type?: string; is_guild_bus?: boolean; sub_content?: unknown; memo?: unknown; content_name?: string}): boolean {
+  return party.party_type === '길드버스' || party.is_guild_bus === true ||
+    [party.sub_content,party.memo,party.content_name].some(value => typeof value === 'string' && value.replace(/\s/g,'').includes('길드버스'));
+}
+
 function minutes(time: string | undefined): number | null {
   const match = /^(\d{1,2}):(\d{2})$/.exec(time || '');
   if (!match) return null;
@@ -38,6 +43,11 @@ export function eligibleBusCandidates<T extends BusEntry>(members: T[], bus: Bus
 
 export function isBusOperator(leader: string | undefined, account: string, characters: string[], isAdmin: boolean): boolean {
   return !!leader && isAdmin && (leader === account || characters.includes(leader));
+}
+
+export function ownedPartyCharacters<T extends {owner?: string; nickname?: string}>(characters: T[], account: string): T[] {
+  if (!account) return [];
+  return characters.filter(character => character.owner === account || (!character.owner && character.nickname === account));
 }
 
 export function formatBusRoster(selectedNames: string[], members: BusEntry[]): string {

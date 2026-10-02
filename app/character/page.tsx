@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { memberMutationOrThrow } from "@/lib/memberMutationClient";
+import { normalizeChecklist } from '@/lib/matchingUtils';
 
 import CharacterStats from "@/components/character/CharacterStats";
 import ClassLevelManager from "@/components/character/ClassLevelManager";
@@ -68,6 +69,8 @@ export default function CharacterPage() {
   const isInitialLoad = useRef(true);
   const toastTimerRef = useRef<NodeJS.Timeout | null>(null);
   const progressSavesRef = useRef<Set<Promise<void>>>(new Set());
+  const progressSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const checklistBaseRef = useRef<{nickname: string; daily_checks: unknown; weekly_checks: unknown; raid_checks: unknown} | null>(null);
   const manageSaveLockRef = useRef(false);
   const skipNextAutosaveRef = useRef(false);
 
@@ -322,6 +325,10 @@ export default function CharacterPage() {
       }
 
       const data = allOwnedChars?.find((c: any) => c.nickname === charName);
+      checklistBaseRef.current = data ? {
+        nickname: charName, daily_checks: data.daily_checks,
+        weekly_checks: data.weekly_checks, raid_checks: data.raid_checks,
+      } : null;
 
       if (data) {
         setLastUpdatedAt(data.updated_at || null);
@@ -339,32 +346,22 @@ export default function CharacterPage() {
         setLevels(data.levels || {});
         
         // 1. 일일 숙제 보존
-        const dChecks = Array.isArray(data.daily_checks) ? data.daily_checks : [];
+        const dChecks = normalizeChecklist(data.daily_checks);
         setDailyChecks(dChecks);
         
         // 2. 주간 숙제 보존
-        if (data.weekly_checks && !Array.isArray(data.weekly_checks)) {
-          setWeeklyChecks(data.weekly_checks.normal || []);
+        if (data.weekly_checks && typeof data.weekly_checks === 'object' && !Array.isArray(data.weekly_checks) && ('normal' in data.weekly_checks || 'repeat' in data.weekly_checks)) {
+          setWeeklyChecks(normalizeChecklist(data.weekly_checks.normal));
           setRepeatChecks(data.weekly_checks.repeat || {});
-        } else if (Array.isArray(data.weekly_checks)) {
-          setWeeklyChecks(data.weekly_checks);
+        } else if (data.weekly_checks) {
+          setWeeklyChecks(normalizeChecklist(data.weekly_checks));
           setRepeatChecks({});
         } else {
           setWeeklyChecks([]); setRepeatChecks({});
         }
         
         // 3. 어비스/레이드 안전 파싱 (길드버스 문자열/객체 호환성 극대화)
-        let rawRaidChecks: any[] = [];
-        if (Array.isArray(data.raid_checks)) {
-          rawRaidChecks = data.raid_checks;
-        } else if (typeof data.raid_checks === 'string') {
-          try {
-            const parsed = JSON.parse(data.raid_checks);
-            if (Array.isArray(parsed)) rawRaidChecks = parsed;
-          } catch (e) {
-            rawRaidChecks = [];
-          }
-        }
+        const rawRaidChecks = normalizeChecklist(data.raid_checks);
 
         const safeContents = contentsList || [];
         const loadedAbyss: any[] = [];
@@ -484,10 +481,18 @@ export default function CharacterPage() {
       };
       
       if (existingIndex !== -1) {
-        await memberMutationOrThrow({ table: "characters", action: "update", filter: { column: "nickname", value: profile.nickname }, payload });
+        const base = checklistBaseRef.current;
+        if (!base || base.nickname !== profile.nickname) throw new Error('캐릭터 정보를 다시 불러온 후 저장해주세요.');
+        await memberMutationOrThrow({ table: "characters", action: "update", filter: { column: "nickname", value: profile.nickname }, payload: {...payload, _checklistBase: {
+          daily_checks: base.daily_checks ?? [], weekly_checks: base.weekly_checks ?? [], raid_checks: base.raid_checks ?? [],
+        }} });
       } else {
         await memberMutationOrThrow({ table: "characters", action: "upsert", payload });
       }
+      checklistBaseRef.current = {
+        nickname: profile.nickname, daily_checks: payload.daily_checks,
+        weekly_checks: payload.weekly_checks, raid_checks: payload.raid_checks,
+      };
       tradeRecordsRef.current = tradePayload;
       changedTradeIds.forEach(id => {
         if (tradeEditVersionsRef.current[id] === savedTradeVersions[id]) dirtyTradeIdsRef.current.delete(id);
@@ -555,7 +560,8 @@ export default function CharacterPage() {
   };
 
   const saveProgress = () => {
-    const task = performSaveProgress();
+    const task = progressSaveQueueRef.current.then(() => performSaveProgress());
+    progressSaveQueueRef.current = task.catch(() => {});
     progressSavesRef.current.add(task);
     void task.finally(() => progressSavesRef.current.delete(task));
     return task;

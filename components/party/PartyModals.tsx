@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { ContentItem, Party } from "@/components/party/types";
+import type { PartyCatalog } from "@/hooks/usePartyCatalog";
 
 import SynaxisInfoModal from "@/components/party/modals/SynaxisInfoModal";
 import LoreGuideModal from "@/components/party/modals/LoreGuideModal";
@@ -25,6 +26,7 @@ export const cleanContentName = (name: string) => {
 };
 
 interface PartyModalsProps {
+  catalog: PartyCatalog;
   showSynaxisInfoModal: boolean;
   setShowSynaxisInfoModal: (val: boolean) => void;
   showLoreGuide: boolean;
@@ -37,7 +39,7 @@ interface PartyModalsProps {
   setTempContent: (val: ContentItem) => void;
   tempDiff: string;
   setTempDiff: (val: string) => void;
-  applyContentModal: () => void;
+  applyContentModal: (selectedSubContents?: string[], selection?: {content: ContentItem; difficulty: string}) => void;
 
   showScheduleModal: boolean;
   setShowScheduleModal: (val: boolean) => void;
@@ -98,7 +100,7 @@ interface PartyModalsProps {
   guildBuses?: any[];
 
   tempSubContents?: string[];
-  setTempSubContents?: React.Dispatch<React.SetStateAction<string[]>>;
+  setTempSubContents: React.Dispatch<React.SetStateAction<string[]>>;
   busSelectedSubContents?: string[];
   setBusSelectedSubContents?: React.Dispatch<React.SetStateAction<string[]>>;
   dbClasses?: any[];
@@ -176,6 +178,7 @@ export default function PartyModals(props: PartyModalsProps) {
       />
 
       <ContentSelectModal
+        catalog={props.catalog}
         showContentModal={props.showContentModal}
         setShowContentModal={props.setShowContentModal}
         tempContentCategory={props.tempContentCategory}
@@ -216,6 +219,7 @@ export default function PartyModals(props: PartyModalsProps) {
       />
 
       <BusCreateModal
+        catalog={props.catalog}
         showBusCreateModal={props.showBusCreateModal}
         setShowBusCreateModal={props.setShowBusCreateModal}
         busCreateContent={props.busCreateContent}

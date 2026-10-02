@@ -1,8 +1,10 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo } from "react";
 import MarkIcon from "@/components/common/MarkIcon";
-import { CONTENT_DB, ContentItem, ABYSS_SUB_DUNGEONS, AbyssSubDungeon, ContentPowerReq } from "@/components/party/types";
+import { ContentItem, ABYSS_SUB_DUNGEONS, AbyssSubDungeon } from "@/components/party/types";
+import type { PartyCatalog } from "@/hooks/usePartyCatalog";
+import { getPartyContentOptions, getContentRequirements, normalizeDifficulty } from "@/lib/partyContentCatalog";
 import { parseAbyssInfo } from "@/lib/busUtils";
 
 const cleanContentName = (name: string) => {
@@ -12,6 +14,7 @@ const cleanContentName = (name: string) => {
     .replace("3종", "다중")
     .trim();
 };
+const DEFAULT_SUB_CONTENTS = ["abyss_1", "abyss_2", "abyss_3"];
 
 interface ContentSelectModalProps {
   showContentModal: boolean;
@@ -22,10 +25,10 @@ interface ContentSelectModalProps {
   setTempContent: (val: ContentItem) => void;
   tempDiff: string;
   setTempDiff: (val: string) => void;
-  applyContentModal: (selectedSubContents?: string[]) => void;
+  applyContentModal: (selectedSubContents?: string[], selection?: {content: ContentItem; difficulty: string}) => void;
   tempSubContents?: string[];
-  setTempSubContents?: (val: string[]) => void;
-  powerReqs?: ContentPowerReq[];
+  setTempSubContents: (val: string[]) => void;
+  catalog: PartyCatalog;
 }
 
 export default function ContentSelectModal({
@@ -40,26 +43,22 @@ export default function ContentSelectModal({
   applyContentModal,
   tempSubContents,
   setTempSubContents,
-  powerReqs
+  catalog
 }: ContentSelectModalProps) {
-  const abyssContents = useMemo(() => CONTENT_DB.filter((c: ContentItem) => c.category === "어비스"), []);
-  const raidContents = useMemo(() => CONTENT_DB.filter((c: ContentItem) => c.category === "레이드"), []);
 
-  const [localSubContents, setLocalSubContents] = useState<string[]>(
-    tempSubContents && tempSubContents.length > 0 ? tempSubContents : ["abyss_1", "abyss_2", "abyss_3"]
-  );
-
-  useEffect(() => {
-    if (showContentModal) {
-      if (tempSubContents && tempSubContents.length > 0) {
-        setLocalSubContents(tempSubContents);
-      } else {
-        setLocalSubContents(["abyss_1", "abyss_2", "abyss_3"]);
-      }
-    }
-  }, [showContentModal, tempSubContents]);
-
-  const activeSubContents = localSubContents;
+  const activeSubContents = tempSubContents?.length ? tempSubContents : DEFAULT_SUB_CONTENTS;
+  const catalogReady = catalog.loaded && !catalog.error;
+  const contents = useMemo(() => getPartyContentOptions(catalogReady ? catalog.powerReqs : [], activeSubContents), [catalogReady, catalog.powerReqs, activeSubContents]);
+  const abyssContents = contents.filter(c => c.category === "어비스");
+  const raidContents = contents.filter(c => c.category === "레이드");
+  const currentOption = contents.find(c => c.id === tempContent.id);
+  const selectedDiff = currentOption?.diffs.find(diff => normalizeDifficulty(diff) === normalizeDifficulty(tempDiff)) || currentOption?.defaultDiff || "";
+  const canApply = catalogReady && !!selectedDiff;
+  const getContentSize = (item: ContentItem) => {
+    const difficulty = item.id === tempContent.id ? selectedDiff : item.defaultDiff;
+    return getContentRequirements(item, catalog.powerReqs).find(req => normalizeDifficulty(req.difficulty) === normalizeDifficulty(difficulty))?.max_members || item.size;
+  };
+  const currentSelectedSize = getContentSize(currentOption || tempContent);
 
   const toggleSubContent = (id: string) => {
     let next: string[];
@@ -69,10 +68,7 @@ export default function ContentSelectModal({
     } else {
       next = [...activeSubContents, id];
     }
-    setLocalSubContents(next);
-    if (setTempSubContents) {
-      setTempSubContents(next);
-    }
+    setTempSubContents(next);
   };
 
   const abyssInfo = useMemo(() => {
@@ -80,22 +76,14 @@ export default function ContentSelectModal({
     return parseAbyssInfo({ content_name: tempContent.name, category: tempContentCategory }, activeSubContents);
   }, [tempContent, tempContentCategory, activeSubContents]);
 
-  // 🛡️ Supabase DB 연동 정격 인원수 동적 계산
-  const getContentSize = (item: ContentItem) => {
-    if (powerReqs && powerReqs.length > 0) {
-      const match = powerReqs.find(r => r.content_name === item.name || item.name.includes(r.content_name));
-      if (match?.max_members) return match.max_members;
-    }
-    return item.name.includes("카브락") ? 8 : 4;
-  };
-
-  const currentSelectedSize = getContentSize(tempContent);
-
   const handleApply = () => {
+    if (!canApply) return;
     if (setTempSubContents) {
       setTempSubContents(activeSubContents);
     }
-    applyContentModal(tempContentCategory === "어비스" ? activeSubContents : undefined);
+    applyContentModal(tempContentCategory === "어비스" ? activeSubContents : undefined, {
+      content: {...(currentOption || tempContent), size: currentSelectedSize}, difficulty: selectedDiff,
+    });
   };
 
   if (!showContentModal) return null;
@@ -116,6 +104,12 @@ export default function ContentSelectModal({
           </h3>
           <button type="button" onClick={() => setShowContentModal(false)} className="text-[var(--text-sub)] hover:text-white font-bold cursor-pointer">✕</button>
         </div>
+
+        {!canApply && (
+          <p role="status" className="text-xs text-[var(--text-sub)]">
+            {catalog.error ? "컨텐츠 기준을 불러오지 못했습니다. 새로고침 후 다시 확인해주세요." : !catalog.loaded ? "컨텐츠 기준을 불러오는 중입니다." : "선택한 컨텐츠에 등록된 난이도가 없습니다."}
+          </p>
+        )}
 
         <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 grid grid-cols-2 gap-2.5 sm:gap-3.5 min-h-0 overscroll-contain">
           {/* 어비스 영역 */}
@@ -170,7 +164,7 @@ export default function ContentSelectModal({
                         </span>
                         <div className="grid grid-cols-2 gap-1.5">
                           {c.diffs.map((d: string) => {
-                            const isDiffSelected = tempDiff === d;
+                            const isDiffSelected = selectedDiff === d;
                             return (
                               <button
                                 key={d}
@@ -275,7 +269,7 @@ export default function ContentSelectModal({
                         </span>
                         <div className="grid grid-cols-2 gap-1.5">
                           {c.diffs.map((d: string) => {
-                            const isDiffSelected = tempDiff === d;
+                            const isDiffSelected = selectedDiff === d;
                             return (
                               <button
                                 key={d}
@@ -320,7 +314,7 @@ export default function ContentSelectModal({
                 : cleanContentName(tempContent.name)}
             </span>
             <span className="px-2 py-0.5 rounded-md bg-[var(--accent)]/15 border border-[var(--accent)]/40 text-[var(--accent)] text-[11px] font-black shrink-0 whitespace-nowrap">
-              {tempDiff}
+              {selectedDiff || "난이도 미등록"}
             </span>
           </div>
           <span className="text-xs font-bold text-[var(--text-sub)] shrink-0">
@@ -339,7 +333,8 @@ export default function ContentSelectModal({
           <button
             type="button"
             onClick={handleApply}
-            className="flex-2 py-2.5 bg-[var(--accent)] text-[var(--accent-fg)] font-black text-xs sm:text-sm rounded-xl cursor-pointer shadow-md hover:brightness-110 transition text-center"
+            disabled={!canApply}
+            className="flex-2 py-2.5 bg-[var(--accent)] text-[var(--accent-fg)] font-black text-xs sm:text-sm rounded-xl cursor-pointer shadow-md hover:brightness-110 transition text-center disabled:opacity-50 disabled:cursor-not-allowed"
           >
             적용하기
           </button>

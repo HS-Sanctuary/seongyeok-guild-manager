@@ -5,9 +5,11 @@ import { useRouter } from "next/navigation";
 import { supabase } from "../lib/supabase";
 import { memberMutationOrThrow } from "@/lib/memberMutationClient";
 import { filterApprovedCharacters, getApprovedAccountNames } from "@/lib/approvedCharacters";
+import { usePartyCatalog } from '@/hooks/usePartyCatalog';
 import { 
   isTaskChecked,
-  cleanItemName
+  cleanItemName,
+  setChecklistField
 } from "../lib/matchingUtils";
 
 import SanctumHeaderWidgets from "../components/sanctum/SanctumHeaderWidgets";
@@ -67,7 +69,7 @@ export default function Home() {
   const [allCharactersMap, setAllCharactersMap] = useState<Record<string, string>>({});
   const [allCharactersList, setAllCharactersList] = useState<any[]>([]);
   const [nexusContents, setNexusContents] = useState<any[]>([]);
-  const [nexusClasses, setNexusClasses] = useState<any[]>([]);
+  const partyCatalog = usePartyCatalog();
   
   const [uniqueAccountsCount, setUniqueAccountsCount] = useState(1);
   const [totalCharactersCount, setTotalCharactersCount] = useState(0);
@@ -237,20 +239,18 @@ export default function Home() {
   };
 
   const fetchDashboardData = async (currentUser: any) => {
-    const [charRes, taskRes, contRes, partyRes, deepRes, abyssRes, classesRes] = await Promise.all([
+    const [charRes, taskRes, contRes, partyRes, deepRes, abyssRes] = await Promise.all([
       supabase.from('characters').select('*'),
       supabase.from('nexus_tasks').select('*').eq('is_active', true),
       supabase.from('nexus_contents').select('*').eq('is_active', true),
       supabase.from('parties').select('*').order('created_at', { ascending: false }).limit(20),
       supabase.from('deep_holes').select('*').order('reported_at', { ascending: false }).limit(20),
-      supabase.from('abyss_reports').select('*').order('hole_time', { ascending: false }).limit(10),
-      supabase.from('nexus_classes').select('*').order('id', { ascending: true })
+      supabase.from('abyss_reports').select('*').order('hole_time', { ascending: false }).limit(10)
     ]);
     
     if (deepRes.data) setDeepHoles(deepRes.data);
     if (abyssRes.data) setAbyssReports(abyssRes.data);
     if (contRes.data) setNexusContents(contRes.data);
-    if (classesRes.data) setNexusClasses(classesRes.data);
 
     if (charRes.data) {
       let allChars: typeof charRes.data = [];
@@ -454,11 +454,6 @@ export default function Home() {
 
     if (!rawChecks) return false;
 
-    if (typeof rawChecks === "object" && !Array.isArray(rawChecks)) {
-      const activeKeys = Object.keys(rawChecks).filter(k => Boolean(rawChecks[k]));
-      return isTaskChecked(activeKeys, item, nexusContents);
-    }
-
     return isTaskChecked(rawChecks, item, nexusContents);
   };
 
@@ -471,35 +466,7 @@ export default function Home() {
     const isDone = checkTaskDone(char, item, type);
     const itemKey = item.id || item.name;
 
-    let updatedPayload: any;
-
-    if (raw && typeof raw === "object" && !Array.isArray(raw)) {
-      const objCopy = { ...raw };
-      if (isDone) {
-        delete objCopy[itemKey];
-        if (item.short_name) delete objCopy[item.short_name];
-        if (item.name) delete objCopy[item.name];
-      } else {
-        objCopy[itemKey] = true;
-      }
-      updatedPayload = objCopy;
-    } else {
-      let arrCopy = Array.isArray(raw) ? [...raw] : [];
-      if (isDone) {
-        const cleanName = cleanItemName(item.name || "");
-        arrCopy = arrCopy.filter((c: any) => {
-          const checkStr = typeof c === "object" ? String(c.id || c.name || "") : String(c);
-          if (checkStr === String(itemKey)) return false;
-          if (checkStr.toLowerCase() === (item.name || "").toLowerCase()) return false;
-          if (cleanName && checkStr.toLowerCase() === cleanName.toLowerCase()) return false;
-          if (item.short_name && checkStr.includes(item.short_name)) return false;
-          return true;
-        });
-      } else {
-        arrCopy.push(itemKey);
-      }
-      updatedPayload = arrCopy;
-    }
+    const updatedPayload = setChecklistField(raw, item, !isDone, type, nexusContents);
 
     setTaskSaveStatus("saving");
     setMyCharacters((prev) =>
@@ -513,7 +480,8 @@ export default function Home() {
 
     try {
       if (!char.id) throw new Error("캐릭터 ID가 없습니다.");
-      await memberMutationOrThrow({ table: "characters", action: "update", filter: { column: "id", value: char.id }, payload: { [field]: updatedPayload } });
+      const saved = await memberMutationOrThrow({ table: "characters", action: "update", filter: { column: "id", value: char.id }, payload: {_checklistAction:{type,id:item.id,completed:!isDone}} }) as any[];
+      if (saved?.[0]) setMyCharacters(prev => prev.map(current => current.id === char.id ? saved[0] : current));
       setTaskSaveStatus("saved");
       setTimeout(() => setTaskSaveStatus((current) => current === "saved" ? "idle" : current), 2500);
     } catch (err) {
@@ -650,13 +618,14 @@ export default function Home() {
         user={user}
         myCharacters={myCharacters}
         allCharactersMap={allCharactersMap}
+        characterProfiles={Object.fromEntries(allCharactersList.map(character => [character.nickname, {alias: character.alias}]))}
         formatRoleText={formatRoleText}
         openJoinPopup={openJoinPopup}
         setDetailModalParty={setDetailModalParty}
         handleDeleteParty={handleDeleteParty}
         handleLeaveParty={handleLeaveParty}
-        onRefresh={() => { if (user) void fetchDashboardData(user); }}
-        classesCatalog={nexusClasses}
+        onRefresh={async () => { if (user) await fetchDashboardData(user); }}
+        catalog={partyCatalog}
         currentUserAccountId={user?.id}
         router={router}
       />

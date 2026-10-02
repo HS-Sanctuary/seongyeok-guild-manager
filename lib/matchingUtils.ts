@@ -98,13 +98,23 @@ export const cleanItemName = (name: string): string => {
 /**
  * 6. 길드 버스 및 크로노스 컨텐츠/숙제 체크 상태 공통 매칭 함수 (어비스 3종 호환성 강결합)
  */
-export const isTaskChecked = (checks: any[], item: any, nexusContents: any[] = []): boolean => {
-  if (!Array.isArray(checks) || !item) return false;
-
-  let rawChecks = checks;
+export const normalizeChecklist = (checks: unknown): any[] => {
   if (typeof checks === 'string') {
-    try { rawChecks = JSON.parse(checks); } catch (e) { rawChecks = []; }
+    try { return normalizeChecklist(JSON.parse(checks)); } catch { return []; }
   }
+  if (Array.isArray(checks)) return checks.filter(value => value != null);
+  if (!checks || typeof checks !== 'object') return [];
+  return Object.entries(checks).flatMap(([key, value]) => {
+    if (value === true) return [key];
+    // Older bus code spread an array into an object: {0: contentId, ...}.
+    if (/^\d+$/.test(key) && value !== false && value != null) return [value];
+    return [];
+  });
+};
+
+export const isTaskChecked = (checks: unknown, item: any, nexusContents: any[] = []): boolean => {
+  if (!item) return false;
+  const rawChecks = normalizeChecklist(checks);
 
   // 1. item이 정적 키 목록(keys)을 가진 경우
   if (item.keys && Array.isArray(item.keys)) {
@@ -253,4 +263,59 @@ export const autoBalanceAndBuildParty = (
     isIncomplete,
     tags
   };
+};
+
+/** One read/write matching rule for home, KRONOS and party completion. */
+export const setTaskChecked = (raw: unknown, item: any, completed: boolean, catalog: any[] = []): any[] => {
+  const checks = normalizeChecklist(raw);
+  const remaining = checks.filter(check => !isTaskChecked([check], item, catalog));
+  return completed ? [...remaining, item.id ?? item.name] : remaining;
+};
+
+export const setChecklistField = (raw: any, item: any, completed: boolean, type: string, catalog: any[] = []): any => {
+  if (type === 'weekly' && raw && typeof raw === 'object' && !Array.isArray(raw) && ('normal' in raw || 'repeat' in raw)) {
+    return { ...raw, normal: setTaskChecked(raw.normal, item, completed, catalog) };
+  }
+  return setTaskChecked(raw, item, completed, catalog);
+};
+
+/** Apply only changes since this screen loaded; keep completions from other screens. */
+export const mergeChecklistEdit = (stored: unknown, base: unknown, edited: unknown): unknown => {
+  const record = (value: unknown): Record<string, any> | null =>
+    value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, any> : null;
+  const editedRecord = record(edited);
+  if (editedRecord && ('normal' in editedRecord || 'repeat' in editedRecord)) {
+    const storedRecord = record(stored);
+    const baseRecord = record(base);
+    const storedWrapped = storedRecord && ('normal' in storedRecord || 'repeat' in storedRecord);
+    const baseWrapped = baseRecord && ('normal' in baseRecord || 'repeat' in baseRecord);
+    const repeat = {...(storedWrapped ? storedRecord.repeat : {})};
+    const previousRepeat = baseWrapped ? baseRecord.repeat ?? {} : {};
+    const nextRepeat = editedRecord.repeat ?? {};
+    for (const key of new Set([...Object.keys(previousRepeat), ...Object.keys(nextRepeat)])) {
+      if (JSON.stringify(previousRepeat[key]) === JSON.stringify(nextRepeat[key])) continue;
+      if (key in nextRepeat) repeat[key] = nextRepeat[key];
+      else delete repeat[key];
+    }
+    return {
+      ...(storedWrapped ? storedRecord : {}),
+      normal: mergeChecklistEdit(storedWrapped ? storedRecord.normal : stored, baseWrapped ? baseRecord.normal : base, editedRecord.normal),
+      repeat,
+    };
+  }
+  const key = (value: any) => String(value && typeof value === 'object' ? value.id ?? value.name ?? JSON.stringify(value) : value).trim();
+  const previous = new Set(normalizeChecklist(base).map(key));
+  const next = normalizeChecklist(edited);
+  const nextKeys = new Set(next.map(key));
+  const removed = new Set([...previous].filter(value => !nextKeys.has(value)));
+  const merged = normalizeChecklist(stored).filter(value => !removed.has(key(value)));
+  const mergedKeys = new Set(merged.map(key));
+  for (const value of next) {
+    const identity = key(value);
+    if (!previous.has(identity) && !mergedKeys.has(identity)) {
+      merged.push(value);
+      mergedKeys.add(identity);
+    }
+  }
+  return merged;
 };

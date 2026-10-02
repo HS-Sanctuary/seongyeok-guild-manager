@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { cleanItemName, isTaskChecked } from "@/lib/matchingUtils";
+import { cleanItemName, isTaskChecked, setTaskChecked } from "@/lib/matchingUtils";
 
 interface ContentChecklistProps {
   onRemind?: () => void;
@@ -55,71 +55,7 @@ export default function ContentChecklist({
 
   const toggleTask = (checks: any[], setChecks: any, item: any) => {
     if (!setChecks) return;
-    const isChecked = isTaskChecked(checks, item);
-
-    if (isChecked) {
-      const itemName = (item.name || "").toLowerCase();
-      const cleanName = cleanItemName(item.name || "").toLowerCase();
-
-      setChecks(
-        checks.filter((c: any) => {
-          const checkStr = typeof c === "object" ? String(c.id || c.name || "") : String(c);
-          const lowerC = checkStr.toLowerCase();
-
-          // 1. 고유 ID 또는 원본 이름 일치 시 제거
-          if (checkStr === String(item.id)) return false;
-          if (lowerC === itemName || lowerC === cleanName) return false;
-
-          // 2. 카브락 관련 모든 변형 키 일괄 퍼지
-          if (cleanName.includes("카브락") || cleanName.includes("카브") || itemName.includes("카브락")) {
-            if (
-              lowerC.includes("cabrak") ||
-              lowerC.includes("카브락") ||
-              lowerC.includes("카브")
-            ) return false;
-          }
-
-          // 3. 에이렐 관련 모든 변형 키 일괄 퍼지
-          if (cleanName.includes("에이렐") || cleanName.includes("에렐") || itemName.includes("에이렐")) {
-            if (
-              lowerC.includes("eirel") ||
-              lowerC.includes("에이렐") ||
-              lowerC.includes("에렐")
-            ) return false;
-          }
-
-          // 4. 서큐버스 관련 모든 변형 키 일괄 퍼지
-          if (cleanName.includes("서큐") || cleanName.includes("서큐버스") || itemName.includes("서큐")) {
-            if (
-              lowerC.includes("succubus") ||
-              lowerC.includes("서큐") ||
-              lowerC.includes("서큐버스")
-            ) return false;
-          }
-
-          // 5. 어비스 개별 및 전체 관련 변형 키 일괄 퍼지
-          if (cleanName.includes("허상") || itemName.includes("허상")) {
-            if (lowerC.includes("abyss_1") || lowerC.includes("illusion") || lowerC.includes("허상")) return false;
-          }
-          if (cleanName.includes("동굴") || itemName.includes("동굴")) {
-            if (lowerC.includes("abyss_2") || lowerC.includes("cave") || lowerC.includes("동굴")) return false;
-          }
-          if (cleanName.includes("물길") || itemName.includes("물길")) {
-            if (lowerC.includes("abyss_3") || lowerC.includes("waterway") || lowerC.includes("물길")) return false;
-          }
-          if (cleanName.includes("어비스") || itemName.includes("어비스")) {
-            if (
-              lowerC.includes("abyss") ||
-              lowerC.includes("어비스")
-            ) return false;
-          }
-
-          return true;
-        })
-      );
-    } else {
-      setChecks([...checks, item.id]);
-    }
+    setChecks(setTaskChecked(checks, item, !isTaskChecked(checks, item)));
   };
 
   const calculateProgress = () => {

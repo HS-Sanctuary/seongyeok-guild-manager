@@ -1,0 +1,172 @@
+.busCard {
+  container: guild-bus-card / inline-size;
+  min-width: 0;
+}
+
+.busHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem 1rem;
+}
+
+.busHeaderInfo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .5rem;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.readableName {
+  min-width: 0;
+  white-space: normal;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.memberGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: .5rem;
+}
+
+.memberSlot {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: center;
+  gap: .2rem;
+  min-height: 3.25rem;
+  padding: .35rem .45rem;
+}
+
+.emptySlot {
+  min-height: 3.25rem;
+  font-size: .75rem;
+}
+
+.memberStats {
+  display: flex;
+  align-items: center;
+  gap: .15rem;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.memberClass {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: 0 0 auto;
+}
+
+.classMark { width: 1rem; height: 1rem; }
+.driverMark { position: absolute; width: .5rem; height: .5rem; right: -.15rem; top: -.15rem; }
+
+.powerRow {
+  display: flex;
+  align-items: center;
+  gap: .1rem;
+  margin-left: auto;
+  flex: 0 0 auto;
+}
+
+.memberName {
+  min-width: 0;
+  font-size: .75rem;
+  line-height: 1.4;
+}
+
+.memberPower {
+  font-size: .67rem;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.roleLabel {
+  font-size: .67rem;
+  line-height: 1.2;
+  flex: 0 0 auto;
+  padding-inline: .15rem;
+}
+
+.responsiveName {
+  display: block;
+  position: relative;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.nameLabel { display: block; overflow: hidden; }
+.nameProbe {
+  position: absolute;
+  width: max-content;
+  visibility: hidden;
+  pointer-events: none;
+  left: 0;
+  top: 0;
+}
+
+.controller {
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+  min-width: 0;
+}
+
+.controller > div:first-child {
+  font-size: .75rem;
+}
+
+.controllerActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .375rem;
+  min-width: 0;
+}
+
+.controllerActions > button {
+  flex: 1 0 auto;
+  width: auto;
+  max-width: 100%;
+  min-width: 0;
+  white-space: nowrap;
+  font-size: .75rem;
+  padding: .375rem .625rem;
+}
+
+.participationRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem;
+  min-width: 0;
+}
+
+.joinedChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .375rem;
+}
+
+.joinedChip {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  font-size: .75rem;
+}
+
+@container guild-bus-card (min-width: 20rem) {
+  .memberGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@container guild-bus-card (min-width: 39rem) {
+  .memberGrid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}

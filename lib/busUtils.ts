@@ -1,6 +1,7 @@
 import { supabase } from "@/lib/supabase";
 import { memberMutation } from "@/lib/memberMutationClient";
 import { NexusContent, ContentPowerReq, NexusClassItem } from "@/components/party/types";
+import { setTaskChecked } from '@/lib/matchingUtils';
 
 // 🎯 ts(2459) 에러 차단 및 외부 사용을 위한 Re-export 선언
 export type { NexusContent, ContentPowerReq, NexusClassItem };
@@ -34,6 +35,7 @@ export interface BusCandidate {
   time_start?: string;
   time_end?: string;
   raid_checks?: Record<string, boolean>;
+  selection_order?: number;
 }
 
 export interface BusMember {
@@ -345,13 +347,13 @@ export function getRoleByJob(jobName: string, classCatalog?: NexusClassItem[]): 
     const found = catalogToUse.find((c) => c.name === j || c.name.toLowerCase() === j.toLowerCase());
     if (found && found.role) {
       // 서포터는 음유시인 클래스에만 허용한다.
-      if (found.role === "서포터" && j !== "음유시인") return "근딜";
-      return found.role as JobRole;
+      if (found.role !== "서포터" || j === "음유시인") return found.role as JobRole;
     }
   }
 
   // 2. Fallback 키워드 매칭
-  if (["빙결술사", "빙결", "대검전사", "기사", "전사", "성기사", "수호자"].some((k) => j.includes(k))) return "탱커";
+  if (j === "대검전사") return "근딜";
+  if (["빙결술사", "빙결", "기사", "전사", "성기사", "수호자"].some((k) => j.includes(k))) return "탱커";
   if (["사제", "수도사", "힐러", "성직자", "구원자"].some((k) => j.includes(k))) return "힐러";
   if (j === "음유시인") return "서포터";
   if (["궁수", "석궁사수", "마법사", "화염술사", "전격술사", "장궁병", "악사", "암흑술사"].some((k) => j.includes(k))) return "원딜";
@@ -360,6 +362,12 @@ export function getRoleByJob(jobName: string, classCatalog?: NexusClassItem[]): 
 }
 
 export const getJobRole = getRoleByJob;
+
+export function findPartyPowerReq(reqs: ContentPowerReq[], contentName: string, difficulty: string): ContentPowerReq | null {
+  const normalize = (name: string) => (name || '').replace(/^(레이드|어비스)\s*-\s*/, '').replace(/\s*\(.*?\)\s*$/, '').trim();
+  const type = /^레이드\s*-/.test(contentName) ? 'raid' : /^어비스\s*-/.test(contentName) ? 'abyss' : null;
+  return reqs.find(req => (!type || req.content_type === type) && normalize(req.content_name) === normalize(contentName) && req.difficulty.replace(/\s+/g, '') === difficulty.replace(/\s+/g, '')) ?? null;
+}
 
 export function parseCP(val: any): number {
   if (typeof val === "number") return val;
@@ -400,7 +408,7 @@ export function validateStatRequirement(
 
   const isMinPassed = cp >= minCp;
   const isRecPassed = cp >= recCp && mr >= recMr;
-  const isOpPassed = cp >= opCp && mr >= opMr;
+  const isOpPassed = (opCp > 0 || opMr > 0) && cp >= opCp && mr >= opMr;
 
   const cpDeficit = Math.max(0, recCp - cp);
   const mrDeficit = Math.max(0, recMr - mr);
@@ -466,80 +474,66 @@ export function assembleBalancedParty(
     }
   }
 
-  const filteredCandidates = [...candidates].sort((a, b) => {
-    const aCleared = targetContentKey ? !!a.raid_checks?.[targetContentKey] : false;
-    const bCleared = targetContentKey ? !!b.raid_checks?.[targetContentKey] : false;
+  const sortedCandidates = candidates.filter(c => !c.is_completed || c.allow_repeat).sort((a, b) => {
+    const aCleared = !!a.is_completed || (targetContentKey ? !!a.raid_checks?.[targetContentKey] : false);
+    const bCleared = !!b.is_completed || (targetContentKey ? !!b.raid_checks?.[targetContentKey] : false);
 
     if (aCleared !== bCleared) return aCleared ? 1 : -1;
+    if (a.selection_order != null && b.selection_order != null) return a.selection_order - b.selection_order;
     const aCp = parseCP(a.combat_power);
     const bCp = parseCP(b.combat_power);
     return bCp - aCp;
   });
-
-  const selectedMembers: BusMember[] = [];
-  const usedAccounts = new Set<string>();
-
-  const tryAddCandidate = (cand: BusCandidate, isDriver: boolean = false): boolean => {
-    const ownerAcc = cand.owner_account || cand.character_name;
-    if (ownerAcc && usedAccounts.has(ownerAcc)) return false;
-    if (selectedMembers.length >= maxPartySize) return false;
-
-    const job = cand.job || "전사";
-    const role = getRoleByJob(job, classCatalog);
-    const charName = cand.character_name || "";
-    const charId = cand.character_id || 0;
-    const cp = parseCP(cand.combat_power);
-    const mr = parseCP(cand.magic_resistance || 0);
-
-    selectedMembers.push({
-      character_id: charId,
-      character_name: charName,
-      job,
-      role,
-      combat_power: cp,
-      magic_resistance: mr,
-      owner_account: ownerAcc,
-      is_driver: isDriver,
-      is_passenger: !isDriver,
-    });
-    if (ownerAcc) usedAccounts.add(ownerAcc);
-    return true;
+  const tierOf = (candidate: BusCandidate) => {
+    if (!req) return 1;
+    const result = validateStatRequirement(parseCP(candidate.combat_power), parseCP(candidate.magic_resistance || 0), req);
+    return result.isOpPassed ? 0 : result.isRecPassed ? 1 : 2;
   };
-
-  if (req && (req.op_cp || req.op)) {
-    const driverCandidate = filteredCandidates.find((c) => {
-      const cp = parseCP(c.combat_power);
-      const mr = parseCP(c.magic_resistance || 0);
-      const val = validateStatRequirement(cp, mr, req);
-      return val.isOpPassed;
-    });
-    if (driverCandidate) {
-      tryAddCandidate(driverCandidate, true);
+  // One choice per account. Keep the best roster for each tier/role combination,
+  // so reserving a healer cannot accidentally consume every passenger seat.
+  type Roster = { entries: BusCandidate[]; tiers: number[]; roles: number; cost: number };
+  const accounts = new Map<string, BusCandidate[]>();
+  const ranks = new Map(sortedCandidates.map((c, i) => [c, i]));
+  for (const c of sortedCandidates) {
+    const key = c.owner_account || c.character_name;
+    accounts.set(key, [...(accounts.get(key) || []), c]);
+  }
+  let states = new Map<string, Roster>([["0,0,0:0", {entries: [], tiers: [0,0,0], roles: 0, cost: 0}]]);
+  for (const choices of accounts.values()) {
+    const next = new Map(states);
+    for (const roster of states.values()) {
+      if (roster.entries.length >= maxPartySize) continue;
+      for (const c of choices) {
+        const tiers = [...roster.tiers];
+        tiers[tierOf(c)]++;
+        const role = getRoleByJob(c.job, classCatalog);
+        const roles = roster.roles | (role === '힐러' ? 1 : role === '탱커' ? 2 : 0);
+        const cost = roster.cost + (c.is_completed ? 10000 : 0) + ranks.get(c)!;
+        const key = `${tiers.join(',')}:${roles}`;
+        if (!next.has(key) || cost < next.get(key)!.cost) {
+          next.set(key, {entries: [...roster.entries, c], tiers, roles, cost});
+        }
+      }
     }
+    states = next;
   }
-
-  const healerCandidate = filteredCandidates.find(
-    (c) => getRoleByJob(c.job, classCatalog) === "힐러" && !usedAccounts.has(c.owner_account || c.character_name)
-  );
-  if (healerCandidate) {
-    tryAddCandidate(healerCandidate, false);
-  }
-
-  const tankerCandidate = filteredCandidates.find(
-    (c) => getRoleByJob(c.job, classCatalog) === "탱커" && !usedAccounts.has(c.owner_account || c.character_name)
-  );
-  if (tankerCandidate) {
-    tryAddCandidate(tankerCandidate, false);
-  }
-
-  for (const cand of filteredCandidates) {
-    if (selectedMembers.length >= maxPartySize) break;
-    tryAddCandidate(cand, false);
-  }
-
-  const remainingCandidates = filteredCandidates.filter(
-    (c) => !selectedMembers.some((m) => m.character_name === c.character_name)
-  );
+  const distance = (value: number, low: number, high: number) => Math.max(low-value, 0, value-high);
+  const balancePenalty = (roster: Roster) => !req ? 0 : maxPartySize >= 8
+    ? distance(roster.tiers[0], 3, 3) + distance(roster.tiers[1], 2, 3) + distance(roster.tiers[2], 2, 3)
+    : roster.tiers.reduce((sum, count) => sum + distance(count, 1, 2), 0);
+  const rolePenalty = (roster: Roster) => Number(!(roster.roles & 1)) + Number(!(roster.roles & 2));
+  const best = [...states.values()].sort((a,b) =>
+    b.entries.length-a.entries.length || balancePenalty(a)-balancePenalty(b) ||
+    rolePenalty(a)-rolePenalty(b) || a.cost-b.cost
+  )[0];
+  const selectedMembers: BusMember[] = best.entries.map(c => ({
+    character_id: c.character_id || 0, character_name: c.character_name,
+    job: c.job, role: getRoleByJob(c.job, classCatalog),
+    combat_power: parseCP(c.combat_power), magic_resistance: parseCP(c.magic_resistance),
+    owner_account: c.owner_account || c.character_name,
+    is_driver: tierOf(c) === 0, is_passenger: tierOf(c) !== 0,
+  }));
+  const remainingCandidates = sortedCandidates.filter(c => !best.entries.includes(c));
 
   const hasHealer = selectedMembers.some((m) => m.role === "힐러");
   const hasTanker = selectedMembers.some((m) => m.role === "탱커");
@@ -588,11 +582,7 @@ export async function syncKronosChecklist(
 
     if (fetchErr || !charData) return false;
 
-    const currentChecks = charData.raid_checks || {};
-    const updatedChecks = {
-      ...currentChecks,
-      [contentKey]: isCleared,
-    };
+    const updatedChecks = setTaskChecked(charData.raid_checks, {name:contentKey}, isCleared);
 
     const { error: updateErr } = await memberMutation({ table: "characters", action: "update", filter: { column: "id", value: characterId }, payload: { raid_checks: updatedChecks } });
 

@@ -53,7 +53,10 @@ const CheckCircle = ({ className }: { className?: string }) => (
   <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
 );
 
+import type { PartyCatalog } from '@/hooks/usePartyCatalog';
+
 interface PartyCardProps {
+  catalog: PartyCatalog;
   party: Party;
   myCharacterNames: string[];
   allCharactersMap: Record<string, any>;
@@ -64,9 +67,6 @@ interface PartyCardProps {
   onCompleteParty?: (party: Party, memberName?: string) => void;
   isAdmin: boolean;
   onRefresh?: () => void;
-  contentsCatalog?: NexusContent[];
-  classesCatalog?: NexusClassItem[];
-  powerReqs?: ContentPowerReq[];
 }
 
 export default function PartyCard({
@@ -79,10 +79,9 @@ export default function PartyCard({
   handleDeleteParty,
   onCompleteParty,
   isAdmin,
-  contentsCatalog,
-  classesCatalog,
-  powerReqs
+  catalog
 }: PartyCardProps) {
+  const {contents: contentsCatalog, classes: classesCatalog, powerReqs} = catalog;
   // 🛡️ DB 정격 인원수 파싱
   const maxMembers = useMemo(() => {
     if (party.max_members && party.max_members > 0) return party.max_members;
@@ -445,12 +444,7 @@ export default function PartyCard({
           const charObj = allCharactersMap[memName] || {};
           
           const rawJob = member.job || charObj.job || (member as any).class_name || charObj.class_name || '';
-          const rawExplicitRole = member.role || (member.roles && member.roles[0]) || charObj.role || (charObj.roles && charObj.roles[0]);
-          const explicitRole = typeof rawExplicitRole === "string" ? rawExplicitRole.trim() : "";
-
-          const role = (explicitRole && ["탱커", "힐러", "원딜", "근딜", "서포터"].includes(explicitRole))
-            ? explicitRole
-            : getRoleByJob(rawJob, classesCatalog);
+          const role = getRoleByJob(rawJob, classesCatalog);
 
           const cp = parseCP(member.combat_power || charObj.combat_power || 0);
           const mr = parseCP(member.magic_resistance || charObj.magic_resistance || 0);

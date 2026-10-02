@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useEffect, useRef } from "react";
+import { Suspense, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import PartyCreateForm from "@/components/party/PartyCreateForm";
 import PartyFilterHeader from "@/components/party/PartyFilterHeader";
@@ -10,13 +10,13 @@ import PartyModals from "@/components/party/PartyModals";
 import GuildBusJoinModal from "@/components/party/GuildBusJoinModal";
 import { getDayOfWeekKorean } from "@/lib/partyDateUtils";
 import { usePartyManager } from "@/hooks/usePartyManager";
-import { supabase } from "@/lib/supabase";
+import { isGuildBusParty } from '@/lib/guildBusPolicy';
 
 function SynaxisContent() {
   const partyManager = usePartyManager();
   const joinFromHomeId = useSearchParams().get("join");
   const openedJoinIdRef = useRef<string | null>(null);
-  const [dbClasses, setDbClasses] = useState<any[]>([]);
+  const dbClasses = partyManager.partyCatalog.classes;
 
   useEffect(() => {
     if (!joinFromHomeId || openedJoinIdRef.current === joinFromHomeId) return;
@@ -28,25 +28,6 @@ function SynaxisContent() {
     url.searchParams.delete("join");
     window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
   }, [joinFromHomeId, partyManager.filteredParties, partyManager.openJoinPopup]);
-
-  // 🎯 nexus_classes DB 동적 실시간 수집
-  useEffect(() => {
-    const fetchClasses = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("nexus_classes")
-          .select("*")
-          .order("id", { ascending: true });
-        if (error) throw error;
-        if (data) {
-          setDbClasses(data.filter((c: any) => c.is_active ?? true));
-        }
-      } catch (err) {
-        console.error("nexus_classes DB 로딩 실패:", err);
-      }
-    };
-    fetchClasses();
-  }, []);
 
   if (!partyManager.mounted) return null;
 
@@ -200,7 +181,7 @@ function SynaxisContent() {
                   </div>
                 ) : (
                   partyManager.filteredParties.map(party => {
-                    const isBus = party.party_type === "길드버스" || party.sub_content?.includes("길드 버스") || party.sub_content?.includes("성역 길드 버스");
+                    const isBus = isGuildBusParty(party);
                     
                     return isBus ? (
                       <GuildBusCard 
@@ -208,15 +189,15 @@ function SynaxisContent() {
                         party={party}
                         currentUserNickname={partyManager.user?.nickname || partyManager.user?.username || "한설"}
                         currentUserAccountId={partyManager.user?.id}
-                        classesCatalog={partyManager.nexusClasses}
+                        catalog={partyManager.partyCatalog}
+                        characterProfiles={partyManager.allCharactersMap}
+                        myCharacterNames={partyManager.myCharacterNames}
                         currentUserRole={userRole}
                         onJoinClick={() => partyManager.openJoinPopup(party)}
-                        onLeaveClick={(p, charName) => partyManager.handleLeaveParty(p, charName || "")}
                         onDeleteClick={(id) => partyManager.handleDeleteParty(id)}
-                        onNextRoundClick={partyManager.handleNextRound}
                         onRefresh={() => {
                           const ownerName = partyManager.user?.username || partyManager.user?.nickname || partyManager.user?.owner || "한설";
-                          partyManager.fetchData(ownerName);
+                          return partyManager.fetchData(ownerName);
                         }}
                         isMasterOrAdmin={isSubMasterOrHigher}
                       />
@@ -224,6 +205,7 @@ function SynaxisContent() {
                       <PartyCard 
                         key={party.id}
                         party={party}
+                        catalog={partyManager.partyCatalog}
                         myCharacterNames={partyManager.myCharacterNames}
                         allCharactersMap={partyManager.allCharactersMap}
                         openJoinPopup={partyManager.openJoinPopup}
@@ -323,6 +305,7 @@ function SynaxisContent() {
 
       {/* 전체 서브 모달 묶음 */}
       <PartyModals 
+        catalog={partyManager.partyCatalog}
         showSynaxisInfoModal={partyManager.showSynaxisInfoModal}
         setShowSynaxisInfoModal={partyManager.setShowSynaxisInfoModal}
         showLoreGuide={partyManager.showLoreGuide}

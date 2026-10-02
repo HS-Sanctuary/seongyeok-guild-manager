@@ -2,12 +2,16 @@
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
+import { usePartyCatalog, refreshPartyCatalog } from '@/hooks/usePartyCatalog';
+import { isGuildBusParty, ownedPartyCharacters } from '@/lib/guildBusPolicy';
 import { memberMutation, memberMutationOrThrow } from "@/lib/memberMutationClient";
 import { pickRandomLeader, autoBalanceAndBuildParty } from "@/lib/matchingUtils";
 import { CONTENT_DB, ContentItem, Party, Member } from "@/components/party/types";
+import { isSupportedPartyContent, normalizeDifficulty } from '@/lib/partyContentCatalog';
 import { generateDefaultBusMemo, BusCharSelectionConfig } from "@/components/party/modals/BusCreateModal";
 import { 
   getRoleByJob,
+  findPartyPowerReq,
   assembleBalancedParty, 
   syncKronosChecklist, 
   parseCP, 
@@ -60,7 +64,7 @@ export function usePartyManager() {
   const [showBusCreateModal, setShowBusCreateModal] = useState(false);
 
   const [isBusModalOpen, setIsBusModalOpen] = useState(false);
-  const [targetBusParty, setTargetBusParty] = useState<{ contentName: string; difficulty: string; timeStart: string; timeEnd: string } | null>(null);
+  const [targetBusParty, setTargetBusParty] = useState<{ partyId?: string | number; contentName: string; difficulty: string; timeStart: string; timeEnd: string } | null>(null);
 
   const [timeoutParty, setTimeoutParty] = useState<Party | null>(null);
 
@@ -75,8 +79,9 @@ export function usePartyManager() {
   const [allCharactersMap, setAllCharactersMap] = useState<Record<string, any>>({});
   const [ownerAccountMap, setOwnerAccountMap] = useState<Record<string, string>>({});
   
-  const [powerReqs, setPowerReqs] = useState<ContentPowerReq[]>([]);
-  const [nexusClasses, setNexusClasses] = useState<NexusClassItem[]>([]);
+  const partyCatalog = usePartyCatalog();
+  const powerReqs = partyCatalog.powerReqs;
+  const nexusClasses = partyCatalog.classes;
   
   const ownerAccountMapRef = useRef<Record<string, string>>({});
 
@@ -139,10 +144,7 @@ export function usePartyManager() {
   // 🛡️ Supabase DB 기반 정격 인원수 산출 유틸
   const getMaxMembersForContent = useCallback((contentName: string, difficulty?: string, defaultSize: number = 4): number => {
     if (powerReqs && powerReqs.length > 0) {
-      const match = powerReqs.find(r => 
-        (r.content_name === contentName || contentName.includes(r.content_name)) &&
-        (!difficulty || r.difficulty === difficulty)
-      );
+      const match = difficulty ? findPartyPowerReq(powerReqs, contentName, difficulty) : null;
       if (match?.max_members) return match.max_members;
     }
     if (contentName.includes("카브락")) return 8;
@@ -150,7 +152,7 @@ export function usePartyManager() {
   }, [powerReqs]);
 
   const getCPReqsForContent = useCallback((contentName: string, difficulty: string) => {
-    const dbReq = powerReqs.find(r => r.content_name === contentName && r.difficulty === difficulty);
+    const dbReq = findPartyPowerReq(powerReqs,contentName,difficulty);
     if (dbReq) {
       return {
         min_cp: dbReq.min_cp,
@@ -198,7 +200,7 @@ export function usePartyManager() {
 
   const fetchData = useCallback(async (ownerName: string) => {
     try {
-      const [charRes, partyRes, powerReqsRes, classesRes] = await Promise.all([
+      const [charRes, partyRes] = await Promise.all([
         supabase
           .from("characters")
           .select("*")
@@ -209,16 +211,8 @@ export function usePartyManager() {
           .select("*")
           .neq("status", "종료됨")
           .order("created_at", { ascending: false }),
-        supabase
-          .from("content_power_reqs")
-          .select("*"),
-        supabase
-          .from("nexus_classes")
-          .select("*")
+        refreshPartyCatalog()
       ]);
-
-      if (powerReqsRes.data) setPowerReqs(powerReqsRes.data);
-      if (classesRes.data) setNexusClasses(classesRes.data);
 
       if (charRes.data) {
         const sortedChars = [...charRes.data].sort((a, b) => {
@@ -240,8 +234,7 @@ export function usePartyManager() {
         setOwnerAccountMap(ownerMap);
         ownerAccountMapRef.current = ownerMap;
 
-        const filteredMyChars = sortedChars.filter(c => c.owner === ownerName || c.nickname === ownerName);
-        const myCharsList = filteredMyChars.length > 0 ? filteredMyChars : sortedChars;
+        const myCharsList = ownedPartyCharacters(sortedChars,ownerName);
         setMyCharacters(myCharsList);
         const names = myCharsList.map(c => c.nickname);
         setMyCharacterNames(names);
@@ -373,10 +366,10 @@ export function usePartyManager() {
     setShowContentModal(true);
   };
 
-  const applyContentModal = () => {
-    setSelectedContent(tempContent);
-    setSelectedDiff(tempDiff);
-    setSelectedSubContents(tempSubContents);
+  const applyContentModal = (subContents?: string[], selection?: {content: ContentItem; difficulty: string}) => {
+    setSelectedContent(selection?.content || tempContent);
+    setSelectedDiff(selection?.difficulty || tempDiff);
+    setSelectedSubContents(subContents || tempSubContents);
     setShowContentModal(false);
   };
 
@@ -431,6 +424,8 @@ export function usePartyManager() {
   };
 
   const handleReservation = async () => {
+    if (!partyCatalog.loaded || partyCatalog.error) return alert("컨텐츠 기준을 불러온 뒤 다시 신청해주세요.");
+    if (!isSupportedPartyContent(selectedContent, selectedDiff, powerReqs, selectedSubContents)) return alert("등록된 컨텐츠 난이도를 다시 선택해주세요.");
     if (!selectedChar) return alert("참여할 캐릭터를 선택해주세요!");
     if (matchingMode === "조합우선" && myRoles.length === 0) {
       return alert("조합 우선 매칭 시, 수행 가능한 포지션을 최소 1개 이상 선택해주세요!");
@@ -473,10 +468,10 @@ export function usePartyManager() {
       const pDate = normalizeDateStr(p.party_date || getTodayString());
       if (pDate !== targetDate) return false;
       if (p.content_name !== selectedContent.name) return false;
-      if (p.difficulty !== selectedDiff) return false;
+      if (normalizeDifficulty(p.difficulty) !== normalizeDifficulty(selectedDiff)) return false;
       if (p.party_type !== dbPartyType) return false;
 
-      const isBus = String(p.party_type || "") === "길드버스" || p.sub_content?.includes("길드 버스");
+      const isBus = isGuildBusParty(p);
       if (isBus) return false;
 
       const pMaxMembers = p.max_members || targetMaxMembers;
@@ -644,6 +639,8 @@ export function usePartyManager() {
 
   const handleCreateGuildBus = async () => {
     if (!isAdmin) return alert("관리자 권한이 필요합니다.");
+    if (!partyCatalog.loaded || partyCatalog.error) return alert("컨텐츠 기준을 불러온 뒤 다시 개설해주세요.");
+    if (!isSupportedPartyContent(busCreateContent, busCreateDiff, powerReqs, busCreateSubContents)) return alert("등록된 컨텐츠 난이도를 다시 선택해주세요.");
 
     const selectedEntries = Object.entries(busCharSelections).filter(([_, config]) => config.selected);
 
@@ -754,8 +751,8 @@ export function usePartyManager() {
     }
   };
 
-  const openGuildBusModal = (contentName: string, difficulty: string, timeStart = "20:00", timeEnd = "23:59") => {
-    setTargetBusParty({ contentName, difficulty, timeStart, timeEnd });
+  const openGuildBusModal = (contentName: string, difficulty: string, timeStart = "20:00", timeEnd = "23:59", partyId?: string | number) => {
+    setTargetBusParty({ partyId, contentName, difficulty, timeStart, timeEnd });
     setIsBusModalOpen(true);
   };
 
@@ -793,9 +790,10 @@ export function usePartyManager() {
         };
       });
 
-      const existingParty = activeParties.find(
-        p => p.content_name === targetBusParty.contentName && p.difficulty === targetBusParty.difficulty && p.sub_content?.includes("길드 버스")
-      );
+      if (targetBusParty.partyId == null) throw new Error('탑승할 길드 버스를 다시 선택해주세요.');
+      const {data: existingParty,error: readError} = await supabase.from('parties').select('*').eq('id',targetBusParty.partyId).maybeSingle();
+      if (readError) throw readError;
+      if (!existingParty || existingParty.status === '종료됨') throw new Error('해당 길드 버스가 종료되었거나 삭제됐습니다.');
 
       const targetMaxMembers = getMaxMembersForContent(targetBusParty.contentName, targetBusParty.difficulty, 8);
 
@@ -861,36 +859,6 @@ export function usePartyManager() {
     }
   };
 
-  const handleNextRound = async (targetParty: Party, completedMembers: Member[]) => {
-    const contentType = targetParty.content_name.includes("어비스") ? "abyss" : "raid";
-    await syncKronosChecklist(completedMembers, contentType, targetParty.content_name, targetParty.difficulty, targetParty.id);
-
-    const completedNames = completedMembers.map(m => m.character_name || m.name);
-    const completedSet = new Set(completedNames);
-
-    const updatedMembers = targetParty.members.map((m: any) => {
-      if (completedSet.has(m.character_name || m.name) || completedMembers.some(cm => (cm as any).character_id === (m.character_id || m.id))) {
-        return { ...m, is_completed: true };
-      }
-      return m;
-    });
-
-    try {
-      const { error } = await memberMutation({ table: "parties", action: "update", filter: { column: "id", value: targetParty.id }, payload: {
-          members: updatedMembers,
-          status: "운행중"
-        } });
-
-      if (error) throw error;
-
-      alert(`🎯 ${completedMembers.length}명 회차 완수 및 KRONOS 숙제가 성공적으로 자동 완료되었습니다!`);
-      const ownerName = user?.username || user?.nickname || user?.owner || "한설";
-      fetchData(ownerName);
-    } catch (err: any) {
-      console.error("다음 회차 전환 오류:", err);
-      alert("회차 완수 업데이트 중 오류가 발생했습니다: " + err.message);
-    }
-  };
 
   // 🛡️ 과반수 완료 투표 엔진 (4인: 3명 / 8인: 5명)
   const handleCompleteParty = async (party: Party, memberName?: string) => {
@@ -920,7 +888,8 @@ export function usePartyManager() {
       if (isMajorityReached) {
         // 과반수 동의 달성 시 파티 종료 및 KRONOS 숙제 자동 연동
         const contentType = party.content_name.includes("어비스") ? "abyss" : "raid";
-        await syncKronosChecklist(updatedMembers, contentType, party.content_name, party.difficulty, party.id);
+        const synced = await syncKronosChecklist(updatedMembers, contentType, party.content_name, party.difficulty, party.id);
+        if (!synced) throw new Error('크로노스 완료 기록을 저장하지 못했습니다. 파티는 종료하지 않았습니다.');
 
         const { error } = await memberMutation({ table: "parties", action: "update", filter: { column: "id", value: party.id }, payload: {
             members: updatedMembers, 
@@ -973,7 +942,7 @@ export function usePartyManager() {
         if (leavingMember && leavingMember.roles && leavingMember.roles.length > 0) {
           updatedWanted.push(leavingMember.roles[0]);
         }
-        const isGuildBus = party.party_type === "길드버스" || party.sub_content?.includes("길드 버스") || party.sub_content?.includes("성역 길드 버스");
+        const isGuildBus = isGuildBusParty(party);
         const updatePayload: any = {
           members: remainingMembers,
           wanted_roles: updatedWanted,
@@ -995,9 +964,9 @@ export function usePartyManager() {
   };
 
   const openJoinPopup = (party: Party) => {
-    const isBus = party.sub_content?.includes("길드 버스");
+    const isBus = isGuildBusParty(party);
     if (isBus) {
-      openGuildBusModal(party.content_name, party.difficulty, party.time_start, party.time_end);
+      openGuildBusModal(party.content_name, party.difficulty, party.time_start, party.time_end,party.id);
       return;
     }
 
@@ -1026,7 +995,7 @@ export function usePartyManager() {
       }
 
       const candidateOwner = ownerAccountMap[joinSelectedChar] || joinSelectedChar;
-      const isBus = latestParty.sub_content?.includes("길드 버스");
+      const isBus = isGuildBusParty(latestParty);
 
       if (!isBus) {
         const alreadyJoinedOwner = latestParty.members.some((m: any) => {
@@ -1130,7 +1099,7 @@ export function usePartyManager() {
       if (normPDate < normToday) return;
 
       const isCompleted = p.status === "매칭 완료" || p.status === "모집완료";
-      const isBus = p.sub_content?.includes("길드 버스");
+      const isBus = isGuildBusParty(p);
       
       if (isBus) {
         const week = getMabinogiWeekRange(normPDate);
@@ -1192,7 +1161,7 @@ export function usePartyManager() {
       const normPartyDate = normalizeDateStr(party.party_date || normToday);
       if (normPartyDate < normToday) return false;
       
-      const isBus = party.sub_content?.includes("길드 버스");
+      const isBus = isGuildBusParty(party);
 
       if (activeDateFilter !== "전체") {
         const normFilterDate = normalizeDateStr(activeDateFilter);
@@ -1229,8 +1198,8 @@ export function usePartyManager() {
     });
 
     return filtered.sort((a, b) => {
-      const aIsBus = a.sub_content?.includes("길드 버스") ? 1 : 0;
-      const bIsBus = b.sub_content?.includes("길드 버스") ? 1 : 0;
+      const aIsBus = isGuildBusParty(a) ? 1 : 0;
+      const bIsBus = isGuildBusParty(b) ? 1 : 0;
       if (aIsBus !== bIsBus) return bIsBus - aIsBus;
 
       const aIsCompleted = a.status === "매칭 완료" || a.status === "모집완료" ? 1 : 0;
@@ -1270,6 +1239,7 @@ export function usePartyManager() {
     allCharactersMap,
     powerReqs,
     nexusClasses,
+    partyCatalog,
     activeDateFilter,
     setActiveDateFilter,
     selectedCategoryFilter,
@@ -1365,7 +1335,6 @@ export function usePartyManager() {
     handleCreateGuildBus,
     openGuildBusModal,
     handleBusSubmit,
-    handleNextRound,
     handleCompleteParty,
     handleDeleteParty,
     handleLeaveParty,

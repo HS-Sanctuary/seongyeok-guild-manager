@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSupabase, getSessionAccount, isPendingAccount, SANCTUM_SESSION_COOKIE } from "@/lib/server/sanctumSession";
+import { mergeChecklistEdit, setChecklistField } from '@/lib/matchingUtils';
+import { isGuildBusParty } from '@/lib/guildBusPolicy';
 
 type Table = "characters" | "parties" | "inquiries";
 type Action = "insert" | "update" | "upsert" | "delete";
@@ -51,6 +53,8 @@ export async function POST(request: NextRequest) {
     const supabase = getServerSupabase();
     const isAdmin = ADMIN_ROLES.has(account.role);
     let cleanPayload = isRecord(payload) ? { ...payload } : {};
+    let busMembersBefore: unknown = undefined;
+    const characterChecksBefore: Record<string, unknown> = {};
     const ownedNicknameUpdate = table === "characters" && action === "update" && filter?.column === "nickname" && typeof filter.value === "string" && !filter.exceptNickname;
 
     if (table === "characters") {
@@ -73,6 +77,46 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    if (table === 'characters' && action === 'update' && isRecord(cleanPayload._checklistAction)) {
+      const change = cleanPayload._checklistAction;
+      if (Object.keys(cleanPayload).length !== 1 || !['daily','weekly','raid'].includes(String(change.type)) || typeof change.completed !== 'boolean' || change.id == null) {
+        return NextResponse.json({message:'숙제 변경 정보를 확인해주세요.'},{status:400});
+      }
+      const field = `${change.type}_checks`;
+      const {data: character,error: readError} = await supabase.from('characters').select('*')
+        .eq(filter!.column,filter!.value).eq('owner',account.nickname).maybeSingle();
+      if (readError || !character) return NextResponse.json({message:'본인 캐릭터를 확인하지 못했습니다.'},{status:403});
+      const {data: catalog,error: catalogError} = await supabase.from(change.type === 'raid' ? 'nexus_contents' : 'nexus_tasks').select('*');
+      if (catalogError) throw catalogError;
+      const item = catalog?.find(row => String(row.id) === String(change.id));
+      if (!item) return NextResponse.json({message:'숙제 항목을 찾지 못했습니다.'},{status:400});
+      const next = setChecklistField(character[field],item,change.completed,String(change.type),catalog ?? []);
+      let query = supabase.from('characters').update({[field]:next}).eq('id',character.id).eq('owner',account.nickname);
+      query = character[field] == null ? query.is(field,null) : query.eq(field,JSON.stringify(character[field]));
+      const {data,error} = await query.select();
+      if (error) throw error;
+      if (!data?.length) return NextResponse.json({message:'다른 숙제 정보가 변경됐습니다. 새로고침 후 다시 시도해주세요.'},{status:409});
+      return NextResponse.json({data});
+    }
+
+    if (table === 'characters' && '_checklistBase' in cleanPayload) {
+      if (!ownedNicknameUpdate || !isRecord(cleanPayload._checklistBase)) {
+        return NextResponse.json({message:'숙제 저장 대상을 확인해주세요.'},{status:400});
+      }
+      const base = cleanPayload._checklistBase;
+      delete cleanPayload._checklistBase;
+      const {data: character,error} = await supabase.from('characters').select('*')
+        .eq('nickname',filter!.value).eq('owner',account.nickname).maybeSingle();
+      if (error) throw error;
+      if (!character) return NextResponse.json({message:'본인 캐릭터를 확인하지 못했습니다.'},{status:403});
+      for (const field of ['daily_checks','weekly_checks','raid_checks']) {
+        if (!(field in cleanPayload)) continue;
+        if (!(field in base)) return NextResponse.json({message:'숙제 기준 정보가 누락됐습니다. 새로고침해주세요.'},{status:400});
+        characterChecksBefore[field] = character[field] ?? null;
+        cleanPayload[field] = mergeChecklistEdit(character[field],base[field],cleanPayload[field]);
+      }
+    }
+
     if (table === "parties") {
       const { data: ownedCharacters } = await supabase.from("characters").select("nickname").eq("owner", account.nickname);
       const ownNames = new Set((ownedCharacters ?? []).map((character) => character.nickname));
@@ -83,12 +127,49 @@ export async function POST(request: NextRequest) {
         }
       } else {
         if (filter?.column !== "id") return NextResponse.json({ message: "파티 ID가 필요합니다." }, { status: 400 });
-        const { data: party } = await supabase.from("parties").select("id, leader_name, members, sub_content, party_type").eq("id", filter.value).maybeSingle();
+        const { data: party } = await supabase.from("parties").select("id, leader_name, members, sub_content, memo, party_type").eq("id", filter.value).maybeSingle();
         if (!party) return NextResponse.json({ message: "파티를 찾을 수 없습니다." }, { status: 404 });
         const oldMembers = Array.isArray(party.members) ? party.members : [];
         const actorInParty = oldMembers.some((member) => ownNames.has(memberName(member) ?? ""));
         const isLeader = ownNames.has(party.leader_name ?? "");
-        const isGuildBus = party.party_type === "길드버스" || String(party.sub_content || "").includes("길드 버스") || String(party.sub_content || "").includes("성역 길드 버스");
+        const isGuildBus = isGuildBusParty(party);
+        if (isGuildBus && action === 'update') busMembersBefore = party.members;
+        const busAction = cleanPayload._busMemberAction;
+        if (isGuildBus && isRecord(busAction)) {
+          if (action !== 'update' || Object.keys(cleanPayload).length !== 1) {
+            return NextResponse.json({message: '캐릭터 설정과 운행 설정은 함께 변경할 수 없습니다.'}, {status: 403});
+          }
+          let nextMembers: any[];
+          if (busAction.type === 'repeat' || busAction.type === 'leave') {
+            const name = typeof busAction.name === 'string' ? busAction.name : '';
+            if (!ownNames.has(name) || !oldMembers.some(member => memberName(member) === name)) {
+              return NextResponse.json({message: '본인 참여 캐릭터만 변경할 수 있습니다.'}, {status: 403});
+            }
+            if (busAction.type === 'repeat' && typeof busAction.allow_repeat !== 'boolean') {
+              return NextResponse.json({message: '반복 설정을 확인해주세요.'}, {status: 400});
+            }
+            nextMembers = busAction.type === 'leave'
+              ? oldMembers.filter(member => memberName(member) !== name)
+              : oldMembers.map(member => memberName(member) === name ? {...member, allow_repeat: busAction.allow_repeat} : member);
+          } else if (busAction.type === 'reconfigure') {
+            if (!isAdmin || !(isLeader || account.nickname === party.leader_name)) {
+              return NextResponse.json({message: '현재 길드 버스 운행자만 재구성할 수 있습니다.'}, {status: 403});
+            }
+            const names = Array.isArray(busAction.selectedNames) ? busAction.selectedNames : [];
+            const selected = new Set(names);
+            nextMembers = [...oldMembers].sort((a: any,b: any) =>
+              Number(selected.has(memberName(a)))-Number(selected.has(memberName(b))) ||
+              (a.selection_order ?? oldMembers.indexOf(a))-(b.selection_order ?? oldMembers.indexOf(b))
+            ).map((member,index) => ({...member,selection_order:index}));
+          } else {
+            return NextResponse.json({message: '허용되지 않은 버스 작업입니다.'}, {status: 400});
+          }
+          const {data, error} = await supabase.from('parties').update({members:nextMembers})
+            .eq('id',party.id).eq('members',JSON.stringify(party.members)).select();
+          if (error) throw error;
+          if (!data?.length) return NextResponse.json({message:'다른 참여 정보가 변경됐습니다. 새로고침 후 다시 시도해주세요.'}, {status:409});
+          return NextResponse.json({data});
+        }
         const isBusJoinRequest = isGuildBus && cleanPayload._busJoin === true;
         const isBusLeaveRequest = isGuildBus && cleanPayload._busLeave === true;
         delete cleanPayload._busJoin;
@@ -101,10 +182,15 @@ export async function POST(request: NextRequest) {
           if (!nextMembers || !removed.length || added.length || !removed.every((member) => ownNames.has(memberName(member) ?? ""))) {
             return NextResponse.json({ message: "본인 캐릭터만 길드 버스에서 탈퇴할 수 있습니다." }, { status: 403 });
           }
+          if (Object.keys(cleanPayload).some(key => !['members','wanted_roles'].includes(key))) {
+            return NextResponse.json({message:'탈퇴 요청으로 운행 정보를 변경할 수 없습니다.'},{status:403});
+          }
+          const removedNames = new Set(removed.map(memberName));
+          cleanPayload = {members:oldMembers.filter(member => !removedNames.has(memberName(member)))};
         }
         const controllerFields = ["status", "leader_name"];
         const requestsControllerChange = isGuildBus && Object.keys(cleanPayload).some((key) => controllerFields.includes(key));
-        const isBusController = isLeader || account.nickname === party.leader_name;
+        const isBusController = isAdmin && (isLeader || account.nickname === party.leader_name);
         if (isGuildBus && requestsControllerChange && !isBusController && !isBusLeaveRequest) {
           return NextResponse.json({ message: "현재 길드 버스 운행자만 컨트롤러 작업을 할 수 있습니다." }, { status: 403 });
         }
@@ -118,8 +204,13 @@ export async function POST(request: NextRequest) {
             const old = oldMembers.find((candidate) => sameMember(candidate, next));
             return old && JSON.stringify(old) !== JSON.stringify(next);
           }) ?? [];
-          const isOwnUpdate = changed.length > 0 && changed.every((member) => ownNames.has(memberName(member) ?? ""));
-          if (!preserved || (!added.length && !isOwnUpdate) || (added.length && !added.every((member) => ownNames.has(memberName(member) ?? "")))) {
+          const isOwnUpdate = changed.length > 0 && changed.every((member) => {
+            const old = oldMembers.find(candidate => sameMember(candidate,member));
+            return ownNames.has(memberName(member) ?? '') && isRecord(member) && typeof member.allow_repeat === 'boolean'
+              && JSON.stringify({...old,allow_repeat:member.allow_repeat}) === JSON.stringify(member);
+          });
+          const onlyMemberField = Object.keys(cleanPayload).every(key => key === 'members');
+          if (!onlyMemberField || !preserved || (!added.length && !isOwnUpdate) || (added.length && (changed.length > 0 || !added.every((member) => ownNames.has(memberName(member) ?? ""))))) {
             return NextResponse.json({ message: "현재 길드 버스 운행자만 구성을 변경할 수 있습니다." }, { status: 403 });
           }
         }
@@ -172,6 +263,10 @@ export async function POST(request: NextRequest) {
     else if (action === "upsert" && table === "characters") query = supabase.from(table).upsert(cleanPayload, { onConflict: "nickname" }).select();
     else if (action === "update") {
       query = supabase.from(table).update(cleanPayload).eq(filter!.column, filter!.value);
+      if (busMembersBefore !== undefined) query = query.eq('members',JSON.stringify(busMembersBefore));
+      for (const [field,value] of Object.entries(characterChecksBefore)) {
+        query = value == null ? query.is(field,null) : query.eq(field,JSON.stringify(value));
+      }
       if (ownedNicknameUpdate) query = query.eq("owner", account.nickname);
       if (table === "characters" && filter?.exceptNickname) query = query.neq("nickname", filter.exceptNickname);
       query = query.select();
@@ -182,8 +277,14 @@ export async function POST(request: NextRequest) {
       console.error("SANCTUM member mutation failed:", table, action, error.message);
       return NextResponse.json({ message: "변경 사항을 저장하지 못했습니다." }, { status: 500 });
     }
+    if (Object.keys(characterChecksBefore).length && !data?.length) {
+      return NextResponse.json({message:'다른 화면에서 숙제가 변경됐습니다. 새로고침 후 다시 시도해주세요.'},{status:409});
+    }
     if (ownedNicknameUpdate && (!data || data.length === 0)) {
       return NextResponse.json({ message: "본인 캐릭터만 수정할 수 있습니다." }, { status: 403 });
+    }
+    if (busMembersBefore !== undefined && (!data || data.length === 0)) {
+      return NextResponse.json({message:'참여 정보가 변경됐습니다. 새로고침 후 다시 시도해주세요.'},{status:409});
     }
     return NextResponse.json({ data });
   } catch (error) {

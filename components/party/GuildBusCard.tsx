@@ -1,8 +1,10 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import ClassIcon from '@/components/common/ClassIcon';
 import MarkIcon from '@/components/common/MarkIcon';
+import styles from './GuildBusCard.module.css';
+import ResponsiveMemberName from './ResponsiveMemberName';
 import { 
   Party, 
   Member, 
@@ -15,7 +17,7 @@ import {
   assembleBalancedParty, 
   syncKronosChecklist, 
   getRoleByJob,
-  getShortNickname,
+  findPartyPowerReq,
   parseCP,
   parseAbyssInfo,
   BusCandidate,
@@ -24,6 +26,8 @@ import {
 import { memberMutation } from '@/lib/memberMutationClient';
 import PoolStatusModal from '@/components/party/modals/PoolStatusModal';
 import { eligibleBusCandidates, formatBusRoster, isBusOperator } from '@/lib/guildBusPolicy';
+import { changeBusMember, completeBusRound } from '@/lib/guildBusActions';
+import type { PartyCatalog } from '@/hooks/usePartyCatalog';
 
 const Users = ({ className, title }: { className?: string; title?: string }) => (
   <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -86,22 +90,13 @@ const X = ({ className }: { className?: string }) => (
   <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
 );
 
-const formatCPShort = (cp: number) => {
-  if (!cp || cp <= 0) return "-";
-  if (cp >= 10000) {
-    const man = cp / 10000;
-    return `${(Math.floor(man * 10) / 10).toFixed(1)}만`;
-  }
-  return cp.toLocaleString();
-};
-
 const getDisplayName = (m: any) => {
   const alias = m.alias || m.tempAlias;
   if (alias && alias !== "EMPTY" && alias !== "NULL" && alias.trim() !== "") {
-    return alias.trim().slice(0, 3);
+    return alias.trim();
   }
   const rawName = m.character_name || m.name || m.nickname || "";
-  return getShortNickname(rawName).slice(0, 3);
+  return rawName;
 };
 
 interface GuildBusCardProps {
@@ -109,39 +104,36 @@ interface GuildBusCardProps {
   currentUserNickname: string;
   currentUserAccountId?: string;
   currentUserRole?: string;
+  myCharacterNames: string[];
+  catalog: PartyCatalog;
+  characterProfiles?: Record<string, { alias?: string }>;
   onJoinClick: (party: Party) => void;
-  onLeaveClick: (party: Party, charName?: string) => void;
   onDeleteClick: (partyId: string | number) => void;
-  onNextRoundClick?: (party: Party, completedMembers: Member[]) => void;
-  onRefresh?: () => void;
+  onRefresh: () => void | Promise<void>;
   isMasterOrAdmin: boolean;
-  powerReqs?: ContentPowerReq[];
-  contentsCatalog?: NexusContent[];
-  classesCatalog?: NexusClassItem[];
 }
 
 export default function GuildBusCard({
   party,
+  characterProfiles = {},
   currentUserNickname,
   currentUserAccountId,
   currentUserRole = "",
+  myCharacterNames,
+  catalog,
   onJoinClick,
-  onLeaveClick,
   onDeleteClick,
-  onNextRoundClick,
   onRefresh,
-  isMasterOrAdmin,
-  powerReqs,
-  contentsCatalog,
-  classesCatalog
+  isMasterOrAdmin
 }: GuildBusCardProps) {
+  const {powerReqs, contents:contentsCatalog, classes:classesCatalog} = catalog;
+  const actionLock = useRef(false);
   const [isPoolModalOpen, setIsPoolModalOpen] = useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   
   const isBusStartedInDB = party.status === "운행중" || party.status === "매칭 완료" || party.status === "매칭중";
   const [isStarted, setIsStarted] = useState<boolean>(isBusStartedInDB);
   const [prevMemberNames, setPrevMemberNames] = useState<string[]>([]);
-  const [reconfiguredCandidates, setReconfiguredCandidates] = useState<BusCandidate[] | null>(null);
 
   const [isTransferModalOpen, setIsTransferModalOpen] = useState<boolean>(false);
   const [eligibleAdmins, setEligibleAdmins] = useState<{ nickname: string; role: string }[]>([]);
@@ -196,20 +188,18 @@ export default function GuildBusCard({
     owner_account: m.account_id || m.owner || m.owner_account || m.nickname || m.name || '',
     job: m.job,
     combat_power: parseCP(m.combat_power || m.cp || 0),
+    magic_resistance: parseCP(m.magic_resistance || m.mr || 0),
+    selection_order: m.selection_order,
     allow_repeat: m.allow_repeat || false,
     is_completed: m.is_completed || false,
-    time_start: m.time_start,
-    time_end: m.time_end
+    time_start: m.time_start || m.start_time || m.startTime,
+    time_end: m.time_end || m.end_time || m.endTime
   }));
 
   // 🎯 DB(`content_power_reqs`) 기반 동적 스탯 컷 조회
   const cpReqs = useMemo(() => {
     if (!powerReqs || powerReqs.length === 0) return null;
-    return powerReqs.find(
-      (r) =>
-        (r.content_name === party.content_name || r.content_name === party.sub_content) &&
-        r.difficulty === party.difficulty
-    ) || null;
+    return findPartyPowerReq(powerReqs,party.content_name,party.difficulty);
   }, [powerReqs, party.content_name, party.sub_content, party.difficulty]);
 
   const maxPartySize = party.max_members || 8;
@@ -218,9 +208,7 @@ export default function GuildBusCard({
     () => eligibleBusCandidates(candidates, party, busNow),
     [candidates, party, busNow]
   );
-  const activeCandidateList = reconfiguredCandidates
-    ? eligibleBusCandidates(reconfiguredCandidates, party, busNow)
-    : scheduledCandidates;
+  const activeCandidateList = scheduledCandidates;
   const { selected, hasHealer, hasTanker } = assembleBalancedParty(
     activeCandidateList, 
     maxPartySize, 
@@ -236,11 +224,10 @@ export default function GuildBusCard({
     : 0;
 
   const isSubMasterOrHigherRole = ["길드마스터", "부마스터", "부마스터 대행", "master", "admin", "sub_master"].includes(currentUserRole.toLowerCase());
-  const leaderMember = candidates.find((candidate) => candidate.character_name === party.leader_name);
   const canManage = isBusOperator(
     party.leader_name,
     currentUserNickname,
-    [currentUserAccountId, currentUserNickname].filter(Boolean) as string[],
+    myCharacterNames,
     isMasterOrAdmin || isSubMasterOrHigherRole
   );
 
@@ -258,7 +245,10 @@ export default function GuildBusCard({
   };
 
   const handleStartBus = async () => {
+    if (!canManage || actionLock.current || !catalog.loaded || catalog.error) return;
     if (activeMembers.length === 0) return alert("출전 파티원이 없습니다.");
+    actionLock.current = true;
+    setIsSyncing(true);
     try {
       const { error } = await memberMutation({ table: "parties", action: "update", filter: { column: "id", value: party.id }, payload: { status: "운행중" } });
 
@@ -267,50 +257,55 @@ export default function GuildBusCard({
       setIsStarted(true);
       setPrevMemberNames(activeMembers.map((m: BusMember) => m.character_name));
       alert("🚌 길드 버스가 출발했습니다!");
-      if (onRefresh) onRefresh();
+      await onRefresh();
     } catch (err: any) {
       console.error("버스 출발 DB 처리 실패:", err);
       alert("버스 출발 처리 중 오류: " + err.message);
+    } finally {
+      actionLock.current = false;
+      setIsSyncing(false);
     }
   };
 
-  const handleReconstructParty = () => {
+  const handleReconstructParty = async () => {
+    if (!canManage || actionLock.current || !catalog.loaded || catalog.error) return;
+    actionLock.current = true;
+    setIsSyncing(true);
     const currentActiveNames = activeMembers.map((m: BusMember) => m.character_name);
-    setPrevMemberNames(currentActiveNames);
-
-    const reshuffled = [...candidates].sort((a, b) => parseCP(b.combat_power) - parseCP(a.combat_power));
-    setReconfiguredCandidates(reshuffled);
-    alert("🔄 파티 재구성이 완료되었습니다!");
+    try {
+      await changeBusMember(party.id,{type:'reconfigure',selectedNames:currentActiveNames});
+      setPrevMemberNames(currentActiveNames);
+      await onRefresh();
+    } catch (error: any) {
+      alert(`파티 재구성 실패: ${error.message}`);
+    } finally {
+      actionLock.current = false;
+      setIsSyncing(false);
+    }
   };
 
   const handleCompleteAndNextRound = async () => {
+    if (!canManage || actionLock.current || !catalog.loaded || catalog.error) return;
     if (activeMembers.length === 0) return alert("출전 파티원이 없습니다.");
 
     if (!confirm(`현재 출전 중인 ${activeMembers.length}명의 KRONOS 숙제를 완료 처리하고 다음 회차 파티를 구성하시겠습니까?`)) {
       return;
     }
 
+    actionLock.current = true;
     setIsSyncing(true);
     try {
       const activeNames = activeMembers.map((m: BusMember) => m.character_name);
       setPrevMemberNames(activeNames);
 
-      const contentType = party.party_type === "어비스" || party.content_name.includes("어비스") ? "abyss" : "raid";
-      await syncKronosChecklist(activeMembers, contentType, party.content_name, party.difficulty, party.id);
-
-      if (onNextRoundClick) {
-        const completedMemberList = party.members.filter((m: any) => 
-          activeMembers.some((am: BusMember) => am.character_name === (m.character_name || m.name) || am.character_id === (m.character_id || m.id))
-        );
-        onNextRoundClick(party, completedMemberList);
-      }
-      setReconfiguredCandidates(null);
-      if (onRefresh) onRefresh();
-    } catch (err) {
+      await completeBusRound(party.id,activeNames);
+      await onRefresh();
+    } catch (err: any) {
       console.error("회차 완수 처리 중 오류:", err);
-      alert("KRONOS 동기화 중 오류가 발생했습니다.");
+      alert(`회차 완료 처리 실패: ${err.message}`);
     } finally {
       setIsSyncing(false);
+      actionLock.current = false;
     }
   };
 
@@ -392,37 +387,52 @@ export default function GuildBusCard({
   };
 
   const handleToggleRepeat = async (charName: string, currentAllowRepeat: boolean) => {
+    if (actionLock.current) return;
+    actionLock.current = true;
+    setIsSyncing(true);
     try {
-      const updatedMembers = (party.members || []).map((m: any) => {
-        const name = m.character_name || m.name;
-        if (name === charName) {
-          return { ...m, allow_repeat: !currentAllowRepeat };
-        }
-        return m;
-      });
-
-      const { error } = await memberMutation({ table: "parties", action: "update", filter: { column: "id", value: party.id }, payload: { members: updatedMembers } });
-
-      if (error) throw error;
-      if (onRefresh) onRefresh();
+      await changeBusMember(party.id,{type:'repeat',name:charName,allow_repeat:!currentAllowRepeat});
+      await onRefresh();
     } catch (err: any) {
       console.error("반복 참여 설정 업데이트 실패:", err);
+      alert(`반복 설정 저장 실패: ${err.message}`);
+    } finally {
+      actionLock.current = false;
+      setIsSyncing(false);
+    }
+  };
+
+  const handleLeave = async (charName: string) => {
+    if (actionLock.current || !confirm(`'${charName}' 캐릭터를 이 길드 버스에서 탈퇴 처리하시겠습니까?`)) return;
+    actionLock.current = true;
+    setIsSyncing(true);
+    try {
+      await changeBusMember(party.id,{type:'leave',name:charName});
+      await onRefresh();
+    } catch (err: any) {
+      alert(`탈퇴 처리 실패: ${err.message}`);
+    } finally {
+      actionLock.current = false;
+      setIsSyncing(false);
     }
   };
 
   const myJoinedMembers = (party.members || []).filter((m: any) => {
     const charOwner = m.account_id || m.owner || m.owner_account || m.nickname || m.name;
     const charName = m.character_name || m.name;
-    return charName === currentUserNickname || charOwner === currentUserNickname;
+    return myCharacterNames.includes(charName) || charName === currentUserNickname || charOwner === currentUserNickname || (!!currentUserAccountId && charOwner === currentUserAccountId);
   });
   const isMyAccountJoined = myJoinedMembers.length > 0;
 
   return (
     <div className="w-full rounded-2xl border-2 border-[var(--accent)]/60 border-t-4 border-t-[var(--accent)] bg-[var(--panel)] p-3 sm:p-5 shadow-lg transition-all duration-200 hover:border-[var(--accent)] relative overflow-hidden">
+      {/* Keep fixed overlays outside the size-query container. */}
+      <div className={styles.busCard}>
       
       {/* 카드 헤더 래퍼 */}
+      {catalog.error && <p role="alert" className="mb-2 text-xs text-rose-500">{catalog.error}</p>}
       <div className="-mx-3 -mt-3 sm:-mx-5 sm:-mt-5 p-2 sm:p-4 bg-[var(--inner-box)] border-b border-[var(--panel-border)] rounded-t-2xl mb-2 sm:mb-4 flex flex-col gap-2">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-3">
+        <div className={styles.busHeader}>
           <div className="flex items-center gap-1.5 sm:gap-2.5 flex-wrap min-w-0">
             <span className="px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md text-[11px] sm:text-xs font-black bg-[var(--accent)] text-[var(--accent-fg)] flex items-center gap-1 shrink-0 shadow-xs">
               <MarkIcon src="/svgs/UI mark/길드 마크.svg" size="xs" colorClass="bg-[var(--accent-fg)]" scale={1.1} />
@@ -435,7 +445,7 @@ export default function GuildBusCard({
 
             <div className="flex items-center gap-1.5 min-w-0">
               <MarkIcon src={contentMarkSrc} size="xs" scale={1.15} colorClass="bg-[var(--accent)]" />
-              <h3 className="text-sm sm:text-lg font-black text-[var(--text-main)] truncate max-w-[180px] sm:max-w-[320px]">
+              <h3 className={`${styles.readableName} text-sm sm:text-lg font-black text-[var(--text-main)]`}>
                 {abyssInfo.title}
               </h3>
             </div>
@@ -448,14 +458,14 @@ export default function GuildBusCard({
           </div>
 
           {/* 희망 시간 & 기사단장 */}
-          <div className="flex items-center gap-2 sm:gap-3 text-[11px] sm:text-xs text-[var(--text-main)] shrink-0">
+          <div className={`${styles.busHeaderInfo} text-xs text-[var(--text-main)]`}>
             <div className="flex items-center gap-1 bg-[var(--panel)] px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md border border-[var(--panel-border)]">
               <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[var(--accent)]" />
-              <span className="font-bold text-[var(--text-main)]">{party.time_start} ~ {party.time_end}</span>
+              <span className="font-bold text-[var(--text-main)] whitespace-nowrap">{party.time_start} ~ {party.time_end}</span>
             </div>
-            <div className="flex items-center gap-1 bg-[var(--panel)] px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md border border-[var(--panel-border)]">
+            <div className="flex items-center gap-1 bg-[var(--panel)] px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md border border-[var(--panel-border)] min-w-0 max-w-full">
               <Crown className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-600 dark:text-amber-400" />
-              <span className="font-bold text-[var(--text-main)] truncate max-w-[80px]">{party.leader_name || '기사단장'}</span>
+              <span className={`${styles.readableName} font-bold text-[var(--text-main)]`}>{party.leader_name || '기사단장'}</span>
             </div>
           </div>
         </div>
@@ -518,7 +528,7 @@ export default function GuildBusCard({
         </div>
 
         {/* 파티 출전 멤버 슬롯 */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-2.5">
+        <div className={styles.memberGrid}>
           {Array.from({ length: maxPartySize }).map((_, index) => {
             const member = activeMembers[index];
 
@@ -526,7 +536,7 @@ export default function GuildBusCard({
               return (
                 <div 
                   key={`empty-${index}`} 
-                  className="min-h-[58px] sm:min-h-[62px] rounded-xl border border-dashed border-[var(--panel-border)] bg-[var(--inner-box)]/50 flex items-center justify-center text-[11px] sm:text-xs text-[var(--text-sub)] font-bold"
+                  className={`${styles.emptySlot} rounded-xl border border-dashed border-[var(--panel-border)] bg-[var(--inner-box)]/50 flex items-center justify-center text-[var(--text-sub)] font-bold`}
                 >
                   빈 출전 슬롯
                 </div>
@@ -535,14 +545,14 @@ export default function GuildBusCard({
 
             const role = getRoleByJob(member.job, classesCatalog);
             const cpNum = parseCP(member.combat_power);
-            const displayName = getDisplayName(member);
+            const profile = (party.members || []).find(m => (m.character_name || m.name) === member.character_name);
 
             const isNewlyAdded = prevMemberNames.length > 0 && !prevMemberNames.includes(member.character_name);
 
             return (
               <div 
                 key={`active-${member.character_name}-${index}`}
-                className={`min-h-[58px] sm:min-h-[62px] rounded-xl border p-1.5 sm:p-2 flex items-center gap-1.5 sm:gap-2 relative overflow-hidden transition-all min-w-0 ${
+                className={`${styles.memberSlot} rounded-xl border relative transition-all min-w-0 ${
                   isNewlyAdded 
                     ? 'border-amber-400 bg-amber-500/10 shadow- animate-pulse' 
                     : 'border-[var(--panel-border)] bg-[var(--panel)] hover:border-[var(--accent)]'
@@ -554,32 +564,22 @@ export default function GuildBusCard({
                   </span>
                 )}
 
-                <div className="flex flex-col items-center justify-center shrink-0">
-                  <div className="w-6 sm:w-7 h-6 sm:h-7 rounded-lg bg-[var(--inner-box)] border border-[var(--panel-border)] flex items-center justify-center p-0.5">
-                    <ClassIcon className="w-4 sm:w-5 h-4 sm:h-5 text-[var(--text-main)]" job={member.job} />
+                <div className={styles.memberStats}>
+                  <div className={`${styles.memberClass} relative rounded-lg bg-[var(--inner-box)] border border-[var(--panel-border)] flex items-center justify-center`}>
+                    <ClassIcon className={`${styles.classMark} text-[var(--text-main)]`} job={member.job} />
+                    {member.is_driver && <Crown className={`${styles.driverMark} text-amber-500`} title="버스 기사" />}
                   </div>
-                  <span className="mt-0.5 px-1 py-0.2 text-[8.5px] sm:text-[9px] font-black rounded bg-[var(--accent)] text-[var(--accent-fg)] leading-none">
+                  <span className={`${styles.roleLabel} px-1 font-black rounded bg-[var(--accent)] text-[var(--accent-fg)]`}>
                     {role}
                   </span>
+                  <div className={styles.powerRow}>
+                    <span className={`${styles.memberPower} font-black text-amber-800 dark:text-amber-400 font-mono`}>
+                      {cpNum > 0 ? cpNum.toLocaleString() : "-"}
+                    </span>
+                  </div>
                 </div>
-
-                <div className="flex-1 min-w-0 flex flex-col justify-center">
-                  <div className="flex items-center gap-1 min-w-0">
-                    <span className="text-[11px] sm:text-xs font-black text-[var(--text-main)] truncate leading-tight">
-                      {displayName}
-                    </span>
-                    {member.is_driver && (
-                      <Crown className="w-3 h-3 text-amber-500 shrink-0" title="버스 기사" />
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-0.5 mt-0.5 min-w-0">
-                    <MarkIcon src="/svgs/status mark/전투력 마크.svg" size="xs" scale={0.8} colorClass="bg-amber-600 dark:bg-amber-400" />
-                    <span className="text-[10px] sm:text-xs font-black text-amber-800 dark:text-amber-400 font-mono leading-none truncate">
-                      <span className="sm:hidden">{formatCPShort(cpNum)}</span>
-                      <span className="hidden sm:inline">{cpNum > 0 ? cpNum.toLocaleString() : "-"}</span>
-                    </span>
-                  </div>
+                <div className={`${styles.memberName} font-black text-[var(--text-main)]`}>
+                  <ResponsiveMemberName fullName={member.character_name} alias={profile?.alias} tempAlias={profile?.tempAlias} currentAlias={characterProfiles[member.character_name]?.alias} />
                 </div>
               </div>
             );
@@ -589,18 +589,18 @@ export default function GuildBusCard({
 
       {/* 버스 컨트롤러 버튼 그룹 */}
       {canManage && (
-        <div className="mb-2 sm:mb-3 p-1.5 sm:p-2.5 rounded-xl bg-[var(--inner-box)] border border-[var(--panel-border)] flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-2">
+        <div className={`${styles.controller} mb-2 sm:mb-3 p-1.5 sm:p-2.5 rounded-xl bg-[var(--inner-box)] border border-[var(--panel-border)]`}>
           <div className="text-[10.5px] sm:text-xs font-black text-[var(--text-main)] flex items-center gap-1 shrink-0">
             <Crown className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
             <span>버스 컨트롤러</span>
           </div>
 
-          <div className="grid grid-cols-2 gap-1 w-full sm:flex sm:items-center sm:w-auto sm:gap-1.5">
+          <div className={styles.controllerActions}>
             {!isStarted ? (
               <button
                 type="button"
                 onClick={handleStartBus}
-                disabled={activeMembers.length === 0}
+                disabled={isSyncing || activeMembers.length === 0 || !catalog.loaded || !!catalog.error}
                 className="w-full sm:w-auto px-2 py-1 rounded-md sm:rounded-lg text-[10.5px] sm:text-xs font-black bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-700 disabled:opacity-50 transition-all flex items-center justify-center gap-1 shadow-sm cursor-pointer active:scale-95"
               >
                 <Play className="w-3 h-3 shrink-0 text-white" />
@@ -610,7 +610,7 @@ export default function GuildBusCard({
               <button
                 type="button"
                 onClick={handleCompleteAndNextRound}
-                disabled={isSyncing || activeMembers.length === 0}
+                disabled={isSyncing || activeMembers.length === 0 || !catalog.loaded || !!catalog.error}
                 className="w-full sm:w-auto px-2 py-1 rounded-md sm:rounded-lg text-[10.5px] sm:text-xs font-black bg-[var(--accent)] text-[var(--accent-fg)] hover:brightness-110 disabled:opacity-50 transition-all flex items-center justify-center gap-1 shadow-sm cursor-pointer active:scale-95"
               >
                 <Sparkles className="w-3 h-3 shrink-0" />
@@ -621,6 +621,7 @@ export default function GuildBusCard({
             <button
               type="button"
               onClick={handleReconstructParty}
+              disabled={isSyncing || !catalog.loaded || !!catalog.error}
               className="w-full sm:w-auto px-2 py-1 rounded-md sm:rounded-lg text-[10.5px] sm:text-xs font-black bg-indigo-600 hover:bg-indigo-700 text-white border border-indigo-700 shadow-sm transition-all flex items-center justify-center gap-1 cursor-pointer active:scale-95"
             >
               <RefreshCw className="w-3 h-3 shrink-0 text-white" />
@@ -663,11 +664,11 @@ export default function GuildBusCard({
         <button
           type="button"
           onClick={() => setIsPoolModalOpen(true)}
-          className="w-full px-2.5 py-1.5 sm:px-3 sm:py-2 flex items-center justify-between text-[10.5px] sm:text-xs font-bold text-[var(--text-main)] hover:bg-[var(--panel)]/50 transition-colors cursor-pointer min-w-0"
+          className={`${styles.participationRow} w-full px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs font-bold text-[var(--text-main)] hover:bg-[var(--panel)]/50 transition-colors cursor-pointer`}
         >
           <div className="flex items-center gap-1.5 min-w-0">
             <Users className="w-3.5 h-3.5 text-[var(--accent)] shrink-0" />
-            <span className="truncate">참가 캐릭터 List ({party.members?.length || 0}캐릭터)</span>
+            <span className={styles.readableName}>참가 캐릭터 List ({party.members?.length || 0}캐릭터)</span>
           </div>
           <span className="text-[10px] sm:text-xs text-[var(--accent)] font-bold shrink-0 ml-1">
             상세 보기 ➔
@@ -677,7 +678,7 @@ export default function GuildBusCard({
 
       {/* 하단 내 참여 캐릭터 칩 및 추가 버튼 */}
       <div className="mt-2.5 sm:mt-4 pt-2 sm:pt-3 border-t border-[var(--panel-border)] space-y-1.5">
-        <div className="flex items-center justify-between gap-1.5 min-w-0">
+        <div className={styles.participationRow}>
           <span className="text-[10.5px] sm:text-xs font-bold text-[var(--text-sub)] shrink-0">
             참여 상태: {isMyAccountJoined ? <strong className="text-emerald-600 dark:text-emerald-400">참여 중 ({myJoinedMembers.length}개)</strong> : "미참여"}
           </span>
@@ -707,7 +708,7 @@ export default function GuildBusCard({
         </div>
 
         {isMyAccountJoined && (
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-1 pt-0.5 w-full">
+          <div className={`${styles.joinedChips} pt-0.5 w-full`}>
             {myJoinedMembers.map((myChar: any, idx: number) => {
               const charName = myChar.character_name || myChar.name;
               const displayName = getDisplayName(myChar);
@@ -716,7 +717,7 @@ export default function GuildBusCard({
               return (
                 <div
                   key={`joined-chip-${charName}-${idx}`}
-                  className={`flex items-center justify-between px-1.5 py-0.5 rounded-lg border text-[11px] font-bold transition shadow-xs ${
+                  className={`${styles.joinedChip} flex items-center justify-between px-1.5 py-0.5 rounded-lg border font-bold transition shadow-xs ${
                     isRepeat
                       ? 'bg-[var(--accent-soft)]/60 border-[var(--accent)] text-[var(--accent)]'
                       : 'bg-[var(--inner-box)] border-[var(--panel-border)] text-[var(--text-main)] hover:border-[var(--accent)]/50'
@@ -725,10 +726,11 @@ export default function GuildBusCard({
                   <button
                     type="button"
                     onClick={() => handleToggleRepeat(charName, isRepeat)}
-                    className="flex items-center gap-0.5 min-w-0 flex-1 text-left cursor-pointer truncate"
+                    disabled={isSyncing}
+                    className="flex items-center gap-0.5 min-w-0 flex-1 text-left cursor-pointer"
                     title="클릭 시 반복 참여 설정(ON/OFF)"
                   >
-                    <span className="truncate">{displayName}</span>
+                    <span className={styles.readableName}>{displayName}</span>
                     <RefreshCw 
                       className={`w-3 h-3 shrink-0 transition-colors ${
                         isRepeat ? 'text-[var(--accent)]' : 'text-[var(--text-main)] opacity-70'
@@ -738,7 +740,8 @@ export default function GuildBusCard({
 
                   <button
                     type="button"
-                    onClick={() => onLeaveClick(party, charName)}
+                    onClick={() => handleLeave(charName)}
+                    disabled={isSyncing}
                     className="w-3.5 h-3.5 rounded-full bg-rose-600 hover:bg-rose-700 text-white font-black flex items-center justify-center text-[8px] transition cursor-pointer shrink-0 ml-1 shadow-xs"
                     title={`${charName} 버스 탈퇴`}
                   >
@@ -760,6 +763,8 @@ export default function GuildBusCard({
             )}
           </div>
         )}
+      </div>
+
       </div>
 
       {/* 관리자 인계 모달 */}
