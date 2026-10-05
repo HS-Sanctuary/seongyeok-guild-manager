@@ -1,6 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
+import { mergeReadIds, normalizePreferences, notificationEnabled, preferenceStorageKey, visibleNotifications, type NotificationModule } from "@/lib/notificationPolicy";
 import { supabase } from "@/lib/supabase";
 import { filterApprovedCharacters, getApprovedAccountNames } from "@/lib/approvedCharacters";
 import { formatWeeklyResetRemaining, getWeeklyReminderKey } from "@/lib/weeklyReset";
@@ -59,16 +61,29 @@ const asMembers = (value: unknown): Array<Record<string, unknown>> => {
 };
 
 export function useNoticeNotifications(nickname?: string, role?: string) {
+  const pathname = usePathname();
   const [notifications, setNotifications] = useState<SanctumNotification[]>([]);
   const [readIds, setReadIds] = useState<number[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
   const [browserPermission, setBrowserPermission] = useState<NotificationPermission | "unsupported">("unsupported");
+  const [preferences, setPreferences] = useState(() => normalizePreferences(null));
+  const preferencesRef = useRef(preferences);
+  const [settingsError, setSettingsError] = useState('');
+  const setModuleEnabled = useCallback((module:NotificationModule, enabled:boolean) => {
+    const next = {...preferencesRef.current,[module]:enabled};
+    preferencesRef.current = next;
+    setPreferences(next);
+    try {localStorage.setItem(preferenceStorageKey(nickname),JSON.stringify(next));setSettingsError('');}
+    catch {setSettingsError('이 브라우저에 설정을 저장하지 못했어요. 이번 접속에만 적용됩니다.');}
+  },[nickname]);
 
   const persistReadIds = useCallback(
     (nextReadIds: number[]) => {
-      const normalized = Array.from(new Set(nextReadIds)).slice(-MAX_NOTIFICATIONS);
-      setReadIds(normalized);
-      localStorage.setItem(getReadStorageKey(nickname), JSON.stringify(normalized));
+      setReadIds(current => {
+        const normalized = mergeReadIds(current,nextReadIds);
+        try {localStorage.setItem(getReadStorageKey(nickname), JSON.stringify(normalized));} catch { /* Keep this session usable when browser storage is blocked. */ }
+        return normalized;
+      });
     },
     [nickname]
   );
@@ -77,8 +92,8 @@ export function useNoticeNotifications(nickname?: string, role?: string) {
     (id: number) => {
       setReadIds((current) => {
         if (current.includes(id)) return current;
-        const next = Array.from(new Set([...current, id])).slice(-MAX_NOTIFICATIONS);
-        localStorage.setItem(getReadStorageKey(nickname), JSON.stringify(next));
+        const next = mergeReadIds(current,[id]);
+        try {localStorage.setItem(getReadStorageKey(nickname), JSON.stringify(next));} catch { /* Session-only receipt. */ }
         return next;
       });
     },
@@ -86,8 +101,8 @@ export function useNoticeNotifications(nickname?: string, role?: string) {
   );
 
   const markAllAsRead = useCallback(() => {
-    persistReadIds(notifications.map((notification) => notification.id));
-  }, [notifications, persistReadIds]);
+    persistReadIds(notifications.filter(item=>notificationEnabled(item,preferences)).map((notification) => notification.id));
+  }, [notifications, preferences, persistReadIds]);
 
   const requestBrowserPermission = useCallback(async () => {
     if (typeof window === "undefined" || !("Notification" in window)) {
@@ -102,6 +117,7 @@ export function useNoticeNotifications(nickname?: string, role?: string) {
 
   const appendOperationalNotification = useCallback((notification: SanctumNotification, dedupeKey: string) => {
     if (typeof window === "undefined") return;
+    if (!notificationEnabled(notification,preferencesRef.current)) return;
     const storageKey = `sanctum_operational_notification_${nickname || "guest"}_${dedupeKey}`;
     if (localStorage.getItem(storageKey)) return;
     localStorage.setItem(storageKey, "true");
@@ -113,6 +129,12 @@ export function useNoticeNotifications(nickname?: string, role?: string) {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+    let nextPreferences = normalizePreferences(null);
+    try {nextPreferences = normalizePreferences(JSON.parse(localStorage.getItem(preferenceStorageKey(nickname)) || 'null'));} catch { /* Defaults on corrupt or unavailable storage. */ }
+    preferencesRef.current = nextPreferences;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Hydrate browser-owned account preferences after SSR.
+    setPreferences(nextPreferences);
+    setSettingsError('');
 
     if ("Notification" in window) {
       setBrowserPermission(window.Notification.permission);
@@ -121,13 +143,23 @@ export function useNoticeNotifications(nickname?: string, role?: string) {
     try {
       const rawReadIds = localStorage.getItem(getReadStorageKey(nickname));
       const parsedReadIds = rawReadIds ? JSON.parse(rawReadIds) : [];
-      if (Array.isArray(parsedReadIds)) {
-        setReadIds(parsedReadIds.filter((id): id is number => Number.isFinite(Number(id))).map(Number));
-      }
+      setReadIds(Array.isArray(parsedReadIds) ? mergeReadIds([],parsedReadIds.map(Number)) : []);
     } catch {
       setReadIds([]);
     }
   }, [nickname]);
+
+  useEffect(() => {
+    if (!nickname) return;
+    const opened = (event?:Event) => {
+      const url = new URL(window.location.href);
+      const id = event instanceof CustomEvent ? Number(event.detail?.id) : url.pathname === '/kerygma' ? Number(url.searchParams.get('id')) : 0;
+      if (Number.isSafeInteger(id) && id > 0) markAsRead(id);
+    };
+    opened();
+    window.addEventListener('sanctum_notice_opened',opened);
+    return () => window.removeEventListener('sanctum_notice_opened',opened);
+  },[nickname,pathname,markAsRead]);
 
   useEffect(() => {
     if (!nickname) {
@@ -142,6 +174,7 @@ export function useNoticeNotifications(nickname?: string, role?: string) {
     const knownNoticeIds = new Set<number>();
 
     const showBrowserNotice = (notice: SanctumNotification) => {
+      if (!notificationEnabled(notice,preferencesRef.current)) return;
       if (!("Notification" in window) || window.Notification.permission !== "granted") return;
       const browserNotification = new window.Notification("SANCTUM 새 공지", {
         body: `[${notice.type}] ${notice.title}`,
@@ -186,7 +219,8 @@ export function useNoticeNotifications(nickname?: string, role?: string) {
           localStorage.setItem(initializedKey, "true");
         }
 
-        if (newNotices.length > 0) showBrowserNotice(newNotices[0]);
+        const enabledNotices = newNotices.filter(notice=>notificationEnabled(notice,preferencesRef.current));
+        if (enabledNotices.length > 0) showBrowserNotice(enabledNotices[0]);
 
         setIsLoaded(true);
       } catch {
@@ -397,6 +431,7 @@ export function useNoticeNotifications(nickname?: string, role?: string) {
         ].slice(0, MAX_NOTIFICATIONS));
         if ("Notification" in window && window.Notification.permission === "granted") {
           for (const item of due) {
+            if (!notificationEnabled(item,preferencesRef.current)) continue;
             const key = `sanctum_retention_browser_alert_${nickname}_${item.id}`;
             if (localStorage.getItem(key)) continue;
             localStorage.setItem(key, "true");
@@ -415,9 +450,9 @@ export function useNoticeNotifications(nickname?: string, role?: string) {
     };
   }, [nickname, role]);
 
-  const unreadCount = useMemo(
-    () => notifications.filter((notification) => !readIds.includes(notification.id)).length,
-    [notifications, readIds]
+  const visible = useMemo(
+    () => visibleNotifications(notifications, readIds, preferences),
+    [notifications, readIds, preferences]
   );
 
   return {
@@ -425,9 +460,12 @@ export function useNoticeNotifications(nickname?: string, role?: string) {
     isLoaded,
     markAllAsRead,
     markAsRead,
-    notifications,
+    notifications: visible,
+    preferences,
+    setModuleEnabled,
+    settingsError,
     readIds,
     requestBrowserPermission,
-    unreadCount,
+    unreadCount: visible.length,
   };
 }

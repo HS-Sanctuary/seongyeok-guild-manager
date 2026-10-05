@@ -220,12 +220,19 @@ function KerygmaContent() {
   };
 
   const handleOpenNotice = (notice: Notice) => {
-    router.push(`/kerygma?id=${notice.id}`);
+    // These are client-only query transitions. Update history synchronously
+    // so closing a reader cannot leave its old URL behind a visible list.
+    window.history.pushState(null, "", `/kerygma?id=${notice.id}`);
+    // Also recover an already-desynchronised same-URL selection: a router
+    // navigation to the same id need not rerun the selection effect.
+    setSelectedNotice(withViewerVotes(notice));
+    const rawComments = (notice as Notice & { comments?: CommentItem[] }).comments;
+    setCommentsTree(Array.isArray(rawComments) ? rawComments : []);
   };
 
   const handleCloseReader = () => {
     setSelectedCategory("전체");
-    router.replace("/kerygma");
+    window.history.replaceState(null, "", "/kerygma");
     setSelectedNotice(null);
     setCommentsTree([]);
   };

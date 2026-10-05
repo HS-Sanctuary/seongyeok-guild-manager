@@ -658,6 +658,7 @@ export default function KerygmaReaderView({
 
   useEffect(() => {
     if (!currentNickname || currentNickname === "방문자") return;
+    window.dispatchEvent(new CustomEvent('sanctum_notice_opened', {detail:{id:Number(selectedNotice.id)}}));
     const controller = new AbortController();
     const loadReaders = async () => {
       setReaders([]);

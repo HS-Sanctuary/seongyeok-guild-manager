@@ -64,6 +64,9 @@ export default function Navbar({
     readIds,
     requestBrowserPermission,
     unreadCount,
+    preferences,
+    setModuleEnabled,
+    settingsError,
   } = useNoticeNotifications(activeAccount?.nickname, activeAccount?.role);
 
   const toggleWings = () => {
@@ -224,6 +227,9 @@ export default function Navbar({
               readIds={readIds}
               requestBrowserPermission={requestBrowserPermission}
               unreadCount={unreadCount}
+              preferences={preferences}
+              setModuleEnabled={setModuleEnabled}
+              settingsError={settingsError}
             />
 
             {mounted && activeAccount ? (

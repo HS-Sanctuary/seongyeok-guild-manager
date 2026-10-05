@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { SanctumNotification } from "@/hooks/useNoticeNotifications";
 import MarkIcon from "@/components/common/MarkIcon";
+import {NOTIFICATION_MODULES, type NotificationModule, type NotificationPreferences} from '@/lib/notificationPolicy';
 
 interface NotificationInboxProps {
   browserPermission: NotificationPermission | "unsupported";
@@ -17,6 +18,9 @@ interface NotificationInboxProps {
   readIds: number[];
   requestBrowserPermission: () => Promise<NotificationPermission | "unsupported">;
   unreadCount: number;
+  preferences: NotificationPreferences;
+  setModuleEnabled: (module:NotificationModule, enabled:boolean) => void;
+  settingsError: string;
 }
 
 const formatDate = (value: string) => {
@@ -43,9 +47,13 @@ export default function NotificationInbox({
   readIds,
   requestBrowserPermission,
   unreadCount,
+  preferences,
+  setModuleEnabled,
+  settingsError,
 }: NotificationInboxProps) {
   const inboxRef = useRef<HTMLDivElement>(null);
   const [isPermissionHelpOpen, setIsPermissionHelpOpen] = useState(false);
+  const [isSettingsOpen,setIsSettingsOpen] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -101,7 +109,7 @@ export default function NotificationInbox({
 
       {isOpen && (
         <div id="sanctum-notification-inbox" className="fixed sm:absolute right-3 sm:right-0 top-16 sm:top-full mt-2 w-[min(28rem,calc(100vw-24px))] max-h-[calc(100dvh-5rem)] overflow-hidden flex flex-col rounded-2xl border border-[var(--panel-border)] bg-[var(--panel)] shadow-2xl z-[120]">
-          <div className="flex items-start justify-between gap-2 px-3 sm:px-4 py-3 border-b border-[var(--panel-border)] bg-[var(--panel)] shrink-0">
+          <div className="flex flex-wrap items-start justify-between gap-2 px-3 sm:px-4 py-3 border-b border-[var(--panel-border)] bg-[var(--panel)] shrink-0">
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-[1rem] font-black tracking-tight text-[var(--text-main)]">알림함</h2>
@@ -114,6 +122,7 @@ export default function NotificationInbox({
               <p className="text-[0.7rem] font-medium text-[var(--text-sub)] mt-0.5">새 공지와 시스템 업데이트를 알려드립니다.</p>
             </div>
             <div className="flex items-center gap-1 shrink-0">
+              <button type="button" onClick={()=>setIsSettingsOpen(current=>!current)} aria-expanded={isSettingsOpen} aria-controls="sanctum-notification-settings" className="text-[0.7rem] font-black px-2 py-1 rounded-md text-[var(--accent)] hover:bg-[var(--accent)]/10 cursor-pointer">알림 설정</button>
               {unreadCount > 0 && (
                 <button type="button" onClick={markAllAsRead} className="text-[0.7rem] font-black px-2 py-1 rounded-md text-[var(--accent)] hover:bg-[var(--accent)]/10 cursor-pointer">
                   모두 읽음
@@ -122,6 +131,17 @@ export default function NotificationInbox({
               <button type="button" onClick={onClose} className="w-7 h-7 rounded-lg text-[var(--text-sub)] hover:bg-[var(--accent)]/10 hover:text-[var(--accent)] cursor-pointer" aria-label="알림함 닫기">✕</button>
             </div>
           </div>
+
+          {isSettingsOpen && <section id="sanctum-notification-settings" aria-label="분야별 알림 설정" className="p-3 border-b border-[var(--panel-border)] bg-[var(--inner-box)] overflow-y-auto min-h-0">
+            <p className="text-[0.7rem] text-[var(--text-sub)] mb-2">목록·알림 숫자·브라우저 팝업에 함께 적용됩니다.</p>
+            <div className="grid grid-cols-2 gap-2">
+              {NOTIFICATION_MODULES.map(({key,label})=><label key={key} className="flex items-center justify-between gap-2 rounded-lg border border-[var(--panel-border)] bg-[var(--panel)] p-2 text-[0.75rem] text-[var(--text-main)] cursor-pointer">
+                <span>{label}</span><input type="checkbox" checked={preferences[key]} onChange={event=>setModuleEnabled(key,event.target.checked)} className="accent-[var(--accent)]" />
+              </label>)}
+            </div>
+            <p className="mt-2 text-[0.65rem] leading-relaxed text-[var(--text-sub)]">계정별로 이 브라우저에 저장합니다. 가입 승인 등 운영 알림은 유지됩니다.</p>
+            {settingsError && <p role="status" className="mt-2 text-[0.7rem] text-[var(--accent)]">{settingsError}</p>}
+          </section>}
 
           {browserPermission !== "granted" && (
           <div className="p-2.5 border-b border-[var(--panel-border)] bg-[var(--inner-box)] overflow-y-auto shrink min-h-0">
