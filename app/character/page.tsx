@@ -12,7 +12,7 @@ import ClassLevelManager from "@/components/character/ClassLevelManager";
 import ContentChecklist from "@/components/character/ContentChecklist";
 import TradeList from "@/components/character/TradeList";
 import KronosWorkspace from "@/components/character/KronosWorkspace";
-import { kronosPeriodStart } from "@/lib/kronos";
+import { getKronosResetDay, kronosPeriodStart } from "@/lib/kronos";
 import CharacterSelector from "@/components/character/CharacterSelector";
 import CharacterManageModal from "@/components/character/CharacterManageModal";
 
@@ -132,7 +132,7 @@ export default function CharacterPage() {
   const raidList = dbContents.filter((c: any) => c.type === 'raid');
 
   const getBlackHoleMaxCount = () => {
-    const day = new Date().getDay();
+    const day = getKronosResetDay().weekday;
     if (day === 1) return 8;
     if (day === 2) return 9;
     if (day === 3) return 10;
@@ -202,11 +202,11 @@ export default function CharacterPage() {
   const checkResetNotification = () => {
     const now = new Date();
     const lastCheck = localStorage.getItem("chronos_last_reset_check");
-    const todayStr = now.toISOString().split('T')[0];
+    const { key: todayStr, weekday } = getKronosResetDay(now);
 
     if (lastCheck !== todayStr) {
       localStorage.setItem("chronos_last_reset_check", todayStr);
-      const isMonday = now.getDay() === 1;
+      const isMonday = weekday === 1;
       setSaveToast(isMonday ? 'reset_weekly' : 'reset_daily');
       setTimeout(() => setSaveToast('idle'), 3000);
     }

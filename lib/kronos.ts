@@ -61,6 +61,10 @@ export function kronosPeriodStart(now = new Date(), daily = false): number {
     shifted.setUTCDate(shifted.getUTCDate() - ((shifted.getUTCDay() + 6) % 7));
   return shifted.getTime() - 3 * 3600000;
 }
+export function getKronosResetDay(now = new Date()) {
+  const day = new Date(kronosPeriodStart(now, true) + 9 * 3600000);
+  return { key: day.toISOString().slice(0, 10), weekday: day.getUTCDay() };
+}
 export function currentProgress(
   row: Progress | undefined,
   daily = false,

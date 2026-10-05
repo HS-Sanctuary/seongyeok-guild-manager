@@ -1,5 +1,14 @@
 # 🏛️ SANCTUM Master Guide
 
+검증 — 2026-10-05 18:18 KST: 웹 커밋 후보만 별도 폴더로 추출해 node --test 58/58, 별도 TypeScript, 관련 ESLint, 기본 Turbopack Production 빌드(static48), staged diff 검사를 통과했다. 자정 방식으로 되돌린 회귀3건은 모두 실패, 수정 복원 후3/3 통과. 더보기 합성 화면의 밝은/어두운 캡처 및 6테마 배경 계산 확인. 임시 의존성 junction의 첫 빌드 실패는 실제 파일 복사 후 해소했다. 실제 최신 정상 롤백 배포는 a8f7d78 / dpl_89vTuY8joQuZ1jJBsxHnDurb789s(READY/production)다. 운영 로그인 조작/실제06시 경계·공지 게시는 이 검증에 포함되지 않는다.
+
+## 2026-10-05 v2.151 크로노스 웹 핫픽스
+
+- lib/kronos.ts getKronosResetDay는 기존 KST06 일간 기간 시작에서 날짜 key와 weekday를 파생한다. app/character/page.tsx 검은 구멍 최대 횟수와 초기화 안내가 사용한다.
+- 검은 구멍은 월06시8·화9·수10·목11·금12·토13·일14, 다음 월05:59까지14다. 저장된 완료 기록은 수정하지 않는다.
+- app/globals.css 더보기 디바이더의 배경 마스크는 --panel을 따른다. 공개 버전 lib/release.ts v2.151.
+- API/DB/RLS/권한 구조 변경 없음. 배포 및 실제 운영 확인 결과는 RELEASE_NOTES/HANDOFF 후속 기록을 따른다.
+
 ## 2026-10-02 v2.15 공식 배포 범위
 
 - 최종 결과: 코드 1b1b401의 Production/Ready와 로그인된 운영 화면·등록 레이드 난이도를 확인하고, 기존 작성 UI/서버 권한 경로로 업데이트 공지 ID 13(SANCTUM 시스템)을 1회 게시했다. `docs/UPDATE_POST_v2.15.md`는 게시본 보관이다. 후속 결과 문서 push는 구조 변경 없음. 실제 회차/저장 검증 및 과거 기록 복구는 별도 남은 과제다.
