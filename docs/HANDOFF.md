@@ -1,5 +1,7 @@
 # SANCTUM 작업 인계
 
+운영 확인 — 2026-10-05 21:01 KST: v2.152 코드 4d43fd9를 main에 push하고 Vercel dpl_FSt8AvKkjTp3UXyJgnCKmGzbKRsM READY/production 및 운영 도메인 연결을 확인했다. 운영 로그인된 브라우저에서 공지14→목록(/kerygma)→같은14 재열기, 읽은14 알림 숨김, 분야별 설정 5개, 케리그마 끄기 시 빈 목록·숫자 숨김/다시 켜기 시 복원을 확인했다. 설정은 전부 켜짐으로 복원했다. 브라우저 수집 오류·경고0. /·/character·/party·/kerygma·/admin HTTP200·v2.152, /login HTTP200, 인증 헬스200/ready true. 공개 공지 게시·IRIS 배포·DB 구조/RLS/권한 변경 없음. 이 후속 push는 검증 기록만 추가하며 구조 변경 없음. 다른 분야 실제 팝업·계정 전환·전체 모바일 폭 검증은 미완료다.
+
 ## v2.152 알림 설정·케리그마 이동 수정 — 2026-10-05 20:55 KST
 
 검증 — 2026-10-05 20:58 KST: 실제 staged 웹 후보만 임시 폴더에 추출해 자동 테스트 55/55, 별도 TypeScript 검사, Turbopack Production 빌드(static48), staged diff 검사를 통과했다. 후보에는 미커밋 IRIS 코드·문서·테스트를 포함하지 않았다. 운영 배포 확인은 다음 기록을 따른다.
