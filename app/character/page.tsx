@@ -13,6 +13,7 @@ import ContentChecklist from "@/components/character/ContentChecklist";
 import TradeList from "@/components/character/TradeList";
 import KronosWorkspace from "@/components/character/KronosWorkspace";
 import { getKronosResetDay, kronosPeriodStart } from "@/lib/kronos";
+import { getKronosTaskLists } from "@/lib/irisKronos";
 import CharacterSelector from "@/components/character/CharacterSelector";
 import CharacterManageModal from "@/components/character/CharacterManageModal";
 
@@ -131,29 +132,7 @@ export default function CharacterPage() {
   const abyssList = dbContents.filter((c: any) => c.type === 'abyss');
   const raidList = dbContents.filter((c: any) => c.type === 'raid');
 
-  const getBlackHoleMaxCount = () => {
-    const day = getKronosResetDay().weekday;
-    if (day === 1) return 8;
-    if (day === 2) return 9;
-    if (day === 3) return 10;
-    if (day === 4) return 11;
-    if (day === 5) return 12;
-    if (day === 6) return 13;
-    return 14;
-  };
-
-  const defaultExtraWeeklyTasks = [
-    { id: 9900, name: "검은 구멍", mobile_name: "검은 구멍", type: "repeat_weekly", max_count: getBlackHoleMaxCount() },
-    { id: 9901, name: "소환의 결계", mobile_name: "소환의 결계", type: "repeat_weekly", max_count: 7 },
-    { id: 9902, name: "뱅가드 브리치", mobile_name: "뱅가드 브리치", type: "repeat_weekly", max_count: 3 }
-  ];
-
-  const visibleDailyList = dbTasks.filter((t: any) => (t.type === 'daily' || t.type === 'repeat_daily') && !t.name.includes("검은 구멍"));
-  const rawWeeklyList = dbTasks.filter((t: any) => (t.type === 'weekly' || t.type === 'repeat_weekly' || t.type === 'repeat_weekend') && !t.name.includes("검은 구멍"));
-  const visibleWeeklyList = [
-    ...defaultExtraWeeklyTasks,
-    ...rawWeeklyList.filter(r => !defaultExtraWeeklyTasks.some(e => e.name === r.name))
-  ];
+  const { daily: visibleDailyList, weekly: visibleWeeklyList } = getKronosTaskLists(dbTasks);
 
   const calculateTotalLevel = () => {
     const classList = dbClasses.length > 0 ? dbClasses : Array(21).fill(null);

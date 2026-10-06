@@ -1,0 +1,218 @@
+import type { DesktopQueue, QueueSnapshot, TaskKey } from './irisDesktopQueue';
+import { DesktopTransportError, type DesktopAccount, type DesktopCharacter, type DesktopDetails, type DesktopTransport } from './irisDesktopTransport';
+export type DesktopStore = { load(): Promise<QueueSnapshot | null>; replace(value: QueueSnapshot): Promise<void> };
+type Disposition = 'save' | 'keep' | 'discard';
+
+/** Owns authenticated serial IO. It does not operate the game or carry authentication secrets. */
+export function createDesktopController(options: { queue: DesktopQueue; transport: DesktopTransport; store: DesktopStore; environment: string }) {
+  const { queue, transport, store, environment } = options;
+  let account: DesktopAccount | null = null, characters: DesktopCharacter[] = [], selected: DesktopDetails | null = null;
+  let epoch = 0, selection = 0, changing = false, closed = false, durabilityError = false;
+  let charactersLoaded = false;
+  let running: Promise<void> | null = null, disk = Promise.resolve();
+  const scope = (id: string) => { if (!account) throw Error('로그인이 필요해요.'); return { environment, accountId: account.id, characterId: id }; };
+  const locked = () => changing || closed || durabilityError || !account;
+  const requireEdit = () => { if (locked() || !selected) throw Error('먼저 연결 상태를 확인해 주세요.'); };
+  async function loadCharacters() {
+    charactersLoaded = false; characters = [];
+    if (!account) return;
+    characters = await transport.characters(account.id);
+    charactersLoaded = true;
+  }
+  function acknowledge(edit: {accountId:string;characterId:string;category:TaskKey['category'];taskId:string;periodKey:string}, completed:number) {
+    if (selected?.accountId === edit.accountId && selected.characterId === edit.characterId && selected.writeContext.periodKeys[edit.category] === edit.periodKey) {
+      const row = selected.details.tasks[edit.category].find(r => r.id === edit.taskId); if (row) row.completed = completed;
+    }
+  }
+  function persist() {
+    const snapshot = queue.snapshot();
+    disk = disk.then(() => store.replace(snapshot)).catch(error => { durabilityError = true; throw error; });
+    return disk;
+  }
+  async function read(id: string) {
+    if (!account || !characters.some(c => c.id === id)) throw Error('본인 캐릭터를 선택해 주세요.');
+    const owner = account.id, currentEpoch = epoch;
+    const value = await transport.details(owner, id);
+    if (epoch !== currentEpoch || account?.id !== owner) throw Error('계정이 바뀌었어요.');
+    return value;
+  }
+  async function reconcile() {
+    if (!account) throw Error('저장 결과 확인에 로그인이 필요해요.');
+    for (const edit of queue.snapshot().entries.filter(e => e.environment === environment && e.accountId === account!.id && e.phase === 'unknown')) {
+      const latest = await read(edit.characterId);
+      const row = latest.details.tasks[edit.category].find(r => r.id === edit.taskId);
+      if (latest.writeContext.periodKeys[edit.category] !== edit.periodKey) queue.settle(edit.requestId, { kind: 'expired' });
+      else if (row?.completed === edit.desiredCompleted) queue.settle(edit.requestId, { kind: 'saved', completed: row.completed });
+      else if (!row || row.completed !== edit.baseCompleted) queue.settle(edit.requestId, { kind: 'conflict' });
+      // Confirmed baseline: keep unknown, paused. Only an explicit recovery action may retry later.
+      await persist();
+    }
+  }
+  async function flush(draining = false) {
+    if (durabilityError) throw Error('대기함을 보관하지 못했어요.');
+    if ((locked() && !draining) || closed || !account) return;
+    const owner = account.id, currentEpoch = epoch;
+    while ((!locked() || draining) && !closed && !durabilityError && account?.id === owner && epoch === currentEpoch) {
+      const next = queue.due(owner)[0]; if (!next) break;
+      const edit = queue.claim(next.requestId); if (!edit) break;
+      await persist(); // Durable inflight before even inspecting/sending the request.
+      try {
+        const latest = await read(edit.characterId);
+        const row = latest.details.tasks[edit.category].find(r => r.id === edit.taskId);
+        if (latest.writeContext.periodKeys[edit.category] !== edit.periodKey) queue.settle(edit.requestId, { kind: 'expired' });
+        else if (row?.completed === edit.desiredCompleted) { queue.settle(edit.requestId, { kind: 'saved', completed: row.completed }); acknowledge(edit,row.completed); }
+        else if (!row || row.completed !== edit.baseCompleted || edit.desiredCompleted > row.total) queue.settle(edit.requestId, { kind: 'conflict' });
+        else {
+          const result = await transport.save(edit);
+          if (result.kind === 'saved') { queue.settle(edit.requestId, result); acknowledge(edit,result.completed); }
+          else if (result.kind === 'conflict' || result.kind === 'rejected') queue.settle(edit.requestId, { kind: 'conflict' });
+          else {
+            queue.settle(edit.requestId, { kind: 'unknown' });
+            if (result.kind === 'unauthorized') { account = null; selected = null; characters = []; epoch++; }
+          }
+        }
+      } catch (error) {
+        queue.settle(edit.requestId, { kind: 'unknown' });
+        if (error instanceof DesktopTransportError && error.status === 401) { account = null; selected = null; characters = []; epoch++; }
+      }
+      await persist();
+    }
+  }
+  function tick(): Promise<void> {
+    if (running) return running;
+    const operation = flush(); running = operation;
+    void operation.finally(() => { if (running === operation) running = null; }).catch(() => {});
+    return operation;
+  }
+  async function transition(action: () => Promise<void>, disposition: Disposition) {
+    if (changing || closed || durabilityError) throw Error('현재 작업이 끝난 뒤 다시 시도해 주세요.');
+    changing = true; selection++;
+    try {
+      if (running) await running;
+      if (account) {
+        try { await reconcile(); } // Inspect old-cookie results where the session is still available.
+        catch(error) {
+          if (!(error instanceof DesktopTransportError) || error.status !== 401 || disposition === 'save') throw error;
+          // Expired authentication cannot resolve old requests; retain them paused across reauthentication.
+        }
+        const scopes = new Set(queue.snapshot().entries.filter(e => e.environment === environment && e.accountId === account!.id).map(e => e.characterId));
+        if (disposition === 'discard') for (const id of scopes) queue.discard(scope(id));
+        if (disposition === 'save') {
+          for (const id of scopes) queue.saveNow(scope(id));
+          const saving = flush(true); running = saving;
+          try { await saving; } finally { if (running === saving) running = null; }
+          await reconcile();
+          if (queue.snapshot().entries.some(e => e.environment === environment && e.accountId === account!.id)) throw Error('남은 변경을 확인해 주세요.');
+        }
+      }
+      await persist();
+      await action();
+    } finally { changing = false; }
+  }
+  return {
+    async start() {
+      if (changing || running || closed || durabilityError) throw Error('앱을 다시 확인해 주세요.');
+      changing = true; selection++; epoch++;
+      try {
+        try {
+          const restored = await store.load(); if (restored) queue.restore(restored);
+        } catch (error) { durabilityError = true; throw error; }
+        account = await transport.session(); selected = null;
+        await loadCharacters();
+      } finally { changing = false; }
+    },
+    async reloadCharacters() {
+      if (locked() || running) throw Error('현재 작업이 끝난 뒤 다시 시도해 주세요.');
+      if (charactersLoaded) return;
+      changing = true;
+      try { await loadCharacters(); }
+      catch(error) {
+        if(error instanceof DesktopTransportError && error.status===401){account=null;selected=null;epoch++;}
+        throw error;
+      } finally { changing = false; }
+    },
+    async selectCharacter(id: string) {
+      if (locked()) throw Error('먼저 로그인해 주세요.');
+      const version = ++selection, currentEpoch = epoch;
+      if (selected && selected.characterId !== id) { queue.leaveCharacter(scope(selected.characterId)); await persist(); }
+      if (version !== selection || currentEpoch !== epoch || changing || closed) return;
+      const value = await read(id);
+      if (version === selection && currentEpoch === epoch && !changing && !closed) selected = value;
+    },
+    async refresh() {
+      if(running) await running;
+      if (locked() || !selected) return;
+      const id=selected.characterId,version=selection,currentEpoch=epoch;
+      try {
+        const value=await read(id);
+        if(version===selection && currentEpoch===epoch && !changing && !closed) selected=value;
+      } catch(error) {
+        if(error instanceof DesktopTransportError && error.status===401){account=null;characters=[];selected=null;epoch++;}
+        throw error;
+      }
+    },
+    edit(key: TaskKey, base: number, desired: number): Promise<void> {
+      requireEdit();
+      const row = selected!.details.tasks[key.category].find(r => r.id === key.taskId);
+      if (!row || selected!.writeContext.periodKeys[key.category] !== key.periodKey || desired > row.total) throw Error('항목이나 기간을 확인해 주세요.');
+      queue.edit(scope(selected!.characterId), key, base, desired);
+      return persist();
+    },
+    async saveNow() { requireEdit(); queue.saveNow(scope(selected!.characterId)); await persist(); await tick(); },
+    async discard() { requireEdit(); queue.discard(scope(selected!.characterId)); await persist(); },
+    async recover(requestId: string, action: 'retry' | 'discard') {
+      if (locked() || running) throw Error('연결 상태를 먼저 확인해 주세요.');
+      const edit = queue.snapshot().entries.find(e => e.requestId === requestId && e.environment === environment && e.accountId === account?.id);
+      if (!edit || ['pending','inflight'].includes(edit.phase)) throw Error('확인할 변경이 없어요.');
+      changing = true;
+      try {
+        if (action === 'discard') queue.recover(requestId, 'discard');
+        else {
+          if (edit.phase !== 'unknown') throw Error('충돌하거나 기간이 지난 변경은 버린 뒤 다시 체크해 주세요.');
+          const latest = await read(edit.characterId), row = latest.details.tasks[edit.category].find(r => r.id === edit.taskId);
+          if (latest.writeContext.periodKeys[edit.category] !== edit.periodKey) queue.settle(requestId,{kind:'expired'});
+          else if (row?.completed === edit.desiredCompleted) { queue.settle(requestId,{kind:'saved',completed:row.completed}); acknowledge(edit,row.completed); }
+          else if (!row || row.completed !== edit.baseCompleted || edit.desiredCompleted > row.total) queue.settle(requestId,{kind:'conflict'});
+          else queue.recover(requestId,'retry');
+        }
+        await persist();
+      } finally { changing = false; }
+      await tick();
+    },
+    tick,
+    async login(nickname: string, code: string, keepLoggedIn: boolean) {
+      await transition(async () => {
+        account = null; selected = null; characters = []; epoch++;
+        account = await transport.login(nickname,code,keepLoggedIn);
+        await loadCharacters();
+      }, 'keep');
+    },
+    async switchAccount(id: string) {
+      await transition(async () => {
+        // Clear old view before cookie-changing IO. Failure cannot retain old-account write permission.
+        account = null; selected = null; characters = []; epoch++;
+        account = await transport.switchAccount(id);
+        await loadCharacters();
+      }, 'keep');
+    },
+    async logout(disposition: Disposition) {
+      await transition(async () => { account = null; characters = []; selected = null; epoch++; await transport.logout(); }, disposition);
+    },
+    async shutdown(disposition: Disposition) {
+      if(closed) return; // A failed native close reply may be retried without reopening transmissions.
+      if(disposition==='keep') {
+        if(changing || durabilityError) throw Error('보관 실패 상태예요. 최근 변경을 잃을 수 있는 종료를 별도로 확인해 주세요.');
+        changing=true;selection++;
+        try {if(running) await running;await persist();closed=true;selected=null;epoch++;}
+        finally{changing=false;}
+        return; // No network required: unknown results remain protected and paused.
+      }
+      await transition(async () => { closed = true; selected = null; epoch++; }, disposition);
+    },
+    async shutdownWithoutSaving() {
+      if(changing || running) throw Error('현재 작업이 끝난 뒤 다시 시도해 주세요.');
+      closed=true;selected=null;epoch++; // Explicit loss-warning path; never overwrite an unreadable store.
+    },
+    state() { return structuredClone({ account, characters, charactersLoaded, selected, locked: locked(), durabilityError, epoch, queue: queue.snapshot() }); },
+  };
+}

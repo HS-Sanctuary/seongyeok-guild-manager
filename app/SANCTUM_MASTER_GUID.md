@@ -1,5 +1,20 @@
 # 🏛️ SANCTUM Master Guide
 
+## v2.153 IRIS 후보 배포 범위 — 2026-10-06 18:47 KST
+
+사용자가 조용한 push를 승인했다. /iris/desktop 작은 인증 센터, Desktop*·irisDesktop* 보호 저장 구조와 선택 Windows 실행기, /api/iris/kronos의 본인 소유·기간·CAS 숙제 저장, /api/iris/characters ID·캐시 차단, 공통 irisKronos 목록 투영을 배포 후보에 포함한다. 운영 DB 구조/RLS/권한 변경은 없다. 기본 구형 실행기를 자동 교체하거나 게임 동작·미지원 스탯 저장·시낙시스 상태를 활성화하지 않는다. 공개 공지 게시 없음. 자동/운영 확인과 수동 게이트는 HANDOFF/RELEASE_NOTES를 따른다.
+
+## 2026-10-06 미배포 컴팩트 IRIS HUD
+
+`components/iris/DesktopCenter.tsx`는 단일 작은 센터/캐릭터 선택/4기능 버튼/6테마를, `irisDesktopPresentation.ts`는 캐릭터별 저장 요약을 담당한다. 체크보드는1열 아코디언과 남은 항목 필터로 전환했다. `iris/desktop-overlay.cs`는 기존 단축키 복구 정책을 재사용해 항상 위·클릭 통과·50~100% 불투명도·작업 영역 제한을 소유한다. desktop-webview/bridge/store에는 허용된 overlay.state/input/opacity 계약만 추가했다. 기존 인증·15초 숙제 큐·보호 schema1·DB 구조/RLS/권한은 유지한다. 실제 게임/DPI 검증 대기, 기본 실행기/운영 배포 변경 없음. 스탯 계약 조사 및 미지원 경계는 `docs/IRIS_STATS_CONTRACT.md`에 기록한다.
+
+## 2026-10-06 미배포 IRIS 데스크톱 후보
+
+`app/iris/desktop/`는 전용 내장 창의 계정·캐릭터·체크보드·저장/복구/종료 화면이다. 전역 웹 헤더는 이 경로에서만 숨겨 큐를 거치지 않는 계정 전환을 막는다. `components/iris/Desktop*`와 `lib/irisDesktop*`가 UI·계정/캐릭터별 큐·same-origin 전송·보호 브리지 클라이언트를 담당한다. 기존 auth/iris API 계약을 재사용하며 DB 구조·권한 변경은 없다.
+
+선택 실행기 `iris/desktop.ps1` 및 native host/store/bridge/lifecycle, 두 실행기 공유 `execution-lock.ps1`을 추가했다. 공식 WebView2 프로젝트 캐시만 사용한다. 기본 실행기 전환·게임 위젯/단축키 통합·실제 저장/유지 검증은 대기며 운영 기능으로 게시하지 않는다.
+
+
 운영 확인 — 2026-10-05 21:01 KST: v2.152 코드 4d43fd9를 main에 push하고 Vercel dpl_FSt8AvKkjTp3UXyJgnCKmGzbKRsM READY/production 및 운영 도메인 연결을 확인했다. 운영 로그인된 브라우저에서 공지14→목록(/kerygma)→같은14 재열기, 읽은14 알림 숨김, 분야별 설정 5개, 케리그마 끄기 시 빈 목록·숫자 숨김/다시 켜기 시 복원을 확인했다. 설정은 전부 켜짐으로 복원했다. 브라우저 수집 오류·경고0. /·/character·/party·/kerygma·/admin HTTP200·v2.152, /login HTTP200, 인증 헬스200/ready true. 공개 공지 게시·IRIS 배포·DB 구조/RLS/권한 변경 없음. 이 후속 push는 검증 기록만 추가하며 구조 변경 없음. 다른 분야 실제 팝업·계정 전환·전체 모바일 폭 검증은 미완료다.
 
 ## v2.152 알림 설정·케리그마 이동 수정 — 2026-10-05 20:55 KST
@@ -15,6 +30,7 @@
 - 알려진 제한: 설정은 기기 간 동기화되지 않습니다. 실제 다른 분야 팝업·계정 전환·모바일 전체 폭 검증은 별도 대상입니다. 케리그마 기존 ESLint 오류 12개/경고 4개와 알림 훅 기존 오류 1개는 남아 있습니다.
 - 직전 정상 기준선: v2.151 e17eb92, Vercel dpl_75bxSt92bsbZuNvCXDhwiqXsTQfD READY/production.
 
+
 운영 확인 — 2026-10-05 18:23 KST: 코드 9ff2414 main push, Vercel dpl_EaPngNa9nqNzJLUCCjcUiGMmMbFT READY/production 확인. 운영 /·/character·/party·/kerygma·/admin HTTP200 및 HTML v2.151, /login HTTP200, 인증 헬스200/ready true. 기존 로그인된 운영 크로노스에서 캐릭터 정보·월요일 검은 구멍 최대8·3목록 패널색 마스크를 읽기 확인했고 물물교환 더보기9→14개 펼침을 확인했다. 브라우저 수집 오류 로그0. 체크/저장 등 운영 데이터 쓰기·실제06시 시간 전환 테스트는 하지 않았다. docs/UPDATE_POST_v2.151.md는 공개 안내 초안이며 공지 게시 없음. 이 후속 기록 push는 문서만 변경하며 구조 변경 없음.
 
 검증 — 2026-10-05 18:18 KST: 웹 커밋 후보만 별도 폴더로 추출해 node --test 58/58, 별도 TypeScript, 관련 ESLint, 기본 Turbopack Production 빌드(static48), staged diff 검사를 통과했다. 자정 방식으로 되돌린 회귀3건은 모두 실패, 수정 복원 후3/3 통과. 더보기 합성 화면의 밝은/어두운 캡처 및 6테마 배경 계산 확인. 임시 의존성 junction의 첫 빌드 실패는 실제 파일 복사 후 해소했다. 실제 최신 정상 롤백 배포는 a8f7d78 / dpl_89vTuY8joQuZ1jJBsxHnDurb789s(READY/production)다. 운영 로그인 조작/실제06시 경계·공지 게시는 이 검증에 포함되지 않는다.
@@ -25,6 +41,44 @@
 - 검은 구멍은 월06시8·화9·수10·목11·금12·토13·일14, 다음 월05:59까지14다. 저장된 완료 기록은 수정하지 않는다.
 - app/globals.css 더보기 디바이더의 배경 마스크는 --panel을 따른다. 공개 버전 lib/release.ts v2.151.
 - API/DB/RLS/권한 구조 변경 없음. 배포 및 실제 운영 확인 결과는 RELEASE_NOTES/HANDOFF 후속 기록을 따른다.
+
+## 2026-10-05 크로노스 게임 날짜 경계 수정 — 로컬, 미배포
+
+- lib/kronos.ts getKronosResetDay(now): KST06시 기간 시작으로 게임 날짜 key/weekday 반환. 웹 초기화 안내와 lib/irisKronos.ts 검은 구멍 한도에서 공통 사용. 월06시8→일14, 월 자정에 조기 축소하지 않는다. DB·권한·저장 구조 변경 없음, 기존 완료 기록 보존. BETA-068/D-019 참고.
+
+## 2026-10-04 IRIS 야간 표시/안전 기반 — 로컬 후보, 미배포
+
+- overlay.ps1 단일 센터 그룹 배치 및 위젯별 투명도 대상 선택. overlay-support.cs WidgetDisplayPreferences는 알려진6위젯과40~100 값만 별도 로컬 파일로 저장/복원한다. 전체 적용은 개별 override 초기화.
+- lib/irisRelay.ts 수정 동의 응답 유실 시 lease 갱신 중단/연결 폐기, app/iris/page.tsx 재연결 안내. 기존 인증·CAS 저장 경로 유지.
+- iris/action-queue.mjs 순수 유한 작업 상태; iris/action-contract.mjs 공식 CLI metadata 기반 요청/결과 판정. executor/API/게임 실행 배선 없음. Supabase 구조·권한 변경 없음. 합성178/178·tsc·lint·빌드 통과, 실제 게임/설정 모달/DB 저장 대기.
+
+## 2026-10-04 IRIS 크로노스 명시 저장 — 최신 로컬 후보, 미배포
+
+- 신규 `lib/irisKronosWrite.ts`(Edit/기간/부분 계산)와 `lib/server/irisKronosWrite.ts`(소유·활성 카탈로그·CAS) 및 `/api/iris/kronos` POST. GET writeContext.periodKeys 추가, 기존 체크 컬럼만 이용한다. owner 없는 대표 쓰기 차단, 통합 legacy 키/구형 반복 모순 보존, 무관 완료가 바뀌면409. DB/RLS/스키마 변경 없음.
+- `iris/kronos-edits.mjs` 메모리 큐, native edits/submit/discard 및 browser write-consent/edits/results 경로. 최대200·전송64KiB 경계·세대/계정/선택/동의 검증. `/iris` 별도 수정 허용, `IrisRelay` 항목별 직렬 저장/재조회 성공 확인/유실 재조회만/부분 실패 보존. 읽기 동의로 쓰기를 자동 승인하지 않는다.
+- `ConnectionDisplay` typed write 상태와 `CheckboardWindow.ApplyDisplay`, 수정 이벤트·단일 체크·반복 −/+·명시 저장/폐기. `overlay.ps1` stage/submit 연결·전환/종료 폐기 경고. 폴링이 미저장을 덮지 않으며 숨김/× 큐 유지. 강제종료 복구·원자적 일괄 저장 미보장.
+- 실제 DB 저장·게임 자동화·시낙시스 상태/센터 카테고리 개편은 미완료. 자동 합성 검증과 사용자 실검증을 구분하며 공개 버전·배포·공지 없음. 아래 과거 절의 읽기 전용 표현은 해당 날짜 당시 상태다.
+
+## 2026-10-04 IRIS 항목별 숙제·클래스 저장값 — 로컬 후보, 미배포
+
+- `/api/iris/kronos`는 기존 소유 검증 뒤 `characters.levels`와 활성 `nexus_classes(id,name)`를 추가로 읽는다. `lib/irisKronos.ts`가 동일 원본 행에서 기존 요약과 4범주 상세/클래스 저장 레벨을 생성한다. 운영 DB·스키마·RLS·쓰기 변경 없음.
+- `lib/irisRelay.ts`→`connection-http.mjs`→`connection-state.mjs`는 기존 순차 중계/동의/선택 버전에 상세를 함께 배선한다. `kronos-details.mjs`의 상한/중복/합계 검증, UTF8 JSON64KiB 제한, native `ConnectionDisplay` 재검증 및 만료/전환 시 비우기. 상세 없는 구형 요약은 유지한다.
+- 새 `overlay-checkboard.cs/CheckboardWindow`: 센터 상단 숙제/트레이 진입, 일일·주간·어비스·레이드 항목 아코디언, 남은 숙제 필터, 저장 클래스 레벨/null 미등록. 기존 테마·투명도·모듈 수명주기/공유 폴링 사용. 상세 데이터 저장/체크 쓰기/게임 클래스 자동 수집/게임 수령·채집·제작은 없다.
+- 실제 새 체크보드 항목 대조/DPI/장시간 확인과 독립 리뷰는 대기. 기능 목표는 `docs/IRIS_AUTOMATION_PARITY.md`의 전체 목록으로 추적한다. 공개 버전/공지/배포 없음.
+
+## 2026-10-03 IRIS 인증 읽기 연결 — 로컬 후보, 미배포
+
+- `/api/iris/characters`는 인증된 본인 캐릭터 ID/계정 구분값을 최소 반환, `/api/iris/kronos` GET은 캐릭터 소유 확인 뒤 완료/총수 4개만 반환한다. `lib/irisKronos.ts`의 한국 요일 숙제 목록을 `/character`와 공유하며 기록 수정/초기화는 하지 않는다. 구형 반복 체크의 기간 경계 모순은503으로 중단하고 BETA-065에 기록했다.
+- `/iris`는 명시 동의 뒤 `lib/irisRelay.ts`로 순차 읽기 중계한다. 쿠키는 same-origin API에만, 별도 browser capability는 정확한 loopback에만 사용한다. URL fragment 즉시 제거, 브라우저 저장소 미사용, 지연 응답/계정 전환 거부.
+- `overlay.ps1`→`OwnedServer`→`owned-server.mjs` 소유 child stdin pipe bootstrap. native capability는 메모리 전용, legacy/server 직접 실행은 새 권한 비활성이다. 새 `생텀 · 크로노스` 모듈에서 전체 닉네임/수동 확인/읽기 요약과 계정별 마지막 선택 제안, 60초 만료/숨김 응답 폐기. 기존 게임 미션과 구분한다.
+- 운영 DB/권한/쓰기/배포 구조 변경 없음. 체크보드 쓰기·게임 자동 조작·음악/미디어는 아직 없다. 실제 로그인/OS 초점/게임 표시 검증 대기.
+
+## 2026-10-02 IRIS Windows 알파 안정화 — 로컬 후보, 미배포
+
+- `iris/overlay.ps1`은 Windows PowerShell/WinForms UI와 트레이 메뉴를 담당한다. 200ms 메시지 타이머가 완료 여부만 소비하며 `overlay-support.cs/SnapshotPoller`는 고정 127.0.0.1:4317의 snapshot을 비동기로 하나씩 읽는다. 성공 뒤 5초, 실패 뒤 5/10/20/30초 대기, HTTP 45초 제한, 숨기기 전 응답 폐기를 적용한다. `reader.mjs`/`server.mjs`는 유지한다.
+- `SnapshotDisplay`는 연결/관측 시각과 8개 행을 함께 관리하고 실패·잘못된 JSON·30초 경과 시 비운다. `OverlayPreferences`는 창 위치·접힘만 LocalApplicationData/SanctumIRIS/overlay-settings.json에 원자 저장하며 현재 모니터 작업 영역으로 복귀시킨다. 게임 값/개인 정보/토큰은 저장하지 않는다.
+- `overlay-native.cs/OverlayWindow`는 자기 HWND의 입력 통과와 Ctrl+Alt+I/O 등록/해제를 담당한다. 둘 중 하나라도 실패하면 부분 등록 해제/클릭 통과 차단, 트레이에서 표시·조작 복구/종료 가능. 시작은 항상 보이고 클릭 가능하며 저장된 접힘만 복구한다. 키보드 후킹·입력 주입 없음.
+- `iris/overlay.test.mjs`가 Windows에서 .NET 컴파일 및 `overlay-support.tests.ps1`의 실제 core/PowerShell 함수 회귀를 실행한다. 전체 73건·타입·빌드·AST 통과, 실제 새 GUI/게임 입력/다중 모니터/DPI 검증은 별도 대기다. D-015·README·HANDOFF를 따른다. 웹 페이지/인증/API/DB/권한 구조와 운영 버전은 변경하지 않았다.
 
 ## 2026-10-02 v2.15 공식 배포 범위
 

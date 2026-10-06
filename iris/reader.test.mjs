@@ -35,6 +35,18 @@ test('가공기 응답 실패를 빈 작업으로 오인하지 않는다', () =>
   assert.equal(normalizeSnapshot({}, null).processing.available, false);
 });
 
+test('시설별 등록 작업 수와 가장 빠른 남은 시간만 추출하고 품목 원문은 제외한다', () => {
+  const processing = normalizeSnapshot({}, {works:[
+    {FacilityName:'목재 가공 시설',DisplayName:'private item',State:'InProgress',RemainingSeconds:180},
+    {FacilityName:'목재 가공 시설',State:'InProgress',RemainingSeconds:60},
+    {FacilityName:'목재 가공 시설',IsCompleted:true,RemainingSeconds:0},
+    {FacilityName:'금속 가공 시설',State:'InProgress',RemainingSeconds:null},
+  ]}).processing;
+  assert.deepEqual(processing.facilities[0], {name:'목재 가공 시설',active:2,completed:1,total:3,remainingSeconds:60});
+  assert.equal(processing.facilities[1].remainingSeconds,null);
+  assert.equal(JSON.stringify(processing).includes('private item'),false);
+});
+
 test('게임 연결 해제 응답은 연결 대기로 분류한다', async () => {
   await assert.rejects(readCommand('get_my_info', { execute: (_path, _args, _options, callback) => callback(Object.assign(new Error('exit 5'), { code: 5 }), '{"pipe":"disconnected","reason":"game_off"}') }), /게임 CLI 연결 대기/);
 });

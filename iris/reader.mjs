@@ -80,6 +80,10 @@ export function normalizeSnapshot(info, altering, daily, weekly, currencies) {
         name: name.slice(0, 60),
         active: works.filter((work) => work?.FacilityName === name && work?.State === 'InProgress').length,
         completed: works.filter((work) => work?.FacilityName === name && work?.IsCompleted === true).length,
+        total: works.filter((work) => work?.FacilityName === name).length,
+        remainingSeconds: works.filter((work) => work?.FacilityName === name && work?.State === 'InProgress')
+          .map((work) => typeof work.RemainingSeconds === 'number' && Number.isFinite(work.RemainingSeconds) && work.RemainingSeconds > 0 ? work.RemainingSeconds : null)
+          .filter((value) => value !== null).reduce((nearest, value) => nearest === null ? value : Math.min(nearest, value), null),
       })),
     },
     missions: { daily: missionSummary(daily), weekly: missionSummary(weekly), weeklyActivityProgress: weeklyActivityProgress(weekly) },

@@ -2,14 +2,17 @@ import http from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
+import { resolve } from 'node:path';
 import { readSnapshot } from './reader.mjs';
+import { createConnectionHandler } from './connection-http.mjs';
 
-const port = Number(process.env.IRIS_PORT || 4317);
 const pagePath = fileURLToPath(new URL('./index.html', import.meta.url));
+export function createIrisServer({port = Number(process.env.IRIS_PORT || 4317), nativeToken} = {}) {
 let snapshotInFlight;
 let bridgeToken;
 let bridgeExpiresAt = 0;
 const bridgeOrigins = new Set(['http://localhost:3000', 'http://127.0.0.1:3000']);
+const connectionHandler = createConnectionHandler({nativeToken});
 
 function bridgeAuthorized(request) {
   const supplied = request.headers['x-iris-pairing'];
@@ -29,6 +32,7 @@ function getSnapshot() {
 const server = http.createServer(async (request, response) => {
   response.setHeader('Cache-Control', 'no-store');
   response.setHeader('X-Content-Type-Options', 'nosniff');
+  if (await connectionHandler(request,response)) return;
   // 로컬 전용 정보가 다른 Host 이름을 통해 열리지 않도록 한다.
   if (!['127.0.0.1', 'localhost'].includes(String(request.headers.host || '').split(':')[0])) {
     response.statusCode = 403;
@@ -100,6 +104,13 @@ const server = http.createServer(async (request, response) => {
   response.end('Not found');
 });
 
+return server;
+}
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+const port = Number(process.env.IRIS_PORT || 4317);
+const server = createIrisServer({port});
 server.listen(port, '127.0.0.1', () => {
   process.stdout.write(`IRIS local preview: http://127.0.0.1:${port}\n`);
 });
+}

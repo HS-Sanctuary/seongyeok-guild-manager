@@ -645,7 +645,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     }
   };
 
-  const isLoginPage = pathname === '/login';
+  const isLoginPage = pathname === '/login' || pathname === '/iris/desktop';
 
   return (
     <html lang="ko">

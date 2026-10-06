@@ -1,5 +1,14 @@
 # 영겁 → 순월 수신함
 
+## YG-20261006-001 — 누적 전달, WAITING
+
+- 발신 영겁 / 수신 순월, 최초·최종 작성 2026-10-06 18:47 KST. 기존 미확인 기록은 아래에 전부 보존한다.
+- 한설이 IRIS 정상 종료 및 검증 후 조용한 생텀 push를 승인했다. v2.153 후보는 누적 IRIS 코드/계획·단일 작은 센터·보호15초 저장/로그인·선택 네이티브 오버레이·본인 소유 CAS 숙제 API를 포함한다. 공개 공지 없음.
+- SDK/프로필/비밀값/ignored 합성 자료 및 무관한 UPDATE_POST_v2.151 초안 변경은 제외. DB 구조/RLS/권한·운영 직접 쓰기/게임 조작 없음. 스탯 자동 저장/시낙시스는 미지원 유지; 게임/DPI/장시간 수동 확인 미완료.
+- 코드 커밋·자동 검증·Vercel/운영 결과는 후속 누적으로 남긴다. 다음 작업: 실제 게임 위 센터·단축키/통과 복구·15초 저장 대조. 구형/신규 실행기 동시 실행 금지. 이전 미확인 전달은 삭제하지 않는다.
+- ACK: 대기. ACK는 후속 검증 완료를 뜻하지 않는다.
+- 배포 전 누적: 전체260/260 fail0·tsc·UI72조합·네이티브 클릭/복구/보호 큐/epoch·분리 빌드 exit0 및 staged 제외 경계 확인. 무관한 이전 업데이트 초안/테마 미리보기 테스트는 로컬 보존. 운영 결과는 후속 기록으로 누적한다.
+
 운영 확인 — 2026-10-05 21:01 KST: v2.152 코드 4d43fd9를 main에 push하고 Vercel dpl_FSt8AvKkjTp3UXyJgnCKmGzbKRsM READY/production 및 운영 도메인 연결을 확인했다. 운영 로그인된 브라우저에서 공지14→목록(/kerygma)→같은14 재열기, 읽은14 알림 숨김, 분야별 설정 5개, 케리그마 끄기 시 빈 목록·숫자 숨김/다시 켜기 시 복원을 확인했다. 설정은 전부 켜짐으로 복원했다. 브라우저 수집 오류·경고0. /·/character·/party·/kerygma·/admin HTTP200·v2.152, /login HTTP200, 인증 헬스200/ready true. 공개 공지 게시·IRIS 배포·DB 구조/RLS/권한 변경 없음. 이 후속 push는 검증 기록만 추가하며 구조 변경 없음. 다른 분야 실제 팝업·계정 전환·전체 모바일 폭 검증은 미완료다.
 
 ## v2.152 알림 설정·케리그마 이동 수정 — 2026-10-05 20:55 KST
@@ -15,6 +24,7 @@
 - 알려진 제한: 설정은 기기 간 동기화되지 않습니다. 실제 다른 분야 팝업·계정 전환·모바일 전체 폭 검증은 별도 대상입니다. 케리그마 기존 ESLint 오류 12개/경고 4개와 알림 훅 기존 오류 1개는 남아 있습니다.
 - 직전 정상 기준선: v2.151 e17eb92, Vercel dpl_75bxSt92bsbZuNvCXDhwiqXsTQfD READY/production.
 
+
 운영 확인 — 2026-10-05 18:23 KST: 코드 9ff2414 main push, Vercel dpl_EaPngNa9nqNzJLUCCjcUiGMmMbFT READY/production 확인. 운영 /·/character·/party·/kerygma·/admin HTTP200 및 HTML v2.151, /login HTTP200, 인증 헬스200/ready true. 기존 로그인된 운영 크로노스에서 캐릭터 정보·월요일 검은 구멍 최대8·3목록 패널색 마스크를 읽기 확인했고 물물교환 더보기9→14개 펼침을 확인했다. 브라우저 수집 오류 로그0. 체크/저장 등 운영 데이터 쓰기·실제06시 시간 전환 테스트는 하지 않았다. docs/UPDATE_POST_v2.151.md는 공개 안내 초안이며 공지 게시 없음. 이 후속 기록 push는 문서만 변경하며 구조 변경 없음.
 
 검증 — 2026-10-05 18:18 KST: 웹 커밋 후보만 별도 폴더로 추출해 node --test 58/58, 별도 TypeScript, 관련 ESLint, 기본 Turbopack Production 빌드(static48), staged diff 검사를 통과했다. 자정 방식으로 되돌린 회귀3건은 모두 실패, 수정 복원 후3/3 통과. 더보기 합성 화면의 밝은/어두운 캡처 및 6테마 배경 계산 확인. 임시 의존성 junction의 첫 빌드 실패는 실제 파일 복사 후 해소했다. 실제 최신 정상 롤백 배포는 a8f7d78 / dpl_89vTuY8joQuZ1jJBsxHnDurb789s(READY/production)다. 운영 로그인 조작/실제06시 경계·공지 게시는 이 검증에 포함되지 않는다.
@@ -27,6 +37,26 @@
 ## YG-20260929-001
 
 - 상태: `UPDATED`
+- 2026-10-05 BETA-068 추가: 한설 월00시14/8 제보 및 모든게임하루KST06 확인. irisKronos calendar weekday가 원인, 공통 kronosPeriodStart(daily) 기반 getKronosResetDay→웹/IRIS 최대횟수·크로노스 알림 적용. 자정/05:59/06·7요일/해외TZ 회귀 RED→GREEN. 완료기록 clamp/삭제·운영DB/RLS/commit/push/배포 없음. 기존구형기록 모순 검사 유지, Monday fixture만06이후로 수정. 이전 미ACK 기록 모두 보존.
+- 2026-10-04 야간 추가: 한설03시까지 자율 로컬 개발 승인/00:27 한 번 재개 예약 iris-00-27. 단일 센터 게임/생텀 그룹 정돈, 개별 위젯 불투명도와 전체 초기화, 동의 응답 유실 relay 중단. 순수 자동큐+CLI 계약 검증(실제 실행 없음), 중복 시작 시간 연장 차단. 자동178/178·tsc·대상 lint 통과, 합성 native48/48. 실제 모달/DPI·DB저장·자동게임 조작 미검증. 운영DB/RLS/게임action/commit/push/배포 없음. 다음 시낙시스 본인 상태 읽기·UI 밀도 개선, 상세 HANDOFF/overnight plan. 이전 미ACK 모두 보존.
+- 2026-10-04 KST 크로노스 쓰기 누적: 한설이 승인한4단계 명시 저장 계획을 영겁 inline 실행. 기존dirty보존. POST own-session/owner/Origin/기간/catalog/기준 비교·단일 체크 CAS, 무관/legacy 완료 보존 검사. 별도 웹 수정 동의·메모리 최대200/전체상태64KB 경계·claim후 재조회만·GET검증 saved·부분 실패 보존. native typed 체크/−/+·저장/폐기·전환/종료 기본No·숨김큐유지. 실제 운영 DB 저장/게임 조작/DB·RLS·권한/commit/push/배포 없음. 독립 리뷰 없음. 합성 자동 검증 마감 결과는 HANDOFF 최신 절 참조. 실제 저장 대상 승인·사용자 대조/DPI 대기; 시낙시스 조회/센터 정리는 다음 설계, 커넥터 자동화는 미구현. 이전 미ACK 전달 모두 보존.
+- 2026-10-04 KST 실행 환경 후속: 사용자 로컬 닫힘→3000 listener 부재, 네트워크 접근 가능한 npm dev 재실행. login/home200,auth health200/ready:true. 한설이 직접 로그인한 뒤 실제 POST login200/session200 및 앱 내 브라우저 홈의 한설 길드마스터 표시/오류overlay없음/console error0 확인. 코드 입력·비밀값 추출·DB/RLS/배포 변경 없음. 서버 유지,새 native 체크보드 수동 대조는 별도 대기. 앞선 누적 기록 보존.
+- 2026-10-04 KST 후속 누적: 한설의 체크보드·클래스 설계/계획 inline 승인 및 AI(아님)커넥터 전체 목표 재확인. codex/iris-checkboard-classes 로컬 브랜치/기존dirty보존. API details/합계·relay UTF8 제한·state/native 원자 검증/비우기·독립 CheckboardWindow(센터 숙제/4범주 아코디언/남은 필터/저장 클래스 레벨/내부스크롤/6테마·불투명도·복구) 구현. 자동139/139,별도타입/웹빌드/diff 통과(실제 공유 갱신 배선 포함). 실제 새위젯 대조/DPI·장시간/독립리뷰 대기; 수동체크 쓰기·수령·자동채집/제작/게임 전체클래스 자동조회 없음. 커넥터 parity 목록 유지, 다음은 명시 수령 경계 설계 후보. 운영DB/RLS/게임action/commit/push/배포 없음. 이전 미ACK 누적 기록 보존.
+- 2026-10-04 KST 누적: 한설이 실제 승인→native 본인 목록→캐릭터 수동 확인→크로노스 요약 전달 성공을 확인했다(BETA-067 해당 정상 경로). 전체 수동 검증 완료는 아니다. 독립 숙제 체크보드·클래스 저장값 목록 방향 승인, `2026-10-04-iris-checkboard-classes-design.md` 작성/문서 검토 대기. 이번은 문서만 변경, 기존 미커밋 보존. 게임 전체 클래스 자동 조회/체크쓰기/수령 미구현. 운영DB/게임조작/commit/push/배포 없음. 앞선 미확인 기록 보존.
+- BETA-067 timer 후속: fetch wrapper 뒤 사용자 화면503/연결끊김, server characters200. default setTimeout/clearTimeout도 relay 객체 receiver로 호출되는 동일 결함을 별도 실패 회귀로 재현(사용자와 동일 안내). default timer/cancel bare wrapper 수정, relay10/10·Node전체122/122·tsc 통과. Chrome 지속연결 실검증 대기. 정상 절차에 새로고침/구형 pair 승인 불필요. 운영DB/게임/commit/push 변경 없음.
+- BETA-067 후속: default fetch를 relay 객체 속성에 그대로 저장해 호출 receiver가 IrisRelay가 되는 결함 확인. Window Web IDL receiver 조건을 넣은 회귀가 HTTP 전 실패, bare fetch wrapper 수정 후 relay9/9·Node전체121/121·tsc 통과. 실제 Chrome 승인 재확인 대기. Node fetch/fake만으로 브라우저 호출 조건 검증 불충분했던 점 기록. 이번 default fetch 수정은 웹 HMR로 적용, 새 연결 필요(새로고침/구형 pair 아님). 앞선 CORS 조정은 진단 보완, 직접 원인으로 단정 금지. 운영/게임/commit/push 없음.
+- BETA-067 추가 누적: 실제 새 consent transport 실패 후 사용자가 새로고침/구형 pair로 전환하면 native는 계속 waiting-browser. 구형 미리보기의 웹 선택은 native선택으로 전달되지 않는다. HTTP known-local-origin403에 CORS가 없어 승인 거절이 TypeError로 가려지는 결함을 회귀 재현/수정(외부 Origin 제외/기존 인증 유지), Node전체120/120. 실제 Chrome 승인 실패의 직접 원인은 아직 미확정. owned child 재실행 후 새 연결 승인 순간의 콘솔 확보 필요. 운영/게임/commit/push 변경 없음.
+- 2026-10-03 KST BETA-067 누적: 한설 Chrome의 login/session/iris characters200으로 실제 로그인 복구 확인. IRIS 전달 동의 후 generic 만료 실패는 별도이며 실제 POST 원인 미확정(수집 콘솔 없음, consent OPTIONS204만 확인). relay 요청 대상/상태별 안내로 로그인401·조회 오류·loopback 전송/승인 실패 분리, 실패 폐기/토큰 경계 유지. 실패3개 후 수정·relay8/8·Node전체119/119·tsc 통과. 한설 새 읽기 연결 재현 대기, 연결 완료로 주장 금지. 운영DB/게임조작/commit/push/배포 없음. 앞선 미확인 전달 보존.
+- 2026-10-03 KST 실행 환경 복구 누적: 한설의 로컬 사이트 ECONNREFUSED 후 서버 시작, 이어 login503/fetch failed·health503 재현. 영겁 소유 격리 개발 서버만 종료하고 네트워크 허용 환경으로 재실행해 health200/ready:true 확인(BETA-066). 코드/키/DB/권한/배포 변경 없음. 실제 사용자 로그인 재시도 대기. 앞선 미확인 기록 유지.
+- 2026-10-03 KST 마지막 재검증 누적: idle-hide(진행 task만 폐기)까지 전체123/123/별도타입/웹빌드/diff 통과. 독립 재검토 추가 지적 없음. 실제 로그인/게임/DPI/OS focus/탭닫기 검증은 대기. 공개버전/운영DB/게임action/commit/push 변경 없음. 다음 안전한 기능 단계는 항목별 체크보드 읽기·로컬 큐·부분 저장 설계다.
+- 2026-10-03 KST 캐릭터 연결 후속 누적: Task3 인증된 본인 id/accountId 목록과 소유확인 크로노스 GET 요약, 명시 동의 `/iris` relay를 연결했다. Task4 owned child stdin capability/READY/EOF, 별도 생텀 크로노스 모듈/전체 닉네임 수동 확인/마지막 accountId+characterId 제안 저장을 추가했다. raw 체크/메모/쿠키/코드/게임값 디스크 저장 없음. 브라우저 뒤열기 미보장이라 명시 열기 버튼. 기존 소유 불명 서버 탈취/종료 금지. 전체123/123/타입/웹빌드 통과, 마지막 idle-hide 후속 재검증 대기. 독립리뷰의 완료전/늦은 숨김 응답 복원 경쟁 수정. 구형 검은구멍 완료14칸/월요일최대8 기간 모순은 BETA-065로 기록하고 API503 failclosed(삭제/clamp 안 함). 실제 로그인/포커스/DPI/게임 확인과 체크 쓰기·수령·자동화는 미완료. 기존dirty보존/운영DB·게임조작·commit/push/배포·공지노변경. 이전 미확인 전달을 보존한다.
+- 2026-10-03 13:00 KST 예약 재개 누적: 기존 dirty 보존/사용량 확인 뒤 캐릭터 연결 역할별 HTTP 경계 구현. native capability 메모리 인자 없으면 기본503, 정확한 Host/Origin·역할별token·browser동의·64KiB/5초JSON·30분TTL·generation/version 검사. 직접실행/import분리와 CLI subprocess 종료/포트해제 확인. 독립리뷰 Important2건(늦은native disconnect가새연결해제/다른계정이이전동의재사용) 합성RED→GREEN 수정, 전체105/105. nativebootstrap/본인목록·크로노스API/선택UI/자동수령은 아직없음. 운영DB/게임조작/commit/push/배포/공지 없음. 기존미확인메시지보존.
+- 2026-10-03 KST 추가: 한설이 가공 작업별 타원바/수령, 에린 환경, AI(아님)커넥터 전체 자동 기능을 재요청하고 구현 현황 검토를 요구했다. 설치본 README만 읽어 IRIS_AUTOMATION_PARITY.md 작성: 자동 채집/제작/가공/수령 실행 경로는 아직없음. capability명령메타데이터만조회, 실제게임조작/개인값읽기없음. ProcessingSlots로7작업7칸·완료주황/대기흐림·14칸초과추가N 표시추가; RED→GREEN/합성paint/전체95/95·diff통과. 환경/수령버튼/자동화/크로노스쓰기/음악 아직미구현, 미커밋/미푸시/운영변경없음. 기존메시지보존.
+- 2026-10-03 KST 가공 누적: 6시설3×2 읽기(완료/등록·가장 이른 남은 시간·완료 개수 비율) 로컬 구현. reader는시설 total/remainingSeconds만 추가, 원본문구/개인정보/명령 추가 없음. SnapshotDisplay6배열+ModuleWindow optional grid+실제 공유timer 연결. 전체93/93/C# compile·diff 통과. malformed시설객체/탭NBSP시설명 잘못된대기/연결실패게이지잔존 회귀 RED→GREEN. processing_review 정적검토 큰문제없음; 독립실행환경dll실패, 실제 부모suite증거와 구분. 실제게임/DPI/글자/테마 확인과 수령버튼은 아직없음. roadmap 최신 상태 갱신. 미커밋/미푸시/운영변경없음, 누적메시지보존.
+- 2026-10-03 09:30~ KST 커맨드센터 누적: 한설의 최신 요청으로 센터 ×/Alt-F4는 센터만 숨김, CtrlAltI/트레이로 복구, 별도 IRIS 종료 기본 No 확인+재진입 방어를 로컬 구현했다. 6대 globals.css 팔레트/모든 창 불투명도40~100 설정 모달·DisplayPreferences 별도 allowlist atomic 저장. 게임/계정/인증값 저장 없음. 전체 node --test88/88, 독립 center_review Windows28/28 및 Critical/Important 없음. 실제 설정 모달/트레이/테마 대비/DPI 확인 미완료; 대비 테스트 보장범위 Minor는 기록. docs/IRIS_WIDGET_ROADMAP.md로 가공3×2/수령·체크보드 큐·환경·음악회·OS미디어·자동종료 후속을 분리했으며 이들은 미구현이다. MP4파일 존재만 확인/영상 재생 못함, 정지화면만 참고. AI(아님)커넥터 링크는 기존 PROJECT_IRIS에 있어 재전송 불필요. heartbeat iris-12-43 조회 확인/중복금지. 미커밋/미푸시, 운영 DB·배포·공지 없음; 앞선 미확인 전달 모두 유지.
+- 2026-10-03 KST 외출 중 작업 요청: 한설이 09시 전 필요한 승인/검증을 우선 받고 14시 귀가까지 승인된 로컬 작업을 이어 달라고 요청했다. 초기화 12:42:10 이후 12:43 현재 대화 한 번 재개 heartbeat `iris-12-43` 생성 성공(ACTIVE)/앱 조회 카드 확인. PC/앱 유지 필요, 새 DB/RLS/운영 쓰기·commit/push/배포/공지·게임 조작 승인 아님. 최신 대화의 실제 설계/계획 승인과 사용량부터 확인하고 자동화를 중복 생성하지 말 것. 다음 범위는 아직 설계 검토 중이다.
+- 2026-10-03 KST 사용자 확인 누적: 한설이 새 IRIS의 게임 위 표시, Ctrl+Alt+I 숨김/표시, Ctrl+Alt+O 클릭 통과 켜기/끄기를 실제로 정상 확인했다고 전달했다. 개인 값/이미지는 보관하지 않는다. 이전 10/2 미확인 목록에서 이 범위만 갱신하며 위치/접힘 재실행·종료/전환·충돌/트레이·다중 모니터/DPI·장시간은 남는다. 다음 단계 요청을 받아 본인 캐릭터/크로노스 읽기 연결의 인증 설계를 검토 중; 새 기능 코드는 아직 없다. 기록 변경만이며 미커밋/미푸시·운영 DB/공개 노트/버전 변경 없음, 앞선 미확인 누적 메시지는 보존한다.
+- 2026-10-02 22:46 KST IRIS 로컬 누적: 한설 승인으로 Windows 오버레이 비동기 조회(한 요청/45초/숨김 응답 폐기), 실패/30초 경과 값 비우기, 창 위치·접힘만 원자 저장, 화면 밖 복귀, Ctrl+Alt+I/O 및 트레이 복구를 추가했다. 두 키 확보 실패 시 클릭 통과를 막고 시작은 표시/조작 가능하다. 새 C# support/native와 PowerShell/Node 테스트가 있으며 최신 전체73건·별도 타입·Production 빌드·PS 문법·C# 컴파일·diff 통과. 읽기 전용 리뷰의 드래그 중 숨김 잔존 P3도 실제 함수 회귀로 보완했다. **미커밋/미푸시**, HEAD a8f7d78/up to date 시작, 웹/API/브리지/DB/게임 명령 변경 없음. 실제 새 창/게임 포커스·클릭 전달/단축키·트레이·다중 모니터·DPI·장시간 검증은 미확인(native 제어 불가, GUI 우회 없음); 9/29 구형 수치 확인과 구분할 것. README 실행 안내와 HANDOFF/D-015를 따라 한설이 직접 확인해야 한다. IRIS 공개 노트/버전/공지 제외 지시 유지, 앞선 미확인 누적 전달 모두 보존.
 - v2.15 21:51 KST 최종: 코드 1b1b401 Production/Ready 및 실제 생텀 재로그인 화면 확인. 홈 기존 숙제 표시·시낙시스 빈 상태 정상, 운영 선택 모달의 카브락 입문/어려움8인·에이렐/서큐 어려움/매우어려움4인 확인. 정상 길드마스터 작성 UI로 업데이트를 1회 게시: ID 13, SANCTUM 시스템, https://sanctum-tawny-three.vercel.app/kerygma?id=13 . 동일 버전 공지 재게시 금지. 전체55건/타입/빌드 통과, 실제 운영 회차/저장 및 새 카드 전폭 행렬/과거 물리적 손실 복구는 완료 아님. 후속 결과 문서 push는 코드·구조·DB 변경 없음. 모든 이전 미확인 전달은 보존한다.
 - v2.15 21:46 KST 추가 확인: 한설 Vercel 로그인 뒤 1b1b401 배포 대시보드의 Ready/Production/현재 운영 도메인을 직접 확인했다. 생텀 로그인은 별도이며 아직 공지 게시 전이다. 운영 재로그인 요청 후 기존 작성 UI로 이어간다.
 - v2.15 21:44 KST 운영 결과: 1b1b401 main push, GitHub Vercel success/배포 CrGH4wg7wJeAfadsg5UJUnLiMFeR, 홈·파티·캐릭터·공지·관리자 HTML v2.15/200 및 인증 헬스 ready true 확인. Vercel 대시보드 Ready 라벨은 로그인 필요로 직접 못 읽었다. 오래된 한설 클라이언트 계정 표시와 달리 서버 세션은 만료됐으므로 재로그인 요청, 실제 로그인 새 화면/공지 게시 대기다. 따뜻한 공개 초안 docs/UPDATE_POST_v2.15.md를 준비했고 게시 완료로 표시하지 않는다. 이전 누적 전달사항 보존, 후속 문서 변경은 구조 변경 없음.
@@ -39,11 +69,19 @@
 - 발신자: 영겁 — 집 호스트
 - 수신자: 순월 — 사무실 호스트
 - 최초 작성: 2026-09-29 00:07 KST
-- 최종 갱신: 2026-10-02 KST (길드버스 반응형 로컬 수정 추가, 이번 작업 push 전)
+- 최종 갱신: 2026-10-02 22:46 KST (IRIS Windows 알파 로컬 후보 추가, 이번 작업 push 전)
 - 같은 날 후속: BETA-060 콘텐츠 난이도 로컬 핫픽스 추가. `PartyModals`와 `BusCreateModal` 내부 선택 모달 모두 공통 `PartyCatalog` 필수 전달, `partyContentCatalog`의 콘텐츠 종류+이름 DB 난이도 및 어비스 공통 난이도를 사용한다. 카브락 입문/어려움, 서큐버스·에이렐 어려움/매우 어려움만 실제 화면에 출력됨을 확인했다. 지옥 공백·난이도별 인원 조회·미등록 신청 방어 포함. 회귀 50건·타입·빌드 통과, 양쪽 모달 적용/버스 메모 반영·콘솔 오류 없음 확인. 운영 DB/기존 파티 수정 및 실제 개설 없음. commit/push 미승인, 버전·공개 노트는 다음 릴리스 통합 지시 유지. BETA-057~059 실제 운영 저장 검증은 여전히 필요하다.
 - 관련 커밋·배포: `527c134` main push 완료. 한설 지시로 `BETA v2.14` 유지, 케리그마 업데이트 공지 없음. 운영 공개 경로 200과 비로그인 `/api/iris/characters` 401 확인, Vercel Ready 직접 확인은 권한 403으로 미완료. 상세는 `docs/HANDOFF.md` 최상단 참조.
 
 ### 누적 작업
+
+- 10/3 사용자 모듈실검증: 한설이 잘 동작한다고 확인, 창 분리·접힘 확인 범위만 갱신. 후속 가공6종3×2/개별시설 수령/크로노스수동체크 저장빈도 의논. capabilities만 조회하여 시설별 일괄수령 complete_altering_work 및 남은시간/완료상태 확인, 실제 이동/수령 미실행. 정확한 시간진행% 필드 없음. 30분/1시간 DB 대기는 손실위험이므로 최소 local pending+10~30초 변경묶음/최대60초/선택전환·IRIS 종료 flush 제안, 미구현/미승인. 5GB egress와 DB저장공간은 별개, 실제사용량 확인 전 초과없음 단정 금지. 최신 HANDOFF 참고, 이전 미ACK 보존.
+
+- 10/3 연결 기반 후속: character-connection 계획 작성, connection-state.mjs 합성5테스트 RED→GREEN. 캐릭터/계정 전환 지연 응답·60초 freshness·목록/요약 schema·깊은복사 방어만 구현. HTTP/native/browser 통합은 아직 없으므로 실제 캐릭터 선택/크로노스 연결 완료라고 보고하지 말 것. Task2 역할별 token/Origin/Host 경계부터 이어감. 이 클래스는 인증 수단 아님. 운영 DB/웹 API 변경 없음.
+
+- 2026-10-03 09시 전후 KST: 한설이 모듈형 방향과 자율 로컬 실행·후보고를 명시 승인하여 이전 서면 대기 gate를 대체. 관리창+stats/processing/missions 세 독립 창 구현, singleton shortcut/poller, 위치/접힘 allowlist 설정, 전체/개별 숨김 복구. 리뷰 화면 밖 복귀 Important·개별 system close를 RED→GREEN 수정; 최신78건/tsc/PS parse+C# compile/diff 통과. 합성60자 직업명 clipping Minor·실제 게임 창/초점/DPI/종료 수동 확인은 남음. docs/IRIS_DISTRIBUTION.md에 서명/MSIX/SmartScreen/지역 자격/게임 정책/음악 인증·라이선스·개인정보·업데이트 체크리스트 작성; 구매/외부 등록/배포 허용 확보 완료 아님. 다음은 기존 캐릭터·크로노스 읽기 설계 구현. 미커밋/미푸시·DB/CLI 명령/웹API 변경 없음. 예약 iris-12-43 중복 생성 금지. 이전 미ACK 내용 모두 보존.
+
+- 2026-10-03 08:30~ KST 추가: 한설 승인 BETA-064 공통 더보기 고정 검정 음영을 패널색 기반으로 교체. 실제 컴포넌트+CSS 합성 브라우저 LUMEN 실패→통과/6테마 확인, 73건·타입·빌드 통과. 사용자 /character 재확인·배포 대기. 미커밋/미푸시, DB 없음. IRIS 내 캐릭터 ID 기억/브라우저 중계 읽기/초점 유지 요구를 새 specs/2026-10-03-iris-character-kronos-design.md에 정리, 서면 설계/계획 검토 전 새 연결 구현 금지. 브라우저 뒤열기 보장 아님/미지원 버튼 대안, 운영 origin·DB/인증 확장·쓰기·배포는 제외. 앞선 미ACK 누적 전달 모두 보존.
 
 1. 한설 결정: SANCTUM과 프로젝트 IRIS를 공동 개발한다. 게임 CLI의 읽기 기능을 먼저 검증하고, 닉네임을 자동으로 알 수 없는 동안 크로노스 등록 캐릭터를 사용자가 직접 선택·확인한다. 이후 자동 제작·채집, 라이브러리, 오버레이, 크로노스/엠포리온/그노시스 확장을 검토한다. 모델 계정·사용량을 길드원에게 필수로 요구하지 않는 로컬 명령형 설계다.
 2. `iris/`에 로컬 전용 읽기 시제품과 데이터 계약·지원 범위 감사·테스트가 있다. 게임 CLI 읽기 허용 명령은 `get_my_info`, `get_altering_works`, `get_daily_missions`, `get_weekly_missions`, `get_currencies`뿐이다. 게임 조작·원격 전송·DB 쓰기는 없다. 닉네임/초상화·길드공헌도·룬·랭킹·나이트메어 드릴 최고 층·크로노스 구매/교환/임무 완료는 현재 읽기 API에서 확인되지 않았다. 어비스·레이드·필드보스는 이름별 클리어가 아니라 주간 횟수만 읽는다.

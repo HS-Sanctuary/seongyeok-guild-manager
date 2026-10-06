@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import OwnedCharacterPicker, { type OwnedCharacter } from "@/components/character/OwnedCharacterPicker";
+import { IrisRelay, parseIrisConnectionFragment } from "@/lib/irisRelay";
 
 type IrisSnapshot = {
   observedAt: string;
@@ -23,50 +24,107 @@ export default function IrisPage() {
   const [snapshot, setSnapshot] = useState<IrisSnapshot | null>(null);
   const [bridgeMessage, setBridgeMessage] = useState("로컬 아이리스 연결 승인 대기");
   const [isLocalPreview, setIsLocalPreview] = useState(false);
+  const [connection, setConnection] = useState<{ token: string; generation: number } | null>(null);
+  const [relayStatus, setRelayStatus] = useState("전달 동의 대기");
+  const [relayStarted, setRelayStarted] = useState(false);
+  const [writeAllowed,setWriteAllowed]=useState(false);
+  const [writeBusy,setWriteBusy]=useState(false);
+  const relayRef = useRef<IrisRelay | null>(null);
+  const initialConnection = useRef<{ local: boolean; pair: string | null; incoming: ReturnType<typeof parseIrisConnectionFragment> } | null>(null);
 
   useEffect(() => {
-    const local = ["http://localhost:3000", "http://127.0.0.1:3000"].includes(window.location.origin);
     const params = new URLSearchParams(window.location.hash.slice(1));
-    const token = params.get("pair");
+    // Keep the memory-only initial value across React development effect replay.
+    if (!initialConnection.current) initialConnection.current = {
+      local: ["http://localhost:3000", "http://127.0.0.1:3000"].includes(window.location.origin),
+      pair: params.get("pair"),
+      incoming: parseIrisConnectionFragment(window.location.origin, window.location.hash),
+    };
+    const { local, pair: token, incoming } = initialConnection.current;
+    // Remove capabilities before any network call; never persist them to browser storage.
+    if (params.has("pair") || params.has("connect") || params.has("g")) window.history.replaceState(null, "", window.location.pathname + window.location.search);
     window.queueMicrotask(() => {
       setIsLocalPreview(local);
-      if (token && local) {
+      setConnection(incoming);
+      if (token && local && !incoming) {
         setPairToken(token);
         setBridgeMessage("로컬 아이리스 승인 완료. 캐릭터 확인 후 데이터를 읽습니다.");
       }
     });
-    if (token) window.history.replaceState(null, "", window.location.pathname + window.location.search);
+    return () => { void relayRef.current?.stop(); relayRef.current = null; };
   }, []);
+
+  function startRelay() {
+    if (!connection || relayRef.current) return;
+    const relay = new IrisRelay({ ...connection,onWriteAllowed:setWriteAllowed, onStatus: (status) => {
+      if (relayRef.current === relay) setRelayStatus(status);
+    } });
+    relayRef.current = relay;
+    setRelayStarted(true);
+    setRelayStatus("본인 캐릭터 목록을 확인하고 있어요…");
+    void relay.start();
+  }
+
+  async function stopRelay() {
+    const relay = relayRef.current;
+    relayRef.current = null;
+    setConnection(null);
+    setRelayStarted(false);
+    setRelayStatus("전달을 중단했어요. 다시 연결하려면 아이리스에서 새 연결을 시작해 주세요.");
+    await relay?.stop();
+  }
+  async function toggleWrite(){
+    if(writeBusy||!relayRef.current)return;
+    setWriteBusy(true);
+    try{await relayRef.current.setWriteAllowed(!writeAllowed);}catch{
+      setWriteAllowed(false);setRelayStarted(false);relayRef.current=null;
+      setConnection(null);
+      setRelayStatus('수정 동의 상태를 확인하지 못해 읽기 연결도 중단했어요. 아이리스에서 새 읽기 연결을 시작해 주세요.');
+    }
+    finally{setWriteBusy(false);}
+  }
 
   useEffect(() => {
     if (!confirmed || !pairToken) return;
-    const controller = new AbortController();
+    let stopped = false;
+    let controller: AbortController | null = null;
+    let timer: number | undefined;
     async function readLocal() {
+      controller = new AbortController();
+      const timeout = window.setTimeout(() => controller?.abort(), 8000);
       try {
-        const response = await fetch(localBridge, { headers: { "X-IRIS-Pairing": pairToken }, cache: "no-store", signal: controller.signal });
+        const response = await fetch(localBridge, { headers: { "X-IRIS-Pairing": pairToken }, cache: "no-store", credentials: "omit", redirect: "error", signal: controller.signal });
         if (!response.ok) throw new Error(response.status === 403 ? "연결 승인이 만료됐어요. 로컬 아이리스에서 다시 승인해 주세요." : "게임 데이터를 읽지 못했습니다.");
         const result = await response.json();
+        if (stopped) return;
         if (result.status !== "connected") throw new Error(result.message || "게임 연결 대기 중입니다.");
         setSnapshot(result.data);
         setBridgeMessage("로컬 게임 데이터 미리보기 · 생텀에는 저장되지 않음");
       } catch (error) {
-        if (controller.signal.aborted) return;
+        if (stopped) return;
         setSnapshot(null);
         setBridgeMessage(error instanceof Error ? error.message : "로컬 아이리스에 연결하지 못했습니다.");
+      } finally {
+        window.clearTimeout(timeout);
+        if (!stopped) timer = window.setTimeout(() => void readLocal(), 15_000);
       }
     }
     void readLocal();
-    const interval = window.setInterval(readLocal, 15_000);
-    return () => { controller.abort(); window.clearInterval(interval); };
+    return () => { stopped = true; controller?.abort(); window.clearTimeout(timer); };
   }, [confirmed, pairToken]);
 
   async function disconnect() {
-    if (pairToken) {
-      try { await fetch(localBridge, { method: "DELETE", headers: { "X-IRIS-Pairing": pairToken } }); } catch { /* 로컬 서버가 이미 종료됐을 수 있다. */ }
-    }
+    const token = pairToken;
     setPairToken("");
     setSnapshot(null);
     setBridgeMessage("연결을 해제했어요.");
+    if (token) {
+      const controller = new AbortController();
+      const timeout = window.setTimeout(() => controller.abort(), 8000);
+      try { await fetch(localBridge, { method: "DELETE", headers: { "X-IRIS-Pairing": token }, credentials: "omit", redirect: "error", signal: controller.signal }); }
+      catch { /* 로컬 서버가 이미 종료됐을 수 있다. */ }
+      finally { window.clearTimeout(timeout); }
+    }
   }
 
   useEffect(() => {
@@ -88,7 +146,19 @@ export default function IrisPage() {
         <h1 className="text-2xl font-black text-[var(--accent)]">IRIS · 캐릭터 연결 준비</h1>
         <p className="mt-2 text-sm text-[var(--text-sub)]">게임 연결이 닉네임을 제공하지 않아 생텀 캐릭터를 직접 확인하는 단계입니다.</p>
       </div>
-      <section className="rounded-xl border border-[var(--panel-border)] bg-[var(--panel)] p-4 space-y-4">
+      {connection && <section className="rounded-xl border border-[var(--panel-border)] bg-[var(--panel)] p-4 space-y-4">
+        <h2 className="font-bold">아이리스에 생텀 정보 전달</h2>
+        <p className="text-sm text-[var(--text-sub)]">본인 캐릭터의 크로노스 항목과 완료 정보를 전달합니다. 읽기 연결만으로 기록을 변경하지 않으며, 로그인 정보는 아이리스에 전달하지 않습니다.</p>
+        <p className="text-sm text-[var(--text-sub)]">이 탭이 닫히거나 연결이 오래 멈추면 오버레이의 정보가 비워집니다. 게임 캐릭터의 자동 신원 확인은 아닙니다.</p>
+        <p role="status" className="text-sm text-[var(--accent)]">{relayStatus}</p>
+        <div className="flex flex-wrap gap-3">
+          <button type="button" disabled={relayStarted} onClick={startRelay} className="rounded-lg bg-[var(--accent)] px-4 py-2 font-bold text-[var(--accent-fg)] disabled:opacity-50">동의하고 읽기 연결</button>
+          <button type="button" onClick={() => void stopRelay()} className="rounded-lg border border-[var(--panel-border)] px-4 py-2">전달 중단</button>
+          <button type="button" disabled={!relayStarted||writeBusy} onClick={()=>void toggleWrite()} className="rounded-lg border border-[var(--panel-border)] px-4 py-2 disabled:opacity-50">{writeBusy?'연결 중…':writeAllowed?'숙제 수정 허용 중 · 중단':'동의하고 숙제 수정 허용'}</button>
+        </div>
+        <p className="text-sm text-[var(--text-sub)]">수정 허용 후 오버레이에서 체크하고 저장 버튼을 누르면 생텀 숙제 기록이 바뀝니다. 게임 보상을 수령하는 기능은 아닙니다. 저장할 때 이 탭을 열어 두세요.</p>
+      </section>}
+      {!connection && <section className="rounded-xl border border-[var(--panel-border)] bg-[var(--panel)] p-4 space-y-4">
         <h2 className="font-bold">내 캐릭터 선택</h2>
         <p role="status" className="text-sm text-[var(--text-sub)]">{message}</p>
         {characters.length > 0 && <OwnedCharacterPicker characters={characters} selectedNickname={selected} onSelect={(nickname) => { setSelected(nickname); setConfirmed(""); setSnapshot(null); }} />}
@@ -97,8 +167,8 @@ export default function IrisPage() {
           <button type="button" onClick={() => setConfirmed(selected)} className="rounded-lg bg-[var(--accent)] px-4 py-2 font-bold text-[var(--accent-fg)]">네, 이 캐릭터가 맞아요</button>
         </div>}
         {confirmed && <p role="status" className="text-sm text-[var(--accent)]">{confirmed} 선택을 확인했어요. 게임이 제공하는 닉네임으로 자동 대조한 결과는 아닙니다.</p>}
-      </section>
-      <section className="rounded-xl border border-[var(--panel-border)] bg-[var(--panel)] p-4 space-y-4">
+      </section>}
+      {!connection && <section className="rounded-xl border border-[var(--panel-border)] bg-[var(--panel)] p-4 space-y-4">
         <h2 className="font-bold">로컬 게임 데이터 미리보기</h2>
         <p role="status" className="text-sm text-[var(--text-sub)]">{bridgeMessage}</p>
         {!isLocalPreview && <p className="text-sm text-[var(--text-sub)]">이 연결 미리보기는 현재 로컬 개발 환경에서만 사용할 수 있습니다.</p>}
@@ -119,8 +189,8 @@ export default function IrisPage() {
           <div>주간 숙제<strong className="block">{snapshot.missions.weekly.available ? `${snapshot.missions.weekly.completed}/${snapshot.missions.weekly.total}` : "조회 불가"}</strong></div>
           <p className="col-span-full text-xs text-[var(--text-sub)]">마지막 읽기: {new Date(snapshot.observedAt).toLocaleTimeString("ko-KR")}. 값은 이 브라우저에서만 표시되고 생텀 DB에 저장되지 않습니다.</p>
         </div>}
-      </section>
-      <p className="text-sm text-[var(--text-sub)]">이 화면의 캐릭터 선택과 연결 승인은 새로고침하면 초기화됩니다. 게임 닉네임 자동 판별과 DB 동기화는 아직 없습니다.</p>
+      </section>}
+      <p className="text-sm text-[var(--text-sub)]">이 화면의 캐릭터 선택과 연결 승인은 새로고침하면 초기화됩니다. 게임 닉네임 자동 판별과 게임 정보의 자동 DB 동기화는 아직 없습니다.</p>
       <Link href="/character" className="inline-block rounded-lg border border-[var(--panel-border)] px-4 py-2 text-sm">크로노스에서 캐릭터 관리</Link>
     </main>
   );

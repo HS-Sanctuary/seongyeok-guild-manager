@@ -1,0 +1,39 @@
+.iris-desktop { color: var(--text-main); overflow-wrap: anywhere; max-width: 24rem; margin: 0 auto; padding: .45rem; }
+.iris-desktop-button { border: 1px solid var(--panel-border); border-radius: 1rem; background: var(--inner-box); color: var(--text-main); padding: .5rem .8rem; min-height: 2.25rem; }
+.iris-desktop-button:hover:not(:disabled), .iris-desktop-button[aria-pressed=true] { border-color: var(--accent); color: var(--accent); }
+.iris-desktop-button:disabled { opacity: .55; cursor: not-allowed; }
+.iris-desktop-input { display: block; width: 100%; margin-top: .4rem; padding: .6rem; border-radius: .8rem; border: 1px solid var(--panel-border); background: var(--inner-box); color: var(--text-main); }
+.iris-desktop :focus-visible { outline: .12rem solid var(--accent); outline-offset: .12rem; }
+.iris-desktop [hidden] { display: none !important; }
+.iris-hud { border: 1px solid var(--panel-border); background: var(--panel); border-radius: 1.4rem; padding: .6rem; box-shadow: 0 .3rem 1rem #0002; }
+.iris-hud-header { display: flex; align-items: center; justify-content: space-between; gap: .35rem; padding: .15rem .15rem .4rem; }
+.iris-hud-header h1 { font-size: .85rem; min-width: 0; }
+.iris-icon-button { border-radius: 50%; width: 1.9rem; min-height: 1.9rem; padding: .2rem; flex-shrink: 0; }
+.iris-character-bar { display: flex; align-items: center; gap: .5rem; margin-bottom: .5rem; }
+.iris-character-trigger { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .3rem; text-align: left; }
+.iris-connection-dot { width: .4rem; height: .4rem; border-radius: 50%; background: #00b885; flex-shrink: 0; }
+.iris-character-list { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .3rem; margin-bottom: .6rem; }
+.iris-character-list>div,.iris-character-list>p { grid-column: 1/-1; }
+.iris-character-list button { text-align: left; font-size: .8rem; padding: .4rem .5rem; }
+.iris-save-status { padding: .4rem .15rem .5rem; }
+.iris-save-status .iris-desktop-button { font-size: .7rem; min-height: 1.8rem; padding: .3rem .5rem; }
+.iris-save-status p,.iris-save-status summary { font-size: .7rem; }
+.iris-save-status [role=status] { min-height: 1.2rem; }
+.iris-hud-tabs { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: .25rem; margin: .2rem 0 .5rem; }
+.iris-hud-tabs button { padding: .4rem .15rem; font-size: .7rem; border-radius: 1.2rem; min-height: 2rem; }
+.iris-hud-body { font-size: .8rem; }
+.iris-filter { display: flex; align-items: center; gap: .3rem; padding: .2rem .15rem .4rem; font-size: .7rem; }
+.iris-checkboard { display: flex; flex-direction: column; gap: .35rem; }
+.iris-category { border: 1px solid var(--panel-border); border-radius: 1rem; background: var(--inner-box); padding: .45rem; }
+.iris-category>summary { border-radius: .7rem; padding: .15rem; font-size: .8rem; }
+.iris-category-rows { display: flex; flex-direction: column; gap: .2rem; margin-top: .35rem; }
+.iris-task-row { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem; border-radius: .7rem; background: var(--panel); padding: .35rem .45rem; min-height: 2rem; }
+.iris-task-row[data-complete=true] { background: color-mix(in srgb,var(--accent) 12%,var(--panel)); }
+.iris-task-name { flex: 1; min-width: 5rem; }
+.iris-check-row { display: flex; align-items: center; justify-content: space-between; gap: .5rem; width: 100%; min-height: 1.7rem; cursor: pointer; }
+.iris-check-row span { min-width: 0; flex: 1; }
+.iris-desktop input[type=checkbox] { accent-color: var(--accent); width: .9rem; height: .9rem; flex-shrink: 0; }
+.iris-counter { display: flex; gap: .25rem; align-items: center; margin-left: auto; }
+.iris-counter span { min-width: 2.1rem; text-align: center; font-variant-numeric: tabular-nums; }
+.iris-theme-buttons { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .3rem; margin: .4rem 0; }
+.iris-theme-buttons button { font-size: .75rem; }
