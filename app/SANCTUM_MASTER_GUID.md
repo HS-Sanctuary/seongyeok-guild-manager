@@ -1,5 +1,7 @@
 # 🏛️ SANCTUM Master Guide
 
+운영 확인 — 2026-10-06 18:53 KST: v2.153 a99481f / dpl_54HeX3xKBDPYjGDgDR5Gefnxew5p READY/production. 실제 비로그인 핵심7페이지200·desktop 전용 앱 안내/전역 메뉴 숨김·pageerror0, IRIS 조회 API401·홈 v2.153 확인. 수동 로그인/숙제저장·게임/DPI는 미완료. 검증 기록 후속 push는 구조 변경 없음. 공지/DB 구조/RLS/권한/운영 직접 데이터 쓰기 없음.
+
 ## v2.153 IRIS 후보 배포 범위 — 2026-10-06 18:47 KST
 
 사용자가 조용한 push를 승인했다. /iris/desktop 작은 인증 센터, Desktop*·irisDesktop* 보호 저장 구조와 선택 Windows 실행기, /api/iris/kronos의 본인 소유·기간·CAS 숙제 저장, /api/iris/characters ID·캐시 차단, 공통 irisKronos 목록 투영을 배포 후보에 포함한다. 운영 DB 구조/RLS/권한 변경은 없다. 기본 구형 실행기를 자동 교체하거나 게임 동작·미지원 스탯 저장·시낙시스 상태를 활성화하지 않는다. 공개 공지 게시 없음. 자동/운영 확인과 수동 게이트는 HANDOFF/RELEASE_NOTES를 따른다.

@@ -1,5 +1,7 @@
 # SANCTUM 업데이트 노트
 
+운영 확인 — 2026-10-06 18:53 KST: v2.153 코드 a99481f main push, Vercel dpl_54HeX3xKBDPYjGDgDR5Gefnxew5p READY/production 및 운영 도메인 연결 확인. 새 비로그인 실제 브라우저에서 /·/login·/character·/party·/kerygma·/admin·/iris/desktop HTTP200, desktop 전용 앱 안내/전역 메뉴 숨김, pageerror0 확인. GET /api/iris/characters와 /api/iris/kronos는401로 차단되고 운영 홈 v2.153 표시를 확인했다. 로그인 입력·실운영 숙제 쓰기·게임 조작·DB 구조/RLS/권한·공개 공지는 하지 않았다. 게임 위 새 후보/DPI/계정 전환·실저장 시간은 수동 대기. 이 후속 push는 검증 문서만 추가, 구조 변경 없음.
+
 ## v2.153 IRIS 컴팩트 센터·숙제 저장 후보 — 2026-10-06 18:47 KST
 
 배포 전 검증 — 2026-10-06 KST: 현재 후보 전체 Node260/260 fail0, 별도 TypeScript exit0, 합성 브라우저72폭/글자/테마 조합 및 체크/저장/종료 모달/로그인 입력 유지 통과. Windows 자식 WebView 실제 합성 클릭 전달·핸들/단축키 복구·로그인 보호·암호화 큐·epoch 거절·공유 실행 잠금 통과. 환경 파일 미복사·가짜 공개 설정의 분리 Production 빌드 exit0. staged diff와 바이너리/프로필/비밀 패턴 제외 확인. 실게임 입력/저장 시간·DPI는 여전히 수동 대기다.

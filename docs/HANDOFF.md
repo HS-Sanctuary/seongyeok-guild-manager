@@ -1,5 +1,11 @@
 # SANCTUM 작업 인계
 
+## 2026-10-06 18:53 KST v2.153 운영 확인
+
+- a99481f main push 및 Vercel dpl_54HeX3xKBDPYjGDgDR5Gefnxew5p READY/production, sanctum-tawny-three.vercel.app 연결 확인. 새 비로그인 실제 브라우저의 핵심7페이지200, desktop 전용 앱 안내/전역 메뉴 숨김, pageerror0. IRIS 두 GET API401, 운영 홈 v2.153 확인.
+- 공개 공지/운영 직접 데이터 쓰기/로그인 입력/게임 조작/DB 구조·RLS·권한 변경 없음. 운영 실로그인 뒤 숙제저장·게임 위 새 후보/DPI는 미확인으로 유지한다. 이전 화연 실로그인·체크 웹 반영 확인과 이번 배포 자동/비로그인 확인을 혼동하지 않는다.
+- 검증 기록만 후속 push하며 구조 변경 없음. 기존 docs/UPDATE_POST_v2.151.md 변경과 tests/kronos-theme-preview.mjs는 미커밋 그대로 보존했다. SDK/프로필/ignored 검증 자료는 미포함. 복귀 기준선 v2.152 cfa0bc7 / dpl_74MV3teDdw3GeFNiw2jPsjU3xuy7.
+
 ## 2026-10-06 18:47 KST v2.153 조용한 push 승인
 
 - 한설이 기존 IRIS 정상 종료를 확인하고 남은 주간 사용량5%에서 검증 후 생텀에 조용히 push하도록 요청했다. IRIS 누적 후보 포함, 공개 공지 없음. 원격 main cfa0bc7과 fast-forward pull 확인.
