@@ -1,5 +1,7 @@
 # 🏛️ SANCTUM Master Guide
 
+운영 확인 — 2026-10-07 14:53 KST:94637ce/GitHub Vercel success(2xTYjZq58ApFTjdvhRbgBez24ga1), 핵심7화면/health200·비로그인 IRIS API401, 실제 브라우저 전용 앱 제한 및 새 인증 안내 배포 자산 확인. 후속 기록 push는 구조 변경 없음·v2.153 유지·DB/권한/공개 공지 변경 없음. 대시보드 Ready 직접 열람과 운영 실로그인 후검증은 별도 미확인.
+
 ## 2026-10-07 v2.153 유지 후속 배포 후보
 
 DesktopLogin은 공통 SecretCodeInput의 선택 disabled/required/maxLength props를 사용한다. irisDesktopTransport는 로그인401/403·세션401 안내를 구분한다. desktop.ps1은 Windows PowerShell5 한글 메뉴를 위한 UTF-8 BOM을 유지한다. 아래 램 도구 구조를 이번 후보에 포함하며 DB/권한/숙제 API 구조는 변경하지 않는다. 최종269/269·타입·분리 빌드static50 및 사용자 로그인/숙제/재실행/트레이 검증 완료, 장시간/DPI/실충돌·미지원 스탯/시낙시스 경계는 유지한다. 배포 결과는 HANDOFF 참조.

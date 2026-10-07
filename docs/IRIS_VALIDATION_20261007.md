@@ -1,5 +1,7 @@
 # IRIS 사무실 검증 — 2026-10-07, 순월
 
+배포 후 확인 — 14:53 KST:94637ce main, GitHub Vercel 성공·Deployment has completed, 운영 핵심7화면/health200·IRIS API2개401·실브라우저 전용 앱 안내 유지 및 새 인증 오류 문구 JS 반영 확인. 운영 계정 입력/숙제 쓰기 없이 확인. 대시보드 Ready 직접 열람은 미확인.
+
 최종 push 전 재검증: 전체269/269·별도 타입 및 Windows host/store/bridge/lifecycle/shared-lock/RAM9/overlay-support41/checkboard8/실제 합성 WebView 재실행 통과. 환경 파일 없는 분리 Production 빌드 exit0/static50. 중첩 검증 폴더로 workspace root 경고는 있었으나 빌드는 성공했다. 실제 실패/장시간/DPI 미검증 경계는 유지한다.
 
 트레이 수정 실검증: 수정본 정상 재실행 후 사용자 스크린샷에서 '센터 열기 · 입력 복구', '종료', 복구 종료 안내 등 메뉴 한글 정상 표시 확인. 한설이 트레이 입력 복구를 직접 테스트해 정상 작동한다고 확인했다. 아래의 이전 트레이 대기 기록은 이 후속 확인으로 해소됐다.

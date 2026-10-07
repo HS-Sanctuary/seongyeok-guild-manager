@@ -1,5 +1,7 @@
 # SANCTUM 업데이트 노트
 
+운영 확인 — 2026-10-07 14:53 KST: 코드94637ce main push, GitHub Vercel success/'Deployment has completed', 배포2xTYjZq58ApFTjdvhRbgBez24ga1 확인. 운영 핵심7화면·auth health200, IRIS 두 조회401, 실제 브라우저 /iris/desktop 전용 앱 안내/편집 차단 유지. 운영 JS에 새 인증 거절 안내 포함 확인. Vercel 대시보드는 로그인 필요하여 Ready 표기를 직접 읽지는 않았으며 배포 성공 신호와 운영 응답으로 확인했다. 운영 실로그인/숙제 쓰기는 이번 배포 후 자동 실행하지 않았다. 본 후속은 검증 기록만, 구조 변경 없음·v2.153 유지·공개 공지/DB 변경 없음.
+
 ## v2.153 유지 — IRIS 후속 보완 — 2026-10-07 14:50 KST
 
 - 한설 요청으로 버전 유지. IRIS 한글 접속 코드 입력을 기존 SecretCodeInput으로 통일, 로그인 거절/만료와 연결 오류 안내 구분, Windows 트레이 한글 인코딩 수정.

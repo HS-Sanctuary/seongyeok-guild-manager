@@ -1,5 +1,10 @@
 # SANCTUM 작업 인계
 
+## 2026-10-07 14:53 KST 순월 push·운영 확인
+
+- 94637ce main push 완료, GitHub Vercel success/Deployment has completed·2xTYjZq58ApFTjdvhRbgBez24ga1. 핵심7화면/health200·IRIS 조회2개401, 실제 브라우저 전용 앱 안내 및 운영 자산 신규 인증 문구 확인. 대시보드 Ready 직접 열람은 로그인 필요로 미확인, 배포 성공 신호 확인과 구분한다.
+- 전체269/269·타입·분리 빌드static50·Windows 검사 및 사용자 실검증 인계 완료. 장시간/DPI/실충돌·오프라인 미저장 큐 검증은 남음. 집에서는 main pull 후 본 릴레이 ACK, 램 경로 별도 설정. 후속 문서 push는 구조 변경 없음·버전v2.153 유지. 모집 이미지 폴더는 미포함 보존.
+
 ## 2026-10-07 14:50 KST 순월 후속 push 승인
 
 - 한설이 남은 검증 후 push 요청. 앞선 요청대로 v2.153 유지·공개 공지 없음. main25ee771 최신 pull 확인. 로그인/트레이 보완·램 연결·검증/릴레이만 포함, public/recruitment 제외.
