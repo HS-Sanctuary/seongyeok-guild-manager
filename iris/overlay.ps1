@@ -241,6 +241,8 @@ $tray = [System.Windows.Forms.NotifyIcon]::new()
 $tray.Icon = [System.Drawing.SystemIcons]::Application
 $tray.Text = 'SANCTUM IRIS · 더블클릭으로 복구'
 $tray.ContextMenuStrip = $trayMenu
+. (Join-Path $PSScriptRoot 'ram-companion.ps1')
+Add-IrisRamCompanionMenu $trayMenu
 $script:modes = [Iris.OverlayModes]::new()
 $display = [Iris.SnapshotDisplay]::new()
 $poller = [Iris.SnapshotPoller]::new()

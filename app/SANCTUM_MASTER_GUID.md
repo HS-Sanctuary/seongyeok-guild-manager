@@ -1,5 +1,13 @@
 # 🏛️ SANCTUM Master Guide
 
+## 2026-10-07 v2.153 유지 후속 배포 후보
+
+DesktopLogin은 공통 SecretCodeInput의 선택 disabled/required/maxLength props를 사용한다. irisDesktopTransport는 로그인401/403·세션401 안내를 구분한다. desktop.ps1은 Windows PowerShell5 한글 메뉴를 위한 UTF-8 BOM을 유지한다. 아래 램 도구 구조를 이번 후보에 포함하며 DB/권한/숙제 API 구조는 변경하지 않는다. 최종269/269·타입·분리 빌드static50 및 사용자 로그인/숙제/재실행/트레이 검증 완료, 장시간/DPI/실충돌·미지원 스탯/시낙시스 경계는 유지한다. 배포 결과는 HANDOFF 참조.
+
+## 2026-10-07 로컬 IRIS 램 도구 연결
+
+`iris/ram-companion.ps1`은 PC별 로컬 설정/동시 시작 잠금/기존 프로세스 재사용/외부 프로그램 시작과 트레이 설정을 소유한다. `configure-ram-companion.ps1`로 명시 연결, `ram-companion.tests.ps1`로 회귀 검증. desktop/overlay 두 실행기의 트레이에 연결하며 외부 EXE/설정 파일은 Git에 포함하지 않는다. IRIS 종료로 램 도구를 종료하지 않는다. 앱의 게임 조회·숙제 저장·DB·권한 구조는 변경하지 않았다. 버전업·배포 없음.
+
 운영 확인 — 2026-10-06 18:53 KST: v2.153 a99481f / dpl_54HeX3xKBDPYjGDgDR5Gefnxew5p READY/production. 실제 비로그인 핵심7페이지200·desktop 전용 앱 안내/전역 메뉴 숨김·pageerror0, IRIS 조회 API401·홈 v2.153 확인. 수동 로그인/숙제저장·게임/DPI는 미완료. 검증 기록 후속 push는 구조 변경 없음. 공지/DB 구조/RLS/권한/운영 직접 데이터 쓰기 없음.
 
 ## v2.153 IRIS 후보 배포 범위 — 2026-10-06 18:47 KST

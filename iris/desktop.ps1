@@ -1,4 +1,4 @@
-param([switch]$Development)
+﻿param([switch]$Development)
 # Optional candidate only. Existing overlay/default launcher remains unchanged until manual acceptance.
 $ErrorActionPreference='Stop'
 if([Threading.Thread]::CurrentThread.ApartmentState -ne 'STA'){throw 'Run with powershell -NoProfile -STA -File iris/desktop.ps1 -Development'}
@@ -33,6 +33,8 @@ $irisDesktopMenu=New-Object System.Windows.Forms.ContextMenuStrip
 [void]$irisDesktopMenu.Items.Add('종료',$null,{ $irisDesktopWindow.Close() })
 [void]$irisDesktopMenu.Items.Add('복구 종료 · 최근 변경 손실 주의',$null,{ $irisDesktopWindow.ConfirmRecoveryClose() })
 $irisDesktopTray.ContextMenuStrip=$irisDesktopMenu
+. (Join-Path $PSScriptRoot 'ram-companion.ps1')
+Add-IrisRamCompanionMenu $irisDesktopMenu
 $irisDesktopTray.add_DoubleClick({$irisDesktopWindow.Overlay.RestoreInteractive()})
 $irisDesktopWindow.add_Resize({if($irisDesktopWindow.WindowState -eq 'Minimized'){$irisDesktopWindow.Hide()}})
 $script:irisDesktopInit=$null

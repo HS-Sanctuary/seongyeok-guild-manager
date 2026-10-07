@@ -9,10 +9,16 @@ export default function SecretCodeInput({
   value,
   onChange,
   className,
+  disabled = false,
+  required = false,
+  maxLength,
 }: {
   value: string;
   onChange: (value: string) => void;
   className?: string;
+  disabled?: boolean;
+  required?: boolean;
+  maxLength?: number;
 }) {
   const [visible, setVisible] = useState(false);
   const canMaskText = useSyncExternalStore(subscribe, maskSupport, () => false);
@@ -23,6 +29,9 @@ export default function SecretCodeInput({
         <input
           name="password"
           aria-label="접속 코드"
+          disabled={disabled}
+          required={required}
+          maxLength={maxLength}
           type={canMaskText || visible ? "text" : "password"}
           value={value}
           onChange={(e) => onChange(e.target.value)}
@@ -54,6 +63,7 @@ export default function SecretCodeInput({
           type="button"
           aria-label={visible ? "접속 코드 숨기기" : "접속 코드 보기"}
           aria-pressed={visible}
+          disabled={disabled}
           onClick={() => setVisible((v) => !v)}
           className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1 rounded text-xs text-[#FFE082] bg-[#171717]"
         >

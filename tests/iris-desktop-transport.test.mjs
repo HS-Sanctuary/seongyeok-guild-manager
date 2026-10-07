@@ -6,6 +6,9 @@ const create = existsSync('lib/irisDesktopTransport.ts') ? loadTS('lib/irisDeskt
 const edit = { environment:'development',accountId:'account',characterId:'A',category:'weekly',taskId:'9902',periodKey:'2026-10-04T21:00:00.000Z',requestId:'00000000-0000-4000-8000-000000000001',revision:1,baseCompleted:0,desiredCompleted:1,deadlineAt:15000,phase:'inflight' };
 const reply = (body, status=200) => new Response(JSON.stringify(body), {status});
 function adapter(fetch, timeoutMs=100) { assert.equal(typeof create,'function','Missing authenticated desktop transport'); return create({fetch,timeoutMs}); }
+test('invalid login explains credentials instead of reporting broken app connection',async()=>{
+  await assert.rejects(adapter(async()=>reply({},401)).login('테스트','합성코드',false),error=>error.status===401&&/닉네임.*접속 코드/.test(error.message)&&!/앱 연결/.test(error.message));
+});
 test('save adapts only server contract fields and preserves cookie-owned same-origin request',async()=>{
   let sent;
   const transport=adapter(async(path,init)=>{ sent={path,init};return reply({result:{requestId:edit.requestId,status:'saved',completed:1}}); });

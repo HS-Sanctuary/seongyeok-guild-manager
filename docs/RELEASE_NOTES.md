@@ -1,5 +1,15 @@
 # SANCTUM 업데이트 노트
 
+## v2.153 유지 — IRIS 후속 보완 — 2026-10-07 14:50 KST
+
+- 한설 요청으로 버전 유지. IRIS 한글 접속 코드 입력을 기존 SecretCodeInput으로 통일, 로그인 거절/만료와 연결 오류 안내 구분, Windows 트레이 한글 인코딩 수정.
+- PC별 명시 설정으로 램누수정리v2 함께 시작: 기본 꺼짐·기존 프로세스 재사용·실패 비차단·IRIS 종료 시 외부 도구 유지. EXE/SDK/개인 설정/프로필 및 무관한 모집 이미지 미포함.
+- 사용자 확인: 실제 로그인·쌍월 숙제 웹 연동·재실행 후 로그인/선택/체크 유지·숨김/복원·클릭 통과·트레이 입력 복구·한글 메뉴 정상.
+- 최종 검증: Node269/269, 별도 타입, Windows host/store/bridge/lifecycle/shared-lock/RAM9/overlay-support41/checkboard8/실제 합성 WebView 통과. 환경 파일 없는 분리 Production 빌드 exit0/static50. 합성 충돌/네트워크 실패·큐 복구 검증을 실제 계정 실검증으로 확대하지 않는다.
+- 남은 제한: 실자동저장 시간·실충돌/네트워크/미저장 큐 복구·DPI/다중 화면·장시간·테마 재실행 기억. native overlay fixture는 실앱 단축키 점유로 미완료, 사용자 실단축키 검증은 통과. 스탯 자동DB/시낙시스/게임 자동작업 미지원 유지.
+- 구조 변경: ram-companion/configure/tests 및 desktop/overlay 트레이 연결, SecretCodeInput 선택 props/DesktopLogin 재사용, transport 인증 안내. DB 구조/RLS/권한 변경·공개 공지 없음.
+- 직전 정상 기준선:25ee771(v2.153), Vercel EmrkhKQZaxeJWpXv17R2e1aXG9N8(GitHub success), 이전 기능 배포 dpl_54HeX3xKBDPYjGDgDR5Gefnxew5p. 새 배포/운영 확인은 후속 기록.
+
 운영 확인 — 2026-10-06 18:53 KST: v2.153 코드 a99481f main push, Vercel dpl_54HeX3xKBDPYjGDgDR5Gefnxew5p READY/production 및 운영 도메인 연결 확인. 새 비로그인 실제 브라우저에서 /·/login·/character·/party·/kerygma·/admin·/iris/desktop HTTP200, desktop 전용 앱 안내/전역 메뉴 숨김, pageerror0 확인. GET /api/iris/characters와 /api/iris/kronos는401로 차단되고 운영 홈 v2.153 표시를 확인했다. 로그인 입력·실운영 숙제 쓰기·게임 조작·DB 구조/RLS/권한·공개 공지는 하지 않았다. 게임 위 새 후보/DPI/계정 전환·실저장 시간은 수동 대기. 이 후속 push는 검증 문서만 추가, 구조 변경 없음.
 
 ## v2.153 IRIS 컴팩트 센터·숙제 저장 후보 — 2026-10-06 18:47 KST

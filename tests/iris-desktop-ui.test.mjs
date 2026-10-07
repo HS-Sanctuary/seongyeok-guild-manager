@@ -5,6 +5,16 @@ import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {loadTS} from './load-ts.mjs';
 const file='components/iris/DesktopCheckboard.tsx';
+test('desktop login uses Korean composition capable masked code input and retains required bounds',()=>{
+  const {DesktopLogin}=loadTS('components/iris/DesktopLogin.tsx');
+  const html=renderToStaticMarkup(React.createElement(DesktopLogin,{busy:false,onLogin:async()=>{}}));
+  assert.match(html,/접속 코드 \(한글 입력 가능\)/);
+  assert.match(html,/lang="ko"/);
+  assert.match(html,/maxLength="128"/);
+  assert.match(html,/required=""/);
+  const locked=renderToStaticMarkup(React.createElement(DesktopLogin,{busy:true,onLogin:async()=>{}}));
+  assert.match(locked,/aria-label="접속 코드"[^>]*disabled=""/);
+});
 test('checkboard projects optimistic values with stable category/task keys through busy states',()=>{
   assert.equal(existsSync(file),true,'Missing desktop checkboard');
   const {DesktopCheckboard,desktopRows}=loadTS(file);

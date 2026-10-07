@@ -12,7 +12,11 @@ export type DesktopDetails = {
 export type DesktopSaveResult = { kind: 'saved'; completed: number } |
   { kind: 'conflict' | 'unauthorized' | 'unknown' | 'rejected' };
 export class DesktopTransportError extends Error {
-  constructor(public status: number) { super('앱 연결 상태를 확인해 주세요.'); }
+  constructor(public status: number, operation: 'login' | 'request' = 'request') {
+    super(operation === 'login' && status === 401 ? '닉네임 또는 접속 코드가 올바르지 않아요. 한/영 상태와 특수문자 순서를 확인해 주세요.' :
+      operation === 'login' && status === 403 ? '로그인할 수 있는 승인된 계정인지 확인해 주세요.' :
+      status === 401 ? '로그인이 만료됐어요. 다시 로그인해 주세요.' : '앱 연결 상태를 확인해 주세요.');
+  }
 }
 const categories: Category[] = ['daily', 'weekly', 'abyss', 'raid'];
 const object = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
@@ -68,7 +72,7 @@ export function createDesktopTransport(options: { fetch: typeof fetch; timeoutMs
           const response = await options.fetch(path, { method: body === undefined ? 'GET' : 'POST', credentials: 'same-origin',
             cache: 'no-store', redirect: 'error', signal: abort.signal,
             ...(body === undefined ? {} : { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }) });
-          if (!response.ok) throw new DesktopTransportError(response.status);
+          if (!response.ok) throw new DesktopTransportError(response.status, path === '/api/auth/login' ? 'login' : 'request');
           return await response.json() as unknown;
         })(),
         new Promise<never>((_, reject) => { timer = setTimeout(() => { abort.abort(); reject(new DesktopTransportError(0)); }, timeout); }),
