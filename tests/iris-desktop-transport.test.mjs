@@ -4,6 +4,13 @@ import { existsSync } from 'node:fs';
 import { loadTS } from './load-ts.mjs';
 const create = existsSync('lib/irisDesktopTransport.ts') ? loadTS('lib/irisDesktopTransport.ts').createDesktopTransport : undefined;
 const edit = { environment:'development',accountId:'account',characterId:'A',category:'weekly',taskId:'9902',periodKey:'2026-10-04T21:00:00.000Z',requestId:'00000000-0000-4000-8000-000000000001',revision:1,baseCompleted:0,desiredCompleted:1,deadlineAt:15000,phase:'inflight' };
+test('class transport strips metadata and validates desired level acknowledgements',async()=>{
+  const e={kind:'class',environment:'development',accountId:'account',characterId:'A',classId:'c',baseLevel:null,desiredLevel:65,requestId:edit.requestId,revision:1,deadlineAt:15000,phase:'inflight'};
+  let sent;const t=adapter(async(path,init)=>{sent={path,body:JSON.parse(init.body)};return reply({result:{requestId:e.requestId,status:'saved',level:65}});});
+  assert.deepEqual(await t.save(e),{kind:'saved',level:65});
+  assert.deepEqual(sent,{path:'/api/iris/classes',body:{edit:{requestId:e.requestId,accountId:'account',characterId:'A',classId:'c',baseLevel:null,desiredLevel:65}}});
+  assert.deepEqual(await adapter(async()=>reply({result:{requestId:e.requestId,status:'saved',level:64}})).save(e),{kind:'unknown'});
+});
 const reply = (body, status=200) => new Response(JSON.stringify(body), {status});
 function adapter(fetch, timeoutMs=100) { assert.equal(typeof create,'function','Missing authenticated desktop transport'); return create({fetch,timeoutMs}); }
 test('invalid login explains credentials instead of reporting broken app connection',async()=>{

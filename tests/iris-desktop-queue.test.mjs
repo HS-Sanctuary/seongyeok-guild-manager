@@ -8,6 +8,27 @@ const create = existsSync(path) ? loadTS(path).createDesktopQueue : undefined;
 const A = { environment: 'development', accountId: 'account', characterId: 'A' };
 const B = { ...A, characterId: 'B' };
 const key = { category: 'weekly', taskId: 'vanguard', periodKey: '2026-10-04T21:00:00.000Z' };
+test('task and class share debounce while blocked characters cannot dispatch',()=>{
+  const {queue,at}=setup();queue.edit(A,key,0,1);queue.edit(B,key,0,1);
+  at(1000);queue.editClass(A,'1',null,53);
+  assert.equal(queue.snapshot().schemaVersion,2);
+  assert.deepEqual(queue.snapshot().entries.filter(e=>e.characterId==='A').map(e=>e.deadlineAt),[16000,16000]);
+  at(16000);assert.deepEqual(queue.due('account',new Set(['A'])).map(e=>e.characterId),['B']);
+  const c=queue.snapshot().entries.find(e=>e.kind==='class');assert.equal(c.baseLevel,null);assert.equal('periodKey' in c,false);
+  queue.saveNow(A);const task=queue.claim(queue.due('account')[0].requestId);queue.settle(task.requestId,{kind:'saved',completed:1});
+  const flight=queue.claim(queue.due('account').find(e=>e.kind==='class').requestId);queue.settle(flight.requestId,{kind:'saved',level:53});
+  assert.equal(queue.snapshot().entries.some(e=>e.kind==='class'),false);
+});
+test('class original baseline survives edits and schema1 migration is strict',()=>{
+  const {queue,at}=setup();queue.editClass(A,'1',53,54);queue.editClass(A,'1',54,55);
+  assert.equal(queue.snapshot().entries[0].baseLevel,53);queue.editClass(A,'1',55,53);assert.equal(queue.snapshot().entries.length,0);
+  assert.throws(()=>queue.editClass(A,'1',null,0));assert.throws(()=>queue.editClass(A,'1',0,1));
+  queue.edit(A,key,0,1);const v2=queue.snapshot(),legacy=structuredClone(v2);legacy.schemaVersion=1;delete legacy.entries[0].kind;
+  const {migrateDesktopQueueV1:migrate}=loadTS(path);assert.deepEqual(migrate(legacy,'development'),v2);
+  assert.throws(()=>migrate({...legacy,extra:true},'development'));assert.throws(()=>migrate(legacy,'production'));
+  const malformed=structuredClone(v2);malformed.entries[0].kind='class';assert.throws(()=>queue.restore(malformed));
+  queue.restore(v2);at(60000);assert.equal(queue.due('account').length,0);
+});
 test('verified unknown recovery retains latest successor with original baseline', () => {
   const {queue}=setup();queue.edit(A,key,0,1);queue.saveNow(A);
   const first=queue.claim(queue.due('account')[0].requestId);
@@ -126,7 +147,7 @@ test('snapshot is detached and JSON recovery never automatically replays pending
 });
 test('malformed recovery is atomic and rejects duplicate identities and secret fields', () => {
   const { queue } = setup(); queue.edit(A, key, 0, 1); const before = queue.snapshot();
-  for (const mutate of [s => { s.schemaVersion = 2; }, s => s.entries.push({ ...s.entries[0] }),
+  for (const mutate of [s => { s.schemaVersion = 3; }, s => s.entries.push({ ...s.entries[0] }),
     s => { s.entries[0].code = 'must-not-store'; }, s => { s.entries[0].desiredCompleted = -1; },
     s => { s.entries[0].deadlineAt = NaN; }, s => { s.entries[0].phase = 'invented'; }]) {
     const bad = structuredClone(before); mutate(bad);

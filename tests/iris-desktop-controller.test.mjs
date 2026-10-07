@@ -60,10 +60,104 @@ async function setup(overrides={}){
     save:async e=>{log.push(['post',e.accountId,e.characterId]);return {kind:'saved',completed:e.desiredCompleted};},
     switchAccount:async id=>{log.push(['switch',id]);active=id;return {id,nickname:'다른',role:'길드원'};},logout:async()=>log.push(['logout']),...overrides.transport};
   const store={load:async()=>null,replace:async()=>{},...overrides.store};
-  const controller=create({queue,transport,store,environment:'development'});
+  const controller=create({queue,transport,store,environment:'development',now:()=>now});
   await controller.start();await controller.selectCharacter('A');log.length=0;
   return {controller,queue,log,transport,at:v=>now=v};
 }
+async function classSetup(overrides={}){
+  const s=await setup(overrides),read=s.transport.details;
+  s.transport.details=async(...args)=>{const d=await read(...args);d.details.classes=[{id:'c',name:'댄서',level:53}];d.writeContext.classes=[{classId:'c',editable:true,baseLevel:53}];return d;};
+  await s.controller.refresh();return s;
+}
+test('invalid class draft blocks old intent and character transition until reverted',async()=>{
+  const s=await classSetup();await s.controller.setClassDraft('c','54');await s.controller.setClassDraft('c','');
+  s.at(60000);await s.controller.tick();assert.equal(s.log.some(e=>e[0]==='post'),false);
+  assert.equal(s.controller.state().hasInvalidClassDraft,true);
+  await assert.rejects(s.controller.selectCharacter('B'));await assert.rejects(s.controller.saveNow());
+  await s.controller.revertClassDraft('c');assert.equal(s.controller.state().classDrafts.c.text,'54');
+  assert.equal(s.controller.state().hasInvalidClassDraft,false);assert.equal(s.queue.snapshot().entries[0].deadlineAt,75000);
+});
+test('class acknowledgement updates baseline and time without replacing newer text or B view',async()=>{
+  const wait=deferred();const s=await classSetup({transport:{save:async()=>wait.promise}});
+  await s.controller.setClassDraft('c','54');const saving=s.controller.saveNow();await new Promise(r=>setImmediate(r));
+  await s.controller.setClassDraft('c','55');s.at(19000);wait.resolve({kind:'saved',level:54});await saving;
+  assert.equal(s.controller.state().selected.details.classes[0].level,54);
+  assert.equal(s.controller.state().classDrafts.c.text,'55');assert.equal(s.queue.snapshot().entries[0].baseLevel,54);
+  assert.equal(s.controller.state().lastSaveConfirmation.confirmedAt,19000);
+});
+test('class unknown result reconciles without period expiry or automatic replay',async()=>{
+  const s=await classSetup({transport:{save:async()=>({kind:'unknown'})}});
+  await s.controller.setClassDraft('c','54');await s.controller.saveNow();assert.equal(s.queue.snapshot().entries[0].phase,'unknown');
+  const read=s.transport.details;s.transport.details=async(...args)=>{const d=await read(...args);d.details.classes[0].level=54;d.writeContext.classes[0].baseLevel=54;d.writeContext.periodKeys.weekly='2026-10-11T21:00:00.000Z';return d;};
+  s.at(30000);await s.controller.recover(s.queue.snapshot().entries[0].requestId,'retry');
+  assert.equal(s.queue.snapshot().entries.length,0);assert.equal(s.controller.state().lastSaveConfirmation.confirmedAt,30000);
+});
+
+test('discarded class conflict clears obsolete draft and refreshes the saved baseline',async()=>{
+  const s=await classSetup({transport:{save:async()=>({kind:'conflict'})}});
+  await s.controller.setClassDraft('c','54');await s.controller.saveNow();
+  const read=s.transport.details;s.transport.details=async(...args)=>{const d=await read(...args);d.details.classes[0].level=60;d.writeContext.classes[0].baseLevel=60;return d;};
+  await s.controller.recover(s.queue.snapshot().entries[0].requestId,'discard');
+  assert.equal(s.controller.state().classDrafts.c,undefined);
+  assert.equal(s.controller.state().selected.details.classes[0].level,60);
+});
+
+test('invalid class A does not block valid B and late class ack cannot replace B',async()=>{
+  const wait=deferred();const s=await classSetup({transport:{save:async()=>wait.promise}});
+  await s.controller.setClassDraft('c','54');const saving=s.controller.saveNow();await new Promise(r=>setImmediate(r));
+  await s.controller.selectCharacter('B');await s.controller.setClassDraft('c','55');
+  wait.resolve({kind:'saved',level:54});await saving;
+  assert.equal(s.controller.state().selected.characterId,'B');assert.equal(s.controller.state().selected.details.classes[0].level,53);
+  assert.equal(s.controller.state().lastSaveConfirmation,null);
+  await s.controller.selectCharacter('A');await s.controller.setClassDraft('c','');
+  s.transport.save=async e=>{s.log.push(['post',e.characterId]);return {kind:'saved',level:e.desiredLevel};};
+  s.at(30000);await s.controller.tick();
+  assert.deepEqual(s.log.filter(e=>e[0]==='post'),[['post','B']]);
+});
+
+test('class input invalidated during slow character load prevents hiding outgoing draft',async()=>{
+  const s=await classSetup(),wait=deferred(),read=s.transport.details;
+  s.transport.details=async(...args)=>{const d=await read(...args);if(args[1]==='B')await wait.promise;return d;};
+  const switching=s.controller.selectCharacter('B');await new Promise(r=>setImmediate(r));
+  await s.controller.setClassDraft('c','');wait.resolve();
+  await assert.rejects(switching);assert.equal(s.controller.state().selected.characterId,'A');
+  assert.equal(s.controller.state().hasInvalidClassDraft,true);
+});
+
+test('class baseline reversion removes no-op draft so later server refresh remains visible',async()=>{
+  const s=await classSetup();await s.controller.setClassDraft('c','54');await s.controller.setClassDraft('c','53');
+  assert.equal(s.queue.snapshot().entries.length,0);assert.equal(s.controller.state().classDrafts.c,undefined);
+  const read=s.transport.details;s.transport.details=async(...args)=>{const d=await read(...args);d.details.classes[0].level=60;d.writeContext.classes[0].baseLevel=60;return d;};
+  await s.controller.refresh();assert.equal(s.controller.state().selected.details.classes[0].level,60);
+});
+
+test('save confirmation time appears only after server acknowledgement and remains after discard',async()=>{
+  const wait=deferred();const s=await setup({transport:{save:async()=>wait.promise}});
+  assert.equal(s.controller.state().lastSaveConfirmation,null);
+  await s.controller.edit(key,0,1);const sending=s.controller.saveNow();await new Promise(r=>setImmediate(r));
+  assert.equal(s.controller.state().lastSaveConfirmation,null);
+  s.at(24000);wait.resolve({kind:'saved',completed:1});await sending;
+  assert.deepEqual(s.controller.state().lastSaveConfirmation,{characterId:'A',nickname:'젼설',confirmedAt:24000});
+  await s.controller.edit(key,1,2);await s.controller.discard();s.at(30000);await s.controller.saveNow();
+  assert.equal(s.controller.state().lastSaveConfirmation.confirmedAt,24000);
+});
+
+test('unknown response has no success time until an explicit read confirms the saved value',async()=>{
+  const s=await setup({transport:{save:async()=>({kind:'unknown'})}});
+  await s.controller.edit(key,0,1);await s.controller.saveNow();assert.equal(s.controller.state().lastSaveConfirmation,null);
+  const read=s.transport.details;s.transport.details=async(...args)=>{const value=await read(...args);value.details.tasks.weekly[0].completed=1;return value;};
+  s.at(35000);await s.controller.recover(s.queue.snapshot().entries[0].requestId,'retry');
+  assert.equal(s.controller.state().lastSaveConfirmation.confirmedAt,35000);
+});
+
+test('late A confirmation is not displayed as B or another account save',async()=>{
+  const wait=deferred();const s=await setup({transport:{save:async()=>wait.promise}});
+  await s.controller.edit(key,0,1);const sending=s.controller.saveNow();await new Promise(r=>setImmediate(r));
+  await s.controller.selectCharacter('B');s.at(18000);wait.resolve({kind:'saved',completed:1});await sending;
+  assert.equal(s.controller.state().lastSaveConfirmation,null);
+  await s.controller.selectCharacter('A');assert.equal(s.controller.state().lastSaveConfirmation.confirmedAt,18000);
+  await s.controller.switchAccount('other');await s.controller.selectCharacter('A');assert.equal(s.controller.state().lastSaveConfirmation,null);
+});
 test('account switch waits for in-flight save and locks new edits immediately',async()=>{
   const wait=deferred();const s=await setup({transport:{save:async()=>wait.promise}});
   await s.controller.edit(key,0,1);s.at(15000);const sending=s.controller.tick();

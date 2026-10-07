@@ -2,10 +2,12 @@
 import {useEffect,useRef,useState,type ReactNode} from 'react';
 import type {DesktopAccount,DesktopCharacter,DesktopDetails} from '@/lib/irisDesktopTransport';
 import type {PendingEdit,TaskKey} from '@/lib/irisDesktopQueue';
+import type {DesktopClassDraft} from '@/lib/irisDesktopController';
 import {DesktopCheckboard} from './DesktopCheckboard';
-const tabs={homework:'숙제',stats:'스탯',synaxis:'시낙시스',settings:'설정'} as const;
+import {DesktopClasses} from './DesktopClasses';
+const tabs={homework:'숙제',classes:'클래스',stats:'스탯',synaxis:'시낙시스',settings:'설정'} as const;
 const themes={lumen:'루멘',elysium:'엘리시움',aureum:'아우레움',nemeton:'네메톤',vesper:'베스퍼',rosarium:'로사리움'};
-export function DesktopCenter({account,characters,selected,pending,locked,saveStatus,accountPanel,overlayPanel,characterStatus,onSelectCharacter,onEdit,onClose}:{account:DesktopAccount;characters:DesktopCharacter[];selected:DesktopDetails|null;pending:PendingEdit[];locked:boolean;saveStatus:ReactNode;accountPanel:ReactNode;overlayPanel?:ReactNode;characterStatus?:ReactNode;onSelectCharacter(id:string):void;onEdit(key:TaskKey,base:number,desired:number):void;onClose():void}){
+export function DesktopCenter({account,characters,selected,pending,locked,saveStatus,accountPanel,overlayPanel,characterStatus,classDrafts,onClassDraft,onRevertClassDraft,onSelectCharacter,onEdit,onClose}:{account:DesktopAccount;characters:DesktopCharacter[];selected:DesktopDetails|null;pending:PendingEdit[];locked:boolean;saveStatus:ReactNode;accountPanel:ReactNode;overlayPanel?:ReactNode;characterStatus?:ReactNode;classDrafts?:Record<string,DesktopClassDraft>;onClassDraft?(id:string,text:string):void;onRevertClassDraft?(id:string):void;onSelectCharacter(id:string):void;onEdit(key:TaskKey,base:number,desired:number):void;onClose():void}){
   const [tab,setTab]=useState<keyof typeof tabs>('homework'),[folded,setFolded]=useState(false),[picker,setPicker]=useState(false),[remaining,setRemaining]=useState(false);
   const pickerButton=useRef<HTMLButtonElement>(null);
   const pickerList=useRef<HTMLElement>(null);
@@ -26,9 +28,10 @@ export function DesktopCenter({account,characters,selected,pending,locked,saveSt
     <div hidden={folded}>
       <nav className="iris-hud-tabs" aria-label="센터 기능">{Object.entries(tabs).map(([id,title])=><button type="button" key={id} className="iris-desktop-button" aria-pressed={tab===id} aria-controls={'iris-pane-'+id} onClick={()=>{setTab(id as keyof typeof tabs);setPicker(false);}}>{title}</button>)}</nav>
       <section id="iris-pane-homework" aria-label="숙제" hidden={tab!=='homework'} className="iris-hud-body"><label className="iris-filter"><input type="checkbox" checked={remaining} onChange={e=>setRemaining(e.target.checked)}/>남은 숙제만</label><DesktopCheckboard selected={selected} pending={pending} locked={locked} remainingOnly={remaining} onEdit={onEdit}/></section>
+      <section id="iris-pane-classes" aria-label="클래스" hidden={tab!=='classes'} className="iris-hud-body"><DesktopClasses selected={selected} pending={pending} locked={locked} classDrafts={classDrafts} onClassDraft={onClassDraft} onRevertClassDraft={onRevertClassDraft}/></section>
       <section id="iris-pane-stats" aria-label="스탯" hidden={tab!=='stats'} className="iris-hud-body"><p>게임 스탯 연결을 검증하고 있어요.</p><p className="text-sm">캐릭터 식별이 확인되기 전에는 자동으로 저장하지 않아요. 기존 생텀 값은 유지돼요.</p></section>
       <section id="iris-pane-synaxis" aria-label="시낙시스" hidden={tab!=='synaxis'} className="iris-hud-body"><p>시낙시스 상태 연결은 아직 지원하지 않아요.</p><p className="text-sm">연결이 확인되면 여기에 표시할게요.</p></section>
-      <section id="iris-pane-settings" aria-label="설정" hidden={tab!=='settings'} className="iris-hud-body"><div>{accountPanel}</div>{overlayPanel}<fieldset><legend className="text-sm">센터 테마</legend><div className="iris-theme-buttons">{Object.entries(themes).map(([id,name])=><button key={id} type="button" className="iris-desktop-button" onClick={()=>{document.documentElement.dataset.theme=id;}}>{name}</button>)}</div></fieldset><details className="text-sm"><summary>사용 안내</summary><p>생텀 숙제 기록만 저장해요. 게임 조작이나 보상 수령은 하지 않아요. 일간 06시, 주간 월요일 06시에 초기화돼요.</p></details></section>
+      <section id="iris-pane-settings" aria-label="설정" hidden={tab!=='settings'} className="iris-hud-body"><div>{accountPanel}</div>{overlayPanel}<fieldset><legend className="text-sm">센터 테마</legend><div className="iris-theme-buttons">{Object.entries(themes).map(([id,name])=><button key={id} type="button" className="iris-desktop-button" onClick={()=>{document.documentElement.dataset.theme=id;}}>{name}</button>)}</div></fieldset><details className="text-sm"><summary>사용 안내</summary><p>생텀 숙제 기록과 직접 입력한 클래스 레벨을 저장해요. 게임 조작이나 보상 수령은 하지 않아요. 숙제는 일간 06시, 주간 월요일 06시에 초기화되며 클래스 레벨은 초기화되지 않아요.</p></details></section>
     </div>
   </section>;
 }

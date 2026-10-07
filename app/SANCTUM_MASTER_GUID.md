@@ -1,5 +1,14 @@
 # 🏛️ SANCTUM Master Guide
 
+## 2026-10-07 미배포 IRIS 클래스 수동 편집
+
+- UI 후속: `DesktopClasses.tsx` 전용 클래스 탭/계열 필터/숫자·게이지 입력/내부 높이 제한. `DesktopCheckboard.tsx`는 숙제만 표시하며 Center는5기능 탭을 제공한다. 기존65초과 값/미등록/오류·복구 행 보존, 저장/API/DB 구조 변경 없음.
+
+- `lib/irisClassWrite.ts`/`lib/server/irisClassWrite.ts`와 `POST /api/iris/classes`: 요청6필드, 기존 세션 소유자·활성 클래스 검증, `characters.levels` 한 키 병합/전체 원본 CAS. DB 구조/RLS/권한 변화 없음. `/api/iris/kronos` GET의 `writeContext.classes`는 읽기 정규화와 별개로 원본 편집 가능 여부/nullable 기준값을 제공한다.
+- `irisDesktopQueue.ts`는 schema2의 `kind:task|class`를 같은 대기·단일 전송·복구 흐름에 넣는다. task는 기간·completed, class는 기간 없이classId/baseLevel/desiredLevel. `desktop-store.cs`는 DPAPIv2와 엄격한v1→v2 검증/암호문 recovery 백업을 소유한다. 기존 큐 문서의 schema1은 이 후보부터 대체되며 구버전 역변환은 없다.
+- Controller가 계정/캐릭터/클래스 입력 원문·오류를 소유하고 invalid 캐릭터의 저장·전환을 막는다. Transport는 task의 기존 `/kronos` 계약과 class의 새 `/classes` 계약을 구분한다. Checkboard/Center/Page/SaveStatus는 DB 기본값의 작은 클래스 입력,15초/지금 저장, 오류 되돌리기·캐릭터별 확인 시각을 공유한다.
+- 자동 게임 클래스 조회/스탯 저장/시낙시스는 활성화하지 않는다. 실제 계정 수동 확인·DPI/장시간/실충돌 검증 대기, 기존 웹 전체levels 저장의 후속 덮어쓰기 방지는 별도 과제. 로컬 검증 결과는 HANDOFF에 기록하며 push/배포/버전 변경 없음.
+
 운영 확인 — 2026-10-07 14:53 KST:94637ce/GitHub Vercel success(2xTYjZq58ApFTjdvhRbgBez24ga1), 핵심7화면/health200·비로그인 IRIS API401, 실제 브라우저 전용 앱 제한 및 새 인증 안내 배포 자산 확인. 후속 기록 push는 구조 변경 없음·v2.153 유지·DB/권한/공개 공지 변경 없음. 대시보드 Ready 직접 열람과 운영 실로그인 후검증은 별도 미확인.
 
 ## 2026-10-07 v2.153 유지 후속 배포 후보

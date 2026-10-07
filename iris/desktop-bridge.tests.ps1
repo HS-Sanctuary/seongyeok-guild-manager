@@ -18,11 +18,11 @@ Assert (!(Send 1 'store.load' $null ([Uri]'http://localhost:3000/login')).ok) 'O
 Assert (!(Send 1 'store.load' $null $url ($epoch-1)).ok) 'Stale epoch accepted'
 Assert (!(Send 1 'cookie.read' $null).ok) 'Generic native method accepted'
 Assert (!(Test-Path $store.FilePath)) 'Rejected messages wrote a file'
-Assert ((Send 2 'store.replace' @{schemaVersion=1;entries=@()}).ok) 'Valid snapshot not persisted'
+Assert ((Send 2 'store.replace' @{schemaVersion=2;entries=@()}).ok) 'Valid snapshot not persisted'
 $cipher=[IO.File]::ReadAllBytes($store.FilePath)
-Assert (!(Send 2 'store.replace' @{schemaVersion=1;entries=@()}).ok) 'Replay accepted'
+Assert (!(Send 2 'store.replace' @{schemaVersion=2;entries=@()}).ok) 'Replay accepted'
 Assert ((Send 3 'store.load' $null).ok) 'Valid load failed'
-Assert (!(Send 4 'store.replace' @{schemaVersion=1;entries=@();cookie='forbidden'}).ok) 'Secret payload accepted'
+Assert (!(Send 4 'store.replace' @{schemaVersion=2;entries=@();cookie='forbidden'}).ok) 'Secret payload accepted'
 Assert ([Convert]::ToBase64String([IO.File]::ReadAllBytes($store.FilePath)) -eq [Convert]::ToBase64String($cipher)) 'Bad payload changed store'
 $bridge.Revoke()
 Assert (!(Send 5 'store.load' $null).ok) 'Revoked bridge stayed open'

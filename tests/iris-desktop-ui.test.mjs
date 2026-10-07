@@ -5,6 +5,31 @@ import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {loadTS} from './load-ts.mjs';
 const file='components/iris/DesktopCheckboard.tsx';
+test('class inputs use database defaults and preserve invalid draft text',()=>{
+  const {DesktopClasses:DesktopCheckboard}=loadTS('components/iris/DesktopClasses.tsx');
+  const selected={accountId:'a',characterId:'b',writeContext:{periodKeys:{},classes:[{classId:'1',editable:true,baseLevel:53},{classId:'2',editable:true,baseLevel:null},{classId:'3',editable:false,baseLevel:null}]},details:{tasks:{daily:[],weekly:[],abyss:[],raid:[]},classes:[{id:'1',name:'전사',level:53},{id:'2',name:'마법사',level:null},{id:'3',name:'잘못된값',level:null}]}};
+  const props={selected,pending:[],locked:false,onEdit(){},onClassDraft(){},onRevertClassDraft(){}};
+  const html=renderToStaticMarkup(React.createElement(DesktopCheckboard,props));
+  assert.match(html,/aria-label="전사 레벨"[^>]*value="53"/);assert.match(html,/aria-label="마법사 레벨"[^>]*value=""/);
+  assert.match(html,/웹에서 확인/);
+  const invalid=renderToStaticMarkup(React.createElement(DesktopCheckboard,{...props,classDrafts:{'1':{text:'5.3',error:'정수를 입력해 주세요.'}}}));
+  assert.match(invalid,/value="5.3"/);assert.match(invalid,/aria-invalid="true"/);assert.match(invalid,/정수를 입력/);
+});
+
+test('class gauges retain database levels above the displayed game range and never default missing levels into edits',()=>{
+  const {DesktopClasses}=loadTS('components/iris/DesktopClasses.tsx');
+  const selected={accountId:'a',characterId:'b',writeContext:{classes:[{classId:'1',editable:true},{classId:'2',editable:true}]},details:{classes:[{id:'1',name:'전사',level:88},{id:'2',name:'마법사',level:null}]}};
+  const html=renderToStaticMarkup(React.createElement(DesktopClasses,{selected,pending:[],locked:false,onClassDraft(){}}));
+  assert.match(html,/aria-label="전사 레벨 게이지"[^>]*max="88"[^>]*value="88"/);
+  assert.match(html,/aria-label="마법사 레벨"[^>]*value=""/);
+});
+
+test('lineage filtering retains invalid drafts instead of hiding a blocked save',()=>{
+  const {filterDesktopClasses}=loadTS('components/iris/DesktopClasses.tsx');
+  const rows=[{id:'1',name:'전사'},{id:'2',name:'궁수'},{id:'3',name:'새 클래스'}];
+  assert.deepEqual(filterDesktopClasses(rows,'궁수',{},new Set()).map(r=>r.id),['2']);
+  assert.deepEqual(filterDesktopClasses(rows,'궁수',{'1':{text:'x',error:'오류'}},new Set(['3'])).map(r=>r.id),['1','2','3']);
+});
 test('desktop login uses Korean composition capable masked code input and retains required bounds',()=>{
   const {DesktopLogin}=loadTS('components/iris/DesktopLogin.tsx');
   const html=renderToStaticMarkup(React.createElement(DesktopLogin,{busy:false,onLogin:async()=>{}}));
@@ -30,6 +55,16 @@ test('save status explains 15-second debounce and exposes manual save and discar
   const {DesktopSaveStatus}=loadTS(path);
   const html=renderToStaticMarkup(React.createElement(DesktopSaveStatus,{entries:[],now:0,locked:false,onSave(){},onDiscard(){},onRecover(){}}));
   assert.match(html,/15초/);assert.match(html,/지금 저장/);assert.match(html,/변경 버리기/);
+});
+
+test('save feedback renders selected-character confirmation in KST without hiding unknown recovery',()=>{
+  const {DesktopSaveStatus}=loadTS('components/iris/DesktopSaveStatus.tsx');
+  const props={entries:[{characterId:'A',category:'weekly',taskId:'t',requestId:'r',deadlineAt:0,phase:'unknown'}],characters:[{id:'A',nickname:'화연'}],now:0,locked:false,onSave(){},onDiscard(){},onRecover(){}};
+  const empty=renderToStaticMarkup(React.createElement(DesktopSaveStatus,props));
+  assert.doesNotMatch(empty,/<time/);
+  const html=renderToStaticMarkup(React.createElement(DesktopSaveStatus,{...props,lastSaveConfirmation:{characterId:'A',nickname:'화연',confirmedAt:Date.parse('2026-10-07T10:42:08.000Z')}}));
+  assert.match(html,/dateTime="2026-10-07T10:42:08.000Z"/i);assert.match(html,/19:42:08/);
+  assert.match(html,/화연 · 마지막 저장 확인/);assert.match(html,/확인하고 재시도/);
 });
 test('save status groups repeated edits by nickname while exposing named unknown recovery',()=>{
   const {DesktopSaveStatus}=loadTS('components/iris/DesktopSaveStatus.tsx');

@@ -49,7 +49,7 @@ export function createDesktopStore(options: { channel: Channel; context(): Conte
       const value = await request('store.load', null);
       if (value === null) return null;
       const snapshot = value as QueueSnapshot | undefined;
-      if (!snapshot || snapshot.schemaVersion !== 1 || !Array.isArray(snapshot.entries)) throw Error('보관된 변경을 확인해 주세요.');
+      if (!snapshot || snapshot.schemaVersion !== 2 || !Array.isArray(snapshot.entries)) throw Error('보관된 변경 형식이 달라요. 업데이트된 IRIS를 다시 실행해 주세요.');
       // The queue restore boundary performs the complete entry validation.
       return snapshot;
     },

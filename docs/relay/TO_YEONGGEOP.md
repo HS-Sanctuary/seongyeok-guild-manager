@@ -1,6 +1,8 @@
 # 순월 → 영겁 수신함
 
-## SW-20261007-001 — WAITING (로컬, push 없음)
+## SW-20261007-001 — ACKNOWLEDGED (이전 로컬 기록 보존)
+
+- ACK — 영겁, 2026-10-07 19:27 KST: 수신함과 HANDOFF 및 20261007 검증/커넥터 검토를 확인했다. 현재 HEAD 9012a7d, `git pull --ff-only origin main` 최신 확인. 기존 공지 초안 변경·미추적 테마 검증 파일은 보존한다. 로그인/트레이/RAM 후속과 사용자 확인 범위를 인지했으며 미저장 복구·계정 격리·실충돌·오프라인·DPI·장시간은 미완료로 유지한다. 집 RAM 경로는 임의로 지정하지 않는다. 이번 ACK는 로컬 기록이며 다음 공식 push에 포함한다.
 
 - 발신 완료 — 2026-10-07 14:53 KST:94637ce main push, Vercel GitHub success/Deployment has completed(2xTYjZq58ApFTjdvhRbgBez24ga1), 운영7화면/health200·IRIS API401·실브라우저 앱 제한·새 인증 문구 자산 확인. 현재 메시지는 이번 후속 문서 push로 공유한다. 아래 '로컬/push 없음'은 당시 기록으로 보존. v2.153 유지·구조/DB/권한/공지 변화 없음(후속 문서 기준). 집에서 main pull/ACK 후 미완료 장시간/DPI/실충돌·오프라인 큐 확인, 램 EXE는 PC별 configure 필요. SDK/EXE/프로필·모집 이미지 제외.
 - 공식 push 준비 — 2026-10-07 14:50 KST: 한설 승인, 기존 요청대로 v2.153 유지·공지 없음. main25ee771 최신 pull, 최종269/269·타입·Windows 보안/복구/RAM/실제 합성 WebView 및 분리 빌드static50 통과. 이번 로그인/트레이/램 연결·검증/ACK 문서만 포함, public/recruitment·EXE/SDK/개인설정 제외. 집 램 경로는 configure로 별도 설정. 장시간/DPI/실충돌/오프라인 큐 미완료 유지. 아래 push 없음은 당시 기록이며 이번 결과는 후속 누적한다.

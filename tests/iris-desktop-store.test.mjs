@@ -10,10 +10,16 @@ function setup(timeoutMs=100){
   return {store,sent,reply:data=>{for(const fn of [...listeners])fn({data});},change:v=>context=v,listeners};
 }
 test('protected store sends only schema queue data and correlates native replies',async()=>{
-  const s=setup();const pending=s.store.replace({schemaVersion:1,entries:[]});
-  assert.deepEqual(s.sent,[{version:1,id:'1',epoch:2,method:'store.replace',payload:{schemaVersion:1,entries:[]}}]);
+  const s=setup();const pending=s.store.replace({schemaVersion:2,entries:[]});
+  assert.deepEqual(s.sent,[{version:1,id:'1',epoch:2,method:'store.replace',payload:{schemaVersion:2,entries:[]}}]);
   s.reply({version:1,id:'other',epoch:2,ok:true,value:null});assert.equal(s.listeners.size,1);
   s.reply({version:1,id:'1',epoch:2,ok:true,value:null});await pending;assert.equal(s.listeners.size,0);
+});
+test('native v1 response is never accepted as the active queue format',async()=>{
+  const s=setup();const pending=s.store.load();s.reply({version:1,id:'1',epoch:2,ok:true,value:{schemaVersion:1,entries:[]}});
+  await assert.rejects(pending);
+  const next=s.store.load();s.reply({version:1,id:'2',epoch:2,ok:true,value:{schemaVersion:2,entries:[]}});
+  assert.deepEqual(await next,{schemaVersion:2,entries:[]});
 });
 test('native failures never become a successful empty restored queue',async()=>{
   const s=setup();const pending=s.store.load();s.reply({version:1,id:'1',epoch:2,ok:false,error:'protected_store_unavailable'});

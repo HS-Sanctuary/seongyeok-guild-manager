@@ -5,7 +5,8 @@ const {chromium}=createRequire(process.argv[2])('playwright');
 const browser=await chromium.launch({channel:'msedge',headless:true});
 const context=await browser.newContext();const page=await context.newPage();const errors=[];
 page.on('pageerror',e=>errors.push(e.message));
-let completed=0,posts=0,reads=0,postStarted=0,characterFailure=false,period='2026-10-04T21:00:00.000Z';
+let completed=0,posts=0,classPosts=0,reads=0,postStarted=0,characterFailure=false,period='2026-10-04T21:00:00.000Z';
+const levels={A:65,B:53};
 const account={id:'synthetic',nickname:'가나다라마바사아자차카타',role:'길드원'};
 await page.route('**/*',async route=>{
   const url=new URL(route.request().url());
@@ -22,7 +23,11 @@ await page.route('**/*',async route=>{
     if(route.request().method()==='POST'){
       posts++;postStarted=Date.now();const {edit}=route.request().postDataJSON();completed=edit.desiredCompleted;
       await new Promise(r=>setTimeout(r,500));result={result:{requestId:edit.requestId,status:'saved',completed}};
-    }else result={accountId:account.id,characterId:url.searchParams.get('characterId'),observedAt:'2026-10-05T00:00:00.000Z',writeContext:{periodKeys:Object.fromEntries(['daily','weekly','abyss','raid'].map(c=>[c,period]))},details:{schemaVersion:1,tasks:{daily:[{id:'d',name:'일일 미션',completed:0,total:1}],weekly:[{id:'x',name:'뱅가드 브리치',completed,total:3}],abyss:[],raid:[]},classes:[{id:'c',name:'댄서',level:65}]}};
+    }else result={accountId:account.id,characterId:url.searchParams.get('characterId'),observedAt:'2026-10-05T00:00:00.000Z',writeContext:{periodKeys:Object.fromEntries(['daily','weekly','abyss','raid'].map(c=>[c,period])),classes:[{classId:'c',editable:true,baseLevel:levels[url.searchParams.get('characterId')]}]},details:{schemaVersion:1,tasks:{daily:[{id:'d',name:'일일 미션',completed:0,total:1}],weekly:[{id:'x',name:'뱅가드 브리치',completed,total:3}],abyss:[],raid:[]},classes:[{id:'c',name:'댄서',level:levels[url.searchParams.get('characterId')]}]}};
+  }
+  if(url.pathname==='/api/iris/classes'){
+    const {edit}=route.request().postDataJSON();classPosts++;levels[edit.characterId]=edit.desiredLevel;
+    await new Promise(r=>setTimeout(r,500));result={result:{requestId:edit.requestId,status:'saved',level:edit.desiredLevel}};
   }
   await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(result)});
 });
@@ -47,6 +52,34 @@ try{
   await page.getByRole('button',{name:'캐릭터 선택',exact:true}).click();
   await page.getByRole('button',{name:new RegExp(account.nickname+' .*댄서')}).click();
   assert.equal(await page.locator('#iris-character-list').isVisible(),false,'Selection must collapse picker');
+  if(process.argv.includes('--class-only')){
+    assert.equal(await page.getByLabel('댄서 레벨',{exact:true}).isVisible(),false,'Classes must not lengthen homework');
+    await page.getByRole('button',{name:'클래스',exact:true}).click();
+    const input=page.getByLabel('댄서 레벨',{exact:true}),gauge=page.getByLabel('댄서 레벨 게이지',{exact:true});
+    await input.fill('53');await gauge.focus();await gauge.press('ArrowRight');
+    await page.waitForFunction(()=>document.querySelector('[aria-label="댄서 레벨"]')?.value==='54');
+    await input.fill('5.3');await page.getByRole('button',{name:'궁수',exact:true}).click();
+    assert.equal(await input.isVisible(),true,'Filtered error must remain visible');
+    assert.equal(await gauge.isDisabled(),true,'Invalid text must not become a valid gauge value');
+    await page.getByRole('button',{name:'입력 되돌리기',exact:true}).click();
+    assert.equal(await input.isVisible(),false,'Valid class must respect lineage filter');
+    await page.getByRole('button',{name:'음유시인',exact:true}).click();
+    assert.equal(await input.inputValue(),'54');
+    await page.getByRole('button',{name:'지금 저장',exact:true}).click();await input.focus();
+    await page.getByText('미저장 변경 없음',{exact:true}).waitFor();
+    assert.equal(classPosts,1);assert.equal(posts,0);assert.equal(levels.A,54);
+    await input.evaluate(e=>{window.fixtureClass=e;});await page.waitForTimeout(1200);
+    assert.equal(await input.evaluate(e=>e===window.fixtureClass&&document.activeElement===e),true);
+    for(const width of [320,390,768,1280]){
+      await page.setViewportSize({width,height:700});
+      assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,`Class overflow ${width}`);
+    }
+    await page.setViewportSize({width:390,height:700});
+    await page.screenshot({path:'.superpowers/sdd/2026-10-07-iris-class-level-editing/class-tab.png',fullPage:true});
+    assert.deepEqual(errors,[]);
+    console.log('Class-only browser PASS: tab separation, gauge editing, lineage/error preservation, manual save, stable focus, 4 widths; synthetic APIs only');
+    await browser.close();process.exit(0);
+  }
   assert.equal(await page.getByText('주간 숙제',{exact:true}).evaluate(e=>e.parentElement.open),false,'Initial HUD expands too many categories');
   await page.getByText('주간 숙제',{exact:true}).click();
   const daily=page.locator('[data-task-key="daily:d"]');
@@ -79,6 +112,20 @@ try{
   assert.equal(await page.evaluate(()=>scrollY),scrollBefore,'Scroll changed during background save');
   assert.equal(await page.getByText('일일 숙제',{exact:true}).evaluate(e=>e.parentElement.open),false,'Collapsed category reopened');
   assert.equal(posts,1);
+  await page.getByRole('button',{name:'클래스',exact:true}).click();
+  const classInput=page.getByLabel('댄서 레벨',{exact:true});
+  await classInput.fill('66');await classInput.evaluate(e=>{window.fixtureClass=e;});
+  await page.getByRole('button',{name:'지금 저장',exact:true}).click();await classInput.focus();
+  await page.getByText('미저장 변경 없음',{exact:true}).waitFor();
+  assert.equal(classPosts,1);assert.equal(await classInput.inputValue(),'66');
+  assert.equal(await classInput.evaluate(e=>e===window.fixtureClass&&document.activeElement===e),true,'Class save replaced focused input');
+  await classInput.fill('67');await classInput.fill('');
+  assert.equal(await page.getByRole('button',{name:'지금 저장',exact:true}).isDisabled(),true);
+  await page.waitForTimeout(16000);assert.equal(classPosts,1,'Invalid draft autosaved previous value');
+  await page.getByRole('button',{name:'입력 되돌리기',exact:true}).click();
+  assert.equal(await classInput.inputValue(),'67');
+  await page.getByText('미저장 변경 없음',{exact:true}).waitFor({timeout:20000});
+  assert.equal(classPosts,2);assert.equal(levels.A,67,'Valid reverted draft did not autosave');
   period='2026-10-11T21:00:00.000Z';completed=0;
   const beforeReads=reads;await page.evaluate(()=>window.dispatchEvent(new Event('focus')));
   await page.waitForFunction(()=>document.querySelector('[data-task-key="weekly:x"]')?.textContent.includes('0/3'));
@@ -120,7 +167,7 @@ try{
   assert.equal(await page.getByRole('button',{name:'클릭 통과 켜기',exact:true}).count(),1,'Overlay settings not available');
   await page.getByRole('button',{name:account.nickname+' · 계정',exact:true}).click();
   await page.getByRole('button',{name:'다른 계정 추가',exact:true}).click();
-  const secret=page.locator('input[type=password]');
+  const secret=page.getByLabel('접속 코드',{exact:true});
   await secret.fill('synthetic-only');await secret.evaluate(e=>{window.fixtureInput=e;e.setSelectionRange(2,5);e.focus();});
   await page.waitForTimeout(1200);
   assert.equal(await secret.evaluate(e=>e===window.fixtureInput&&e.value==='synthetic-only'&&e.selectionStart===2&&e.selectionEnd===5&&document.activeElement===e),true,'Auth input changed during background tick');
@@ -131,12 +178,13 @@ try{
   await page.mouse.move(0,0);
   const expectedBorder=await page.evaluate(()=>{const el=document.createElement('div');el.style.color='var(--panel-border)';document.body.append(el);const c=getComputedStyle(el).color;el.remove();return c;});
   await page.waitForFunction(color=>getComputedStyle(document.querySelector('.iris-desktop-button')).borderTopColor===color,expectedBorder);
-  await page.screenshot({path:'.superpowers/sdd/2026-10-06-iris-compact-overlay/desktop-ui.png',fullPage:true});
+  await page.screenshot({path:'.superpowers/sdd/2026-10-07-iris-class-level-editing/desktop-ui.png',fullPage:true});
   await page.getByRole('button',{name:'숙제',exact:true}).click();
   await page.setViewportSize({width:390,height:700});await page.evaluate(()=>{document.documentElement.style.fontSize='18px';});
-  await page.screenshot({path:'.superpowers/sdd/2026-10-06-iris-compact-overlay/compact-homework.png',fullPage:true});
+  await page.getByRole('button',{name:'클래스',exact:true}).click();
+  await page.screenshot({path:'.superpowers/sdd/2026-10-07-iris-class-level-editing/compact-homework.png',fullPage:true});
   await page.getByRole('button',{name:'센터 접기',exact:true}).click();
-  await page.screenshot({path:'.superpowers/sdd/2026-10-06-iris-compact-overlay/compact-folded.png',fullPage:true});
+  await page.screenshot({path:'.superpowers/sdd/2026-10-07-iris-class-level-editing/compact-folded.png',fullPage:true});
   await page.getByRole('button',{name:'센터 펼치기',exact:true}).click();
   characterFailure=true;await page.reload();
   await page.getByRole('button',{name:'캐릭터 선택',exact:true}).click();

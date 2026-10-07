@@ -3,6 +3,7 @@ import { getServerSupabase, getSessionAccount, isPendingAccount, SANCTUM_SESSION
 import { buildIrisKronosDetails, summarizeIrisKronosDetails } from "@/lib/irisKronos";
 import {getIrisPeriodKeys,IrisWriteError} from '@/lib/irisKronosWrite';
 import {saveIrisKronosEdit} from '@/lib/server/irisKronosWrite';
+import {classWriteContext} from '@/lib/irisClassWrite';
 
 const headers = {"Cache-Control":"private, no-store"};
 export async function GET(request: NextRequest) {
@@ -28,7 +29,7 @@ export async function GET(request: NextRequest) {
     const observed=new Date();
     const details=buildIrisKronosDetails(character,tasks.data,contents.data,classes.data,observed);
     return NextResponse.json({accountId:account.id,characterId:String(character.id),
-      summary:summarizeIrisKronosDetails(details),details,writeContext:{periodKeys:getIrisPeriodKeys(observed)},observedAt:observed.toISOString()}, {headers});
+      summary:summarizeIrisKronosDetails(details),details,writeContext:{periodKeys:getIrisPeriodKeys(observed),classes:details.classes.map(c=>classWriteContext(character.levels,c.id,c.name))},observedAt:observed.toISOString()}, {headers});
   } catch {
     return NextResponse.json({message:"크로노스 정보를 불러오지 못했습니다."},{status:503,headers});
   }

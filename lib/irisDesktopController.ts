@@ -1,14 +1,23 @@
-import type { DesktopQueue, QueueSnapshot, TaskKey } from './irisDesktopQueue';
+import type { DesktopQueue, QueueSnapshot, TaskKey,PendingEdit,SaveOutcome } from './irisDesktopQueue';
 import { DesktopTransportError, type DesktopAccount, type DesktopCharacter, type DesktopDetails, type DesktopTransport } from './irisDesktopTransport';
 export type DesktopStore = { load(): Promise<QueueSnapshot | null>; replace(value: QueueSnapshot): Promise<void> };
+export type DesktopSaveConfirmation = {characterId:string;nickname:string;confirmedAt:number};
+export type DesktopClassDraft={text:string;error:string|null};
 type Disposition = 'save' | 'keep' | 'discard';
 
 /** Owns authenticated serial IO. It does not operate the game or carry authentication secrets. */
-export function createDesktopController(options: { queue: DesktopQueue; transport: DesktopTransport; store: DesktopStore; environment: string }) {
+export function createDesktopController(options: { queue: DesktopQueue; transport: DesktopTransport; store: DesktopStore; environment: string; now?:()=>number }) {
   const { queue, transport, store, environment } = options;
   let account: DesktopAccount | null = null, characters: DesktopCharacter[] = [], selected: DesktopDetails | null = null;
   let epoch = 0, selection = 0, changing = false, closed = false, durabilityError = false;
   let charactersLoaded = false;
+  const confirmations=new Map<string,DesktopSaveConfirmation>();
+  const confirmationKey=(owner:string,id:string)=>JSON.stringify([owner,id]);
+  const drafts=new Map<string,Record<string,DesktopClassDraft>>();
+  const currentDrafts=()=>account&&selected?drafts.get(confirmationKey(account.id,selected.characterId))??{}:{};
+  const invalid=(values:Record<string,DesktopClassDraft>)=>Object.values(values).some(d=>d.error!==null);
+  const blocked=()=>new Set(account?characters.filter(c=>invalid(drafts.get(confirmationKey(account!.id,c.id))??{})).map(c=>c.id):[]);
+  const requireValidDraft=()=>{if(invalid(currentDrafts()))throw Error('클래스 레벨 입력을 고치거나 되돌린 뒤 진행해 주세요.');};
   let running: Promise<void> | null = null, disk = Promise.resolve();
   const scope = (id: string) => { if (!account) throw Error('로그인이 필요해요.'); return { environment, accountId: account.id, characterId: id }; };
   const locked = () => changing || closed || durabilityError || !account;
@@ -19,10 +28,40 @@ export function createDesktopController(options: { queue: DesktopQueue; transpor
     characters = await transport.characters(account.id);
     charactersLoaded = true;
   }
-  function acknowledge(edit: {accountId:string;characterId:string;category:TaskKey['category'];taskId:string;periodKey:string}, completed:number) {
-    if (selected?.accountId === edit.accountId && selected.characterId === edit.characterId && selected.writeContext.periodKeys[edit.category] === edit.periodKey) {
-      const row = selected.details.tasks[edit.category].find(r => r.id === edit.taskId); if (row) row.completed = completed;
+  function acknowledge(edit: PendingEdit, completed:number) {
+    // Session-local evidence only: do not invent a historic DB write time or persist it as queue data.
+    if(account?.id===edit.accountId){
+      const character=characters.find(c=>c.id===edit.characterId);
+      if(character)confirmations.set(confirmationKey(edit.accountId,edit.characterId),{characterId:edit.characterId,nickname:character.nickname,confirmedAt:(options.now??Date.now)()});
     }
+    if(edit.kind==='class'){
+      const values=drafts.get(confirmationKey(edit.accountId,edit.characterId));
+      if(values?.[edit.classId]?.error===null&&Number(values[edit.classId].text)===completed)delete values[edit.classId];
+    }
+    if (selected?.accountId === edit.accountId && selected.characterId === edit.characterId) {
+      if(edit.kind==='class'){
+        const row=selected.details.classes.find(r=>r.id===edit.classId);if(row)row.level=completed;
+        const context=selected.writeContext.classes.find(r=>r.classId===edit.classId);if(context)context.baseLevel=completed;
+      }else if(selected.writeContext.periodKeys[edit.category]===edit.periodKey){
+        const row = selected.details.tasks[edit.category].find(r => r.id === edit.taskId); if (row) row.completed = completed;
+      }
+    }
+  }
+  function inspection(edit:PendingEdit,latest:DesktopDetails):SaveOutcome|'baseline'{
+    if(edit.kind==='class'){
+      const c=latest.writeContext.classes?.find(r=>r.classId===edit.classId);
+      if(!c?.editable)return {kind:'conflict'};
+      if(c.baseLevel===edit.desiredLevel)return {kind:'saved',level:edit.desiredLevel};
+      return c.baseLevel===edit.baseLevel?'baseline':{kind:'conflict'};
+    }
+    const row=latest.details.tasks[edit.category].find(r=>r.id===edit.taskId);
+    if(latest.writeContext.periodKeys[edit.category]!==edit.periodKey)return {kind:'expired'};
+    if(row?.completed===edit.desiredCompleted)return {kind:'saved',completed:row.completed};
+    return row&&row.completed===edit.baseCompleted&&edit.desiredCompleted<=row.total?'baseline':{kind:'conflict'};
+  }
+  function settle(edit:PendingEdit,outcome:SaveOutcome){
+    queue.settle(edit.requestId,outcome);
+    if(outcome.kind==='saved')acknowledge(edit,'level' in outcome?outcome.level:outcome.completed);
   }
   function persist() {
     const snapshot = queue.snapshot();
@@ -40,10 +79,7 @@ export function createDesktopController(options: { queue: DesktopQueue; transpor
     if (!account) throw Error('저장 결과 확인에 로그인이 필요해요.');
     for (const edit of queue.snapshot().entries.filter(e => e.environment === environment && e.accountId === account!.id && e.phase === 'unknown')) {
       const latest = await read(edit.characterId);
-      const row = latest.details.tasks[edit.category].find(r => r.id === edit.taskId);
-      if (latest.writeContext.periodKeys[edit.category] !== edit.periodKey) queue.settle(edit.requestId, { kind: 'expired' });
-      else if (row?.completed === edit.desiredCompleted) queue.settle(edit.requestId, { kind: 'saved', completed: row.completed });
-      else if (!row || row.completed !== edit.baseCompleted) queue.settle(edit.requestId, { kind: 'conflict' });
+      const result=inspection(edit,latest);if(result!=='baseline')settle(edit,result);
       // Confirmed baseline: keep unknown, paused. Only an explicit recovery action may retry later.
       await persist();
     }
@@ -53,18 +89,17 @@ export function createDesktopController(options: { queue: DesktopQueue; transpor
     if ((locked() && !draining) || closed || !account) return;
     const owner = account.id, currentEpoch = epoch;
     while ((!locked() || draining) && !closed && !durabilityError && account?.id === owner && epoch === currentEpoch) {
-      const next = queue.due(owner)[0]; if (!next) break;
+      const next = queue.due(owner,blocked())[0]; if (!next) break;
       const edit = queue.claim(next.requestId); if (!edit) break;
       await persist(); // Durable inflight before even inspecting/sending the request.
       try {
         const latest = await read(edit.characterId);
-        const row = latest.details.tasks[edit.category].find(r => r.id === edit.taskId);
-        if (latest.writeContext.periodKeys[edit.category] !== edit.periodKey) queue.settle(edit.requestId, { kind: 'expired' });
-        else if (row?.completed === edit.desiredCompleted) { queue.settle(edit.requestId, { kind: 'saved', completed: row.completed }); acknowledge(edit,row.completed); }
-        else if (!row || row.completed !== edit.baseCompleted || edit.desiredCompleted > row.total) queue.settle(edit.requestId, { kind: 'conflict' });
+        const checked=inspection(edit,latest);
+        if(checked!=='baseline')settle(edit,checked);
+        else if(blocked().has(edit.characterId))queue.settle(edit.requestId,{kind:'unknown'});
         else {
           const result = await transport.save(edit);
-          if (result.kind === 'saved') { queue.settle(edit.requestId, result); acknowledge(edit,result.completed); }
+          if (result.kind === 'saved') settle(edit,result);
           else if (result.kind === 'conflict' || result.kind === 'rejected') queue.settle(edit.requestId, { kind: 'conflict' });
           else {
             queue.settle(edit.requestId, { kind: 'unknown' });
@@ -86,6 +121,7 @@ export function createDesktopController(options: { queue: DesktopQueue; transpor
   }
   async function transition(action: () => Promise<void>, disposition: Disposition) {
     if (changing || closed || durabilityError) throw Error('현재 작업이 끝난 뒤 다시 시도해 주세요.');
+    if(disposition!=='discard'&&blocked().size)throw Error('클래스 레벨 입력을 고치거나 되돌린 뒤 진행해 주세요.');
     changing = true; selection++;
     try {
       if (running) await running;
@@ -96,7 +132,7 @@ export function createDesktopController(options: { queue: DesktopQueue; transpor
           // Expired authentication cannot resolve old requests; retain them paused across reauthentication.
         }
         const scopes = new Set(queue.snapshot().entries.filter(e => e.environment === environment && e.accountId === account!.id).map(e => e.characterId));
-        if (disposition === 'discard') for (const id of scopes) queue.discard(scope(id));
+        if (disposition === 'discard') {for (const id of scopes) queue.discard(scope(id));for(const c of characters)drafts.delete(confirmationKey(account.id,c.id));}
         if (disposition === 'save') {
           for (const id of scopes) queue.saveNow(scope(id));
           const saving = flush(true); running = saving;
@@ -133,11 +169,16 @@ export function createDesktopController(options: { queue: DesktopQueue; transpor
     },
     async selectCharacter(id: string) {
       if (locked()) throw Error('먼저 로그인해 주세요.');
+      if(id!==selected?.characterId)requireValidDraft();
       const version = ++selection, currentEpoch = epoch;
       if (selected && selected.characterId !== id) { queue.leaveCharacter(scope(selected.characterId)); await persist(); }
       if (version !== selection || currentEpoch !== epoch || changing || closed) return;
       const value = await read(id);
-      if (version === selection && currentEpoch === epoch && !changing && !closed) selected = value;
+      if (version === selection && currentEpoch === epoch && !changing && !closed) {
+        // Inputs remain editable during read-only IO; validate again before hiding them.
+        if(id!==selected?.characterId)requireValidDraft();
+        selected = value;
+      }
     },
     async refresh() {
       if(running) await running;
@@ -158,22 +199,48 @@ export function createDesktopController(options: { queue: DesktopQueue; transpor
       queue.edit(scope(selected!.characterId), key, base, desired);
       return persist();
     },
-    async saveNow() { requireEdit(); queue.saveNow(scope(selected!.characterId)); await persist(); await tick(); },
-    async discard() { requireEdit(); queue.discard(scope(selected!.characterId)); await persist(); },
+    async setClassDraft(classId:string,text:string){
+      requireEdit();
+      const context=selected!.writeContext.classes?.find(c=>c.classId===classId);
+      if(!context?.editable)throw Error('저장된 클래스 정보를 웹에서 확인해 주세요.');
+      const values=drafts.get(confirmationKey(account!.id,selected!.characterId))??{};
+      const value=Number(text),error=!/^\d{1,4}$/.test(text)||!Number.isSafeInteger(value)||value<1||value>1000?'1~1000 사이의 정수를 입력해 주세요.':null;
+      if(error===null)queue.editClass(scope(selected!.characterId),classId,context.baseLevel,value);
+      values[classId]={text,error};drafts.set(confirmationKey(account!.id,selected!.characterId),values);
+      if(error===null&&!queue.snapshot().entries.some(e=>e.kind==='class'&&e.accountId===account!.id&&e.characterId===selected!.characterId&&e.classId===classId))delete values[classId];
+      if(error===null)await persist();
+    },
+    async revertClassDraft(classId:string){
+      requireEdit();const key=confirmationKey(account!.id,selected!.characterId),values=drafts.get(key);
+      if(!values?.[classId])return;
+      const pending=queue.snapshot().entries.filter(e=>e.kind==='class'&&e.accountId===account!.id&&e.characterId===selected!.characterId&&e.classId===classId).sort((a,b)=>b.revision-a.revision)[0];
+      delete values[classId];
+      if(pending?.kind==='class')values[classId]={text:String(pending.desiredLevel),error:null};
+      queue.leaveCharacter(scope(selected!.characterId));await persist();
+    },
+    async saveNow() { requireEdit();requireValidDraft(); queue.saveNow(scope(selected!.characterId)); await persist(); await tick(); },
+    async discard() { requireEdit(); queue.discard(scope(selected!.characterId));drafts.delete(confirmationKey(account!.id,selected!.characterId)); await persist(); },
     async recover(requestId: string, action: 'retry' | 'discard') {
       if (locked() || running) throw Error('연결 상태를 먼저 확인해 주세요.');
       const edit = queue.snapshot().entries.find(e => e.requestId === requestId && e.environment === environment && e.accountId === account?.id);
       if (!edit || ['pending','inflight'].includes(edit.phase)) throw Error('확인할 변경이 없어요.');
       changing = true;
       try {
-        if (action === 'discard') queue.recover(requestId, 'discard');
+        if (action === 'discard') {
+          // Read first: a failed refresh must retain the paused intent and draft.
+          const latest=edit.kind==='class'?await read(edit.characterId):null;
+          queue.recover(requestId, 'discard');
+          if(edit.kind==='class') {
+            const values=drafts.get(confirmationKey(edit.accountId,edit.characterId));
+            if(values)delete values[edit.classId];
+            if(latest&&selected?.characterId===edit.characterId)selected=latest;
+          }
+        }
         else {
           if (edit.phase !== 'unknown') throw Error('충돌하거나 기간이 지난 변경은 버린 뒤 다시 체크해 주세요.');
-          const latest = await read(edit.characterId), row = latest.details.tasks[edit.category].find(r => r.id === edit.taskId);
-          if (latest.writeContext.periodKeys[edit.category] !== edit.periodKey) queue.settle(requestId,{kind:'expired'});
-          else if (row?.completed === edit.desiredCompleted) { queue.settle(requestId,{kind:'saved',completed:row.completed}); acknowledge(edit,row.completed); }
-          else if (!row || row.completed !== edit.baseCompleted || edit.desiredCompleted > row.total) queue.settle(requestId,{kind:'conflict'});
-          else queue.recover(requestId,'retry');
+          if(blocked().has(edit.characterId))throw Error('클래스 입력을 먼저 고쳐 주세요.');
+          const latest=await read(edit.characterId),result=inspection(edit,latest);
+          if(result!=='baseline')settle(edit,result);else queue.recover(requestId,'retry');
         }
         await persist();
       } finally { changing = false; }
@@ -201,6 +268,7 @@ export function createDesktopController(options: { queue: DesktopQueue; transpor
     async shutdown(disposition: Disposition) {
       if(closed) return; // A failed native close reply may be retried without reopening transmissions.
       if(disposition==='keep') {
+        if(blocked().size)throw Error('클래스 레벨 입력을 고치거나 되돌린 뒤 종료해 주세요.');
         if(changing || durabilityError) throw Error('보관 실패 상태예요. 최근 변경을 잃을 수 있는 종료를 별도로 확인해 주세요.');
         changing=true;selection++;
         try {if(running) await running;await persist();closed=true;selected=null;epoch++;}
@@ -213,6 +281,6 @@ export function createDesktopController(options: { queue: DesktopQueue; transpor
       if(changing || running) throw Error('현재 작업이 끝난 뒤 다시 시도해 주세요.');
       closed=true;selected=null;epoch++; // Explicit loss-warning path; never overwrite an unreadable store.
     },
-    state() { return structuredClone({ account, characters, charactersLoaded, selected, locked: locked(), durabilityError, epoch, queue: queue.snapshot() }); },
+    state() { return structuredClone({ account, characters, charactersLoaded, selected,classDrafts:currentDrafts(),hasInvalidClassDraft:invalid(currentDrafts()), lastSaveConfirmation:account&&selected?confirmations.get(confirmationKey(account.id,selected.characterId))??null:null, locked: locked(), durabilityError, epoch, queue: queue.snapshot() }); },
   };
 }

@@ -12,6 +12,14 @@ const tables = {
   nexus_contents:[{id:11,name:'허상의 정박지',type:'abyss',is_active:true},{id:12,name:'에이렐',type:'raid',is_active:true},{id:13,name:'숨김',type:'raid',is_active:false}],
   nexus_classes:[{id:1,name:'전사',is_active:true},{id:2,name:'마법사',is_active:true},{id:3,name:'숨김',is_active:false}],
 };
+test('class write context distinguishes missing values from malformed read-normalized nulls',async()=>{
+  for(const [levels,want] of [[null,[true,true]],[{전사:53},[true,true]],[{전사:0},[false,true]],[[],[false,false]]]){
+    const {call}=setup(undefined,{...tables,characters:[{...own,levels}]});
+    const response=await call('app/api/iris/kronos/route.ts','?characterId=7');assert.equal(response.status,200);
+    const body=await response.json();assert.deepEqual(body.writeContext.classes.map(c=>c.editable),want);
+    assert.equal(body.writeContext.classes[0].baseLevel,levels?.전사===53?53:null);
+  }
+});
 function setup(account={id:'account-id',nickname:'owner',status:'승인',role:'길드원'}, initial=tables) {
   const db = memoryDB(initial);
   const from = db.from;

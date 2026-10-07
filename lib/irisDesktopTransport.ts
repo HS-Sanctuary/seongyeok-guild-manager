@@ -1,15 +1,17 @@
 import type { PendingEdit } from './irisDesktopQueue';
 import type { IrisClassDetail, IrisTaskDetail } from './irisKronos';
 import type { Category } from './irisKronosWrite';
+import type {ClassWriteContext} from './irisClassWrite';
 
 export type DesktopAccount = { id: string; nickname: string; role: string };
 export type DesktopCharacter = { id: string; nickname: string; job: string; alias: string | null };
 export type DesktopDetails = {
   accountId: string; characterId: string; observedAt: string;
-  writeContext: { periodKeys: Record<Category, string> };
+  writeContext: { periodKeys: Record<Category, string>;classes:ClassWriteContext[] };
   details: { schemaVersion: 1; tasks: Record<Category, IrisTaskDetail[]>; classes: IrisClassDetail[] };
 };
 export type DesktopSaveResult = { kind: 'saved'; completed: number } |
+  {kind:'saved';level:number} |
   { kind: 'conflict' | 'unauthorized' | 'unknown' | 'rejected' };
 export class DesktopTransportError extends Error {
   constructor(public status: number, operation: 'login' | 'request' = 'request') {
@@ -58,7 +60,20 @@ function parseDetails(v: unknown, accountId: string, characterId: string): Deskt
       (row.level !== null && (!integer(row.level) || row.level < 1))) throw new DesktopTransportError(502);
     ids.add(row.id); return { id: row.id, name: row.name, level: row.level as number | null };
   });
-  return { accountId, characterId, observedAt: v.observedAt, writeContext: { periodKeys }, details: { schemaVersion: 1, tasks, classes } };
+  let contexts:ClassWriteContext[];
+  if(v.writeContext.classes===undefined)contexts=classes.map(c=>({classId:c.id,editable:false,baseLevel:null})); // Older read server remains read-only.
+  else {
+    if(!Array.isArray(v.writeContext.classes)||v.writeContext.classes.length!==classes.length)throw new DesktopTransportError(502);
+    const rawContexts=v.writeContext.classes;
+    contexts=classes.map(c=>{
+      const matches=rawContexts.filter(r=>object(r)&&r.classId===c.id);
+      const row=matches[0];
+      if(matches.length!==1||!object(row)||typeof row.editable!=='boolean'||(row.baseLevel!==null&&(!integer(row.baseLevel)||row.baseLevel<1))||
+        (row.editable&&row.baseLevel!==c.level)||(!row.editable&&row.baseLevel!==null))throw new DesktopTransportError(502);
+      return {classId:c.id,editable:row.editable,baseLevel:row.baseLevel as number|null};
+    });
+  }
+  return { accountId, characterId, observedAt: v.observedAt, writeContext: { periodKeys,classes:contexts }, details: { schemaVersion: 1, tasks, classes } };
 }
 
 export function createDesktopTransport(options: { fetch: typeof fetch; timeoutMs?: number }) {
@@ -110,12 +125,14 @@ export function createDesktopTransport(options: { fetch: typeof fetch; timeoutMs
     },
     async save(e: PendingEdit): Promise<DesktopSaveResult> {
       try {
-        const v = await request('/api/iris/kronos', { edit: { requestId: e.requestId, generation: 1, selectionVersion: e.revision,
+        const v = e.kind==='class'?await request('/api/iris/classes',{edit:{requestId:e.requestId,accountId:e.accountId,characterId:e.characterId,classId:e.classId,baseLevel:e.baseLevel,desiredLevel:e.desiredLevel}}):await request('/api/iris/kronos', { edit: { requestId: e.requestId, generation: 1, selectionVersion: e.revision,
           accountId: e.accountId, characterId: e.characterId, category: e.category, taskId: e.taskId,
           baseCompleted: e.baseCompleted, desiredCompleted: e.desiredCompleted, periodKey: e.periodKey } });
         if (!object(v) || !object(v.result) || v.result.requestId !== e.requestId) return { kind: 'unknown' };
         const result = v.result;
-        if (result.status === 'saved' && result.completed === e.desiredCompleted) return { kind: 'saved', completed: e.desiredCompleted };
+        if(e.kind==='class'){
+          if(result.status==='saved'&&result.level===e.desiredLevel)return {kind:'saved',level:e.desiredLevel};
+        }else if (result.status === 'saved' && result.completed === e.desiredCompleted) return { kind: 'saved', completed: e.desiredCompleted };
         if (result.status === 'conflict') return { kind: 'conflict' };
         if (result.status === 'failed') return { kind: 'rejected' };
         return { kind: 'unknown' };

@@ -5,6 +5,10 @@ import {loadTS} from './load-ts.mjs';
 const file='lib/irisDesktopPresentation.ts';
 const edit=(i,more={})=>({characterId:'84',accountId:'a',environment:'development',category:'daily',taskId:'t'+i,periodKey:'period',requestId:'r'+i,revision:1,baseCompleted:0,desiredCompleted:1,deadlineAt:7000,phase:'pending',...more});
 function project(...args){assert.ok(existsSync(file),'Missing compact save projection');return loadTS(file).summarizeDesktopEdits(...args);}
+test('class summary resolves class name without indexing task category',()=>{
+  const e={...edit(1),kind:'class',classId:'c',baseLevel:53,desiredLevel:54,phase:'unknown'};delete e.category;delete e.taskId;delete e.periodKey;
+  assert.equal(project([e],[{id:'84',nickname:'화연'}],{characterId:'84',details:{classes:[{id:'c',name:'댄서'}]}},0).items[0].taskName,'댄서');
+});
 test('groups same-character edits once and exposes named paused rows',()=>{
   const entries=[1,2,3,4,5].map(i=>edit(i,i===5?{phase:'unknown'}:{}));
   const selected={characterId:'84',accountId:'a',details:{tasks:{daily:[{id:'t5',name:'요일 던전'}],weekly:[],abyss:[],raid:[]}}};

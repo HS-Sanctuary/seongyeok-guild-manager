@@ -19,7 +19,7 @@
 .iris-save-status .iris-desktop-button { font-size: .7rem; min-height: 1.8rem; padding: .3rem .5rem; }
 .iris-save-status p,.iris-save-status summary { font-size: .7rem; }
 .iris-save-status [role=status] { min-height: 1.2rem; }
-.iris-hud-tabs { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: .25rem; margin: .2rem 0 .5rem; }
+.iris-hud-tabs { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: .25rem; margin: .2rem 0 .5rem; }
 .iris-hud-tabs button { padding: .4rem .15rem; font-size: .7rem; border-radius: 1.2rem; min-height: 2rem; }
 .iris-hud-body { font-size: .8rem; }
 .iris-filter { display: flex; align-items: center; gap: .3rem; padding: .2rem .15rem .4rem; font-size: .7rem; }
@@ -37,3 +37,23 @@
 .iris-counter span { min-width: 2.1rem; text-align: center; font-variant-numeric: tabular-nums; }
 .iris-theme-buttons { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .3rem; margin: .4rem 0; }
 .iris-theme-buttons button { font-size: .75rem; }
+.iris-class-row { background: var(--panel); border-radius: .7rem; padding: .35rem .45rem; }
+.iris-class-row label { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; }
+.iris-class-row label span { flex: 1; min-width: 4rem; }
+.iris-class-row label .iris-level-label { flex: none; min-width: auto; white-space: nowrap; color: var(--accent); }
+.iris-class-name { display: flex; align-items: center; gap: .4rem; }
+.iris-class-icon { display: inline-block; flex: none; width: 1rem; height: 1rem; background: var(--text-main); mask-size: contain; mask-repeat: no-repeat; mask-position: center; }
+.iris-class-filters { display: flex; flex-wrap: wrap; gap: .3rem; margin: .5rem 0; }
+.iris-class-filters button { border-radius: 1rem; padding: .25rem .5rem; font-size: .7rem; }
+.iris-class-filters button[aria-pressed="true"] { background: var(--inner-box); color: var(--accent); border-color: var(--accent); }
+.iris-class-list { display: grid; gap: .4rem; max-height: min(48vh,18rem); overflow-y: auto; scrollbar-gutter: stable; padding-right: .2rem; }
+.iris-class-row { border: 1px solid var(--panel-border); }
+.iris-class-row p, .iris-class-guide { font-size: .7rem; margin: .3rem 0; overflow-wrap: anywhere; }
+.iris-class-gauge { display: flex; align-items: center; gap: .4rem; margin: .5rem 0 .15rem; font-size: .65rem; color: var(--text-muted); }
+.iris-class-gauge input { appearance: none; flex: 1; min-width: 0; height: .4rem; border-radius: 1rem; accent-color: var(--accent); cursor: pointer; }
+.iris-class-gauge input::-webkit-slider-thumb { appearance: none; width: .85rem; height: .85rem; border-radius: 50%; background: var(--accent); border: 2px solid var(--panel); outline: 1px solid var(--accent); }
+.iris-class-gauge input::-moz-range-thumb { width: .85rem; height: .85rem; border-radius: 50%; background: var(--accent); border: 2px solid var(--panel); }
+.iris-class-gauge input:focus-visible { outline: 2px solid var(--accent); outline-offset: .25rem; }
+.iris-class-gauge input:disabled { opacity: .45; cursor: default; }
+.iris-class-input { width: 4rem; max-width: 100%; border: 1px solid var(--panel-border); border-radius: .8rem; background: var(--inner-box); color: var(--text-main); padding: .3rem .5rem; font-size: .8rem; }
+.iris-class-input[aria-invalid=true] { border-color: var(--accent); }
