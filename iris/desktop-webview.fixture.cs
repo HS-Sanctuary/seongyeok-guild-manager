@@ -44,7 +44,8 @@ namespace IrisDesktop {
             Check(typeof(DesktopWebView).GetConstructor(new Type[] { typeof(bool), typeof(string), typeof(DesktopStore) }) != null, "Scoped store not integrated into WebView host");
             uint browserProcess;
             using (var first = new DesktopWebView(true, profile)) {
-                Check(first.Width<=480 && first.FormBorderStyle==FormBorderStyle.None && first.TopMost,"Candidate is still a large normal program window");
+                first.Addon.Dispose();
+                Check(first.Width<=480 && first.FormBorderStyle==FormBorderStyle.None && !first.TopMost,"Addon is still a global topmost window");
                 first.ShowInTaskbar = false; first.Opacity = 0; first.Show();
                 await first.InitializeAsync(loader);
                 browserProcess = first.Browser.CoreWebView2.BrowserProcessId;
@@ -63,6 +64,7 @@ namespace IrisDesktop {
             }
             Check(exited, "first browser process did not exit");
             using (var second = new DesktopWebView(true, profile)) {
+                second.Addon.Dispose();
                 second.ShowInTaskbar = false; second.Opacity = 0; second.Show();
                 await second.InitializeAsync(loader);
                 Check(second.Browser.CoreWebView2.BrowserProcessId != browserProcess, "second browser reused first process");
@@ -100,13 +102,15 @@ namespace IrisDesktop {
             var store = new DesktopStore(Path.Combine(profile, "QueueFixture"), "development");
             var constructor = typeof(DesktopWebView).GetConstructor(new Type[] { typeof(bool), typeof(string), typeof(DesktopStore) });
             using (var app = (DesktopWebView)constructor.Invoke(new object[] { true, profile, store })) {
+                app.Addon.Dispose();
                 app.ShowInTaskbar = false; app.Opacity = 0; app.Show();
                 await app.InitializeAsync(loader); Intercept(app, false);
                 await Navigate(app, "/iris/desktop");
                 Check(app.Browser.CoreWebView2.Settings.IsWebMessageEnabled, "Desktop bridge disabled on authorized page");
-                await Task.Delay(700);Check(app.Height==360,"Overlay did not fit trusted content height");
+                int nativeChrome=0;foreach(Control control in app.Controls)if(control.Dock==DockStyle.Top||control.Dock==DockStyle.Bottom)nativeChrome+=control.Height;
+                await Task.Delay(700);Check(app.Height==340+nativeChrome,"Overlay did not fit trusted content height");
                 await app.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('main').style.height='120px'");
-                await Task.Delay(700);Check(app.Height==140,"Folded content did not shrink native window");
+                await Task.Delay(700);Check(app.Height==120+nativeChrome,"Folded content did not shrink native window");
                 string ready = await app.Browser.CoreWebView2.ExecuteScriptAsync("window.__irisDesktopBridge.epoch");
                 Check(ready != "null" && ready != "undefined", "Bridge epoch not available to page");
                 await app.Browser.CoreWebView2.ExecuteScriptAsync("window.bridgeReply=null;chrome.webview.addEventListener('message',e=>{if(e.data.id==='1')window.bridgeReply=e.data.ok});chrome.webview.postMessage({version:1,id:'1',epoch:window.__irisDesktopBridge.epoch,method:'store.replace',payload:{schemaVersion:2,entries:[]}})");

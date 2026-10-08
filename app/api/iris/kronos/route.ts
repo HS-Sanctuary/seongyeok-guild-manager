@@ -21,8 +21,8 @@ export async function GET(request: NextRequest) {
     const owned = character && (character.owner === account.nickname || (!character.owner && character.nickname === account.nickname));
     if (!owned) return NextResponse.json({message:"본인 캐릭터만 조회할 수 있습니다."},{status:403,headers});
     const [tasks,contents,classes] = await Promise.all([
-      db.from('nexus_tasks').select('id,type,name,max_count,is_active').eq('is_active',true),
-      db.from('nexus_contents').select('id,type,name,mobile_name,is_active').eq('is_active',true),
+      db.from('nexus_tasks').select('id,type,name,mobile_name,max_count,is_active').eq('is_active',true),
+      db.from('nexus_contents').select('id,type,name,mobile_name,short_name,is_active').eq('is_active',true),
       db.from('nexus_classes').select('id,name').eq('is_active',true).order('id'),
     ]);
     if (tasks.error || contents.error || classes.error || !Array.isArray(tasks.data) || !Array.isArray(contents.data) || !Array.isArray(classes.data)) throw new Error('Catalog unavailable');

@@ -318,6 +318,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   };
 
   useEffect(() => {
+    if (pathname === '/iris/desktop') return; // Dedicated local IRIS appearance owns this document's theme.
     const root = document.documentElement;
     const targetTheme = activeAccount?.theme || 'aureum';
 
@@ -358,7 +359,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       root.style.removeProperty("--accent-secondary2");
       root.style.removeProperty("--accent-secondary2-fg");
     }
-  }, [activeAccount]);
+  }, [activeAccount, pathname]);
 
   useEffect(() => {
     if (!mounted) return;

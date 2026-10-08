@@ -17,7 +17,7 @@ export function DesktopClasses({selected,pending,locked,classDrafts={},onClassDr
   return <div className="iris-classes">
     <p className="iris-class-guide">생텀에 저장된 레벨이에요. 숫자나 게이지로 직접 수정해요.</p>
     <nav className="iris-class-filters" aria-label="클래스 계열">{['전체',...Object.keys(families)].map(name=><button key={name} type="button" className="iris-desktop-button" aria-pressed={family===name} onClick={()=>setFamily(name)}>{name}</button>)}</nav>
-    <div className="iris-class-list">{rows.map(row=>{
+    <div className="iris-class-list" data-scrollable={family==='전체'||rows.length>4}>{rows.map(row=>{
       const edits=scoped.filter(e=>e.classId===row.id).sort((a,b)=>b.revision-a.revision);
       const editable=selected.writeContext.classes?.find(c=>c.classId===row.id)?.editable===true;
       const draft=classDrafts[row.id],text=draft?.text??String(edits[0]?.desiredLevel??row.level??'');

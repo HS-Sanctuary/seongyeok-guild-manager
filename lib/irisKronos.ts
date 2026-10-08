@@ -1,9 +1,9 @@
-import { isTaskChecked, normalizeChecklist } from "@/lib/matchingUtils";
+import { cleanItemName, isTaskChecked, normalizeChecklist } from "@/lib/matchingUtils";
 import { getKronosResetDay } from "@/lib/kronos";
 
 export type KronosCatalogItem = {
   id: string | number; name: string; type: string; max_count?: number;
-  is_active?: boolean; mobile_name?: string;
+  is_active?: boolean; mobile_name?: string; short_name?: string;
 };
 
 // Shared by the character page and IRIS. This does not reset or rewrite any checks.
@@ -24,7 +24,7 @@ export function getKronosTaskLists(tasks: KronosCatalogItem[], now = new Date())
 }
 
 type KronosCharacter = {daily_checks?:unknown;weekly_checks?:unknown;raid_checks?:unknown;levels?:unknown};
-export type IrisTaskDetail = {id:string;name:string;completed:number;total:number};
+export type IrisTaskDetail = {id:string;name:string;displayName?:string;completed:number;total:number};
 export type IrisClassDetail = {id:string;name:string;level:number|null};
 function safeText(value:unknown,max:number): value is string {
   return typeof value === 'string' && value.trim().length>0 && Array.from(value).length<=max && !/[\u0000-\u001f\u007f]/u.test(value);
@@ -50,6 +50,10 @@ export function buildIrisKronosDetails(character:KronosCharacter,tasks:KronosCat
     let total=0;
     for (const item of list) {
       const id=catalogIdentity(item,ids);
+      const alias=item.type==='abyss'||item.type==='raid'?undefined:[item.mobile_name,item.short_name].find(value=>safeText(value,120));
+      const label=alias?.trim() || cleanItemName(item.name) || item.name;
+      // Display aliases never replace the canonical name used by checklist matching.
+      const display=label!==item.name?{displayName:label}:{};
       if (item.type.startsWith('repeat')) {
         const max = item.max_count ?? 1;
         if (!Number.isSafeInteger(max) || max < 1 || max > 1000) throw new Error('Invalid task count');
@@ -59,10 +63,10 @@ export function buildIrisKronosDetails(character:KronosCharacter,tasks:KronosCat
         // alter their meaning when a calendar-based allowance becomes smaller.
         if (done > max) throw new Error('Unresolved repeat period boundary');
         total += max;
-        result.push({id,name:item.name,completed:done,total:max});
+        result.push({id,name:item.name,...display,completed:done,total:max});
       } else {
         total++;
-        result.push({id,name:item.name,completed:isTaskChecked(normalizeChecklist(checks),item,catalog) ? 1 : 0,total:1});
+        result.push({id,name:item.name,...display,completed:isTaskChecked(normalizeChecklist(checks),item,catalog) ? 1 : 0,total:1});
       }
     }
     if (total > 10000) throw new Error('Too many tasks');

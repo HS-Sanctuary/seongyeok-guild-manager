@@ -1,5 +1,48 @@
 # 🏛️ SANCTUM Master Guide
 
+## 2026-10-08 미배포 IRIS 애드온 바·캐릭터 변경 추천
+
+### 후속 애드온 바 후보
+
+- `IRIS for SANCTUM` 제목줄과 `DesktopTitlebar`/`DesktopAddonSettings`가 창 이동·최소화·종료·테마·게임 창 붙이기를 담당한다. 네이티브 추적기(`desktop-addon-policy.cs`, `desktop-addon.cs`)는 게임을 소유하거나 조작하지 않고 IRIS 위치와 수명 반응만 관리한다.
+- `lib/irisAppearance.ts`와 `useDesktopAppearance`는 환경별 테마 및 계정별 재화 강조를 검증·복원한다. 잔액·조회 시각·재화 이력은 저장하지 않는다. `DesktopCurrencies` 편집은 localStorage만 사용한다.
+- 고정 네이티브 브리지에는 `window.addon.state`, `window.addon.preferences`, `window.drag`, `window.minimize`, `window.decision`만 추가했다. 외부 HWND·경로·명령은 브라우저에서 받지 않는다.
+- 보호 큐·Supabase 스키마/RLS/권한/API 쓰기 계약은 변경하지 않았다. 실제 창/DPI/게임 종료 수동 확인은 push 후 집 호스트에서 수행한다.
+
+- 최종 속도 후속: Watch는 평소3초, tracker.unconfirmedCandidate의 첫 후보에는1초 뒤 재확인을1회 제공한다. 조회 완료 후 단일timeout, 중복 timestamp/실패 이후3초 복귀·숨김 중timer중단·confirm 종료 후 안전 재개. 두 fresh 관측/이전응답/version 방어·카탈로그 재사용·fallback1회 유지; 주기DB/Vercel호출 추가 없음. 아래10초 구조는 최초 설계이며 이 타이머가 현재 기준이다.
+
+- 제품 기준: 현 IRIS는 게임 옆 컴팩트 애드온 바를 우선 개발하며 공통 데이터/추천/저장 기반으로 오버레이 버전을 별도 확장한다. 완성된 게임 오버레이나 공식 게임 승인으로 안내하지 않는다.
+- `lib/irisCharacterSwitch.ts`는 선택별 기준/연속 관측/후보/거절 억제를 관리하는 순수 판정기다. 신선한 서로 다른 관측2회, 양수 겹침2개, 직업 또는 다중 수치 변화, 점수/후보 차이를 요구한다. 판정만으로 선택/쓰기하지 않는다.
+- `DesktopCharacterWatch.tsx`는 visible/selected 약10초 native 읽기·중복 방어·최초 기준·숨김/잠금 invalidate를 맡는다. 기존 세션 catalog 재사용, 없으면1회 fallback GET 후 세션에 공개. 네 재조회/일치 후 기존 선택, 아니요 유지/반복 억제, 다른 캐릭터 기존 picker 호출; Escape/바깥 클릭은 아니요와 동일한 닫기다.
+- DesktopPage의 동기 watchContext/watchVersion은 선택·계정·종료·스탯 저장 의도 때 먼저 invalidate한다. Watch는 version/generation을 await 이후 검사해 이전 응답이 새 의도를 덮지 못하게 한다. DesktopStatsSession은 계정 catalog와 추천 슬롯, DesktopStats는 수동 읽기/저장 후 catalog 갱신을 공유한다. Center pickerRequest는 기존 선택창만 호출하며 선택/계정 변경 때 초기화한다.
+- desktop.css 분류 제목은 테마색 띠/왼쪽 표식/완료 배지, 보이는 분류 사이 얇은 선으로 구분한다. 주기 DB 조회/스탯 POST·DB 구조/RLS/권한·보호 큐/저장 API/native 명령 계약 변경 없음. 실제 게임 변경 추천은 사용자 확인 대기이며 합성/빌드 결과는 HANDOFF를 따른다.
+
+## 2026-10-08 미배포 IRIS 숙제 약칭 체크보드
+
+- 최종 UI: DesktopCheckboard 로컬 분류 선택은 처음 모두 켜진4개 토글이며 section hidden으로 표시만 변경한다. Center가 기존 remaining 필터 상태를 미완료만 체크로 연결한다. 아코디언/외곽 테두리는 제거, 분류 제목·완료 수만 유지. 어비스/레이드는 full canonical clean 이름(구형 displayName도 무시), task만 optional 약칭을 사용한다. 준비 메뉴의 보조3줄 제거·disabled 유지.
+
+- /api/iris/kronos GET은 nexus_tasks.mobile_name 및 nexus_contents.mobile_name/short_name의 기존 컬럼을 읽는다. irisKronos는 원명과 ID/체크 매칭을 보존한 optional displayName을 만들고 irisDesktopTransport는 이를 검증하되 name-only 구형 응답을 유지한다. 신규 DB 컬럼/권한/쓰기 계약은 없다.
+- DesktopCheckboard/desktop.css는 체크형2열·횟수형 전체 폭, 분류별 완료항목/전체항목 합계를 제공한다. pending 투영 이후 합계를 계산하며 remaining 필터는 표시만 바꾼다. 보류 행/원명 aria-label과 title/빈 상태를 유지한다. 큐·캐릭터 선택·15초 저장/클래스/스탯 구조 변경 없음.
+
+## 2026-10-08 미배포 IRIS 상단·메뉴 계층
+
+- DesktopCenter는 상위 크로노스/시낙시스/설정과 기억되는 크로노스 하위 숙제/클래스/스탯/재화를 분리한다. 준비 중3개는 비활성 위치 미리보기다. 기존 pane을 유지해 draft/큐를 보존하고 실질 탭 변경만 기존 조회를 호출한다. 시낙시스 연결은 아직 미구현이다.
+- desktop.css의 sticky 컨텍스트 헤더는 생텀 선택 닉네임/직업과 선택창을 관리한다. DesktopSaveStatus의 빈 행은 제거하고 확인 시각/15초 설명은 details에 배치; 오류·복구 경고는 계속 노출한다.
+- desktop-webview.cs는 네이티브 Label `:: 창 이동`으로 기존 caption 이동을 호출한다. 자동 높이는 손잡이/리사이즈 실제 높이를 합산하며 desktop-grip.tests.ps1은 세션 없는 구성/네이티브 메시지를 검증한다. 웹 메뉴 변경에 API/DB/권한/큐 구조 변경 없음. 기존 실행 native는 정상 재실행 필요.
+
+## 2026-10-08 미배포 IRIS 스탯 수동 연결
+
+- 외부 RAM 연동 제거: desktop/overlay 자동 시작·트레이 메뉴 및 ram-companion/configure/전용 테스트 삭제. 외부 EXE는 IRIS 구성요소가 아니며 기존 로컬 설정도 읽지 않는다. 공식 CLI와 생텀 연결만 유지한다. 이전 RAM 문서는 역사적 기록이다.
+
+- 재화 후속: `DesktopCurrencies.tsx`/`lib/irisCurrencies.ts`, 고정 native `game.currencies.read`→`get_currencies` 읽기 전용. Center6탭/3열2행, 탭 활성 상태로 스탯·재화1회 읽기; 숙제/클래스는 기존 controller.refresh. 초기 추천 관측을 스탯에 재사용하지 않는다. native 읽기는 직렬화/진행 공유, 큐·draft 보존. 스탯 좌 재조회/우 DB업데이트·닉네임강조. DB 구조 변경 없음, 시낙시스 다음 작업 미구현.
+
+- UI 후속: `DesktopStatsSession.tsx`는 계정 로그인 후 후보 추천/4초 지연 건너뛰기/수동 선택 우선을 관리하고 Center에 추천 슬롯·초기 관측을 제공한다. `DesktopStatsConfirmation.tsx`는 수동 업데이트 클릭 시만 나타나는 확인·본인 캐릭터 선택·취소/키보드 초점 경계다. background 조회는 다른 편집을 잠그지 않으며 저장 중에만 전역 잠금한다.
+- 클래스 목록은 전체/긴 필터 목록만 내부 스크롤을 제한하고 네 행 이하 계열 목록은 자연 높이를 쓴다. DB/큐/클래스15초 저장/API 구조는 이번 UI 후속에서 바뀌지 않았다.
+
+- `DesktopStats.tsx` → `irisStatsTransport.ts` → `/api/iris/stats` → `server/irisStatsWrite.ts`: 본인 저장값 조회 및 사용자가 확인한 네 개 스탯 수동 CAS 갱신. 계정/캐릭터 keyed remount로 확인/관측 격리, 저장 중 전환·종료 잠금.
+- 게임 읽기: `irisDesktopStore.gameStats` → 내장 WebView `HandleAsync` → `DesktopGameStatsReader.ReadAsync` → 고정 공식 CLI get_my_info. 현재 앱 문서/epoch/요청 순서/동시 조회 검증, 제한된 값만 반환. 별도 reader 서버 실행은 필요 없다.
+- 상단 생텀/하단 인게임 비교, 직업·수치 후보 안내와 수동 확인, 가운데 ↑버튼. DB는 기존 characters.combat_power/life_energy/magic_resistance/charm만 사용. 새 테이블/권한/보호 큐 형식/클래스 저장 변경 없음. 게임 자동 신원/클래스 읽기·공헌도·시낙시스는 범위 밖이다.
+
 ## 2026-10-07 미배포 IRIS 클래스 수동 편집
 
 - UI 후속: `DesktopClasses.tsx` 전용 클래스 탭/계열 필터/숫자·게이지 입력/내부 높이 제한. `DesktopCheckboard.tsx`는 숙제만 표시하며 Center는5기능 탭을 제공한다. 기존65초과 값/미등록/오류·복구 행 보존, 저장/API/DB 구조 변경 없음.

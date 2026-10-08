@@ -13,7 +13,7 @@ if(!(Test-Path $irisDesktopCore)){throw 'Approved project-local WebView2 SDK is 
 [void][Reflection.Assembly]::LoadFrom($irisDesktopCore)
 [void][Reflection.Assembly]::LoadFrom($irisDesktopForms)
 $irisDesktopReferences=@($irisDesktopCore,$irisDesktopForms,'System.Windows.Forms','System.Drawing','System.Core','System.Security','System.Web.Extensions')
-Add-Type -Path @('overlay-native.cs','desktop-overlay.cs','desktop-host.cs','desktop-store.cs','desktop-bridge.cs','desktop-lifecycle.cs','desktop-webview.cs'|ForEach-Object{Join-Path $PSScriptRoot $_}) -ReferencedAssemblies $irisDesktopReferences
+Add-Type -Path @('overlay-native.cs','desktop-overlay.cs','desktop-addon-policy.cs','desktop-addon.cs','desktop-host.cs','desktop-store.cs','desktop-bridge.cs','desktop-lifecycle.cs','desktop-webview.cs'|ForEach-Object{Join-Path $PSScriptRoot $_}) -ReferencedAssemblies $irisDesktopReferences
 $irisDesktopProfile=[IrisDesktop.DesktopHostPolicy]::ProfilePath($irisDesktopEnvironment)
 $irisDesktopOwner=New-Object IrisDesktop.DesktopSingleInstance($irisDesktopEnvironment,$irisDesktopProfile)
 if(!$irisDesktopOwner.IsOwner){$irisDesktopOwner.Dispose();exit 0}
@@ -33,8 +33,6 @@ $irisDesktopMenu=New-Object System.Windows.Forms.ContextMenuStrip
 [void]$irisDesktopMenu.Items.Add('종료',$null,{ $irisDesktopWindow.Close() })
 [void]$irisDesktopMenu.Items.Add('복구 종료 · 최근 변경 손실 주의',$null,{ $irisDesktopWindow.ConfirmRecoveryClose() })
 $irisDesktopTray.ContextMenuStrip=$irisDesktopMenu
-. (Join-Path $PSScriptRoot 'ram-companion.ps1')
-Add-IrisRamCompanionMenu $irisDesktopMenu
 $irisDesktopTray.add_DoubleClick({$irisDesktopWindow.Overlay.RestoreInteractive()})
 $irisDesktopWindow.add_Resize({if($irisDesktopWindow.WindowState -eq 'Minimized'){$irisDesktopWindow.Hide()}})
 $script:irisDesktopInit=$null

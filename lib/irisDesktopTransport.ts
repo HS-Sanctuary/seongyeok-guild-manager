@@ -50,8 +50,9 @@ function parseDetails(v: unknown, accountId: string, characterId: string): Deskt
     tasks[category] = rows.map(row => {
       if (!object(row) || !identity(row.id) || !text(row.name) || !integer(row.total) || row.total < 1 ||
         !integer(row.completed) || row.completed > row.total || ids.has(row.id)) throw new DesktopTransportError(502);
+      if(row.displayName!==undefined&&!text(row.displayName))throw new DesktopTransportError(502);
       ids.add(row.id);
-      return { id: row.id, name: row.name, completed: row.completed, total: row.total };
+      return { id: row.id, name: row.name, ...(row.displayName===undefined?{}:{displayName:row.displayName as string}), completed: row.completed, total: row.total };
     });
   }
   const ids = new Set<string>();

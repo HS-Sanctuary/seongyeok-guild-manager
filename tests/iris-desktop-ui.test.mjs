@@ -5,6 +5,43 @@ import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {loadTS} from './load-ts.mjs';
 const file='components/iris/DesktopCheckboard.tsx';
+
+test('center groups Kronos actions separately and exposes upcoming actions without enabling them',()=>{
+  const {DesktopCenter}=loadTS('components/iris/DesktopCenter.tsx');
+  const html=renderToStaticMarkup(React.createElement(DesktopCenter,{account:{id:'a',nickname:'한설',role:'길드원'},characters:[{id:'7',nickname:'열두글자캐릭터닉네임확인',job:'장궁병'}],selected:{characterId:'7',details:{tasks:{daily:[],weekly:[],abyss:[],raid:[]},classes:[]}},pending:[],locked:false,onSelectCharacter(){},onEdit(){},onClose(){}}));
+  assert.match(html,/aria-label="상위 메뉴"/);assert.match(html,/aria-label="크로노스 기능"/);
+  for(const label of ['물물교환','상점구매','임무게시판'])assert.match(html,new RegExp('<button[^>]*disabled=""[^>]*>'+label));
+  assert.doesNotMatch(html,/<span>준비 중<\/span>/);
+  assert.match(html,/생텀 선택/);assert.match(html,/열두글자캐릭터닉네임확인/);
+});
+
+test('empty save status does not reserve a blank live-status row and places save-time info in disclosure',()=>{
+  const {DesktopSaveStatus}=loadTS('components/iris/DesktopSaveStatus.tsx');
+  const html=renderToStaticMarkup(React.createElement(DesktopSaveStatus,{entries:[],now:0,locked:false,onSave(){},onDiscard(){},onRecover(){}}));
+  assert.doesNotMatch(html,/<div role="status"><\/div>/);
+  assert.match(html,/<details[^>]*>[\s\S]*이번 실행에서 확인한 저장 시각 없음[\s\S]*<\/details>/);
+});
+
+test('stats actions expose refresh before update and confirmation highlights the target nickname',()=>{
+  const props={accountId:'a',characterId:'b',locked:false,readGame:async()=>{},onSelectCharacter(){},onBusyChange(){}};
+  const html=renderToStaticMarkup(React.createElement(loadTS('components/iris/DesktopStats.tsx').DesktopStats,props));
+  assert.ok(html.indexOf('스탯 재조회')>=0&&html.indexOf('스탯 재조회')<html.indexOf('생텀 DB에 업데이트'));
+  const dialog=renderToStaticMarkup(React.createElement(loadTS('components/iris/DesktopStatsConfirmation.tsx').DesktopStatsConfirmation,{target:{id:'b',nickname:'탄월',job:'도적'},characters:[],job:'도적',busy:false,canConfirm:true,onConfirm(){},onSelectCharacter(){},onCancel(){}}));
+  assert.match(dialog,/<strong[^>]*>탄월<\/strong>/);
+});
+
+test('stats initial screen has an update trigger but no permanent nickname confirmation',()=>{
+  const {DesktopStats}=loadTS('components/iris/DesktopStats.tsx');
+  const html=renderToStaticMarkup(React.createElement(DesktopStats,{accountId:'a',characterId:'b',locked:false,readGame:async()=>{},onSelectCharacter(){},onBusyChange(){}}));
+  assert.match(html,/aria-haspopup="dialog"/);assert.doesNotMatch(html,/네, 맞아요/);
+});
+
+test('short filtered class lists expand naturally while all classes retain a scroll boundary',()=>{
+  const {DesktopClasses}=loadTS('components/iris/DesktopClasses.tsx');
+  const selected={accountId:'a',characterId:'b',writeContext:{classes:[]},details:{classes:[{id:'1',name:'전사',level:1}]}};
+  const html=renderToStaticMarkup(React.createElement(DesktopClasses,{selected,pending:[],locked:false}));
+  assert.match(html,/data-scrollable="true"/);
+});
 test('class inputs use database defaults and preserve invalid draft text',()=>{
   const {DesktopClasses:DesktopCheckboard}=loadTS('components/iris/DesktopClasses.tsx');
   const selected={accountId:'a',characterId:'b',writeContext:{periodKeys:{},classes:[{classId:'1',editable:true,baseLevel:53},{classId:'2',editable:true,baseLevel:null},{classId:'3',editable:false,baseLevel:null}]},details:{tasks:{daily:[],weekly:[],abyss:[],raid:[]},classes:[{id:'1',name:'전사',level:53},{id:'2',name:'마법사',level:null},{id:'3',name:'잘못된값',level:null}]}};

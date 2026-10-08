@@ -47,7 +47,7 @@ try{
   await page.keyboard.press('Escape');
   assert.equal(await page.locator('#iris-character-list').isVisible(),false,'Escape must dismiss character picker');
   await page.getByRole('button',{name:'캐릭터 선택',exact:true}).click();
-  await page.getByRole('heading',{name:'IRIS · 생텀 센터'}).click();
+  await page.getByRole('heading',{name:'IRIS for SANCTUM'}).click();
   assert.equal(await page.locator('#iris-character-list').isVisible(),false,'Outside pointer must dismiss character picker');
   await page.getByRole('button',{name:'캐릭터 선택',exact:true}).click();
   await page.getByRole('button',{name:new RegExp(account.nickname+' .*댄서')}).click();
@@ -80,8 +80,8 @@ try{
     console.log('Class-only browser PASS: tab separation, gauge editing, lineage/error preservation, manual save, stable focus, 4 widths; synthetic APIs only');
     await browser.close();process.exit(0);
   }
-  assert.equal(await page.getByText('주간 숙제',{exact:true}).evaluate(e=>e.parentElement.open),false,'Initial HUD expands too many categories');
-  await page.getByText('주간 숙제',{exact:true}).click();
+  assert.equal(await page.getByRole('button',{name:'일일',exact:true}).getAttribute('aria-pressed'),'true','Daily category visible by default');
+  assert.equal(await page.getByRole('button',{name:'주간',exact:true}).getAttribute('aria-pressed'),'true','Weekly category visible by default');
   const daily=page.locator('[data-task-key="daily:d"]');
   await daily.waitFor();await daily.click();
   await page.waitForFunction(()=>document.querySelector('[data-task-key="daily:d"] input')?.checked===true);
@@ -89,12 +89,11 @@ try{
   await page.waitForFunction(()=>document.querySelector('[data-task-key="daily:d"] input')?.checked===false);
   await daily.locator('input').click();
   await page.waitForFunction(()=>document.querySelector('[data-task-key="daily:d"] input')?.checked===true);
-  await page.getByLabel('남은 숙제만').check();assert.equal(await daily.count(),0);
-  await page.getByLabel('남은 숙제만').uncheck();await daily.locator('input').click();
+  await page.getByLabel('미완료만').check();assert.equal(await daily.count(),0);
+  await page.getByLabel('미완료만').uncheck();await daily.locator('input').click();
   await page.waitForFunction(()=>document.querySelector('[data-task-key="daily:d"] input')?.checked===false);
   const row=page.locator('[data-task-key="weekly:x"]');await row.waitFor();
   await row.evaluate(e=>{window.fixtureRow=e;});
-  await page.getByText('일일 숙제',{exact:true}).click();
   const editStarted=Date.now();await page.getByRole('button',{name:'뱅가드 브리치 증가'}).click();
   await page.waitForFunction(()=>document.querySelector('[data-task-key="weekly:x"]')?.textContent.includes('1/3'));
   const editVisible=Date.now()-editStarted;
@@ -110,7 +109,6 @@ try{
   assert.equal(await row.evaluate(e=>e===window.fixtureRow),true,'Task DOM node replaced');
   assert.equal(await page.evaluate(()=>document.activeElement?.getAttribute('aria-label')),focusBefore,'Focus changed during background save');
   assert.equal(await page.evaluate(()=>scrollY),scrollBefore,'Scroll changed during background save');
-  assert.equal(await page.getByText('일일 숙제',{exact:true}).evaluate(e=>e.parentElement.open),false,'Collapsed category reopened');
   assert.equal(posts,1);
   await page.getByRole('button',{name:'클래스',exact:true}).click();
   const classInput=page.getByLabel('댄서 레벨',{exact:true});
@@ -134,7 +132,6 @@ try{
   assert.equal(reads,beforeReads+1,'Resume refresh must be bounded');
   await page.evaluate(()=>window.dispatchEvent(new CustomEvent('iris-desktop-close')));
   await page.getByRole('dialog').waitFor();await page.keyboard.press('Escape');assert.equal(await page.getByRole('dialog').count(),0);
-  await page.getByRole('button',{name:'센터 접기',exact:true}).click();
   for(const width of [320,420]){
     await page.setViewportSize({width,height:800});
     const fitted=await page.locator('.iris-desktop').evaluate(e=>Math.ceil(e.getBoundingClientRect().height));
@@ -164,7 +161,9 @@ try{
   }
   await page.setViewportSize({width:1280,height:800});await page.evaluate(()=>{document.documentElement.style.fontSize='20px';document.documentElement.dataset.theme='aureum';});
   await page.getByRole('button',{name:'설정',exact:true}).click();
-  assert.equal(await page.getByRole('button',{name:'클릭 통과 켜기',exact:true}).count(),1,'Overlay settings not available');
+  assert.equal(await page.getByRole('heading',{name:'Appearance',exact:true}).count(),1,'Addon settings missing');
+  assert.equal(await page.getByText('게임 창에 붙이기',{exact:true}).count(),1,'Dock setting missing');
+  assert.equal(await page.getByRole('button',{name:'클릭 통과 켜기',exact:true}).count(),0,'Overlay-only click-through setting must be absent');
   await page.getByRole('button',{name:account.nickname+' · 계정',exact:true}).click();
   await page.getByRole('button',{name:'다른 계정 추가',exact:true}).click();
   const secret=page.getByLabel('접속 코드',{exact:true});
@@ -173,7 +172,8 @@ try{
   assert.equal(await secret.evaluate(e=>e===window.fixtureInput&&e.value==='synthetic-only'&&e.selectionStart===2&&e.selectionEnd===5&&document.activeElement===e),true,'Auth input changed during background tick');
   await page.keyboard.press('Escape');assert.equal(await page.locator('#iris-account-panel').count(),0);
   await page.getByRole('button',{name:account.nickname+' · 계정',exact:true}).click();
-  await page.getByRole('heading',{name:'IRIS · 생텀 센터'}).click();assert.equal(await page.locator('#iris-account-panel').count(),0);
+  await page.getByRole('heading',{name:'IRIS for SANCTUM'}).click();assert.equal(await page.locator('#iris-account-panel').count(),0);
+  await page.getByRole('button',{name:'설정',exact:true}).click();
   assert.deepEqual(errors,[]);
   await page.mouse.move(0,0);
   const expectedBorder=await page.evaluate(()=>{const el=document.createElement('div');el.style.color='var(--panel-border)';document.body.append(el);const c=getComputedStyle(el).color;el.remove();return c;});
@@ -183,9 +183,7 @@ try{
   await page.setViewportSize({width:390,height:700});await page.evaluate(()=>{document.documentElement.style.fontSize='18px';});
   await page.getByRole('button',{name:'클래스',exact:true}).click();
   await page.screenshot({path:'.superpowers/sdd/2026-10-07-iris-class-level-editing/compact-homework.png',fullPage:true});
-  await page.getByRole('button',{name:'센터 접기',exact:true}).click();
   await page.screenshot({path:'.superpowers/sdd/2026-10-07-iris-class-level-editing/compact-folded.png',fullPage:true});
-  await page.getByRole('button',{name:'센터 펼치기',exact:true}).click();
   characterFailure=true;await page.reload();
   await page.getByRole('button',{name:'캐릭터 선택',exact:true}).click();
   await page.getByText('캐릭터 목록을 불러오지 못했어요. 로그인은 유지돼요.',{exact:true}).waitFor();

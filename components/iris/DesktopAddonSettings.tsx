@@ -1,0 +1,15 @@
+'use client';
+import type {ReactNode} from 'react';
+import {irisThemes,type IrisTheme} from '@/lib/irisAppearance';
+import type {DesktopAddonPreferences,DesktopAddonState} from '@/lib/irisDesktopStore';
+const statusNames={searching:'게임 창을 기다리고 있어요.',attached:'게임 창에 붙어 있어요.',independent:'독립 창으로 사용 중이에요.', 'no-space':'옆 공간이 부족해 독립 창으로 유지해요.',unavailable:'게임 창을 확인할 수 없어 독립 창으로 유지해요.'};
+export function DesktopAddonSettings({accountPanel,appearance,addonState,onPreferencesChange,onBack,busy=false,error=''}:{accountPanel:ReactNode;appearance:{theme:IrisTheme;setTheme(theme:IrisTheme):void;persistent:boolean};addonState:DesktopAddonState|null;onPreferencesChange(value:DesktopAddonPreferences):void;onBack():void;busy?:boolean;error?:string}){
+  return <section className="iris-addon-settings" aria-label="IRIS 설정">
+    <header><h2>설정</h2><button type="button" className="iris-desktop-button" onClick={onBack}>이전 화면</button></header>
+    {error&&<p role="alert" className="iris-caption">{error}</p>}
+    <section className="iris-setting-card"><h3>창 연동</h3><fieldset disabled={busy||!addonState}><legend>게임 창에 붙이기</legend><div className="iris-dock-buttons">{(['right','left','off'] as const).map(side=><button type="button" className="iris-desktop-button" aria-pressed={addonState?.dockSide===side} key={side} onClick={()=>onPreferencesChange({dockSide:side,sameLayer:addonState?.sameLayer??true})}>{{right:'오른쪽',left:'왼쪽',off:'끔'}[side]}</button>)}</div><label className="iris-setting-check"><input type="checkbox" checked={addonState?.sameLayer??true} onChange={event=>onPreferencesChange({dockSide:addonState?.dockSide??'right',sameLayer:event.target.checked})}/>게임과 같은 층으로 유지</label></fieldset><p role="status" className="iris-caption">{addonState?statusNames[addonState.status]:'새 앱으로 다시 실행하면 창 연동을 사용할 수 있어요.'}{addonState?.status==='attached'&&` (${addonState.actualSide==='right'?'오른쪽':'왼쪽'})`}</p><p className="iris-caption">직접 끌어 이동하면 붙이기가 꺼져요. 최소화한 창은 작업표시줄 오른쪽 IRIS 트레이에서 다시 열 수 있어요.</p>{addonState&&!addonState.persistent&&<p role="alert" className="iris-caption">창 설정을 저장하지 못했어요. 이번 실행에만 적용돼요.</p>}</section>
+    <section className="iris-setting-card"><h3>Appearance</h3><div className="iris-theme-buttons">{Object.entries(irisThemes).map(([id,name])=><button type="button" className="iris-desktop-button" aria-pressed={appearance.theme===id} key={id} onClick={()=>appearance.setTheme(id as IrisTheme)}>{name}</button>)}</div>{!appearance.persistent&&<p role="alert" className="iris-caption">표시 설정을 저장하지 못했어요. 이번 실행에만 적용돼요.</p>}</section>
+    <section className="iris-setting-card"><h3>생텀 계정</h3>{accountPanel}</section>
+    <section className="iris-setting-card iris-usage-guide"><h3>사용 안내</h3><dl><div><dt>저장</dt><dd>숙제·직접 입력한 클래스 레벨은 마지막 수정 후 15초에 저장해요.</dd></div><div><dt>게임 정보</dt><dd>스탯은 확인 후 직접 업데이트해요. 재화는 조회만 하고 DB에 저장하지 않아요.</dd></div><div><dt>초기화</dt><dd>일일 숙제는 06시, 주간 숙제는 월요일 06시예요. 클래스 레벨은 유지돼요.</dd></div><div><dt>창 연동</dt><dd>게임 최소화·복원을 따라가요. 게임 종료 후 저장 또는 보관을 선택해 IRIS도 종료할 수 있어요.</dd></div></dl><p className="iris-caption">게임 조작이나 보상 수령은 하지 않아요.</p></section>
+  </section>;
+}

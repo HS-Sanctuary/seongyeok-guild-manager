@@ -1,6 +1,21 @@
 import type { QueueSnapshot } from './irisDesktopQueue';
+import {parseGameStats,type GameStats} from './irisStats';
+import {parseCurrencies,type CurrencySnapshot} from './irisCurrencies';
 
 type Context = { epoch: number; environment: string };
+export type DesktopAddonState={dockSide:'right'|'left'|'off';sameLayer:boolean;tracked:boolean;actualSide:'right'|'left'|'off';status:'searching'|'attached'|'independent'|'no-space'|'unavailable';persistent:boolean};
+export type DesktopAddonPreferences=Pick<DesktopAddonState,'dockSide'|'sameLayer'>;
+function exactObject(value:unknown,keys:string[]):value is Record<string,unknown>{return !!value&&typeof value==='object'&&!Array.isArray(value)&&Object.keys(value).length===keys.length&&keys.every(key=>Object.hasOwn(value,key));}
+export function parseDesktopAddonState(value:unknown):DesktopAddonState {
+  if(!exactObject(value,['dockSide','sameLayer','tracked','actualSide','status','persistent'])||!['right','left','off'].includes(String(value.dockSide))||!['right','left','off'].includes(String(value.actualSide))||!['searching','attached','independent','no-space','unavailable'].includes(String(value.status))||typeof value.sameLayer!=='boolean'||typeof value.tracked!=='boolean'||typeof value.persistent!=='boolean'||(value.status==='attached'&&(!value.tracked||value.actualSide==='off'||value.dockSide==='off')))throw Error('창 연결 상태를 확인해 주세요.');
+  return {...value} as DesktopAddonState;
+}
+export function parseDesktopWindowEvent(value:unknown,context:Context|null):{kind:'window.close.request';reason:'manual'|'game-exit'}|{kind:'window.addon.changed';state:DesktopAddonState}|null {
+  if(!context||!Number.isSafeInteger(context.epoch)||context.epoch<1||!['development','production'].includes(context.environment)||!exactObject(value,['version','kind','epoch','environment',(value as {kind?:unknown})?.kind==='window.addon.changed'?'state':'reason'])||value.version!==1||value.epoch!==context.epoch||value.environment!==context.environment)return null;
+  if(value.kind==='window.close.request'&&(value.reason==='manual'||value.reason==='game-exit'))return {kind:value.kind,reason:value.reason};
+  if(value.kind==='window.addon.changed')try{return {kind:value.kind,state:parseDesktopAddonState(value.state)};}catch{return null;}
+  return null;
+}
 export type DesktopOverlayState={clickThrough:boolean;shortcutsAvailable:boolean;opacityPercent:number};
 function overlayState(value:unknown):DesktopOverlayState {
   const state=value as DesktopOverlayState|null;
@@ -19,7 +34,7 @@ export function createDesktopStore(options: { channel: Channel; context(): Conte
   const timeout = options.timeoutMs ?? 5000;
   if (!['development', 'production'].includes(options.environment) || !Number.isSafeInteger(timeout) || timeout < 1 || timeout > 60000) throw Error('대기함 설정을 확인해 주세요.');
   let sequence = 0;
-  function request(method: 'store.load' | 'store.replace' | 'window.hide' | 'window.close' | 'overlay.state' | 'overlay.input' | 'overlay.opacity', payload: unknown): Promise<unknown> {
+  function request(method: 'store.load' | 'store.replace' | 'window.hide' | 'window.close' | 'window.addon.state' | 'window.addon.preferences' | 'window.drag' | 'window.minimize' | 'window.decision' | 'overlay.state' | 'overlay.input' | 'overlay.opacity' | 'game.stats.read' | 'game.currencies.read', payload: unknown): Promise<unknown> {
     return new Promise((resolve, reject) => {
       const context = options.context();
       if (!context || context.environment !== options.environment || !Number.isSafeInteger(context.epoch) || context.epoch < 1 || sequence >= Number.MAX_SAFE_INTEGER) {
@@ -27,7 +42,6 @@ export function createDesktopStore(options: { channel: Channel; context(): Conte
       }
       const id = String(++sequence), epoch = context.epoch;
       const fail = () => Error('보호된 대기함 응답을 확인하지 못했어요. 변경을 보존하고 연결을 확인해 주세요.');
-      let timer: ReturnType<typeof setTimeout>;
       const cleanup = () => { clearTimeout(timer); options.channel.removeEventListener('message', listener); };
       const listener = (event: Message) => {
         const value = event.data as Record<string, unknown> | null;
@@ -39,12 +53,19 @@ export function createDesktopStore(options: { channel: Channel; context(): Conte
         cleanup(); resolve(value.value);
       };
       options.channel.addEventListener('message', listener);
-      timer = setTimeout(() => { cleanup(); reject(fail()); }, timeout);
+      const timer = setTimeout(() => { cleanup(); reject(fail()); }, method.startsWith('game.')?Math.max(timeout,10000):timeout);
       try { options.channel.postMessage({ version: 1, id, epoch, method, payload }); }
       catch { cleanup(); reject(fail()); }
     });
   }
   return {
+    async addonState():Promise<DesktopAddonState>{return parseDesktopAddonState(await request('window.addon.state',null));},
+    async setAddonPreferences(value:DesktopAddonPreferences):Promise<DesktopAddonState>{if(!exactObject(value,['dockSide','sameLayer'])||!['right','left','off'].includes(String(value.dockSide))||typeof value.sameLayer!=='boolean')throw Error('창 설정을 확인해 주세요.');return parseDesktopAddonState(await request('window.addon.preferences',value));},
+    async drag():Promise<void>{await request('window.drag',null);},
+    async minimize():Promise<void>{await request('window.minimize',null);},
+    async setCloseDecision(open:boolean):Promise<void>{if(typeof open!=='boolean')throw Error('종료 상태를 확인해 주세요.');await request('window.decision',{open});},
+    async gameStats():Promise<GameStats>{return parseGameStats(await request('game.stats.read',null));},
+    async currencies():Promise<CurrencySnapshot>{return parseCurrencies(await request('game.currencies.read',null));},
     async load(): Promise<QueueSnapshot | null> {
       const value = await request('store.load', null);
       if (value === null) return null;
