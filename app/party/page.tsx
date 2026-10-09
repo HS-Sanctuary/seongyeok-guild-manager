@@ -249,10 +249,11 @@ function SynaxisContent() {
 
       {/* 타임아웃 안내 팝업 모달 */}
       {partyManager.timeoutParty && (
-        <div className="fixed inset-0 z-[110] bg-black/85 backdrop-blur-xs flex items-center justify-center p-4">
+        <div onClick={event => {if(event.target === event.currentTarget) partyManager.dismissTimeout();}} className="fixed inset-0 z-[110] bg-black/85 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-[#1c1c1e] border border-amber-500/60 rounded-2xl p-6 max-w-md w-full space-y-4 shadow-2xl animate-in fade-in zoom-in-95 min-w-0">
-            <div className="flex items-center gap-2 text-amber-400 font-black text-lg">
-              <span>⏱️</span> 희망 모집 시간 경과 안내
+            <div className="flex items-start justify-between gap-2 text-amber-400 font-black text-lg">
+              <span className="min-w-0 break-keep">⏱️ 희망 모집 시간 경과 안내</span>
+              <button type="button" aria-label="시간 경과 안내 닫기" onClick={partyManager.dismissTimeout} className="shrink-0 rounded-lg px-2 text-[var(--text-main)] hover:bg-[var(--inner-box)]">×</button>
             </div>
             <p className="text-xs text-zinc-300 leading-relaxed break-keep">
               [<strong className="text-amber-300">{partyManager.timeoutParty.content_name}</strong>] 파티의 희망 종료 시간(

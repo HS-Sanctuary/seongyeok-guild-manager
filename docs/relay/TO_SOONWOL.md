@@ -4,6 +4,12 @@
 
 ## YG-20261008-001 — UPDATED
 
+- v2.21 공식 후보 검증: staged tree 분리 전체 Node dot reporter exit0·독립 tsc·webpack52경로 exit0, 한정 독립 리뷰 blocking0·18회귀/실제네 action 대역 통과. 첫 제한 환경 EACCES 이후 동일 후보 허용 환경 통과·운영 시험쓰기0. 이전 미ACK 누적 보존.
+
+- 2026-10-10 02:16 KST v2.21 준비: 한설이 만료 안내 담당자 제한 main push와 v2.2 통합 업데이트 게시 명시 승인. 핫픽스 v2.21/UPDATE_POST_v2.21, 기존 길드마스터 공지 API의 시스템 작성자/같은 제목 중복 방어 사용 예정·새 자동게시/DDL/RLS 없음. 원격main 최신 pull 확인, IRIS/즐겨찾기/개인 변경 제외·미ACK 기존 누적 보존. 검증/커밋/배포/게시 결과는 후속 누적. rollback v2.2/61cc25b·GitHub Vercel success 5wdCNRoi7GUgJiZh9Gf21BGs23oG.
+
+- 2026-10-10 로컬 P1: 한설 만료 버스 팝업 네버튼403/화면차단 제보. 한설 지정은 팝업 제외가 아니라 현재 담당 관리자만 표시+실연장 유지. usePartyManager 공통isBusOperator/초기역할ref·재조회stale popup 해제, /party 닫기/바깥/Escape+동일 일정 현재페이지 재노출 억제. API/RLS/버스필터·자동종료 정책0변경/운영시험쓰기0. 신규18 포함 관련86/86·독립tsc·diff, 기존공유lint42오류8경고 유지. 로컬 한설 참가화면 popup없음 확인, 운행자 실제네버튼 운영쓰기는 미시험. 코드/테스트/기록 로컬보존·추가push/버전업 없음. 이전 미ACK 기록 보존.
+
 - 2026-10-10 01:52 KST v2.2 배포: fb9150d main 일반 push·GitHub Vercel success 9FedV9MiUDCvv5JNsPcgP4CnDaVC, 운영 party/character/kerygma BETA v2.2·실데이터·관찰콘솔 오류0/핵심6 GET200. MCP team403으로 직접Ready 조회 불가. 기존 만료 팝업에 안전한 닫기 없이 연장/취소만 있어 새 모달 운영 열람은 안 했고 운영 데이터 시험 쓰기0. 실제 출발 수신 후속, 후보384pass/3skip·타입·52경로빌드 통과. IRIS/즐겨찾기/개인 변경은 로컬보존·추가DB/공개공지0. 아래 이전 미ACK 경과는 보존한다.
 
 - v2.2 후보 검증: staged tree만 분리하여 Node384통과/0실패/기존 런타임3skip·독립 tsc·webpack Production52경로 exit0·cached diff 통과. Windows sandbox EACCES 후 동일 후보 허용 환경 재검증. 운영 결과는 후속 누적한다.

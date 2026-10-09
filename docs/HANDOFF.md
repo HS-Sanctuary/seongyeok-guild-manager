@@ -1,5 +1,17 @@
 # SANCTUM 작업 인계
 
+## 2026-10-10 02:16 KST 영겁 — v2.21 공식 push·통합 공지 준비
+
+- 한설 명시 승인: 만료 안내 담당자 제한까지 main push, 앞선 v2.2와 합친 버전업/업데이트 공지 게시. v2.21 핫픽스, lib/release.ts 및 UPDATE_POST_v2.21 사용자용 본문 갱신. 기존 길드마스터 notices/mutate 경로가 생텀 업데이트 작성자를 SANCTUM 시스템으로 고정하고 같은 제목 중복을 거절하므로 이 경로만 사용한다. 자동 게시 기능 추가/DB 구조 변경 없음.
+- 아래 로컬 미배포 경과는 당시 기록이다. 이번 staged 후보는 만료 hook/page/18회귀·버전·관련 문서만 추가하고 IRIS/즐겨찾기 로컬 변경·준비 SQL·개인 파일 삭제는 보존/제외한다. 원격 main 최신 pull 확인, force push 없음. 배포/게시 완료는 후속 결과로만 기록한다.
+- rollback: v2.2/61cc25b, Vercel GitHub success 5wdCNRoi7GUgJiZh9Gf21BGs23oG. 운행자 실제 연장/취소는 시험하지 않는다. 통합 공지 제목은 SANCTUM BETA v2.21 업데이트 — 길드버스 운영 개선이며 재시도 전에 기존 게시 여부를 확인한다.
+- 공식 staged 후보 분리 검증: 전체 Node dot reporter exit0·독립 tsc exit0·52경로 webpack Production 빌드 exit0. 최초 제한 환경의 임시파일/루프백 EACCES는 동일 후보 허용 환경 재검증으로 해소. 독립 한정 리뷰 blocking0·18회귀 및 네 실제 action callback 대역 통과. 운영 버스 시험 쓰기 없음.
+
+## 2026-10-10 영겁 — 만료 안내 담당자 제한 / 로컬 미배포
+
+- 한설 제보: 참가 중인 만료 버스에서 네 버튼 모두403으로 이용 차단. 팝업 제거 제안을 거부하고 현재 담당 관리자만 안내+연장 유지 지정. usePartyManager의 checkTimeouts에 공통 isBusOperator 판정/초기 역할 ref, 재조회 시 권한/대상 소멸의 stale popup 제거. 일반 파티는 기존 참가 기준 유지. 서버/API/RLS 변경0.
+- /party 만료 창 닫기/바깥/Escape, 현재 페이지 동일 일정 재노출 억제(시간/운행자 바뀌면 재안내). 버스 필터/종료·삭제 정책은 그대로. 신규18+관련86/86·독립tsc·diff 통과, 기존 공유 lint42오류/8경고. 로컬 한설 계정 새로고침 후 만료 팝업 없이 이용 화면 확인. 실제 운영 연장/삭제 시험쓰기0·commit/push/버전 변경 없음. 현재 운영은 v2.2/61cc25b이며 이번 수정은 다음 승인 push 대상으로 보존한다.
+
 ## 2026-10-10 01:52 KST 영겁 — v2.2 main push·운영 확인
 
 - 기능 커밋 fb9150d60f66dc20f80f6f7222dcdc06f5118cd7 origin/main fast-forward, Vercel GitHub success/9FedV9MiUDCvv5JNsPcgP4CnDaVC. 운영 party/character/kerygma BETA v2.2·기존 한설 세션/실데이터 로딩·관찰 콘솔 error/warn0, 로그인/캐릭터/공지/파티/admin/auth health GET200. 신규 로그인 제출·운영 데이터 시험 쓰기는 하지 않았다. MCP team403으로 직접 Ready는 확인 불가하며 배포 성공 신호와 운영 확인을 구분한다.

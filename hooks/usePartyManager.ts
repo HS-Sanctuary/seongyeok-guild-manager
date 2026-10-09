@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { usePartyCatalog, refreshPartyCatalog } from '@/hooks/usePartyCatalog';
-import { isGuildBusParty, ownedPartyCharacters } from '@/lib/guildBusPolicy';
+import { isBusOperator, isGuildBusParty, ownedPartyCharacters } from '@/lib/guildBusPolicy';
 import { memberMutation, memberMutationOrThrow } from "@/lib/memberMutationClient";
 import { pickRandomLeader, autoBalanceAndBuildParty } from "@/lib/matchingUtils";
 import { CONTENT_DB, ContentItem, Party, Member } from "@/components/party/types";
@@ -49,6 +49,8 @@ const getPartyEndDateTime = (partyDateStr?: string, startHM?: string, endHM?: st
   return d;
 };
 
+const timeoutKey = (party: Party) => JSON.stringify([party.id,party.party_date,party.time_start,party.time_end,party.leader_name]);
+
 export function usePartyManager() {
   const [user, setUser] = useState<any>(null);
   const [mounted, setMounted] = useState(false);
@@ -68,6 +70,14 @@ export function usePartyManager() {
   const [targetBusParty, setTargetBusParty] = useState<{ partyId?: string | number; contentName: string; difficulty: string; timeStart: string; timeEnd: string } | null>(null);
 
   const [timeoutParty, setTimeoutParty] = useState<Party | null>(null);
+  const timeoutPartyRef = useRef<Party | null>(null);
+  const dismissedTimeouts = useRef(new Set<string>());
+  const timeoutActor = useRef({account:'',isAdmin:false});
+  const dismissTimeout = useCallback(() => {
+    if (timeoutPartyRef.current) dismissedTimeouts.current.add(timeoutKey(timeoutPartyRef.current));
+    timeoutPartyRef.current = null;
+    setTimeoutParty(null);
+  }, []);
 
   const [fabPos, setFabPos] = useState<{ x: number; y: number } | null>(null);
   const [isDraggingFab, setIsDraggingFab] = useState(false);
@@ -182,8 +192,15 @@ export function usePartyManager() {
     if (!ownerName) return;
     const now = new Date();
     const currentOwnerMap = ownerAccountMapRef.current;
+    const ownNames = Object.keys(currentOwnerMap).filter(name => currentOwnerMap[name] === ownerName);
+    const actor = timeoutActor.current;
+    let nextTimeout: Party | null = null;
 
     for (const party of partyList) {
+      const isBus = isGuildBusParty(party);
+      const isOperator = isBus && isBusOperator(party.leader_name,ownerName,ownNames,actor.account === ownerName && actor.isAdmin);
+      if (isBus && !isOperator) continue;
+      if (dismissedTimeouts.current.has(timeoutKey(party))) continue;
       const isMyParty = party.members?.some((m: any) => {
         const memName = m.name || m.character_name;
         const memOwner = currentOwnerMap[memName] || memName;
@@ -192,11 +209,13 @@ export function usePartyManager() {
 
       const endDateTime = getPartyEndDateTime(party.party_date, party.time_start, party.time_end);
 
-      if (isMyParty && party.status === "모집중" && now >= endDateTime) {
-        setTimeoutParty(party);
+      if ((isBus ? isOperator : isMyParty) && party.status === "모집중" && now >= endDateTime) {
+        nextTimeout = party;
         break;
       }
     }
+    timeoutPartyRef.current = nextTimeout;
+    setTimeoutParty(nextTimeout);
   }, []);
 
   const fetchData = useCallback(async (ownerName: string) => {
@@ -276,6 +295,7 @@ export function usePartyManager() {
         alert(`⏰ 희망 종료 시간이 ${newTimeEnd}까지 연장되었습니다.`);
       }
       setTimeoutParty(null);
+      timeoutPartyRef.current = null;
       const ownerName = user?.username || user?.nickname || user?.owner || "한설";
       fetchData(ownerName);
     } catch (err: any) {
@@ -316,23 +336,26 @@ export function usePartyManager() {
         setInspectCharacter(null);
         setJoinPopupParty(null);
         setIsMobileFormOpen(false);
-        setTimeoutParty(null);
+        dismissTimeout();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [dismissTimeout]);
 
   useEffect(() => {
     setMounted(true);
     let ownerName = "한설";
+    timeoutActor.current = {account:ownerName,isAdmin:false};
     const savedUser = localStorage.getItem("nexus_user");
     if (savedUser) {
       try {
         const parsed = JSON.parse(savedUser);
         setUser(parsed);
         ownerName = parsed.username || parsed.nickname || parsed.owner || "한설";
-        setIsAdmin(["길드마스터", "부마스터", "부마스터 대행"].includes(parsed.role ?? parsed.account_role));
+        const canOperateBus = ["길드마스터", "부마스터", "부마스터 대행"].includes(parsed.role ?? parsed.account_role);
+        timeoutActor.current = {account:ownerName,isAdmin:canOperateBus};
+        setIsAdmin(canOperateBus);
       } catch (e) {
         setIsAdmin(false);
       }
@@ -1243,6 +1266,7 @@ export function usePartyManager() {
     setIsBusModalOpen,
     targetBusParty,
     timeoutParty,
+    dismissTimeout,
     fabPos,
     isDraggingFab,
     myCharacters,

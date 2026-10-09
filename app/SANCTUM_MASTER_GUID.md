@@ -1,5 +1,16 @@
 # 🏛️ SANCTUM Master Guide
 
+## 2026-10-10 v2.21 공식 배포 범위
+
+- v2.2 길드버스 묶음 이후 만료 안내 담당자 제한 후속. lib/release.ts=v2.21, 구조는 아래 만료 안내 절의 현재 운행자 판정/페이지 수명 닫기 관리만 변경된다. API/DB/RLS/권한/Realtime 추가 변경 없음. IRIS/즐겨찾기 로컬 변경은 이번에도 제외한다.
+- 업데이트 공지는 기존 app/api/notices/mutate의 길드마스터 save·생텀 업데이트 카테고리를 사용한다. 작성자 SANCTUM 시스템 강제와 같은 제목 중복 방어가 기존에 구현되어 있다. 새 자동 게시/권한 우회 기능은 만들지 않는다. 배포 후 화면/게시 결과는 HANDOFF·RELEASE_NOTES 최신 절을 따른다.
+- staged 후보 전체 Node/독립 tsc/52경로 webpack Production 빌드 exit0, 범위 한정 독립 리뷰 blocking0. 환경 제한으로 실패한 첫 Node 실행과 허용 환경 재검증을 구분해 RELEASE_NOTES에 기록한다.
+
+## 2026-10-10 SYNAXIS 만료 안내 담당자 제한 — 로컬 미배포
+
+- hooks/usePartyManager.checkTimeouts는 길드버스에 공통 isBusOperator(현재 리더 계정/본인 캐릭터+운영진)를 적용한다. 초기 조회가 state 갱신 전 역할을 읽지 않게 timeoutActor ref 사용, 이후 조회에서 대상이 없어지면 안내 제거. 서버 권한과 기존 연장/취소 API는 유지한다.
+- /party 만료 안내에 닫기·바깥·기존 Escape 연결, dismissTimeout은 일정/현재 리더 키를 현재 페이지 동안 보관해 같은 안내 재노출을 막는다. 일정이 바뀌면 다시 안내, 페이지 새로고침은 보관을 초기화한다. 일반 파티 만료의 참가 범위/버스 목록/DB 구조 변경 없음. 18 신규 회귀 및 관련86·타입 통과, 공식 버전은 아직v2.2/미배포.
+
 ## 2026-10-10 v2.2 배포 범위
 
 - fb9150d origin/main·Vercel GitHub 성공 9FedV9MiUDCvv5JNsPcgP4CnDaVC 이후 운영 party/character/kerygma v2.2와 실제 데이터 확인. 핵심6주소 GET200, 콘솔 오류 없음. MCP 직접 Ready 접근 제한 및 기존 만료 팝업으로 새 모달 운영 열람 제한은 HANDOFF에 남긴다. 이후 아래의 '로컬 미배포' 절 제목은 작업 당시 경과이며 길드버스 묶음은 이번 공식 배포에 포함됐다.
