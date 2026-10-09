@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { isGuildBusParty } from '@/lib/guildBusPolicy';
 import { getServerSupabase, getSessionAccount, isPendingAccount, SANCTUM_SESSION_COOKIE } from "@/lib/server/sanctumSession";
 import { cleanItemName, setTaskChecked } from '@/lib/matchingUtils';
+import {busSettingsSnapshot,matchesBusSnapshot} from '@/lib/guildBusSettings';
 
 const ADMIN_ROLES = new Set(["길드마스터", "부마스터", "부마스터 대행"]);
 const getName = (member: any) => member?.character_name || member?.name;
@@ -12,7 +13,7 @@ export async function POST(request: NextRequest) {
     if (origin && origin !== new URL(request.url).origin) return NextResponse.json({ message: "요청 출처를 확인할 수 없습니다." }, { status: 403 });
     const account = await getSessionAccount(request.cookies.get(SANCTUM_SESSION_COOKIE)?.value);
     if (!account || isPendingAccount(account)) return NextResponse.json({ message: "로그인이 필요합니다." }, { status: 401 });
-    const { partyId, completedNames, finishRound } = await request.json();
+    const { partyId, completedNames, finishRound, baseline } = await request.json();
     if (!(typeof partyId === "number" || typeof partyId === "string") || !Array.isArray(completedNames) || completedNames.length > 8) {
       return NextResponse.json({ message: "파티 정보를 확인할 수 없습니다." }, { status: 400 });
     }
@@ -26,6 +27,7 @@ export async function POST(request: NextRequest) {
     const isBus = isGuildBusParty(party);
     const isOperator = ADMIN_ROLES.has(account.role) && (account.nickname === party.leader_name || (ownCharacters ?? []).some(c => c.nickname === party.leader_name));
     if (isBus && !isOperator) return NextResponse.json({message:'현재 길드 버스 운행자만 완료 처리할 수 있습니다.'},{status:403});
+    if (isBus && finishRound===true && (!matchesBusSnapshot(party,baseline) || party.status==='종료됨')) return NextResponse.json({message:'버스 설정이나 참가자가 변경됐습니다. 새로고침 후 현재 회차를 확인해주세요.'},{status:409});
     if (!ownsPartyMember && !ADMIN_ROLES.has(account.role)) return NextResponse.json({ message: "파티 참여자만 완료 처리할 수 있습니다." }, { status: 403 });
     const names = [...new Set(completedNames.filter((name: unknown) => typeof name === "string" && partyNames.has(name)))];
     if (names.length !== completedNames.length) return NextResponse.json({ message: "파티에 없는 캐릭터가 포함됐습니다." }, { status: 400 });
@@ -54,8 +56,12 @@ export async function POST(request: NextRequest) {
         Number(completed.has(getName(a)))-Number(completed.has(getName(b))) ||
         (a.selection_order ?? members.indexOf(a))-(b.selection_order ?? members.indexOf(b))
       ).map((member,index) => ({...member,selection_order:index,...(completed.has(getName(member)) ? {is_completed:true} : {})}));
-      const {data: saved,error} = await supabase.from('parties').update({members:nextMembers,status:'운행중'})
-        .eq('id',party.id).eq('members',JSON.stringify(party.members)).select('id');
+      let saveQuery = supabase.from('parties').update({members:nextMembers,status:'운행중'}).eq('id',party.id);
+      for (const [key,value] of Object.entries(busSettingsSnapshot(party))) {
+        if (!(key in party)) continue;
+        saveQuery=value==null ? saveQuery.is(key,null) : saveQuery.eq(key,key==='members' ? JSON.stringify(value) : key==='selected_sub_contents' && Array.isArray(value) ? `{${value.map(v=>`"${String(v)}"`).join(',')}}` : value);
+      }
+      const {data: saved,error} = await saveQuery.select('id');
       if (error) throw error;
       if (!saved?.length) return NextResponse.json({message:'숙제는 저장됐지만 참여 정보가 변경돼 회차를 전환하지 못했습니다. 새로고침 후 다시 시도해주세요.'},{status:409});
     }

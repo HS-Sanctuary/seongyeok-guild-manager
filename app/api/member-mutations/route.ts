@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSupabase, getSessionAccount, isPendingAccount, SANCTUM_SESSION_COOKIE } from "@/lib/server/sanctumSession";
 import { mergeChecklistEdit, setChecklistField } from '@/lib/matchingUtils';
 import { isGuildBusParty } from '@/lib/guildBusPolicy';
+import {saveGuildBusSettings, BusSettingsError} from '@/lib/server/guildBusSettings';
+import type {Member} from '@/components/party/types';
 
 type Table = "characters" | "parties" | "inquiries";
 type Action = "insert" | "update" | "upsert" | "delete";
@@ -127,12 +129,24 @@ export async function POST(request: NextRequest) {
         }
       } else {
         if (filter?.column !== "id") return NextResponse.json({ message: "파티 ID가 필요합니다." }, { status: 400 });
-        const { data: party } = await supabase.from("parties").select("id, leader_name, members, sub_content, memo, party_type").eq("id", filter.value).maybeSingle();
+        const { data: party } = await supabase.from("parties").select("*").eq("id", filter.value).maybeSingle();
         if (!party) return NextResponse.json({ message: "파티를 찾을 수 없습니다." }, { status: 404 });
-        const oldMembers = Array.isArray(party.members) ? party.members : [];
+        const oldMembers: Member[] = Array.isArray(party.members) ? party.members : [];
         const actorInParty = oldMembers.some((member) => ownNames.has(memberName(member) ?? ""));
         const isLeader = ownNames.has(party.leader_name ?? "");
         const isGuildBus = isGuildBusParty(party);
+        if ('_busSettings' in cleanPayload) {
+          if (!isGuildBus || action!=='update' || Object.keys(cleanPayload).length!==1 || !isAdmin || !(isLeader || account.nickname===party.leader_name)) {
+            return NextResponse.json({message:'현재 길드 버스 운행자만 설정을 수정할 수 있습니다.'},{status:403});
+          }
+          try {
+            const data=await saveGuildBusSettings(supabase,party,cleanPayload._busSettings,ownNames);
+            return NextResponse.json({data});
+          } catch (error) {
+            if (error instanceof BusSettingsError) return NextResponse.json({message:error.message},{status:error.status});
+            throw error;
+          }
+        }
         if (isGuildBus && action === 'update') busMembersBefore = party.members;
         const busAction = cleanPayload._busMemberAction;
         if (isGuildBus && isRecord(busAction)) {

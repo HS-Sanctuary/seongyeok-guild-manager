@@ -1,3 +1,4 @@
+import {parseBusClock} from './guildBusSettings';
 export type BusWindow = { party_date?: string; time_start: string; time_end: string };
 export type BusEntry = { character_name: string; time_start?: string; time_end?: string; is_completed?: boolean; allow_repeat?: boolean };
 
@@ -7,11 +8,7 @@ export function isGuildBusParty(party: {party_type?: string; is_guild_bus?: bool
 }
 
 function minutes(time: string | undefined): number | null {
-  const match = /^(\d{1,2}):(\d{2})$/.exec(time || '');
-  if (!match) return null;
-  const hour = Number(match[1]);
-  const minute = Number(match[2]);
-  return hour <= 24 && minute < 60 && (hour !== 24 || minute === 0) ? hour * 60 + minute : null;
+  return parseBusClock(time);
 }
 
 export function eligibleBusCandidates<T extends BusEntry>(members: T[], bus: BusWindow, now: Date): T[] {
@@ -29,15 +26,19 @@ export function eligibleBusCandidates<T extends BusEntry>(members: T[], bus: Bus
   const todayKst = `${kstParts.year}-${kstParts.month}-${kstParts.day}`;
   const date = /^\d{4}-\d{2}-\d{2}$/.test(bus.party_date || '') ? bus.party_date! : todayKst;
   if (date > todayKst) return [];
-  const sameDay = date === todayKst;
-  const minuteNow = sameDay ? Number(kstParts.hour) * 60 + Number(kstParts.minute) : (date < todayKst ? end : start);
-  if (minuteNow >= end) return [];
+  const days=(Date.parse(`${todayKst}T00:00:00Z`)-Date.parse(`${date}T00:00:00Z`))/86400000;
+  const minuteNow = days*1440+Number(kstParts.hour)*60+Number(kstParts.minute);
+  if (minuteNow < start || minuteNow >= end) return [];
   return members.filter((member) => {
     if (member.is_completed && !member.allow_repeat) return false;
-    const memberStart = minutes(member.time_start) ?? start;
+    let memberStart = minutes(member.time_start) ?? start;
     const memberRawEnd = minutes(member.time_end) ?? end;
-    const memberEnd = memberRawEnd <= memberStart ? memberRawEnd + 1440 : memberRawEnd;
-    return [0, 1440].some((offset) => minuteNow >= memberStart + offset && minuteNow < memberEnd + offset);
+    let memberEnd = memberRawEnd <= memberStart ? memberRawEnd + 1440 : memberRawEnd;
+    // Prefer an overlapping same-day window; infer midnight-only slots on the following day.
+    if (!(memberStart<end && memberEnd>start) && end>1440 && memberStart<1440 && memberEnd<=1440 && memberStart+1440<end && memberEnd+1440>start) {
+      memberStart+=1440;memberEnd+=1440;
+    }
+    return minuteNow >= memberStart && minuteNow < memberEnd;
   });
 }
 

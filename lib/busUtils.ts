@@ -2,6 +2,7 @@ import { supabase } from "@/lib/supabase";
 import { memberMutation } from "@/lib/memberMutationClient";
 import { NexusContent, ContentPowerReq, NexusClassItem } from "@/components/party/types";
 import { setTaskChecked } from '@/lib/matchingUtils';
+import {resolvePartyRole,parsePartyStat} from '@/lib/partyRosterValues';
 
 // 🎯 ts(2459) 에러 차단 및 외부 사용을 위한 Re-export 선언
 export type { NexusContent, ContentPowerReq, NexusClassItem };
@@ -337,28 +338,7 @@ export function formatAbyssBadgeText(contentName: string, subContents?: any, con
  * 🎯 100% DB(`nexus_classes`) 기반 동적 역할군 조회 함수 (Single Source of Truth)
  */
 export function getRoleByJob(jobName: string, classCatalog?: NexusClassItem[]): JobRole {
-  if (!jobName) return "근딜";
-  const j = jobName.trim();
-
-  // 1. 전달받은 카탈로그에서 1차 탐색
-  const catalogToUse = (classCatalog && classCatalog.length > 0) ? classCatalog : nexusClassesCache;
-
-  if (catalogToUse && catalogToUse.length > 0) {
-    const found = catalogToUse.find((c) => c.name === j || c.name.toLowerCase() === j.toLowerCase());
-    if (found && found.role) {
-      // 서포터는 음유시인 클래스에만 허용한다.
-      if (found.role !== "서포터" || j === "음유시인") return found.role as JobRole;
-    }
-  }
-
-  // 2. Fallback 키워드 매칭
-  if (j === "대검전사") return "근딜";
-  if (["빙결술사", "빙결", "기사", "전사", "성기사", "수호자"].some((k) => j.includes(k))) return "탱커";
-  if (["사제", "수도사", "힐러", "성직자", "구원자"].some((k) => j.includes(k))) return "힐러";
-  if (j === "음유시인") return "서포터";
-  if (["궁수", "석궁사수", "마법사", "화염술사", "전격술사", "장궁병", "악사", "암흑술사"].some((k) => j.includes(k))) return "원딜";
-
-  return "근딜";
+  return resolvePartyRole(jobName,(classCatalog && classCatalog.length>0) ? classCatalog : nexusClassesCache ?? undefined);
 }
 
 export const getJobRole = getRoleByJob;
@@ -370,11 +350,7 @@ export function findPartyPowerReq(reqs: ContentPowerReq[], contentName: string, 
 }
 
 export function parseCP(val: any): number {
-  if (typeof val === "number") return val;
-  if (!val) return 0;
-  const str = String(val).replace(/,/g, "").trim();
-  const parsed = parseInt(str, 10);
-  return isNaN(parsed) ? 0 : parsed;
+  return parsePartyStat(val);
 }
 
 export function getShortNickname(name: string, maxLength: number = 6): string {

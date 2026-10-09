@@ -62,7 +62,7 @@ export default function PoolStatusModal({
         <div className="p-3.5 sm:p-4 border-b border-[var(--panel-border)] flex items-center justify-between bg-[var(--inner-box)] shrink-0">
           <div className="flex items-center gap-2 text-sm sm:text-base font-black text-[var(--accent)]">
             <Users className="w-5 h-5 text-[var(--accent)] shrink-0" />
-            <span>📋 참전 현황 & 대기열 ({totalCharCount}캐릭터)</span>
+            <span>📋 참가 인원 List & 대기열 ({totalCharCount}캐릭터)</span>
           </div>
           <button
             type="button"

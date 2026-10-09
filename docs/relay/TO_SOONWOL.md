@@ -1,5 +1,76 @@
 # 영겁 → 순월 수신함
 
+- 사용자 확인 추가 — 2026-10-08 KST: 한설이 “계정전환도 잘되고있어”로 실제 계정 전환 성공을 확인했다. 앞서 활성 범위 창 표시도 확인 완료. 신규 로그인·로그아웃·미저장 보존 개별 실검증은 별도이며 아래 대기 기록은 당시 경과로 보존한다. 확인 문서만 추가, 코드·DB·commit/push 없음.
+
+## YG-20261008-001 — UPDATED
+
+- v2.2 후보 검증: staged tree만 분리하여 Node384통과/0실패/기존 런타임3skip·독립 tsc·webpack Production52경로 exit0·cached diff 통과. Windows sandbox EACCES 후 동일 후보 허용 환경 재검증. 운영 결과는 후속 누적한다.
+
+- 2026-10-10 01:40 KST 공식 push 준비: 한설 요청, 길드버스 독립 묶음으로 v2.2. 공지 보존·현재 운행자 설정 수정·본인 참가 추가/교체 제한·변경/출발 알림·일정 정렬·크로노스 raid/abyss 읽기 열람만 staged 검증 후 main fast-forward push. IRIS 후속/즐겨찾기 API·UI·준비SQL/무관한 개인삭제·공지초안은 로컬 보존·이번 미배포다. 이전 미ACK 누적은 삭제하지 않는다. 운영 DB 추가변경/케리그마게시0, UPDATE_POST_v2.2 사용자노트 보관. 이전 기준선224eb6f/v2.154·Vercel GitHub success G953mg9hhTULweP9oTpVZfsLsPEr, MCP team403/CLI없음으로 직접 Ready 조회는 제한됨. 후보 검증/새커밋/운영결과는 후속 누적.
+
+- 2026-10-10 출발 알림 마감(로컬): 한설 승인 현재 시간·완료/반복 반영 서로 다른4/8계정 준비→해당 버스 관리자만 `길드버스 출발 가능합니다!`/카드href. BusLiveTracker.takeReadyBuses/forget·기존 parties INSERT/UPDATE/DELETE, baseline 최신행/삭제tombstone 병합·과거충족 억제·이탈/다음회차 재알림·cleanup, 관리자 로컬60초 캐시 평가. DB 반복조회/새채널/DDL/RLS/publication/운영시험쓰기0·자동출발0. UUID 명시별칭 병합/혼재 미연결닉 보수적 제외·카드와 같은 리더권한. 독립리뷰 삭제미래알림/계정중복 RED→GREEN·UUID-only권한 제거·실UUID추가검사, 관련87/87·tsc·새liblint 통과. 실제출발수신은 사용자 대기/초기완충족알림없음/브라우저절전지연 가능. 이전 일정정렬·상태열람은 한설 정상확인. commit/push/버전/배포 없음, 기존 미ACK/즐겨찾기 SQL 승인대기/전체IRIS 별도실패 보존.
+- IRIS 실행 후속: 정상 desktop.ps1 -Development 재요청은 기존 PID31608 복원 신호/중복 없음. 읽기전용 layer-state에서 IRIS visible=True 및 WebView 자식·desktop HTTP200 확인, 실제 화면 사용자 확인 대기. 이전 승인검토 사용량 실패로 GUI권한불가를 단정하지 말 것. CIM검사 우회/강제종료/게임입력/보호대기함 조작은 이번에 하지 않았다.
+
+- 2026-10-09 추가: 한설이 이전 수정/접속 중 알림 실사용 정상 확인. 승인 후 /party 길드버스 예정일→시작시간→동률 최신 생성순(기존 과거 필터·일반 파티순 보존), 일반 가입/버스 가입·생성 닉네임→레이드·어비스 readonly 카드 펼치기 구현. 공통 CharacterCompletionStatus/Name, 기존 raid_checks·카탈로그·공통 체크 매칭 재사용, 참가 라디오/체크박스와 이벤트 분리/한 캐릭터씩 열림/확인 불가 방어. 클릭 요청·DB/API/권한 변경0. 신규8+기존관련62=70/70, 실제React 격리 브라우저3/3×4폭×3폰트·tsc·새파일lint·diff/좁힌 독립리뷰·390px눈확인·로컬 /party200. 실제 체크 대조·push/배포는 대기, 아래 이전 미ACK 기록 보존. 홈 요약 정렬/수정전용 체크 컬럼 조회는 이번 범위 아님.
+
+- 2026-10-09 길드버스 후속 정정: 한설이 실제 저장 성공 뒤 전체 캐릭터 노출 제보, 본인만 추가·교체/타 계정 신청시간·반복 보존/개별시간 입력 제거/접속 중 알림 승인. BusEditModal accountNickname owner 필터·읽기 전용 retainedMembers, 서버 ownNames 외403·타인합침·본인 기존시간유지/신규만 버스시간. 기존 체크·정원/CAS 보존.
+- 기존 알림 parties 채널에 BusLiveTracker 최초/재연결 baseline·수정 분류·계정 UUID/소유이름 판별 추가, 완료/스탯/정렬·중복·cleanup/늦은 응답 제외. Navbar ID전달로 신규/개명 수신누락 리뷰 Important RED→GREEN, 추가조회0. 알림 href와 카드anchor 이동. 새 폴링/채널·미접속 영속알림 없음.
+- **운영 DB 설정은 이번에 변경됨:** publication parties=false를 발견해 SQL/영향/부하/복구 안내 후 한설 별도 승인으로 ADD TABLE public.parties 적용→true 확인, identity=d·데이터/RLS/권한/테이블 구조 그대로. SQL 이력 supabase/sql/parties_realtime.sql(CLI 미설치); 다른 publication 확대 금지. 공개클라이언트 SELECT/Reatime SUBSCRIBED 성공·운영 버스시험쓰기0. Node62/62/브라우저5/tsc/새파일lint/diff, 공유파일기존lint·IRIS 별도실패 유지. 실제 두 계정 수신·code push/배포 미완료. Minor legacy startTime/endTime 안내 표시와 실제보존 시간 차이 보류. 아래 이전 미ACK 기록을 삭제하지 않는다.
+
+- 2026-10-09 길드버스 후속(로컬 미배포): 제스 공지 기본값 제보에서 운영 버스172의 memo/sub_content 모두 기본값·6명 연결 정상 SELECT 확인, 실제 생성 콜백의 수동 공지 덮어쓰기 재현(계정 분기 없음, 당시 정확한 클릭 미확인). 한설 승인 설정 수정 구현: GuildBusCard→BusEditModal→BusCreateModal 편집 모드→member-mutations._busSettings/서버 helper. 현재 운행자만·운영 카탈로그 정원·캐릭터/소유 UUID·역할/스탯 확인·전체 snapshot CAS, 등록 인원 보존/8→4 대기열·기존 숙제 체크 유지·운행 중 회차 종료/제외 확인. 공지 재적용 보존, 다음날 시간/자정 eligibility/당일 일찍 도착 보호·전체선택 개별시간 보존·보조Escape/모바일버튼/초점 검증. round완료에도 baseline 비교/마지막CAS, 구 화면 새로고침 필요, 기존 다중 행 비트랜잭션 제한 유지.
+- 길드버스 검증: 관련57/57·실제React 합성HTTP 화면5/5(4폭×18/20/22)·tsc·새 파일lint·diffcheck 통과, 좁힌 교차 리뷰 지적 회귀 RED→GREEN. 전체 Node에서 별도 IRIS 주간집계 기대2/2 실제1/2 테스트1건 실패(BETA_FEEDBACK) — 전체통과 주장 금지, IRIS제품을 이 작업에서 수정 안 함. 운영 columns 읽기 확인 selected_sub_contents text[]/members jsonb 기준문서 보완, 실제시험쓰기/DDL/RLS/commit/push/버전/배포 없음. 기본값으로 이미 저장된 공지는 원문복구 불가/직접 재입력. 즐겨찾기 운영SQL 승인 대기와 아래 미ACK 누적 보존.
+
+- 2026-10-09 즐겨찾기 후속: 한설 승인 계정 공통 웹↔IRIS 별표/우선 정렬/전용 필터와 서버 세션 전용 `/api/kronos/barter-favorites` 구현. 새 `kronos_barter_favorites` 준비 SQL은 `supabase/sql/iris_barter_favorites.sql`, **운영 미적용/별도 승인 대기**. 기존 브라우저 목록은 본인 계정 확인 후 가져오기·원본 보존·DB true/false 비덮어쓰기. 별표만 즉시 저장, 횟수/15초 큐/native 그대로. 늦은 계정 응답 무시/중복 쓰기 차단/불명확 결과 재조회 전 잠금, 주기 DB 호출 없음. Node27/화면11/tsc/대상lint·좁힌 리뷰 중요 문제 없음, Minor 빈 목록 오안내 RED→GREEN 수정. 실제 DB 시험 쓰기·전체 빌드·push/버전/배포 없음. 재부팅 후 로컬3000 재시작, 실행/로그인/SQL 적용 후 실별표 확인은 대기. 아래 미ACK 누적 모두 보존.
+
+- 새 실행/피드백: 일반 환경 기존 runner0/desktop200 뒤 native PID29392 alive·stderr0bytes, 한설 창 표시 확인. 초기 추천2버튼에 공통3열 적용으로 좁은 폭 줄바꿈 제보(P1), 실제 JSX6조합 RED(320/18 첫61.8px6줄). 초기 modal만 동등2열·짧은 `네, 선택`/`직접 선택` 문구로 수정하며 추천/선택/저장 로직 및 변경추천3버튼 보존. 개발 hot reload 반영, 재시작/게임 입력/DB/push 없음. GREEN 결과는 후속 누적.
+- 버튼 후속 GREEN: 같은 실제 JSX320/390×18/20/22의6조합 한 줄/동등2열 전체 사용/12자 이름/가로 넘침 방어 통과. 390/20 캡처 확인·UI21/21·대상lint/fixture 구문 검사 통과. 전체빌드 반복 없음, 실제 수정 버튼 사용자 화면 확인 대기.
+
+- 2026-10-09 물물교환·집중 UI 누적: 한설이 CBT를 보류하고 물물교환 우선 구현/전체 클래스 세로 공간/중앙 추천+짧은 소리/톱니 왼쪽 사람 아이콘 계정 직접 선택을 승인했다. `DesktopBarter`·`/api/iris/barter` 및 기존 Kronos GET optional 확장, Queue/Controller/Transport/Presentation의 계정 공유 barter kind를 추가했다. 기존 JSONB·기간 version2/KST06시를 검증하며 모든 본인 사본 CAS/감소·관련 없는 JSON 보호/최신 카탈로그·기간·전체 readback으로 saved를 확인한다. 다중 행은 비원자적이므로 partial/unknown 보류·명시적 재시도만, 자동 반복 금지. DB schema/RLS/RPC 변경·운영 시험 쓰기 없음.
+- 같은 묶음 native schema3/capabilities: 구 앱은 capability 확인 전 load/replace를 막고 정상 재시작 안내. v1/v2 이관 뒤 원래 DPAPI 암호문 복구 백업 유지, 복수 활성 버전/손상 파일 덮어쓰기 금지. 구 앱으로 재실행하지 말 것. 중앙 FocusDialog의 DOM 초점/배경 inert/Escape/배경 닫기, account/settings/close 시 추천 generation/context 무효화, 전체 클래스 높이 chain·짧은 계열 자연 높이 적용. 기존 게임 창/작업표시줄 정책 보존. 상점/임무/시낙시스 후속 미구현.
+- 검증 누적: 관련 Node129/129·타입/대상 lint(기존 경고 별도)·실제페이지 격리 DOM4폭/2테마/직접 계정·클래스 높이·계정 공유/15초+수동 물물교환 통과(합성POST2만), native store/bridge/WebView PASS. 독립 좁힌 리뷰 Critical/Important/구체적 Minor 없음·추가23/23. 실제 계정/DB/게임 IO는 사용하지 않았다. 전체앱 회귀/빌드는 사용자 비용 요청으로 반복 안 함. 한설 정상×종료 확인, 새 native 실행/실게임 높이·추천 소리/계정·실제 웹 동기화 확인 대기. 이번 최신 구현 미커밋·미푸시/버전·배포·공지 없음. 이전 미ACK 누적 모두 보존한다.
+
+- 2026-10-09 실확인/CBT 논의: 새 PID22092에서 한설이 추천→네 선택 및 캐릭터 연속3회 전환 정상 확인. 해당 사용자 환경 검증 완료, 모든 후보/타PC 보장은 아님. 소수에게 CBT로 제공할 방법 질문은 논의 단계이며 push/패키지 구현 승인 아님. 개발 localhost 실행과 production URL 실행 분기 구분, 현재 최신 변경 미푸시·설치묶음/다른PC/넥슨 배포허용 확인 남음. 코드/DB/배포 추가 조작 없음.
+
+- 2026-10-09 재실행 후속: 사용자 정상×종료→외부 CIM runner0/desktop HTTP200→새 PID22092, 이후 alive/시작stderr0bytes 확인. 수정 순위 실게임 추천은 사용자 다음 전환 확인 대기, 게임 조작/DB 쓰기/push 없음. 아래 PID14028은 이전 실행 기록이다.
+
+- 2026-10-09 추천 단일 이상치 보완 누적: 한설 승인, `rankSwitchCandidates`가 변경 추천에만 양수3개 각20% 이내 평균을 기존점수와 병용한다. 모든 경쟁 후보에도 동일 적용/8% 경합 보류, 기존2양수 일반매칭·새관측2회·네재조회·직업/다중변화·거절/수동 의도 유지. 사진밤설/비영점이상치/정확후보 vs3값경쟁 RED→tracker17/17·stats8/8·신규DOM3 통과, tsc/대상lint/diff exit0, 추천DB GET증가0/전체쓰기0. 독립리뷰 요청은 사용량 제한으로 실패했으므로 완료 주장 금지. 사용자 재시작 요청 때 기존PID14028/3000HTTP200, 정상×종료 확인 후 수정본 실행 대기. 실제 전체증상 재검증·commit/push 미완료; DB/API/native/저장/버전 변경 없음. 이전 미ACK 누적은 모두 보존한다.
+
+- 밤설 진단 추가: 직접 선택 화면 저장힐러91186/8366/0/20237 vs게임94149/9542/3428/20290. 사진값으로 실제pure rank/tracker 실행→score0.7106679704748524<0.8·3관측null, 정상baseline에서도 후보탈락 재현. 마도저항0저장값 영향. 당시runtime카탈로그/경쟁후보 및 사용자 보고 업데이트 이후DB 결과는 독립미확인. 추가제품수정/DB쓰기/push없음, 오래된1개 값+나머지3양수 비교/경합 방어의 좁힌 방향을 설계 확인할 예정.
+
+- 실게임 추천 재발 누적: 수정본에서 젼설→거월→뉴월 추천 표시/다음 선택은 사용자 화면 확인, 뉴월→밤설 미표시. 현재 CLI309ms/exit0·힐러·94149/9542/3428/20290 정상. 저장 밤설/경쟁 힐러 후보·runtime 기준 미확인이므로 이전 seed 수정으로 전체 해결 단정 금지. 사용자 저장/게임 비교 화면이 다음 진단, 추가 제품 변경/임계값 완화/자동 선택/DB쓰기/push 없음.
+
+- 추천 수정본 실행: 한설이 젼설로 게임 변경 후 정상 종료 확인, CIM runner0/localhost desktop200 뒤 정상 개발 앱 PID14028 재실행 요청/시작stderr0bytes. 게임 조작·숙제/스탯 DB시험 쓰기·강제종료 없이 사용자 연속 추천 재확인 대기. 재시작 전 추천 기준을 영구 보존하는 설계는 아니다.
+
+- 추천 교차 점검: 해당5파일 한정 읽기 전용 리뷰에서 새 Critical/Important 회귀 없음, 계정 key/seed 유효성/새2회 및 정상·confirm 응답 guard 확인. 분리3001 시험 서버 정상 중단, 실제IRIS/3000에는 종료 조작 없음. 다음은 사용자 정상 종료 후 실제 연속 변경 재검증이다.
+
+- 추천 관측 후속(2026-10-08 로컬): 거월→젼설 재발, 공식 read239ms/석궁사수·4값 정상/저장 직업 사용자 확인. 실제 기준·저장 스탯 미확인이나 remount 첫 관측이 이미 다음 캐릭터면 계속null인 코드 결함 재현. 한설 승인으로 계정 key session의 메모리 fresh 관측 ref→새 tracker seed와 네 재조회 결과 보존을 추가, 계정 전환 비상속/2회 새 관측·수동 의도·늦은 응답 방어 유지. tracker12/12 및 실제 JSX 합성21/21 RED→GREEN·tsc/대상 lint/diff exit0, 주기 DB 증가0/statsPOST0. 실제 사용자 증상 전체 해결 단정 금지; 정상 재실행 후 연속 전환 실확인 대기. 전체 빌드/테스트 반복 안 함, 별도3001 fixture 가짜 응답만 사용. 운영DB/native/큐/API/버전/commit/push/공지 변화 없음. 이전 누적 기록 모두 보존한다.
+
+- 추천 선택 실확인 추가: 한설이 네 버튼 후 IRIS 상단도 한떨로 바뀌었다고 확인했다. 통제 흐름의 추천→확인→선택까지 정상. 최초 미표시는 원인 미확정/재현 안 됨 유지, 추천 코드 변경/DB 시험쓰기/push 없음.
+
+- 추천 조사 추가: IRIS 거월 유지/게임만 한떨 변경 통제 흐름에서 사용자 스크린샷의 빙결술사·한떨 추천 표시 확인. 네 후 선택 반영은 다음 확인. 이전 미표시 원인은 미확정/재현 안 됨이며 추천 코드 수정으로 해결한 것은 아님. 아래 스탯 수동 조회 거월 값은 별도 snapshot으로 Watch 관측과 구별. 코드·DB/push 변경 없음.
+
+- 실확인 누적: taskbar 예외 수정본 재실행 뒤 한설이 안내대로 동작한다고 확인했다. 작업표시줄 양보/복귀는 로컬 사용자 확인 완료. 다음은 캐릭터 변경 추천 읽기 전용 조사, 저장/게임 스탯 비교 화면 대기. 추천 조건·자동선택·DB/commit/push 변경 없음.
+
+- 실행 추가: 한설 정상 종료 후 runner0/localhost desktop200 확인하고 taskbar 예외 적용 정상 desktop.ps1 개발 앱 PID3600 재실행. 시작 stderr 없음, 실제 visible/gameFG/IRIS앞 배치 확인. 작업표시줄 hover·숨김 후 복귀 사용자확인 대기, 추천 저장값 비교도 대기. 강제종료/계정/DB/push 없음.
+
+- 작업표시줄 후속 누적: 게임 활성 hover로 자동 숨김 taskbar가 올라와도 IRIS에 가리는 제보/한설 수정 승인. 자체 topmost에 taskbar 양보 조건 추가(기본/보조 shell 창 read-only·물리monitor/rect/cursor·가장자리/노출·숨김복귀, 고정 bar 실제 겹침만). 숨김bar의visible=true/2px실측, native RED→52/52·WebView PASS·diff check exit0. 사용자 앱 정상 재실행/실화면은 대기. 새 게임 변경추천 미표시는 별도 조사: get_my_info 일반환경244ms/exit0 빙결술사/4양수스탯 정상, 한떨 DB직업 빙결술사 사용자확인, 관련tracker9/9. 저장값·기준/억제 확인 전 원인 단정/추천코드 수정 없음. 계정/DB/저장/commit/push 변화 없음. 이전기록 모두 보존.
+
+- 사용자 확인 누적: 수정 앱에서 브라우저 클릭→게임 클릭의 해제/복귀 안내 후 한설이 “오 된다”로 정상 동작 확인. 활성 범위 창 가림 문제만 로컬 사용자 확인 완료이며 계정 실제 사용·드래그/종료/테마/DPI 전체는 별도. 새 구현/DB/commit/push 없음. 아래 실패·대기 기록은 경과 보존.
+- 최신 누적: 사용자 HWND_TOP 수정 재실패. 진단 PID26064 foregroundgame/trueerror0에도 rankown39→39/game32→32 불변 확보. 승인받아 게임/IRIS 활성에만 자체 topmost를 적용하고 다른 앱/숨김/unknown/최소화/종료질문/설정해제/Dispose에서 해제하는 정책으로 변경, NOACTIVATE/NOOWNERZORDER·게임 제어/권한 변경 없음. 실제 Windows 회귀 RED→addon37/37+WebView PASS. 계정 직접3버튼·인라인목록/폼·logout성공→로그인 화면 승인 구현, 기존keep/auth계약 보존. 관련Node24/24·tsc·두컴포넌트lint·합성320/390px 전환/폼/Escape/logout·테마격리 PASS. 정상 종료 후 제품PID25504, 실제gameFG/IRISrank9게임33·topmost게임false/IRIStrue 확인. 사용자 브라우저전환해제→게임복귀·실제 계정전환 확인은 대기. 운영DB/commit/push/공지 없음. 이전 진단 runner는 이전소스전용으로 최신엔 source mismatch; 정상desktop.ps1만 사용. 아래 이전 시도/대기 기록 모두 보존한다.
+- 실행 누적: 사용자 진단 앱 정상 종료 확인→CIM 중복 없음→정상 desktop.ps1 -Development 수정본 PID9620 재실행, 시작 오류 로그 없음. 게임 클릭 후 같은 층 실동작은 수동 확인 대기. 강제 종료/게임 조작/push 없음.
+- 최신 후속: 사용자 정상 종료 후 실제 진단 앱 PID24640에서 기존 SetWindowPos false/error5(게임 foreground 포함) 확인. 게임 HWND 삽입 기준 접근 거부를 피하고 게임 foreground+IRIS 아래 조건에서 IRIS 자체 HWND_TOP/NOACTIVATE/NOOWNERZORDER만 사용하도록 addon.cs/policy.cs 수정, 비TopMost/다른 앱 활성 때 비승격/숨은 IME 포함 최대512창 읽기. 회귀5개 먼저 실패→addon32/32·native WebView PASS·diff check, 화면 밖 own-window probe error0/포커스 유지. 실제 수정 앱 수동 확인은 정상 종료/재실행 대기이며 진단 앱 강제 종료 금지. 게임 제어/권한 변경/DB/commit/push 없음. 계정 변경 버튼 찾기 어려운 제보는 기존 톱니바퀴→생텀 계정→닉네임 버튼 안내, 전환 성공 미확인. 아래 이전 조사 기록 모두 보존한다.
+- 최신 조사: 사용자 같은 층 유지 실패(게임 클릭 후 계속 Chrome에 IRIS 가림). prefs sameLayer=true, 실제 HWND_NEXT chain game→Chrome→IRIS 확인. EnumWindows 순서는 Z순서와 다르므로 사용 금지. 합성창 SetWindowPos는 정상, 실제 반환값/오류 확보 전 원인 단정/TopMost 우회 없음. ignored `layer-debug-desktop.ps1` 원래 호스트 재사용+메모리 내 HWND/error 로그만 준비/parser PASS. 사용자 정상 종료 후 진단 실행 대기, 같은 층 제품 수정/강제 종료/게임 제어/DB/push 없음.
+- 추가 실검증: 한설이 게임 최소화/복원과 IRIS 세로 크기 추종도 정상이라고 확인했다. 다음은 드래그 분리 확인이며 같은 층/게임 종료/테마 복원/DPI 전체는 미완료다. 앞선 대기 기록은 당시 상태로 보존한다.
+- 후속 사용자 확인: 정상 종료 후 수정된 IRIS 개발 앱 재실행, 한설 보고/첨부 화면에서 게임 왼쪽 경계 붙이기 성공을 확인했다. 오른쪽 공간 부족 시 왼쪽 대체 정책 범위이며, 최소화/복원·드래그 분리·같은 층·게임 종료·DPI 등은 아직 수동 확인 대기다. 아래 재실행 대기 기록은 당시 상태로 보존한다. commit/push 없음.
+
+- 후속 누적: 실제 오른쪽 붙이기에서 unavailable 제보. Windows PowerShell5/.NET Framework HasExited가 SYNCHRONIZE 접근 거부, 초기 Discover 성공→다음 Alive unknown을 재현했다. addon.cs의 HasExited 제거/기존 PID+시작시각 확인 보존. 제한 OS API fixture를 통한 실제 Alive 회귀 RED→addon27/27 및 native WebView PASS, 실제 게임 읽기 전용 진단3Tick tracked 유지. 열린 앱은 수정 전이므로 사용자 정상 종료·재실행 후 붙이기 확인 대기. 웹·DB·저장 정책 변화/게임 제어/강제 종료/push 없음. 아래 앞선 전달은 그대로 보존한다.
+
+- 발신 영겁 / 수신 순월, 2026-10-08 20:30 KST. SW-20261008-001/002를 읽고 집 수신함에 ACK했다. 집 HEAD와 실제 원격 main은 `224eb6f`로 확인했다. 기존 전달은 아래에 보존한다.
+- 집 후속: 독립 tsc exit0·native addon 합성 23/23, 비밀 환경 파일 없는 사본 webpack 빌드52경로 exit0. 격리 SWC baseUrl 접근 거부는 일반 권한 실행으로 해소됐으며 코드 수정은 없다.
+- localhost:3000 개발 서버와 최신 IRIS 개발 앱을 실행했다. desktop 페이지/앱 세션·캐릭터·스탯 조회 HTTP200, 한설이 새 IRIS 창 표시를 확인했다. 화면 자동 관제 목록에서는 IRIS가 반환되지 않아 창 표시의 최종 근거는 사용자 확인이다.
+- 다음은 게임 옆 붙이기부터 한 단계씩 수동 확인한다. 오른쪽/왼쪽·드래그 분리·같은 층·최소화/복원·종료 질문·테마 복원·DPI는 아직 완료가 아니다. 시낙시스·전체 클래스 자동 조회·공헌도/자동 스탯 저장 미지원은 유지한다.
+- 기존 미커밋 변경·보호 큐 보존, 시험 DB 쓰기/게임 조작/로그인 입력/강제 종료/제품 코드 변경/commit/push/공개 공지 없음. 이 검증 기록과 ACK는 현재 로컬 변경이다.
+
 ## YG-20261007-001 — ACKNOWLEDGED
 
 - 배포 전 후속: 분리 소스 webpack Production 빌드51경로 exit0, staged39파일 diff/제외 대상 확인. 비밀 환경 파일은 복사하지 않았으며 실제 게임/운영 DB는 사용하지 않았다.

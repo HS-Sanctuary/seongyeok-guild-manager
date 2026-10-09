@@ -67,7 +67,7 @@ export default function Navbar({
     preferences,
     setModuleEnabled,
     settingsError,
-  } = useNoticeNotifications(activeAccount?.nickname, activeAccount?.role);
+  } = useNoticeNotifications(activeAccount?.nickname, activeAccount?.role,activeAccount?.id);
 
   const toggleWings = () => {
     setIsAccountMenuOpen(false);

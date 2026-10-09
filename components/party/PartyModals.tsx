@@ -248,6 +248,7 @@ export default function PartyModals(props: PartyModalsProps) {
       />
 
       <JoinPartyModal
+        catalog={props.catalog}
         joinPopupParty={props.joinPopupParty}
         setJoinPopupParty={props.setJoinPopupParty}
         myCharacters={props.myCharacters}

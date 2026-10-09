@@ -1,6 +1,8 @@
 "use client";
 
-import { useMemo, useEffect } from "react";
+import { useMemo, useEffect, useState } from "react";
+import type {PartyCatalog} from '@/hooks/usePartyCatalog';
+import CharacterCompletionStatus, {CharacterCompletionName} from '@/components/party/CharacterCompletionStatus';
 import ClassIcon from "@/components/common/ClassIcon";
 import MarkIcon from "@/components/common/MarkIcon";
 import CustomTimePicker from "@/components/party/CustomTimePicker";
@@ -27,6 +29,7 @@ const cleanContentName = (name: string) => {
 };
 
 interface JoinPartyModalProps {
+  catalog: PartyCatalog;
   joinPopupParty: Party | null;
   setJoinPopupParty: (val: Party | null) => void;
   myCharacters: any[];
@@ -45,6 +48,7 @@ interface JoinPartyModalProps {
 }
 
 export default function JoinPartyModal({
+  catalog,
   joinPopupParty,
   setJoinPopupParty,
   myCharacters,
@@ -61,6 +65,7 @@ export default function JoinPartyModal({
   executeJoinParty,
   getDayOfWeekKorean,
 }: JoinPartyModalProps) {
+  const [completionCharacter, setCompletionCharacter] = useState<string | null>(null);
   const updateStart = setTimeStartJoin || setJoinTimeStart;
   const updateEnd = setTimeEndJoin || setJoinTimeEnd;
 
@@ -218,26 +223,36 @@ export default function JoinPartyModal({
               <MarkIcon src="/svgs/UI mark/사람 마크.svg" size="sm" scale={0.85} colorClass="bg-[var(--accent)]" />
               <span className="leading-none">참여할 캐릭터 선택</span>
             </label>
-            <div className="grid grid-cols-3 gap-2 w-full min-w-0">
+            <p className="text-xs text-[var(--text-sub)]">참가할 캐릭터는 선택 표시로, 완료 상태는 닉네임을 눌러 확인해요.</p>
+            <div className="space-y-2 w-full min-w-0">
               {uniqueCharacters.map((char) => {
                 const charName = char.nickname || char.name;
                 const jobName = char.job || char.class_name || "전사";
                 const isSelected = joinSelectedChar === charName;
 
                 return (
-                  <button
+                  <div
                     key={char.id || charName}
-                    type="button"
-                    onClick={() => setJoinSelectedChar(charName)}
-                    className={`text-xs font-black py-2 px-1.5 rounded-xl transition cursor-pointer whitespace-nowrap flex items-center justify-center gap-1.5 border overflow-hidden min-w-0 tracking-tight shadow-xs ${
+                    className={`text-xs font-black p-2.5 rounded-xl transition border min-w-0 tracking-tight shadow-xs space-y-2 ${
                       isSelected
-                        ? "bg-[var(--accent)] text-[var(--accent-fg)] border-transparent ring-2 ring-[var(--accent)]/40 font-black shadow-md scale-[1.02]"
+                        ? "bg-[var(--inner-box)] border-[var(--accent)]"
                         : "bg-[var(--inner-box)] border-[var(--panel-border)] text-[var(--text-main)] hover:border-[var(--accent)]"
                     }`}
                   >
-                    <ClassIcon job={jobName} className={`w-4 h-4 shrink-0 ${isSelected ? "brightness-200" : ""}`} />
-                    <span className="whitespace-nowrap shrink-0 truncate">{charName}</span>
-                  </button>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <input type="radio" name="party-join-character" aria-label={`${charName} 참가 선택`}
+                        checked={isSelected} onChange={() => setJoinSelectedChar(charName)}
+                        className="w-4 h-4 shrink-0 accent-[var(--accent)] cursor-pointer" />
+                      <ClassIcon job={jobName} className="w-5 h-5 shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <CharacterCompletionName character={char} expanded={completionCharacter === charName}
+                          onToggle={() => setCompletionCharacter(current => current === charName ? null : charName)} />
+                        <p className="text-xs text-[var(--text-sub)]">{jobName}</p>
+                      </div>
+                      {isSelected && <span className="shrink-0 text-[var(--accent)]">선택됨</span>}
+                    </div>
+                    {completionCharacter === charName && <CharacterCompletionStatus character={char} catalog={catalog} onClose={() => setCompletionCharacter(null)} />}
+                  </div>
                 );
               })}
             </div>

@@ -37,7 +37,7 @@ test('targeted own toggle cannot smuggle a controller change', async () => {
 });
 test('bus round completion preserves old checks and writes canonical content ID', async () => {
   const {db,call}=setup('app/api/parties/sync-checklist/route.ts',{nickname:'admin',role:'부마스터'});
-  const response=await call({partyId:7,completedNames:['alt'],finishRound:true});
+  const response=await call({partyId:7,completedNames:['alt'],finishRound:true,baseline:party});
   assert.equal(response.status,200,await response.text());
   assert.deepEqual(db.tables.characters[0].raid_checks,[11,12,13]);
   assert.equal(db.tables.parties[0].members[1].is_completed,true);

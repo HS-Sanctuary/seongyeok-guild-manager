@@ -1,5 +1,21 @@
 # SANCTUM Supabase 구조 기준서
 
+## 2026-10-09 parties Realtime — 한설 승인 운영 적용
+
+- pg_publication_tables에서 parties 비활성을 확인하고 SQL·부하·복구 안내 후 명시적 승인으로 supabase_realtime에 public.parties를 추가했다. 재조회 활성=true, replica identity=d(기본값) 유지. 데이터/컬럼/RLS/권한 변경 없음.
+- 코드 baseline은 구독 연결·재연결 시 활동 파티 설정과 본인 캐릭터 이름을 읽고 이후 UPDATE와 비교한다. 이전 값 전체 전송을 위한 replica identity FULL 변경은 하지 않았다. 현재 계정 UUID도 비교해 캐릭터 추가/개명 시 추가 조회 없이 수신자를 판별한다.
+- 실제 공개 클라이언트 parties SELECT 및 Realtime SUBSCRIBED 읽기 전용 진단 통과. 실제 운영 버스 변경 이벤트 시험은 하지 않았다. publication 목록은 abyss_reports/deep_holes/parties; characters/notices 확대 없음.
+- 재실행 SQL·되돌리기 주석: supabase/sql/parties_realtime.sql. CLI 미설치로 임의 timestamp migration 파일을 만들지 않았다. 되돌리기는 별도 승인 후 ALTER PUBLICATION supabase_realtime DROP TABLE public.parties.
+
+## 2026-10-09 물물교환 계정 즐겨찾기 — 준비 SQL, 운영 미적용
+
+- 실제 읽기 전용 확인: `public.accounts.id=uuid`, `public.nexus_trades.id=bigint`, 신규 `kronos_barter_favorites` 없음. 아래는 존재하는 구조가 아니라 승인 대기 설계다.
+- 준비 파일 `supabase/sql/iris_barter_favorites.sql`. CLI 미설치로 임의 migration 파일을 만들지 않았다. 운영 적용은 한설의 별도 승인 뒤 진행한다.
+- 예정 구조: `(account_id uuid FK accounts ON DELETE CASCADE, trade_id bigint FK nexus_trades ON DELETE CASCADE, favorited boolean NOT NULL, updated_at timestamptz)`; `(account_id,trade_id)` 복합 PK와 trade_id 인덱스. false 해제 행은 보존하고 초기화/가져오기로 되살리지 않는다.
+- RLS 활성/공개 정책 없음. 새 테이블에서 PUBLIC/anon/authenticated/service_role 기본 권한을 제거하고 service_role SELECT/INSERT/UPDATE만 허용. 서버가 기존 SANCTUM 세션으로 본인 계정을 검증한다. 기존 테이블·완료 JSON·스케줄·RPC·권한 변경 없음.
+- `/api/kronos/barter-favorites` GET 본인 목록, POST 원하는 boolean/명시적 확인한 기존 목록. bulk ignoreDuplicates가 기존 true/false를 유지한다. keyset/count 완전성 검증. 적용 후 파일의 권한/정책/FK/인덱스 읽기 전용 진단을 실행하고 실제 상태로 갱신한다.
+- 복구는 별도 승인으로 새 경로 접근만 닫고 새 테이블/행을 보존한다. DROP/DELETE나 기존 숙제 복구는 필요하지 않다.
+
 > 2026-09-28 상점 데이터 추가 완료: `supabase/migrations/20260928_kronos_weekly_shop_catalog.sql`은 한설 승인과 최근 백업 `2026-09-27 23:13:52 UTC` 확인 뒤 운영 SQL Editor에서 적용 성공했다. 기존 `kronos_shop_items` 앨빈 사포 1행을 유지하고 주간 골드 품목 127행을 더해 총 128행이다. 적용 전 최대 ID 1, 적용 후 앨빈 중복 1행·전체 중복 키 0, RLS 활성 true, anon SELECT/INSERT false를 읽기 전용 쿼리로 확인했다. 테이블·컬럼·RLS·함수와 기존 구매/즐겨찾기 기록은 변경하지 않았다. 생활력/아르바이트 조건은 컬럼이 없어 앱 표시로만 제공한다.
 
 > 2026-09-28 한설이 `supabase/migrations/20260928_notice_reads.sql`의 운영 SQL Editor 실행 성공을 보고했다. 이후 읽기 전용 진단에서 테이블 존재·RLS 활성화 true, anon/authenticated의 SELECT·INSERT false, service_role 읽기·쓰기 true를 확인했다. 이 SQL은 공지별·계정별 최초 읽음 시각을 저장하며 기존 공지·계정·기기별 로컬 읽음 기록은 변경하거나 소급 이관하지 않는다. 실제 계정별 기록 테스트와 앱 배포는 아직 대기 중이다.
@@ -120,10 +136,10 @@
 
 ### `parties`
 
-백업 헤더에서 확인된 컬럼은 `id`, `content_name`, `sub_content`, `difficulty`, `time_start`, `time_end`, `max_members`, `members`, `status`, `created_at`, `matching_mode`, `wanted_roles`, `party_type`, `final_start_time`, `leader_name`, `memo`, `party_date`다.
+백업 헤더와 2026-10-09 운영 `information_schema.columns` 읽기 전용 확인 컬럼은 `id`, `content_name`, `sub_content`, `difficulty`, `time_start`, `time_end`, `max_members`, `members`, `status`, `created_at`, `matching_mode`, `wanted_roles`, `party_type`, `final_start_time`, `leader_name`, `memo`, `party_date`, `selected_sub_contents`다.
 
-- SYNAXIS와 길드 버스가 사용하며 Realtime 구독 코드가 있다.
-- `members`의 실제 데이터 형식(JSON 또는 텍스트)은 최신 스키마 추출에서 다시 확인해야 한다.
+- SYNAXIS와 길드 버스가 사용하며 Realtime 구독 코드가 있다. 2026-10-09 한설 승인으로 실제 parties publication을 활성화했다(위 적용 이력 참조).
+- 2026-10-09 실제 타입 확인: `members jsonb`, `wanted_roles jsonb`, `selected_sub_contents text[]`, `party_date date`, `id bigint`, `max_members integer`; 시간·컨텐츠·공지·상태·운행자·확정시각은 text, `created_at timestamptz`. 새 컬럼 추가나 DDL/RLS 변경 없이 문서만 보완했다. 길드버스 설정 수정은 기존 컬럼 전체 조건 비교(CAS)를 사용한다.
 
 ### 기타 확인된 테이블과 백업 헤더
 

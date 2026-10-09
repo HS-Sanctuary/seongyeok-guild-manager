@@ -27,6 +27,7 @@ import {
   normalizeDateStr,
   getFormattedDateWithDDay,
   getMabinogiWeekRange,
+  timeToMinutes,
   minutesToTime
 } from "@/lib/partyDateUtils";
 
@@ -1201,6 +1202,16 @@ export function usePartyManager() {
       const aIsBus = isGuildBusParty(a) ? 1 : 0;
       const bIsBus = isGuildBusParty(b) ? 1 : 0;
       if (aIsBus !== bIsBus) return bIsBus - aIsBus;
+
+      if (aIsBus && bIsBus) {
+        const aDate = normalizeDateStr(a.party_date || '') || '9999-12-31';
+        const bDate = normalizeDateStr(b.party_date || '') || '9999-12-31';
+        const dateOrder = aDate.localeCompare(bDate);
+        if (dateOrder) return dateOrder;
+        const timeOrder = timeToMinutes(a.time_start) - timeToMinutes(b.time_start);
+        if (timeOrder) return timeOrder;
+        return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+      }
 
       const aIsCompleted = a.status === "매칭 완료" || a.status === "모집완료" ? 1 : 0;
       const bIsCompleted = b.status === "매칭 완료" || b.status === "모집완료" ? 1 : 0;

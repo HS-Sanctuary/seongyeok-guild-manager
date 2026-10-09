@@ -1,10 +1,67 @@
 # 🏛️ SANCTUM Master Guide
 
+## 2026-10-10 v2.2 배포 범위
+
+- 공식 버전 lib/release.ts=v2.2. 이번 후보는 아래 SYNAXIS 길드버스 공지 보존·설정 수정·본인 참가 제한·변경/출발 알림·일정순·완료 상태 열람만 배포한다. 구조는 아래 해당 절의 컴포넌트/API/캐시 판정 경로를 따른다.
+- IRIS 물물교환/집중 UI·캐릭터 추천/창 정책 후속과 즐겨찾기 서버 연동은 로컬 미배포 상태로 보존한다. 기존 웹 물물교환의 브라우저 즐겨찾기는 유지한다. 즐겨찾기 SQL은 실행하지 않으며 기존 승인 parties Realtime 외 추가 DB 변경 없음.
+- 업데이트 노트는 RELEASE_NOTES 및 UPDATE_POST_v2.2.md에 기록한다. staged 후보 Node384통과/3skip·독립 타입·분리 Production 빌드52경로 통과. 공개 공지 자동 게시나 신규 테이블 활성화는 이번 push에 포함하지 않는다. 실제 배포/운영 확인은 HANDOFF 최신 기록을 따른다.
+
+## 2026-10-10 SYNAXIS 길드버스 출발 가능 알림 — 로컬 미배포
+
+- lib/guildBusNotifications.ts의 BusLiveTracker.takeReadyBuses(now,isAdmin)는 guildBusPolicy.eligibleBusCandidates/isBusOperator를 재사용해 현재 모집중 버스의 정원4/8·신청 시간·완료/반복·서로 다른 계정을 판정한다. 계정 필드의 명시적 별칭은 합치며 UUID 혼재 행의 미연결 닉네임/소유 미확인은 제외한다. 관리 권한은 기존 카드와 동일하며 UUID-only 리더 권한을 새로 만들지 않는다.
+- hooks/useNoticeNotifications.ts 기존 parties 채널 INSERT/UPDATE/DELETE에서 준비 전이를 소비한다. baseline 로딩 중 최신 행/삭제 tombstone 병합, seed 시 과거 알림 억제, forget 시 삭제 캐시 제거. 새 채널 없이 관리자의 로컬60초 시계만 캐시를 평가하고 cleanup/계정 전환에서 폐기한다. DB 반복 조회·저장·DDL/RLS/publication 변경 없음.
+- 기존 알림 정책·알림함·허용된 브라우저 알림을 재사용한다. 메시지는 `길드버스 출발 가능합니다!`, href=/party#guild-bus-ID. 미달→충족 한 번/다음 준비 전이 재알림, 운영중·종료/타 관리자·일반 참가자는 제외. 초기 접속/재연결 당시 이미 충족된 버스는 알리지 않으며 브라우저 절전 시 시계 지연 가능. 자동 출발 기능은 아니다.
+- 최종 관련87/87·tsc·새 lib lint 통과, 독립 리뷰의 삭제/계정 중복 및 권한 경계 회귀 수정. 새 알림의 실제 운영 수신은 사용자 확인 대기. 이전 일정 정렬/완료 상태 열람은 한설 정상 확인. 미커밋·미푸시이며 운영 배포 완료로 해석하지 않는다.
+
+## 2026-10-09 SYNAXIS 버스 일정순·캐릭터 레이드/어비스 상태 열람 — 로컬 미배포
+
+- usePartyManager.filteredParties는 길드버스 그룹 안에서 party_date→time_start 오름차순, 동률 created_at 내림차순으로 정렬한다. 기존 지난 일정 필터/일반 파티 정렬 유지.
+- components/party/CharacterCompletionStatus.tsx의 이름 버튼·읽기 전용 상태 영역을 JoinPartyModal, GuildBusJoinModal, BusCreateModal에 공유한다. 모달별 열린 캐릭터 키만 로컬 상태로 보관, 기존 myCharacters.raid_checks와 PartyCatalog.contents→matchingUtils.isTaskChecked로 활성 raid/abyss 목록 및 합계를 계산한다. null/빈 체크는 미완료, 누락/손상·기준 로딩/오류는 별도 안내. 일반 가입의 참가 선택은 독립 radio, 버스는 기존 checkbox/반복 설정 보존. PartyModals 및 /party에서 기존 카탈로그를 전달한다.
+- 새로운 API·DB 객체·저장·클릭별 조회·Realtime 변경 없음. /party 목록·생성/가입 경로에 적용, 홈 요약 정렬이나 수정 전용 캐릭터 조회 컬럼은 확대하지 않는다. 이전 수정/알림은 한설 실사용 확인 완료, 이번 열람 기능은 실제 크로노스 대조 확인 대기.
+
+## 2026-10-09 SYNAXIS 본인 참가 수정·접속 중 변경 알림 후속
+
+- 아래 이전 전체 참가/개별 시간 편집 설계를 정정한다. BusEditModal.accountNickname→characters.owner 필터, 본인 추가·교체만. BusCreateModal.retainedMembers로 타 계정 참가자/시간을 읽기 전용 표시하고 개별 시간 입력 제거. 서버 saveGuildBusSettings(..., ownNames)는 타인 입력403, 기존 타인 보존/본인 기존 시간 보존/신규 본인만 버스 시간 적용.
+- lib/guildBusNotifications.ts BusLiveTracker/describeBusChanges→기존 useNoticeNotifications parties 채널 UPDATE. 최초/재연결 baseline 조회, 공지/컨텐츠/일정/정원/참가 설정 변경만 등록 계정에게 표시, 완료/스탯/정렬 제외. Navbar→현재 account.id/nickname과 소유 이름 판별, 중복·늦은 응답·계정/cleanup·저장소 실패 방어. /party#guild-bus-ID와 GuildBusCard anchor.
+- 신규 폴링·채널·영속 알림 테이블 없음. 한설이 별도 승인한 운영 public.parties Realtime publication 활성화만 적용, identity d/RLS/권한/데이터 그대로. SQL 이력 supabase/sql/parties_realtime.sql, 구조 기준서 참조. 코드 미배포/실제2계정 수신 대기.
+
+## 2026-10-09 미배포 SYNAXIS 길드버스 공지 보존·설정 수정
+
+- 공통 `GuildBusCard`의 현재 운행자 컨트롤러에 `버스 수정`을 추가한다. `modals/BusEditModal.tsx`가 동결된 원본 설정과 캐릭터 목록을 읽고 기존 `BusCreateModal`을 편집 모드로 재사용한다. 컨텐츠/난이도·일시·공지·참가자 검색/추가/해제·개별 시간/익일·반복 여부를 수정한다. 배경/Escape/초점·중복 저장 방어와 오류 후 입력 보존, 명시적 최신 조회를 제공한다.
+- `/api/member-mutations`의 `_busSettings`는 현재 운행자 운영진 전용이다. `lib/server/guildBusSettings.ts`가 운영 카탈로그의 정원·현재 캐릭터 역할/스탯·소유 계정 UUID와 기존 완료 체크를 검증하고 설정 전체 snapshot을 조건 비교해 기존 parties 행만 갱신한다. `memo/sub_content`를 함께 저장하며 8→4인 축소 때 등록 인원을 자동 삭제하지 않는다. 성공 후 공통 편성 엔진이 새 조건을 적용한다. 현재 회차 완료 확인·명시적 참가 제외 확인, 충돌409/입력 유지 제공.
+- `lib/guildBusSettings.ts`는 순수 snapshot·공지 보존·시간 파서, `lib/partyRosterValues.ts`는 browser Supabase 초기화 없이 역할/수치 해석을 공유한다. 생성 모달 컨텐츠/어비스 재적용은 수동 공지를 덮지 않는다. `guildBusPolicy`는 KST 익일 시간 및 당일/익일 참가 구간을 판정한다.
+- `guildBusActions.completeBusRound`→`sync-checklist.finishRound`는 baseline 비교 후 숙제를 쓰며 마지막 parties 저장도 전체 조건 CAS다. 구 화면은 새로고침 필요. 여러 캐릭터 체크 쓰기는 여전히 단일 트랜잭션이 아니다. 새 테이블/RPC/RLS/권한 변경 없음, 기존 스키마는 읽기 전용 확인만 했다.
+- 관련57/57·합성 브라우저5/5·타입/새 파일 lint·diff check 통과. 실제 운영 수정/배포는 대기, 전체 회귀의 별도 IRIS 집계1건 실패는 BETA_FEEDBACK 참조.
+
+## 2026-10-09 미배포 물물교환 계정 공통 즐겨찾기
+
+- 웹 `app/character/page.tsx`→`TradeList`, IRIS `DesktopBarter`가 `hooks/useBarterFavorites.ts`→`/api/kronos/barter-favorites`를 공유한다. 별표·즐겨찾기 우선 정렬·전용 필터, 진입/창 복귀/다시 조회 제공. 별표는 즉시 원하는 boolean 저장, 기존 횟수와 15초 보호 큐/native는 변경하지 않는다.
+- `BarterFavoritesFeedback`/범위 CSS는 저장 상태와 웹의 기존 브라우저 목록을 계정 확인 후 가져오는 경로다. 원본 보존/현재 true·false 비덮어쓰기, 계정 전환 늦은 응답 무시/중복 쓰기 차단/POST 실패 시 GET 확인 전 잠금. 주기 DB 호출 없음.
+- 신규 `public.kronos_barter_favorites` 계정/품목 복합 PK·해제 기록·FK/인덱스·RLS·service_role SELECT/INSERT/UPDATE 전용 SQL은 `supabase/sql/iris_barter_favorites.sql`에 준비, **운영 미적용/승인 대기**다. API는 승인 세션·계정 일치·Origin·입력 범위 검증. 기존 상점/임무 progress·초기화·RPC 변경 없음. 실제 확인과 준비 구조는 `docs/SUPABASE_SCHEMA.md`에서 구분한다.
+- Node27/화면11/타입·대상 lint 및 좁힌 리뷰 통과. 실제 운영 즐겨찾기 쓰기·배포·native 전체 재검증은 하지 않았다.
+
+## 2026-10-09 미배포 IRIS 물물교환·집중 UI
+
+- 초기 접속 추천 버튼 후속: 변경 추천3버튼용 배치를 초기2버튼에도 적용한 줄바꿈 회귀를 확인하고 `iris-switch-actions-pair` 동등2열과 `네, 선택`/`직접 선택` 문구로 수정했다. 닉네임은 질문에 전체 표시한다. 실제 JSX6폭/글자 조합 RED→GREEN·관련 UI21/21/대상lint 통과, 추천 판정·저장 구조 변화 없음.
+
+- 화면: `DesktopCenter`의 크로노스 하위 물물교환 탭을 활성화하고 `DesktopBarter`와 범위 한정 CSS를 추가했다. 기존 DB 값에 검색/NPC·마을/보상·소모품, 계정당/캐릭당, 일간/주간, 미완료 필터와 횟수 버튼을 제공한다. 상점구매/임무게시판은 아직 비활성이다. 게임 교환 실행 기능은 아니다.
+- 데이터 경로: 기존 `/api/iris/kronos` GET에 본인 전체 캐릭터의 `trade_checks`와 `nexus_trades` 카탈로그를 읽는 optional 물물교환 payload/writeContext를 추가한다. 카탈로그 실패는 기존 숙제/클래스 조회를 막지 않는다. `irisBarter`는 기존 `period_version:2`/KST06시 일간·월요일 주간/기존 범위 표기를 검증한다. `irisBarterWrite`와 새 `/api/iris/barter` POST는 승인된 세션·동일 출처·입력 크기·소유권·카탈로그 및 각 사본 기준 fingerprint를 검증한다. 기존 전체 JSON CAS로 관련 없는 항목을 보존하며 저장 후 최신 카탈로그/기간/모든 소유 사본을 다시 확인한다. schema/RLS/RPC/운영 권한 변경 없음.
+- 저장 경로: Queue/Controller/Transport/Presentation의 새 `barter` kind는 15초 debounce·즉시 저장·보호 보관을 재사용한다. 계정당 편집은 선택 캐릭터와 별개로 공유하고 마지막 편집 캐릭터를 보존한다. 다중 행 일부 성공/불명확 결과는 unknown으로 멈추며 자동 재전송하지 않는다. 명시적 재시도만 기존 fingerprint 또는 정확히 같은 목표 기록을 허용한다. 감소도 전체 사본에서 확인되어야 saved다. 기존 숙제 Checkboard는 `kind:task`만 투영한다.
+- native: `desktop-store.cs`/`desktop-bridge.cs`의 큐 schema3·`store.capabilities`를 웹 저장소와 함께 갱신한다. capability 확인 전 load/replace 금지. 기존 v1/v2를 검증한 후 새 DPAPI 파일을 검증하고 원본을 복구 백업으로 보존한다. 복수 활성 버전 파일/손상 파일은 덮어쓰지 않는다. 게임 bridge 명령이나 OS 창 정책에는 추가 변경이 없다.
+- 집중 UI: 새 `DesktopFocusDialog`는 portal/중앙 배치/배경 inert/DOM 초점 제한·복원/Escape/배경 닫기를 제공한다. `DesktopTitlebar` 사람 아이콘→계정 대화상자→기억 계정 직접 선택, 다른 로그인/로그아웃을 연결한다. account/settings/closing 동안 추천을 중지·무효화하여 겹침과 늦은 선택을 방지한다. 변경 추천은 후보당 짧은 음향을 한 번 시도하며 자동 선택·게임 활성 변경·DB 저장은 하지 않는다. `DesktopClasses`와 desktop CSS의 세로 flex chain은 전체 목록에 남은 창 공간, 짧은 계열에 자연 높이를 제공한다.
+- 영향 검증: Node129·타입·대상 lint, 격리 실제 페이지 DOM4폭/2테마/15초·수동 물물교환/직접 계정 및 native store/bridge/WebView 통과. 독립 리뷰 중요 문제 없음. 실계정 물물교환/개인 DPAPI/게임 초점·소리는 사용자 새 앱 확인 대기다. 구조는 위 범위만 변경, 운영 DB 구조/버전/배포/공지 없음.
+
 ## 2026-10-08 미배포 IRIS 애드온 바·캐릭터 변경 추천
 
 ### 후속 애드온 바 후보
 
-- `IRIS for SANCTUM` 제목줄과 `DesktopTitlebar`/`DesktopAddonSettings`가 창 이동·최소화·종료·테마·게임 창 붙이기를 담당한다. 네이티브 추적기(`desktop-addon-policy.cs`, `desktop-addon.cs`)는 게임을 소유하거나 조작하지 않고 IRIS 위치와 수명 반응만 관리한다.
+- 단일 오래된 스탯 후속(2026-10-09 로컬): `irisCharacterSwitch` 전용 `rankSwitchCandidates`는 기존 동일직업 평균에 양수3개 상대차이 각20% 이내 평균을 병용한다. 모든 후보에 같은 방식으로 순위를 매겨8% 미만 차이면 보류한다. 기존2양수 일반매칭과 새관측2회·네재조회·직업/다중변화 조건은 유지한다. 로그인 `rankStatsCandidates`/`recommendStatsCharacter`, DB/API/native/자동저장/조회 주기는 변경하지 않았다. tracker17/stats8·신규합성DOM3·타입/대상lint 통과, 독립리뷰는 사용량 제한으로 미완료·실게임 확인 대기다.
+
+- 추천 관측 이어받기(2026-10-08 로컬): 계정 key의 `DesktopStatsSession`은 정상 읽기/네 재조회에서 마지막 fresh 양수2개 관측을 메모리 ref로 보관한다. `DesktopCharacterWatch` selected/watchVersion remount는 이 관측으로 `createCharacterSwitchTracker`를 seed한다. seed는60초 신선도/양수2개를 검사하며 확인 횟수로 세지 않는다. 계정 변경/앱 종료 시 보존되지 않고 localStorage/보호 큐/DB에 기록하지 않는다. 기존 새 distinct 관측2회·점수/후보 차이·늦은 응답/version/generation 방어·3초/첫 후보1초 주기 및 API 호출 수는 유지한다. 합성 tracker12/DOM21·tsc/대상 lint 통과, 연속 전환 실게임 재검증 대기.
+
+- 작업표시줄 후속(2026-10-08 로컬): `YieldToTaskbar` 정책과 adapter의 shell read-only probe가 기본/보조 작업표시줄에 양보한다. 물리 monitor/rect/cursor로 자동 숨김 가장자리 접근 또는 실제 노출을 판정하고 자체 topmost를 해제, 숨김 후 기존 게임/IRIS 활성 정책으로 복귀한다. 고정 taskbar는 실제 IRIS와 겹칠 때 양보한다. OS 설정·외부 HWND·입력·계정/저장 계약 변경 없음. native52/52/WebView 통과, 사용자 정상 재실행 후 실화면 확인 대기. 앞선 창 해제/복귀와 계정 전환·다른 로그인·전환 계정 캐릭터 목록은 사용자 확인 완료이며 로그아웃/미저장 보존 개별 실검증은 별도다.
+
+- `IRIS for SANCTUM` 제목줄과 `DesktopTitlebar`/`DesktopAddonSettings`가 창 이동·최소화·종료·테마·게임 창 붙이기를 담당한다. 네이티브 추적기(`desktop-addon-policy.cs`, `desktop-addon.cs`)는 게임을 소유하거나 조작하지 않고 IRIS 위치와 수명 반응만 관리한다. 같은 층 설정은 게임/IRIS 활성 동안만 자체 HWND에 topmost/비활성을 적용하고 다른 앱·숨김·미확인/최소화 게임·종료질문·설정해제·Dispose에서 해제한다. 영구 전역 TopMost·게임 HWND 변경·포커스 강제 이동은 없다. 계정 관리는 설정에서 전환/다른 계정 로그인/로그아웃을 직접 제공하며 성공한 로그아웃 후 로그인 화면으로 돌아간다. 기존 계정별 보호 큐·인증 API 계약은 유지한다(2026-10-08 로컬 후속, 실제 해제/복귀·계정 전환 확인 대기).
 - `lib/irisAppearance.ts`와 `useDesktopAppearance`는 환경별 테마 및 계정별 재화 강조를 검증·복원한다. 잔액·조회 시각·재화 이력은 저장하지 않는다. `DesktopCurrencies` 편집은 localStorage만 사용한다.
 - 고정 네이티브 브리지에는 `window.addon.state`, `window.addon.preferences`, `window.drag`, `window.minimize`, `window.decision`만 추가했다. 외부 HWND·경로·명령은 브라우저에서 받지 않는다.
 - 보호 큐·Supabase 스키마/RLS/권한/API 쓰기 계약은 변경하지 않았다. 실제 창/DPI/게임 종료 수동 확인은 push 후 집 호스트에서 수행한다.

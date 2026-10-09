@@ -4,6 +4,8 @@ import { useState, useEffect, useMemo } from "react";
 import ClassIcon from "@/components/common/ClassIcon";
 import MarkIcon from "@/components/common/MarkIcon";
 import CustomTimePicker from "@/components/party/CustomTimePicker";
+import type {PartyCatalog} from '@/hooks/usePartyCatalog';
+import CharacterCompletionStatus, {CharacterCompletionName} from '@/components/party/CharacterCompletionStatus';
 
 interface BusJoinCharConfig {
   selected: boolean;
@@ -11,6 +13,7 @@ interface BusJoinCharConfig {
 }
 
 interface GuildBusJoinModalProps {
+  catalog: PartyCatalog;
   isOpen: boolean;
   onClose: () => void;
   myCharacters: any[];
@@ -41,6 +44,7 @@ const cleanContentName = (name: string) => {
 };
 
 export default function GuildBusJoinModal({
+  catalog,
   isOpen,
   onClose,
   myCharacters,
@@ -50,6 +54,7 @@ export default function GuildBusJoinModal({
   busTimeStart = "20:00",
   busTimeEnd = "23:59",
 }: GuildBusJoinModalProps) {
+  const [completionCharacter, setCompletionCharacter] = useState<string | null>(null);
   const [selections, setSelections] = useState<Record<string, BusJoinCharConfig>>({});
   const [joinTimeStart, setJoinTimeStart] = useState<string>(busTimeStart);
   const [joinTimeEnd, setJoinTimeEnd] = useState<string>(busTimeEnd);
@@ -335,40 +340,42 @@ export default function GuildBusJoinModal({
 
         {/* 캐릭터 목록 스크롤 영역 (세로 컴팩트 카드 적용) */}
         <div className="p-2.5 sm:p-3.5 overflow-y-auto custom-scrollbar flex-1 space-y-2 overscroll-contain min-h-0">
+          <p className="text-xs text-[var(--text-sub)]">닉네임을 누르면 레이드·어비스 완료 상태를 확인할 수 있어요.</p>
           {uniqueCharacters.map((char) => {
             const charKey = char.nickname || char.name || String(char.id);
             if (!charKey) return null;
             const config = selections[charKey] || { selected: false, allowRepeat: true };
 
             return (
+              <div key={charKey} className="min-w-0 space-y-2">
               <div
-                key={charKey}
                 onClick={() => {
                   setSelections((prev) => ({
                     ...prev,
                     [charKey]: { ...config, selected: !config.selected },
                   }));
                 }}
-                className={`p-2 rounded-xl border transition flex items-center justify-between gap-2 cursor-pointer select-none ${
+                className={`p-2 rounded-xl border transition flex flex-wrap items-center justify-between gap-2 cursor-pointer select-none ${
                   config.selected
                     ? "bg-[var(--inner-box)] border-[var(--accent)] shadow-xs"
                     : "bg-[var(--panel)] border-[var(--panel-border)] opacity-60 hover:opacity-100"
                 }`}
               >
-                <div className="flex items-center gap-2 min-w-0">
+                <div className="flex flex-1 items-center gap-2 min-w-0">
                   <input
                     type="checkbox"
                     checked={config.selected}
-                    onChange={() => {}}
+                    aria-label={`${charKey} 참가 선택`}
+                    onClick={event => event.stopPropagation()}
+                    onChange={event => setSelections(prev => ({...prev, [charKey]: {...config, selected: event.target.checked}}))}
                     className="w-4 h-4 accent-[var(--accent)] rounded cursor-pointer shrink-0"
                   />
                   <ClassIcon job={char.job || "전사"} className="w-7 h-7 shrink-0" />
 
                   <div className="min-w-0 space-y-0.5">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="font-black text-xs text-[var(--text-main)] truncate max-w-[100px] sm:max-w-[140px]">
-                        {char.nickname || char.name}
-                      </span>
+                      <CharacterCompletionName character={char} expanded={completionCharacter === charKey}
+                        onToggle={() => setCompletionCharacter(current => current === charKey ? null : charKey)} />
                       {char.is_main && (
                         <span className="px-1 py-0.2 bg-[var(--accent)] text-[var(--accent-fg)] font-black text-[8px] rounded shrink-0 leading-none">
                           대표
@@ -436,6 +443,8 @@ export default function GuildBusJoinModal({
                     {config.allowRepeat ? "🔄 반복 가능" : "1️⃣ 1회성"}
                   </button>
                 )}
+              </div>
+              {completionCharacter === charKey && <CharacterCompletionStatus character={char} catalog={catalog} onClose={() => setCompletionCharacter(null)} />}
               </div>
             );
           })}

@@ -28,6 +28,7 @@ import PoolStatusModal from '@/components/party/modals/PoolStatusModal';
 import { eligibleBusCandidates, formatBusRoster, isBusOperator } from '@/lib/guildBusPolicy';
 import { changeBusMember, completeBusRound } from '@/lib/guildBusActions';
 import type { PartyCatalog } from '@/hooks/usePartyCatalog';
+import BusEditModal from '@/components/party/modals/BusEditModal';
 
 const Users = ({ className, title }: { className?: string; title?: string }) => (
   <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -141,6 +142,12 @@ export default function GuildBusCard({
   const [isLoadingAdmins, setIsLoadingAdmins] = useState<boolean>(false);
   const [busNow, setBusNow] = useState(() => new Date());
   const [isCopyingRoster, setIsCopyingRoster] = useState(false);
+  const [editingParty,setEditingParty]=useState<Party|null>(null);
+  useEffect(()=>{
+    const reveal=()=>{if(window.location.hash===`#guild-bus-${party.id}`)document.getElementById(`guild-bus-${party.id}`)?.scrollIntoView({block:'center'});};
+    reveal();window.addEventListener('hashchange',reveal);
+    return ()=>window.removeEventListener('hashchange',reveal);
+  },[party.id]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setBusNow(new Date()), 30_000);
@@ -298,7 +305,7 @@ export default function GuildBusCard({
       const activeNames = activeMembers.map((m: BusMember) => m.character_name);
       setPrevMemberNames(activeNames);
 
-      await completeBusRound(party.id,activeNames);
+      await completeBusRound(party.id,activeNames,party);
       await onRefresh();
     } catch (err: any) {
       console.error("회차 완수 처리 중 오류:", err);
@@ -425,7 +432,7 @@ export default function GuildBusCard({
   const isMyAccountJoined = myJoinedMembers.length > 0;
 
   return (
-    <div className="w-full rounded-2xl border-2 border-[var(--accent)]/60 border-t-4 border-t-[var(--accent)] bg-[var(--panel)] p-3 sm:p-5 shadow-lg transition-all duration-200 hover:border-[var(--accent)] relative overflow-hidden">
+    <div id={`guild-bus-${party.id}`} className="w-full scroll-mt-24 rounded-2xl border-2 border-[var(--accent)]/60 border-t-4 border-t-[var(--accent)] bg-[var(--panel)] p-3 sm:p-5 shadow-lg transition-all duration-200 hover:border-[var(--accent)] relative overflow-hidden">
       {/* Keep fixed overlays outside the size-query container. */}
       <div className={styles.busCard}>
       
@@ -596,6 +603,7 @@ export default function GuildBusCard({
           </div>
 
           <div className={styles.controllerActions}>
+            <button type="button" onClick={()=>setEditingParty(structuredClone(party))} disabled={isSyncing || !catalog.loaded || !!catalog.error} className="px-2 py-1 rounded-lg text-xs font-black border border-[var(--accent)] text-[var(--accent)] bg-[var(--panel)] disabled:opacity-50">버스 수정</button>
             {!isStarted ? (
               <button
                 type="button"
@@ -768,6 +776,7 @@ export default function GuildBusCard({
       </div>
 
       {/* 관리자 인계 모달 */}
+      {editingParty && canManage && <BusEditModal party={editingParty} catalog={catalog} accountNickname={currentUserNickname} onClose={()=>setEditingParty(null)} onSaved={onRefresh} />}
       {isTransferModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-[100] flex items-center justify-center p-3 animate-in fade-in duration-200">
           <div className="bg-[var(--panel)] border-2 border-[var(--accent)] rounded-2xl p-4 w-full max-w-sm shadow-2xl flex flex-col space-y-3.5">

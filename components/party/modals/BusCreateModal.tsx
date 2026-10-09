@@ -8,10 +8,14 @@ import ContentSelectModal from "@/components/party/modals/ContentSelectModal";
 import { CONTENT_DB, ContentItem, ABYSS_SUB_DUNGEONS, AbyssSubDungeon } from "@/components/party/types";
 import { parseAbyssInfo, generateAbyssDefaultMemo } from "@/lib/busUtils";
 import type { PartyCatalog } from "@/hooks/usePartyCatalog";
+import {preserveBusMemo} from '@/lib/guildBusSettings';
+import CharacterCompletionStatus, {CharacterCompletionName} from '@/components/party/CharacterCompletionStatus';
 
 export interface BusCharSelectionConfig {
   selected: boolean;
   allowRepeat: boolean;
+  timeStart?: string;
+  timeEnd?: string;
 }
 
 const DEFAULT_SUB_CONTENTS = ["abyss_1", "abyss_2", "abyss_3"];
@@ -51,6 +55,12 @@ const formatShortDateDisplay = (dateStr: string) => {
 };
 
 interface BusCreateModalProps {
+  mode?: 'create' | 'edit';
+  isSaving?: boolean;
+  feedback?: string;
+  capacity?: number;
+  onReload?: () => void;
+  retainedMembers?: {name:string;start:string;end:string}[];
   catalog: PartyCatalog;
   showBusCreateModal: boolean;
   setShowBusCreateModal: (val: boolean) => void;
@@ -75,6 +85,7 @@ interface BusCreateModalProps {
 }
 
 export default function BusCreateModal({
+  mode='create', isSaving=false, feedback, capacity, onReload, retainedMembers=[],
   catalog,
   showBusCreateModal,
   setShowBusCreateModal,
@@ -97,10 +108,44 @@ export default function BusCreateModal({
   busSelectedSubContents = DEFAULT_SUB_CONTENTS,
   setBusSelectedSubContents,
 }: BusCreateModalProps) {
+  const [completionCharacter, setCompletionCharacter] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState<"SETTINGS" | "CHARACTERS">("SETTINGS");
-
+  const [characterSearch,setCharacterSearch]=useState('');
+  const [showAvailable,setShowAvailable]=useState(false);
+  const dialogRef=useRef<HTMLDivElement>(null);
+  const closeState=useRef({isSaving,setShowBusCreateModal,showContentModal:false,showScheduleModal:false});
   const [showContentModal, setShowContentModal] = useState(false);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
+  useEffect(()=>{closeState.current={isSaving,setShowBusCreateModal,showContentModal,showScheduleModal};},[isSaving,setShowBusCreateModal,showContentModal,showScheduleModal]);
+  useEffect(()=>{
+    if (!showBusCreateModal || mode!=='edit') return;
+    const dialog=dialogRef.current;
+    if (!dialog) return;
+    const previous=document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const oldOverflow=document.body.style.overflow;
+    document.body.style.overflow='hidden';
+    dialog.focus();
+    const key=(event:KeyboardEvent)=>{
+      if (event.key==='Escape') {
+        event.preventDefault();event.stopImmediatePropagation();
+        if (closeState.current.isSaving) return;
+        if (closeState.current.showContentModal) setShowContentModal(false);
+        else if (closeState.current.showScheduleModal) setShowScheduleModal(false);
+        else closeState.current.setShowBusCreateModal(false);
+      }
+      if (event.key==='Tab') {
+        const items=Array.from(dialog.querySelectorAll<HTMLElement>('button,input,textarea,select,[tabindex]')).filter(e=>e.tabIndex>=0 && !e.matches(':disabled') && e.getClientRects().length);
+        const first=items[0],last=items.at(-1);
+        if (!first) {event.preventDefault();dialog.focus();}
+        else if (event.shiftKey && (document.activeElement===first || document.activeElement===dialog)) {event.preventDefault();last?.focus();}
+        else if (!event.shiftKey && (document.activeElement===last || document.activeElement===dialog)) {event.preventDefault();first.focus();}
+      }
+    };
+    const focus=(event:FocusEvent)=>{if (!dialog.contains(event.target as Node)) dialog.focus();};
+    document.addEventListener('keydown',key,true);document.addEventListener('focusin',focus);
+    return ()=>{document.removeEventListener('keydown',key,true);document.removeEventListener('focusin',focus);document.body.style.overflow=oldOverflow;if(previous?.isConnected)previous.focus();};
+  },[showBusCreateModal,mode]);
+
 
   const [tempContentCategory, setTempContentCategory] = useState<"어비스" | "레이드">("어비스");
   const [tempContent, setTempContent] = useState<ContentItem>(busCreateContent);
@@ -151,7 +196,7 @@ export default function BusCreateModal({
     }
     setBusSelectedSubContents(updated);
     setTempSubContents(updated);
-    setBusCreateMemo(generateDefaultBusMemo(busCreateContent, busCreateDiff, updated));
+    setBusCreateMemo(preserveBusMemo(busCreateMemo,generateDefaultBusMemo(busCreateContent,busCreateDiff,activeSubContents),generateDefaultBusMemo(busCreateContent,busCreateDiff,updated)));
   };
 
   const abyssInfo = useMemo(() => {
@@ -260,6 +305,7 @@ export default function BusCreateModal({
 
   const selectedCount = Object.values(busCharSelections).filter((c) => c.selected).length;
   const totalCount = uniqueCharacters.length;
+  const registeredCount=selectedCount+retainedMembers.length;
   const isAllSelected = totalCount > 0 && selectedCount === totalCount;
 
   const isAllRepeat = useMemo(() => {
@@ -276,6 +322,7 @@ export default function BusCreateModal({
         const key = char.nickname || char.name || String(char.id);
         if (key) {
           next[key] = {
+            ...next[key],
             selected: nextSelectState,
             allowRepeat: next[key]?.allowRepeat ?? false,
           };
@@ -319,7 +366,7 @@ export default function BusCreateModal({
     }
     setTempSubContents(finalSubContents);
     
-    setBusCreateMemo(generateDefaultBusMemo(content, difficulty, finalSubContents));
+    setBusCreateMemo(preserveBusMemo(busCreateMemo,generateDefaultBusMemo(busCreateContent,busCreateDiff,activeSubContents),generateDefaultBusMemo(content,difficulty,finalSubContents)));
     setShowContentModal(false);
   };
 
@@ -374,9 +421,10 @@ export default function BusCreateModal({
   return (
     <div 
       className="fixed inset-0 z-[250] bg-black/85 backdrop-blur-xs flex items-center justify-center p-2.5 sm:p-4 cursor-pointer overscroll-none"
-      onClick={() => setShowBusCreateModal(false)}
+      onClick={() => {if (!isSaving) setShowBusCreateModal(false);}}
     >
       <div 
+        ref={dialogRef} role="dialog" aria-modal="true" aria-label={mode==='edit'?'길드 버스 수정':'길드 버스 개설'} tabIndex={-1}
         className="bg-[var(--panel)] border border-[var(--panel-border)] rounded-2xl max-w-lg w-full flex flex-col max-h-[85vh] sm:max-h-[90vh] shadow-2xl animate-in fade-in zoom-in-95 overflow-hidden cursor-default min-w-0 relative"
         onClick={(e) => e.stopPropagation()}
       >
@@ -384,12 +432,13 @@ export default function BusCreateModal({
         <div className="flex justify-between items-center px-4 sm:px-5 py-3 sm:py-3.5 border-b border-[var(--panel-border)] bg-[var(--inner-box)] shrink-0">
           <div className="flex items-center gap-2 min-w-0">
             <MarkIcon src="/svgs/UI mark/길드 마크.svg" size="sm" scale={1.8} colorClass="bg-[var(--accent)]" />
-            <h3 className="font-black text-sm sm:text-base text-[var(--accent)] tracking-tight truncate">
-              성역 공식 길드 버스 개설
+            <h3 className="font-black text-sm sm:text-base text-[var(--accent)] tracking-tight break-words">
+              {mode==='edit'?'성역 공식 길드 버스 수정':'성역 공식 길드 버스 개설'}
             </h3>
           </div>
           <button 
             type="button"
+            disabled={isSaving} aria-label="닫기"
             onClick={() => setShowBusCreateModal(false)}
             className="text-[var(--text-sub)] hover:text-white font-black text-base sm:text-lg p-1 cursor-pointer shrink-0 ml-2"
           >
@@ -401,6 +450,7 @@ export default function BusCreateModal({
         <div className="grid grid-cols-2 border-b border-[var(--panel-border)] bg-[var(--panel)] text-xs font-black shrink-0">
           <button
             type="button"
+            disabled={isSaving}
             onClick={() => setCurrentStep("SETTINGS")}
             className={`py-2.5 sm:py-3 flex items-center justify-center gap-1.5 border-b-2 transition cursor-pointer ${
               currentStep === "SETTINGS"
@@ -408,12 +458,13 @@ export default function BusCreateModal({
                 : "border-transparent text-[var(--text-sub)] hover:text-white"
             }`}
           >
-            <span>1️⃣ 버스 생성 설정</span>
+            <span>{mode==='edit'?'1️⃣ 버스 수정 설정':'1️⃣ 버스 생성 설정'}</span>
             {currentStep === "CHARACTERS" && <span className="text-[10px] text-emerald-400">✓</span>}
           </button>
 
           <button
             type="button"
+            disabled={isSaving}
             onClick={() => setCurrentStep("CHARACTERS")}
             className={`py-2.5 sm:py-3 flex items-center justify-center gap-1.5 border-b-2 transition cursor-pointer ${
               currentStep === "CHARACTERS"
@@ -421,7 +472,7 @@ export default function BusCreateModal({
                 : "border-transparent text-[var(--text-sub)] hover:text-white"
             }`}
           >
-            <span>2️⃣ 참여 캐릭터 선택</span>
+            <span className="min-w-0 break-keep">{mode==='edit'?'2️⃣ 참가자 선택':'2️⃣ 참여 캐릭터 선택'}</span>
             <span className="px-1.5 py-0.2 rounded-full bg-[var(--accent)]/20 text-[var(--accent)] text-[10px] font-mono">
               {selectedCount}/{totalCount}
             </span>
@@ -429,7 +480,14 @@ export default function BusCreateModal({
         </div>
 
         {/* Step Body */}
-        <div className="p-3.5 sm:p-5 overflow-y-auto custom-scrollbar flex-1 space-y-3.5 overscroll-contain min-h-0">
+        <div inert={isSaving} className="p-3.5 sm:p-5 overflow-y-auto custom-scrollbar flex-1 space-y-3.5 overscroll-contain min-h-0">
+          {mode==='edit' && <div className="text-xs text-[var(--text-sub)] space-y-2">
+            <p>출전 정원 {capacity ?? busCreateContent.size}명 · 등록 {registeredCount}캐릭터. 정원을 줄여도 참가자는 대기열에 보관돼요.</p>
+            <p>본인 계정의 캐릭터만 추가·교체할 수 있어요. 기존 참가자의 신청 시간과 다른 계정의 반복 설정은 유지해요.</p>
+            <p>컨텐츠를 바꾸면 새 컨텐츠의 완료 여부로 다시 편성해요. 기존 숙제 기록은 지우지 않아요.</p>
+            {feedback && <p role="alert" className="text-[var(--accent)]">{feedback}</p>}
+            {onReload && <button type="button" disabled={isSaving} onClick={onReload} className="underline text-[var(--accent)]">최신 정보 다시 불러오기 (입력 초기화)</button>}
+          </div>}
           {currentStep === "SETTINGS" ? (
             <div className="space-y-3">
               {/* 목표 컨텐츠 선택 카드 */}
@@ -454,7 +512,7 @@ export default function BusCreateModal({
                     </span>
                     <div className="flex items-center gap-1.5 shrink-0">
                       <span className="px-2 py-0.5 rounded-md bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] text-[11px] font-bold">
-                        {busCreateContent.size}인
+                        {capacity ?? busCreateContent.size}인
                       </span>
                       <span className="px-2 py-0.5 rounded-md bg-[var(--accent)]/20 border border-[var(--accent)]/40 text-[var(--accent)] text-[11px] font-black">
                         {busCreateDiff}
@@ -528,6 +586,7 @@ export default function BusCreateModal({
                 <label className="text-[11px] font-black text-[var(--text-sub)] block mb-1">공지 메모</label>
                 <input
                   type="text"
+                  maxLength={2000}
                   value={busCreateMemo}
                   onChange={(e) => setBusCreateMemo(e.target.value)}
                   placeholder="버스 승객 안내용 공지"
@@ -564,45 +623,55 @@ export default function BusCreateModal({
               </div>
 
               <div className="space-y-2">
-                {uniqueCharacters.map((char) => {
+                {mode==='edit' && <div className="space-y-2">
+                  <input aria-label="참가 캐릭터 검색" placeholder="캐릭터·계정 검색" value={characterSearch} onChange={e=>setCharacterSearch(e.target.value)} className="w-full rounded-xl border border-[var(--panel-border)] bg-[var(--inner-box)] p-2 text-xs" />
+                  <button type="button" onClick={()=>setShowAvailable(v=>!v)} className="text-xs underline text-[var(--accent)]">{showAvailable?'선택한 내 캐릭터만 보기':'내 캐릭터 추가·교체'}</button>
+                  {retainedMembers.length>0 && <section className="rounded-xl border border-[var(--panel-border)] p-3 space-y-2"><h3 className="font-bold text-xs">다른 계정 참가자 · 신청 정보 유지</h3>{retainedMembers.map(m=><p key={m.name} className="flex flex-wrap justify-between gap-x-3 gap-y-1 text-xs"><span className="min-w-0 break-words">{m.name}</span><span className="text-[var(--text-sub)]">{m.start} ~ {m.end}</span></p>)}</section>}
+                </div>}
+                <p className="text-xs text-[var(--text-sub)]">닉네임을 누르면 레이드·어비스 완료 상태를 확인할 수 있어요.</p>
+                {uniqueCharacters.filter(char=>mode!=='edit' || ((showAvailable || characterSearch.trim() || busCharSelections[char.nickname||char.name]?.selected) && `${char.nickname||char.name} ${char.owner||''}`.includes(characterSearch.trim()))).map((char) => {
                   const key = char.nickname || char.name || String(char.id);
                   const config = busCharSelections[key] || { selected: false, allowRepeat: false };
 
                   return (
+                    <div key={key} className="min-w-0 space-y-2">
                     <div
-                      key={key}
                       onClick={() => {
                         setBusCharSelections((prev) => ({
                           ...prev,
                           [key]: { ...config, selected: !config.selected },
                         }));
                       }}
-                      className={`p-2.5 sm:p-3 rounded-xl border transition flex items-center justify-between gap-2.5 cursor-pointer select-none ${
+                      className={`p-2.5 sm:p-3 rounded-xl border transition flex flex-wrap justify-between gap-2.5 cursor-pointer select-none ${mode==='edit'?'flex-col items-stretch sm:flex-row sm:items-center':'items-center'} ${
                         config.selected
                           ? "bg-[var(--inner-box)] border-[var(--accent)] shadow-xs"
                           : "bg-[var(--panel)] border-[var(--panel-border)] opacity-60 hover:opacity-100"
                       }`}
                     >
-                      <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="flex flex-1 items-center gap-2.5 min-w-0">
                         <input
                           type="checkbox"
                           checked={config.selected}
-                          onChange={() => {}}
+                          aria-label={`${key} 참가 선택`}
+                          onClick={e=>e.stopPropagation()}
+                          onChange={e=>setBusCharSelections(prev=>({...prev,[key]:{...config,selected:e.target.checked}}))}
                           className="w-4 h-4 accent-[var(--accent)] rounded cursor-pointer shrink-0"
                         />
                         <ClassIcon job={char.job} className="w-7 h-7 sm:w-8 sm:h-8 shrink-0" />
                         
                         <div className="min-w-0 space-y-0.5">
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="font-black text-xs sm:text-sm text-[var(--text-main)] truncate max-w-[110px] sm:max-w-[150px]">
-                              {char.nickname || char.name}
-                            </span>
+                            <CharacterCompletionName character={char} expanded={completionCharacter === key}
+                              onToggle={() => setCompletionCharacter(current => current === key ? null : key)} />
                             {char.is_main && (
                               <span className="px-1.5 py-0.2 bg-[var(--accent)] text-[var(--accent-fg)] font-black text-[9px] rounded shrink-0 leading-none">
                                 대표
                               </span>
                             )}
                           </div>
+                          {mode==='edit' && <p className="text-xs text-[var(--text-sub)] break-words">계정: {char.owner || '확인 필요'}</p>}
+                          {mode==='edit' && char._missing && <p className="text-xs text-[var(--accent)]">삭제된 캐릭터 · 선택을 해제해주세요.</p>}
+                          {mode==='edit' && config.selected && <p className="text-xs text-[var(--text-sub)]">{config.timeStart && config.timeEnd?`신청 시간 ${config.timeStart} ~ ${config.timeEnd} 유지`:'새 참가자는 버스 시간으로 등록해요.'}</p>}
 
                           <div className="flex items-center gap-2 text-[11px] font-black text-[var(--text-sub)] flex-wrap">
                             <span className="text-[var(--text-main)] flex items-center gap-1 shrink-0">
@@ -662,6 +731,8 @@ export default function BusCreateModal({
                         </button>
                       )}
                     </div>
+                    {completionCharacter === key && <CharacterCompletionStatus character={char} catalog={catalog} onClose={() => setCompletionCharacter(null)} />}
+                    </div>
                   );
                 })}
               </div>
@@ -670,20 +741,22 @@ export default function BusCreateModal({
         </div>
 
         {/* Bottom Actions */}
-        <div className="p-3 sm:p-4 border-t border-[var(--panel-border)] bg-[var(--inner-box)] flex items-center gap-2 sm:gap-3 shrink-0">
+        <div className={`p-3 sm:p-4 border-t border-[var(--panel-border)] bg-[var(--inner-box)] gap-2 sm:gap-3 shrink-0 ${mode==='edit'?'grid grid-cols-1 sm:flex sm:items-center':'flex items-center'}`}>
           {currentStep === "SETTINGS" ? (
             <>
               <button
                 type="button"
+                disabled={isSaving}
                 onClick={() => setShowBusCreateModal(false)}
-                className="flex-1 py-2.5 sm:py-3 bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] font-bold text-xs rounded-xl hover:text-white transition cursor-pointer text-center truncate"
+                className="flex-1 min-w-0 py-2.5 sm:py-3 bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] font-bold text-xs rounded-xl hover:text-white transition cursor-pointer text-center whitespace-normal break-keep"
               >
                 취소
               </button>
               <button
                 type="button"
+                disabled={isSaving}
                 onClick={() => setCurrentStep("CHARACTERS")}
-                className="flex-2 py-2.5 sm:py-3 bg-[var(--accent)] text-[var(--accent-fg)] font-black text-xs sm:text-sm rounded-xl shadow-md hover:brightness-110 transition cursor-pointer text-center truncate"
+                className="flex-2 min-w-0 py-2.5 sm:py-3 bg-[var(--accent)] text-[var(--accent-fg)] font-black text-xs sm:text-sm rounded-xl shadow-md hover:brightness-110 transition cursor-pointer text-center whitespace-normal break-keep"
               >
                 다음: 캐릭터 선택 (1/2) ➡️
               </button>
@@ -692,17 +765,19 @@ export default function BusCreateModal({
             <>
               <button
                 type="button"
+                disabled={isSaving}
                 onClick={() => setCurrentStep("SETTINGS")}
-                className="flex-1 py-2.5 sm:py-3 bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] font-bold text-xs rounded-xl hover:text-white transition cursor-pointer text-center truncate"
+                className="flex-1 min-w-0 py-2.5 sm:py-3 bg-[var(--panel)] border border-[var(--panel-border)] text-[var(--text-sub)] font-bold text-xs rounded-xl hover:text-white transition cursor-pointer text-center whitespace-normal break-keep"
               >
                 ◀ 설정 변경
               </button>
               <button
                 type="button"
                 onClick={handleCreateGuildBus}
-                className="flex-2 py-2.5 sm:py-3 bg-[var(--accent)] text-[var(--accent-fg)] font-black text-xs sm:text-sm rounded-xl shadow-md hover:brightness-110 transition cursor-pointer text-center truncate"
+                disabled={isSaving || registeredCount===0 || !catalog.loaded || !!catalog.error}
+                className="flex-2 min-w-0 py-2.5 sm:py-3 bg-[var(--accent)] text-[var(--accent-fg)] font-black text-xs sm:text-sm rounded-xl shadow-md hover:brightness-110 transition cursor-pointer text-center whitespace-normal break-keep"
               >
-                🚌 버스 개설하기 ({selectedCount}개)
+                {isSaving?'저장 중…':mode==='edit'?`수정 저장 · 재편성 (${registeredCount}개)`:`🚌 버스 개설하기 (${selectedCount}개)`}
               </button>
             </>
           )}

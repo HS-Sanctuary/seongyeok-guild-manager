@@ -11,6 +11,12 @@ const catalog = {loaded:true,error:null,classes:[{name:'대검전사',role:'근�
 const party = {id:1,content_name:'레이드 - 에이렐',difficulty:'어려움',time_start:'00:00',time_end:'24:00',max_members:4,status:'모집중',leader_name:'main',party_type:'1회 클리어',sub_content:'[성역 길드 버스] 보존할 공지',members:[{name:'alt',job:'대검전사',role:'탱커',roles:['탱커'],owner:'account',combat_power:100,allow_repeat:true}]};
 const noop = () => {};
 
+test('only the current operator sees the guild bus settings editor action', () => {
+  const props={party,catalog,myCharacterNames:['main'],currentUserNickname:'account',onJoinClick:noop,onDeleteClick:noop,onRefresh:noop,isMasterOrAdmin:true};
+  assert.ok(renderToStaticMarkup(React.createElement(GuildBusCard,props)).includes('버스 수정'));
+  assert.ok(!renderToStaticMarkup(React.createElement(GuildBusCard,{...props,myCharacterNames:['alt']})).includes('버스 수정'));
+});
+
 test('guild bus keeps the complete nickname in both the active slot and own participation chip', () => {
   const name = '열두글자캐릭터이름테스트';
   const member = {...party.members[0],name,character_name:name};

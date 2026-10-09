@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { mergeReadIds, normalizePreferences, notificationEnabled, preferenceStorageKey, visibleNotifications, type NotificationModule } from "@/lib/notificationPolicy";
 import { supabase } from "@/lib/supabase";
+import {BusLiveTracker} from '@/lib/guildBusNotifications';
 import { filterApprovedCharacters, getApprovedAccountNames } from "@/lib/approvedCharacters";
 import { formatWeeklyResetRemaining, getWeeklyReminderKey } from "@/lib/weeklyReset";
 import {
@@ -49,18 +50,7 @@ const toNotification = (notice: Record<string, unknown>): SanctumNotification =>
 
 const isOperator = (role?: string) => ["길드마스터", "부마스터", "부마스터 대행", "master", "admin"].includes(role || "");
 
-const asMembers = (value: unknown): Array<Record<string, unknown>> => {
-  if (Array.isArray(value)) return value.filter((item): item is Record<string, unknown> => !!item && typeof item === "object");
-  if (typeof value !== "string") return [];
-  try {
-    const parsed = JSON.parse(value);
-    return Array.isArray(parsed) ? parsed.filter((item): item is Record<string, unknown> => !!item && typeof item === "object") : [];
-  } catch {
-    return [];
-  }
-};
-
-export function useNoticeNotifications(nickname?: string, role?: string) {
+export function useNoticeNotifications(nickname?: string, role?: string,accountId?:string) {
   const pathname = usePathname();
   const [notifications, setNotifications] = useState<SanctumNotification[]>([]);
   const [readIds, setReadIds] = useState<number[]>([]);
@@ -68,6 +58,7 @@ export function useNoticeNotifications(nickname?: string, role?: string) {
   const [browserPermission, setBrowserPermission] = useState<NotificationPermission | "unsupported">("unsupported");
   const [preferences, setPreferences] = useState(() => normalizePreferences(null));
   const preferencesRef = useRef(preferences);
+  const sessionAlerts=useRef(new Set<string>());
   const [settingsError, setSettingsError] = useState('');
   const setModuleEnabled = useCallback((module:NotificationModule, enabled:boolean) => {
     const next = {...preferencesRef.current,[module]:enabled};
@@ -119,8 +110,10 @@ export function useNoticeNotifications(nickname?: string, role?: string) {
     if (typeof window === "undefined") return;
     if (!notificationEnabled(notification,preferencesRef.current)) return;
     const storageKey = `sanctum_operational_notification_${nickname || "guest"}_${dedupeKey}`;
-    if (localStorage.getItem(storageKey)) return;
-    localStorage.setItem(storageKey, "true");
+    if(sessionAlerts.current.has(storageKey))return;
+    try {if(localStorage.getItem(storageKey))return;localStorage.setItem(storageKey,'true');}
+    catch { /* In-session alerts remain available when browser storage is blocked. */ }
+    sessionAlerts.current.add(storageKey);
     setNotifications((current) => [notification, ...current.filter((item) => item.id !== notification.id)].slice(0, MAX_NOTIFICATIONS));
     if ("Notification" in window && window.Notification.permission === "granted") {
       new window.Notification("SANCTUM 알림", { body: `[${notification.type}] ${notification.title}`, icon: "/favicon.ico", tag: dedupeKey });
@@ -266,21 +259,71 @@ export function useNoticeNotifications(nickname?: string, role?: string) {
   useEffect(() => {
     if (!nickname) return;
     const createId = () => -Date.now() - Math.floor(Math.random() * 1000);
+    let active=true,ready=false,baselineRequest=0;
+    const busTracker=new BusLiveTracker(accountId,nickname);
+    const pendingBusRows=new Map<string,Record<string,unknown>|null>();
+    const canManageBus=['길드마스터','부마스터','부마스터 대행','master','admin','sub_master'].includes((role||'').toLowerCase());
+    let departureEpisode=0;
+    const refreshBusBaseline=async()=>{
+      ready=false;pendingBusRows.clear();const request=++baselineRequest;
+      try {
+        const [partyResult,characterResult]=await Promise.all([
+          supabase.from('parties').select('id,party_type,leader_name,content_name,difficulty,memo,sub_content,party_date,time_start,time_end,max_members,selected_sub_contents,members,status').neq('status','종료됨'),
+          supabase.from('characters').select('nickname').eq('owner',nickname),
+        ]);
+        if(!active || request!==baselineRequest || partyResult.error || characterResult.error)return;
+        const baseline=new Map((partyResult.data||[]).map(p=>[String(p.id),p as Record<string,unknown>]));
+        for(const [id,party] of pendingBusRows){if(party)baseline.set(id,party);else baseline.delete(id);}
+        pendingBusRows.clear();
+        busTracker.seed([...baseline.values()],(characterResult.data||[]).map(c=>String(c.nickname)));
+        ready=true;
+      } catch { /* No false change alert on a failed initial read; reconnect retries. */ }
+    };
     const makeNotification = (type: string, title: string, href: string): SanctumNotification => ({
       id: createId(), title, type, href, author: "SANCTUM 시스템", created_at: new Date().toISOString(), is_pinned: false,
     });
+    const checkBusDepartures=(eventTime?:string)=>{
+      if(!active || !ready || !canManageBus)return;
+      for(const party of busTracker.takeReadyBuses(new Date(),canManageBus)){
+        appendOperationalNotification(makeNotification('SYNAXIS · 길드 버스 출발',
+          `${String(party.content_name||'컨텐츠')} 길드버스 출발 가능합니다! (${Number(party.max_members)}개 계정 준비)`,
+          `/party#guild-bus-${String(party.id)}`),
+        `bus-ready-${String(party.id)}-${eventTime||new Date().toISOString()}-${++departureEpisode}`);
+      }
+    };
     const partyChannel = supabase.channel(`sanctum-party-notification-${nickname}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "parties" }, ({ new: row }) => {
+        if(!active)return;
         const party = row as Record<string, unknown>;
+        busTracker.remember(party);
+        if(!ready)pendingBusRows.set(String(party.id),party);
+        checkBusDepartures();
         const isBus = String(party.sub_content || "").includes("길드 버스") || String(party.memo || "").includes("길드 버스");
         if (isBus) appendOperationalNotification(makeNotification("SYNAXIS · 길드 버스", `${String(party.content_name || "새 컨텐츠")} 길드 버스가 개설되었습니다.`, "/party"), `bus-${String(party.id)}`);
       })
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "parties" }, ({ new: row }) => {
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "parties" }, ({ new: row,commit_timestamp }) => {
+        if(!active)return;
         const party = row as Record<string, unknown>;
+        if(!ready){pendingBusRows.set(String(party.id),party);return;}
+        const changes=busTracker.update(party);
+        if(changes.length)appendOperationalNotification(makeNotification('SYNAXIS · 길드 버스 변경',`${String(party.content_name||'길드 버스')} 길드 버스의 ${changes.join(' · ')}이 변경되었어요. 참가 정보를 확인해주세요.`,`/party#guild-bus-${String(party.id)}`),`bus-settings-${String(party.id)}-${commit_timestamp}`);
         const completed = ["매칭 완료", "매칭완료", "모집완료"].includes(String(party.status || ""));
-        const isParticipant = asMembers(party.members).some((member) => [member.owner, member.owner_account, member.nickname, member.name, member.character_name].map(String).includes(nickname));
+        const isParticipant = busTracker.participates(party);
         if (completed && isParticipant) appendOperationalNotification(makeNotification("SYNAXIS · 매칭 완료", `${String(party.content_name || "파티")} 매칭이 완료되었습니다.`, "/party"), `party-matched-${String(party.id)}`);
-      }).subscribe();
+        checkBusDepartures(commit_timestamp);
+      })
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "parties" }, ({ old: row }) => {
+        if(!active || row.id==null)return;
+        const id=String(row.id);
+        busTracker.forget(id);
+        if(!ready)pendingBusRows.set(id,null);
+      }).subscribe(status=>{
+        if(!active)return;
+        if(status==='SUBSCRIBED')void refreshBusBaseline();
+        else {ready=false;baselineRequest++;}
+      });
+    // Time-window transitions need no server change: inspect only the cached rows.
+    const busClockTimer=canManageBus?window.setInterval(checkBusDepartures,60_000):undefined;
 
     const pantheonStorageKey = "sanctum_pantheon_top3_snapshot_v3";
     let pantheonRequest = 0;
@@ -290,7 +333,7 @@ export function useNoticeNotifications(nickname?: string, role?: string) {
         supabase.from("characters").select("nickname, owner, is_main, combat_power, life_energy, charm, contribution"),
         getApprovedAccountNames().catch(() => null),
       ]);
-      if (error || !data || !approvedNames || request !== pantheonRequest) return;
+      if (!active || error || !data || !approvedNames || request !== pantheonRequest) return;
       const snapshot = buildPantheonRankSnapshot(filterApprovedCharacters(data, approvedNames));
       let previous: PantheonRankSnapshot | null = null;
       try {
@@ -346,12 +389,15 @@ export function useNoticeNotifications(nickname?: string, role?: string) {
     const weeklyTimer = window.setInterval(() => void checkWeeklyReminder(), 60_000);
 
     return () => {
+      active=false;ready=false;baselineRequest++;pantheonRequest++;
       window.clearInterval(weeklyTimer);
+      if(busClockTimer!==undefined)window.clearInterval(busClockTimer);
+      pendingBusRows.clear();
       supabase.removeChannel(partyChannel);
       supabase.removeChannel(characterChannel);
       if (pantheonTimer) window.clearTimeout(pantheonTimer);
     };
-  }, [nickname, role, appendOperationalNotification]);
+  }, [nickname, role, accountId, appendOperationalNotification]);
 
   useEffect(() => {
     if (!nickname || !isOperator(role)) return;

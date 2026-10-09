@@ -292,6 +292,7 @@ function SynaxisContent() {
       {/* 길드 버스 탑승 모달 */}
       {partyManager.targetBusParty && (
         <GuildBusJoinModal
+          catalog={partyManager.partyCatalog}
           isOpen={partyManager.isBusModalOpen}
           onClose={() => partyManager.setIsBusModalOpen(false)}
           myCharacters={partyManager.myCharacters}
