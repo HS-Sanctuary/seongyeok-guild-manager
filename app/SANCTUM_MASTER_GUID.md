@@ -2,6 +2,8 @@
 
 ## 2026-10-10 v2.2 배포 범위
 
+- fb9150d origin/main·Vercel GitHub 성공 9FedV9MiUDCvv5JNsPcgP4CnDaVC 이후 운영 party/character/kerygma v2.2와 실제 데이터 확인. 핵심6주소 GET200, 콘솔 오류 없음. MCP 직접 Ready 접근 제한 및 기존 만료 팝업으로 새 모달 운영 열람 제한은 HANDOFF에 남긴다. 이후 아래의 '로컬 미배포' 절 제목은 작업 당시 경과이며 길드버스 묶음은 이번 공식 배포에 포함됐다.
+
 - 공식 버전 lib/release.ts=v2.2. 이번 후보는 아래 SYNAXIS 길드버스 공지 보존·설정 수정·본인 참가 제한·변경/출발 알림·일정순·완료 상태 열람만 배포한다. 구조는 아래 해당 절의 컴포넌트/API/캐시 판정 경로를 따른다.
 - IRIS 물물교환/집중 UI·캐릭터 추천/창 정책 후속과 즐겨찾기 서버 연동은 로컬 미배포 상태로 보존한다. 기존 웹 물물교환의 브라우저 즐겨찾기는 유지한다. 즐겨찾기 SQL은 실행하지 않으며 기존 승인 parties Realtime 외 추가 DB 변경 없음.
 - 업데이트 노트는 RELEASE_NOTES 및 UPDATE_POST_v2.2.md에 기록한다. staged 후보 Node384통과/3skip·독립 타입·분리 Production 빌드52경로 통과. 공개 공지 자동 게시나 신규 테이블 활성화는 이번 push에 포함하지 않는다. 실제 배포/운영 확인은 HANDOFF 최신 기록을 따른다.

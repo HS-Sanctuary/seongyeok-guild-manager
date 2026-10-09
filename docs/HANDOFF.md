@@ -1,5 +1,11 @@
 # SANCTUM 작업 인계
 
+## 2026-10-10 01:52 KST 영겁 — v2.2 main push·운영 확인
+
+- 기능 커밋 fb9150d60f66dc20f80f6f7222dcdc06f5118cd7 origin/main fast-forward, Vercel GitHub success/9FedV9MiUDCvv5JNsPcgP4CnDaVC. 운영 party/character/kerygma BETA v2.2·기존 한설 세션/실데이터 로딩·관찰 콘솔 error/warn0, 로그인/캐릭터/공지/파티/admin/auth health GET200. 신규 로그인 제출·운영 데이터 시험 쓰기는 하지 않았다. MCP team403으로 직접 Ready는 확인 불가하며 배포 성공 신호와 운영 확인을 구분한다.
+- 기존 시간 만료 팝업은 연장/취소만 있어 생성 모달 실열람을 막는다. 확인을 위해 다른 사람의 버스를 임의 변경하지 않았다. 새 모달은 회귀/앞선 사용자 확인, 실제 출발 수신은 운영 확인 대기. 별도 정책 결정 없이 만료 안내를 우회하거나 파티를 취소하지 말 것.
+- 아래 로컬 작업 경과는 당시 상태로 보존한다. v2.2 공식 배포는 길드버스 범위만이며 IRIS/즐겨찾기 변경·개인 삭제는 여전히 로컬, 신규 SQL 적용/공개공지 게시0. 검증384pass/3skip·타입·분리52경로빌드 통과, 이전 rollback224eb6f/v2.154 유지.
+
 ## 2026-10-10 01:40 KST 영겁 — v2.2 공식 push 준비
 
 - 한설이 push·생텀 버전업·업데이트 노트를 요청했다. 독립 기능 묶음인 길드버스 공지 보존/설정 수정·본인 참가 제한·접속 중 변경/출발 알림·일정순·완료 열람을 v2.2로 올린다. 현재 feature branch에서 검증한 staged 후보만 HEAD:main fast-forward push한다. 원격 main224eb6f 최신 pull 확인, force push 없음.

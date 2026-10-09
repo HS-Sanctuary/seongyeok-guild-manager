@@ -4,6 +4,8 @@
 
 ## YG-20261008-001 — UPDATED
 
+- 2026-10-10 01:52 KST v2.2 배포: fb9150d main 일반 push·GitHub Vercel success 9FedV9MiUDCvv5JNsPcgP4CnDaVC, 운영 party/character/kerygma BETA v2.2·실데이터·관찰콘솔 오류0/핵심6 GET200. MCP team403으로 직접Ready 조회 불가. 기존 만료 팝업에 안전한 닫기 없이 연장/취소만 있어 새 모달 운영 열람은 안 했고 운영 데이터 시험 쓰기0. 실제 출발 수신 후속, 후보384pass/3skip·타입·52경로빌드 통과. IRIS/즐겨찾기/개인 변경은 로컬보존·추가DB/공개공지0. 아래 이전 미ACK 경과는 보존한다.
+
 - v2.2 후보 검증: staged tree만 분리하여 Node384통과/0실패/기존 런타임3skip·독립 tsc·webpack Production52경로 exit0·cached diff 통과. Windows sandbox EACCES 후 동일 후보 허용 환경 재검증. 운영 결과는 후속 누적한다.
 
 - 2026-10-10 01:40 KST 공식 push 준비: 한설 요청, 길드버스 독립 묶음으로 v2.2. 공지 보존·현재 운행자 설정 수정·본인 참가 추가/교체 제한·변경/출발 알림·일정 정렬·크로노스 raid/abyss 읽기 열람만 staged 검증 후 main fast-forward push. IRIS 후속/즐겨찾기 API·UI·준비SQL/무관한 개인삭제·공지초안은 로컬 보존·이번 미배포다. 이전 미ACK 누적은 삭제하지 않는다. 운영 DB 추가변경/케리그마게시0, UPDATE_POST_v2.2 사용자노트 보관. 이전 기준선224eb6f/v2.154·Vercel GitHub success G953mg9hhTULweP9oTpVZfsLsPEr, MCP team403/CLI없음으로 직접 Ready 조회는 제한됨. 후보 검증/새커밋/운영결과는 후속 누적.
