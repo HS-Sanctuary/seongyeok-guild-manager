@@ -4,6 +4,8 @@
 
 ## YG-20261008-001 — UPDATED
 
+- 2026-10-10 02:25 KST v2.21 운영/게시: 89034a5 main 일반 push·dpl_3weipgZgD3d5AVtrdTFoaXX1ZQao GitHub success, 기존 Vercel 브라우저 세션 Ready/Production/도메인/커밋 직접 확인(MCP403 유지). 운영 party v2.21·한설 세션·만료popup없음·관찰콘솔0, 현 조건 파티없음으로 담당자 실연장 쓰기0. 한설 게시 직전 승인 후 통합 업데이트 ID15/생텀업데이트/SANCTUM 시스템·본문·목록 단일항목 확인: https://sanctum-tawny-three.vercel.app/kerygma?id=15. 새 글 재발행 금지·자동게시/DDL/RLS 없음·공지 본인 열람기록만 추가. 후속은 확인 문서만/구조 변경 없음. IRIS/즐겨찾기 미배포 변경과 이전 미ACK 누적 보존.
+
 - v2.21 공식 후보 검증: staged tree 분리 전체 Node dot reporter exit0·독립 tsc·webpack52경로 exit0, 한정 독립 리뷰 blocking0·18회귀/실제네 action 대역 통과. 첫 제한 환경 EACCES 이후 동일 후보 허용 환경 통과·운영 시험쓰기0. 이전 미ACK 누적 보존.
 
 - 2026-10-10 02:16 KST v2.21 준비: 한설이 만료 안내 담당자 제한 main push와 v2.2 통합 업데이트 게시 명시 승인. 핫픽스 v2.21/UPDATE_POST_v2.21, 기존 길드마스터 공지 API의 시스템 작성자/같은 제목 중복 방어 사용 예정·새 자동게시/DDL/RLS 없음. 원격main 최신 pull 확인, IRIS/즐겨찾기/개인 변경 제외·미ACK 기존 누적 보존. 검증/커밋/배포/게시 결과는 후속 누적. rollback v2.2/61cc25b·GitHub Vercel success 5wdCNRoi7GUgJiZh9Gf21BGs23oG.

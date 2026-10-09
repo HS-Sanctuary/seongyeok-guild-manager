@@ -12,6 +12,12 @@
 
 배포 후보 검증 — 2026-10-10 02:21 KST: staged tree를 별도 폴더로 추출하여 전체 `node --test --test-reporter=dot` exit0, 독립 `tsc --noEmit --incremental false` exit0, 비밀 환경 파일 없는 webpack Production 빌드52경로 exit0. 첫 제한 환경 전체 테스트는 임시 파일/루프백 접근 거부로 실패했고 같은 후보의 허용 환경 재실행은 통과했다. 범위 한정 독립 리뷰 blocking0·신규18회귀 통과·실제 네 action callback의 대역 검증 통과. 운영 쓰기 시험과는 구분한다.
 
+### 운영 배포·공개 게시 확인 — 2026-10-10 02:25 KST
+
+- 코드 89034a5a9021de5c8177a5ffbb3d7cb1951ab1e1을 main에 일반 push. GitHub Vercel success 및 로그인된 Vercel 대시보드의 Ready/Production/Current Domains·동일 main 커밋 확인. 배포 dpl_3weipgZgD3d5AVtrdTFoaXX1ZQao, 운영 sanctum-tawny-three.vercel.app 연결. MCP 팀 접근403은 그대로이며 브라우저 기존 세션으로 읽기 확인했다. 재인증/권한 변경은 하지 않았다.
+- 실제 운영 /party: 한설 길드마스터 세션, BETA v2.21, 만료 안내 없이 조작 화면 표시, 관찰 콘솔 error/warn0. 현재 조건의 파티가 없는 상태로 운행자 실연장/취소 쓰기는 하지 않았다. 서버 네 동작은 대역 회귀 결과와 구분한다.
+- 최종 게시 직전 별도 한설 승인을 받아 기존 공지 작성 UI로 통합 업데이트 한 건 게시. 생텀 업데이트/SANCTUM 시스템/제목·본문·게시 후 목록 단일 항목 확인. 주소 https://sanctum-tawny-three.vercel.app/kerygma?id=15. 공지 열람으로 본인 읽음 기록이 저장되며 자동 게시 기능 추가·DB 구조/RLS 변경 없음. IRIS/즐겨찾기 로컬 파일은 보존한다. 이 후속 커밋은 확인 기록만이며 구조 변경 없음.
+
 ## v2.2 — 시낙시스 길드버스 운영 개선 — 2026-10-10 01:40 KST
 
 ### 길드원이 확인할 변화

@@ -1,5 +1,11 @@
 # SANCTUM 작업 인계
 
+## 2026-10-10 02:25 KST 영겁 — v2.21 운영·통합 공지 완료
+
+- main 89034a5, Vercel dpl_3weipgZgD3d5AVtrdTFoaXX1ZQao. GitHub success·기존 로그인 Vercel 브라우저에서 Ready/Production/운영 도메인/동일 커밋 직접 확인. MCP403을 성공으로 오인하지 말 것. 운영 /party BETA v2.21·한설 세션·만료 안내 없음·사용 화면·관찰 콘솔0. 현 날짜 조건에 파티가 없어서 실제 담당자 연장/취소 쓰기는 미시험이다.
+- 한설의 게시 직전 추가 승인 후 기존 공지 UI로 통합 업데이트 ID15 발행. https://sanctum-tawny-three.vercel.app/kerygma?id=15 / 생텀 업데이트 / SANCTUM 시스템 / 제목·본문·목록 단일 항목 확인. 같은 버전 새 글을 만들지 말 것. UPDATE_POST_v2.21는 게시 상태로 갱신. 별도 생텀 가이드 글은 생성하지 않았다.
+- 후보 전체 Node·독립 tsc·52경로 Production 빌드 통과/리뷰 blocking0. 후속은 확인 기록만·구조 변경 없음. 미배포 IRIS/즐겨찾기·SQL/개인 파일 변경은 보존한다. 아래 준비/로컬 미배포 절은 당시 경과이며 만료 수정은 운영 반영됐다.
+
 ## 2026-10-10 02:16 KST 영겁 — v2.21 공식 push·통합 공지 준비
 
 - 한설 명시 승인: 만료 안내 담당자 제한까지 main push, 앞선 v2.2와 합친 버전업/업데이트 공지 게시. v2.21 핫픽스, lib/release.ts 및 UPDATE_POST_v2.21 사용자용 본문 갱신. 기존 길드마스터 notices/mutate 경로가 생텀 업데이트 작성자를 SANCTUM 시스템으로 고정하고 같은 제목 중복을 거절하므로 이 경로만 사용한다. 자동 게시 기능 추가/DB 구조 변경 없음.
