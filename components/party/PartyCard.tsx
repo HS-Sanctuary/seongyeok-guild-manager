@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef } from 'react';
+import {usePartySurface} from './PartySurfaceContext';
 import ClassIcon from '@/components/common/ClassIcon';
 import MarkIcon from '@/components/common/MarkIcon';
 import styles from './PartyCard.module.css';
@@ -63,7 +64,7 @@ interface PartyCardProps {
   openJoinPopup: (party: Party) => void;
   setInspectCharacter: (char: any) => void;
   handleLeaveParty: (party: Party, charName: string) => void;
-  handleDeleteParty: (partyId: string | number) => void;
+  handleDeleteParty: (partyId: string | number) => void | Promise<void>;
   onCompleteParty?: (party: Party, memberName?: string) => void;
   isAdmin: boolean;
   onRefresh?: () => void;
@@ -81,6 +82,8 @@ export default function PartyCard({
   isAdmin,
   catalog
 }: PartyCardProps) {
+  const surface=usePartySurface();
+  const deleting=useRef(false);
   const {contents: contentsCatalog, classes: classesCatalog, powerReqs} = catalog;
   // 🛡️ DB 정격 인원수 파싱
   const maxMembers = useMemo(() => {
@@ -121,10 +124,17 @@ export default function PartyCard({
 
   const abyssInfo = useMemo(() => parseAbyssInfo(party, null, contentsCatalog), [party, contentsCatalog]);
 
-  const handleForceDelete = () => {
-    if (confirm("⚠️ 정말로 이 파티 모집을 강제 삭제하시겠습니까?\n삭제된 데이터는 복구할 수 없습니다.")) {
-      handleDeleteParty(party.id);
-    }
+  const handleForceDelete = async () => {
+    if(!isAdmin||deleting.current)return;
+    deleting.current=true;
+    const message="정말로 이 파티 모집을 강제 삭제할까요? 삭제된 데이터는 복구할 수 없어요.";
+    const notify=(message:string)=>surface?.notify?surface.notify(message):alert(message);
+    try{
+      if(!(surface?.confirm?await surface.confirm({title:'파티 강제 삭제',message,confirmLabel:'삭제하기'}):confirm(message)))return;
+      await handleDeleteParty(party.id);
+      if(surface)notify('파티 모집이 삭제되었습니다.');
+    }catch(error){notify('파티 삭제 실패: '+(error instanceof Error?error.message:'서버 연결을 확인해주세요.'));}
+    finally{deleting.current=false;}
   };
 
   const handleVoteClick = () => {
@@ -276,11 +286,11 @@ export default function PartyCard({
   }, [party.members, party.leader_name, allCharactersMap]);
 
   return (
-    <div className={`${styles.cardContainer} w-full rounded-2xl border border-[var(--panel-border)] border-t-4 border-t-[var(--accent)] bg-[var(--panel)] p-3.5 sm:p-5 shadow-lg transition-all duration-200 hover:border-[var(--accent)] relative overflow-hidden`}>
+    <div className={`${styles.cardContainer} party-card w-full rounded-2xl border border-[var(--panel-border)] border-t-4 border-t-[var(--accent)] bg-[var(--panel)] p-3.5 sm:p-5 shadow-lg transition-all duration-200 hover:border-[var(--accent)] relative overflow-hidden`}>
       
       {/* 카드 헤더 래퍼 */}
-      <div className="-mx-3.5 -mt-3.5 sm:-mx-5 sm:-mt-5 p-3.5 sm:p-4 bg-[var(--inner-box)] border-b border-[var(--panel-border)] rounded-t-2xl mb-3.5 flex flex-col gap-2">
-        <div className="flex items-center justify-between gap-2 min-w-0">
+      <div className="party-card-header -mx-3.5 -mt-3.5 sm:-mx-5 sm:-mt-5 p-3.5 sm:p-4 bg-[var(--inner-box)] border-b border-[var(--panel-border)] rounded-t-2xl mb-3.5 flex flex-col gap-2">
+        <div className="party-card-badges flex items-center justify-between gap-2 min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap min-w-0">
             <span className={`px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-black border ${DIFFICULTY_COLORS[party.difficulty] || 'bg-[var(--panel)] border-[var(--panel-border)] text-[var(--text-main)]'} shrink-0`}>
               {party.difficulty}
@@ -421,7 +431,7 @@ export default function PartyCard({
       )}
 
       {/* 파티원 슬롯 (4인/8인 정격 규격 가변 렌더링) */}
-      <div className={`${styles.memberGrid} grid gap-2 mb-3.5`}>
+      <div className={`${styles.memberGrid} party-member-grid grid gap-2 mb-3.5`}>
         {Array.from({ length: maxMembers }).map((_, index) => {
           const member = party.members[index];
 
@@ -430,7 +440,7 @@ export default function PartyCard({
               <div 
                 key={`empty-${index}`} 
                 onClick={() => !isCompletedParty && openJoinPopup(party)}
-                className={`min-h-[150px] rounded-xl border border-dashed border-[var(--panel-border)] bg-[var(--inner-box)]/30 flex flex-col items-center justify-center gap-1 text-xs text-[var(--text-sub)] font-bold hover:border-[var(--accent)] hover:text-[var(--accent)] transition cursor-pointer ${
+                className={`party-empty-slot min-h-[150px] rounded-xl border border-dashed border-[var(--panel-border)] bg-[var(--inner-box)]/30 flex flex-col items-center justify-center gap-1 text-xs text-[var(--text-sub)] font-bold hover:border-[var(--accent)] hover:text-[var(--accent)] transition cursor-pointer ${
                   isCompletedParty ? "cursor-not-allowed opacity-40" : ""
                 }`}
               >
@@ -460,7 +470,7 @@ export default function PartyCard({
             <div
               key={`mem-${memName}-${index}`}
               onClick={() => (charObj.nickname || charObj.name) && setInspectCharacter(charObj)}
-              className={`min-h-[150px] rounded-xl border p-2.5 flex flex-col gap-2 relative transition hover:border-[var(--accent)] cursor-pointer min-w-0 shadow-xs ${
+              className={`party-member min-h-[150px] rounded-xl border p-2.5 flex flex-col gap-2 relative transition hover:border-[var(--accent)] cursor-pointer min-w-0 shadow-xs ${
                 isVoted 
                   ? 'border-amber-500/80 bg-amber-950/20 shadow-[0_0_12px_rgba(245,158,11,0.15)]' 
                   : isLeader 
@@ -476,7 +486,7 @@ export default function PartyCard({
               )}
 
               <div className={`flex w-full min-w-0 items-start gap-2 ${isVoted ? 'pt-4' : ''}`}>
-                <div className="flex shrink-0 flex-col items-center gap-1">
+                <div className="party-member-identity flex shrink-0 flex-col items-center gap-1">
                   <div className={`w-8 h-8 rounded-lg bg-[var(--panel)] border ${isLeader ? 'border-amber-400 ring-2 ring-amber-500/30' : 'border-[var(--panel-border)]'} flex items-center justify-center p-0.5 shadow-inner relative`}>
                     <ClassIcon className="w-5 h-5 text-[var(--text-main)]" job={rawJob} />
                     {isLeader && (
@@ -492,7 +502,7 @@ export default function PartyCard({
                 <div className="min-w-0 flex-1 pt-0.5">{renderFormattedNickname(memName)}</div>
               </div>
 
-              <div className="w-full min-w-0 space-y-1.5 border-t border-[var(--panel-border)] pt-2 text-[0.7rem] leading-snug">
+              <div className="party-member-stats w-full min-w-0 space-y-1.5 border-t border-[var(--panel-border)] pt-2 text-[0.7rem] leading-snug">
                 <div className="flex items-center gap-1.5 whitespace-nowrap text-amber-700 dark:text-amber-400 font-mono font-black">
                   <MarkIcon src="/svgs/status mark/전투력 마크.svg" size="sm" colorClass="bg-amber-600 dark:bg-amber-400" />
                   <span className="sr-only">전투력 </span>
@@ -503,7 +513,7 @@ export default function PartyCard({
                   <span className="sr-only">마도저항 </span>
                   <span>{mr > 0 ? mr.toLocaleString() : "-"}</span>
                 </div>
-                <div className="flex items-center gap-1 whitespace-nowrap border-t border-[var(--panel-border)] pt-1.5 text-[var(--text-sub)] font-mono">
+                <div className="party-member-time flex items-center gap-1 whitespace-nowrap border-t border-[var(--panel-border)] pt-1.5 text-[var(--text-sub)] font-mono">
                   <span aria-hidden="true">⏱</span>
                   <span className="sr-only">신청 시간 </span>
                   <span className="font-semibold">{memStart} ~ {memEnd}</span>

@@ -25,7 +25,9 @@ $irisDesktopStore=New-Object IrisDesktop.DesktopStore($irisDesktopStoreRoot,$iri
 $irisDesktopWindow=New-Object IrisDesktop.DesktopWebView([bool]$Development,$irisDesktopProfile,$irisDesktopStore)
 $irisDesktopWindow.EnableDesktopLifecycle()
 $irisDesktopTray=New-Object System.Windows.Forms.NotifyIcon
-$irisDesktopTray.Icon=[System.Drawing.SystemIcons]::Application
+$irisDesktopIconPath=Join-Path $PSScriptRoot '../public/IRIS/logo/IRIS.ico'
+$irisDesktopIcon=$null
+if(Test-Path -LiteralPath $irisDesktopIconPath){$irisDesktopIcon=New-Object System.Drawing.Icon($irisDesktopIconPath);$irisDesktopWindow.Icon=$irisDesktopIcon;$irisDesktopTray.Icon=$irisDesktopIcon}else{$irisDesktopTray.Icon=[System.Drawing.SystemIcons]::Application}
 $irisDesktopTray.Text='SANCTUM IRIS · 생텀 센터'
 $irisDesktopTray.Visible=$true
 $irisDesktopMenu=New-Object System.Windows.Forms.ContextMenuStrip
@@ -49,4 +51,4 @@ $irisDesktopTimer.add_Tick({
  }
 })
 try{$irisDesktopTimer.Start();[System.Windows.Forms.Application]::Run($irisDesktopWindow)}
-finally{$irisDesktopTimer.Stop();$irisDesktopTimer.Dispose();$irisDesktopTray.Visible=$false;$irisDesktopTray.Dispose();$irisDesktopMenu.Dispose();$irisDesktopWindow.Dispose();$irisQueueOwner.ReleaseMutex();$irisQueueOwner.Dispose();$irisDesktopOwner.Dispose()}
+finally{$irisDesktopTimer.Stop();$irisDesktopTimer.Dispose();$irisDesktopTray.Visible=$false;$irisDesktopTray.Dispose();$irisDesktopMenu.Dispose();$irisDesktopWindow.Dispose();if($irisDesktopIcon){$irisDesktopIcon.Dispose()};$irisQueueOwner.ReleaseMutex();$irisQueueOwner.Dispose();$irisDesktopOwner.Dispose()}

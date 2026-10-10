@@ -83,6 +83,14 @@ namespace IrisDesktop {
             else Decision(false);
         }
 
+        // Only the release bootstrap failure path may bypass close protection.
+        // Never abort a loaded editing document or touch its protected store.
+        public bool AbortUninitializedStartup() {
+            if (documentReady || (Browser.Source != null && Browser.Source.AbsolutePath == "/iris/desktop")) return false;
+            pendingCloseReason = null; allowClose = true; fitTimer.Stop(); Close();
+            return true;
+        }
+
         public async Task InitializeAsync(string loaderPath) {
             if (!Path.IsPathRooted(loaderPath) || !File.Exists(loaderPath))
                 throw new ArgumentException("Official SDK loader path required", "loaderPath");
@@ -98,7 +106,17 @@ namespace IrisDesktop {
             core.Settings.AreDevToolsEnabled = development;
             core.NavigationStarting += GuardNavigation;
             core.FrameNavigationStarting += GuardNavigation;
-            core.NewWindowRequested += (sender, e) => { e.Handled = true; };
+            core.NewWindowRequested += (sender, e) => {
+                e.Handled = true;
+                Uri source, target;
+                // A user-clicked party-list link opens only the fixed same-environment route.
+                // No arbitrary external URL, script popup, or WebView navigation is granted.
+                if (documentReady && e.IsUserInitiated && Uri.TryCreate(core.Source, UriKind.Absolute, out source) &&
+                    Uri.TryCreate(e.Uri, UriKind.Absolute, out target) && (DesktopHostPolicy.ValidatePartyExternal(source, target, development) || DesktopHostPolicy.ValidateHomeExternal(source, target, development))) {
+                    try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(target.AbsoluteUri) { UseShellExecute = true }); }
+                    catch { MessageBox.Show(this,"브라우저를 열지 못했어요. 생텀의 시낙시스 화면에서 파티 목록을 확인해주세요.","SANCTUM IRIS"); }
+                }
+            };
             core.PermissionRequested += (sender, e) => { e.State = CoreWebView2PermissionState.Deny; };
             core.DownloadStarting += (sender, e) => { e.Cancel = true; };
             if (store != null) {

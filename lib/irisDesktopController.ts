@@ -1,5 +1,7 @@
 import type { DesktopQueue, QueueSnapshot, TaskKey,PendingEdit,SaveOutcome } from './irisDesktopQueue';
 import { DesktopTransportError, type DesktopAccount, type DesktopCharacter, type DesktopDetails, type DesktopTransport } from './irisDesktopTransport';
+import type {BarterKey} from './irisBarter';
+import type {WorkspaceKey} from './irisWorkspace';
 export type DesktopStore = { load(): Promise<QueueSnapshot | null>; replace(value: QueueSnapshot): Promise<void> };
 export type DesktopSaveConfirmation = {characterId:string;nickname:string;confirmedAt:number};
 export type DesktopClassDraft={text:string;error:string|null};
@@ -12,6 +14,7 @@ export function createDesktopController(options: { queue: DesktopQueue; transpor
   let epoch = 0, selection = 0, changing = false, closed = false, durabilityError = false;
   let charactersLoaded = false;
   const confirmations=new Map<string,DesktopSaveConfirmation>();
+  const explicitBarterRetries=new Set<string>();
   const confirmationKey=(owner:string,id:string)=>JSON.stringify([owner,id]);
   const drafts=new Map<string,Record<string,DesktopClassDraft>>();
   const currentDrafts=()=>account&&selected?drafts.get(confirmationKey(account.id,selected.characterId))??{}:{};
@@ -28,26 +31,54 @@ export function createDesktopController(options: { queue: DesktopQueue; transpor
     characters = await transport.characters(account.id);
     charactersLoaded = true;
   }
-  function acknowledge(edit: PendingEdit, completed:number) {
+  function acknowledge(edit: PendingEdit, completed:number,outcome:SaveOutcome) {
     // Session-local evidence only: do not invent a historic DB write time or persist it as queue data.
     if(account?.id===edit.accountId){
       const character=characters.find(c=>c.id===edit.characterId);
       if(character)confirmations.set(confirmationKey(edit.accountId,edit.characterId),{characterId:edit.characterId,nickname:character.nickname,confirmedAt:(options.now??Date.now)()});
     }
+    if(edit.kind==='workspace'&&selected?.accountId===edit.accountId&&(edit.scope==='account'||selected.characterId===edit.characterId)){
+      const row=selected.details.workspace?.find(r=>r.itemKind===edit.itemKind&&r.id===edit.itemId&&r.key.periodKey===edit.periodKey);
+      if(row){if(edit.field==='count')row.completed=completed;else row.bookmarked=completed===1;}return;
+    }
     if(edit.kind==='class'){
       const values=drafts.get(confirmationKey(edit.accountId,edit.characterId));
       if(values?.[edit.classId]?.error===null&&Number(values[edit.classId].text)===completed)delete values[edit.classId];
+    }
+    if(edit.kind==='barter'&&selected?.accountId===edit.accountId&&(edit.scope==='account'||selected.characterId===edit.characterId)){
+      const row=selected.details.barter?.find(r=>r.id===edit.tradeId&&r.periodKey===edit.periodKey),context=selected.writeContext.barter?.find(r=>r.tradeId===edit.tradeId&&r.periodKey===edit.periodKey);
+      if(row&&context&&outcome.kind==='saved'&&'baseRecords' in outcome&&outcome.baseRecords){row.completed=completed;row.completedBy=outcome.completedBy??null;row.consistent=true;context.baseRecords=structuredClone(outcome.baseRecords);}
+      return;
     }
     if (selected?.accountId === edit.accountId && selected.characterId === edit.characterId) {
       if(edit.kind==='class'){
         const row=selected.details.classes.find(r=>r.id===edit.classId);if(row)row.level=completed;
         const context=selected.writeContext.classes.find(r=>r.classId===edit.classId);if(context)context.baseLevel=completed;
-      }else if(selected.writeContext.periodKeys[edit.category]===edit.periodKey){
+      }else if(edit.kind==='task'&&selected.writeContext.periodKeys[edit.category]===edit.periodKey){
         const row = selected.details.tasks[edit.category].find(r => r.id === edit.taskId); if (row) row.completed = completed;
       }
     }
   }
   function inspection(edit:PendingEdit,latest:DesktopDetails):SaveOutcome|'baseline'{
+    if(edit.kind==='workspace'){
+      // An optional catalog read failure is not evidence that the item was removed.
+      if(!latest.details.workspace)return {kind:'unknown'};
+      const row=latest.details.workspace?.find(r=>r.itemKind===edit.itemKind&&r.id===edit.itemId);
+      if(!row||row.key.scope!==edit.scope||row.key.catalogKey!==edit.catalogKey)return {kind:'conflict'};
+      if(row.key.periodKey!==edit.periodKey)return {kind:'expired'};
+      const value=edit.field==='count'?row.completed:Number(row.bookmarked);
+      if(value===edit.desiredCompleted)return {kind:'saved',completed:value};
+      return value===edit.baseCompleted&&(edit.field==='bookmark'||edit.desiredCompleted<=row.total)?'baseline':{kind:'conflict'};
+    }
+    if(edit.kind==='barter'){
+      const row=latest.details.barter?.find(r=>r.id===edit.tradeId),context=latest.writeContext.barter?.find(r=>r.tradeId===edit.tradeId);
+      if(!row||!context||context.scope!==edit.scope||context.catalogKey!==edit.catalogKey)return {kind:'conflict'};
+      if(context.periodKey!==edit.periodKey)return {kind:'expired'};
+      if(context.baseRecords.length!==edit.baseRecords.length||edit.baseRecords.some(b=>!context.baseRecords.some(c=>c.characterId===b.characterId)))return {kind:'conflict'};
+      const buyer=edit.desiredCompleted?characters.find(c=>c.id===edit.characterId)?.nickname:null;
+      if(row.consistent&&row.completed===edit.desiredCompleted&&row.completedBy===buyer)return {kind:'saved',completed:row.completed,completedBy:row.completedBy,baseRecords:context.baseRecords};
+      return edit.baseRecords.every(b=>context.baseRecords.some(c=>c.characterId===b.characterId&&c.recordKey===b.recordKey))&&edit.desiredCompleted<=row.total?'baseline':{kind:'unknown'};
+    }
     if(edit.kind==='class'){
       const c=latest.writeContext.classes?.find(r=>r.classId===edit.classId);
       if(!c?.editable)return {kind:'conflict'};
@@ -61,7 +92,7 @@ export function createDesktopController(options: { queue: DesktopQueue; transpor
   }
   function settle(edit:PendingEdit,outcome:SaveOutcome){
     queue.settle(edit.requestId,outcome);
-    if(outcome.kind==='saved')acknowledge(edit,'level' in outcome?outcome.level:outcome.completed);
+    if(outcome.kind==='saved')acknowledge(edit,'level' in outcome?outcome.level:outcome.completed,outcome);
   }
   function persist() {
     const snapshot = queue.snapshot();
@@ -91,11 +122,12 @@ export function createDesktopController(options: { queue: DesktopQueue; transpor
     while ((!locked() || draining) && !closed && !durabilityError && account?.id === owner && epoch === currentEpoch) {
       const next = queue.due(owner,blocked())[0]; if (!next) break;
       const edit = queue.claim(next.requestId); if (!edit) break;
+      const explicitBarterRetry=explicitBarterRetries.delete(edit.requestId);
       await persist(); // Durable inflight before even inspecting/sending the request.
       try {
         const latest = await read(edit.characterId);
         const checked=inspection(edit,latest);
-        if(checked!=='baseline')settle(edit,checked);
+        if(checked!=='baseline'&&!(edit.kind==='barter'&&checked.kind==='unknown'&&explicitBarterRetry))settle(edit,checked);
         else if(blocked().has(edit.characterId))queue.settle(edit.requestId,{kind:'unknown'});
         else {
           const result = await transport.save(edit);
@@ -199,6 +231,16 @@ export function createDesktopController(options: { queue: DesktopQueue; transpor
       queue.edit(scope(selected!.characterId), key, base, desired);
       return persist();
     },
+    editBarter(key:BarterKey,base:number,desired:number):Promise<void>{
+      requireEdit();const row=selected!.details.barter?.find(r=>r.id===key.tradeId),context=selected!.writeContext.barter?.find(r=>r.tradeId===key.tradeId);
+      if(!row||!context||context.periodKey!==key.periodKey||context.scope!==key.scope||context.catalogKey!==key.catalogKey||JSON.stringify(context.baseRecords)!==JSON.stringify(key.baseRecords)||desired>row.total)throw Error('물물교환 항목이나 기간을 다시 확인해 주세요.');
+      queue.editBarter(scope(selected!.characterId),key,base,desired);return persist();
+    },
+    editWorkspace(key:WorkspaceKey,base:number,desired:number):Promise<void>{
+      requireEdit();const row=selected!.details.workspace?.find(r=>r.itemKind===key.itemKind&&r.id===key.itemId);
+      if(!row||row.key.catalogKey!==key.catalogKey||row.key.periodKey!==key.periodKey||row.scope!==key.scope||(key.field==='count'&&desired>row.total))throw Error('상점·임무 항목이나 기간을 다시 확인해 주세요.');
+      queue.editWorkspace(scope(selected!.characterId),key,base,desired);return persist();
+    },
     async setClassDraft(classId:string,text:string){
       requireEdit();
       const context=selected!.writeContext.classes?.find(c=>c.classId===classId);
@@ -240,7 +282,12 @@ export function createDesktopController(options: { queue: DesktopQueue; transpor
           if (edit.phase !== 'unknown') throw Error('충돌하거나 기간이 지난 변경은 버린 뒤 다시 체크해 주세요.');
           if(blocked().has(edit.characterId))throw Error('클래스 입력을 먼저 고쳐 주세요.');
           const latest=await read(edit.characterId),result=inspection(edit,latest);
-          if(result!=='baseline')settle(edit,result);else queue.recover(requestId,'retry');
+          // A partial barter intent is never inferred from MAX. Explicit retry reaches
+          // the server, which permits only the original item digests or exact desired copies.
+          if(result==='baseline'||(edit.kind==='barter'&&result.kind==='unknown')){
+            queue.recover(requestId,'retry');
+            if(edit.kind==='barter')for(const retried of queue.snapshot().entries)if(retried.kind==='barter'&&retried.phase==='pending'&&retried.accountId===edit.accountId&&retried.tradeId===edit.tradeId&&retried.periodKey===edit.periodKey&&retried.scope===edit.scope)explicitBarterRetries.add(retried.requestId);
+          }else settle(edit,result);
         }
         await persist();
       } finally { changing = false; }

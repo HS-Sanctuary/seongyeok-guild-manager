@@ -2,15 +2,17 @@ import type { PendingEdit } from './irisDesktopQueue';
 import type { IrisClassDetail, IrisTaskDetail } from './irisKronos';
 import type { Category } from './irisKronosWrite';
 import type {ClassWriteContext} from './irisClassWrite';
+import {parseWorkspaceRows,type WorkspaceRow} from './irisWorkspace';
+import {parseBarterPayload,validBarterRecords,type IrisBarterDetail,type BarterWriteContext,type BarterBaseRecord} from './irisBarter';
 
 export type DesktopAccount = { id: string; nickname: string; role: string };
 export type DesktopCharacter = { id: string; nickname: string; job: string; alias: string | null };
 export type DesktopDetails = {
   accountId: string; characterId: string; observedAt: string;
-  writeContext: { periodKeys: Record<Category, string>;classes:ClassWriteContext[] };
-  details: { schemaVersion: 1; tasks: Record<Category, IrisTaskDetail[]>; classes: IrisClassDetail[] };
+  writeContext: { periodKeys: Record<Category, string>;classes:ClassWriteContext[];barter?:BarterWriteContext[] };
+  details: { schemaVersion: 1; tasks: Record<Category, IrisTaskDetail[]>; classes: IrisClassDetail[];barter?:IrisBarterDetail[];workspace?:WorkspaceRow[] };
 };
-export type DesktopSaveResult = { kind: 'saved'; completed: number } |
+export type DesktopSaveResult = { kind: 'saved'; completed: number;baseRecords?:BarterBaseRecord[];completedBy?:string|null } |
   {kind:'saved';level:number} |
   { kind: 'conflict' | 'unauthorized' | 'unknown' | 'rejected' };
 export class DesktopTransportError extends Error {
@@ -74,7 +76,11 @@ function parseDetails(v: unknown, accountId: string, characterId: string): Deskt
       return {classId:c.id,editable:row.editable,baseLevel:row.baseLevel as number|null};
     });
   }
-  return { accountId, characterId, observedAt: v.observedAt, writeContext: { periodKeys,classes:contexts }, details: { schemaVersion: 1, tasks, classes } };
+  let barter:{rows:IrisBarterDetail[];contexts:BarterWriteContext[]}|undefined;
+  if(v.details.barter!==undefined||v.writeContext.barter!==undefined){try{barter=parseBarterPayload(v.details.barter,v.writeContext.barter);}catch{throw new DesktopTransportError(502);}}
+  let workspace:WorkspaceRow[]|undefined;
+  if(v.details.workspace!==undefined)try{workspace=parseWorkspaceRows(v.details.workspace);}catch{throw new DesktopTransportError(502);}
+  return { accountId, characterId, observedAt: v.observedAt, writeContext: { periodKeys,classes:contexts,...(barter?{barter:barter.contexts}:{}) }, details: { schemaVersion: 1, tasks, classes,...(barter?{barter:barter.rows}:{}),...(workspace?{workspace}:{}) } };
 }
 
 export function createDesktopTransport(options: { fetch: typeof fetch; timeoutMs?: number }) {
@@ -126,13 +132,17 @@ export function createDesktopTransport(options: { fetch: typeof fetch; timeoutMs
     },
     async save(e: PendingEdit): Promise<DesktopSaveResult> {
       try {
-        const v = e.kind==='class'?await request('/api/iris/classes',{edit:{requestId:e.requestId,accountId:e.accountId,characterId:e.characterId,classId:e.classId,baseLevel:e.baseLevel,desiredLevel:e.desiredLevel}}):await request('/api/iris/kronos', { edit: { requestId: e.requestId, generation: 1, selectionVersion: e.revision,
+        const v = e.kind==='workspace'?await request('/api/iris/workspace',{edit:{requestId:e.requestId,accountId:e.accountId,characterId:e.characterId,itemKind:e.itemKind,itemId:e.itemId,field:e.field,scope:e.scope,periodKey:e.periodKey,catalogKey:e.catalogKey,baseCompleted:e.baseCompleted,desiredCompleted:e.desiredCompleted}}):e.kind==='class'?await request('/api/iris/classes',{edit:{requestId:e.requestId,accountId:e.accountId,characterId:e.characterId,classId:e.classId,baseLevel:e.baseLevel,desiredLevel:e.desiredLevel}}):e.kind==='barter'?await request('/api/iris/barter',{edit:{requestId:e.requestId,accountId:e.accountId,characterId:e.characterId,tradeId:e.tradeId,scope:e.scope,periodKey:e.periodKey,catalogKey:e.catalogKey,baseRecords:e.baseRecords,baseCompleted:e.baseCompleted,desiredCompleted:e.desiredCompleted}}):await request('/api/iris/kronos', { edit: { requestId: e.requestId, generation: 1, selectionVersion: e.revision,
           accountId: e.accountId, characterId: e.characterId, category: e.category, taskId: e.taskId,
           baseCompleted: e.baseCompleted, desiredCompleted: e.desiredCompleted, periodKey: e.periodKey } });
         if (!object(v) || !object(v.result) || v.result.requestId !== e.requestId) return { kind: 'unknown' };
         const result = v.result;
         if(e.kind==='class'){
           if(result.status==='saved'&&result.level===e.desiredLevel)return {kind:'saved',level:e.desiredLevel};
+        }else if(e.kind==='barter'){
+          if(result.status==='saved'&&result.completed===e.desiredCompleted&&validBarterRecords(result.baseRecords)&&
+            result.baseRecords.length===e.baseRecords.length&&e.baseRecords.every(b=>(result.baseRecords as BarterBaseRecord[]).some(r=>r.characterId===b.characterId))&&
+            (e.desiredCompleted===0?result.completedBy===null:text(result.completedBy)))return {kind:'saved',completed:e.desiredCompleted,completedBy:result.completedBy as string|null,baseRecords:structuredClone(result.baseRecords)};
         }else if (result.status === 'saved' && result.completed === e.desiredCompleted) return { kind: 'saved', completed: e.desiredCompleted };
         if (result.status === 'conflict') return { kind: 'conflict' };
         if (result.status === 'failed') return { kind: 'rejected' };

@@ -23,6 +23,7 @@ try{for(const mode of ['saved','unknown','conflict','unauthorized','invalid-draf
   const listeners=new Set();window.__irisDesktopBridge={epoch:1,environment:'development'};window.fixture={queue:null,close:0,fail:null,decisions:[]};
   window.chrome={webview:{addEventListener:(_,fn)=>listeners.add(fn),removeEventListener:(_,fn)=>listeners.delete(fn),postMessage:m=>{
    const f=window.fixture,ok=f.fail!==m.method;let value=null;
+   if(m.method==='store.capabilities')value={schemaVersion:3,barter:true};
    if(m.method==='store.load')value=f.queue;if(m.method==='store.replace'&&ok)f.queue=structuredClone(m.payload);
    if(m.method==='window.close'&&ok)f.close++;if(m.method==='window.decision')f.decisions.push(m.payload.open);
    if(m.method==='window.addon.state')value={dockSide:'right',sameLayer:true,tracked:true,actualSide:'right',status:'attached',persistent:true};

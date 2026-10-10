@@ -1,0 +1,22 @@
+.iris-synaxis{display:grid;gap:.5rem;min-width:0;font-size:.75rem;line-height:1.5;word-break:keep-all;overflow-wrap:anywhere;}
+.iris-synaxis>header{display:flex;flex-wrap:wrap;justify-content:space-between;gap:.3rem;}
+.iris-synaxis a{color:var(--accent);}
+.iris-synaxis p{margin:0;white-space:pre-wrap;}
+.iris-synaxis button{white-space:nowrap;word-break:keep-all;min-width:0;max-width:100%;font-size:.75rem;}
+.iris-synaxis-modes,.iris-synaxis-confirm>div{display:flex;flex-wrap:wrap;gap:.4rem;}
+.iris-synaxis-modes>button{flex:1 1 6rem;}
+.iris-synaxis-form{display:grid;gap:.45rem;min-width:0;padding:.5rem;border:1px solid var(--panel-border);border-radius:.8rem;}
+.iris-synaxis-form>label,.iris-synaxis-times>label{display:grid;gap:.2rem;min-width:0;}
+.iris-synaxis input:not([type=checkbox]):not([type=radio]),.iris-synaxis select,.iris-synaxis textarea{width:100%;min-width:0;max-width:100%;font:inherit;background:var(--inner-box);color:var(--text-main);border:1px solid var(--panel-border);padding:.35rem;border-radius:.6rem;}
+.iris-synaxis textarea{resize:vertical;word-break:keep-all;overflow-wrap:anywhere;}
+.iris-synaxis-times{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.4rem;}
+.iris-synaxis .iris-synaxis-check{display:flex;flex-wrap:wrap;align-items:center;gap:.3rem;}
+.iris-synaxis-character{display:grid;gap:.25rem;min-width:0;padding:.5rem;border:1px solid var(--panel-border);border-radius:.7rem;background:var(--inner-box);}
+.iris-synaxis-character>label{display:flex;align-items:flex-start;gap:.4rem;min-width:0;}
+.iris-synaxis-character input{flex:none;}
+.iris-synaxis-character strong{min-width:0;color:var(--accent);}
+.iris-synaxis-character>span{font-size:.7rem;color:var(--text-sub);}
+.iris-synaxis-confirm,.iris-synaxis-result{display:grid;gap:.4rem;min-width:0;padding:.6rem;border:1px solid var(--accent);border-radius:.8rem;background:var(--inner-box);}
+.iris-synaxis-confirm button{flex:1 1 6rem;}
+.iris-synaxis button:focus-visible,.iris-synaxis input:focus-visible,.iris-synaxis select:focus-visible,.iris-synaxis textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+@media(max-width:350px){.iris-synaxis-times{grid-template-columns:minmax(0,1fr);}}

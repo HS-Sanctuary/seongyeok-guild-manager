@@ -113,15 +113,23 @@ namespace IrisDesktop {
                 await Task.Delay(700);Check(app.Height==120+nativeChrome,"Folded content did not shrink native window");
                 string ready = await app.Browser.CoreWebView2.ExecuteScriptAsync("window.__irisDesktopBridge.epoch");
                 Check(ready != "null" && ready != "undefined", "Bridge epoch not available to page");
-                await app.Browser.CoreWebView2.ExecuteScriptAsync("window.bridgeReply=null;chrome.webview.addEventListener('message',e=>{if(e.data.id==='1')window.bridgeReply=e.data.ok});chrome.webview.postMessage({version:1,id:'1',epoch:window.__irisDesktopBridge.epoch,method:'store.replace',payload:{schemaVersion:2,entries:[]}})");
+                await app.Browser.CoreWebView2.ExecuteScriptAsync("window.queueCapabilities=null;window.bridgeReply=null;chrome.webview.addEventListener('message',e=>{if(e.data.id==='1'&&e.data.ok)window.queueCapabilities=e.data.value;if(e.data.id==='2')window.bridgeReply=e.data.ok});chrome.webview.postMessage({version:1,id:'1',epoch:window.__irisDesktopBridge.epoch,method:'store.capabilities',payload:null})");
                 string result = "";
+                for (int i = 0; i < 50; i++) {
+                    result = await app.Browser.CoreWebView2.ExecuteScriptAsync("!!window.queueCapabilities&&window.queueCapabilities.schemaVersion===3&&window.queueCapabilities.barter===true");
+                    if (result == "true") break;
+                    await Task.Delay(100);
+                }
+                Check(result == "true", "Browser did not verify barter queue capabilities");
+                Check(store.Load() == null, "Capabilities request mutated protected queue");
+                await app.Browser.CoreWebView2.ExecuteScriptAsync("chrome.webview.postMessage({version:1,id:'2',epoch:window.__irisDesktopBridge.epoch,method:'store.replace',payload:{schemaVersion:3,entries:[]}})");
                 for (int i = 0; i < 50; i++) {
                     result = await app.Browser.CoreWebView2.ExecuteScriptAsync("window.bridgeReply");
                     if (result == "true") break;
                     await Task.Delay(100);
                 }
                 Check(result == "true" && store.Load() != null, "Browser request did not persist protected queue");
-                store.Replace("{\"schemaVersion\":2,\"entries\":[{\"kind\":\"task\",\"environment\":\"development\",\"accountId\":\"synthetic-account\",\"characterId\":\"A\",\"category\":\"weekly\",\"taskId\":\"sentinel-task\",\"periodKey\":\"2026-10-04T21:00:00.000Z\",\"requestId\":\"00000000-0000-4000-8000-000000000001\",\"revision\":1,\"baseCompleted\":0,\"desiredCompleted\":1,\"deadlineAt\":15000,\"phase\":\"pending\"}]}");
+                store.Replace("{\"schemaVersion\":3,\"entries\":[{\"kind\":\"task\",\"environment\":\"development\",\"accountId\":\"synthetic-account\",\"characterId\":\"A\",\"category\":\"weekly\",\"taskId\":\"sentinel-task\",\"periodKey\":\"2026-10-04T21:00:00.000Z\",\"requestId\":\"00000000-0000-4000-8000-000000000001\",\"revision\":1,\"baseCompleted\":0,\"desiredCompleted\":1,\"deadlineAt\":15000,\"phase\":\"pending\"}]}");
                 var kept=store.Load();app.Overlay.ToggleVisibility();app.Overlay.ToggleVisibility();
                 if(app.Overlay.ShortcutsAvailable){Check(app.Overlay.SetClickThrough(true),"Input mode failed");}
                 app.Overlay.RestoreInteractive();

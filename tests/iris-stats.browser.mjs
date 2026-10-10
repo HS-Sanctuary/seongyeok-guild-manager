@@ -24,15 +24,16 @@ await page.addInitScript(()=>{
     if(message.method==='store.replace')queue=message.payload;
     if(message.method==='game.stats.read')window.fixtureGameReads++;
     if(message.method==='game.currencies.read')window.fixtureCurrencyReads++;
-    const value=message.method==='game.currencies.read'?{observedAt:new Date().toISOString(),items:[{name:'골드',amount:12345678901},{name:'은동전',amount:0},{name:'웨카',amount:null}]}:message.method==='game.stats.read'?{observedAt:new Date().toISOString(),job:'힐러',level:100,stats:{combat_power:window.fixtureScore,life_energy:0,magic_resistance:40,charm:null}}:message.method==='store.load'?queue:message.method.startsWith('overlay.')?{clickThrough:false,shortcutsAvailable:true,opacityPercent:100}:null;
+    const value=message.method==='store.capabilities'?{schemaVersion:3,barter:true}:message.method==='game.currencies.read'?{observedAt:new Date().toISOString(),items:[{name:'골드',amount:12345678901},{name:'은동전',amount:0},{name:'웨카',amount:null}]}:message.method==='game.stats.read'?{observedAt:new Date().toISOString(),job:'힐러',level:100,stats:{combat_power:window.fixtureScore,life_energy:0,magic_resistance:40,charm:null}}:message.method==='store.load'?queue:message.method.startsWith('overlay.')?{clickThrough:false,shortcutsAvailable:true,opacityPercent:100}:null;
     queueMicrotask(()=>{for(const fn of listeners)fn({data:{version:1,id:message.id,epoch:1,ok:true,value}});});
   }}};
 });
 try{
   await page.goto(process.env.IRIS_TEST_URL??'http://localhost:3001/iris/desktop');
-  await page.getByRole('button',{name:'네, 화연로 시작',exact:true}).click();assert.equal(posts,0,'Login suggestion never writes');
+  await page.getByRole('button',{name:'네, 선택',exact:true}).click();assert.equal(posts,0,'Login suggestion never writes');
   assert.equal(await page.getByRole('navigation',{name:'상위 메뉴',exact:true}).count(),1,'Three parent menus must be separate from Kronos actions');
-  for(const name of ['물물교환','상점구매','임무게시판'])assert.equal(await page.getByRole('button',{name,exact:true}).isDisabled(),true);
+  assert.equal(await page.getByRole('button',{name:'물물교환',exact:true}).isDisabled(),false);
+  for(const name of ['상점구매','임무게시판'])assert.equal(await page.getByRole('button',{name,exact:true}).isDisabled(),true);
   if(process.env.IRIS_UI_SCREENSHOT)await page.screenshot({path:process.env.IRIS_UI_SCREENSHOT,fullPage:true});
   await page.evaluate(()=>window.fixtureScore=89);
   await page.getByRole('button',{name:'스탯',exact:true}).click();
@@ -83,6 +84,6 @@ try{
   await page.getByRole('button',{name:'클래스',exact:true}).click();await page.getByRole('button',{name:'전사',exact:true}).click();
   await page.waitForTimeout(4300);
   assert.equal(await page.getByRole('textbox',{name:'전사 레벨',exact:true}).isDisabled(),false,'Background stats load must not lock class editing');
-  await page.waitForTimeout(2200);assert.equal(await page.getByRole('button',{name:'네, 화연로 시작',exact:true}).count(),0,'Late suggestion must not override manual selection');
+  await page.waitForTimeout(2200);assert.equal(await page.getByRole('button',{name:'네, 선택',exact:true}).count(),0,'Late suggestion must not override manual selection');
   assert.deepEqual(errors,[]);console.log(`Stats synthetic DOM PASS: manual confirmation, changed snapshot, 0/decrease/missing, one POST, no catalog polling, reset, four widths (${reads} GETs)`);
 }catch(error){console.log(await page.locator('body').innerText());throw error;}finally{await browser.close();}

@@ -23,7 +23,7 @@ import {
   BusCandidate,
   BusMember 
 } from '@/lib/busUtils';
-import { memberMutation } from '@/lib/memberMutationClient';
+import {usePartyOperations,usePartySurface} from '@/components/party/PartySurfaceContext';
 import PoolStatusModal from '@/components/party/modals/PoolStatusModal';
 import { eligibleBusCandidates, formatBusRoster, isBusOperator } from '@/lib/guildBusPolicy';
 import { changeBusMember, completeBusRound } from '@/lib/guildBusActions';
@@ -127,6 +127,8 @@ export default function GuildBusCard({
   onRefresh,
   isMasterOrAdmin
 }: GuildBusCardProps) {
+  const {request,memberMutation}=usePartyOperations();
+  const surface=usePartySurface();
   const {powerReqs, contents:contentsCatalog, classes:classesCatalog} = catalog;
   const actionLock = useRef(false);
   const [isPoolModalOpen, setIsPoolModalOpen] = useState<boolean>(false);
@@ -150,9 +152,10 @@ export default function GuildBusCard({
   },[party.id]);
 
   useEffect(() => {
+    if(surface&&!surface.active)return;
     const timer = window.setInterval(() => setBusNow(new Date()), 30_000);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [surface?.active]);
 
   useEffect(() => {
     setIsStarted(isBusStartedInDB);
@@ -280,7 +283,7 @@ export default function GuildBusCard({
     setIsSyncing(true);
     const currentActiveNames = activeMembers.map((m: BusMember) => m.character_name);
     try {
-      await changeBusMember(party.id,{type:'reconfigure',selectedNames:currentActiveNames});
+      await changeBusMember(party.id,{type:'reconfigure',selectedNames:currentActiveNames},request);
       setPrevMemberNames(currentActiveNames);
       await onRefresh();
     } catch (error: any) {
@@ -305,7 +308,7 @@ export default function GuildBusCard({
       const activeNames = activeMembers.map((m: BusMember) => m.character_name);
       setPrevMemberNames(activeNames);
 
-      await completeBusRound(party.id,activeNames,party);
+      await completeBusRound(party.id,activeNames,party,request);
       await onRefresh();
     } catch (err: any) {
       console.error("회차 완수 처리 중 오류:", err);
@@ -398,7 +401,7 @@ export default function GuildBusCard({
     actionLock.current = true;
     setIsSyncing(true);
     try {
-      await changeBusMember(party.id,{type:'repeat',name:charName,allow_repeat:!currentAllowRepeat});
+      await changeBusMember(party.id,{type:'repeat',name:charName,allow_repeat:!currentAllowRepeat},request);
       await onRefresh();
     } catch (err: any) {
       console.error("반복 참여 설정 업데이트 실패:", err);
@@ -414,7 +417,7 @@ export default function GuildBusCard({
     actionLock.current = true;
     setIsSyncing(true);
     try {
-      await changeBusMember(party.id,{type:'leave',name:charName});
+      await changeBusMember(party.id,{type:'leave',name:charName},request);
       await onRefresh();
     } catch (err: any) {
       alert(`탈퇴 처리 실패: ${err.message}`);
@@ -778,7 +781,7 @@ export default function GuildBusCard({
       {/* 관리자 인계 모달 */}
       {editingParty && canManage && <BusEditModal party={editingParty} catalog={catalog} accountNickname={currentUserNickname} onClose={()=>setEditingParty(null)} onSaved={onRefresh} />}
       {isTransferModalOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-[100] flex items-center justify-center p-3 animate-in fade-in duration-200">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-[100] flex items-center justify-center p-3 animate-in fade-in duration-200" onClick={e=>{if(e.target===e.currentTarget)setIsTransferModalOpen(false);}}>
           <div className="bg-[var(--panel)] border-2 border-[var(--accent)] rounded-2xl p-4 w-full max-w-sm shadow-2xl flex flex-col space-y-3.5">
             <div className="flex items-center justify-between pb-2 border-b border-[var(--panel-border)]">
               <div className="flex items-center gap-2 text-sm font-black text-[var(--accent)]">
@@ -788,6 +791,7 @@ export default function GuildBusCard({
               <button
                 type="button"
                 onClick={() => setIsTransferModalOpen(false)}
+                aria-label="관리자 인계 닫기"
                 className="text-[var(--text-sub)] hover:text-[var(--text-main)] transition p-0.5"
               >
                 <X className="w-4 h-4" />

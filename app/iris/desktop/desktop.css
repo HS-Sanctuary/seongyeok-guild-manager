@@ -1,6 +1,41 @@
-.iris-desktop { color: var(--text-main); background:var(--panel); border:1px solid var(--panel-border); border-radius:1rem; overflow-wrap: anywhere; max-width: 24rem; margin: 0 auto; padding: .35rem; }
+.iris-desktop { --iris-control-gap:.4rem; --iris-group-gap:.7rem; color: var(--text-main); background:var(--panel); border:1px solid var(--panel-border); border-radius:1rem; overflow-wrap: anywhere; max-width: 24rem; margin: 0 auto; padding: .35rem; }
+/* Route-scoped through the mounted IRIS root: includes body portals and future
+   overflow regions without changing SANCTUM web scrollbars after navigation. */
+:root:has(.iris-desktop), :root:has(.iris-desktop) * {
+  --iris-scroll-track:var(--panel);
+  --iris-scroll-thumb:color-mix(in srgb,var(--accent) 55%,var(--text-sub));
+  scrollbar-color:var(--iris-scroll-thumb) var(--iris-scroll-track);
+  scrollbar-width:thin;
+}
+@supports selector(::-webkit-scrollbar) {
+  :root:has(.iris-desktop), :root:has(.iris-desktop) * { scrollbar-color:auto; scrollbar-width:auto; }
+  :root:has(.iris-desktop)::-webkit-scrollbar, :root:has(.iris-desktop) *::-webkit-scrollbar { width:.65rem; height:.65rem; }
+  :root:has(.iris-desktop)::-webkit-scrollbar-track, :root:has(.iris-desktop) *::-webkit-scrollbar-track { background:var(--iris-scroll-track); border-radius:1rem; }
+  :root:has(.iris-desktop)::-webkit-scrollbar-thumb, :root:has(.iris-desktop) *::-webkit-scrollbar-thumb { background:var(--iris-scroll-thumb); border:.15rem solid var(--iris-scroll-track); border-radius:1rem; min-height:1.8rem; min-width:1.8rem; }
+  :root:has(.iris-desktop)::-webkit-scrollbar-thumb:hover, :root:has(.iris-desktop) *::-webkit-scrollbar-thumb:hover,
+  :root:has(.iris-desktop)::-webkit-scrollbar-thumb:active, :root:has(.iris-desktop) *::-webkit-scrollbar-thumb:active { background:var(--accent); }
+  :root:has(.iris-desktop)::-webkit-scrollbar-button, :root:has(.iris-desktop) *::-webkit-scrollbar-button { display:none; width:0; height:0; }
+  :root:has(.iris-desktop)::-webkit-scrollbar-corner, :root:has(.iris-desktop) *::-webkit-scrollbar-corner { background:var(--iris-scroll-track); }
+}
+@media (forced-colors:active) {
+  :root:has(.iris-desktop), :root:has(.iris-desktop) * { scrollbar-color:auto; scrollbar-width:auto; }
+  :root:has(.iris-desktop)::-webkit-scrollbar, :root:has(.iris-desktop) *::-webkit-scrollbar,
+  :root:has(.iris-desktop)::-webkit-scrollbar-track, :root:has(.iris-desktop) *::-webkit-scrollbar-track,
+  :root:has(.iris-desktop)::-webkit-scrollbar-thumb, :root:has(.iris-desktop) *::-webkit-scrollbar-thumb,
+  :root:has(.iris-desktop)::-webkit-scrollbar-thumb:hover, :root:has(.iris-desktop) *::-webkit-scrollbar-thumb:hover,
+  :root:has(.iris-desktop)::-webkit-scrollbar-thumb:active, :root:has(.iris-desktop) *::-webkit-scrollbar-thumb:active,
+  :root:has(.iris-desktop)::-webkit-scrollbar-button, :root:has(.iris-desktop) *::-webkit-scrollbar-button,
+  :root:has(.iris-desktop)::-webkit-scrollbar-corner, :root:has(.iris-desktop) *::-webkit-scrollbar-corner { all:revert; }
+}
 .iris-titlebar { position:sticky; top:0; z-index:25; display:flex; align-items:center; justify-content:space-between; gap:.3rem; padding:.15rem .15rem .35rem; min-height:2.25rem; background:var(--panel); border-bottom:1px solid var(--panel-border); cursor:move; user-select:none; }
 .iris-titlebar h1 { color:var(--accent); font-size:.8rem; font-weight:800; letter-spacing:.02em; min-width:0; }
+.iris-titlebar h1 { display:flex; align-items:center; gap:.4rem; }
+.iris-titlebar .iris-brand-title { font-size:.8rem; font-weight:800; }
+.iris-brand-mark { flex:none; width:1.9rem; height:1.4rem; background:currentColor; mask-size:contain; mask-position:center; mask-repeat:no-repeat; -webkit-mask-size:contain; -webkit-mask-position:center; -webkit-mask-repeat:no-repeat; }
+.iris-context-actions { display:flex; flex:none; gap:.2rem; }
+.iris-context-actions .iris-icon-button { display:grid; place-items:center; cursor:pointer; }
+.iris-context-actions svg { width:.9rem; height:.9rem; }
+.iris-login-tools { display:flex; justify-content:flex-end; }
 .iris-titlebar h1 span { font-size:.7rem; font-weight:600; letter-spacing:0; }
 .iris-titlebar-actions { display:flex; gap:.2rem; flex:none; }
 .iris-titlebar-actions button { cursor:pointer; display:grid; place-items:center; }
@@ -11,11 +46,21 @@
 .iris-desktop :focus-visible { outline: .12rem solid var(--accent); outline-offset: .12rem; }
 .iris-desktop [hidden] { display: none !important; }
 .iris-hud { background: var(--panel); padding:.2rem; }
+.iris-desktop:has(.iris-hud[data-active-tab="classes"]) { height:100dvh; display:flex; flex-direction:column; overflow-y:auto; }
+.iris-hud[data-active-tab="classes"],
+.iris-hud[data-active-tab="classes"] .iris-center-content,
+.iris-hud[data-active-tab="classes"] .iris-kronos-content,
+.iris-hud[data-active-tab="classes"] #iris-pane-classes { display:flex; flex-direction:column; flex:1; min-height:0; }
+.iris-hud[data-active-tab="classes"] .iris-context-header,
+.iris-hud[data-active-tab="classes"] .iris-save-status,
+.iris-hud[data-active-tab="classes"] .iris-hud-tabs { flex-shrink:0; }
 .iris-context-header { position:sticky; top:2.25rem; z-index:20; background:var(--panel); border-bottom:1px solid var(--panel-border); padding:.2rem 0 .3rem; }
 .iris-hud-header { display: flex; align-items: center; justify-content: space-between; gap: .35rem; padding: 0 .1rem .25rem; }
 .iris-hud-header h1 { font-size: .85rem; min-width: 0; }
 .iris-icon-button { border-radius: 50%; width: 1.7rem; min-height: 1.7rem; padding: .15rem; flex-shrink: 0; }
-.iris-character-bar { display: flex; align-items: center; gap: .35rem; }
+.iris-character-bar { display: flex; flex-wrap:wrap; align-items: center; gap: .35rem; }
+.iris-character-bar:has(.iris-context-actions) .iris-character-trigger { min-width:min(100%,12rem); }
+.iris-context-actions { margin-inline-start:auto; }
 .iris-character-trigger.iris-desktop-button { padding:.35rem .55rem; min-height:2rem; }
 .iris-selected-identity { display:flex; flex-wrap:wrap; align-items:baseline; gap:.2rem .4rem; min-width:0; }
 .iris-selected-identity small { font-size:.7rem; color:var(--text-muted); }
@@ -36,25 +81,32 @@
 .iris-stats-actions { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.6fr); gap:.35rem; }
 .iris-stats-actions button { white-space:normal; }
 .iris-hud-tabs button { padding: .4rem .15rem; font-size: .7rem; border-radius: 1.2rem; min-height: 2rem; }
-.iris-main-tabs { grid-template-columns:repeat(2,minmax(0,1fr)); margin:.2rem 0 .3rem; }
-.iris-main-tabs button[aria-pressed=true] { background:color-mix(in srgb,var(--accent) 12%,var(--panel)); }
-.iris-kronos-tabs { grid-template-columns:repeat(4,minmax(0,1fr)); gap:.2rem; padding:.3rem; border:1px solid var(--panel-border); border-radius:.85rem; margin:0 0 .4rem; }
+.iris-main-tabs { grid-template-columns:repeat(2,minmax(0,1fr)); gap:.25rem; margin:.3rem 0 .55rem; padding:.25rem; border:1px solid var(--panel-border); border-radius:.85rem; background:var(--inner-box); }
+.iris-main-tabs .iris-desktop-button { display:flex; align-items:center; justify-content:center; gap:.4rem; min-width:0; min-height:2.4rem; padding:.4rem .3rem; border-radius:.6rem; border-color:transparent; background:transparent; color:var(--text-main); font-size:.8rem; font-weight:800; white-space:nowrap; }
+.iris-main-tabs .iris-desktop-button:hover:not(:disabled):not([aria-pressed=true]) { background:color-mix(in srgb,var(--accent) 8%,var(--inner-box)); color:var(--accent); }
+.iris-main-tabs .iris-desktop-button[aria-pressed=true] { border-color:var(--accent); background:var(--accent); color:var(--accent-fg); }
+.iris-main-tab-icon { display:inline-flex; flex:none; width:1rem; height:1rem; }
+.iris-main-tab-mark { display:block; width:100%; height:100%; background:currentColor; mask-size:contain; -webkit-mask-size:contain; mask-repeat:no-repeat; -webkit-mask-repeat:no-repeat; mask-position:center; -webkit-mask-position:center; }
+.iris-stats-confirm-actions { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.35fr) auto; align-items:stretch; gap:.25rem; }
+.iris-stats-confirm-actions .iris-desktop-button { min-width:0; padding:.4rem .3rem; min-height:2.1rem; font-size:.7rem; white-space:nowrap; }
+.iris-stats-confirm-actions[data-choosing=true] { display:flex; justify-content:flex-end; }
+.iris-kronos-tabs { grid-template-columns:repeat(4,minmax(0,1fr)); gap:var(--iris-control-gap); padding:.35rem; border:1px solid var(--panel-border); border-radius:.85rem; margin:0 0 var(--iris-group-gap); }
 .iris-kronos-tabs button { border-radius:.6rem; min-height:1.8rem; padding:.3rem .15rem; font-size:.7rem; }
 .iris-kronos-tabs .iris-upcoming { border-style:dashed; }
 @media(max-width:340px) { .iris-kronos-tabs { grid-template-columns:repeat(3,minmax(0,1fr)); } }
 .iris-hud-body { font-size: .8rem; }
-.iris-homework-toolbar { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:.3rem; margin:.1rem 0 .25rem; }
-.iris-homework-filters { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:.15rem; min-width:0; }
+.iris-homework-toolbar { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:var(--iris-control-gap); margin:.15rem 0 .1rem; }
+.iris-homework-filters { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:var(--iris-control-gap); min-width:0; }
 .iris-homework-filters button { padding:.25rem .1rem; min-height:1.8rem; font-size:.7rem; border-radius:.6rem; }
 .iris-homework-filters button[aria-pressed=true] { color:var(--accent); border-color:var(--accent); background:var(--inner-box); }
 .iris-homework-remaining { display:flex; align-items:center; gap:.2rem; font-size:.7rem; white-space:nowrap; min-height:1.8rem; cursor:pointer; }
-.iris-checkboard { display: flex; flex-direction: column; gap: .35rem; }
+.iris-checkboard { display: flex; flex-direction: column; gap:var(--iris-group-gap); }
 .iris-category { padding:.1rem 0; }
-.iris-category:not([hidden]) ~ .iris-category:not([hidden]) { border-top:1px solid color-mix(in srgb,var(--accent) 18%,var(--panel-border)); padding-top:.35rem; }
+.iris-category:not([hidden]) ~ .iris-category:not([hidden]) { border-top:1px solid color-mix(in srgb,var(--accent) 18%,var(--panel-border)); padding-top:.5rem; }
 .iris-category-caption { display:flex; justify-content:space-between; align-items:center; gap:.3rem; min-width:0; padding:.2rem .4rem; border-inline-start:.15rem solid var(--accent); border-radius:.15rem .55rem .55rem .15rem; background:linear-gradient(105deg,color-mix(in srgb,var(--accent) 16%,var(--panel)),color-mix(in srgb,var(--accent) 6%,var(--panel))); color:var(--text-main); font-size:.75rem; }
 .iris-category-caption h3 { min-width:0; font-weight:700; }
 .iris-category-count { display:inline-flex; align-items:center; flex:none; padding:.06rem .35rem; border:1px solid color-mix(in srgb,var(--accent) 30%,var(--panel-border)); border-radius:1rem; background:color-mix(in srgb,var(--panel) 78%,transparent); color:var(--text-main); font-size:.7rem; font-weight:600; font-variant-numeric:tabular-nums; white-space:nowrap; }
-.iris-category-rows { display: grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap: .25rem; margin-top: .3rem; }
+.iris-category-rows { display: grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:var(--iris-control-gap); margin-top:.45rem; }
 .iris-task-row { display: flex; flex-wrap: wrap; min-width:0; align-items: center; gap: .2rem; border:1px solid var(--panel-border); border-radius: .6rem; background: var(--panel); padding: .3rem .4rem; min-height: 2.1rem; font-size:.75rem; }
 .iris-task-row[data-kind=counter] { grid-column:1/-1; }
 .iris-task-row[data-complete=true] { background: color-mix(in srgb,var(--accent) 12%,var(--panel)); border-color:var(--accent); }
@@ -75,6 +127,10 @@
 .iris-addon-settings .iris-desktop-button { font-size:.75rem; min-height:1.8rem; padding:.3rem .5rem; }
 .iris-setting-card { border:1px solid var(--panel-border); border-radius:.75rem; padding:.55rem; background:var(--inner-box); display:grid; gap:.4rem; }
 .iris-setting-card h3 { color:var(--accent); font-size:.8rem; font-weight:700; }
+.iris-account-management { display:grid; gap:.4rem; min-width:0; }
+.iris-account-actions { display:flex; flex-wrap:wrap; gap:.3rem; }
+.iris-account-actions .iris-desktop-button { flex:1 1 auto; }
+.iris-account-options { display:grid; gap:.3rem; min-width:0; }
 .iris-setting-card legend { font-size:.75rem; margin-bottom:.3rem; }
 .iris-dock-buttons { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.3rem; }
 .iris-setting-check { display:flex; align-items:center; gap:.3rem; margin-top:.5rem; }
@@ -139,3 +195,6 @@
 .iris-switch-actions { display:grid; grid-template-columns:minmax(0,.7fr) minmax(0,.8fr) minmax(0,1.3fr); gap:.3rem; margin-top:.5rem; }
 .iris-switch-actions button { min-height:1.9rem; padding:.3rem .2rem; font-size:.75rem; }
 .iris-switch-actions button[data-primary] { color:var(--text-main); border-color:var(--accent); background:color-mix(in srgb,var(--accent) 22%,var(--panel)); font-weight:700; }
+.iris-kronos-tabs{grid-template-columns:repeat(12,minmax(0,1fr));}
+.iris-kronos-tabs>button{grid-column:span 3;min-width:0;white-space:nowrap;word-break:keep-all;}
+.iris-kronos-tabs>button:nth-child(n+5){grid-column:span 4;}

@@ -1,5 +1,42 @@
 # 🏛️ SANCTUM Master Guide
 
+## 2026-10-10 v2.3 IRIS 베타 공식 배포 범위
+
+- 아래 누적 로컬 IRIS 크로노스/시낙시스/헤더/브랜드/스크롤바/다운로드 구조를 v2.3 공식 후보에 포함한다. 실제 Ready/운영 확인은 후속 기록 전까지 미완료다. `/iris/download`의 Windows x64 미서명 ZIP는 CLI·개인 기록·소스·비밀값 없이 9파일만 포함한다.
+- 기존 물물교환 계정 공통 즐겨찾기 변경을 이번 노트에 통합하되 DB 구조/RLS/권한/Realtime 추가 변경 없음. workspace 보호 큐 schema3를 구형 앱으로 역변환하지 않는다. 버스의 일부 기본 대화상자·일반 파티 쓰기 원자성·실제 다른 PC/장시간 검증은 잔여 과제이며 웹 `/party` 우회 안내를 유지한다.
+
+## 2026-10-10 로컬 후보 — IRIS 브랜드 / 베타 다운로드
+
+- DesktopTitlebar → public/IRIS/logo/IRIS 로고 마크.svg 테마색 마스크/제목+창조작. DesktopCenter contextActions → DesktopContextActions 계정·운영홈·설정, page의 기존 상호닫기/잠금 연결. 로그인 전에도 도구가 남는다. desktop.css 좁은 폭의 선택정보/도구 행 전환, API/DB 계약 변경 없음.
+- desktop-host.ValidateHomeExternal/desktop-webview user-initiated NewWindow allowlist는 운영홈 루트만 추가, 기존 파티 링크·외부 차단은 유지. AbortUninitializedStartup은 초기화 실패/편집 문서 부재 때만 close 보호를 해제한다.
+- desktop-release.cs → production 전용 Windows x64 WinExe/기존 single-instance·DPAPI·큐mutex·트레이. build-beta.ps1 → 원본 PNG의 7크기 ICO/컴파일/SDK3런타임파일·license·notice·readme·hashmanifest/ZIP. -PrepareDownload → public/IRIS/downloads ZIP/metadata·sourceICO. desktop.ps1은 해당ICO를 창/트레이에 적용하고 없으면 기존아이콘 fallback.
+- /iris/download는 정적 공개metadata import로 다운로드/확인값/미서명·WebView2·공식CLI·보호대기 안내, /iris에 진입 링크. 서버 런타임 filesystem 의존 없이 빌드에 manifest를 포함한다. 운영배포 전 로컬 후보, 인증/SQL/게임 설치·자동업데이트·코드서명은 추가하지 않는다.
+
+## 2026-10-10 로컬 후보 — IRIS 전체 스크롤바
+
+- desktop.css의 :root:has(.iris-desktop) 문서/자손 규칙으로 문서·모달 포털·미래 overflow까지 테마 scrollbar를 적용한다. WebKit pseudo/.65rem 둥근 rail 및 standard thin/color fallback, forced-colors에서는 native 기본. IRIS 없는 생텀 웹에는 비적용, API/DB/네이티브 변경 없음. tests/iris-scrollbars.browser.mjs는 실제 CSS/합성 IO에서6테마·범위·휠·고대비를 확인한다.
+
+## 2026-10-10 로컬 후보 — IRIS 간격 리듬
+
+- desktop.css: IRIS 범위 control/group 간격 토큰 .4/.7rem을 하위 메뉴·숙제 필터·2열 칸·분류에 적용한다. desktop-synaxis-surface.css: 툴바 grid .6rem, 하단 .9rem, 검색 필터 .45rem으로 조작 묶음을 분리한다. 기존 행/참가 카드 크기·2열·콜백·SVG·API/DB는 변경하지 않는다.
+- tests/iris-spacing.browser.mjs와 합성 fixture의 spacing 분기는 실제 React/CSS의 간격·넘침·편집 payload 및 큰 글자 카드 높이의 이전 툴바 대비 보존을 검사한다. 실제 새 UI 사용자 확인/공식 배포는 별도다.
+
+## 2026-10-10 로컬 후보 — IRIS 메뉴 계층 / 스탯 확인창
+
+- DesktopCenter → DesktopIcons의 가방·레이드 마크: 기존 public SVG를 currentColor 마스크로 표시하며 상위 메뉴 전용 실제 문양 크기/중심 보정. desktop.css는 상위 두 메뉴를 채워진 선택 배경·넓은 탭으로 구분하고 하위 기능은 기존 테두리 강조를 유지한다. 기존 마지막 하위 탭 복귀·잠금·새 개설 레드닷 계약은 그대로다.
+- DesktopStatsConfirmation → iris-stats-confirm-actions: 네/아니요/취소 한 줄, 취소 오른쪽. 선택 모드는 취소만 오른쪽에 두고 기존 캐릭터/확인 콜백과 모달 초점·Escape·진행 중 방어를 유지한다.
+- tests/iris-navigation.browser.mjs는 실제 React/CSS·SVG 렌더 픽셀,6테마 대비/계층,4폭·PC3글자,버튼 배치/초점/콜백/쓰기0을 합성 IO로 확인한다. DB/권한/API/네이티브 정책 변경 없음. 실제 앱 새 UI 확인과 공식 배포는 별도다.
+
+## 2026-10-10 로컬 후보 — IRIS 시낙시스 공용 화면
+
+- 일반 파티 조작 후속(로컬): PartySurfaceContext 선택적 confirm/notify → DesktopSynaxisSurface 내부 확인창·결과 안내, useIrisPartyDialogs 초점/Escape/배경 방어 재사용. usePartyManager 탈퇴 및 PartyCard 관리자 삭제가 사용하며 웹 context=null은 기본 confirm/alert 유지. 탈퇴 승인 후 최신 parties 단일 행 비교로 대기 중 변경/삭제 시 쓰기 없이 재조회한다. 서버 읽기→쓰기 원자성은 기존 일반 파티 API 한계이며 DB/권한 변화 없음.
+- IRIS 카드 밀도 후속: PartyCard의 party-member/identity/stats/time/empty-slot 의미 클래스에 범위 CSS만 적용, 닉네임·역할·수치·시간 보존. 별도 참가 시간 수정 API 대신 탈퇴 후 재가입을 제공한다. 기존 버스/매칭/unknown 복구의 나머지 기본 대화상자 경로는 후속 이식 대상이며 이번 전체 대체 완료로 간주하지 않는다.
+- app/party/page.tsx → components/party/SynaxisSurface.tsx 공용 추출. 웹 context=null은 기존 동작을 유지하고 app/iris/desktop → DesktopSynaxisSurface → PartySurfaceContext에서 로그인 계정·활성/잠금·쓰기·새 개설 표시를 제공한다. 생성 전용 DesktopSynaxis 초안/기존 보호 큐는 보존한다.
+- 공용 usePartyManager·PartyCreateForm·PartyCard·GuildBusCard·가입/콘텐츠/달력/BusCreate/BusEdit 모달·기존 매칭/버스 엔진 재사용. 본인 전체 캐릭터와 크로노스 완료 상태, 운영진 생성 및 운행자 컨트롤러 판정을 유지한다. IRIS는 목록 우선·일반/버스 탭·접는 매칭 리모컨·좁은 카드/모달이며 useIrisPartyDialogs가 포털/중첩 달력 초점과 뒤쪽 조작을 관리한다.
+- partySurfacePolicy: 유효 난이도 기본값, 계정별 결과 불명 marker·20초 요청 제한·중복 차단·expectedAccountId. memberMutationClient/guildBusActions/busUtils는 주입된 fetch를 전달한다. sync-checklist는 쿠키 계정과 expectedAccountId가 다르면 쓰기 전에403을 반환한다. 웹은 기존 optional 기본값 유지.
+- 공급자 Realtime parties 채널 하나 → 신규 일반/버스 INSERT 중복 없는 dot → 활성 목록200ms 묶음 재조회 / 숨긴 탭 읽기0 → 실제 반영 목록에만 확인 처리. 계정 해제 시 구독 해제; 재연결은 목록 최신화하며 과거 알림 소급 없음. existing publication 재사용, SQL/DB/RLS/권한 변경 없음.
+- 상세 설계/계획: docs/superpowers/specs/2026-10-10-iris-synaxis-full-design.md 및 plans/2026-10-10-iris-synaxis-full.md. 실제 게임·운영 시험 쓰기·배포는 미실행이며 아래 v2.21 운영 기록과 구분한다.
+
 ## 2026-10-10 v2.21 유지 — 물물교환 즐겨찾기 구조
 
 - 운영 확인 — 2026-10-10 12:55 KST: main 62bd6786b4d792b141159cdcc740d34727b3fe9d, Vercel dpl_PWxBfDz2QPfKUbHmhrYiM7cRfD45 대시보드 Ready/Production/Current·운영 도메인·동일 커밋 확인(27초). 실제 Chrome 한설 /character?char=순월에서 계정 공통 즐겨찾기 정상 안내·저장된 앨빈 별표·기존 브라우저5개 가져오기/본인 확인 전 비활성 버튼·관찰 콘솔 error/warn0 확인. 공개 핵심5경로 GET200·health200 ready true·새 API 비로그인401. 실제 별표 POST/가져오기·IRIS 운영 동시 저장은 미시험, 사용자 조작으로 확인할 것. 버전 상승/공개 공지/추가 SQL 없음. 후속 기록은 구조 변경 없음.
@@ -8,6 +45,21 @@
 - hooks/useBarterFavorites → /api/kronos/barter-favorites → 서버 세션 검증 → public.kronos_barter_favorites. 계정별 별표를 웹/기존 IRIS 로컬 연결이 공유하며 이번 배포는 웹/API만 포함한다.
 - TradeList·BarterFavoritesFeedback·barter-favorites.css: 계정 공통 별표, 실패 재조회, 본인 확인 후 구형 브라우저 값 가져오기. 범위 제한 POST·카탈로그 검증·기존 true/false 보존·계정 세대 방어를 사용한다. 교환 횟수와 기존 기능은 그대로다.
 - supabase/sql/iris_barter_favorites.sql은 한설이 이미 적용한 테이블의 재실행 가능한 SQL 기록이다. 이번 작업은 운영 DDL/RLS/권한 실행 없음. 버전 v2.21 유지·공개 업데이트는 다음 버전에 통합, 미배포 IRIS/native·시낙시스는 제외한다.
+
+## 2026-10-10 즐겨찾기 DB 준비 완료 — 앱 로컬 미배포
+
+- 한설이 supabase/sql/iris_barter_favorites.sql을 실행하고 전달한 검증 JSON으로 public.kronos_barter_favorites의 PK(account_id,trade_id)·양쪽 CASCADE FK·trade_id 인덱스·RLS/서버 최소 권한을 확인했다. 공개 정책/anon/authenticated 접근은 없다. 아래 준비 SQL 미적용 표기는 이전 경과다.
+- 기존 로컬 /api/kronos/barter-favorites → useBarterFavorites → 웹 TradeList / IRIS DesktopBarter 연결을 사용한다. 브라우저의 nexus_pinned_trades는 BarterFavoritesFeedback에서 현재 계정 확인 후 명시적으로 가져오며 원본과 DB true/false 기록을 보존한다. 상점/임무 별표는 기존 kronos_progress.bookmarked를 공유한다.
+- 웹 CharacterPage의 별표 계정 UUID는 UUID 없는 nexus_user 표시 프리셋에서 읽지 않고, 페이지 진입 시 기존 /api/auth/session GET으로 닉네임 일치·승인 상태·UUID를 확인한 barterAccountId로 전달한다. 정리 후 늦은 응답은 active/abort로 차단한다. 별표 busy 때만 wait 커서, 인증 미확인 때는 비활성 커서다. 실제 로컬 로그인에서 조회/재조회·버튼 활성 확인, 실제 별표 POST/IRIS 대조는 별도 사용자 확인이다.
+- 새 DB 구조 준비와 앱 배포/실저장/동기화 확인을 구분한다. API/UI 운영 배포·실제 가져오기·웹/IRIS 대조는 미완료, 공식 버전은 v2.21 그대로다.
+
+## 2026-10-10 IRIS 상점·임무·시낙시스 생성 — 로컬 미배포
+
+- `lib/irisWorkspace.ts`의 WorkspaceRow/WorkspaceEdit(count|bookmark) → `/api/iris/kronos` optional details.workspace → DesktopWorkspace의 상점/임무 독립 탭. `lib/server/irisWorkspaceWrite.ts` + `/api/iris/workspace`는 서버 세션의 본인 캐릭터, 기간/카탈로그 지문/공용 scope/기준값을 확인하고 기존 kronos_progress 해당 필드만 조건부 update 또는 없는 행 insert(no upsert)한다. 계정 공용과 캐릭터별 진행을 분리하고 즐겨찾기는 초기화 기간과 독립적으로 유지한다.
+- desktop Queue/Controller/Transport/Store와 native desktop-store/bridge: schema3 workspace variant, 본인/공용 항목별 coalesce, count9999/bookmark1 상한, DPAPI 보호 대기함·15초·수동 저장·unknown 복구 재사용. 네이티브 workspace capability를 확인한 실행에서만 편집 허용. 기존 큰 저장 횟수는 clamp하지 않는다. 상점/임무 카탈로그 조회 실패가 다른 모듈을 지우거나 대기 변경을 conflict로 확정하지 않게 한다.
+- `lib/irisSynaxis.ts` DTO·파서 / `lib/server/irisSynaxis.ts` bounded parallel catalog+own-character 조회 및 authoritative payload / `/api/iris/synaxis` GET·bounded same-origin POST → 기존 `/api/member-mutations` POST에 expectedAccountId 바인딩. 기존 parties 컬럼/역할/엔진을 사용하며 DB 정원4/8 없는 난이도는 생성 불가. 완료 숙제는 UI 열람용, 생성 시 is_completed=false는 버스 회차 상태다.
+- DesktopSynaxis의 일반 파티·길드버스·본인 선택·반복·일정·공지·명시 확인. 생성은 자동 저장/보호 대기함 재전송 대상이 아니며 계정별 생성 결과 marker만 localStorage(v1)에 보관한다. unknown 때 자동 반복 금지, 실제 목록 확인 후 해제. 네이티브 NewWindow는 desktop-ready/user initiated/동일 환경의 정확한 `/party`만 OS 기본 브라우저로 열고 iframe/외부/쿼리/fragment popup은 차단한다. 내장 브라우저 navigation·permission·download 제한은 유지한다.
+- 모바일/PC 전역 테마·rem·단어 줄바꿈·버튼 nowrap·입력 min-width0, narrow time layout 재배치. 기존 전체 웹 시낙시스 가입·출발·회차 운영은 유지한다. 새로운 폴링/채널/DB 구조·권한 변경 없음. 생성 exact-once/실제 운영 쓰기/hosting 부하·native 실사용은 아직 미검증이며 자동 매칭은 IRIS 생성 단계에 추가하지 않았다.
 
 ## 2026-10-10 v2.21 공식 배포 범위
 

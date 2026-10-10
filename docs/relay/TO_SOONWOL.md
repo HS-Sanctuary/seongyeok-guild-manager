@@ -4,6 +4,24 @@
 
 ## YG-20261008-001 — UPDATED
 
+- 2026-10-11 02:15 KST 최종안내후속: 정확한후보 독립tsc/webpack57 exit0·공개ZIP9file/manifest전체SHA/EXENotSigned 확인. 아래 최종안내빌드 대기는 해소, main/운영확인은 다음 단계. 구조 추가 변경 없음·기존미ACK 보존.
+
+- 최종 후보 후속 — 2026-10-11 02:14 KST: staged전체Node/tsc/webpack57 PASS, header/Synaxis/파티8/nativehost36/startup/store/workspace/WebView 합성 PASS, 개인파일 제외·added credential-pattern/diff PASS. 사용자 설치질문으로 공식Runtime/기존CLI 재사용 안내를 명확히함(대부분 추가설치없음, 없다는 오류만 공식설치), ZIP431067bytes SHA77a87c1f87e6eab4aa41daf803292ff11e20b398811a316525cacef263145b87. 최종download3·4폭hash PASS; 최신안내빌드/main/운영확인 후속대기. tar한글추출 실패는 ZIP대체 검증, 실제데이터쓰기/DDL/공지0·개인변경 및 이전미ACK 보존.
+
+- 공식 배포 준비 — 2026-10-10 23:45 KST: 한설이 main 푸시·공개 다운로드 배포 진행 승인. v2.3 누적 IRIS 크로노스/시낙시스/UI/native/브랜드/ZIP·앞선 별표 노트 통합, 개인 삭제/실행메모/UPDATE_POST_v2.151/테마실험 제외. 원격 main pull 최신, 브라우저 동일team/project/repo production da1738e/dpl_734XzqaoK6MvTwrZLnMitjxm5E8w Ready 확인(커넥터403/CLI없음). 후보 검증/커밋/새배포 실화면은 후속, SQL/DB/운영시험쓰기/공지게시 없음. 일부 버스 기본대화상자는 웹party 우회·다른PC/장시간/native 정상재실행 미검증 유지. 이전 미ACK 누적 보존.
+
+- 로컬 후속 — 2026-10-10 23:32 KST: 한설 승인 브랜드/베타후보. Titlebar SVG마스크·창2버튼, Center slot ContextActions 계정→운영홈→설정/로그인전도구/긴이름 행전환. Home native고정루트user-click allowlist; 시작실패만 AbortUninitializedStartup 안전닫기. 원본 PNG7sizeICO·PS트레이/production x64EXE·기존store/mutex/큐보호, build-beta -PrepareDownload public ZIP9files/license/notice/readme/hashmetadata. /iris/download + 기존iris링크. 최종Node·tsc·대상lint·격리build57·header4폭/3글자/6테마·계정회귀·download4폭HTTP/hash·package9/icon/hash·nativehost36/합성WebView/임시store failureclose PASS. review제품지적수정/nullstore테스트보완. ZIP430771bytes SHA fc378ffc9cb24e4de1886254d1abaec93caa57eff171077ada3c918407dd3ef0. 미서명·실제재실행/새PC/설치/장시간/운영웹배포/공개출시대기; SQL/DB/운영쓰기/버전/공지/commit/push0, 사용자서버/앱 유지·이전미ACK 누적보존.
+
+- 로컬 후속 — 2026-10-10 22:59 KST: 한설이 IRIS 스크롤바 디자인 승인. desktop.css에 mounted IRIS root :has 범위 문서/자손/본문 포털 테마 thumb/track·.65rem rail·hover/active·고대비 native 복귀, IRIS 없는 웹 비적용. 실제 CSS 합성 RED→GREEN6테마/휠/고대비/범위·간격3·전체Node·tsc exit0. 실제 WebView 확인 대기, DB/권한/저장/native/버전/공지/push0. 기존 서버/미ACK 누적 보존.
+
+- 로컬 후속 — 2026-10-10 22:53 KST: 한설이 이전 메뉴/마크/취소 UI를 확인했고 새 간격 조정을 승인했다. IRIS 전용 CSS2개에서 control/group .4/.7rem·숙제 분류 간격·Synaxis 툴바 grid .6rem/하단 .9rem·필터 .45rem만 변경.2열/행/참가 카드/마크/문구/콜백 유지. 간격합성3·메뉴6·파티조작8·전체Node·tsc·격리build56 exit0, 독립 좁힌 리뷰 지적0. 회귀 첫 시도 sandbox localhost 차단 실패/연결 허용 재검 통과. 큰 글자 기존 카드 높이는 이전 툴바와 동일. 새 간격 사용자 확인 대기·서버89595 유지·DB/운영쓰기/버전/공지/push0. 이전 미ACK 누적 보존.
+
+- 로컬 후속 — 2026-10-10 22:18 KST: 한설은 이전 탈퇴/강제삭제/컴팩트 카드 결과를 실제 정상 확인했고, 상위 메뉴 계층·취소 오른쪽 배치를 승인했다. DesktopCenter/Icons/CSS의 넓은 채움 탭·사용자 지정 기존 가방/레이드 마스크·실문양 전용 크기/중심 보정, StatsConfirmation 네/아니요/취소 한 행. 원본 자산/콜백/초점/잠금/탭 기억/레드닷/DB/권한 유지.6테마 대비·4폭·PC3글자·실제 픽셀 동일크기/중심·합성6·tsc/대상lint·분리build56 exit0. 전체392 첫 실행 기존 알림1fail(2!=3), 해당파일25/25·전체dot 재검 exit0; 고정시계/난수ID 충돌 가능성 별도 피드백 기록, 이번 알림코드 미수정. 새 UI 실제 사용자 확인 대기·서버session89595 유지·운영 쓰기/버전/공지/push0. 이전 미ACK 누적 보존.
+
+- 로컬 후속 — 2026-10-10 21:04 KST: IRIS 일반 파티 탈퇴·관리자 강제 삭제의 native confirm 무반응을 사용자 승인 후 표면 confirm/notify로 수정. 취소/숨김 쓰기0, 성공/403 화면 안내, 탈퇴→새 시간 재가입 확인. 카드/빈 슬롯 밀도는 IRIS 범위만 축소하고 정보/웹/권한 보존. 확인 중 참가자 변경·파티 삭제는 최신 maybeSingle 비교 후 POST0·재조회/재확인으로 보호. 브라우저8·기존전체시낙시스4폭/3글자·전체Node392중389pass/3skip·tsc·분리build56 exit0. 기존 일반 파티 API 읽기/쓰기 원자성·나머지 버스/매칭/unknown복구 native dialog는 잔여 과제. 운영 시험 쓰기·DB/권한·버전·공지·push 없음, 실제 IRIS 사용자 확인 대기. 사용자dev서버session89595 유지, 이전 미ACK 누적 보존.
+
+- 로컬 후속(다음 공식 push 포함): 문서 da1738e / Vercel 734XzqaoK6MvTwrZLnMitjxm5E8w Ready·Production 확인. 실제 브라우저 한설→뉴월 변경 뒤 구한설 탭 GET403(12:56:00), 새뉴월 페이지 초기/수동재조회 정상·콘솔0. 계정 불일치 차단은 정상이며 권한 완화 금지·다른 탭 계정변경 후 새로고침 안내. 별표 POST/가져오기 시험0·최종 캡처 저장. 기존 미ACK 누적 보존.
+
 - 운영 확인 — 2026-10-10 12:55 KST: main 62bd6786b4d792b141159cdcc740d34727b3fe9d, Vercel dpl_PWxBfDz2QPfKUbHmhrYiM7cRfD45 대시보드 Ready/Production/Current·운영 도메인·동일 커밋 확인(27초). 실제 Chrome 한설 /character?char=순월에서 계정 공통 즐겨찾기 정상 안내·저장된 앨빈 별표·기존 브라우저5개 가져오기/본인 확인 전 비활성 버튼·관찰 콘솔 error/warn0 확인. 공개 핵심5경로 GET200·health200 ready true·새 API 비로그인401. 실제 별표 POST/가져오기·IRIS 운영 동시 저장은 미시험, 사용자 조작으로 확인할 것. 버전 상승/공개 공지/추가 SQL 없음. 후속 기록은 구조 변경 없음.
 
 - 2026-10-10 12:51 KST 누적: 한설 요청으로 물물교환 웹 계정 공통 즐겨찾기만 main 배포 준비. v2.21 유지·공개 업데이트노트 다음 버전 통합·새 공지 없음. 서버 세션 UUID/GET·bounded same-origin POST/명시적 레거시 가져오기(기존 true·false 보존)/늦은 계정 응답 방어. 사용자 적용 SQL 기록 포함·이번 DDL/RLS/운영시험쓰기0. RLStrue·정책0·공개SELECTfalse·서버SELECT/INSERT/UPDATE true DELETEfalse 읽기 확인. 정확한 staged 사본 전체 Node·tsc·webpack53 exit0·독립 리뷰 blocking0. IRIS/native·상점/임무·시낙시스/개인 변경 제외·미커밋 보존. 배포·실화면 확인은 후속 누적, 기존 미ACK 기록 모두 보존.

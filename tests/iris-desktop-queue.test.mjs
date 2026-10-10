@@ -11,7 +11,7 @@ const key = { category: 'weekly', taskId: 'vanguard', periodKey: '2026-10-04T21:
 test('task and class share debounce while blocked characters cannot dispatch',()=>{
   const {queue,at}=setup();queue.edit(A,key,0,1);queue.edit(B,key,0,1);
   at(1000);queue.editClass(A,'1',null,53);
-  assert.equal(queue.snapshot().schemaVersion,2);
+  assert.equal(queue.snapshot().schemaVersion,3);
   assert.deepEqual(queue.snapshot().entries.filter(e=>e.characterId==='A').map(e=>e.deadlineAt),[16000,16000]);
   at(16000);assert.deepEqual(queue.due('account',new Set(['A'])).map(e=>e.characterId),['B']);
   const c=queue.snapshot().entries.find(e=>e.kind==='class');assert.equal(c.baseLevel,null);assert.equal('periodKey' in c,false);
@@ -147,7 +147,7 @@ test('snapshot is detached and JSON recovery never automatically replays pending
 });
 test('malformed recovery is atomic and rejects duplicate identities and secret fields', () => {
   const { queue } = setup(); queue.edit(A, key, 0, 1); const before = queue.snapshot();
-  for (const mutate of [s => { s.schemaVersion = 3; }, s => s.entries.push({ ...s.entries[0] }),
+  for (const mutate of [s => { s.schemaVersion = 4; }, s => s.entries.push({ ...s.entries[0] }),
     s => { s.entries[0].code = 'must-not-store'; }, s => { s.entries[0].desiredCompleted = -1; },
     s => { s.entries[0].deadlineAt = NaN; }, s => { s.entries[0].phase = 'invented'; }]) {
     const bad = structuredClone(before); mutate(bad);

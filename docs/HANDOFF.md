@@ -1,6 +1,75 @@
 # SANCTUM 작업 인계
 
+## 2026-10-11 02:14 KST 영겁 — v2.3 최종 후보 검증 후속
+
+- 02:15 후속: 최종안내 반영 후보 독립tsc/webpack57 exit0, 실제공개ZIP9파일/모든manifest SHA/EXE NotSigned 확인. 아래 최종빌드대기는 해소, 커밋/main/Ready/운영실화면 확인은 다음 단계다.
+
+- 한설의 추가 설치 질문에 로컬 WebView2/게임CLI 존재를 읽기 확인하고, 다운로드/ZIP 설명을 대부분 추가설치 없음·Runtime 없다는 오류 때만 공식설치·기존 게임커넥터 재사용으로 명확히 했다. 최신 ZIP431067bytes/SHA77a87c1f87e6eab4aa41daf803292ff11e20b398811a316525cacef263145b87, 기존23:32/23:45 후보hash는 과거기록.
+- 정확한 staged 사본 전체Node·독립tsc·격리webpack57 exit0, 최종안내 download3/4폭hash 통과; header·Synaxis·partycontrols 합성 및 nativehost36/startup/store/workspace/WebView 통과, credential-pattern/diff 확인. 최신 안내의 최종빌드·main push/운영확인은 아직 확인 중이며 완료 후 기록한다. Windows tar 한글경로 실패를 ZIP 추출로 대체해 정확한자산 확인, 제품문제 아님. 개인삭제/메모/UPDATE_POST/테마실험 보존, DB/공지변경0.
+
+## 2026-10-10 23:45 KST 영겁 — v2.3 IRIS 베타 공식 배포 준비
+
+- 한설이 main 푸시·공개 배포 진행을 승인했다. v2.3 기능 묶음으로 누적 IRIS 크로노스/시낙시스/브랜드/다운로드 및 앞선 별표 개선을 노트에 통합한다. 로컬 개인 삭제3개·개인 실행 메모·UPDATE_POST_v2.151 무관한 편집·테마 실험 파일은 제외/보존. SQL/DB/권한 변경·운영 시험 쓰기·공지 게시 없음.
+- 원격 main ff-only pull 최신. Vercel MCP team403/CLI없음, 기존 GitHub 브라우저 로그인으로 동일 sanctum/team/HS-Sanctuary 저장소 확인; 현재 production da1738e/dpl_734XzqaoK6MvTwrZLnMitjxm5E8w Ready·운영 도메인을 롤백 기준으로 기록했다. 새 배포/최종 후보 검사·운영 확인은 완료 뒤 후속 기록할 것.
+- 미서명 후보ZIP와 기존 원본 PNG/SVG·생성ICO 공개를 승인 범위에 포함한다. native/웹 기본 대화상자 잔여 경로는 웹 `/party` 우회가 필요한 알려진 제한이며 전체 컨트롤러 실사용 완료로 과장하지 않는다. 다른 PC/장시간/SmartScreen과 정상 재실행 확인은 남긴다.
+
+## 2026-10-10 23:32 KST 영겁 — IRIS 브랜드와 베타 후보 다운로드
+
+- DesktopTitlebar 제목 앞 SVG currentColor 마스크·창2버튼, DesktopContextActions 계정→운영홈→설정은 DesktopCenter contextActions 슬롯/비로그인 도구행. 긴 이름 보호로 폭 부족 시 도구 우측 다음행, 기존 패널 서로 닫기/큐/권한 유지. 운영홈 NewWindow는 ValidateHomeExternal 고정 source/production root/질의·fragment 금지/user-click 정책으로 제한한다.
+- 원본 public/IRIS/logo PNG/SVG 보존, generated IRIS.ico(16/24/32/48/64/128/256)·개발PS 트레이/창/배포EXE. iris/desktop-release.cs production-only WinExe, 동일 사용자/profile·공통 큐 mutex 및 DPAPI store 재사용. 초기화 실패는 편집 문서가 없을 때만 AbortUninitializedStartup으로 종료하고 정상 세션은 보호한다.
+- iris/build-beta.ps1 -PrepareDownload로 public/IRIS/downloads/IRIS-beta.zip(430771bytes)/download.json·source ico, /iris/download 서버 정적manifest import 안내·기존 /iris 진입 링크. 패키지9파일만(EXE/ico/SDK3파일/license/notice/readme/manifest), CLI·소스·SDK개발파일·비밀값·프로필/큐 제외. ZIP sha256 fc378ffc9cb24e4de1886254d1abaec93caa57eff171077ada3c918407dd3ef0. 미서명 후보이며 외부 공개 완료로 보고하지 않는다.
+- 최종 전체Node·tsc·대상lint·격리webpack57 exit0, 헤더4폭/3글자/6테마·계정회귀·다운로드4폭+로컬HTTP/ZIPhash·패키지allowlist/icon/hash·nativehost36·합성WebView2·임시store 시작실패닫기/ready세션 보호 GREEN. 독립 리뷰 제품지적 해결/테스트nullstore 보완. /iris/download 로컬 확인 가능.
+- 남음: 실제 native 정상 종료/재실행(새 홈 allowlist/아이콘 적용), 다른 PC/런타임 미설치/SmartScreen/장시간; 운영 main 푸시/Vercel실화면/공개다운로드·공지. 현재 사용자 앱/개발서버 유지, SQL/DB·운영쓰기·버전·commit/push 없음. EXE는 현재 운영 웹을 읽으므로 최신 웹 UI/API는 해당 배포 후에만 적용된다.
+
+## 2026-10-10 22:59 KST 영겁 — IRIS 전체 스크롤바 테마
+
+- 한설 승인으로 desktop.css에 :root:has(.iris-desktop) 문서/자손 범위의 테마 scrollbar를 추가했다. 포털과 미래 overflow도 포함, 웹 페이지는 IRIS root 제거 시 비적용. accent/text-sub 혼합 thumb·panel track·둥근 .65rem rail·hover/active accent, forced-colors native fallback. DB/권한/저장/native 정책/push 없음.
+- 신규 실제 CSS 합성 검사 RED→GREEN:6테마 고유색, 문서·중첩·본문 포털, 휠, 고대비, IRIS 제거 후 비적용. 기존 간격3·전체 Node·tsc exit0. 실제 IRIS WebView 사용자 확인 대기, 기존 개발 서버 유지.
+
+## 2026-10-10 22:53 KST 영겁 — IRIS 칸 사이 여백
+
+- 한설 승인 후 desktop.css의 control/group 간격 토큰(.4/.7rem), 숙제 필터·2열 칸·분류 간격을 조정했다. desktop-synaxis-surface.css는 툴바 grid 간격(.6rem)과 검색 필터(.45rem)만 조정한다. 행/참가 카드 높이·전체 문구·마크·저장/권한은 보존한다.
+- 신규 간격 합성3·메뉴6·파티 조작8, 전체 Node·tsc·격리 build56 exit0. 최초 회귀 브라우저 실행은 sandbox localhost 접근 거절로 실패, 연결 허용 재검 통과. 독립 좁힌 리뷰 지적 없음. 실제 새 간격 사용자 확인 대기, 기존 서버 session89595 유지. DB/운영 쓰기·버전·공지·push 없음.
+- 큰 글자에서 참가 카드가 길어지는 기존 줄바꿈은 유지하며, 이번 변경 전 툴바 배치와 높이가 동일함을 검사했다. 합성 IO 검증을 운영/게임 전체 검증으로 확대하지 않는다.
+
+## 2026-10-10 22:18 KST 영겁 — IRIS 메뉴 계층 / 가방·레이드 마크 / 취소 위치
+
+- 한설 승인대로 상위 두 기능은 넓은 직접 탭·채워진 선택 배경·문양, 하위 기능은 기존 작은 테두리 강조다. 사용자 추가 지정으로 크로노스 가방/시낙시스 레이드 SVG를 사용한다. 원본 viewBox/실제 경계를 측정해 메뉴 전용 currentColor 마스크의 크기/중심만 보정하며 공용 자산은 보존했다. 새로운 숨김 메뉴/미구현 기능은 없다.
+- DesktopCenter/DesktopIcons/desktop.css 표시 변경, DesktopStatsConfirmation의 네/아니요/취소 버튼을 같은 행으로 묶고 취소를 아니요 오른쪽에 배치했다. 선택 모드·콜백·초점/Escape/바깥 클릭·진행 중 잠금·하위 탭 기억·레드닷 계약은 유지한다. DB/API/권한/네이티브/보호 큐 변경 없음.
+- TDD: 아이콘 부재/별도 취소 행 및 밝은 테마 글자 대비를 RED 재현 후 GREEN. 교차 리뷰 Critical/Important 없음; 비선택 글자 대비 Minor는 실제 계산 확인 후 text-main으로 수정했다. 실제 React/CSS/SVG 합성6시나리오 exit0,6테마 글자 대비4.5 이상·320/390/768/1280폭·PC18/20/22 글자·메뉴 기억/쓰기0·확인창 초점/콜백/버튼 잘림0. DPR3 문양 픽셀 경계는 두 마크 모두16/17.33/19.33px 정사각으로 일치(글자18/20/22), 어두움/밝음 캡처 눈 확인. 캡처 iris-navigation-B6y7TH.
+- 최종 tsc/3컴포넌트 ESLint exit0, 분리 production webpack56경로 exit0(sanctum-iris-build-BZiSPN). 전체 Node 최초392중388pass/1fail/기존3skip: 기존 bus-live-notifications의 `duplicate full events stay quiet but a fresh readiness episode and next round notify again`에서2!=3. 해당 파일25/25 단독 통과·동일 전체 dot 재검 exit0. 현재 UI와 무관한 고정 테스트 시계/난수 알림 ID 충돌 가능성은 피드백에 별도 기록했으며 알림 제품 코드/테스트를 이번 UI 작업에서 수정하지 않았다.
+- 확인 경로: 실행 중 개발 IRIS 또는 http://localhost:3000/iris/desktop → 상위 가방/레이드 메뉴 구분 → 크로노스/스탯의 적용 확인창에서 아니요 오른쪽 취소. 실제 새 UI 사용자 확인은 대기이며 테스트의 운영/게임/스탯 쓰기는0이다. 사용자 서버session89595와 미저장/기존 대량 dirty 변경 유지. commit/push/버전/배포/공지 없음.
+
+## 2026-10-10 21:04 KST 영겁 — IRIS 일반 파티 탈퇴·강제 삭제 / 카드 컴팩트
+
+- 사용자 확인 후속 — 21:33 KST: 한설이 실제 IRIS 탈퇴·관리자 강제 삭제·컴팩트 카드와 결과 안내 정상 확인을 전달했다. 아래 실제 사용자 확인 대기는 이 범위에서만 해소한다. 다음 요청은 상위 메뉴 계층 시인성·스탯 확인창 취소 버튼 오른쪽 배치이며 짧은 디자인 승인 전 제품 변경 없음.
+- 한설 승인으로 일반 파티의 기본 confirm 의존을 IRIS 자체 확인창·화면 결과 안내로 대체했다. PartySurfaceContext 선택적 confirm/notify → DesktopSynaxisSurface, usePartyManager 탈퇴·PartyCard 관리자 삭제 연결. 취소/Escape/바깥 클릭/화면 비활성은 요청0, 중복 제출 방어·성공 후 목록 재조회. 웹은 기존 기본 대화상자를 유지하며 생성 관리자 노출·소유권/운행자·서버 권한은 그대로다.
+- 참가 시간 수정 API는 추가하지 않았다. 탈퇴 뒤 가입 신청에서 새 시작/종료 시간을 선택하는 기존 경로를 복구했다. UI 변경은 PartyCard 의미 클래스 + IRIS 범위 CSS: 이름/역할/전투력/마도저항/시간 보존, 캐릭터 높이 축소·빈 슬롯 약49px. 일반 웹 레이아웃은 유지한다.
+- 비동기 확인 대기 중 새 참가자가 가입하면 이전 members로 덮어쓰던 P1을 교차 리뷰·합성 RED로 재현했다. 승인 후 maybeSingle 최신 행을 비교해 변경/삭제 시 쓰기 없이 재조회·재확인을 안내한다. 최신 조회 직후 실제 쓰기 사이 서버 원자 CAS는 기존 API의 미해결 한계다.
+- 최종 검증: tsc exit0; 전체 Node392/389pass/0fail/기존3skip; 분리 production webpack56경로 exit0(검증 사본sanctum-iris-build-6e9DjS). 실제 React 합성 브라우저8시나리오 exit0(캡처iris-party-controls-J8yWVv,320/390 눈 확인); 기존 전체 시낙시스 합성 가입/매칭/버스 수정/레드닷/달력/4폭/PC3글자 exit0. 교차 리뷰 P1 수정 재검토 후 새 Critical/Important 없음, 삭제된 행의 single 오류 Minor도 maybeSingle로 보완했다.
+- 실제 사용자 확인: 개발 IRIS → 시낙시스 → 일반 파티에서 탈퇴 확인창/컴팩트 카드, 관리자 강제 삭제 확인창을 확인한다. 실제 운영 탈퇴/삭제는 Codex가 시험하지 않았다. 현재 사용자 서버session89595는 유지한다. UI가 옛 상태면 미저장 기록을 보존한 정상 새로고침/재실행만 안내한다.
+- 미완료 후속: 기존 버스·매칭·unknown 복구에는 여전히 native confirm/alert 경로가 남는다. 전체 시낙시스 실사용 완료로 보고하지 말고 같은 표면 확인/안내 계약으로 후속 점검한다. DB 구조/RLS/권한·네이티브 dialog 설정·운영 데이터 시험 쓰기·commit/push/버전/공지 없음. 기존 대량 미커밋·개인 삭제 보존.
+
+## 2026-10-10 20:39 KST 영겁 — IRIS 개발 서버 연결 복구
+
+- 사용자 IRIS `localhost` 연결 거부 제보. 일반 실행 환경에서 3000번 수신 없음과 직접 GET 연결 거부 확인. 실행 중 Node는 Codex 도구 런타임이었고 프로젝트 서버는 없었다. 기존 서버가 왜 종료됐는지는 미확정.
+- 프로젝트 `npm run dev -- --port 3000` 재실행(session89595), Ready760ms·`/iris/desktop` HTTP200 확인. 이 서버는 사용자 개발 IRIS용으로 유지하며 검증 helper처럼 종료하지 않는다. 기존 IRIS/게임 강제 종료·데이터/코드 수정·DB/배포 없음.
+- 다음 사용자 행동: 연결 오류 화면 왼쪽 아래 `새로 고침` 한 번. 실제 IRIS 화면/시낙시스 동작은 사용자 확인 대기.
+
+## 2026-10-10 14:00 KST 영겁 — IRIS 시낙시스 전체 공용 화면 로컬 후보
+
+- 구현 완료·미배포: 일반 파티/운행 예정·운행 중 길드버스 목록, 본인 계정의 다른 캐릭터 가입·탈퇴·스마트 매칭, 기존 버스 생성/수정/가입/운영 컨트롤러를 공용 `SynaxisSurface`로 연결했다. 생성은 관리자에게만, 운영은 현재 운행자에게만 노출하며 서버 권한 검사를 유지한다.
+- 설계/계획: `docs/superpowers/specs/2026-10-10-iris-synaxis-full-design.md`, `docs/superpowers/plans/2026-10-10-iris-synaxis-full.md`. 기존 SANCTUM 카드·모달·엔진을 재사용하며 웹 `/party`도 같은 화면의 웹 기본 동작을 사용한다. 날짜 달력, 본인 캐릭터 레이드/어비스 완료 확인, 어비스 매우 어려움·레이드 최고 유효 난이도 기본값을 연결했다.
+- 신규 개설 자동 반영/레드닷: 로그인 계정당 Realtime 채널 하나를 사용한다. 숨겨진 화면은 목록을 읽지 않고 새 이벤트와 점만 보관한다. 다시 활성화하면 조회하고 실제 불러온 행만 읽음 처리한다. Realtime/DB 구조·RLS·권한 설정 변경 없음.
+- 쓰기 보호: `expectedAccountId`, 본인 캐릭터 소유권·운행자 권한, 중복 제출 방어, 계정별 초안과 결과 불명 대기 기록을 유지한다. 요청은 20초 제한 뒤 잠금을 해제하되 결과 불명 기록을 보존하며 자동 재전송하지 않는다.
+- 독립 리뷰 후 수정: 비활성 버스 수정 포털이 다른 모달 위에 남는 문제, 활성화 중복 조회, 처음 열린 목록의 점이 남는 문제를 재현 후 수정했다. 중첩 달력 Escape/초점·바깥 클릭, 좁은 버튼/긴 닉네임·작은 안내 글씨를 함께 보완했다.
+- 최종 검증: `npx tsc --noEmit` exit0; 전체 Node392개 중389 통과/0 실패/기존3 제외; 분리 production webpack56 routes exit0. 실제 React/Tailwind/CSS 합성 브라우저에서 가입·매칭·카브락→에이렐 수정, 숨김 조회0, 레드닷, 권한 UI, 320/390/768/1280 및 PC 글자18/20/22 검증 통과. 가로 넘침/버튼 글자 잘림/브라우저 오류0.
+- 제한/인계: 브라우저 테스트는 HTTP/DB IO를 합성한 검증이며 실제 운영 파티 쓰기·게임/DPI·운영 Realtime 수신은 미시험이다. 운영 DB 쓰기·게임 조작·커밋·push·버전 상승·공지 게시 없음. 기존 대량 미커밋 변경과 개인 파일 삭제를 보존하며 전체 staging 금지.
+- 사용자 확인: IRIS → 시낙시스에서 두 목록, 다른 본인 캐릭터 가입 선택, 달력·관리자 컨트롤러를 확인한다. 이전 Fast Refresh 상태가 남으면 미저장 기록을 보존한 채 IRIS만 정상 종료/재실행한다. 웹 회귀 확인 경로 `http://localhost:3000/party`.
+
 ## 2026-10-10 12:51 KST 영겁 — 물물교환 즐겨찾기 한정 배포
+
+- 로컬 후속 확인(다음 공식 push에 포함): 문서 da1738e / Vercel 734XzqaoK6MvTwrZLnMitjxm5E8w Ready·Production 확인. 검증 도중 브라우저 계정 한설→뉴월 변경 후 이전 한설 탭의 수동 GET은 403(12:56:00 서버 기록), 새 뉴월 페이지 초기/수동 재조회 모두 정상 안내·관찰 콘솔0. 계정 불일치 보호 동작이며 권한 완화/자동 다른 계정 가져오기 금지. 계정을 다른 탭에서 바꿨으면 기존 탭 새로고침 안내. 가져오기/별표 시험 POST0, 최종 운영 화면 캡처 보존.
 
 - 운영 확인 — 2026-10-10 12:55 KST: main 62bd6786b4d792b141159cdcc740d34727b3fe9d, Vercel dpl_PWxBfDz2QPfKUbHmhrYiM7cRfD45 대시보드 Ready/Production/Current·운영 도메인·동일 커밋 확인(27초). 실제 Chrome 한설 /character?char=순월에서 계정 공통 즐겨찾기 정상 안내·저장된 앨빈 별표·기존 브라우저5개 가져오기/본인 확인 전 비활성 버튼·관찰 콘솔 error/warn0 확인. 공개 핵심5경로 GET200·health200 ready true·새 API 비로그인401. 실제 별표 POST/가져오기·IRIS 운영 동시 저장은 미시험, 사용자 조작으로 확인할 것. 버전 상승/공개 공지/추가 SQL 없음. 후속 기록은 구조 변경 없음.
 
@@ -8,6 +77,41 @@
 - 서버 쿠키 세션의 본인 UUID로 웹 별표 GET/POST를 연결했다. 계정 전환 늦은 응답/중복 저장/불완전 조회 방어, 명시적 구형 브라우저 가져오기(기존 true/false 보존). 운영 구형 별표가 DB와 연동되지 않던 P1의 앱 적용이다.
 - 한설 적용 테이블의 읽기 전용 검증: RLS true·정책0·anon/authenticated SELECT false·service_role SELECT/INSERT/UPDATE true·DELETE false. 이번 작업 SQL 실행/실데이터 쓰기 없음.
 - 후보 전체 Node·독립 tsc·분리 webpack 53경로 exit0, 독립 리뷰 blocking0. main 최신 pull 확인. Vercel Ready 및 실제 운영 별표 조회 화면은 후속 확인하며 DB 저장/가져오기 실조작은 사용자가 수행한다.
+
+## 2026-10-10 영겁 — 즐겨찾기 사용자 대조 후속 / 로컬 실제 연동·운영 구형 저장 확인
+
+- 한설이 상점·임무 별표의 실제 웹/IRIS 연동을 확인했다. 물물교환 사진은 웹 별표 표시와 IRIS 조회 실패 안내가 함께 보인다. 읽기 전용 Supabase aggregate로 한설·뉴월 kronos_barter_favorites 기록 모두0 확인. 사진 왼쪽의 구형 UI는 브라우저 로컬 별표/운영 미배포 가능성이므로 실제 주소와 명시 가져오기 상태를 구분한다.
+- 실행 IRIS development 확인(명령줄 비밀값 미출력), localhost 뉴월 웹 GET 완료·기존 목록1개 안내·버튼 활성. Chrome 실제 왼쪽 화면은 운영 sanctum-tawny-three.vercel.app의 한설 /character로 확인되어 구형 localStorage 별표임을 확정했다. 한설이 이후 로컬 별표 변경의 즉시 IRIS 연동을 실제 확인했고 운영 웹은 아직 불연동이라고 구분했다. 새 API/UI는 미배포이므로 SQL 추가나 공개 권한 확대가 아니라 배포 후 원래 origin/브라우저의 기존 목록 명시 가져오기가 필요하다. 계정이 다른 옛 목록을 자동 병합하지 않는다.
+- 임시 개발 전용 서버/클라이언트 진단(단계/상태 코드, 비밀값/계정 값 미기록)은 제거했다. 관찰 GET200을 개별 네이티브 요청과 연결하지 못해 최초 실패 원인은 미확정이다. 관련 API16/16·독립 tsc 통과. 임의 운영 쓰기·자동 가져오기·영구 제품 코드 수정/SQL/push/배포 없음. 기존 브라우저 별표는 훼손하지 않았고 운영 가져오기는 배포 이후 사용자 확인이 남는다.
+
+## 2026-10-10 영겁 — 물물교환 즐겨찾기 화면 계정 경계 수정 / 실제 GET 확인
+
+- SQL 적용 뒤 한설의 다시 조회 불가·별표 wait 제보를 실제 뉴월 로그인에서 확인했다. nexus_user 표시 정보에는 id가 없는데 CharacterPage가 user.id를 전달해 즐겨찾기 요청이 시작되지 않았다. 초기 효과에서 기존 /api/auth/session GET을 병렬로 1회 시작, 표시 닉네임 일치·승인 상태·UUID 확인 후 별표 전용 barterAccountId 전달로 수정했다. 표시 ID/다른 기억 계정으로 대체하지 않는다. 늦은 응답 active/abort 차단, 서버의 계정 비교 유지.
+- 실제 localhost /character에서 수정 후 별표 활성/pointer, 명시 다시 조회 완료, 기존 브라우저 목록 1개 가져오기 안내를 확인했다. DB 실제 쓰기/가져오기/상점·임무·IRIS 별표 대조는 하지 않았다. 신규 경계4 RED→GREEN, 관련23/23·기존 실제 React 합성11/11·독립 tsc·전체 Node exit0. 첫 제한 환경 Edge 프로필/connection·overlay·owned-server 임시 파일/루프백 실패는 허용 환경 재실행 통과와 구분한다.
+- 교환/즐겨찾기 원본·DB 권한·SQL·버전 변경 없음. 기존 모든 미커밋 작업 보존, commit/push/배포 없음. 다음 사용자 행동은 자신의 기존 목록을 확인하고 명시 가져오기 또는 별표1개 저장, 같은 계정 IRIS 조회 대조다. 시낙시스 전체 이식은 앞선 방향 논의 상태로 유지하며 이번에 확대하지 않았다.
+- 좁힌 독립 리뷰 Critical/Important0·경계4 재통과. 초기 세션 조회의 일시 실패는 자동 재시도 없이 화면 새로고침이 필요하다. 기존 잘못된 nexus_user JSON·다른 탭 계정 동기화·전체 IRIS/운영 저장은 이번 리뷰 범위 밖이며 완료로 판단하지 않는다. 새 빌드는 이번 좁힌 수정에서 반복하지 않았다.
+
+## 2026-10-10 영겁 — 물물교환 즐겨찾기 DB 적용 결과 확인 / 실저장 대기
+
+- 한설이 적용 SQL의 결과 JSON을 제공했다. 복합 PK/양쪽 FK/ trade_id 인덱스, RLS true·정책0·PUBLIC grant0·anon/authenticated 모든 접근 false·service_role SELECT/INSERT/UPDATE만 true를 확인했다. 아래 미적용 기록은 당시 상태이며 현재 새 테이블은 존재한다. 기존 상점/임무/횟수/즐겨찾기 기록 변경이나 Codex 운영 시험 쓰기는 없다.
+- docs/SUPABASE_SCHEMA.md·Master Guide·RELEASE_NOTES의 미배포 DB 준비 기록을 갱신한다. 새 공식 버전/commit/push/배포/공지 없음. API/UI는 기존 로컬 구현이며 SQL만으로 운영 웹에 새 UI가 배포된 것은 아니다.
+- 다음 사용자 확인: 저장 중인 변경이 없을 때 localhost3000/character의 크로노스 물물교환에서 다시 조회, 기존 브라우저 즐겨찾기 안내 확인 후 본인 계정 여부를 명시 확인해 가져오기. 같은 계정 웹/IRIS 별표 대조는 그 이후. 실제 IO 검증 전 연동 완료로 선언하지 않는다.
+
+## 2026-10-10 영겁 — 즐겨찾기 진단 JSON 수신 / 물물교환 SQL 제공
+
+- 한설이 전체 시낙시스 이식보다 즐겨찾기 SQL 연동을 먼저 요청했다. 직접 실행한 읽기 전용 진단 JSON에서 상점/임무의 기존 kronos_progress.bookmarked·PK·서버 전용 RPC/권한 및 accounts UUID/nexus_trades bigint를 재확인, kronos_barter_favorites는 없음. 상점/임무 저장소를 중복 생성하거나 기존 기록을 이관/초기화하지 않는다.
+- 준비 SQL supabase/sql/iris_barter_favorites.sql은 새 물물교환 테이블만 생성·서버 SELECT/INSERT/UPDATE 최소 권한·공개 접근 차단, 후속 검증은 한 개 result JSON으로 정리했다. 사용자에게 목적/영향/접근 차단형 복구를 안내하고 SQL을 제공한다. Codex 운영 SQL 실행/운영 시험 쓰기/push/배포는 없다. 실행 결과 확인 전 운영 적용 완료로 기록하지 않는다.
+- 다음: 한설의 적용 결과 JSON으로 RLS/권한/PK/FK/인덱스 확인 → 기존 브라우저 물물교환 즐겨찾기는 명시적 가져오기로 보존 이관 → 같은 계정(상점/임무는 해당 캐릭터/공용 범위) 웹·IRIS 별표 대조. 메타데이터 존재는 실제 저장 성공/동기화 검증이 아니다.
+
+## 2026-10-10 06:56 KST 영겁 — 야간 IRIS 크로노스·시낙시스 로컬 후보
+
+- 06:26 예약 재개. 집 릴레이 수신함 확인 완료(새 WAITING/UPDATED 없음), origin main ff-only pull 최신 확인. `codex/iris-checkboard-classes`의 이전 IRIS/물물교환/즐겨찾기·개인 파일 변경을 보존했다. 공식 버전/운영은 아래 v2.21 그대로이며 이번 작업은 commit/push/배포/공지 없음.
+- IRIS 상점구매·임무게시판: 기존 `kronos_shop_items`, `kronos_missions`, `kronos_progress` 읽기와 본인/공용 범위별 저장. 검색/미완료/즐겨찾기·금액/보상/조건·MAX/MIN·횟수·15초/직접 저장·보호 대기함 재사용. 제목200자와 줄어든 상한보다 큰 기존 횟수 보존, 임시 읽기 실패는 unknown 유지. 구형 bridge는 새 workspace 저장을 실행 전에 막는다. 새 네이티브로 정상 재시작 필요.
+- IRIS 시낙시스 생성: 활성 DB 카탈로그와 4/8인 정원·본인 캐릭터·운영진 bus 권한을 서버에서 재조회, 공지를 memo/sub_content에 일치시켜 기존 member-mutations 경로로 생성한다. 일반 파티1캐릭터/모집우선/1회 클리어, 길드버스 여러 본인 캐릭터·반복·익일 종료 지원. 회차 완료는 false로 시작(주간 숙제 완료와 구분). 기존 웹 버스 엔진이 이후 참여/편성을 담당한다. IRIS 내 자동 매칭·가입·출발·회차 운영은 아직 구현 범위 밖이다.
+- 생성은 명시 확인 후1회, 자동 저장/재전송 없음. 요청 전에 계정별 결과 불명 표시만 localStorage에 기록(초안/자격증명 아님), 재시작 때 중복 생성 차단. 불명확 결과는 `/party` 확인 후 명시 해제한다. 네이티브는 사용자 클릭·활성 desktop source·동일 환경의 정확한 `/party`만 기본 브라우저로 열고 다른 팝업은 계속 차단한다. 생성 중 account/close 조작 잠금 및 unmount 해제 회귀 포함. 기존 member-mutations에 선택적 expectedAccountId를 추가해 준비/최종 인증 간 계정 변경을 차단한다.
+- 검증: 최종 전체 Node481개(478통과/3의도된skip/실패0), 독립 tsc exit0, scoped ESLint 오류0, 임시 복사본·합성 환경변수 webpack Production56경로 exit0. native DPAPI store/bridge/overlay/stats/currencies/addon·host allowlist28개·합성 WebView 보안 PASS. 브라우저 실제 컴포넌트/컨트롤러+합성 IO로 상점 수동·임무 자동 저장/공용 범위/캐릭터 격리/시낙시스 생성 확인·불명 응답 재시작/재전송 차단 확인. 각 화면320/390/768/1280 ×18/20/22px 총36조합에서 카드/버튼/가로 넘침0. 독립 리뷰 두 묶음 지적 총6건 수정/회귀 및 재리뷰 blocker0. 실제 운영 쓰기/게임/배포 검증과 혼동하지 말 것.
+- DB DDL/RLS/권한/Realtime 변경 및 게임 조작·운영 시험 생성/삭제 없음. 이번 상점·임무·생성 연결에는 새 SQL 불필요. 이전 물물교환 즐겨찾기 SQL 승인/운영 미적용 상태는 유지한다. SQL 없는 생성 exactly-once는 보장하지 않으며 카탈로그/소유권의 다중 요청 간 경합과 실제 hosting latency는 미검증이다.
+- 아침 확인: 켜진 IRIS가 있다면 × 정상 종료→최신 개발용 IRIS 실행→크로노스 상점구매/임무게시판을 웹 `/character` 기록과 대조. 시낙시스의 본인 목록/4·8인 정원/공지 확인 단계까지만 먼저 확인하고, 실제 생성은 한설 의도로 진행한다. 실제 기본 브라우저 링크·native 글자/DPI/게임 부착 실검증은 남았다. 합성 임시 서버와 탭은 정리한다. 계획/검증 이력은 `docs/superpowers/plans/2026-10-10-iris-workspace.md`, `2026-10-10-iris-synaxis.md`.
 
 ## 2026-10-10 02:25 KST 영겁 — v2.21 운영·통합 공지 완료
 

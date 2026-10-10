@@ -1,0 +1,24 @@
+.iris-character-focus { border-color: color-mix(in srgb,var(--accent) 65%,var(--panel-border)); }
+.iris-character-focus .iris-switch-eyebrow { font-size: .75rem; }
+.iris-character-focus .iris-switch-question {
+  display: flex;
+  flex-direction: column;
+  gap: .25rem;
+  min-width: 0;
+  margin: .4rem 0;
+  font-size: .95rem;
+  line-height: 1.5;
+  font-weight: 600;
+}
+.iris-character-focus .iris-switch-question strong {
+  color: var(--accent);
+  font-size: 1.3rem;
+  font-weight: 800;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+.iris-character-focus .iris-switch-help { color: var(--text-muted); font-size: .75rem; line-height: 1.5; }
+.iris-character-focus .iris-switch-actions { margin-top: .8rem; }
+.iris-character-focus .iris-switch-actions .iris-desktop-button { min-height: 2.4rem; font-size: .8rem; }
+.iris-character-focus .iris-switch-actions .iris-desktop-button[data-primary] { background: color-mix(in srgb,var(--accent) 28%,var(--panel)); font-weight: 800; }
+.iris-switch-notice { font-size: .75rem; margin: .3rem 0; overflow-wrap: anywhere; }

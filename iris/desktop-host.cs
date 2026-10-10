@@ -12,6 +12,18 @@ namespace IrisDesktop {
                 target.Host == "sanctum-tawny-three.vercel.app";
         }
 
+        public static bool ValidatePartyExternal(Uri source, Uri target, bool development) {
+            return ValidateNavigation(source, development) && source.AbsolutePath == "/iris/desktop" &&
+                ValidateNavigation(target, development) && target.AbsolutePath == "/party" &&
+                target.Query.Length == 0 && target.Fragment.Length == 0;
+        }
+
+        public static bool ValidateHomeExternal(Uri source, Uri target, bool development) {
+            return ValidateNavigation(source, development) && source.AbsolutePath == "/iris/desktop" &&
+                ValidateNavigation(target, false) && target.AbsolutePath == "/" &&
+                target.Query.Length == 0 && target.Fragment.Length == 0;
+        }
+
         public static string ProfilePath(string environment) {
             if (environment != "production" && environment != "development")
                 throw new ArgumentException("Unknown desktop environment", "environment");

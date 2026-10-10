@@ -9,7 +9,7 @@ const noop=()=>{};
 const cabrak={id:'raid_cabrak',name:'레이드 - 카브락',category:'레이드',size:8};
 const memo='카브락 어려움 가실 분~ 인원 부족시 에이렐';
 test('reselecting content in the real create modal preserves a handwritten notice',()=>{
-  const hooks={...React,useState:v=>[typeof v==='function'?v():v,noop],useEffect:noop,useMemo:f=>f(),useRef:v=>({current:v})};
+  const hooks={...React,useContext:()=>null,useState:v=>[typeof v==='function'?v():v,noop],useEffect:noop,useMemo:f=>f(),useRef:v=>({current:v})};
   const Modal=loadTS('components/party/modals/BusCreateModal.tsx',{react:hooks,'@/lib/supabase':{supabase:{}},'@/lib/memberMutationClient':{}}).default;
   let value=memo;
   const tree=Modal({catalog:{loaded:true,error:null,classes:[],contents:[],powerReqs:[]},showBusCreateModal:true,setShowBusCreateModal:noop,busCreateContent:cabrak,setBusCreateContent:noop,busCreateDiff:'어려움',setBusCreateDiff:noop,busCreateDate:'2026-10-09',setBusCreateDate:noop,busCreateTimeStart:'20:00',setBusCreateTimeStart:noop,busCreateTimeEnd:'23:59',setBusCreateTimeEnd:noop,busCreateMemo:value,setBusCreateMemo:v=>value=v,busCharSelections:{},setBusCharSelections:noop,handleCreateGuildBus:noop,myCharacters:[]});
@@ -85,7 +85,7 @@ test('next-day picker times and legacy midnight can be saved without losing thei
 
 test('select-all in the actual editor preserves individual participant times',()=>{
   const noop=()=>{};
-  const hooks={...React,useState:v=>[v==='SETTINGS'?'CHARACTERS':typeof v==='function'?v():v,noop],useEffect:noop,useMemo:f=>f(),useRef:v=>({current:v})};
+  const hooks={...React,useContext:()=>null,useState:v=>[v==='SETTINGS'?'CHARACTERS':typeof v==='function'?v():v,noop],useEffect:noop,useMemo:f=>f(),useRef:v=>({current:v})};
   const Modal=loadTS('components/party/modals/BusCreateModal.tsx',{react:hooks,'@/lib/supabase':{supabase:{}},'@/lib/memberMutationClient':{}}).default;
   let configs={'제스':{selected:true,allowRepeat:true,timeStart:'22:00',timeEnd:'23:00'}};
   const tree=Modal({mode:'edit',catalog:{loaded:true,error:null,classes:[],contents:[],powerReqs:[]},showBusCreateModal:true,setShowBusCreateModal:noop,busCreateContent:cabrak,setBusCreateContent:noop,busCreateDiff:'어려움',setBusCreateDiff:noop,busCreateDate:'2026-10-09',setBusCreateDate:noop,busCreateTimeStart:'20:00',setBusCreateTimeStart:noop,busCreateTimeEnd:'23:59',setBusCreateTimeEnd:noop,busCreateMemo:memo,setBusCreateMemo:noop,busCharSelections:configs,setBusCharSelections:f=>configs=f(configs),handleCreateGuildBus:noop,myCharacters:[characters[0],characters[1]]});

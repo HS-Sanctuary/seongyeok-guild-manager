@@ -144,6 +144,7 @@ export default function IrisPage() {
     <main className="mx-auto max-w-5xl px-4 py-10 space-y-6 text-[var(--text-main)]">
       <div>
         <h1 className="text-2xl font-black text-[var(--accent)]">IRIS · 캐릭터 연결 준비</h1>
+        <Link href="/iris/download" className="inline-block underline">Windows IRIS 베타 다운로드 안내</Link>
         <p className="mt-2 text-sm text-[var(--text-sub)]">게임 연결이 닉네임을 제공하지 않아 생텀 캐릭터를 직접 확인하는 단계입니다.</p>
       </div>
       {connection && <section className="rounded-xl border border-[var(--panel-border)] bg-[var(--panel)] p-4 space-y-4">

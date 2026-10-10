@@ -36,7 +36,7 @@ await page.addInitScript(()=>{
   window.__irisDesktopBridge={epoch:1,environment:'development'};
   window.chrome={webview:{addEventListener:(_,fn)=>listeners.add(fn),removeEventListener:(_,fn)=>listeners.delete(fn),postMessage:message=>{
     if(message.method==='store.replace')queue=message.payload;
-    queueMicrotask(()=>{for(const fn of [...listeners])fn({data:{version:1,id:message.id,epoch:1,ok:!(window.fixtureCloseFailure&&message.method==='window.close'),error:'synthetic-close-failure',value:message.method==='store.load'?queue:message.method.startsWith('overlay.')?{clickThrough:false,shortcutsAvailable:true,opacityPercent:100}:null}});});
+    queueMicrotask(()=>{for(const fn of [...listeners])fn({data:{version:1,id:message.id,epoch:1,ok:!(window.fixtureCloseFailure&&message.method==='window.close'),error:'synthetic-close-failure',value:message.method==='store.capabilities'?{schemaVersion:3,barter:true}:message.method==='store.load'?queue:message.method.startsWith('overlay.')?{clickThrough:false,shortcutsAvailable:true,opacityPercent:100}:null}});});
   }}};
 });
 try{

@@ -402,7 +402,7 @@ export default function ScheduleModal({
 
         {/* 연도 선택 서브 모달 */}
         {showYearPicker && (
-          <div className="absolute inset-0 bg-black/85 backdrop-blur-xs rounded-2xl flex flex-col items-center justify-center p-4 z-[350] space-y-3">
+          <div data-party-dialog role="dialog" aria-label="연도 선택" className="absolute inset-0 bg-black/85 backdrop-blur-xs rounded-2xl flex flex-col items-center justify-center p-4 z-[350] space-y-3" onClick={e=>{if(e.target===e.currentTarget)setShowYearPicker(false);}}>
             <h4 className="text-xs font-black text-[var(--accent)]">연도 선택</h4>
             <div className="grid grid-cols-2 gap-2 w-full max-w-[200px]">
               {[2025, 2026, 2027, 2028].map((y) => (
@@ -431,7 +431,7 @@ export default function ScheduleModal({
 
         {/* 월 선택 서브 모달 */}
         {showMonthPicker && (
-          <div className="absolute inset-0 bg-black/85 backdrop-blur-xs rounded-2xl flex flex-col items-center justify-center p-4 z-[350] space-y-3">
+          <div data-party-dialog role="dialog" aria-label="월 선택" className="absolute inset-0 bg-black/85 backdrop-blur-xs rounded-2xl flex flex-col items-center justify-center p-4 z-[350] space-y-3" onClick={e=>{if(e.target===e.currentTarget)setShowMonthPicker(false);}}>
             <h4 className="text-xs font-black text-[var(--accent)]">월 선택</h4>
             <div className="grid grid-cols-4 gap-1.5 w-full">
               {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (

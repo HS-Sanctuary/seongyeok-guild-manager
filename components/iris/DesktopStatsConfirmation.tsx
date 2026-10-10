@@ -25,9 +25,11 @@ export function DesktopStatsConfirmation({target,characters,job,busy,canConfirm,
       {choosing?<div className="flex flex-wrap gap-2">{characters.map(c=><button key={c.id} type="button" className="iris-desktop-button" disabled={busy||locked} onClick={()=>onSelectCharacter(c.id)}>{c.nickname} · {c.job}</button>)}</div>:<>
         <p className="text-sm">게임 화면과 비교해 주세요. {job!==target.job&&'게임 직업과 생텀 직업이 달라요. ' }확인하면 게임 정보를 다시 읽고 생텀에 업데이트해요.</p>
         {!canConfirm&&<p role="status" className="text-sm">정보가 오래됐어요. 창을 닫고 스탯을 다시 읽어 주세요.</p>}
-        <div className="flex flex-wrap gap-2"><button type="button" className="iris-desktop-button" disabled={busy||locked||!canConfirm} onClick={onConfirm}>{busy?'업데이트 중…':'네, 업데이트'}</button><button type="button" className="iris-desktop-button" disabled={busy||locked} onClick={()=>setChoosing(true)}>아니요, 다른 캐릭터</button></div>
       </>}
-      <button type="button" data-cancel className="iris-desktop-button" disabled={busy} onClick={onCancel}>취소</button>
+      <div className="iris-stats-confirm-actions" data-choosing={choosing}>
+        {!choosing&&<><button type="button" className="iris-desktop-button" disabled={busy||locked||!canConfirm} onClick={onConfirm}>{busy?'업데이트 중…':'네, 업데이트'}</button><button type="button" className="iris-desktop-button" disabled={busy||locked} onClick={()=>setChoosing(true)}>아니요, 다른 캐릭터</button></>}
+        <button type="button" data-cancel className="iris-desktop-button" disabled={busy} onClick={onCancel}>취소</button>
+      </div>
     </div>
   </div>;
 }

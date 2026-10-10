@@ -6,9 +6,9 @@ type Input = {
   payload?: object;
 };
 
-export async function memberMutation(input: Input): Promise<{ data: unknown; error: Error | null }> {
+export async function memberMutation(input: Input, request: typeof fetch = fetch): Promise<{ data: unknown; error: Error | null }> {
   try {
-    const response = await fetch("/api/member-mutations", {
+    const response = await request("/api/member-mutations", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "same-origin",
@@ -22,8 +22,8 @@ export async function memberMutation(input: Input): Promise<{ data: unknown; err
   }
 }
 
-export async function memberMutationOrThrow(input: Input) {
-  const result = await memberMutation(input);
+export async function memberMutationOrThrow(input: Input, request: typeof fetch = fetch) {
+  const result = await memberMutation(input, request);
   if (result.error) throw result.error;
   return result.data;
 }

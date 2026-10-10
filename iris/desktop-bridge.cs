@@ -63,6 +63,8 @@ namespace IrisDesktop {
                 lastId = sequence;
                 object value = null;
                 switch (message["method"] as string) {
+                    case "store.capabilities":
+                        if(message["payload"]!=null)throw new ArgumentException();value=new Dictionary<string,object>{{"schemaVersion",3},{"barter",true},{"workspace",true}};break;
                     case "window.addon.state":
                         if(message["payload"]!=null||addonState==null)throw new ArgumentException();value=addonState();break;
                     case "window.addon.preferences":

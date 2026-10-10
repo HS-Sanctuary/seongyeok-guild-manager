@@ -8,6 +8,12 @@
 - 한설이 SQL을 적용하고 검증 JSON을 제공했다. 이번 읽기 전용 확인: RLS enabled true·policy_count0·anon/authenticated SELECT false·service_role SELECT/INSERT/UPDATE true·DELETE false. 공개 정책이나 브라우저 직접 권한을 열지 않는다.
 - 서버 세션 API만 본인 계정 접근을 허용한다. 명시적 브라우저 가져오기는 기존 true/false를 덮어쓰지 않는다. SQL 기록 supabase/sql/iris_barter_favorites.sql; 이번 push에서는 DB 변경을 실행하지 않았다. 되돌릴 때 테이블/행 삭제 없이 앱만 이전 코드로 복귀한다.
 
+## 2026-10-10 물물교환 즐겨찾기 — 한설 SQL 적용·검증 JSON 확인
+
+- 한설이 제공한 적용 후 result JSON에서 public.kronos_barter_favorites의 복합 PK(account_id,trade_id), accounts/nexus_trades FK(ON DELETE CASCADE), trade_id 인덱스를 확인했다. RLS=true, 정책0, PUBLIC grant0. anon/authenticated의 SELECT/INSERT/UPDATE/DELETE/TRUNCATE/REFERENCES/TRIGGER 모두 false; service_role은 SELECT/INSERT/UPDATE만 true다.
+- 실행 파일 supabase/sql/iris_barter_favorites.sql. 아래 10-09 준비/10-10 미적용 표기는 과거 경과이며 이 테이블은 이제 운영에 존재한다. Codex가 SQL을 재실행하거나 실제 즐겨찾기 행을 추가한 것은 아니다. 준비 파일의 조건부 생성/권한/검증/복구 주석을 보존한다.
+- 상점·임무는 기존 kronos_progress.bookmarked와 서버 전용 RPC를 유지한다. 즐겨찾기 API/UI는 아직 로컬 미배포이며 실제 저장·브라우저 기존 목록 가져오기·웹/IRIS 대조는 사용자 확인 대기다. DB 적용을 앱 배포/동기화 완료로 확대하지 않는다.
+
 ## 2026-10-09 parties Realtime — 한설 승인 운영 적용
 
 - pg_publication_tables에서 parties 비활성을 확인하고 SQL·부하·복구 안내 후 명시적 승인으로 supabase_realtime에 public.parties를 추가했다. 재조회 활성=true, replica identity=d(기본값) 유지. 데이터/컬럼/RLS/권한 변경 없음.
@@ -17,6 +23,7 @@
 
 ## 2026-10-09 물물교환 계정 즐겨찾기 — 준비 SQL, 운영 미적용
 
+- 2026-10-10 한설이 `supabase/diagnostics/20261010_kronos_favorites_readonly.sql` 결과 JSON을 전달했다. `kronos_progress.bookmarked boolean NOT NULL`·계정/대상/종류/항목 PK, 상점/임무 테이블·서버 전용 `sanctum_kronos_progress(...p_bookmarked boolean)` 존재와 anon/authenticated 접근 차단을 재확인했다. `accounts.id uuid`, `nexus_trades.id bigint` 및 신규 물물교환 테이블 없음도 재확인. 실제 즐겨찾기 행/동기화 성공은 이 메타데이터 조회로 검증한 것이 아니다. 준비 SQL의 후속 검증을 단일 result JSON으로 정리해 한설에게 제공하며 운영 적용은 아직 확인 전이다.
 - 실제 읽기 전용 확인: `public.accounts.id=uuid`, `public.nexus_trades.id=bigint`, 신규 `kronos_barter_favorites` 없음. 아래는 존재하는 구조가 아니라 승인 대기 설계다.
 - 준비 파일 `supabase/sql/iris_barter_favorites.sql`. CLI 미설치로 임의 migration 파일을 만들지 않았다. 운영 적용은 한설의 별도 승인 뒤 진행한다.
 - 예정 구조: `(account_id uuid FK accounts ON DELETE CASCADE, trade_id bigint FK nexus_trades ON DELETE CASCADE, favorited boolean NOT NULL, updated_at timestamptz)`; `(account_id,trade_id)` 복합 PK와 trade_id 인덱스. false 해제 행은 보존하고 초기화/가져오기로 되살리지 않는다.

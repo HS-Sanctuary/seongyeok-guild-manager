@@ -10,6 +10,7 @@ import { parseAbyssInfo, generateAbyssDefaultMemo } from "@/lib/busUtils";
 import type { PartyCatalog } from "@/hooks/usePartyCatalog";
 import {preserveBusMemo} from '@/lib/guildBusSettings';
 import CharacterCompletionStatus, {CharacterCompletionName} from '@/components/party/CharacterCompletionStatus';
+import {usePartySurface} from '../PartySurfaceContext';
 
 export interface BusCharSelectionConfig {
   selected: boolean;
@@ -108,6 +109,7 @@ export default function BusCreateModal({
   busSelectedSubContents = DEFAULT_SUB_CONTENTS,
   setBusSelectedSubContents,
 }: BusCreateModalProps) {
+  const surface=usePartySurface();
   const [completionCharacter, setCompletionCharacter] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState<"SETTINGS" | "CHARACTERS">("SETTINGS");
   const [characterSearch,setCharacterSearch]=useState('');
@@ -118,7 +120,7 @@ export default function BusCreateModal({
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   useEffect(()=>{closeState.current={isSaving,setShowBusCreateModal,showContentModal,showScheduleModal};},[isSaving,setShowBusCreateModal,showContentModal,showScheduleModal]);
   useEffect(()=>{
-    if (!showBusCreateModal || mode!=='edit') return;
+    if (!showBusCreateModal || mode!=='edit' || surface) return;
     const dialog=dialogRef.current;
     if (!dialog) return;
     const previous=document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -144,7 +146,7 @@ export default function BusCreateModal({
     const focus=(event:FocusEvent)=>{if (!dialog.contains(event.target as Node)) dialog.focus();};
     document.addEventListener('keydown',key,true);document.addEventListener('focusin',focus);
     return ()=>{document.removeEventListener('keydown',key,true);document.removeEventListener('focusin',focus);document.body.style.overflow=oldOverflow;if(previous?.isConnected)previous.focus();};
-  },[showBusCreateModal,mode]);
+  },[showBusCreateModal,mode,Boolean(surface)]);
 
 
   const [tempContentCategory, setTempContentCategory] = useState<"어비스" | "레이드">("어비스");
@@ -492,7 +494,7 @@ export default function BusCreateModal({
             <div className="space-y-3">
               {/* 목표 컨텐츠 선택 카드 */}
               <div className="space-y-1.5">
-                <div
+                <div role="button" tabIndex={0} aria-label="목표 컨텐츠 선택" onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openContentSelectModal();}}}
                   onClick={openContentSelectModal}
                   className="bg-[var(--inner-box)] border border-[var(--panel-border)] hover:border-[var(--accent)]/70 transition p-3 sm:p-3.5 rounded-2xl cursor-pointer flex items-center justify-between gap-3 shadow-xs group"
                 >
@@ -557,7 +559,7 @@ export default function BusCreateModal({
               </div>
 
               {/* 출발 일시 설정 카드 */}
-              <div
+              <div role="button" tabIndex={0} aria-label="출발 희망 일시 설정" onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openScheduleModal();}}}
                 onClick={openScheduleModal}
                 className="bg-[var(--inner-box)] border border-[var(--panel-border)] hover:border-[var(--accent)]/70 transition p-3 sm:p-3.5 rounded-2xl cursor-pointer flex items-center justify-between gap-3 shadow-xs group"
               >
@@ -991,7 +993,7 @@ export default function BusCreateModal({
               </button>
 
               {showYearPicker && (
-                <div className="absolute inset-0 bg-black/85 backdrop-blur-xs rounded-2xl flex flex-col items-center justify-center p-4 z-[350] space-y-3">
+                <div data-party-dialog role="dialog" aria-label="연도 선택" className="absolute inset-0 bg-black/85 backdrop-blur-xs rounded-2xl flex flex-col items-center justify-center p-4 z-[350] space-y-3" onClick={e=>{if(e.target===e.currentTarget)setShowYearPicker(false);}}>
                   <h4 className="text-xs font-black text-[var(--accent)]">연도 선택</h4>
                   <div className="grid grid-cols-2 gap-2 w-full max-w-[200px]">
                     {[2025, 2026, 2027, 2028].map((y) => (
@@ -1019,7 +1021,7 @@ export default function BusCreateModal({
               )}
 
               {showMonthPicker && (
-                <div className="absolute inset-0 bg-black/85 backdrop-blur-xs rounded-2xl flex flex-col items-center justify-center p-4 z-[350] space-y-3">
+                <div data-party-dialog role="dialog" aria-label="월 선택" className="absolute inset-0 bg-black/85 backdrop-blur-xs rounded-2xl flex flex-col items-center justify-center p-4 z-[350] space-y-3" onClick={e=>{if(e.target===e.currentTarget)setShowMonthPicker(false);}}>
                   <h4 className="text-xs font-black text-[var(--accent)]">월 선택</h4>
                   <div className="grid grid-cols-4 gap-1.5 w-full">
                     {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (

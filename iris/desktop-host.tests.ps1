@@ -23,4 +23,17 @@ Expect ($prod.StartsWith([Environment]::GetFolderPath('LocalApplicationData') + 
 $rejected = $false
 try { [IrisDesktop.DesktopHostPolicy]::ProfilePath('../Chrome') | Out-Null } catch { $rejected = $true }
 Expect $rejected $true 'profile traversal'
+$desktopSource=[uri]'http://localhost:3000/iris/desktop'
+Expect ([IrisDesktop.DesktopHostPolicy]::ValidatePartyExternal($desktopSource,[uri]'http://localhost:3000/party',$true)) $true 'own party route only'
+foreach($url in @('http://localhost:3000/party?x=1','http://localhost:3000/party#x','http://localhost:3000/party/','http://localhost:3001/party','https://example.org/party','javascript:alert(1)','file:///C:/test.html','http://user@localhost:3000/party')){
+    Expect ([IrisDesktop.DesktopHostPolicy]::ValidatePartyExternal($desktopSource,[uri]$url,$true)) $false $url
+}
+Expect ([IrisDesktop.DesktopHostPolicy]::ValidatePartyExternal([uri]'http://localhost:3000/party',[uri]'http://localhost:3000/party',$true)) $false 'not desktop source'
+Expect ([IrisDesktop.DesktopHostPolicy]::ValidatePartyExternal($desktopSource,[uri]'https://sanctum-tawny-three.vercel.app/party',$true)) $false 'cross environment'
+Expect ([IrisDesktop.DesktopHostPolicy]::ValidatePartyExternal([uri]'https://sanctum-tawny-three.vercel.app/iris/desktop',[uri]'https://sanctum-tawny-three.vercel.app/party',$false)) $true 'production party route'
+Expect ([IrisDesktop.DesktopHostPolicy]::ValidateHomeExternal($desktopSource,[uri]'https://sanctum-tawny-three.vercel.app/',$true)) $true 'home always production'
+foreach($url in @('https://sanctum-tawny-three.vercel.app/?x=1','https://sanctum-tawny-three.vercel.app/#x','https://sanctum-tawny-three.vercel.app/party','https://example.org/','http://localhost:3000/','https://user@sanctum-tawny-three.vercel.app/')){
+    Expect ([IrisDesktop.DesktopHostPolicy]::ValidateHomeExternal($desktopSource,[uri]$url,$true)) $false $url
+}
+Expect ([IrisDesktop.DesktopHostPolicy]::ValidateHomeExternal([uri]'https://example.org/iris/desktop',[uri]'https://sanctum-tawny-three.vercel.app/',$false)) $false 'untrusted source'
 Write-Output "desktop host policy: $passed passed"

@@ -39,14 +39,15 @@ export function refreshPartyCatalog(force = false): Promise<void> {
 }
 
 /** Both SYNAXIS and the home preview subscribe to the same catalog snapshot. */
-export function usePartyCatalog(): PartyCatalog {
+export function usePartyCatalog(active=true): PartyCatalog {
   const value = useSyncExternalStore(subscribe, () => snapshot, () => empty);
   useEffect(() => {
+    if(!active)return;
     void refreshPartyCatalog();
     const refresh = () => {void refreshPartyCatalog();};
     window.addEventListener('focus', refresh);
     const timer = window.setInterval(refresh, 60_000);
     return () => {window.removeEventListener('focus',refresh);window.clearInterval(timer);};
-  }, []);
+  }, [active]);
   return value;
 }

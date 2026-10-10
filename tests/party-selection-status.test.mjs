@@ -9,7 +9,8 @@ const bus=(id,date,time,created,status='모집중')=>({id,party_date:date,time_s
 // Exercises the actual list consumer. IO/effects are disabled, not the filtering/sorting.
 function list(parties){
   let index=0;
-  const react={...React,useState:initial=>[index++===2?parties:typeof initial==='function'?initial():initial,()=>{}],useEffect:()=>{},useMemo:f=>f(),useCallback:f=>f,useRef:v=>({current:v})};
+  // Two read-status states precede user/mounted/activeParties in the shared hook.
+  const react={...React,useState:initial=>[index++===4?parties:typeof initial==='function'?initial():initial,()=>{}],useEffect:()=>{},useMemo:f=>f(),useCallback:f=>f,useRef:v=>({current:v})};
   const {usePartyManager}=loadTS('hooks/usePartyManager.ts',{...io,react,'@/hooks/usePartyCatalog':{usePartyCatalog:()=>({classes:[],contents:[],powerReqs:[],loaded:true,error:null})}});
   return usePartyManager().filteredParties.map(p=>p.id);
 }

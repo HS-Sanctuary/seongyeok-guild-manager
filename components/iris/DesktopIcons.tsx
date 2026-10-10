@@ -1,1 +1,7 @@
 export function SettingsIcon(){return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d="m9 3-.7 2.4-2 .9L4 5.7 2.4 8.5l1.7 1.8-.2 2.2L2 14l1.6 2.8 2.4-.6 1.8 1.3.2 2.5h3.2l1-2.3 2.1-.7 2.1 1.3 2.2-2.2-1.2-2.1.7-2.1 2.3-1V7.7l-2.5-.2-1.3-1.8.6-2.4L14.4 2l-1.6 1.9-2.2.2Z"/><circle cx="11.8" cy="10.8" r="3.2"/></svg>;}
+export function AccountIcon(){return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><circle cx="12" cy="7.5" r="3.5"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/></svg>;}
+export function HomeIcon(){return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d="m3 11 9-8 9 8M5 9v12h5v-7h4v7h5V9" strokeLinejoin="round" strokeLinecap="round"/></svg>;}
+// Original SVG silhouettes measured against their viewBoxes; normalize the painted
+// bounds to .9rem square and center them without changing the shared source assets.
+export function KronosIcon(){const mask='url("'+encodeURI('/svgs/UI mark/가방 마크.svg')+'")';return <span className="iris-main-tab-mark" style={{maskImage:mask,WebkitMaskImage:mask,transform:'translate(-.029rem,-.052rem) scale(1.563,1.359)'}}/>;}
+export function SynaxisIcon(){const mask='url("'+encodeURI('/svgs/contens mark/레이드 마크.svg')+'")';return <span className="iris-main-tab-mark" style={{maskImage:mask,WebkitMaskImage:mask,transform:'translate(.0032rem,.0072rem) scale(1.249,1.224)'}}/>;}

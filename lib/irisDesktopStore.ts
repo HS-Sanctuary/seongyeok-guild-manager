@@ -34,7 +34,18 @@ export function createDesktopStore(options: { channel: Channel; context(): Conte
   const timeout = options.timeoutMs ?? 5000;
   if (!['development', 'production'].includes(options.environment) || !Number.isSafeInteger(timeout) || timeout < 1 || timeout > 60000) throw Error('대기함 설정을 확인해 주세요.');
   let sequence = 0;
-  function request(method: 'store.load' | 'store.replace' | 'window.hide' | 'window.close' | 'window.addon.state' | 'window.addon.preferences' | 'window.drag' | 'window.minimize' | 'window.decision' | 'overlay.state' | 'overlay.input' | 'overlay.opacity' | 'game.stats.read' | 'game.currencies.read', payload: unknown): Promise<unknown> {
+  let supportedEpoch:number|null=null;
+  let workspaceEpoch:number|null=null;
+  async function queueCapabilities():Promise<{schemaVersion:3;barter:true}>{
+    const epoch=options.context()?.epoch;
+    if(epoch!==undefined&&epoch===supportedEpoch)return {schemaVersion:3,barter:true};
+    let value:unknown;
+    try{value=await request('store.capabilities',null);}catch{throw Error('IRIS를 정상 종료하고 최신 앱으로 다시 실행해 주세요. 보호된 대기함은 변경하지 않았어요.');}
+    if(!(exactObject(value,['schemaVersion','barter'])||exactObject(value,['schemaVersion','barter','workspace']))||value.schemaVersion!==3||value.barter!==true)throw Error('IRIS를 정상 종료하고 최신 앱으로 다시 실행해 주세요. 물물교환 대기함 형식을 확인하지 못했어요.');
+    if(epoch!==options.context()?.epoch)throw Error('앱 연결이 바뀌었어요. 다시 실행해 주세요.');supportedEpoch=epoch??null;workspaceEpoch=value.workspace===true?epoch??null:null;
+    return {schemaVersion:3,barter:true};
+  }
+  function request(method: 'store.capabilities' | 'store.load' | 'store.replace' | 'window.hide' | 'window.close' | 'window.addon.state' | 'window.addon.preferences' | 'window.drag' | 'window.minimize' | 'window.decision' | 'overlay.state' | 'overlay.input' | 'overlay.opacity' | 'game.stats.read' | 'game.currencies.read', payload: unknown): Promise<unknown> {
     return new Promise((resolve, reject) => {
       const context = options.context();
       if (!context || context.environment !== options.environment || !Number.isSafeInteger(context.epoch) || context.epoch < 1 || sequence >= Number.MAX_SAFE_INTEGER) {
@@ -59,6 +70,8 @@ export function createDesktopStore(options: { channel: Channel; context(): Conte
     });
   }
   return {
+    queueCapabilities,
+    async workspaceCapabilities():Promise<void>{await queueCapabilities();if(workspaceEpoch===null||workspaceEpoch!==options.context()?.epoch)throw Error('상점·임무 저장을 사용하려면 IRIS를 정상 종료하고 최신 앱으로 다시 실행해 주세요.');},
     async addonState():Promise<DesktopAddonState>{return parseDesktopAddonState(await request('window.addon.state',null));},
     async setAddonPreferences(value:DesktopAddonPreferences):Promise<DesktopAddonState>{if(!exactObject(value,['dockSide','sameLayer'])||!['right','left','off'].includes(String(value.dockSide))||typeof value.sameLayer!=='boolean')throw Error('창 설정을 확인해 주세요.');return parseDesktopAddonState(await request('window.addon.preferences',value));},
     async drag():Promise<void>{await request('window.drag',null);},
@@ -67,14 +80,19 @@ export function createDesktopStore(options: { channel: Channel; context(): Conte
     async gameStats():Promise<GameStats>{return parseGameStats(await request('game.stats.read',null));},
     async currencies():Promise<CurrencySnapshot>{return parseCurrencies(await request('game.currencies.read',null));},
     async load(): Promise<QueueSnapshot | null> {
+      await queueCapabilities();
       const value = await request('store.load', null);
       if (value === null) return null;
       const snapshot = value as QueueSnapshot | undefined;
-      if (!snapshot || snapshot.schemaVersion !== 2 || !Array.isArray(snapshot.entries)) throw Error('보관된 변경 형식이 달라요. 업데이트된 IRIS를 다시 실행해 주세요.');
+      if (!snapshot || snapshot.schemaVersion !== 3 || !Array.isArray(snapshot.entries)) throw Error('보관된 변경 형식이 달라요. 업데이트된 IRIS를 다시 실행해 주세요.');
       // The queue restore boundary performs the complete entry validation.
       return snapshot;
     },
-    async replace(value: QueueSnapshot): Promise<void> { await request('store.replace', value); },
+    async replace(value: QueueSnapshot): Promise<void> {
+      await queueCapabilities();
+      if(value.entries.some(e=>e.kind==='workspace')&&(workspaceEpoch===null||workspaceEpoch!==options.context()?.epoch))throw Error('상점·임무 대기함은 최신 IRIS에서만 보관할 수 있어요.');
+      await request('store.replace', value);
+    },
     async hide(): Promise<void> { await request('window.hide', null); },
     async close(): Promise<void> { await request('window.close', null); },
     async overlayState():Promise<DesktopOverlayState>{return overlayState(await request('overlay.state',null));},

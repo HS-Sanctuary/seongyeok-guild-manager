@@ -22,7 +22,7 @@ await page.addInitScript(()=>{
   window.__irisDesktopBridge={epoch:1,environment:'development'};
   window.chrome={webview:{addEventListener:(_,fn)=>listeners.add(fn),removeEventListener:(_,fn)=>listeners.delete(fn),postMessage:m=>{
     if(m.method==='store.replace')queue=m.payload;
-    const value=m.method==='store.load'?queue:m.method==='game.stats.read'?{observedAt:new Date().toISOString(),job:'힐러',level:100,stats:{combat_power:10,life_energy:20,magic_resistance:30,charm:40}}:m.method.startsWith('overlay.')?{clickThrough:false,shortcutsAvailable:true,opacityPercent:100}:null;
+    const value=m.method==='store.capabilities'?{schemaVersion:3,barter:true}:m.method==='store.load'?queue:m.method==='game.stats.read'?{observedAt:new Date().toISOString(),job:'힐러',level:100,stats:{combat_power:10,life_energy:20,magic_resistance:30,charm:40}}:m.method.startsWith('overlay.')?{clickThrough:false,shortcutsAvailable:true,opacityPercent:100}:null;
     queueMicrotask(()=>{for(const fn of listeners)fn({data:{version:1,id:m.id,epoch:1,ok:true,value}});});
   }}};
 });

@@ -4,10 +4,12 @@ import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { usePartyCatalog, refreshPartyCatalog } from '@/hooks/usePartyCatalog';
 import { isBusOperator, isGuildBusParty, ownedPartyCharacters } from '@/lib/guildBusPolicy';
-import { memberMutation, memberMutationOrThrow } from "@/lib/memberMutationClient";
+import { memberMutation as mutate, memberMutationOrThrow as mutateOrThrow } from "@/lib/memberMutationClient";
+import type {PartySurfaceSession} from '@/components/party/PartySurfaceContext';
+import {partyDefaultDifficulty} from '@/lib/partySurfacePolicy';
 import { pickRandomLeader, autoBalanceAndBuildParty } from "@/lib/matchingUtils";
 import { CONTENT_DB, ContentItem, Party, Member } from "@/components/party/types";
-import { isSupportedPartyContent, normalizeDifficulty } from '@/lib/partyContentCatalog';
+import { getPartyContentOptions, isSupportedPartyContent, normalizeDifficulty } from '@/lib/partyContentCatalog';
 import { generateDefaultBusMemo, BusCharSelectionConfig } from "@/components/party/modals/BusCreateModal";
 import { 
   getRoleByJob,
@@ -51,7 +53,17 @@ const getPartyEndDateTime = (partyDateStr?: string, startHM?: string, endHM?: st
 
 const timeoutKey = (party: Party) => JSON.stringify([party.id,party.party_date,party.time_start,party.time_end,party.leader_name]);
 
-export function usePartyManager() {
+export function usePartyManager(surface:PartySurfaceSession|null=null) {
+  const surfaceRef=useRef(surface);surfaceRef.current=surface;
+  const enabled=!surface||surface.active&&!surface.locked;
+  const accountId=surface?.account.id;
+  const accountNickname=surface?.account.nickname;
+  const accountRole=surface?.account.role;
+  const draftKey=accountId?`iris_party_draft:v1:${accountId}`:'sanctum_party_draft';
+  const loadEpoch=useRef(0);
+  const [dataLoading,setDataLoading]=useState(false),[dataError,setDataError]=useState('');
+  const memberMutation=(input:Parameters<typeof mutate>[0])=>mutate(input,surfaceRef.current?.request);
+  const memberMutationOrThrow=(input:Parameters<typeof mutateOrThrow>[0])=>mutateOrThrow(input,surfaceRef.current?.request);
   const [user, setUser] = useState<any>(null);
   const [mounted, setMounted] = useState(false);
   const [activeParties, setActiveParties] = useState<Party[]>([]);
@@ -90,7 +102,7 @@ export function usePartyManager() {
   const [allCharactersMap, setAllCharactersMap] = useState<Record<string, any>>({});
   const [ownerAccountMap, setOwnerAccountMap] = useState<Record<string, string>>({});
   
-  const partyCatalog = usePartyCatalog();
+  const partyCatalog = usePartyCatalog(enabled);
   const powerReqs = partyCatalog.powerReqs;
   const nexusClasses = partyCatalog.classes;
   
@@ -219,6 +231,10 @@ export function usePartyManager() {
   }, []);
 
   const fetchData = useCallback(async (ownerName: string) => {
+    const currentSurface=surfaceRef.current;
+    if(currentSurface&&(!currentSurface.active||currentSurface.locked||ownerName!==currentSurface.account.nickname))return false;
+    const epoch=++loadEpoch.current;
+    setDataLoading(true);setDataError('');
     try {
       const [charRes, partyRes] = await Promise.all([
         supabase
@@ -233,6 +249,9 @@ export function usePartyManager() {
           .order("created_at", { ascending: false }),
         refreshPartyCatalog()
       ]);
+
+      if(epoch!==loadEpoch.current)return false;
+      if(charRes.error||partyRes.error)throw new Error('파티 목록을 불러오지 못했어요. 다시 조회해주세요.');
 
       if (charRes.data) {
         const sortedChars = [...charRes.data].sort((a, b) => {
@@ -268,9 +287,14 @@ export function usePartyManager() {
         setActiveParties(partyRes.data);
         checkTimeouts(partyRes.data, ownerName);
       }
+      surfaceRef.current?.onLoaded?.();
+      return true;
     } catch (err) {
+      if(epoch!==loadEpoch.current)return false;
+      setDataError('파티 목록을 불러오지 못했어요. 연결을 확인하고 다시 조회해주세요.');
       console.error("데이터 로드 실패", err);
-    }
+      return false;
+    } finally {if(epoch===loadEpoch.current)setDataLoading(false);}
   }, [checkTimeouts]);
 
   const handleExtendTimeout = async (party: Party, extensionType: "30M" | "1H" | "TOMORROW" | "CANCEL") => {
@@ -304,7 +328,7 @@ export function usePartyManager() {
   };
 
   useEffect(() => {
-    const savedDraft = localStorage.getItem("sanctum_party_draft");
+    let savedDraft:string|null=null;try{savedDraft=localStorage.getItem(draftKey);}catch{}
     if (savedDraft) {
       try {
         const d = JSON.parse(savedDraft);
@@ -315,13 +339,13 @@ export function usePartyManager() {
         if (d.timeEnd) setTimeEnd(d.timeEnd);
       } catch (e) {}
     }
-  }, []);
+  }, [draftKey]);
 
   useEffect(() => {
     if (!mounted) return;
     const draft = { partyType, matchingMode, partyMemo, timeStart, timeEnd };
-    localStorage.setItem("sanctum_party_draft", JSON.stringify(draft));
-  }, [partyType, matchingMode, partyMemo, timeStart, timeEnd, mounted]);
+    try{localStorage.setItem(draftKey, JSON.stringify(draft));}catch{}
+  }, [partyType, matchingMode, partyMemo, timeStart, timeEnd, mounted, draftKey]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -345,10 +369,16 @@ export function usePartyManager() {
 
   useEffect(() => {
     setMounted(true);
+    if(!enabled)return;
     let ownerName = "한설";
     timeoutActor.current = {account:ownerName,isAdmin:false};
-    const savedUser = localStorage.getItem("nexus_user");
-    if (savedUser) {
+    const savedUser = !accountId?localStorage.getItem("nexus_user"):null;
+    if(accountId&&accountNickname){
+      const current={id:accountId,nickname:accountNickname,username:accountNickname,role:accountRole};
+      setUser(current);ownerName=accountNickname;
+      const canOperateBus=['길드마스터','부마스터','부마스터 대행'].includes(accountRole||'');
+      setIsAdmin(canOperateBus);timeoutActor.current={account:ownerName,isAdmin:canOperateBus};
+    }else if (savedUser) {
       try {
         const parsed = JSON.parse(savedUser);
         setUser(parsed);
@@ -364,23 +394,40 @@ export function usePartyManager() {
       setIsAdmin(false);
     }
 
+    // IRIS's session provider owns one channel even while its tab is hidden.
+    if(accountId)return ()=>{++loadEpoch.current;};
     fetchData(ownerName);
 
+    let refreshTimer:ReturnType<typeof setTimeout>|undefined;
     const partyChannel = supabase
-      .channel("realtime-parties-sync")
+      .channel(accountId?`iris-parties-${accountId}`:"realtime-parties-sync")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "parties" },
         () => {
-          fetchData(ownerName);
+          if(accountId){clearTimeout(refreshTimer);refreshTimer=setTimeout(()=>void fetchData(ownerName),200);}
+          else void fetchData(ownerName);
         }
       )
       .subscribe();
 
     return () => {
+      ++loadEpoch.current;clearTimeout(refreshTimer);
       supabase.removeChannel(partyChannel);
     };
-  }, [fetchData]);
+  }, [fetchData,enabled,accountId,accountNickname,accountRole]);
+
+  useEffect(()=>{
+    if(accountId&&enabled&&accountNickname)void fetchData(accountNickname);
+  },[surface?.refreshToken,enabled,fetchData,accountId,accountNickname,accountRole]);
+
+  const initializedDifficulty=useRef(false);
+  useEffect(()=>{
+    if(!accountId||initializedDifficulty.current||!partyCatalog.loaded||partyCatalog.error)return;
+    const option=getPartyContentOptions(powerReqs).find(c=>c.id===CONTENT_DB[0].id);
+    if(option){setSelectedContent(option);setSelectedDiff(partyDefaultDifficulty(option));}
+    initializedDifficulty.current=true;
+  },[accountId,partyCatalog.loaded,partyCatalog.error,powerReqs]);
 
   const openContentModal = () => {
     setTempContentCategory(selectedContent.category);
@@ -585,7 +632,7 @@ export function usePartyManager() {
       if (!error) {
         alert(updatePayload.status === "매칭 완료" ? `🎉 파티 완성!` : `✨ 자동 매칭 성공!`);
         setPartyMemo("");
-        localStorage.removeItem("sanctum_party_draft");
+        localStorage.removeItem(draftKey);
         setIsMobileFormOpen(false);
         const ownerName = user?.username || user?.nickname || user?.owner || "한설";
         fetchData(ownerName);
@@ -652,7 +699,7 @@ export function usePartyManager() {
     if (!error) {
       alert(`[${getFormattedDateWithDDay(targetDate)} / ${selectedChar}] 매칭 대기 파티가 신규 개설되었습니다!`);
       setPartyMemo("");
-      localStorage.removeItem("sanctum_party_draft");
+      localStorage.removeItem(draftKey);
       setIsMobileFormOpen(false);
       const ownerName = user?.username || user?.nickname || user?.owner || "한설";
       fetchData(ownerName);
@@ -912,7 +959,7 @@ export function usePartyManager() {
       if (isMajorityReached) {
         // 과반수 동의 달성 시 파티 종료 및 KRONOS 숙제 자동 연동
         const contentType = party.content_name.includes("어비스") ? "abyss" : "raid";
-        const synced = await syncKronosChecklist(updatedMembers, contentType, party.content_name, party.difficulty, party.id);
+        const synced = await syncKronosChecklist(updatedMembers, contentType, party.content_name, party.difficulty, party.id, surfaceRef.current?.request);
         if (!synced) throw new Error('크로노스 완료 기록을 저장하지 못했습니다. 파티는 종료하지 않았습니다.');
 
         const { error } = await memberMutation({ table: "parties", action: "update", filter: { column: "id", value: party.id }, payload: {
@@ -949,18 +996,34 @@ export function usePartyManager() {
   const handleDeleteParty = async (id: number | string) => {
     await memberMutationOrThrow({ table: "parties", action: "delete", filter: { column: "id", value: id } });
     const ownerName = user?.username || user?.nickname || user?.owner || "한설";
-    fetchData(ownerName);
+    await fetchData(ownerName);
   };
 
+  const leavePending=useRef(false);
   const handleLeaveParty = async (party: Party, charName: string) => {
-    if (!confirm(`'${charName}' 캐릭터를 이 파티에서 탈퇴 처리하시겠습니까?`)) return;
+    if(leavePending.current)return;
+    leavePending.current=true;
+    const notify=(message:string)=>surfaceRef.current?.notify?surfaceRef.current.notify(message):alert(message);
     try {
+      const message=`'${charName}' 캐릭터를 이 파티에서 탈퇴할까요? 다시 가입하면 참가 시간을 새로 정할 수 있어요.${party.members.length===1?' 마지막 참가자가 탈퇴하면 파티 모집도 삭제돼요.':''}`;
+      if(!(surfaceRef.current?.confirm?await surfaceRef.current.confirm({title:'파티 탈퇴',message,confirmLabel:'탈퇴하기'}):confirm(message)))return;
+      if(surfaceRef.current){
+        // The IRIS dialog is asynchronous: do not overwrite participants added while it was open.
+        const {data:latest,error}=await supabase.from('parties').select('*').eq('id',party.id).maybeSingle();
+        if(error)throw error;
+        const leaveState=(row:Party)=>JSON.stringify([row.members,row.wanted_roles,row.status,row.party_type,row.leader_name,row.party_date,row.time_start,row.time_end,row.final_start_time,row.content_name,row.difficulty,row.max_members]);
+        if(!latest||leaveState(latest)!==leaveState(party)){
+          notify('파티 정보가 바뀌었어요. 최신 목록을 확인한 뒤 다시 탈퇴해주세요.');
+          await fetchData(user?.username||user?.nickname||user?.owner||'한설');
+          return;
+        }
+      }
       const leavingMember = party.members.find((m: any) => m.name === charName || m.character_name === charName);
       const remainingMembers = party.members.filter((m: any) => m.name !== charName && m.character_name !== charName);
 
       if (remainingMembers.length === 0) {
         await memberMutationOrThrow({ table: "parties", action: "delete", filter: { column: "id", value: party.id } });
-        alert("모든 파티원이 탈퇴하여 파티 모집이 자동 삭제되었습니다.");
+        notify("모든 파티원이 탈퇴하여 파티 모집이 자동 삭제되었습니다.");
       } else {
         let updatedWanted = [...(party.wanted_roles || [])];
         if (leavingMember && leavingMember.roles && leavingMember.roles.length > 0) {
@@ -978,12 +1041,14 @@ export function usePartyManager() {
         };
         const { error } = await memberMutation({ table: "parties", action: "update", filter: { column: "id", value: party.id }, payload: isGuildBus ? { ...updatePayload, _busLeave: true } : updatePayload });
         if (error) throw error;
-        alert(`[${charName}] 파티 탈퇴가 완료되었습니다.`);
+        notify(`[${charName}] 파티 탈퇴가 완료되었습니다. 다시 신청하면 참가 시간을 새로 정할 수 있어요.`);
       }
       const ownerName = user?.username || user?.nickname || user?.owner || "한설";
-      fetchData(ownerName);
+      await fetchData(ownerName);
     } catch (err: any) {
-      alert("탈퇴 처리 중 오류: " + err.message);
+      notify("탈퇴 처리 중 오류: " + err.message);
+    } finally {
+      leavePending.current=false;
     }
   };
 
@@ -1097,10 +1162,13 @@ export function usePartyManager() {
   };
 
   const openBusCreateModal = useCallback((val: boolean) => {
-    setBusCreateContent(defaultCabrak);
-    setBusCreateDiff(defaultCabrak.defaultDiff || "어려움");
+    if(accountId&&!isAdmin)return;
+    const content=accountId?getPartyContentOptions(powerReqs).find(c=>c.id===defaultCabrak.id)||defaultCabrak:defaultCabrak;
+    const difficulty=accountId?partyDefaultDifficulty(content):content.defaultDiff||'어려움';
+    setBusCreateContent(content);
+    setBusCreateDiff(difficulty);
     setBusCreateSubContents(["abyss_1", "abyss_2", "abyss_3"]);
-    setBusCreateMemo(generateDefaultBusMemo(defaultCabrak, defaultCabrak.defaultDiff || "어려움", ["abyss_1", "abyss_2", "abyss_3"]));
+    setBusCreateMemo(generateDefaultBusMemo(content, difficulty, ["abyss_1", "abyss_2", "abyss_3"]));
     
     const initialSel: Record<string, BusCharSelectionConfig> = {};
     myCharacters.forEach((c, idx) => {
@@ -1112,7 +1180,7 @@ export function usePartyManager() {
     });
     setBusCharSelections(initialSel);
     setShowBusCreateModal(val);
-  }, [defaultCabrak, myCharacters]);
+  }, [defaultCabrak, myCharacters,accountId,isAdmin,powerReqs]);
 
   const datePartyCounts = useMemo(() => {
     const counts: Record<string, { total: number; recruiting: number; completed: number }> = {};
@@ -1245,6 +1313,8 @@ export function usePartyManager() {
   }, [activeParties, activeDateFilter, selectedCategoryFilter, statusFilter, partySearchTerm]);
 
   return {
+    activeParties,
+    dataLoading,dataError,
     user,
     mounted,
     showLoreGuide,

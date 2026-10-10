@@ -18,19 +18,25 @@ namespace IrisDesktop {
         readonly byte[] entropy;
         readonly byte[] legacyEntropy;
         readonly string legacyPath;
+        readonly byte[] v2Entropy;
+        readonly string v2Path;
         bool damaged;
         readonly object gate = new object();
         static readonly UTF8Encoding Utf8 = new UTF8Encoding(false, true);
         static readonly string[] Fields = { "environment", "accountId", "characterId", "category", "taskId", "periodKey", "requestId", "revision", "baseCompleted", "desiredCompleted", "deadlineAt", "phase" };
         static readonly string[] ClassFields={"environment","accountId","characterId","kind","classId","baseLevel","desiredLevel","requestId","revision","deadlineAt","phase"};
+        static readonly string[] BarterFields={"environment","accountId","characterId","kind","tradeId","scope","periodKey","catalogKey","baseRecords","baseCompleted","desiredCompleted","requestId","revision","deadlineAt","phase"};
+        static readonly string[] WorkspaceFields={"environment","accountId","characterId","kind","itemKind","itemId","field","scope","periodKey","catalogKey","baseCompleted","desiredCompleted","requestId","revision","deadlineAt","phase"};
         public string FilePath { get; private set; }
         public DesktopStore(string root, string environment) {
             if ((environment != "production" && environment != "development") || !Path.IsPathRooted(root)) throw new ArgumentException("Dedicated absolute store root/environment required");
             this.environment = environment;
-            FilePath = Path.Combine(Path.GetFullPath(root), environment, "pending-v2.dpapi");
+            FilePath = Path.Combine(Path.GetFullPath(root), environment, "pending-v3.dpapi");
             legacyPath=Path.Combine(Path.GetFullPath(root),environment,"pending-v1.dpapi");
-            entropy = Utf8.GetBytes("SANCTUM:IRIS:DesktopQueue:v2:" + environment);
+            v2Path=Path.Combine(Path.GetFullPath(root),environment,"pending-v2.dpapi");
+            entropy = Utf8.GetBytes("SANCTUM:IRIS:DesktopQueue:v3:" + environment);
             legacyEntropy=Utf8.GetBytes("SANCTUM:IRIS:DesktopQueue:v1:"+environment);
+            v2Entropy=Utf8.GetBytes("SANCTUM:IRIS:DesktopQueue:v2:"+environment);
         }
         static bool Text(object value, int max) {
             var s = value as string;
@@ -42,22 +48,37 @@ namespace IrisDesktop {
             try { n = Convert.ToDecimal(value, CultureInfo.InvariantCulture); } catch { return false; }
             return n >= min && n <= max && Decimal.Truncate(n) == n;
         }
-        public void Validate(string json) { Validate(json,false); }
-        void Validate(string json,bool legacy) {
+        static bool Digest(object value){return value is string&&System.Text.RegularExpressions.Regex.IsMatch((string)value,"^[a-f0-9]{64}$");}
+        static bool Records(object value){
+            var rows=value as object[];if(rows==null||rows.Length<1||rows.Length>100)return false;
+            var ids=new HashSet<string>();
+            foreach(var row in rows){var r=row as Dictionary<string,object>;if(r==null||r.Count!=2||!r.ContainsKey("characterId")||!r.ContainsKey("recordKey")||!Text(r["characterId"],100)||!Digest(r["recordKey"])||!ids.Add((string)r["characterId"]))return false;}
+            return true;
+        }
+        static bool BarterTarget(Dictionary<string,object> entry){
+            if(!Records(entry["baseRecords"]))return false;
+            var rows=(object[])entry["baseRecords"];
+            return (!Equals(entry["scope"],"character")||rows.Length==1)&&rows.Any(r=>Equals(((Dictionary<string,object>)r)["characterId"],entry["characterId"]));
+        }
+        public void Validate(string json) { Validate(json,3); }
+        void Validate(string json,int version) {
+            bool legacy=version==1;
             if (json == null || Utf8.GetByteCount(json) > Limit) throw new ArgumentException("Queue limit exceeded");
             var serializer = new JavaScriptSerializer { MaxJsonLength = Limit, RecursionLimit = 32 };
             var root = serializer.DeserializeObject(json) as Dictionary<string, object>;
-            if (root == null || root.Count != 2 || !root.ContainsKey("schemaVersion") || !Integer(root["schemaVersion"], legacy?1:2, legacy?1:2) || !root.ContainsKey("entries")) throw new ArgumentException("Invalid queue schema");
+            if (root == null || root.Count != 2 || !root.ContainsKey("schemaVersion") || !Integer(root["schemaVersion"], version, version) || !root.ContainsKey("entries")) throw new ArgumentException("Invalid queue schema");
             var entries = root["entries"] as object[];
             if (entries == null || entries.Length > 500) throw new ArgumentException("Invalid queue entries");
             var requests = new HashSet<string>(); var revisions = new HashSet<string>(); var pending = new HashSet<string>(); int flights = 0;
             foreach (var value in entries) {
                 var e = value as Dictionary<string, object>;
                 bool isClass=!legacy&&e!=null&&e.ContainsKey("kind")&&Equals(e["kind"],"class");
-                var fields=legacy?Fields:isClass?ClassFields:Fields.Concat(new[]{"kind"}).ToArray();
+                bool isBarter=version==3&&e!=null&&e.ContainsKey("kind")&&Equals(e["kind"],"barter");
+                bool isWorkspace=version==3&&e!=null&&e.ContainsKey("kind")&&Equals(e["kind"],"workspace");
+                var fields=legacy?Fields:isClass?ClassFields:isBarter?BarterFields:isWorkspace?WorkspaceFields:Fields.Concat(new[]{"kind"}).ToArray();
                 if (e == null || e.Count != fields.Length || fields.Any(f => !e.ContainsKey(f))) throw new ArgumentException("Invalid queue fields");
-                if (!legacy&&!isClass&&!Equals(e["kind"],"task"))throw new ArgumentException("Invalid queue kind");
-                bool validValue=isClass?Text(e["classId"],100)&&(e["baseLevel"]==null||Integer(e["baseLevel"],1,1000))&&Integer(e["desiredLevel"],1,1000):Text(e["taskId"],100)&&new[]{"daily","weekly","abyss","raid"}.Contains(e["category"] as string)&&Integer(e["baseCompleted"],0,1000)&&Integer(e["desiredCompleted"],0,1000);
+                if (!legacy&&!isClass&&!isBarter&&!isWorkspace&&!Equals(e["kind"],"task"))throw new ArgumentException("Invalid queue kind");
+                bool validValue=isWorkspace?Text(e["itemId"],15)&&System.Text.RegularExpressions.Regex.IsMatch((string)e["itemId"],"^[1-9][0-9]{0,14}$")&&new[]{"shop","mission"}.Contains(e["itemKind"] as string)&&new[]{"count","bookmark"}.Contains(e["field"] as string)&&new[]{"account","character"}.Contains(e["scope"] as string)&&(!Equals(e["itemKind"],"mission")||Equals(e["scope"],"character"))&&Digest(e["catalogKey"])&&Integer(e["baseCompleted"],0,Equals(e["field"],"bookmark")?1:9999)&&Integer(e["desiredCompleted"],0,Equals(e["field"],"bookmark")?1:9999):isClass?Text(e["classId"],100)&&(e["baseLevel"]==null||Integer(e["baseLevel"],1,1000))&&Integer(e["desiredLevel"],1,1000):isBarter?Text(e["tradeId"],100)&&new[]{"character","account"}.Contains(e["scope"] as string)&&Digest(e["catalogKey"])&&BarterTarget(e)&&Integer(e["baseCompleted"],0,1000)&&Integer(e["desiredCompleted"],0,1000):Text(e["taskId"],100)&&new[]{"daily","weekly","abyss","raid"}.Contains(e["category"] as string)&&Integer(e["baseCompleted"],0,1000)&&Integer(e["desiredCompleted"],0,1000);
                 if (!Equals(e["environment"], environment) || !Text(e["accountId"], 100) || !Text(e["characterId"], 100) || !validValue ||
                     !new[] { "pending", "inflight", "unknown", "conflict", "expired" }.Contains(e["phase"] as string) ||
                     !Integer(e["revision"], 1, 9007199254740991L) || !Integer(e["deadlineAt"], 0, 9007199254740991L)) throw new ArgumentException("Invalid queue values");
@@ -69,14 +90,14 @@ namespace IrisDesktop {
                     if (period == null || !DateTimeOffset.TryParseExact(period, "yyyy-MM-dd'T'HH:mm:ss'.000Z'", CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out date) ||
                         date.ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss'.000Z'", CultureInfo.InvariantCulture) != period) throw new ArgumentException("Invalid queue period");
                 }
-                var key = serializer.Serialize(isClass?new object[]{e["environment"],e["accountId"],e["characterId"],"class",e["classId"]}:new object[] { e["environment"], e["accountId"], e["characterId"],"task", e["category"], e["taskId"], period });
+                var key = serializer.Serialize(isWorkspace?new object[]{e["environment"],e["accountId"],Equals(e["scope"],"account")?null:e["characterId"],"workspace",e["itemKind"],e["itemId"],e["field"],e["scope"],period}:isClass?new object[]{e["environment"],e["accountId"],e["characterId"],"class",e["classId"]}:isBarter?new object[]{e["environment"],e["accountId"],Equals(e["scope"],"account")?null:e["characterId"],"barter",e["tradeId"],e["scope"],period}:new object[] { e["environment"], e["accountId"], e["characterId"],"task", e["category"], e["taskId"], period });
                 if (!revisions.Add(key + ":" + e["revision"].ToString()) || (Equals(e["phase"], "pending") && !pending.Add(key))) throw new ArgumentException("Duplicate queue identity");
                 if (Equals(e["phase"], "inflight") && ++flights > 1) throw new ArgumentException("Multiple inflight entries");
             }
         }
         public void Replace(string json) {
             lock (gate) {
-                if(damaged||File.Exists(legacyPath))throw new IOException("Queue migration/recovery required; restart the updated app.");
+                if(damaged||File.Exists(legacyPath)||File.Exists(v2Path))throw new IOException("Queue migration/recovery required; restart the updated app.");
                 WriteAtomic(json);
             }
         }
@@ -96,30 +117,31 @@ namespace IrisDesktop {
                     Array.Clear(cipher, 0, cipher.Length);
                 }
         }
-        string Read(string path,byte[] key,bool legacy){
+        string Read(string path,byte[] key,int version){
             var length=new FileInfo(path).Length;if(length<1||length>Limit+16384)throw new InvalidDataException();
             var cipher=File.ReadAllBytes(path);byte[] plain=ProtectedData.Unprotect(cipher,key,DataProtectionScope.CurrentUser);
-            try{var json=Utf8.GetString(plain);Validate(json,legacy);return json;}finally{Array.Clear(plain,0,plain.Length);Array.Clear(cipher,0,cipher.Length);}
+            try{var json=Utf8.GetString(plain);Validate(json,version);return json;}finally{Array.Clear(plain,0,plain.Length);Array.Clear(cipher,0,cipher.Length);}
         }
         public string Load() {
             lock (gate) {
                 if(damaged)throw new IOException("Queue recovery required.");
-                if(File.Exists(legacyPath)){
-                    if(File.Exists(FilePath))throw new IOException("Ambiguous active queue versions; retain both for recovery.");
+                if(File.Exists(legacyPath)||File.Exists(v2Path)){
+                    if(File.Exists(FilePath)||(File.Exists(legacyPath)&&File.Exists(v2Path)))throw new IOException("Ambiguous active queue versions; retain all for recovery.");
+                    bool first=File.Exists(legacyPath);string source=first?legacyPath:v2Path;
                     try{
-                        var json=Read(legacyPath,legacyEntropy,true);
+                        var json=Read(source,first?legacyEntropy:v2Entropy,first?1:2);
                         var serializer=new JavaScriptSerializer{MaxJsonLength=Limit,RecursionLimit=32};
-                        var root=(Dictionary<string,object>)serializer.DeserializeObject(json);root["schemaVersion"]=2;
-                        foreach(Dictionary<string,object> entry in (object[])root["entries"])entry["kind"]="task";
+                        var root=(Dictionary<string,object>)serializer.DeserializeObject(json);root["schemaVersion"]=3;
+                        if(first)foreach(Dictionary<string,object> entry in (object[])root["entries"])entry["kind"]="task";
                         var converted=serializer.Serialize(root);Validate(converted);WriteAtomic(converted);
-                        if(Read(FilePath,entropy,false)!=converted)throw new IOException("Migration verification failed.");
-                        File.Move(legacyPath,Path.Combine(Path.GetDirectoryName(legacyPath),"pending-v1.recovery-"+Guid.NewGuid().ToString("N")+".dpapi"));
+                        if(Read(FilePath,entropy,3)!=converted)throw new IOException("Migration verification failed.");
+                        File.Move(source,Path.Combine(Path.GetDirectoryName(source),(first?"pending-v1":"pending-v2")+".recovery-"+Guid.NewGuid().ToString("N")+".dpapi"));
                         return converted;
                     }catch{damaged=true;throw;}
                 }
                 if (!File.Exists(FilePath)) return null;
                 try {
-                    return Read(FilePath,entropy,false);
+                    return Read(FilePath,entropy,3);
                 } catch (Exception error) {
                     if (!(error is CryptographicException || error is ArgumentException || error is InvalidDataException || error is InvalidOperationException)) throw;
                     // Preserve damaged ciphertext for diagnosis, never quietly erase user edits.

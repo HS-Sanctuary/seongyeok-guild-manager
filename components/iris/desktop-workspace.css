@@ -1,0 +1,28 @@
+.iris-workspace{display:grid;gap:.5rem;min-width:0;font-size:.75rem;line-height:1.5;}
+.iris-workspace-search{display:grid;gap:.2rem;min-width:0;}
+.iris-workspace input[type=search],.iris-workspace select{min-width:0;max-width:100%;border:1px solid var(--panel-border);border-radius:.65rem;background:var(--inner-box);color:var(--text-main);padding:.35rem .45rem;font:inherit;}
+.iris-workspace-filters{display:flex;flex-wrap:wrap;gap:.3rem .6rem;align-items:center;font-size:.7rem;}
+.iris-workspace-filters label{display:flex;align-items:center;gap:.25rem;max-width:100%;word-break:keep-all;}
+.iris-workspace-note{margin:0;font-size:.7rem;color:var(--text-sub);word-break:keep-all;overflow-wrap:anywhere;}
+.iris-workspace-list{display:grid;gap:.45rem;min-width:0;}
+.iris-workspace-card{display:grid;gap:.3rem;min-width:0;padding:.5rem;border:1px solid var(--panel-border);border-left:2px solid var(--accent);border-radius:.75rem;background:var(--inner-box);}
+.iris-workspace-card[data-complete=true]{border-color:var(--kronos-reward,var(--accent));}
+.iris-workspace-card header{display:flex;align-items:flex-start;gap:.4rem;min-width:0;}
+.iris-workspace-card header>div{flex:1;min-width:0;}
+.iris-workspace-card strong,.iris-workspace-description{word-break:keep-all;overflow-wrap:anywhere;white-space:pre-wrap;}
+.iris-workspace-card header strong{display:block;color:var(--accent);}
+.iris-workspace-card header small{display:block;font-size:.7rem;color:var(--text-sub);word-break:keep-all;overflow-wrap:anywhere;}
+.iris-workspace-star{display:grid;place-items:center;flex:none;width:1.6rem;height:1.6rem;border:1px solid var(--panel-border);border-radius:50%;background:var(--panel);color:var(--text-sub);font:inherit;}
+.iris-workspace-star[aria-pressed=true]{color:var(--accent);border-color:var(--accent);}
+.iris-workspace-star:disabled{opacity:.45;}
+.iris-workspace-meta{display:flex;flex-wrap:wrap;gap:.25rem .5rem;font-size:.7rem;color:var(--text-sub);}
+.iris-workspace-rewards{margin:0;padding:0;list-style:none;display:grid;gap:.1rem;color:var(--kronos-reward,var(--text-main));}
+.iris-workspace-rewards li{display:flex;flex-wrap:wrap;gap:.1rem .4rem;min-width:0;}
+.iris-workspace-rewards span{word-break:keep-all;overflow-wrap:anywhere;min-width:0;}
+.iris-workspace-rewards strong{white-space:nowrap;}
+.iris-workspace-cost{margin:0;font-size:.7rem;color:var(--kronos-cost,var(--text-main));word-break:keep-all;overflow-wrap:anywhere;}
+.iris-workspace-controls{display:flex;flex-wrap:wrap;gap:.3rem;align-items:center;justify-content:flex-end;border-top:1px solid var(--panel-border);padding-top:.35rem;}
+.iris-workspace-controls output{flex:none;white-space:nowrap;min-width:4.5rem;text-align:center;font-variant-numeric:tabular-nums;font-size:.75rem;}
+.iris-workspace-controls button{flex:none;white-space:nowrap;word-break:keep-all;min-width:1.8rem;min-height:1.8rem;font-size:.75rem;padding:.25rem .45rem;}
+.iris-workspace-controls button:last-child{min-width:3rem;}
+.iris-workspace button:focus-visible,.iris-workspace input:focus-visible,.iris-workspace select:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}

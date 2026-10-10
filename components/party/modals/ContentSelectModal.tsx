@@ -6,6 +6,8 @@ import { ContentItem, ABYSS_SUB_DUNGEONS, AbyssSubDungeon } from "@/components/p
 import type { PartyCatalog } from "@/hooks/usePartyCatalog";
 import { getPartyContentOptions, getContentRequirements, normalizeDifficulty } from "@/lib/partyContentCatalog";
 import { parseAbyssInfo } from "@/lib/busUtils";
+import {usePartySurface} from '@/components/party/PartySurfaceContext';
+import {partyDefaultDifficulty} from '@/lib/partySurfacePolicy';
 
 const cleanContentName = (name: string) => {
   return name
@@ -45,6 +47,7 @@ export default function ContentSelectModal({
   setTempSubContents,
   catalog
 }: ContentSelectModalProps) {
+  const surface=usePartySurface();
 
   const activeSubContents = tempSubContents?.length ? tempSubContents : DEFAULT_SUB_CONTENTS;
   const catalogReady = catalog.loaded && !catalog.error;
@@ -140,7 +143,7 @@ export default function ContentSelectModal({
                         setTempContent(c);
                         setTempContentCategory("어비스");
                         if (tempContent.id !== c.id) {
-                          setTempDiff(c.defaultDiff);
+                          setTempDiff(surface?partyDefaultDifficulty(c):c.defaultDiff);
                         }
                       }}
                       className={`w-full p-2 sm:p-2.5 text-left text-xs font-black transition flex items-center justify-between cursor-pointer ${
@@ -245,7 +248,7 @@ export default function ContentSelectModal({
                         setTempContent(c);
                         setTempContentCategory("레이드");
                         if (tempContent.id !== c.id) {
-                          setTempDiff(c.defaultDiff);
+                          setTempDiff(surface?partyDefaultDifficulty(c):c.defaultDiff);
                         }
                       }}
                       className={`w-full p-2 sm:p-2.5 text-left text-xs font-black transition flex items-center justify-between cursor-pointer ${

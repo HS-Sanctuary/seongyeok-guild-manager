@@ -47,18 +47,22 @@ namespace IrisDesktop {
         readonly Timer timer = new Timer { Interval=250 };
         readonly GameWindowSession session = new GameWindowSession();
         readonly AddonPreferencesFile file;
+        readonly Func<bool> taskbarNeedsFront;
         AddonWindowPreferences preferences;
         GameWindowObservation tracked;
         bool persistent, disposed, decisionOpen, manuallyHidden, dragging;
         string status="searching", actualSide="off", published;
+        IntPtr layerHandle;
+        bool layerTopMost;
         DateTime nextDiscovery=DateTime.MinValue;
         public bool IsAttached { get { return status=="attached"; } }
         public event EventHandler StateChanged, GameExited;
         public DesktopGameWindowTracker(Form window, string environment) : this(window, environment,
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"SANCTUM","IRIS",environment)) { }
-        public DesktopGameWindowTracker(Form window, string environment, string preferencesRoot) {
+        public DesktopGameWindowTracker(Form window, string environment, string preferencesRoot, Func<bool> taskbarNeedsFront = null) {
             if(window==null || (environment!="development" && environment!="production")) throw new ArgumentException();
             this.window=window; file=new AddonPreferencesFile(preferencesRoot); preferences=file.Load(out persistent);
+            this.taskbarNeedsFront=taskbarNeedsFront??(()=>TaskbarNeedsFront(window.Handle));
             window.TopMost=false; timer.Tick+=(s,e)=>Tick(); timer.Start();
         }
         public object State() { return new {dockSide=preferences.DockSide,sameLayer=preferences.SameLayer,tracked=tracked!=null&&tracked.Alive==true,actualSide=actualSide,status=status,persistent=persistent}; }
@@ -76,7 +80,9 @@ namespace IrisDesktop {
         public void RecordManualVisibility(bool hidden) { manuallyHidden=hidden; session.ManualVisibility(); }
         public void DetachAfterDrag() { SetPreferences(new AddonWindowPreferences {DockSide="off",SameLayer=preferences.SameLayer}); }
         void Tick() {
-            if(disposed||dragging||window.IsDisposed||!window.IsHandleCreated)return;
+            if(disposed||window.IsDisposed||!window.IsHandleCreated)return;
+            try {
+            if(dragging)return;
             if(tracked==null) {
                 if(DateTime.UtcNow<nextDiscovery)return; nextDiscovery=DateTime.UtcNow.AddSeconds(1);
                 bool unavailable; tracked=Discover(out unavailable); status=unavailable?"unavailable":"searching";
@@ -106,13 +112,63 @@ namespace IrisDesktop {
                 window.MaximumSize=new Size(480,work.Height);
                 if(window.Bounds!=placement.Bounds)SetWindowPos(window.Handle,IntPtr.Zero,placement.Bounds.X,placement.Bounds.Y,placement.Bounds.Width,placement.Bounds.Height,0x0014); // NOACTIVATE|NOZORDER
             }
-            if(preferences.SameLayer&&GetForegroundWindow()!=window.Handle&&GetWindow(window.Handle,3)!=tracked.Handle)
-                SetWindowPos(window.Handle,tracked.Handle,0,0,0,0,0x0013); // NOSIZE|NOMOVE|NOACTIVATE; only OUR window, never a game owner
             Publish();
+            } finally { ApplySameLayer(GetForegroundWindow()); }
+        }
+        void ApplySameLayer(IntPtr foreground) {
+            if(disposed||window.IsDisposed||!window.IsHandleCreated)return;
+            bool desired=!decisionOpen&&!manuallyHidden&&window.Visible&&window.WindowState!=FormWindowState.Minimized&&
+                tracked!=null&&tracked.Alive==true&&!tracked.Minimized&&tracked.Frame.HasValue&&
+                AddonWindowPolicy.ShouldKeepAbove(preferences.SameLayer,foreground,window.Handle,tracked.Handle);
+            if(desired&&taskbarNeedsFront())desired=false;
+            SetLayer(desired);
+        }
+        static bool TaskbarNeedsFront(IntPtr own) {
+            // Read shell geometry only. Never move/activate the taskbar or change its settings.
+            // All values below use physical coordinates, including mixed-DPI monitors.
+            IntPtr previous=SetThreadDpiAwarenessContext(new IntPtr(-4));
+            try {
+                NativeRect ownRect;if(!GetWindowRect(own,out ownRect))return true;
+                Rectangle addon=Rectangle.FromLTRB(ownRect.Left,ownRect.Top,ownRect.Right,ownRect.Bottom);
+                NativePoint point;bool hasCursor=GetCursorPos(out point);
+                Point cursor=hasCursor?new Point(point.X,point.Y):new Point(Int32.MinValue,Int32.MinValue);
+                bool yield=false;
+                EnumWindows((handle,unused)=>{
+                    var name=new StringBuilder(64);GetClassName(handle,name,name.Capacity);
+                    if((name.ToString()!="Shell_TrayWnd"&&name.ToString()!="Shell_SecondaryTrayWnd")||!IsWindowVisible(handle))return true;
+                    var info=new NativeMonitor {Size=Marshal.SizeOf(typeof(NativeMonitor))};
+                    NativeRect rect;if(!GetMonitorInfo(MonitorFromWindow(handle,2),ref info)||!GetWindowRect(handle,out rect)){yield=true;return false;}
+                    Rectangle monitor=Rectangle.FromLTRB(info.Bounds.Left,info.Bounds.Top,info.Bounds.Right,info.Bounds.Bottom);
+                    if(!monitor.IntersectsWith(addon))return true;
+                    Rectangle bar=Rectangle.FromLTRB(rect.Left,rect.Top,rect.Right,rect.Bottom);
+                    uint edge=bar.Width>=bar.Height?(uint)(bar.Top+bar.Height/2<monitor.Top+monitor.Height/2?1:3):(uint)(bar.Left+bar.Width/2<monitor.Left+monitor.Width/2?0:2);
+                    bool autoHide=false;
+                    for(uint side=0;side<4;side++) {
+                        var data=new NativeAppBar {Size=(uint)Marshal.SizeOf(typeof(NativeAppBar)),Edge=side,Rect=info.Bounds};
+                        if(SHAppBarMessage(11,ref data).ToUInt64()==unchecked((ulong)handle.ToInt64())){autoHide=true;edge=side;break;}
+                    }
+                    if(!autoHide){var state=new NativeAppBar {Size=(uint)Marshal.SizeOf(typeof(NativeAppBar))};autoHide=(SHAppBarMessage(4,ref state).ToUInt64()&1)!=0;}
+                    yield=AddonWindowPolicy.YieldToTaskbar(monitor,bar,cursor,edge,autoHide,addon);
+                    return !yield;
+                },IntPtr.Zero);
+                return yield;
+            } catch {return true;}
+            finally {if(previous!=IntPtr.Zero)SetThreadDpiAwarenessContext(previous);}
+        }
+        void SetLayer(bool desired) {
+            if(window.IsDisposed||!window.IsHandleCreated)return;
+            IntPtr own=window.Handle;
+            if(layerHandle!=own){layerHandle=own;layerTopMost=false;}
+            if(layerTopMost==desired)return;
+            // HWND_TOP may succeed without moving an inactive process's window.
+            // Scope topmost to game/addon foreground, clear it for every other app,
+            // and never change the protected game's window or steal input focus.
+            if(SetWindowPos(own,new IntPtr(desired?-1:-2),0,0,0,0,0x0213))layerTopMost=desired;
         }
         static bool? Alive(GameWindowObservation value) {
             try {using(var process=Process.GetProcessById(value.ProcessId)) {
-                if(process.HasExited)return false;
+                // .NET Framework HasExited requests SYNCHRONIZE access, which protected
+                // games may deny. The readable start time already identifies this lifetime.
                 return process.StartTime.ToUniversalTime().Ticks==value.StartedAtTicks; // PID reuse is old-session exit
             }} catch(ArgumentException){return false;}catch {return null;}
         }
@@ -141,10 +197,18 @@ namespace IrisDesktop {
             }}catch(EntryPointNotFoundException) { }
             return GetWindowRect(handle,out rect)?(Rectangle?)Rectangle.FromLTRB(rect.Left,rect.Top,rect.Right,rect.Bottom):null;
         }
-        public void Dispose(){if(disposed)return;disposed=true;timer.Stop();timer.Dispose();}
+        public void Dispose(){if(disposed)return;SetLayer(false);disposed=true;timer.Stop();timer.Dispose();}
         delegate bool EnumWindow(IntPtr handle,IntPtr parameter);
         [StructLayout(LayoutKind.Sequential)]struct NativeRect {public int Left,Top,Right,Bottom;}
         [StructLayout(LayoutKind.Sequential)]struct NativePoint {public int X,Y;}
+        [StructLayout(LayoutKind.Sequential)]struct NativeMonitor {public int Size;public NativeRect Bounds,Work;public uint Flags;}
+        [StructLayout(LayoutKind.Sequential)]struct NativeAppBar {public uint Size;public IntPtr Handle;public uint Callback,Edge;public NativeRect Rect;public IntPtr Parameter;}
+        [DllImport("user32.dll",CharSet=CharSet.Unicode)]static extern int GetClassName(IntPtr handle,StringBuilder name,int count);
+        [DllImport("user32.dll")]static extern bool GetCursorPos(out NativePoint point);
+        [DllImport("user32.dll")]static extern IntPtr MonitorFromWindow(IntPtr handle,uint flags);
+        [DllImport("user32.dll")]static extern bool GetMonitorInfo(IntPtr handle,ref NativeMonitor info);
+        [DllImport("user32.dll")]static extern IntPtr SetThreadDpiAwarenessContext(IntPtr context);
+        [DllImport("shell32.dll")]static extern UIntPtr SHAppBarMessage(uint message,ref NativeAppBar data);
         [DllImport("user32.dll")]static extern bool EnumWindows(EnumWindow callback,IntPtr parameter);
         [DllImport("user32.dll")]static extern bool IsWindow(IntPtr handle);
         [DllImport("user32.dll")]static extern bool IsWindowVisible(IntPtr handle);

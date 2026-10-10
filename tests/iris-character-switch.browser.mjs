@@ -11,15 +11,16 @@ assert.ok(['localhost','127.0.0.1','[::1]'].includes(target.hostname)&&target.po
 assert.equal(target.pathname,'/iris/desktop');
 const browser=await chromium.launch({channel:'msedge',headless:true});
 const period='2026-10-07T21:00:00.000Z';
-const characters=[{id:'7',nickname:'화연',job:'힐러',alias:null},{id:'8',nickname:'순월',job:'검술사',alias:null}];
+const characters=[{id:'7',nickname:'화연',job:'힐러',alias:null},{id:'8',nickname:'순월',job:'검술사',alias:null},{id:'9',nickname:'젼설',job:'석궁사수',alias:null}];
 const savedRows=[
   {id:'7',nickname:'화연',job:'힐러',stats:{combat_power:'10000',life_energy:'2000',magic_resistance:'1000',charm:'3000'}},
   {id:'8',nickname:'순월',job:'검술사',stats:{combat_power:'20000',life_energy:'4000',magic_resistance:'2000',charm:'6000'}},
+  {id:'9',nickname:'젼설',job:'석궁사수',stats:{combat_power:'30000',life_energy:'4000',magic_resistance:'4500',charm:'7000'}},
 ];
 const scenario=process.env.IRIS_SWITCH_SCENARIO;
 let passes=0;
 
-async function fixture(){
+async function fixture({rows=savedRows,catalog=characters}={}){
   const context=await browser.newContext({viewport:{width:390,height:900}});
   const page=await context.newPage(),errors=[],requests={statsPosts:0,statsReads:0,classPosts:[],kronosPosts:[],kronosReads:[],total:0};
   let account={id:'a',nickname:'owner',role:'길드원'};
@@ -37,23 +38,26 @@ async function fixture(){
     requests.total++;
     assert.ok(requests.total<150,'API requests must remain bounded');
     let body={};
+    const ownedCharacters=account?.id==='b'?catalog.map(c=>({...c,id:String(Number(c.id)+10)})):catalog;
+    const ownedStats=account?.id==='b'?rows.map(c=>({...c,id:String(Number(c.id)+10)})):rows;
     if(url.pathname==='/api/auth/session')body={account};
+    else if(url.pathname==='/api/auth/login'){account={id:'b',nickname:'other',role:'길드원'};body={account};}
     else if(url.pathname==='/api/auth/logout'){logoutStarted=true;if(logoutWait)await logoutWait;account=null;body={ok:true};}
-    else if(url.pathname==='/api/iris/characters')body={accountId:'a',characters};
+    else if(url.pathname==='/api/iris/characters')body={accountId:account.id,characters:ownedCharacters};
     else if(url.pathname==='/api/iris/stats'){
       if(request.method()==='POST'){requests.statsPosts++;body={error:'Unexpected stats write'};}
-      else {requests.statsReads++;body={accountId:'a',characters:savedRows};}
+      else {requests.statsReads++;body={accountId:account.id,characters:ownedStats};}
     }else if(url.pathname==='/api/iris/kronos'){
       if(request.method()==='POST'){
         const {edit}=request.postDataJSON();requests.kronosPosts.push(edit);
         body={result:{requestId:edit.requestId,status:'saved',completed:edit.desiredCompleted}};
       }else{
         const id=url.searchParams.get('characterId');
-        assert.ok(id==='7'||id==='8','Only owned literal fixture characters are readable');
+        assert.ok(ownedCharacters.some(c=>c.id===id),'Only this account fixture characters are readable');
         requests.kronosReads.push(id);
         if(id===heldDetailsId){detailsStarted=true;await detailsWait;}
-        const level=id==='7'?11:22;
-        body={accountId:'a',characterId:id,observedAt:new Date().toISOString(),
+        const level=id==='7'?11:id==='8'?22:33;
+        body={accountId:account.id,characterId:id,observedAt:new Date().toISOString(),
           writeContext:{periodKeys:{daily:period,weekly:period,abyss:period,raid:period},
             classes:[{classId:'warrior',editable:true,baseLevel:level}]},
           details:{schemaVersion:1,tasks:{daily:[{id:'mission',name:'일일 미션',completed:0,total:1}],weekly:[],abyss:[],raid:[]},
@@ -79,6 +83,7 @@ async function fixture(){
       postMessage:message=>{
         const f=window.fixture;
         let value=null,ok=true;
+        if(message.method==='store.capabilities')value={schemaVersion:3,barter:true};
         if(message.method==='store.replace')f.queue=JSON.parse(JSON.stringify(message.payload));
         if(message.method==='store.load')value=f.queue;
         if(message.method.startsWith('overlay.'))value={clickThrough:false,shortcutsAvailable:true,opacityPercent:100};
@@ -88,7 +93,8 @@ async function fixture(){
           const stamp=f.stamp??new Date(f.stale?Date.now()-61000:Math.max(Date.now(),lastTimestamp+1)).toISOString();
           lastTimestamp=Date.parse(stamp);
           value=f.character==='7'?{observedAt:stamp,job:'힐러',level:100,
-            stats:{combat_power:10000,life_energy:2000,magic_resistance:1000,charm:3000}}:
+            stats:{combat_power:10000,life_energy:2000,magic_resistance:1000,charm:3000}}:f.character==='9'?{observedAt:stamp,job:'석궁사수',level:100,
+              stats:{combat_power:30000,life_energy:4000,magic_resistance:4500,charm:7000}}:
             {observedAt:stamp,job:'검술사',level:100,
               stats:{combat_power:20000,life_energy:4000,magic_resistance:2000,charm:6000}};
         }
@@ -100,8 +106,8 @@ async function fixture(){
       },
     }};
   });
-  await page.goto(target.href);
-  await page.getByRole('button',{name:'네, 화연로 시작',exact:true}).click();
+  await page.goto(target.href,{timeout:45000}); // First isolated dev compile can exceed action timeouts.
+  await page.getByRole('button',{name:'네, 선택',exact:true}).click();
   await identity(page,'화연');
   await page.waitForFunction(()=>window.fixture.reads>=2&&window.fixture.settled===window.fixture.reads);
   await delay(120);
@@ -124,7 +130,7 @@ async function fixture(){
     releaseDetails(){heldDetailsId=null;releaseDetails?.();}};
 }
 
-const prompt=page=>page.getByRole('region',{name:'캐릭터 변경 추천',exact:true});
+const prompt=page=>page.getByRole('dialog',{name:'캐릭터 변경 추천',exact:true});
 async function identity(page,name){
   await page.locator('.iris-selected-identity strong').filter({hasText:name}).waitFor();
   assert.equal(await page.locator('.iris-selected-identity strong').innerText(),name);
@@ -155,9 +161,9 @@ async function choose(page,name,job){
   await page.getByRole('region',{name:'내 캐릭터',exact:true}).getByRole('button',{name:new RegExp(`^${name} ${job}(?: · 미저장 변경)?$`)}).click();
   await identity(page,name);
 }
-async function run(name,body){
+async function run(name,body,options){
   if(scenario&&scenario!==name)return;
-  const f=await fixture();
+  const f=await fixture(options);
   try{
     await body(f);
     assert.equal(f.requests.statsPosts,0,'Character recommendation never writes stats');
@@ -172,6 +178,35 @@ async function run(name,body){
 }
 
 try{
+  await run('stale-stat-offer-confirm-local-only',async({page,requests})=>{
+    const remote=requests.statsReads,kronos=requests.kronosReads.length;
+    await offer(page);
+    assert.equal(requests.statsReads,remote,'Tolerant matching reuses the existing catalog');
+    assert.equal(requests.kronosReads.length,kronos,'A suggestion alone does not refresh homework');
+    const before=await page.evaluate(()=>window.fixture.reads);
+    await prompt(page).getByRole('button',{name:'네',exact:true}).click();
+    await identity(page,'순월');
+    assert.ok(await page.evaluate(()=>window.fixture.reads)>before,'Yes must re-read fresh game stats');
+    assert.equal(requests.statsReads,remote);
+    assert.equal(requests.kronosPosts.length,0);
+    assert.equal(requests.classPosts.length,0);
+  },{rows:savedRows.map(row=>row.id==='8'?{...row,stats:{...row.stats,magic_resistance:'0'}}:row)});
+  await run('stale-stat-confirm-rechecks-candidate',async({page})=>{
+    await offer(page);
+    await setGame(page,'9');
+    await prompt(page).getByRole('button',{name:'네',exact:true}).click();
+    await delay(100);
+    await identity(page,'화연');
+  },{rows:savedRows.map(row=>row.id==='8'?{...row,stats:{...row.stats,magic_resistance:'0'}}:row)});
+  await run('stale-stat-ambiguous-rival-no-offer',async({page,requests})=>{
+    const remote=requests.statsReads;
+    await setGame(page,'8');
+    for(let i=0;i<3;i++)await poll(page);
+    assert.equal(await prompt(page).count(),0,'Three matching stats in a rival must prevent an exact candidate from winning');
+    await identity(page,'화연');
+    assert.equal(requests.statsReads,remote);
+  },{rows:[...savedRows,{...savedRows[1],id:'10',nickname:'경쟁 후보',stats:{...savedRows[1].stats,magic_resistance:'0'}}],
+    catalog:[...characters,{id:'10',nickname:'경쟁 후보',job:'검술사',alias:null}]});
   // A retained 10s cadence, unconditional 1s loop, or catalog fetch in each
   // poll breaks the intended latency/remote-load contract.
   await run('fast-local-only-cadence',async({page,requests})=>{
@@ -215,16 +250,61 @@ try{
   await run('two-fresh-offers',async({page})=>{
     await offer(page);
   });
+  await run('next-switch-before-remounted-baseline',async f=>{
+    const {page,requests}=f;
+    await offer(page);
+    const catalogReads=requests.statsReads;
+    f.holdDetails('8');
+    await prompt(page).getByRole('button',{name:'네',exact:true}).click();
+    await f.waitForDetails();
+    // The user enters the third character before the new selected watcher
+    // mounts. Its first fresh read must compare against the confirmed second.
+    await setGame(page,'9');
+    const before=await page.evaluate(()=>window.fixture.reads);
+    f.releaseDetails();await identity(page,'순월');
+    await page.waitForFunction(before=>window.fixture.reads>before&&window.fixture.settled===window.fixture.reads,before);
+    await delay(80);
+    assert.equal(await prompt(page).count(),0,'One new observation is insufficient');
+    await poll(page,{advance:3000});await prompt(page).waitFor();
+    assert.match(await prompt(page).innerText(),/젼설/);
+    await identity(page,'순월');
+    await prompt(page).getByRole('button',{name:'네',exact:true}).click();
+    await identity(page,'젼설');
+    assert.equal(requests.statsReads,catalogReads,'Retaining observations does not reload the DB catalog');
+    assert.equal(requests.kronosPosts.length,0,'Recommendations do not save homework');
+    assert.equal(requests.classPosts.length,0,'Recommendations do not save classes');
+  });
+  await run('new-account-does-not-inherit-game-observation',async({page})=>{
+    await offer(page);
+    await prompt(page).getByRole('button',{name:'네',exact:true}).click();
+    await identity(page,'순월');await delay(80);
+    await page.getByRole('button',{name:'설정',exact:true}).click();
+    await page.getByRole('button',{name:'로그아웃',exact:true}).click();
+    await page.getByRole('button',{name:'로그인',exact:true}).waitFor();
+    // Force the new account's initial game probe to fail: only a wrongly
+    // retained prior-account observation could seed its selected watcher.
+    await setGame(page,'9',{failNext:1});
+    await page.getByRole('textbox',{name:'대표 캐릭터 닉네임',exact:true}).fill('other');
+    await page.getByLabel('접속 코드',{exact:true}).fill('synthetic-no-access-code');
+    await page.getByRole('button',{name:'로그인',exact:true}).click();
+    await page.getByRole('button',{name:'캐릭터 선택',exact:true}).waitFor();
+    await page.waitForFunction(()=>window.fixture.failNext===0&&window.fixture.reads===window.fixture.settled);
+    await choose(page,'화연','힐러');
+    await page.waitForFunction(()=>window.fixture.reads===window.fixture.settled);await delay(80);
+    await poll(page);await poll(page);
+    assert.equal(await prompt(page).count(),0,'Another account must start with its own baseline');
+    await identity(page,'화연');
+  });
   // Removing the two-observation gate, bypassing the real select controller, or
   // reassigning old drafts/queue entries makes this real UI scenario fail.
   await run('confirm-and-preserve-scope',async({page,requests})=>{
     await page.getByRole('button',{name:'클래스',exact:true}).click();
     await page.getByRole('textbox',{name:'전사 레벨',exact:true}).waitFor();
-    await offer(page);
     await page.getByRole('textbox',{name:'전사 레벨',exact:true}).fill('23');
     await page.waitForFunction(()=>window.fixture.queue?.entries.length===1);
     assert.deepEqual(await page.evaluate(()=>window.fixture.queue.entries.map(e=>({accountId:e.accountId,characterId:e.characterId,kind:e.kind,desiredLevel:e.desiredLevel}))),
       [{accountId:'a',characterId:'7',kind:'class',desiredLevel:23}]);
+    await offer(page);
     const reads=await page.evaluate(()=>window.fixture.reads);
     await setGame(page,'8',{holdNext:1});
     await prompt(page).getByRole('button',{name:'네',exact:true}).click();
@@ -362,8 +442,7 @@ try{
     const {page}=f;
     f.holdLogout();
     await page.getByRole('button',{name:'설정',exact:true}).click();
-    await page.getByRole('button',{name:'owner · 계정',exact:true}).click();
-    await page.getByRole('button',{name:'로그아웃 · 변경 보관',exact:true}).click();
+    await page.getByRole('button',{name:'로그아웃',exact:true}).click();
     await f.waitForLogout();
     const before=await page.evaluate(()=>window.fixture.reads);
     await page.clock.runFor(11000);await delay(80);
@@ -433,8 +512,7 @@ try{
     await setGame(page,'8');await poll(page);
     await setGame(page,'8',{holdNext:1});await poll(page,{held:true});
     await page.getByRole('button',{name:'설정',exact:true}).click();
-    await page.getByRole('button',{name:'owner · 계정',exact:true}).click();
-    await page.getByRole('button',{name:'로그아웃 · 변경 보관',exact:true}).click();
+    await page.getByRole('button',{name:'로그아웃',exact:true}).click();
     await page.getByRole('button',{name:'로그인',exact:true}).waitFor();
     await page.evaluate(()=>window.fixtureReleaseGame());await delay(120);
     assert.equal(await prompt(page).count(),0);

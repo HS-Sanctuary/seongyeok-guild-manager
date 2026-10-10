@@ -8,7 +8,7 @@ const titles = {daily:'일일 숙제',weekly:'주간 숙제',abyss:'어비스',r
 const filters = {daily:'일일',weekly:'주간',abyss:'어비스',raid:'레이드'};
 export function desktopRows(selected: DesktopDetails, pending: PendingEdit[], category: TaskKey['category']) {
   return selected.details.tasks[category].map(row => {
-    const edits = pending.filter((e):e is TaskPendingEdit => e.kind!=='class' && e.accountId === selected.accountId && e.characterId === selected.characterId && e.category === category && e.taskId === row.id && e.periodKey === selected.writeContext.periodKeys[category]).sort((a,b)=>b.revision-a.revision);
+    const edits = pending.filter((e):e is TaskPendingEdit => e.kind==='task' && e.accountId === selected.accountId && e.characterId === selected.characterId && e.category === category && e.taskId === row.id && e.periodKey === selected.writeContext.periodKeys[category]).sort((a,b)=>b.revision-a.revision);
     return {...row,key:category+':'+row.id,completed:edits[0]?.desiredCompleted ?? row.completed,
       paused:edits.some(e=>['unknown','conflict','expired'].includes(e.phase))};
   });

@@ -527,7 +527,8 @@ export async function syncKronosChecklist(
   arg2?: string,
   arg3?: string | boolean,
   arg4?: string,
-  partyId?: string | number
+  partyId?: string | number,
+  request:typeof fetch=fetch
 ): Promise<boolean> {
   try {
     if (Array.isArray(target)) {
@@ -536,7 +537,7 @@ export async function syncKronosChecklist(
       if (!contentName) return false;
 
       if (!partyId) return false;
-      const response = await fetch("/api/parties/sync-checklist", {
+      const response = await request("/api/parties/sync-checklist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ partyId, completedNames: members.map((member: any) => member.character_name || member.name) }),
@@ -560,7 +561,7 @@ export async function syncKronosChecklist(
 
     const updatedChecks = setTaskChecked(charData.raid_checks, {name:contentKey}, isCleared);
 
-    const { error: updateErr } = await memberMutation({ table: "characters", action: "update", filter: { column: "id", value: characterId }, payload: { raid_checks: updatedChecks } });
+    const { error: updateErr } = await memberMutation({ table: "characters", action: "update", filter: { column: "id", value: characterId }, payload: { raid_checks: updatedChecks } },request);
 
     return !updateErr;
   } catch (err) {

@@ -28,7 +28,7 @@ test('desktop transport retains validated optional aliases and remains compatibl
 
 test('checkboard exposes alias tiles and optimistic completed-item summaries while repeat rows remain full width',()=>{
   const selected=payload();selected.details.tasks.weekly=[{id:'2',name:'뱅가드 브리치',completed:0,total:3},{id:'3',name:'[주간 목표] 정기 의뢰',displayName:'정기 의뢰',completed:1,total:1}];
-  const pending=[{accountId:'a',characterId:'c',category:'weekly',taskId:'2',periodKey:'2026-10-07T21:00:00.000Z',desiredCompleted:3,phase:'pending',revision:1}];
+  const pending=[{kind:'task',accountId:'a',characterId:'c',category:'weekly',taskId:'2',periodKey:'2026-10-07T21:00:00.000Z',desiredCompleted:3,phase:'pending',revision:1}];
   const html=renderToStaticMarkup(React.createElement(DesktopCheckboard,{selected,pending,locked:false,onEdit(){}}));
   assert.match(html,/<span[^>]*>미션<\/span>/);
   assert.match(html,/title="일일 미션"/);assert.match(html,/aria-label="일일 미션 완료"/);

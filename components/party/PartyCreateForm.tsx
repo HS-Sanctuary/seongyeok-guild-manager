@@ -1,6 +1,9 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import {usePartySurface} from './PartySurfaceContext';
+import {usePartyCatalog} from '@/hooks/usePartyCatalog';
+import CharacterCompletionStatus from './CharacterCompletionStatus';
 import ClassIcon from "@/components/common/ClassIcon";
 import MarkIcon from "@/components/common/MarkIcon";
 import { ContentItem, DIFFICULTY_COLORS, ABYSS_SUB_DUNGEONS, AbyssSubDungeon } from "./types";
@@ -75,6 +78,9 @@ export default function PartyCreateForm({
   setSelectedSubContents,
   dbClasses = [],
 }: PartyCreateFormProps) {
+  const surface=usePartySurface();
+  const catalog=usePartyCatalog(Boolean(surface?.active&&!surface.locked));
+  const [completionName,setCompletionName]=useState<string|null>(null);
 
   const toggleSubContent = (id: string) => {
     if (!setSelectedSubContents) return;
@@ -135,7 +141,7 @@ export default function PartyCreateForm({
         <h2 className="text-xs font-black text-[var(--accent)] flex items-center gap-1.5 shrink-0 whitespace-nowrap">
           <span>✨</span> 스마트 파티 매칭
         </h2>
-        {isAdmin && (
+        {isAdmin && !surface && (
           <button
             type="button"
             onClick={() => setShowBusCreateModal(true)}
@@ -168,7 +174,7 @@ export default function PartyCreateForm({
               <button
                 key={char}
                 type="button"
-                onClick={() => setSelectedChar(char)}
+                onClick={() => {setSelectedChar(char);if(surface)setCompletionName(char);}}
                 className={`text-xs font-black py-1.5 px-1 rounded-xl transition cursor-pointer whitespace-nowrap flex items-center justify-center gap-1 border overflow-hidden min-w-0 tracking-tight shadow-xs ${
                   isSelected
                     ? "bg-[var(--accent)] text-[var(--accent-fg)] border-transparent ring-2 ring-[var(--accent)]/40 font-black shadow-md"
@@ -181,6 +187,7 @@ export default function PartyCreateForm({
             );
           })}
         </div>
+        {surface&&completionName&&allCharactersMap[completionName]&&<CharacterCompletionStatus character={allCharactersMap[completionName]} catalog={catalog} onClose={()=>setCompletionName(null)}/>}
       </div>
 
       {/* 목표 컨텐츠 & 뱃지 */}

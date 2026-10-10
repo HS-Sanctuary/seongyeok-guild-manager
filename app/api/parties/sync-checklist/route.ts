@@ -13,7 +13,8 @@ export async function POST(request: NextRequest) {
     if (origin && origin !== new URL(request.url).origin) return NextResponse.json({ message: "요청 출처를 확인할 수 없습니다." }, { status: 403 });
     const account = await getSessionAccount(request.cookies.get(SANCTUM_SESSION_COOKIE)?.value);
     if (!account || isPendingAccount(account)) return NextResponse.json({ message: "로그인이 필요합니다." }, { status: 401 });
-    const { partyId, completedNames, finishRound, baseline } = await request.json();
+    const { partyId, completedNames, finishRound, baseline, expectedAccountId } = await request.json();
+    if(expectedAccountId !== undefined && expectedAccountId !== String(account.id)) return NextResponse.json({message:'로그인 계정이 바뀌었어요. 화면을 다시 조회해주세요.'},{status:403});
     if (!(typeof partyId === "number" || typeof partyId === "string") || !Array.isArray(completedNames) || completedNames.length > 8) {
       return NextResponse.json({ message: "파티 정보를 확인할 수 없습니다." }, { status: 400 });
     }

@@ -1,0 +1,24 @@
+.iris-classes {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+.iris-classes[data-fill-height="true"] { flex: 1; }
+.iris-classes > .iris-class-guide,
+.iris-classes > .iris-class-filters { flex: none; }
+.iris-classes .iris-class-list {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  max-height: none;
+  align-content: start;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+}
+.iris-classes .iris-class-list[data-scrollable="false"] {
+  flex: none;
+  overflow-y: visible;
+}
+.iris-classes .iris-class-row { min-width: 0; }
+.iris-classes .iris-class-footer { margin-bottom: 0; }

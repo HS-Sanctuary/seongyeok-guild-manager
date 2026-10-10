@@ -4,6 +4,8 @@ import { buildIrisKronosDetails, summarizeIrisKronosDetails } from "@/lib/irisKr
 import {getIrisPeriodKeys,IrisWriteError} from '@/lib/irisKronosWrite';
 import {saveIrisKronosEdit} from '@/lib/server/irisKronosWrite';
 import {classWriteContext} from '@/lib/irisClassWrite';
+import {readIrisBarter} from '@/lib/server/irisBarterWrite';
+import {readIrisWorkspace} from '@/lib/server/irisWorkspaceWrite';
 
 const headers = {"Cache-Control":"private, no-store"};
 export async function GET(request: NextRequest) {
@@ -28,8 +30,14 @@ export async function GET(request: NextRequest) {
     if (tasks.error || contents.error || classes.error || !Array.isArray(tasks.data) || !Array.isArray(contents.data) || !Array.isArray(classes.data)) throw new Error('Catalog unavailable');
     const observed=new Date();
     const details=buildIrisKronosDetails(character,tasks.data,contents.data,classes.data,observed);
+    // Old ownerless representative characters remain read-only for barter.
+    // Barter failure must not remove the existing homework/class display.
+    let barter:Awaited<ReturnType<typeof readIrisBarter>>|undefined;
+    if(character.owner===account.nickname)try{barter=await readIrisBarter(db,account.nickname,String(character.id),observed);}catch{}
+    let workspace:Awaited<ReturnType<typeof readIrisWorkspace>>|undefined;
+    if(character.owner===account.nickname)try{workspace=await readIrisWorkspace(db,String(account.id),character.nickname,observed);}catch{}
     return NextResponse.json({accountId:account.id,characterId:String(character.id),
-      summary:summarizeIrisKronosDetails(details),details,writeContext:{periodKeys:getIrisPeriodKeys(observed),classes:details.classes.map(c=>classWriteContext(character.levels,c.id,c.name))},observedAt:observed.toISOString()}, {headers});
+      summary:summarizeIrisKronosDetails(details),details:{...details,...(barter?{barter:barter.rows}:{}),...(workspace?{workspace}:{})},writeContext:{periodKeys:getIrisPeriodKeys(observed),classes:details.classes.map(c=>classWriteContext(character.levels,c.id,c.name)),...(barter?{barter:barter.contexts}:{})},observedAt:observed.toISOString()}, {headers});
   } catch {
     return NextResponse.json({message:"크로노스 정보를 불러오지 못했습니다."},{status:503,headers});
   }

@@ -1,5 +1,12 @@
 # IRIS 로컬 읽기 시제품
 
+## Windows 베타 후보 패키지 — 2026-10-10
+
+- `powershell -NoProfile -File iris/build-beta.ps1 -PrepareDownload`: 로컬의 공식 WebView2 SDK와 Windows .NET compiler로 production-only x64 `IRIS.exe` ZIP을 생성한다. generated archive/manifest는 public/IRIS/downloads, ICO는 public/IRIS/logo, 재현 빌드 디렉터리는 ignored build/iris-beta다. 자동 SDK/CLI/OS 설치는 하지 않는다.
+- `/iris/download`에서 로컬 ZIP/확인값/실행 안내를 확인한다. 공개 다운로드는 승인된 Git/Vercel 배포와 실제 확인 후 제공한다. 개인 프로필·큐·비밀키·CLI·소스는 패키지에 없다. 미서명 후보이고 새 PC/SmartScreen/장시간은 별도 검증이 필요하다.
+- 제목 앞 IRIS SVG는 테마색, 캐릭터 선택줄 우측은 계정→홈→설정, 제목 우측은 최소화·종료다. 폭 부족 시 닉네임을 압축하지 않고 도구만 우측 다음행으로 옮긴다. 홈·native icon은 기존앱 정상종료/새 native 재실행 후 반영한다.
+- `release-package.tests.ps1`은 ZIP9파일/icon7size/hash/미서명, `desktop-startup-close.tests.ps1`은 임시 실제 store의 실패닫기/편집 세션 우회금지를 검증한다. 사용자 앱/게임을 강제 종료하거나 새 운영 파티를 생성하지 않는다.
+
 ## 애드온 바 후보 (2026-10-08)
 
 IRIS는 `IRIS for SANCTUM` 컴팩트 애드온 바로 실행한다. 설정에서 게임 창 오른쪽/왼쪽 붙이기와 같은 층 유지를 선택할 수 있으며, 게임 종료 후에는 보호 큐를 저장 또는 보관하고 종료할지 묻는다. 실제 게임 창 이동·DPI·종료 동작은 집에서 수동 확인한다.

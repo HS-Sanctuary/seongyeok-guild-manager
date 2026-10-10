@@ -9,17 +9,27 @@ function setup(timeoutMs=100){
   const store=create({channel,context:()=>context,environment:'development',timeoutMs});
   return {store,sent,reply:data=>{for(const fn of [...listeners])fn({data});},change:v=>context=v,listeners};
 }
-test('protected store sends only schema queue data and correlates native replies',async()=>{
-  const s=setup();const pending=s.store.replace({schemaVersion:2,entries:[]});
-  assert.deepEqual(s.sent,[{version:1,id:'1',epoch:2,method:'store.replace',payload:{schemaVersion:2,entries:[]}}]);
-  s.reply({version:1,id:'other',epoch:2,ok:true,value:null});assert.equal(s.listeners.size,1);
-  s.reply({version:1,id:'1',epoch:2,ok:true,value:null});await pending;assert.equal(s.listeners.size,0);
+async function supported(s){const p=s.store.queueCapabilities();s.reply({version:1,id:s.sent.at(-1).id,epoch:2,ok:true,value:{schemaVersion:3,barter:true}});await p;}
+async function begin(s,operation){const pending=operation();await Promise.resolve();return {pending,id:s.sent.at(-1).id};}
+
+test('workspace capability is explicit and unsupported writes never reach the native store',async()=>{
+  const old=setup();await supported(old);await assert.rejects(old.store.workspaceCapabilities());
+  await assert.rejects(old.store.replace({schemaVersion:3,entries:[{kind:'workspace'}]}));assert.equal(old.sent.length,1);
+  const current=setup(),p=current.store.workspaceCapabilities();
+  current.reply({version:1,id:'1',epoch:2,ok:true,value:{schemaVersion:3,barter:true,workspace:true}});await p;
+  const {pending,id}=await begin(current,()=>current.store.replace({schemaVersion:3,entries:[]}));current.reply({version:1,id,epoch:2,ok:true,value:null});await pending;
 });
-test('native v1 response is never accepted as the active queue format',async()=>{
-  const s=setup();const pending=s.store.load();s.reply({version:1,id:'1',epoch:2,ok:true,value:{schemaVersion:1,entries:[]}});
-  await assert.rejects(pending);
-  const next=s.store.load();s.reply({version:1,id:'2',epoch:2,ok:true,value:{schemaVersion:2,entries:[]}});
-  assert.deepEqual(await next,{schemaVersion:2,entries:[]});
+test('protected store sends only schema queue data and correlates native replies',async()=>{
+  const s=setup();await supported(s);const {pending,id}=await begin(s,()=>s.store.replace({schemaVersion:3,entries:[]}));
+  assert.deepEqual(s.sent[1],{version:1,id:'2',epoch:2,method:'store.replace',payload:{schemaVersion:3,entries:[]}});
+  s.reply({version:1,id:'other',epoch:2,ok:true,value:null});assert.equal(s.listeners.size,1);
+  s.reply({version:1,id,epoch:2,ok:true,value:null});await pending;assert.equal(s.listeners.size,0);
+});
+test('old native queue responses are never accepted as the active queue format',async()=>{
+  const s=setup();await supported(s);
+  for(const schemaVersion of [1,2]){const {pending,id}=await begin(s,()=>s.store.load());s.reply({version:1,id,epoch:2,ok:true,value:{schemaVersion,entries:[]}});await assert.rejects(pending);}
+  const {pending,id}=await begin(s,()=>s.store.load());s.reply({version:1,id,epoch:2,ok:true,value:{schemaVersion:3,entries:[]}});
+  assert.deepEqual(await pending,{schemaVersion:3,entries:[]});
 });
 test('native failures never become a successful empty restored queue',async()=>{
   const s=setup();const pending=s.store.load();s.reply({version:1,id:'1',epoch:2,ok:false,error:'protected_store_unavailable'});

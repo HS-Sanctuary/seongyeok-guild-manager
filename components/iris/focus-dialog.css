@@ -1,0 +1,16 @@
+.iris-focus-backdrop { position:fixed; inset:0; z-index:90; display:grid; place-items:center; padding:.6rem; background:color-mix(in srgb,#000 58%,transparent); }
+.iris-focus-dialog { display:flex; flex-direction:column; min-width:0; width:100%; max-width:23rem; max-height:calc(100dvh - 1.2rem); border:1px solid var(--accent); border-radius:.9rem; background:var(--panel); color:var(--text-main); box-shadow:0 .4rem 1.8rem #0005; font-size:.8rem; line-height:1.5; overflow:hidden; overflow-wrap:anywhere; }
+.iris-focus-dialog-header { flex:none; display:flex; align-items:center; justify-content:space-between; gap:.5rem; min-width:0; padding:.55rem .65rem; border-bottom:1px solid var(--panel-border); }
+.iris-focus-dialog-header h2 { min-width:0; margin:0; font-size:.9rem; font-weight:700; color:var(--accent); }
+.iris-focus-dialog-body { min-height:0; overflow-y:auto; overscroll-behavior:contain; scrollbar-gutter:stable; padding:.65rem; }
+.iris-focus-dialog-body>:first-child { margin-top:0; }
+.iris-focus-dialog :focus-visible { outline:.12rem solid var(--accent); outline-offset:.12rem; }
+.iris-focus-dialog .iris-switch-actions-pair { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.iris-focus-dialog .iris-switch-actions-pair button { min-width:0; white-space:nowrap; word-break:keep-all; }
+.iris-account-direct { gap:.5rem; }
+.iris-account-direct .iris-account-options .iris-desktop-button { width:100%; min-width:0; text-align:left; white-space:normal; overflow-wrap:anywhere; font-size:.8rem; }
+.iris-account-direct .iris-account-actions .iris-desktop-button { min-width:0; white-space:normal; font-size:.75rem; }
+.iris-account-error { color:var(--accent); font-size:.75rem; }
+.iris-account-direct #iris-account-login { border-top:1px solid var(--panel-border); padding-top:.6rem; }
+.iris-account-direct #iris-account-login h2 { font-size:.9rem; }
+.iris-account-direct #iris-account-login label,.iris-account-direct #iris-account-login p { font-size:.75rem; }

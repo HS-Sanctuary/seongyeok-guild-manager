@@ -4,7 +4,7 @@ const priority={unknown:0,conflict:1,expired:2,inflight:3,pending:4};
 export function summarizeDesktopEdits(entries:PendingEdit[],characters:DesktopCharacter[],selected:DesktopDetails|null,now:number) {
   const groups:Array<{characterId:string;nickname:string;count:number;remainingSeconds:number|null;phase:PendingEdit['phase']}>=[];
   const items=entries.map(e=>({requestId:e.requestId,characterId:e.characterId,
-    taskName:selected?.characterId===e.characterId ? (e.kind==='class'?selected.details.classes.find(row=>row.id===e.classId)?.name:selected.details.tasks[e.category]?.find(row=>row.id===e.taskId)?.name)??'항목 확인 필요':'항목 확인 필요',phase:e.phase}));
+    taskName:selected&&(selected.characterId===e.characterId||(e.kind==='barter'||e.kind==='workspace')&&e.scope==='account') ? (e.kind==='workspace'?selected.details.workspace?.find(row=>row.id===e.itemId&&row.itemKind===e.itemKind)?.title:e.kind==='class'?selected.details.classes.find(row=>row.id===e.classId)?.name:e.kind==='barter'?selected.details.barter?.find(row=>row.id===e.tradeId)?.reward:selected.details.tasks[e.category]?.find(row=>row.id===e.taskId)?.name)??'항목 확인 필요':'항목 확인 필요',phase:e.phase}));
   for(const e of entries){
     const remaining=e.phase==='pending'?Math.max(0,Math.ceil((e.deadlineAt-now)/1000)):null;
     const group=groups.find(g=>g.characterId===e.characterId);

@@ -3,6 +3,7 @@ import {useState} from 'react';
 import type {DesktopDetails} from '@/lib/irisDesktopTransport';
 import type {PendingEdit,ClassPendingEdit} from '@/lib/irisDesktopQueue';
 import type {DesktopClassDraft} from '@/lib/irisDesktopController';
+import './class-focus.css';
 
 const families:Record<string,string[]>={전사:['전사','대검전사','검술사','기사'],마법사:['마법사','화염술사','빙결술사','전격술사'],궁수:['궁수','장궁병','석궁사수'],음유시인:['음유시인','댄서','악사'],힐러:['힐러','사제','수도사','암흑술사'],도적:['도적','격투가','듀얼블레이드']};
 export function filterDesktopClasses<T extends {id:string;name:string}>(rows:T[],family:string,drafts:Record<string,DesktopClassDraft>,paused:Set<string>):T[]{
@@ -14,7 +15,7 @@ export function DesktopClasses({selected,pending,locked,classDrafts={},onClassDr
   const scoped=pending.filter((e):e is ClassPendingEdit=>e.kind==='class'&&e.accountId===selected.accountId&&e.characterId===selected.characterId);
   const paused=new Set(scoped.filter(e=>['unknown','conflict','expired'].includes(e.phase)).map(e=>e.classId));
   const rows=filterDesktopClasses(selected.details.classes,family,classDrafts,paused);
-  return <div className="iris-classes">
+  return <div className="iris-classes" data-fill-height={family==='전체'||rows.length>4}>
     <p className="iris-class-guide">생텀에 저장된 레벨이에요. 숫자나 게이지로 직접 수정해요.</p>
     <nav className="iris-class-filters" aria-label="클래스 계열">{['전체',...Object.keys(families)].map(name=><button key={name} type="button" className="iris-desktop-button" aria-pressed={family===name} onClick={()=>setFamily(name)}>{name}</button>)}</nav>
     <div className="iris-class-list" data-scrollable={family==='전체'||rows.length>4}>{rows.map(row=>{
@@ -33,6 +34,6 @@ export function DesktopClasses({selected,pending,locked,classDrafts={},onClassDr
         {draft?.error&&<div><p id={errorId} role="alert">{draft.error}</p><button type="button" className="iris-desktop-button" disabled={locked} onClick={()=>onRevertClassDraft?.(row.id)}>입력 되돌리기</button></div>}
       </div>;
     })}{rows.length===0&&<p>이 계열에 등록된 클래스가 없어요.</p>}</div>
-    <p className="iris-class-guide">게임에서 자동으로 읽은 레벨이 아니에요. 변경은 마지막 조작 후 15초 뒤 저장돼요.</p>
+    <p className="iris-class-guide iris-class-footer">게임에서 자동으로 읽은 레벨이 아니에요. 변경은 마지막 조작 후 15초 뒤 저장돼요.</p>
   </div>;
 }

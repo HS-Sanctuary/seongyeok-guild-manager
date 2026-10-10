@@ -15,6 +15,18 @@ namespace IrisDesktop {
         public bool Attached;
     }
     public static class AddonWindowPolicy {
+        public static bool YieldToTaskbar(Rectangle monitor, Rectangle taskbar, Point cursor, uint edge, bool autoHide, Rectangle addon) {
+            if(edge>3||monitor.Width<=0||monitor.Height<=0||taskbar.Width<=0||taskbar.Height<=0||!monitor.IntersectsWith(addon))return false;
+            var visible=Rectangle.Intersect(monitor,taskbar);
+            if(!autoHide)return visible.IntersectsWith(addon);
+            // Auto-hidden taskbars retain a visible two-physical-pixel strip.
+            bool revealed=(edge==0||edge==2?visible.Width:visible.Height)>2;
+            bool hover=monitor.Contains(cursor)&&(edge==0?cursor.X<monitor.Left+4:edge==1?cursor.Y<monitor.Top+4:edge==2?cursor.X>=monitor.Right-4:cursor.Y>=monitor.Bottom-4);
+            return revealed||hover;
+        }
+        public static bool ShouldKeepAbove(bool enabled, IntPtr foreground, IntPtr own, IntPtr game) {
+            return enabled && own != IntPtr.Zero && game != IntPtr.Zero && (foreground == game || foreground == own);
+        }
         public static AddonDockPlacement Place(Rectangle game, Rectangle work, Size addon, string side) {
             var result = new AddonDockPlacement();
             if (side == "off" || (side != "right" && side != "left") || work.Width < 320 || work.Height < 120 || game.Width <= 0 || game.Height <= 0) return result;

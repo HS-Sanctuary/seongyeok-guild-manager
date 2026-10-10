@@ -6,11 +6,21 @@ import {renderToStaticMarkup} from 'react-dom/server';
 import {loadTS} from './load-ts.mjs';
 const file='components/iris/DesktopCheckboard.tsx';
 
-test('center groups Kronos actions separately and exposes upcoming actions without enabling them',()=>{
+test('account actions and remembered accounts are directly available without a switch step',()=>{
+  const {DesktopAccountPanel}=loadTS('components/iris/DesktopAccountPanel.tsx');
+  const html=renderToStaticMarkup(React.createElement(DesktopAccountPanel,{account:{id:'a',nickname:'화연',role:'길드원'},remembered:[],busy:false,onSwitch:async()=>{},onLogout:async()=>{},onLogin:async()=>{}}));
+  for(const label of ['다른 계정 로그인','로그아웃'])assert.match(html,new RegExp('<button[^>]*>'+label+'</button>'));
+  assert.doesNotMatch(html,/<button[^>]*>계정 전환<\/button>/);
+  const locked=renderToStaticMarkup(React.createElement(DesktopAccountPanel,{account:{id:'a',nickname:'화연',role:'길드원'},remembered:[],busy:true,onSwitch:async()=>{},onLogout:async()=>{},onLogin:async()=>{}}));
+  for(const label of ['다른 계정 로그인','로그아웃'])assert.match(locked,new RegExp('<button[^>]*disabled=""[^>]*>'+label+'</button>'));
+});
+
+test('center enables barter, shop and missions as separate Kronos panels',()=>{
   const {DesktopCenter}=loadTS('components/iris/DesktopCenter.tsx');
   const html=renderToStaticMarkup(React.createElement(DesktopCenter,{account:{id:'a',nickname:'한설',role:'길드원'},characters:[{id:'7',nickname:'열두글자캐릭터닉네임확인',job:'장궁병'}],selected:{characterId:'7',details:{tasks:{daily:[],weekly:[],abyss:[],raid:[]},classes:[]}},pending:[],locked:false,onSelectCharacter(){},onEdit(){},onClose(){}}));
   assert.match(html,/aria-label="상위 메뉴"/);assert.match(html,/aria-label="크로노스 기능"/);
-  for(const label of ['물물교환','상점구매','임무게시판'])assert.match(html,new RegExp('<button[^>]*disabled=""[^>]*>'+label));
+  for(const label of ['상점구매','임무게시판'])assert.match(html,new RegExp('<button(?![^>]*disabled)[^>]*>'+label));
+  assert.match(html,/<button(?![^>]*disabled)[^>]*>물물교환<\/button>/);
   assert.doesNotMatch(html,/<span>준비 중<\/span>/);
   assert.match(html,/생텀 선택/);assert.match(html,/열두글자캐릭터닉네임확인/);
 });
@@ -81,7 +91,7 @@ test('checkboard projects optimistic values with stable category/task keys throu
   assert.equal(existsSync(file),true,'Missing desktop checkboard');
   const {DesktopCheckboard,desktopRows}=loadTS(file);
   const selected={accountId:'a',characterId:'b',writeContext:{periodKeys:{weekly:'period'}},details:{tasks:{daily:[],weekly:[{id:'x',name:'뱅가드 브리치',completed:0,total:3}],abyss:[],raid:[]},classes:[]}};
-  const pending=[{environment:'development',accountId:'a',characterId:'b',category:'weekly',taskId:'x',periodKey:'period',desiredCompleted:2,phase:'pending',revision:1}];
+  const pending=[{kind:'task',environment:'development',accountId:'a',characterId:'b',category:'weekly',taskId:'x',periodKey:'period',desiredCompleted:2,phase:'pending',revision:1}];
   assert.deepEqual(desktopRows(selected,pending,'weekly').map(r=>[r.key,r.completed]),[['weekly:x',2]]);
   const html=renderToStaticMarkup(React.createElement(DesktopCheckboard,{selected,pending,locked:false,onEdit(){}}));
   assert.match(html,/뱅가드 브리치/);assert.match(html,/2\/3/);
@@ -114,7 +124,7 @@ test('save status groups repeated edits by nickname while exposing named unknown
 test('remaining filter hides completed tasks but retains paused recovery rows',()=>{
   const {DesktopCheckboard}=loadTS(file);
   const selected={accountId:'a',characterId:'b',writeContext:{periodKeys:{daily:'period'}},details:{tasks:{daily:[{id:'done',name:'완료된 미션',completed:1,total:1},{id:'paused',name:'보류된 미션',completed:1,total:1}],weekly:[],abyss:[],raid:[]},classes:[]}};
-  const pending=[{accountId:'a',characterId:'b',category:'daily',taskId:'paused',periodKey:'period',desiredCompleted:1,phase:'unknown',revision:1}];
+  const pending=[{kind:'task',accountId:'a',characterId:'b',category:'daily',taskId:'paused',periodKey:'period',desiredCompleted:1,phase:'unknown',revision:1}];
   const html=renderToStaticMarkup(React.createElement(DesktopCheckboard,{selected,pending,remainingOnly:true,locked:false,onEdit(){}}));
   assert.doesNotMatch(html,/완료된 미션/);assert.match(html,/보류된 미션/);
 });

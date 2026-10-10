@@ -39,6 +39,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: "로그인이 필요합니다." }, { status: 401 });
     }
     const body = await request.json();
+    if (body?.expectedAccountId !== undefined && body.expectedAccountId !== String(account.id)) {
+      return NextResponse.json({message:'요청 중 계정이 변경됐습니다. 다시 확인해주세요.'},{status:403});
+    }
     const table = body?.table as Table;
     const action = body?.action as Action;
     const filter = body?.filter as Filter | undefined;
