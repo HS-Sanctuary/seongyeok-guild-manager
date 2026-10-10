@@ -1,5 +1,11 @@
 # SANCTUM 작업 인계
 
+## 2026-10-11 02:18 KST 영겁 — v2.3 IRIS 베타 공개 다운로드 운영 확인
+
+- 코드2b9067e main 일반push, Vercel dpl_Bk8w2ww62gSTqaXaqLHbkEYV5cVt Ready/Production/28초/동일commit/운영도메인 직접확인. https://sanctum-tawny-three.vercel.app/iris/download 공개 안내와 최종ZIP431067bytes/SHA77a87c1f87e6eab4aa41daf803292ff11e20b398811a316525cacef263145b87 GET200 일치. 공개9화면200·health ready=true·IRIS 비로그인401, 실제부마스터 `/party` 공용화면 표시·관찰콘솔0.
+- 추가설치는 필수가 아니며 한설PC 기존WebView2·CLI 읽기확인, 공식안내대로 대부분PC 추가설치없음/없다는오류만공식Runtime. 미서명/다른PC/장시간/native 정상재시작·운영실시간/쓰기미검증·일부버스확인창 웹우회 제한은 유지. 운영DB/SQL/권한/공지게시0. Vercel team403/CLI없음 때문에 서버로그/drains미점검; Ready는 브라우저 기존세션으로 확인.
+- 문서후속커밋은 배포확인만·구조변경없음. 아래 로컬/공식후보 미배포 표기는 과거경과로 보존한다. 개인삭제3개·UPDATE_POST_v2.151·개인실행메모·테마실험은 계속로컬보존/미포함. 다음은 정상종료→배포EXE실행 및 다른PC테스터 확인, 버스기본대화상자 잔여이식이다.
+
 ## 2026-10-11 02:14 KST 영겁 — v2.3 최종 후보 검증 후속
 
 - 02:15 후속: 최종안내 반영 후보 독립tsc/webpack57 exit0, 실제공개ZIP9파일/모든manifest SHA/EXE NotSigned 확인. 아래 최종빌드대기는 해소, 커밋/main/Ready/운영실화면 확인은 다음 단계다.

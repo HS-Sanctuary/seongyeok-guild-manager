@@ -4,6 +4,8 @@
 
 ## YG-20261008-001 — UPDATED
 
+- 공식운영확인 — 2026-10-11 02:18 KST: v2.3 code2b9067e main push·dpl_Bk8w2ww62gSTqaXaqLHbkEYV5cVt Ready/Production/28초·동일commit/운영domain 직접확인. 공개다운로드안내/ZIP431067bytes SHA77a87c1f87e6eab4aa41daf803292ff11e20b398811a316525cacef263145b87 GET200·공개9경로/healthready/IRISguest401·실제부마party공용화면/관찰콘솔0. 추가설치는대부분불필요/Runtime없다는오류만설치, 기존CLI재사용; 한설PC존재읽기확인. 네이티브재시작/다른PC/장시간/운영쓰기·Realtime실수신·일부버스기본확인창웹우회 미완료유지. MCP403/CLI없음 서버로그drains미점검·브라우저기존GitHub세션사용. SQL/DB/권한/공지0, 확인문서후속구조변경없음·개인파일/이전미ACK보존.
+
 - 2026-10-11 02:15 KST 최종안내후속: 정확한후보 독립tsc/webpack57 exit0·공개ZIP9file/manifest전체SHA/EXENotSigned 확인. 아래 최종안내빌드 대기는 해소, main/운영확인은 다음 단계. 구조 추가 변경 없음·기존미ACK 보존.
 
 - 최종 후보 후속 — 2026-10-11 02:14 KST: staged전체Node/tsc/webpack57 PASS, header/Synaxis/파티8/nativehost36/startup/store/workspace/WebView 합성 PASS, 개인파일 제외·added credential-pattern/diff PASS. 사용자 설치질문으로 공식Runtime/기존CLI 재사용 안내를 명확히함(대부분 추가설치없음, 없다는 오류만 공식설치), ZIP431067bytes SHA77a87c1f87e6eab4aa41daf803292ff11e20b398811a316525cacef263145b87. 최종download3·4폭hash PASS; 최신안내빌드/main/운영확인 후속대기. tar한글추출 실패는 ZIP대체 검증, 실제데이터쓰기/DDL/공지0·개인변경 및 이전미ACK 보존.
