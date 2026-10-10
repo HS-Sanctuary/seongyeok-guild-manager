@@ -2,6 +2,8 @@
 
 ## 2026-10-10 v2.21 유지 — 물물교환 즐겨찾기 구조
 
+- 운영 확인 — 2026-10-10 12:55 KST: main 62bd6786b4d792b141159cdcc740d34727b3fe9d, Vercel dpl_PWxBfDz2QPfKUbHmhrYiM7cRfD45 대시보드 Ready/Production/Current·운영 도메인·동일 커밋 확인(27초). 실제 Chrome 한설 /character?char=순월에서 계정 공통 즐겨찾기 정상 안내·저장된 앨빈 별표·기존 브라우저5개 가져오기/본인 확인 전 비활성 버튼·관찰 콘솔 error/warn0 확인. 공개 핵심5경로 GET200·health200 ready true·새 API 비로그인401. 실제 별표 POST/가져오기·IRIS 운영 동시 저장은 미시험, 사용자 조작으로 확인할 것. 버전 상승/공개 공지/추가 SQL 없음. 후속 기록은 구조 변경 없음.
+
 - app/character는 /api/auth/session에서 승인된 본인 계정 UUID를 확인해 TradeList에 전달한다. 표시용 로컬 계정 객체를 인증으로 간주하지 않는다.
 - hooks/useBarterFavorites → /api/kronos/barter-favorites → 서버 세션 검증 → public.kronos_barter_favorites. 계정별 별표를 웹/기존 IRIS 로컬 연결이 공유하며 이번 배포는 웹/API만 포함한다.
 - TradeList·BarterFavoritesFeedback·barter-favorites.css: 계정 공통 별표, 실패 재조회, 본인 확인 후 구형 브라우저 값 가져오기. 범위 제한 POST·카탈로그 검증·기존 true/false 보존·계정 세대 방어를 사용한다. 교환 횟수와 기존 기능은 그대로다.

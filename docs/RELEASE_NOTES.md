@@ -2,6 +2,8 @@
 
 ## v2.21 유지 — 즐겨찾기 기능 적용 기록 — 2026-10-10 12:51 KST
 
+- 운영 확인 — 2026-10-10 12:55 KST: main 62bd6786b4d792b141159cdcc740d34727b3fe9d, Vercel dpl_PWxBfDz2QPfKUbHmhrYiM7cRfD45 대시보드 Ready/Production/Current·운영 도메인·동일 커밋 확인(27초). 실제 Chrome 한설 /character?char=순월에서 계정 공통 즐겨찾기 정상 안내·저장된 앨빈 별표·기존 브라우저5개 가져오기/본인 확인 전 비활성 버튼·관찰 콘솔 error/warn0 확인. 공개 핵심5경로 GET200·health200 ready true·새 API 비로그인401. 실제 별표 POST/가져오기·IRIS 운영 동시 저장은 미시험, 사용자 조작으로 확인할 것. 버전 상승/공개 공지/추가 SQL 없음. 후속 기록은 구조 변경 없음.
+
 - 한설 요청에 따라 버전 상승·공개 업데이트노트·새 공지 게시 없이 물물교환 계정 공통 즐겨찾기만 배포한다. 다음 버전의 공개 업데이트노트에 통합할 항목으로 보존한다.
 - 웹의 별표를 본인 서버 세션 계정의 DB와 연결한다. 이전 브라우저 별표는 본인 계정 확인 후 명시적으로 가져오며, 기존 DB의 선택/해제 값을 덮어쓰지 않는다. 교환 횟수·상점/임무·미배포 IRIS/native·시낙시스 변경은 제외한다.
 - 구조 변경: /api/kronos/barter-favorites, useBarterFavorites, TradeList 피드백과 서버 세션 UUID 연결. 한설이 이미 적용한 kronos_barter_favorites SQL 기록을 포함하며 이번 배포에서 DB 구조/RLS/권한을 변경하지 않는다.

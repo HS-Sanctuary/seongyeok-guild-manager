@@ -4,6 +4,8 @@
 
 ## YG-20261008-001 — UPDATED
 
+- 운영 확인 — 2026-10-10 12:55 KST: main 62bd6786b4d792b141159cdcc740d34727b3fe9d, Vercel dpl_PWxBfDz2QPfKUbHmhrYiM7cRfD45 대시보드 Ready/Production/Current·운영 도메인·동일 커밋 확인(27초). 실제 Chrome 한설 /character?char=순월에서 계정 공통 즐겨찾기 정상 안내·저장된 앨빈 별표·기존 브라우저5개 가져오기/본인 확인 전 비활성 버튼·관찰 콘솔 error/warn0 확인. 공개 핵심5경로 GET200·health200 ready true·새 API 비로그인401. 실제 별표 POST/가져오기·IRIS 운영 동시 저장은 미시험, 사용자 조작으로 확인할 것. 버전 상승/공개 공지/추가 SQL 없음. 후속 기록은 구조 변경 없음.
+
 - 2026-10-10 12:51 KST 누적: 한설 요청으로 물물교환 웹 계정 공통 즐겨찾기만 main 배포 준비. v2.21 유지·공개 업데이트노트 다음 버전 통합·새 공지 없음. 서버 세션 UUID/GET·bounded same-origin POST/명시적 레거시 가져오기(기존 true·false 보존)/늦은 계정 응답 방어. 사용자 적용 SQL 기록 포함·이번 DDL/RLS/운영시험쓰기0. RLStrue·정책0·공개SELECTfalse·서버SELECT/INSERT/UPDATE true DELETEfalse 읽기 확인. 정확한 staged 사본 전체 Node·tsc·webpack53 exit0·독립 리뷰 blocking0. IRIS/native·상점/임무·시낙시스/개인 변경 제외·미커밋 보존. 배포·실화면 확인은 후속 누적, 기존 미ACK 기록 모두 보존.
 
 - 2026-10-10 02:25 KST v2.21 운영/게시: 89034a5 main 일반 push·dpl_3weipgZgD3d5AVtrdTFoaXX1ZQao GitHub success, 기존 Vercel 브라우저 세션 Ready/Production/도메인/커밋 직접 확인(MCP403 유지). 운영 party v2.21·한설 세션·만료popup없음·관찰콘솔0, 현 조건 파티없음으로 담당자 실연장 쓰기0. 한설 게시 직전 승인 후 통합 업데이트 ID15/생텀업데이트/SANCTUM 시스템·본문·목록 단일항목 확인: https://sanctum-tawny-three.vercel.app/kerygma?id=15. 새 글 재발행 금지·자동게시/DDL/RLS 없음·공지 본인 열람기록만 추가. 후속은 확인 문서만/구조 변경 없음. IRIS/즐겨찾기 미배포 변경과 이전 미ACK 누적 보존.

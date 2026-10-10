@@ -2,6 +2,8 @@
 
 ## 2026-10-10 kronos_barter_favorites — 사용자 적용 확인
 
+- 운영 확인 — 2026-10-10 12:55 KST: main 62bd6786b4d792b141159cdcc740d34727b3fe9d, Vercel dpl_PWxBfDz2QPfKUbHmhrYiM7cRfD45 대시보드 Ready/Production/Current·운영 도메인·동일 커밋 확인(27초). 실제 Chrome 한설 /character?char=순월에서 계정 공통 즐겨찾기 정상 안내·저장된 앨빈 별표·기존 브라우저5개 가져오기/본인 확인 전 비활성 버튼·관찰 콘솔 error/warn0 확인. 공개 핵심5경로 GET200·health200 ready true·새 API 비로그인401. 실제 별표 POST/가져오기·IRIS 운영 동시 저장은 미시험, 사용자 조작으로 확인할 것. 버전 상승/공개 공지/추가 SQL 없음. 후속 기록은 구조 변경 없음.
+
 - public.kronos_barter_favorites: account_id uuid → accounts(id), trade_id bigint → nexus_trades(id), favorited boolean, updated_at timestamptz. PK(account_id,trade_id), 두 FK ON DELETE CASCADE, trade_id 인덱스. false 행은 해제 기록으로 보존한다.
 - 한설이 SQL을 적용하고 검증 JSON을 제공했다. 이번 읽기 전용 확인: RLS enabled true·policy_count0·anon/authenticated SELECT false·service_role SELECT/INSERT/UPDATE true·DELETE false. 공개 정책이나 브라우저 직접 권한을 열지 않는다.
 - 서버 세션 API만 본인 계정 접근을 허용한다. 명시적 브라우저 가져오기는 기존 true/false를 덮어쓰지 않는다. SQL 기록 supabase/sql/iris_barter_favorites.sql; 이번 push에서는 DB 변경을 실행하지 않았다. 되돌릴 때 테이블/행 삭제 없이 앱만 이전 코드로 복귀한다.

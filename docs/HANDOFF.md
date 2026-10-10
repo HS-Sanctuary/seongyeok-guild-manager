@@ -2,6 +2,8 @@
 
 ## 2026-10-10 12:51 KST 영겁 — 물물교환 즐겨찾기 한정 배포
 
+- 운영 확인 — 2026-10-10 12:55 KST: main 62bd6786b4d792b141159cdcc740d34727b3fe9d, Vercel dpl_PWxBfDz2QPfKUbHmhrYiM7cRfD45 대시보드 Ready/Production/Current·운영 도메인·동일 커밋 확인(27초). 실제 Chrome 한설 /character?char=순월에서 계정 공통 즐겨찾기 정상 안내·저장된 앨빈 별표·기존 브라우저5개 가져오기/본인 확인 전 비활성 버튼·관찰 콘솔 error/warn0 확인. 공개 핵심5경로 GET200·health200 ready true·새 API 비로그인401. 실제 별표 POST/가져오기·IRIS 운영 동시 저장은 미시험, 사용자 조작으로 확인할 것. 버전 상승/공개 공지/추가 SQL 없음. 후속 기록은 구조 변경 없음.
+
 - 한설이 기능만 main에 적용하고 버전/공개 업데이트노트는 다음 묶음에 통합하도록 지정했다. v2.21 유지·새 공지 없음. staged 소스 10개와 관련 내부 문서만 포함한다. 기존 미커밋 IRIS/native·상점/임무·시낙시스·개인 삭제는 보존하고 제외한다.
 - 서버 쿠키 세션의 본인 UUID로 웹 별표 GET/POST를 연결했다. 계정 전환 늦은 응답/중복 저장/불완전 조회 방어, 명시적 구형 브라우저 가져오기(기존 true/false 보존). 운영 구형 별표가 DB와 연동되지 않던 P1의 앱 적용이다.
 - 한설 적용 테이블의 읽기 전용 검증: RLS true·정책0·anon/authenticated SELECT false·service_role SELECT/INSERT/UPDATE true·DELETE false. 이번 작업 SQL 실행/실데이터 쓰기 없음.
