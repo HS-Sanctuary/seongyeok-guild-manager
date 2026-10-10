@@ -4,6 +4,8 @@
 
 ## YG-20261008-001 — UPDATED
 
+- 2026-10-10 12:51 KST 누적: 한설 요청으로 물물교환 웹 계정 공통 즐겨찾기만 main 배포 준비. v2.21 유지·공개 업데이트노트 다음 버전 통합·새 공지 없음. 서버 세션 UUID/GET·bounded same-origin POST/명시적 레거시 가져오기(기존 true·false 보존)/늦은 계정 응답 방어. 사용자 적용 SQL 기록 포함·이번 DDL/RLS/운영시험쓰기0. RLStrue·정책0·공개SELECTfalse·서버SELECT/INSERT/UPDATE true DELETEfalse 읽기 확인. 정확한 staged 사본 전체 Node·tsc·webpack53 exit0·독립 리뷰 blocking0. IRIS/native·상점/임무·시낙시스/개인 변경 제외·미커밋 보존. 배포·실화면 확인은 후속 누적, 기존 미ACK 기록 모두 보존.
+
 - 2026-10-10 02:25 KST v2.21 운영/게시: 89034a5 main 일반 push·dpl_3weipgZgD3d5AVtrdTFoaXX1ZQao GitHub success, 기존 Vercel 브라우저 세션 Ready/Production/도메인/커밋 직접 확인(MCP403 유지). 운영 party v2.21·한설 세션·만료popup없음·관찰콘솔0, 현 조건 파티없음으로 담당자 실연장 쓰기0. 한설 게시 직전 승인 후 통합 업데이트 ID15/생텀업데이트/SANCTUM 시스템·본문·목록 단일항목 확인: https://sanctum-tawny-three.vercel.app/kerygma?id=15. 새 글 재발행 금지·자동게시/DDL/RLS 없음·공지 본인 열람기록만 추가. 후속은 확인 문서만/구조 변경 없음. IRIS/즐겨찾기 미배포 변경과 이전 미ACK 누적 보존.
 
 - v2.21 공식 후보 검증: staged tree 분리 전체 Node dot reporter exit0·독립 tsc·webpack52경로 exit0, 한정 독립 리뷰 blocking0·18회귀/실제네 action 대역 통과. 첫 제한 환경 EACCES 이후 동일 후보 허용 환경 통과·운영 시험쓰기0. 이전 미ACK 누적 보존.

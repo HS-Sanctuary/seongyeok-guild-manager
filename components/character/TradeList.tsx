@@ -1,4 +1,7 @@
 "use client";
+import { useState } from "react";
+import { useBarterFavorites } from "@/hooks/useBarterFavorites";
+import { BarterFavoritesFeedback } from "@/components/character/BarterFavoritesFeedback";
 import ProgressiveGrid from "./ProgressiveGrid";
 
 interface TradeRow {
@@ -21,8 +24,8 @@ interface TradeListProps {
   items?: TradeRow[];
   tradeProgress: Record<number, number>;
   tradeCompletedBy: Record<number, string>;
-  pinnedTrades: number[];
-  togglePinTrade: (id: number) => void;
+  accountId: string | null;
+  accountNickname?: string;
   updateTradeProgress: (
     tradeId: number,
     delta: number,
@@ -40,17 +43,24 @@ export default function TradeList({
   items = [],
   tradeProgress = {},
   tradeCompletedBy = {},
-  pinnedTrades = [],
-  togglePinTrade,
+  accountId,
+  accountNickname,
   updateTradeProgress,
   tradeSearch = "",
   setTradeSearch,
   tradeSortOrder = "asc",
   setTradeSortOrder,
 }: TradeListProps) {
+  const favoritesState = useBarterFavorites(accountId);
+  const [favoritesOnly, setFavoritesOnly] = useState(false);
+  const favorites = favoritesState.favorites;
   const filterAndSort = () => {
     const safeItems = Array.isArray(items) ? items : [];
     let list = [...safeItems];
+
+    if (favoritesOnly) {
+      list = list.filter((trade) => favorites.includes(trade.id));
+    }
 
     if (tradeSearch && tradeSearch.trim()) {
       const q = tradeSearch.trim().toLowerCase();
@@ -64,8 +74,8 @@ export default function TradeList({
     }
 
     return list.sort((a, b) => {
-      const aPin = pinnedTrades.includes(a.id) ? 1 : 0;
-      const bPin = pinnedTrades.includes(b.id) ? 1 : 0;
+      const aPin = favorites.includes(a.id) ? 1 : 0;
+      const bPin = favorites.includes(b.id) ? 1 : 0;
       if (aPin !== bPin) return bPin - aPin;
 
       const mapCompare = (a.map || "").localeCompare(b.map || "", "ko-KR");
@@ -116,12 +126,29 @@ export default function TradeList({
             {tradeSortOrder === "asc" ? "▲ 오름차순" : "▼ 내림차순"}
           </button>
         </div>
+        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
+          <label className="inline-flex items-center gap-1.5 text-xs text-[var(--text-sub)] cursor-pointer">
+            <input
+              type="checkbox"
+              checked={favoritesOnly}
+              onChange={(event) => setFavoritesOnly(event.target.checked)}
+              className="accent-[var(--accent)]"
+            />
+            즐겨찾기만
+          </label>
+          <BarterFavoritesFeedback
+            state={favoritesState}
+            accountId={accountId}
+            accountNickname={accountNickname}
+            legacyImport
+          />
+        </div>
       </div>
 
       {/* 카드 그리드 */}
       {filteredItems.length > 0 ? (
         <ProgressiveGrid
-          key={`${tradeSearch}:${tradeSortOrder}`}
+          key={`${accountId}:${tradeSearch}:${tradeSortOrder}:${favoritesOnly}`}
           items={filteredItems}
           columns={3}
           className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2.5 md:gap-3.5 items-start"
@@ -129,7 +156,8 @@ export default function TradeList({
             const currentVal = tradeProgress[trade.id] || 0;
             const limit = trade.limit || trade.max_count || 1;
             const isMax = currentVal >= limit;
-            const isPinned = pinnedTrades.includes(trade.id);
+            const isPinned = favorites.includes(trade.id);
+            const favoriteLabel = `${trade.reward || "품목"} · ${trade.npc || "NPC"} 즐겨찾기 ${isPinned ? "해제" : "추가"}`;
             const buyerNick = tradeCompletedBy[trade.id];
 
             return (
@@ -146,11 +174,12 @@ export default function TradeList({
                   <div className="flex min-w-[9rem] flex-1 items-start gap-1.5">
                     <button
                       type="button"
-                      aria-label="즐겨찾기"
+                      aria-label={favoriteLabel}
                       aria-pressed={isPinned}
-                      title={isPinned ? "즐겨찾기 해제" : "즐겨찾기 추가"}
-                      onClick={() => togglePinTrade(trade.id)}
-                      className={`text-xs md:text-sm cursor-pointer shrink-0 ${
+                      title={favoriteLabel}
+                      disabled={!favoritesState.ready || favoritesState.busy}
+                      onClick={() => void favoritesState.toggle(trade.id)}
+                      className={`text-xs md:text-sm cursor-pointer shrink-0 disabled:opacity-30 ${favoritesState.busy ? "disabled:cursor-wait" : "disabled:cursor-not-allowed"} ${
                         isPinned ? "opacity-100" : "opacity-30 hover:opacity-70"
                       }`}
                     >
@@ -248,7 +277,15 @@ export default function TradeList({
         />
       ) : (
         <div className="text-center py-10 text-xs md:text-sm text-[var(--text-sub)]">
-          등록되거나 검색된 품목이 없습니다.
+          {items.length === 0
+            ? "등록된 품목이 없습니다."
+            : favoritesOnly
+              ? !favoritesState.ready
+                ? favoritesState.busy ? "즐겨찾기를 불러오는 중이에요." : "즐겨찾기를 먼저 다시 조회해 주세요."
+                : favorites.length === 0
+                ? "즐겨찾기한 품목이 없습니다. 별표를 눌러 추가해 주세요."
+                : "현재 검색 조건에 맞는 즐겨찾기 품목이 없습니다."
+              : "검색 조건에 맞는 품목이 없습니다."}
         </div>
       )}
     </div>

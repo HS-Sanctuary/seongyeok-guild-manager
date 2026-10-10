@@ -1,0 +1,12 @@
+.barter-favorites-feedback {min-width:0; color:var(--text-sub); font-size:.7rem; line-height:1.5;}
+.barter-favorites-status {display:flex; align-items:center; flex-wrap:wrap; gap:.3rem .5rem;}
+.barter-favorites-status p {min-width:0; flex:1 1 9rem; margin:0; word-break:keep-all; overflow-wrap:anywhere;}
+.barter-favorites-feedback button {flex:none; max-width:100%; padding:.3rem .6rem; border:1px solid var(--panel-border); border-radius:1rem; color:var(--text-main); background:var(--inner-box); font:inherit; cursor:pointer;}
+.barter-favorites-feedback button:disabled {opacity:.55; cursor:default;}
+.barter-favorites-feedback button:focus-visible,.barter-favorites-import summary:focus-visible {outline:2px solid var(--accent); outline-offset:2px;}
+.barter-favorites-import {margin-top:.4rem; padding:.4rem .6rem; border:1px solid var(--panel-border); border-radius:.6rem; background:var(--inner-box);}
+.barter-favorites-import summary {cursor:pointer; color:var(--accent); word-break:keep-all; overflow-wrap:anywhere;}
+.barter-favorites-import p {margin:.4rem 0; word-break:keep-all; overflow-wrap:anywhere;}
+.barter-favorites-import strong {color:var(--text-main);}
+.barter-favorites-import label {display:flex; gap:.3rem; align-items:center; margin:.4rem 0;}
+.barter-favorites-import input {flex:none; accent-color:var(--accent);}

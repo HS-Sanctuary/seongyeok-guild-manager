@@ -1,5 +1,12 @@
 # 🏛️ SANCTUM Master Guide
 
+## 2026-10-10 v2.21 유지 — 물물교환 즐겨찾기 구조
+
+- app/character는 /api/auth/session에서 승인된 본인 계정 UUID를 확인해 TradeList에 전달한다. 표시용 로컬 계정 객체를 인증으로 간주하지 않는다.
+- hooks/useBarterFavorites → /api/kronos/barter-favorites → 서버 세션 검증 → public.kronos_barter_favorites. 계정별 별표를 웹/기존 IRIS 로컬 연결이 공유하며 이번 배포는 웹/API만 포함한다.
+- TradeList·BarterFavoritesFeedback·barter-favorites.css: 계정 공통 별표, 실패 재조회, 본인 확인 후 구형 브라우저 값 가져오기. 범위 제한 POST·카탈로그 검증·기존 true/false 보존·계정 세대 방어를 사용한다. 교환 횟수와 기존 기능은 그대로다.
+- supabase/sql/iris_barter_favorites.sql은 한설이 이미 적용한 테이블의 재실행 가능한 SQL 기록이다. 이번 작업은 운영 DDL/RLS/권한 실행 없음. 버전 v2.21 유지·공개 업데이트는 다음 버전에 통합, 미배포 IRIS/native·시낙시스는 제외한다.
+
 ## 2026-10-10 v2.21 공식 배포 범위
 
 - 운영 반영 확인: 코드89034a5 / Vercel dpl_3weipgZgD3d5AVtrdTFoaXX1ZQao 대시보드 Ready·Production·운영 도메인. 실제 /party v2.21·만료 안내 차단 해소 확인. 기존 공지 경로의 통합 업데이트 ID15·SANCTUM 시스템 작성자 확인(2026-10-10 02:25 KST). 후속 문서 commit은 구조 변경 없음, 아래 로컬 절은 당시 경과다.

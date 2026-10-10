@@ -1,5 +1,11 @@
 # SANCTUM Supabase 구조 기준서
 
+## 2026-10-10 kronos_barter_favorites — 사용자 적용 확인
+
+- public.kronos_barter_favorites: account_id uuid → accounts(id), trade_id bigint → nexus_trades(id), favorited boolean, updated_at timestamptz. PK(account_id,trade_id), 두 FK ON DELETE CASCADE, trade_id 인덱스. false 행은 해제 기록으로 보존한다.
+- 한설이 SQL을 적용하고 검증 JSON을 제공했다. 이번 읽기 전용 확인: RLS enabled true·policy_count0·anon/authenticated SELECT false·service_role SELECT/INSERT/UPDATE true·DELETE false. 공개 정책이나 브라우저 직접 권한을 열지 않는다.
+- 서버 세션 API만 본인 계정 접근을 허용한다. 명시적 브라우저 가져오기는 기존 true/false를 덮어쓰지 않는다. SQL 기록 supabase/sql/iris_barter_favorites.sql; 이번 push에서는 DB 변경을 실행하지 않았다. 되돌릴 때 테이블/행 삭제 없이 앱만 이전 코드로 복귀한다.
+
 ## 2026-10-09 parties Realtime — 한설 승인 운영 적용
 
 - pg_publication_tables에서 parties 비활성을 확인하고 SQL·부하·복구 안내 후 명시적 승인으로 supabase_realtime에 public.parties를 추가했다. 재조회 활성=true, replica identity=d(기본값) 유지. 데이터/컬럼/RLS/권한 변경 없음.

@@ -1,5 +1,12 @@
 # SANCTUM 작업 인계
 
+## 2026-10-10 12:51 KST 영겁 — 물물교환 즐겨찾기 한정 배포
+
+- 한설이 기능만 main에 적용하고 버전/공개 업데이트노트는 다음 묶음에 통합하도록 지정했다. v2.21 유지·새 공지 없음. staged 소스 10개와 관련 내부 문서만 포함한다. 기존 미커밋 IRIS/native·상점/임무·시낙시스·개인 삭제는 보존하고 제외한다.
+- 서버 쿠키 세션의 본인 UUID로 웹 별표 GET/POST를 연결했다. 계정 전환 늦은 응답/중복 저장/불완전 조회 방어, 명시적 구형 브라우저 가져오기(기존 true/false 보존). 운영 구형 별표가 DB와 연동되지 않던 P1의 앱 적용이다.
+- 한설 적용 테이블의 읽기 전용 검증: RLS true·정책0·anon/authenticated SELECT false·service_role SELECT/INSERT/UPDATE true·DELETE false. 이번 작업 SQL 실행/실데이터 쓰기 없음.
+- 후보 전체 Node·독립 tsc·분리 webpack 53경로 exit0, 독립 리뷰 blocking0. main 최신 pull 확인. Vercel Ready 및 실제 운영 별표 조회 화면은 후속 확인하며 DB 저장/가져오기 실조작은 사용자가 수행한다.
+
 ## 2026-10-10 02:25 KST 영겁 — v2.21 운영·통합 공지 완료
 
 - main 89034a5, Vercel dpl_3weipgZgD3d5AVtrdTFoaXX1ZQao. GitHub success·기존 로그인 Vercel 브라우저에서 Ready/Production/운영 도메인/동일 커밋 직접 확인. MCP403을 성공으로 오인하지 말 것. 운영 /party BETA v2.21·한설 세션·만료 안내 없음·사용 화면·관찰 콘솔0. 현 날짜 조건에 파티가 없어서 실제 담당자 연장/취소 쓰기는 미시험이다.

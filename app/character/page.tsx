@@ -14,6 +14,7 @@ import TradeList from "@/components/character/TradeList";
 import KronosWorkspace from "@/components/character/KronosWorkspace";
 import { getKronosResetDay, kronosPeriodStart } from "@/lib/kronos";
 import { getKronosTaskLists } from "@/lib/irisKronos";
+import { validateFavoriteAccountId } from "@/lib/barterFavorites";
 import CharacterSelector from "@/components/character/CharacterSelector";
 import CharacterManageModal from "@/components/character/CharacterManageModal";
 
@@ -64,6 +65,7 @@ function isCurrentTradePeriod(
 export default function CharacterPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
+  const [barterAccountId, setBarterAccountId] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
 
   const [saveToast, setSaveToast] = useState<string>('idle');
@@ -109,7 +111,6 @@ export default function CharacterPage() {
   const tradeRecordsRef = useRef<Record<number, any>>({});
   const dirtyTradeIdsRef = useRef<Set<number>>(new Set());
   const tradeEditVersionsRef = useRef<Record<number, number>>({});
-  const [pinnedTrades, setPinnedTrades] = useState<number[]>([]);
 
   const [tradeSearch, setTradeSearch] = useState<string>("");
   const [tradeSortOrder, setTradeSortOrder] = useState<'asc' | 'desc'>('asc');
@@ -168,14 +169,28 @@ export default function CharacterPage() {
     
     const parsedUser = JSON.parse(savedUser);
     setUser(parsedUser);
+    setBarterAccountId(null);
 
-    const savedPins = localStorage.getItem("nexus_pinned_trades");
-    if (savedPins) {
-      try { setPinnedTrades(JSON.parse(savedPins)); } catch (e) {}
-    }
+    // nexus_user is a nickname/theme display preset, not a session identity.
+    // Resolve the UUID once from the existing cookie-authenticated session;
+    // never borrow an ID from another remembered account or a stale response.
+    let active = true;
+    const abort = new AbortController();
+    void fetch('/api/auth/session', {cache:'no-store', credentials:'same-origin', signal:abort.signal})
+      .then(async response => response.ok ? response.json() : null)
+      .then(data => {
+        const account = data?.account;
+        if (!active || account?.nickname !== parsedUser.nickname
+            || ['pending', '승인대기'].includes(account?.role)
+            || ['pending', '승인대기'].includes(account?.status)) return;
+        const id = validateFavoriteAccountId(account?.id);
+        setBarterAccountId(id);
+      })
+      .catch(() => { /* Keep preferences locked if the session cannot be verified. */ });
 
     checkResetNotification();
     fetchMasterData(parsedUser.nickname);
+    return () => {active = false; abort.abort();};
   }, [router]);
 
   const checkResetNotification = () => {
@@ -582,14 +597,6 @@ export default function CharacterPage() {
   const setMaxLevel = (clsName: string) => setLevels(prev => ({ ...prev, [clsName]: 65 }));
   const setMinLevel = (clsName: string) => setLevels(prev => ({ ...prev, [clsName]: 1 }));
 
-  const togglePinTrade = (id: number) => {
-    setPinnedTrades(prev => {
-      const next = prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id];
-      localStorage.setItem("nexus_pinned_trades", JSON.stringify(next));
-      return next;
-    });
-  };
-
   const updateRepeatCount = (id: number, delta: number, max: number) => {
     setRepeatChecks(prev => {
       const currentArr = prev[id] || Array(max).fill(false);
@@ -988,8 +995,8 @@ export default function CharacterPage() {
               items={Array.isArray(dbTrades) ? dbTrades : []}
               tradeProgress={tradeProgress}
               tradeCompletedBy={tradeCompletedBy}
-              pinnedTrades={pinnedTrades}
-              togglePinTrade={togglePinTrade}
+              accountId={barterAccountId}
+              accountNickname={user?.nickname}
               updateTradeProgress={updateTradeProgress}
               tradeSearch={tradeSearch}
               setTradeSearch={setTradeSearch}
