@@ -1,5 +1,11 @@
 # 🏛️ SANCTUM Master Guide
 
+## 2026-10-11 — IRIS 탐색 정리 로컬 후보
+
+- `DesktopFeaturePicker`는 기존 KronosTab 7개/이름을 export하고 생텀 기록·캐릭터 관리·게임 정보로 분류한다. 현재 기능 줄은 상시 표시, 목록은 필요할 때만 mount한다. 선택/Escape/바깥 조작·초점·남은 뷰포트 높이 측정/리스너 해제는 이 컴포넌트가 담당한다.
+- `DesktopCenter`는 기존 본문을 숨김으로 유지해 클래스 초안/패널 수명을 보존한다. 기능 선택과 캐릭터 선택을 상호 닫고, 상위 메뉴·잠금·설정·선택 캐릭터·계정 메뉴 변경 시 기능 목록을 닫는다. `DesktopPage`는 기존 accountOpen을 내부 prop `contextPanelOpen`으로 연결한다. 기존 API/native/보호 대기함/권한/DB 계약은 변경하지 않았다.
+- desktop CSS는 기존 7개 상시 탭 배열을 테마·rem 기반 현재 기능/선택 그룹/내부 스크롤로 교체한다. 미래 HUD/게임 조회 명령은 추가하지 않았다. 후속 5설계/49항목은 `docs/IRIS_FORWARD_DESIGNS.md`에 보관하며 구현 승인은 별도다. 아직 로컬 후보이고 새 버전·배포는 없다.
+
 ## 2026-10-11 19:51 KST — IRIS0.2.2 운영 확인
 
 - main48d5611 / Vercel Production dpl_DP47tvp3qsVdrzpomVmJarb5XrTu READY/동일SHA, 운영 Beta0.2.2·metadata/ZIPhash·실제EXE 최신 HTTPS감지·핵심7GET/authready/화면 확인. 검증 문서 후속은 **구조 변경 없음**, DB/RLS/권한/공개 게시 변경 없음. 구버전0.2.0/0.2.1 HTTPS실패는 nativeZIP수동교체1회 필요하며 사용자 앱 대신 교체하지 않았다.

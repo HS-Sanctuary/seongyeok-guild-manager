@@ -54,7 +54,7 @@ try{
   assert.equal(await page.locator('#iris-character-list').isVisible(),false,'Selection must collapse picker');
   if(process.argv.includes('--class-only')){
     assert.equal(await page.getByLabel('댄서 레벨',{exact:true}).isVisible(),false,'Classes must not lengthen homework');
-    await page.getByRole('button',{name:'클래스',exact:true}).click();
+    await chooseIrisFeature(page,'클래스');
     const input=page.getByLabel('댄서 레벨',{exact:true}),gauge=page.getByLabel('댄서 레벨 게이지',{exact:true});
     await input.fill('53');await gauge.focus();await gauge.press('ArrowRight');
     await page.waitForFunction(()=>document.querySelector('[aria-label="댄서 레벨"]')?.value==='54');
@@ -110,7 +110,7 @@ try{
   assert.equal(await page.evaluate(()=>document.activeElement?.getAttribute('aria-label')),focusBefore,'Focus changed during background save');
   assert.equal(await page.evaluate(()=>scrollY),scrollBefore,'Scroll changed during background save');
   assert.equal(posts,1);
-  await page.getByRole('button',{name:'클래스',exact:true}).click();
+  await chooseIrisFeature(page,'클래스');
   const classInput=page.getByLabel('댄서 레벨',{exact:true});
   await classInput.fill('66');await classInput.evaluate(e=>{window.fixtureClass=e;});
   await page.getByRole('button',{name:'지금 저장',exact:true}).click();await classInput.focus();
@@ -179,9 +179,9 @@ try{
   const expectedBorder=await page.evaluate(()=>{const el=document.createElement('div');el.style.color='var(--panel-border)';document.body.append(el);const c=getComputedStyle(el).color;el.remove();return c;});
   await page.waitForFunction(color=>getComputedStyle(document.querySelector('.iris-desktop-button')).borderTopColor===color,expectedBorder);
   await page.screenshot({path:'.superpowers/sdd/2026-10-07-iris-class-level-editing/desktop-ui.png',fullPage:true});
-  await page.getByRole('button',{name:'숙제',exact:true}).click();
+  await chooseIrisFeature(page,'숙제');
   await page.setViewportSize({width:390,height:700});await page.evaluate(()=>{document.documentElement.style.fontSize='18px';});
-  await page.getByRole('button',{name:'클래스',exact:true}).click();
+  await chooseIrisFeature(page,'클래스');
   await page.screenshot({path:'.superpowers/sdd/2026-10-07-iris-class-level-editing/compact-homework.png',fullPage:true});
   await page.screenshot({path:'.superpowers/sdd/2026-10-07-iris-class-level-editing/compact-folded.png',fullPage:true});
   characterFailure=true;await page.reload();
@@ -194,3 +194,4 @@ try{
   assert.equal(posts,1,'Character retry must not issue a save');assert.deepEqual(errors,[]);
   console.log('Desktop DOM identity/focus/collapse, 72 layout/theme/font combinations, panel dismissal, synthetic save PASS');
 }catch(error){console.log(await page.locator('body').innerText());throw error;}finally{await browser.close();}
+import {chooseIrisFeature} from './iris-feature-navigation.mjs';

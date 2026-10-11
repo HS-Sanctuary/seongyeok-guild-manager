@@ -19,8 +19,10 @@ test('center enables barter, shop and missions as separate Kronos panels',()=>{
   const {DesktopCenter}=loadTS('components/iris/DesktopCenter.tsx');
   const html=renderToStaticMarkup(React.createElement(DesktopCenter,{account:{id:'a',nickname:'한설',role:'길드원'},characters:[{id:'7',nickname:'열두글자캐릭터닉네임확인',job:'장궁병'}],selected:{characterId:'7',details:{tasks:{daily:[],weekly:[],abyss:[],raid:[]},classes:[]}},pending:[],locked:false,onSelectCharacter(){},onEdit(){},onClose(){}}));
   assert.match(html,/aria-label="상위 메뉴"/);assert.match(html,/aria-label="크로노스 기능"/);
-  for(const label of ['상점구매','임무게시판'])assert.match(html,new RegExp('<button(?![^>]*disabled)[^>]*>'+label));
-  assert.match(html,/<button(?![^>]*disabled)[^>]*>물물교환<\/button>/);
+  for(const id of ['shop','missions','barter'])assert.match(html,new RegExp('id="iris-pane-'+id+'"'));
+  const {DesktopFeaturePicker}=loadTS('components/iris/DesktopFeaturePicker.tsx');
+  const choices=renderToStaticMarkup(React.createElement(DesktopFeaturePicker,{value:'homework',open:true,disabled:false,onOpenChange(){},onChoose(){}}));
+  for(const label of ['상점구매','임무게시판','물물교환'])assert.match(choices,new RegExp('<button(?![^>]*disabled)[^>]*>'+label));
   assert.doesNotMatch(html,/<span>준비 중<\/span>/);
   assert.match(html,/생텀 선택/);assert.match(html,/열두글자캐릭터닉네임확인/);
 });

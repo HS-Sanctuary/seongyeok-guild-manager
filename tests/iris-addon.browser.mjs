@@ -27,7 +27,7 @@ await page.addInitScript(()=>{
 const currencyReads=()=>page.evaluate(()=>window.__addonCalls.filter(v=>v==='game.currencies.read').length);
 try{
   await page.goto(process.env.IRIS_TEST_URL??'http://localhost:3000/iris/desktop');
-  await page.getByRole('button',{name:'재화',exact:true}).click();await page.getByRole('heading',{name:'인게임 재화',exact:true}).waitFor();
+  await chooseIrisFeature(page,'재화');await page.getByRole('heading',{name:'인게임 재화',exact:true}).waitFor();
   assert.equal(await page.getByRole('button',{name:'재화 강조 설정',exact:true}).count(),1,'Currency header needs its appearance editor');
   const reads=await currencyReads();await page.getByRole('button',{name:'재화 강조 설정',exact:true}).click();
   const dialog=page.getByRole('dialog',{name:'재화 강조 설정',exact:true});await dialog.waitFor();
@@ -38,11 +38,11 @@ try{
   const style=await gold.locator('dt').evaluate(e=>({color:getComputedStyle(e).color,weight:getComputedStyle(e).fontWeight,style:getComputedStyle(e).fontStyle}));
   assert.deepEqual(style,{color:'rgb(171, 18, 205)',weight:'700',style:'italic'});assert.deepEqual(await gold.locator('dd').evaluate(e=>({color:getComputedStyle(e).color,weight:getComputedStyle(e).fontWeight,style:getComputedStyle(e).fontStyle})),style);
   assert.equal(await currencyReads(),reads);assert.equal(posts,0);
-  await page.reload();await page.getByRole('button',{name:'재화',exact:true}).click();await gold.waitFor();assert.equal(await gold.locator('dt').evaluate(e=>getComputedStyle(e).fontWeight),'700');
+  await page.reload();await chooseIrisFeature(page,'재화');await gold.waitFor();assert.equal(await gold.locator('dt').evaluate(e=>getComputedStyle(e).fontWeight),'700');
   await page.getByRole('button',{name:'재화 강조 설정',exact:true}).click();await dialog.waitFor();await page.keyboard.press('Escape');assert.equal(await dialog.count(),0);assert.equal(await page.getByRole('button',{name:'재화 강조 설정',exact:true}).evaluate(e=>e===document.activeElement),true);
   for(const width of [320,390]){await page.setViewportSize({width,height:900});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);}
   if(process.env.IRIS_ADDON_FULL){
-    await page.getByRole('button',{name:'설정',exact:true}).click();await page.getByRole('button',{name:'Lumen',exact:true}).click();assert.equal(await page.locator('html').getAttribute('data-theme'),'lumen');await page.reload();await page.getByRole('button',{name:'재화',exact:true}).click();assert.equal(await page.locator('html').getAttribute('data-theme'),'lumen');
+    await page.getByRole('button',{name:'설정',exact:true}).click();await page.getByRole('button',{name:'Lumen',exact:true}).click();assert.equal(await page.locator('html').getAttribute('data-theme'),'lumen');await page.reload();await chooseIrisFeature(page,'재화');assert.equal(await page.locator('html').getAttribute('data-theme'),'lumen');
     assert.equal(await page.getByText('IRIS for SANCTUM',{exact:true}).count(),1);await page.getByRole('button',{name:'IRIS 최소화',exact:true}).click();assert.ok(await page.evaluate(()=>window.__addonCalls.includes('window.minimize')));
     await page.evaluate(()=>window.dispatchEvent(new CustomEvent('iris-desktop-close',{detail:{version:1,kind:'window.close.request',epoch:1,environment:'development',reason:'game-exit'}})));await page.getByRole('heading',{name:'게임이 종료됐어요. IRIS도 종료할까요?',exact:true}).waitFor();assert.equal(await page.getByRole('button',{name:'버리고 종료',exact:true}).count(),0);await page.getByRole('button',{name:'취소',exact:true}).click();
     await page.getByRole('button',{name:'설정',exact:true}).click();
@@ -55,10 +55,11 @@ try{
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
     }
     await page.getByRole('button',{name:'다른 계정 로그인',exact:true}).click();await page.getByLabel('대표 캐릭터 닉네임',{exact:true}).waitFor();assert.equal(posts,0,'Opening another login must not submit credentials');await page.keyboard.press('Escape');assert.equal(await page.getByLabel('대표 캐릭터 닉네임',{exact:true}).count(),0);
-    await page.getByRole('button',{name:'계정 전환',exact:true}).click();await page.getByRole('button',{name:'계정B',exact:true}).click();await page.getByText('계정B · 계정',{exact:true}).waitFor();await page.getByRole('button',{name:'이전 화면',exact:true}).click();await page.getByRole('button',{name:'재화',exact:true}).click();await gold.waitFor();assert.equal(await gold.locator('dt').evaluate(e=>getComputedStyle(e).fontWeight),'400','Account B cannot inherit A emphasis');
+    await page.getByRole('button',{name:'계정 전환',exact:true}).click();await page.getByRole('button',{name:'계정B',exact:true}).click();await page.getByText('계정B · 계정',{exact:true}).waitFor();await page.getByRole('button',{name:'이전 화면',exact:true}).click();await chooseIrisFeature(page,'재화');await gold.waitFor();assert.equal(await gold.locator('dt').evaluate(e=>getComputedStyle(e).fontWeight),'400','Account B cannot inherit A emphasis');
     await page.getByRole('button',{name:'설정',exact:true}).click();await page.evaluate(()=>{const set=Storage.prototype.setItem;Storage.prototype.setItem=function(key,value){if(key.startsWith('iris_appearance:'))throw Error('fixture blocked');return set.call(this,key,value);};});await page.getByRole('button',{name:'Vesper',exact:true}).click();assert.equal(await page.locator('html').getAttribute('data-theme'),'vesper');await page.getByRole('button',{name:'계정 전환',exact:true}).click();await page.getByRole('button',{name:'한설',exact:true}).click();await page.getByText('한설 · 계정',{exact:true}).waitFor();assert.equal(await page.locator('html').getAttribute('data-theme'),'vesper','Session-only theme must survive account switching');
     assert.equal(posts,2,'Only explicit synthetic account switching writes');
     await page.getByRole('button',{name:'로그아웃',exact:true}).click();await page.getByLabel('대표 캐릭터 닉네임',{exact:true}).waitFor();assert.equal(posts,3,'Explicit logout reaches the existing auth boundary');
   }
   assert.equal(posts,process.env.IRIS_ADDON_FULL?3:0);assert.deepEqual(errors,[]);console.log('Addon UI PASS: real currency editor, native read count stable, account controls directly visible, switch/login/logout boundaries, Escape/focus, narrow layouts; synthetic only');
 }finally{await browser.close();}
+import {chooseIrisFeature} from './iris-feature-navigation.mjs';

@@ -12,7 +12,8 @@ const browser=await chromium.launch({headless:true,channel:'chrome'});
 const page=await browser.newPage({viewport:{width:390,height:1050},deviceScaleFactor:3}),failures=[],errors=[];
 const screenshots=mkdtempSync(join(tmpdir(),'iris-navigation-'));
 page.setDefaultTimeout(4000);page.on('pageerror',e=>errors.push(e.message));
-const go=async(font=18)=>{await page.goto('http://127.0.0.1:3011/?nav=1&font='+font);await page.getByRole('button',{name:'스탯',exact:true}).waitFor();};
+const go=async(font=18)=>{await page.goto('http://127.0.0.1:3011/?nav=1&font='+font);await page.getByRole('button',{name:'기능 선택',exact:true}).waitFor();};
+const chooseFeature=async(name)=>{await page.getByRole('button',{name:'기능 선택',exact:true}).click();await page.getByRole('region',{name:'크로노스 기능 선택',exact:true}).getByRole('button',{name,exact:true}).click();};
 const scenario=async(name,run)=>{try{await run();console.log('PASS '+name);}catch(e){failures.push(e);console.error('FAIL '+name+' '+e.message);}};
 const fits=async()=>{
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,'document horizontal overflow');
@@ -74,6 +75,7 @@ try{
   });
   await scenario('main navigation visually leads child tabs in all six themes',async()=>{
     await go();
+    await page.getByRole('button',{name:'기능 선택',exact:true}).click();
     for(const theme of ['aureum','lumen','nemeton','vesper','rosarium','elysium']){
       await page.evaluate(theme=>document.documentElement.dataset.theme=theme,theme);
       await page.waitForFunction(()=>{
@@ -84,12 +86,12 @@ try{
       const selected=main.getByRole('button',{name:'크로노스',exact:true});
       assert.equal(await selected.locator('.iris-main-tab-icon').count(),1,'main menu includes a decorative icon');
       const colors=await page.evaluate(()=>{
-        const main=document.querySelector('.iris-main-tabs button[aria-pressed=true]'),child=document.querySelector('.iris-kronos-tabs button[aria-pressed=true]');
+        const main=document.querySelector('.iris-main-tabs button[aria-pressed=true]'),child=document.querySelector('.iris-feature-list button[aria-pressed=true]');
         const swatch=document.createElement('span');swatch.style.background='var(--accent)';document.body.append(swatch);
         const result=[getComputedStyle(main).backgroundColor,getComputedStyle(child).backgroundColor,getComputedStyle(swatch).backgroundColor];swatch.remove();return result;
       });
       assert.equal(colors[0],colors[2],theme+' main selected fills with accent');assert.notEqual(colors[0],colors[1],theme+' child selected stays quieter');
-      assert.equal(await child.getByRole('button').count(),7);await fits();
+      assert.equal(await child.getByRole('region',{name:'크로노스 기능 선택',exact:true}).getByRole('button').count(),7);await fits();
       if(['aureum','lumen'].includes(theme))await page.screenshot({path:join(screenshots,theme+'-navigation.png')});
     }
     await page.getByRole('button',{name:'스탯',exact:true}).click();await page.getByRole('button',{name:'시낙시스',exact:true}).click();
@@ -98,7 +100,7 @@ try{
   });
   await scenario('stats confirmation keeps cancel right of No without wrapping or clipping',async()=>{
     for(const [width,font] of [[320,18],[390,18],[768,18],[1280,18],[1280,20],[1280,22]]){
-      await page.setViewportSize({width,height:1050});await go(font);await page.getByRole('button',{name:'스탯',exact:true}).click();
+      await page.setViewportSize({width,height:1050});await go(font);await chooseFeature('스탯');
       await page.getByRole('button',{name:'스탯 확인 열기'}).click();const dialog=page.getByRole('dialog');await dialog.waitFor();
       const boxes=await Promise.all(['네, 업데이트','아니요, 다른 캐릭터','취소'].map(name=>dialog.getByRole('button',{name,exact:true}).boundingBox()));
       assert.ok(Math.abs(boxes[0].y-boxes[2].y)<2,'three actions stay in one row '+width+'/'+font);assert.ok(boxes[2].x>boxes[1].x+boxes[1].width-1,'cancel follows No');
@@ -108,7 +110,7 @@ try{
     }
   });
   await scenario('confirmation retains cancel, choose-other, confirm and busy guards',async()=>{
-    await go();await page.getByRole('button',{name:'스탯',exact:true}).click();const open=page.getByRole('button',{name:'스탯 확인 열기'});
+    await go();await chooseFeature('스탯');const open=page.getByRole('button',{name:'스탯 확인 열기'});
     await open.click();await page.getByRole('button',{name:'취소',exact:true}).click();assert.equal(await page.getByRole('dialog').count(),0);
     await open.click();await page.getByRole('button',{name:'아니요, 다른 캐릭터',exact:true}).click();
     await page.getByRole('heading',{name:'업데이트할 캐릭터 선택'}).waitFor();await page.getByRole('button',{name:'열두글자닉네임테스트용 · 검술사',exact:true}).click();

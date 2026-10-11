@@ -54,14 +54,30 @@
 
 **Interfaces:** Task 1의 picker props와 `기능 선택` 접근성 이름을 재사용한다. 시험 helper `async function chooseFeature(page,name)`는 호출 버튼을 열고 정확한 기능 버튼을 선택한다. 기존 기능 검증의 의도/IO assertion은 바꾸지 않는다.
 
-- [ ] 시험 `class draft survives feature and section round trips` 추가: 클래스 초안을 바꾸고 다른 기능/시낙시스/설정 왕복 후 같은 값과 pending 기록을 확인한다. 초안 유실 또는 불필요한 IO는 실패다.
-- [ ] `tests/iris-navigation.browser.mjs`의 기존 SVG/확인창 검증을 보존하며 호출 진입만 helper로 변경한다. 관련 다른 브라우저/DOM 시험의 직접 탭 사용도 찾아 같은 방법으로 변경한다.
-- [ ] 선택 줄과 선택 패널 CSS를 추가한다. 3그룹이 동시에 보이고 그룹별 재진입은 없으며, 좁은 높이에는 내부 스크롤이 적용된다.
-- [ ] 시험 `group picker layout and contrast`에서 320/390/768/1280px·PC 18/20/22px·6테마를 확인한다. 가로 넘침/클리핑 없는지, 선택·초점 대비, 짧은 높이의 마지막 버튼 도달을 검사한다.
-- [ ] `node --test tests/iris-desktop-controller.test.mjs tests/iris-desktop-queue.test.mjs tests/iris-workspace-ui.test.mjs tests/iris-workspace-queue.test.mjs tests/iris-hotfix-display.test.mjs` PASS. 시험의 탭 구조 assertion만 변경하고 기존 저장/수치 검증은 완화하지 않는다.
-- [ ] `npx tsc --noEmit`, 브라우저 시험, `npm run build` 각각 종료 코드 0 확인. 개발 서버가 쓰는 빌드 폴더와 충돌하면 기존 격리 빌드 절차를 적용하며 실행 중 앱을 종료하지 않는다.
-- [ ] 밝은/어두운 390px 화면을 눈으로 확인하고 합성 데이터임을 표시한다. 변경 diff·문서 검증 상태를 보고하고 로컬 commit한다. 실제 앱/운영 계정 시험과 배포는 별도다.
+- [x] 시험 `class draft survives feature and section round trips` 추가: 클래스 초안을 바꾸고 다른 기능/시낙시스/설정 왕복 후 같은 값과 pending 기록을 확인한다. 초안 유실 또는 불필요한 IO는 실패다.
+- [x] `tests/iris-navigation.browser.mjs`의 기존 SVG/확인창 검증을 보존하며 호출 진입만 helper로 변경한다. 관련 다른 브라우저/DOM 시험의 직접 탭 사용도 찾아 같은 방법으로 변경한다.
+- [x] 선택 줄과 선택 패널 CSS를 추가한다. 3그룹이 동시에 보이고 그룹별 재진입은 없으며, 좁은 높이에는 내부 스크롤이 적용된다.
+- [x] 시험 `group picker layout and contrast`에서 320/390/768/1280px·PC 18/20/22px·6테마를 확인한다. 가로 넘침/클리핑 없는지, 선택·초점 대비, 짧은 높이의 마지막 버튼 도달을 검사한다.
+- [x] `node --test tests/iris-desktop-controller.test.mjs tests/iris-desktop-queue.test.mjs tests/iris-workspace-ui.test.mjs tests/iris-workspace-queue.test.mjs tests/iris-hotfix-display.test.mjs` PASS. 시험의 탭 구조 assertion만 변경하고 기존 저장/수치 검증은 완화하지 않는다.
+- [x] `npx tsc --noEmit`, 브라우저 시험, `npm run build` 각각 종료 코드 0 확인. 개발 서버가 쓰는 빌드 폴더와 충돌하면 기존 격리 빌드 절차를 적용하며 실행 중 앱을 종료하지 않는다.
+- [x] 밝은/어두운 390px 화면을 눈으로 확인하고 합성 데이터임을 표시한다. 변경 diff·문서 검증 상태를 보고하고 로컬 commit한다. 실제 앱/운영 계정 시험과 배포는 별도다.
 
 ## 사용자 확인
 
 설계 승인 후 작성된 계획이다. 사용자에게 이 계획과 직접 구현(Native) 권장 방식을 한 번 확인받은 뒤 실행한다. 미래 HUD 설계 문서는 보관용이며 이 계획과 섞어서 구현하지 않는다.
+
+## 실행 결과 — 2026-10-11, 로컬 완료
+
+- 한설의 설계·직접 실행 승인 후 Task1 `6fd6d3d`로 구현했다. 외부 push/새 버전/게임·DB 쓰기는 없다.
+- RED: 기존 상시 탭, 짧은 높이의 내부 스크롤 부재, Elysium 선택 글자 대비2.10을 각각 실패로 확인한 뒤 수정했다. 최종 리뷰의 실제 상단 위치를 무시한 높이 제한도 내부 스크롤만으로 마지막 버튼이 화면 밖임을 확인한 뒤 수정했다.
+- 최종 새 합성 브라우저5그룹 PASS: 7개 ID/그룹·동일 기능 재선택 IO0, 닫힘/키보드/상호 배타성, 문맥 전환/잠금, 클래스 초안 유지, 4폭·PC3글자·6테마·짧은 높이. 기존 SVG/확인창6그룹도 PASS. 밝고 어두운390px 캡처를 눈으로 확인했다. 캡처는 합성 데이터다.
+- 전체 Node415 중412 PASS·3 skipped·0 fail, 독립 TypeScript exit0, 격리 webpack build57 exit0 (`sanctum-iris-build-zHNLOM`). 다른6개 브라우저 진입부를 변경했으나 모두 실행하지는 않았다. 실제 사용자 앱·게임·다른 PC 시험은 별도다.
+- 검토는 새 독립 리뷰어1회, 중요 문제1개 RED→GREEN 수정과 최종 검증으로 종료했다. CSS 테마 전환이 끝난 후 대비/캡처를 측정했다. 합성 시험 같은3011포트 병행 실패는 순차 재실행으로 해소했다.
+
+### 실행 중 판단과 비용
+
+1. 기존 호스트/공유 작업 폴더·기능 브랜치를 유지했다. 사용자 미커밋 파일을 제외한 경로별 커밋으로 보존한다. 별도 worktree보다 같은 브랜치를 공유하는 위험이 있다.
+2. 상호작용 시험을 별도 `iris-feature-picker.browser.mjs`로 분리해 픽셀 시험 반복을 줄였다. 시험 진입점이 둘이 되는 유지 비용이 있다.
+3. Task1에 작은 CSS와 집중5시험을 포함해 먼저 usable하게 했다. Task2와 CSS 작업 경계가 겹치지만 제품 범위는 늘리지 않았다.
+
+후속5설계/49항목은 `docs/IRIS_FORWARD_DESIGNS.md`에서 보관한다. 현재 후보는 로컬 브랜치에 유지하며 통합/배포 선택은 한설에게 맡긴다.

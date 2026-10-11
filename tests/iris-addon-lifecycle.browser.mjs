@@ -34,7 +34,7 @@ try{for(const mode of ['saved','unknown','conflict','unauthorized','invalid-draf
  try{
   await page.goto(process.env.IRIS_TEST_URL??'http://localhost:3000/iris/desktop');await page.getByRole('button',{name:'캐릭터 선택',exact:true}).click();await page.getByRole('button',{name:'한설 댄서',exact:true}).click();
   await page.getByRole('checkbox',{name:'일일 미션 완료',exact:true}).check();await page.waitForFunction(()=>window.fixture.queue?.entries.length===1);
-  if(mode==='invalid-draft'){await page.getByRole('button',{name:'클래스',exact:true}).click();await page.getByRole('textbox',{name:'전사 레벨',exact:true}).fill('oops');}
+  if(mode==='invalid-draft'){await chooseIrisFeature(page,'클래스');await page.getByRole('textbox',{name:'전사 레벨',exact:true}).fill('oops');}
   if(mode==='keep-failed')await page.evaluate(()=>window.fixture.fail='store.replace');
   if(mode==='close-retry')await page.evaluate(()=>window.fixture.fail='window.close');
   const ask=()=>page.evaluate(()=>window.dispatchEvent(new CustomEvent('iris-desktop-close',{detail:{version:1,kind:'window.close.request',epoch:1,environment:'development',reason:'game-exit'}})));
@@ -53,3 +53,4 @@ try{for(const mode of ['saved','unknown','conflict','unauthorized','invalid-draf
   assert.deepEqual(errors,[]);passed++;console.log(`PASS game-exit ${mode}`);
  }finally{await context.close();}
 }console.log(`Addon lifecycle ${passed}/${passed} PASS; no real DB/game writes`);}finally{await browser.close();}
+import {chooseIrisFeature} from './iris-feature-navigation.mjs';

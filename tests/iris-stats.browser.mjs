@@ -32,11 +32,11 @@ try{
   await page.goto(process.env.IRIS_TEST_URL??'http://localhost:3001/iris/desktop');
   await page.getByRole('button',{name:'네, 선택',exact:true}).click();assert.equal(posts,0,'Login suggestion never writes');
   assert.equal(await page.getByRole('navigation',{name:'상위 메뉴',exact:true}).count(),1,'Three parent menus must be separate from Kronos actions');
-  assert.equal(await page.getByRole('button',{name:'물물교환',exact:true}).isDisabled(),false);
-  for(const name of ['상점구매','임무게시판'])assert.equal(await page.getByRole('button',{name,exact:true}).isDisabled(),true);
+  for(const name of ['물물교환','상점구매','임무게시판'])assert.equal(await (await irisFeatureButton(page,name)).isDisabled(),false);
+  await page.keyboard.press('Escape');
   if(process.env.IRIS_UI_SCREENSHOT)await page.screenshot({path:process.env.IRIS_UI_SCREENSHOT,fullPage:true});
   await page.evaluate(()=>window.fixtureScore=89);
-  await page.getByRole('button',{name:'스탯',exact:true}).click();
+  await chooseIrisFeature(page,'스탯');
   await page.getByRole('heading',{name:'실제 인게임 스테이터스',exact:true}).waitFor();
   await page.locator('#iris-pane-stats .iris-stats-card').last().getByText('89',{exact:true}).waitFor();
   assert.equal(await page.getByRole('dialog').count(),0,'No permanent confirmation');
@@ -54,11 +54,11 @@ try{
   assert.equal(await update.isDisabled(),true);
   const before=reads;await page.waitForTimeout(2100);assert.equal(reads,before,'Game watcher does not poll the DB catalog');
   await page.getByRole('button',{name:'스탯 재조회',exact:true}).click();assert.equal(await page.getByRole('dialog').count(),0,'Refresh clears confirmation');
-  await page.getByRole('button',{name:'재화',exact:true}).click();await page.getByText('12,345,678,901',{exact:true}).waitFor();
+  await chooseIrisFeature(page,'재화');await page.getByText('12,345,678,901',{exact:true}).waitFor();
   assert.equal(await page.evaluate(()=>window.fixtureCurrencyReads),1);assert.equal(posts,1);
-  await page.getByRole('button',{name:'재화',exact:true}).click();assert.equal(await page.evaluate(()=>window.fixtureCurrencyReads),1,'Same tab does not reread');
+  await chooseIrisFeature(page,'재화');assert.equal(await page.evaluate(()=>window.fixtureCurrencyReads),1,'Same tab does not reread');
   await page.getByRole('button',{name:'설정',exact:true}).click();assert.equal(await page.getByRole('navigation',{name:'크로노스 기능',exact:true}).isVisible(),false);
-  await page.getByRole('button',{name:'크로노스',exact:true}).click();assert.equal(await page.getByRole('button',{name:'재화',exact:true}).getAttribute('aria-pressed'),'true','Returning to Kronos restores its last selected subtab');
+  await page.getByRole('button',{name:'이전 화면',exact:true}).click();assert.equal(await page.locator('.iris-hud').getAttribute('data-active-tab'),'currencies','Returning to Kronos restores its last selected subtab');
   await page.waitForFunction(()=>window.fixtureCurrencyReads===2);
   await page.setViewportSize({width:390,height:420});
   await page.evaluate(()=>document.querySelector('#iris-pane-currencies').style.minHeight='1100px');
@@ -69,21 +69,22 @@ try{
   await page.keyboard.press('Escape');assert.equal(await page.getByRole('button',{name:'캐릭터 선택',exact:true}).getAttribute('aria-expanded'),'false');
   await page.evaluate(()=>{document.querySelector('#iris-pane-currencies').style.minHeight='';window.scrollTo(0,0);});
   await page.setViewportSize({width:390,height:900});
-  await page.getByRole('button',{name:'클래스',exact:true}).click();await page.getByRole('button',{name:'전사',exact:true}).click();
+  await chooseIrisFeature(page,'클래스');await page.getByRole('button',{name:'전사',exact:true}).click();
   assert.equal(await page.locator('.iris-class-list').evaluate(e=>e.scrollHeight>e.clientHeight),false,'Four-row filtered list has no internal scroll');
   await page.getByRole('button',{name:'전체',exact:true}).click();assert.equal(await page.locator('.iris-class-list').evaluate(e=>e.scrollHeight>e.clientHeight),true,'All classes retain internal scroll');
   for(const width of [320,390,768,1280]){await page.setViewportSize({width,height:900});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`Overflow at ${width}`);}
   await page.getByRole('textbox',{name:'전사 레벨',exact:true}).fill('x');
-  const priorReads=kronosReads;await page.getByRole('button',{name:'숙제',exact:true}).click();
+  const priorReads=kronosReads;await chooseIrisFeature(page,'숙제');
   await page.waitForTimeout(300);assert.equal(kronosReads,priorReads+1,'Homework tab refreshes once');
-  await page.getByRole('button',{name:'숙제',exact:true}).click();await page.waitForTimeout(100);assert.equal(kronosReads,priorReads+1,'Same homework tab does not refresh');
-  await page.getByRole('button',{name:'클래스',exact:true}).click();
+  await chooseIrisFeature(page,'숙제');await page.waitForTimeout(100);assert.equal(kronosReads,priorReads+1,'Same homework tab does not refresh');
+  await chooseIrisFeature(page,'클래스');
   await page.waitForTimeout(300);assert.equal(await page.getByRole('textbox',{name:'전사 레벨',exact:true}).inputValue(),'x','Refresh preserves invalid unsaved draft');assert.equal(posts,1);
   slowStats=true;await page.reload();
   await page.getByRole('button',{name:'캐릭터 선택',exact:true}).click();await page.getByRole('button',{name:'화연 힐러',exact:true}).click();
-  await page.getByRole('button',{name:'클래스',exact:true}).click();await page.getByRole('button',{name:'전사',exact:true}).click();
+  await chooseIrisFeature(page,'클래스');await page.getByRole('button',{name:'전사',exact:true}).click();
   await page.waitForTimeout(4300);
   assert.equal(await page.getByRole('textbox',{name:'전사 레벨',exact:true}).isDisabled(),false,'Background stats load must not lock class editing');
   await page.waitForTimeout(2200);assert.equal(await page.getByRole('button',{name:'네, 선택',exact:true}).count(),0,'Late suggestion must not override manual selection');
   assert.deepEqual(errors,[]);console.log(`Stats synthetic DOM PASS: manual confirmation, changed snapshot, 0/decrease/missing, one POST, no catalog polling, reset, four widths (${reads} GETs)`);
 }catch(error){console.log(await page.locator('body').innerText());throw error;}finally{await browser.close();}
+import {chooseIrisFeature,irisFeatureButton} from './iris-feature-navigation.mjs';

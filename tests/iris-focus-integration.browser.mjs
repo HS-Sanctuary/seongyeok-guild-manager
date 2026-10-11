@@ -54,7 +54,7 @@ try{
   await page.goto(target.href,{timeout:45000});
   await page.getByRole('button',{name:'캐릭터 선택',exact:true}).click();
   await page.locator('#iris-character-list button').first().click();
-  await page.getByRole('button',{name:'클래스',exact:true}).click();
+  await chooseIrisFeature(page,'클래스');
   const list=page.locator('.iris-class-list');await list.waitFor();
   const bounds=await list.boundingBox();
   assert.ok(bounds.height>800,`All classes must fill tall window: ${JSON.stringify(bounds)}`);
@@ -85,7 +85,7 @@ try{
   await trigger.click();
   const b=await dialog.boundingBox();assert.ok(Math.abs(b.y+b.height/2-450)<20,'Account panel centered vertically');
   await page.mouse.click(2,2);await dialog.waitFor({state:'hidden'});
-  await page.getByRole('button',{name:'물물교환',exact:true}).click();
+  await chooseIrisFeature(page,'물물교환');
   await page.locator('#iris-pane-barter').waitFor();
   const counter=page.getByLabel('우유 교환 횟수',{exact:true});await counter.waitFor();
   const frozen=await page.evaluate(()=>Date.now());await page.clock.pauseAt(frozen+20);
@@ -105,7 +105,8 @@ try{
   await page.getByRole('searchbox',{name:'물물교환 검색',exact:true}).fill('없는품목');
   await page.getByText('조건에 맞는 물물교환이 없어요.',{exact:true}).waitFor();
   await page.getByRole('searchbox',{name:'물물교환 검색',exact:true}).fill('');
-  assert.equal(await page.getByRole('button',{name:'상점구매',exact:true}).isDisabled(),true);
+  assert.equal(await (await irisFeatureButton(page,'상점구매')).isDisabled(),false);
+  await page.keyboard.press('Escape');
   await page.getByRole('button',{name:'설정',exact:true}).click();
   await page.getByRole('button',{name:'Lumen',exact:true}).click();
   await page.getByRole('button',{name:'이전 화면',exact:true}).click();
@@ -115,8 +116,9 @@ try{
   await page.getByRole('button',{name:'설정',exact:true}).click();
   await page.getByRole('button',{name:'Aureum',exact:true}).click();
   await page.getByRole('button',{name:'이전 화면',exact:true}).click();
-  await page.getByRole('button',{name:'클래스',exact:true}).click();
+  await chooseIrisFeature(page,'클래스');
   await page.screenshot({path:'.superpowers/iris-focus-dark.png'});
   assert.deepEqual(errors,[]);assert.deepEqual(writes,[]);
   console.log('Focus integration PASS: full/natural class height, 4 widths, direct account dialog/focus/Escape/backdrop, barter optimistic/shared character/15s+manual saves+search, 2 theme captures, only 2 synthetic barter writes');
 }finally{await browser.close();}
+import {chooseIrisFeature,irisFeatureButton} from './iris-feature-navigation.mjs';

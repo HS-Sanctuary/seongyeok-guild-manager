@@ -298,7 +298,7 @@ try{
   // Removing the two-observation gate, bypassing the real select controller, or
   // reassigning old drafts/queue entries makes this real UI scenario fail.
   await run('confirm-and-preserve-scope',async({page,requests})=>{
-    await page.getByRole('button',{name:'클래스',exact:true}).click();
+    await chooseIrisFeature(page,'클래스');
     await page.getByRole('textbox',{name:'전사 레벨',exact:true}).waitFor();
     await page.getByRole('textbox',{name:'전사 레벨',exact:true}).fill('23');
     await page.waitForFunction(()=>window.fixture.queue?.entries.length===1);
@@ -523,3 +523,4 @@ try{
   assert.ok(passes>0,'IRIS_SWITCH_SCENARIO must select an existing scenario');
   console.log(`Character switch synthetic DOM: ${passes} scenarios passed; real JSX/controller, no live account/DB/game IO`);
 }finally{await browser.close();}
+import {chooseIrisFeature} from './iris-feature-navigation.mjs';
