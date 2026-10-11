@@ -2,6 +2,8 @@
 
 ## 2026-10-11 19:43 KST — IRIS 업데이트 버튼 없음 / 상단 스탯 쉼표 누락
 
+- 2026-10-11 19:51 KST 처리 상태: main48d5611/Vercel Production dpl_DP47tvp3qsVdrzpomVmJarb5XrTu READY·동일SHA, 운영 다운로드0.2.2/ZIPhash/핵심7GET·authready·완성EXE 실제 HTTPS신버전0.2.2 감지PASS. 코드/배포 검증 완료, 구버전ZIP전체수동1회 안내 및 사용자 재확인만 남는다. 보호기록/게임/DB/공개 게시 변경0. 서버로그 조회는 상세 도구403/CLI미설치로 미확인이다.
+
 - 19:47 KST 후속: 한설 정상 종료 후 실제 최종ZIP0.2.1→0.2.2 helper/EXE/WebView·보호파일해시 불변 PASS. 최종패키지 EXE 자체 HTTPSCheckAsync 신버전 감지PASS·최종metadata포함webpack57/전체Node재검 exit0, 앞선 시험 차단 해소. 운영 실제 사용자 설치 교체/배포 후 확인만 후속, 보안/게임/DB 변경0.
 
 - P1 / 재현: 설치 Beta0.2.0 재실행→Beta 우측 업데이트 버튼 없음. 실제 .NET4-target HTTP 기본 SSL3/TLS1.0이 Vercel HTTPS에서 SecureChannelFailure; PowerShell SystemDefault 성공은 native 성공 증거가 아니었다. CheckAsync 실패→check_failed지만 UI에서 숨긴 상태였다.

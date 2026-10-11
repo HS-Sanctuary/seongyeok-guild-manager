@@ -1,5 +1,9 @@
 # 🏛️ SANCTUM Master Guide
 
+## 2026-10-11 19:51 KST — IRIS0.2.2 운영 확인
+
+- main48d5611 / Vercel Production dpl_DP47tvp3qsVdrzpomVmJarb5XrTu READY/동일SHA, 운영 Beta0.2.2·metadata/ZIPhash·실제EXE 최신 HTTPS감지·핵심7GET/authready/화면 확인. 검증 문서 후속은 **구조 변경 없음**, DB/RLS/권한/공개 게시 변경 없음. 구버전0.2.0/0.2.1 HTTPS실패는 nativeZIP수동교체1회 필요하며 사용자 앱 대신 교체하지 않았다.
+
 ## 2026-10-11 19:43 KST — IRIS0.2.2 업데이트 조회/스탯 표시
 
 - 19:47 KST 최종 후보 검증 후속: 완성 패키지 어셈블리의 실제 CheckAsync HTTPS 감지 및 최종ZIP 원본helper/WebView0.2.1→0.2.2 교체/보호기록불변 PASS. 구조 변경 없음, 새 시험용 product API/bridge 추가 없음. native 네트워크 fixture의 optional PackagedExe는 테스트 호스트에서 어셈블리의 공용 CheckAsync만 호출한다.

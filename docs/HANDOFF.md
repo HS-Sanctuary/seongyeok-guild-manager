@@ -1,5 +1,11 @@
 # SANCTUM 작업 인계
 
+## 2026-10-11 19:51 KST 영겁 — IRIS0.2.2 운영 확인 완료
+
+- 코드48d5611b438d44207faab7d45a1f9384fd0acc5c main 일반push, Vercel sanctum Production dpl_DP47tvp3qsVdrzpomVmJarb5XrTu READY/동일SHA 연결 목록 확인. 운영 다운로드 Beta0.2.2·ZIP519982/SHA453d417129625d4c4af998627cdb8ac9a6a28c4dc5e8467532896c9077981f00 일치·7핵심GET200/authready·실제 패키지EXE HTTPSCheckAsync 신버전0.2.2 감지PASS. 캡처 iris-0.2.2-production.jpg.
+- 수정/전체Node/tsc/build57/리뷰/표시UI/최종ZIP/helper실교체0.2.1→0.2.2/보호파일불변/정책success-crash-recover 확인 완료. 이전0.2.0/0.2.1 재실행만으로 연결 해결된다고 안내하지 말 것: 새ZIP전체수동1회 필요. 사용자 앱 대신 설치·게임조작·DB쓰기를 하지 않았다. 실제 사용자 최신ZIP 설치 후 재확인/다른PC·조직차단 원인 미확정은 남음.
+- 공개 추가 게시0·글16/0.2.0 출시 이력 유지. 상세Vercel조회403/CLI없음→서버로그 스캔 미확인(목록READY/운영화면검증과 구분). 후속 문서 구조변경없음/IRIS0.2.2유지·unrelated dirty/미ACK 릴레이 보존. 새 기능/완료 기능 반복 금지.
+
 ## 2026-10-11 19:47 KST 영겁 — IRIS0.2.2 최종 후보 검증
 
 - 한설 정상 종료 확인 후 최종 공개 ZIP 실제 원본helper/IRIS.exe/새 오프라인 WebView0.2.1→0.2.2 교체·ready PASS, 보호 큐/설정 파일 해시 불변(trial iris-update-live-893df12a67f74373b7ad73ab79e4cad8). 실제 최종 패키지 EXE 안 CheckAsync도 운영 HTTPS 신버전 감지 PASS; source별도 컴파일뿐 아닌 최종EXE 검증이다.

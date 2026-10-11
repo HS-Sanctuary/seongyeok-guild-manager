@@ -2,6 +2,12 @@
 
 ## IRIS Beta 0.2.2 — 업데이트 보안 연결·스탯 쉼표 핫픽스 — 2026-10-11 19:43 KST
 
+### 운영 배포 확인 — 2026-10-11 19:51 KST
+
+- main48d5611b438d44207faab7d45a1f9384fd0acc5c 일반 push, Vercel sanctum Production dpl_DP47tvp3qsVdrzpomVmJarb5XrTu READY/동일SHA를 배포 목록 연결 도구로 확인했다. https://vercel.com/sanctum-sanctuary/sanctum/DP47tvp3qsVdrzpomVmJarb5XrTu . 운영 Chrome 다운로드 Beta0.2.2/정상ZIP 링크/보안 안내 눈 확인, iris-0.2.2-production.jpg 저장.
+- 운영 metadata0.2.2·ZIP519982bytes SHA453d417129625d4c4af998627cdb8ac9a6a28c4dc5e8467532896c9077981f00 일치/핵심7GET200/authready=true. 완성 패키지 EXE 자체 네이티브 CheckAsync가 공개available0.2.2/installed0.2.0을 실제 감지했다. 정책 및 success/crash/recover도 PASS. 실제 한설 설치본 자동 교체/게임·DB 시험 쓰기는 하지 않았으며 구버전 ZIP 전체1회 안내, 사용자 설치 후 재확인은 남는다.
+- 조회 상세 도구의 팀 범위403/CLI 미설치로 서버로그 오류 스캔은 미확인이다. 다른 연결된 배포 목록의 동일 프로젝트·커밋·Production READY와 운영 읽기·화면을 확인했으며 권한 우회는 하지 않았다. 공개 추가 노트0. 이 검증 기록 후속은 **구조 변경 없음**, IRIS0.2.2/SANCTUMv2.3 유지.
+
 ### 최종 후보 검증 — 2026-10-11 19:47 KST
 
 - 한설 정상 종료 확인 후 최종 공개 ZIP 실제0.2.1→0.2.2 helper/IRIS.exe/새 오프라인 WebView readiness 통과, 보호 큐·설정 파일 해시 보존. 임시 trial iris-update-live-893df12a67f74373b7ad73ab79e4cad8. 기본 native 정책과 임시 프로세스 success/crash/recover도 확인한다.

@@ -4,6 +4,8 @@
 
 ## YG-20261008-001 — UPDATED
 
+- 0.2.2 운영 완료 — 2026-10-11 19:51 KST: code48d5611b438d44207faab7d45a1f9384fd0acc5c mainpush→Vercel sanctum Production dpl_DP47tvp3qsVdrzpomVmJarb5XrTu READY/동일SHA 목록확인. 운영Chrome Beta0.2.2/ZIP519982 SHA453d417129625d4c4af998627cdb8ac9a6a28c4dc5e8467532896c9077981f00 일치/7핵심GET200/authready/실제완성EXE HTTPS신버전감지0.2.2PASS. 실제helper/WebView0.2.1→0.2.2/보호해시/정책·success/crash/recover/최종Node·tsc·build57PASS. 상세조회403/CLI없음서버로그미관측은유지. 사용자 설치 대신교체/게임/DB쓰기/공개게시0, 구버전ZIP전체수동1회필요·실사용재확인남음. 후속문서구조변경없음/버전유지·개인dirty/미ACK보존.
+
 - 0.2.2 최종검증 — 2026-10-11 19:47 KST: 한설 정상종료 뒤 최종publicZIP 원본helper/EXE/새오프라인WebView0.2.1→0.2.2 교체ready/보호파일해시PASS(trial893df12a), 최종패키지EXE자체 실제CheckAsync TLS1.2/운영신버전감지PASS. native정책·프로세스success/crash/recover·전체Node재검/tsc/최종metadata포함webpack57 IeZhxx PASS. 아래 종료/build대기는해소, commit/push/Ready/운영확인후속. 구조변경없음·실사용설치대신교체0·구버전ZIP수동1회/보안우회금지·공개노트0·개인dirty/미ACK보존.
 
 - 0.2.2 후보 — 2026-10-11 19:43 KST: 한설 업데이트버튼 부재/생텀스탯 문자열 쉼표 누락 제보 및 수정·검증 후 mainpush승인/공개별도노트금지. 실제 .NET4 기본SSL3/TLS1.0 SecureChannelFailure→TLS1.2 HTTP200 확인, 실제CheckAsync REDcheck_failed→GREENavailable0.2.1/installed0.2.0. 공통 metadata/ZIP 프로세스TLS1.2·인증서/프록시 유지, Beta옆 조회실패표시/no falseoffer, StatsList기존score로문자열숫자쉼표 표시만. DB/API/권한/큐/게임변경0·구조변경없음. 기존0.2.1 “0.2.0 재시작후내부갱신”은 HTTPS검증누락으로정정: 실패0.2.0/0.2.1은수동ZIP전체1회필요. 전체Node/tsc/회귀16/리뷰/실React390·320표시/넘침 PASS, ZIP519982 SHA453d417129625d4c4af998627cdb8ac9a6a28c4dc5e8467532896c9077981f00 정책/manifest10파일/icon/미서명PASS. 실제교체시험은사용중IRIS안전중단/정상종료요청, 최종build/push/Ready/운영확인은후속. 강제종료/보안우회/공개게시0. 이전미ACK와개인dirty보존.
