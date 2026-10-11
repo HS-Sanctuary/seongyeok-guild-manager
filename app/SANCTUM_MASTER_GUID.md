@@ -1,5 +1,9 @@
 # 🏛️ SANCTUM Master Guide
 
+## 2026-10-12 KST — 순월 인계 브랜치 공유
+
+- 이번 인계 문서 후속은 **구조 변경 없음**. `docs/IRIS_SOONWOL_HANDOFF.md`에 수신 안내를 추가하고 기존 릴레이에 푸시 승인 범위를 누적했다. 아래 탐색 후보는 main에 통합하지 않은 개발 브랜치다. 운영 SANCTUMv2.3/IRISBeta0.2.2·API/native/DB/RLS/보호 기록은 그대로이며 미래 HUD 구현/공개 배포는 별도다.
+
 ## 2026-10-11 — IRIS 탐색 정리 로컬 후보
 
 - `DesktopFeaturePicker`는 기존 KronosTab 7개/이름을 export하고 생텀 기록·캐릭터 관리·게임 정보로 분류한다. 현재 기능 줄은 상시 표시, 목록은 필요할 때만 mount한다. 선택/Escape/바깥 조작·초점·남은 뷰포트 높이 측정/리스너 해제는 이 컴포넌트가 담당한다.
