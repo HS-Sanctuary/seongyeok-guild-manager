@@ -1,5 +1,19 @@
 # SANCTUM 작업 인계
 
+## 2026-10-11 19:47 KST 영겁 — IRIS0.2.2 최종 후보 검증
+
+- 한설 정상 종료 확인 후 최종 공개 ZIP 실제 원본helper/IRIS.exe/새 오프라인 WebView0.2.1→0.2.2 교체·ready PASS, 보호 큐/설정 파일 해시 불변(trial iris-update-live-893df12a67f74373b7ad73ab79e4cad8). 실제 최종 패키지 EXE 안 CheckAsync도 운영 HTTPS 신버전 감지 PASS; source별도 컴파일뿐 아닌 최종EXE 검증이다.
+- native 정책·프로세스 success/crash/recover, 전체 Node 재검·tsc·최종 metadata 포함 분리webpack57 IeZhxx exit0. 아래 정상 종료/최종build 대기 해소, 이제 narrow diff/commit/mainpush→Ready→운영metadata/ZIP/hash/UI를 확인한다. 실제 사용자 설치본 교체는 하지 않았으며 0.2.0/0.2.1 수동ZIP1회 필요·보안차단 우회 금지 유지.
+
+## 2026-10-11 19:43 KST 영겁 — IRIS0.2.2 업데이트 조회/스탯 핫픽스 후보
+
+- 한설 승인: 세 가지 수정·검증 후 main push, 독립 IRIS0.2.2/SANCTUMv2.3 유지, 별도 공개 업데이트 글 없음. 이미 완료된 버스 기능은 재구현하지 않는다.
+- 실제 .NET4-target EXE가 SSL3/TLS1.0 기본값으로 운영 HTTPS에서 SecureChannelFailure, TLS1.2 지정 시 HTTP200/신버전 확인. desktop-update.cs의 metadata/ZIP 공통 다운로드에 프로세스 내부 TLS1.2만 지정, 인증서 검증·OS 프록시·고정 URL·해시/allowlist 유지. CheckAsync 실제 회귀 RED(check_failed)→GREEN(available0.2.1 vs installed0.2.0).
+- DesktopUpdater는 installed Beta 옆 check_failed 안내, 최신 버전 없으면 업데이트 버튼 없음. DesktopStats는 기존 score로 문자열/숫자 모두 쉼표 표시(94,282), 원래 데이터·저장 경로 불변. API/DB/RLS/권한/게임/보호 대기함 변경 없음.
+- 중요 정정: 이전 0.2.1 기록의 “0.2.0 재시작 후 내부 갱신 가능”은 실제 HTTPS 탐지 검증 누락이었다. 실제 교체 시험은 오프라인 helper/WebView 검증이지 HTTPS 조회 증거가 아니었다. 연결 실패 구버전0.2.0/0.2.1은 정상 종료 후 최신 ZIP 전체를 한 번 수동 교체해야 한다. 보안/조직 차단을 우회하지 않는다.
+- 후보 ZIP519982bytes SHA453d417129625d4c4af998627cdb8ac9a6a28c4dc5e8467532896c9077981f00, 10파일/manifest/icon/미서명·실제 ZIP 정책 검사 통과. 전체 Node/독립 tsc/회귀16/교차 리뷰 통과, 최종 공개 metadata 포함 빌드 및 0.2.1→0.2.2 실제 교체는 후속 확인. 현재 사용자 IRIS가 실행 중이라 native 시험 안전장치가 중단했으며 정상 종료를 요청했다. 강제 종료/시험 우회 없음.
+- CUA 실제 React 합성390/320px 조회실패·최신버전 버튼/확인창·스탯 쉼표/가로넘침 없음 확인. 운영 시험 쓰기0. 직전0.2.1 코드b343f24/문서95c116f, Vercel dpl_6oLfLVDaYVXGweibwLBS1VwyN7qt READY를 기준으로 삼되 구버전 HTTPS 제한은 유지. unrelated dirty/개인삭제 및 미ACK 릴레이 보존. 아직 commit/push/운영 확인은 하지 않았다.
+
 ## 2026-10-11 19:21 KST 영겁 — IRIS0.2.1 운영 확인 완료
 
 - 핫픽스 main b343f24956f53eb9b21fad22091dd529173f1376 push, Vercel sanctum Production dpl_Bad1AjApPg5ri5ukj5LVMRoyhwpK READY/동일SHA를 연결 도구로 확인. 운영 Chrome 다운로드 Beta0.2.1/링크/4단계/보안안내·desktop 일반브라우저 연결대기/편집방어 확인, 공개metadata·ZIP519786 SHA4f43cb87ff5a4c30100aa83b870c8b2bc60fb47df80b286b60b777f0a09fb13c 일치/핵심8GET200/authready. 아래 배포 대기는 해소.

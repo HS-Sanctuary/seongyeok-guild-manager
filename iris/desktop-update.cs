@@ -20,6 +20,9 @@ namespace IrisDesktop {
   public object State(){lock(gate)return new DesktopUpdateState {supported=true,installedVersion=version,availableVersion=state.availableVersion,phase=state.phase,error=state.error,progress=state.progress};}
   void Set(string phase,string error,int progress){lock(gate){state.phase=phase;state.error=error;state.progress=progress;state.availableVersion=release==null?null:release.Version;}var changed=Changed;if(changed!=null)changed(this,EventArgs.Empty);}
   static void Download(string relative,string path,long limit,int seconds,Action<int> progress){
+   // The .NET 4-targeted EXE otherwise defaults to SSL3/TLS1.0 on this host.
+   // Process-local only: keep normal certificate validation and OS proxy policy.
+   ServicePointManager.SecurityProtocol=SecurityProtocolType.Tls12;
    var request=(HttpWebRequest)WebRequest.Create(Origin+relative);request.AllowAutoRedirect=false;request.Timeout=10000;request.ReadWriteTimeout=10000;request.Credentials=null;request.UseDefaultCredentials=false;request.Proxy=WebRequest.DefaultWebProxy;request.CachePolicy=new System.Net.Cache.RequestCachePolicy(System.Net.Cache.RequestCacheLevel.NoCacheNoStore);
    using(var response=(HttpWebResponse)request.GetResponse()){
     if(response.StatusCode!=HttpStatusCode.OK||response.ResponseUri.AbsoluteUri!=Origin+relative||response.ContentLength>limit)throw new IOException("Unsupported download");

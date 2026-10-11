@@ -1,5 +1,14 @@
 # SANCTUM 베타 피드백 보드
 
+## 2026-10-11 19:43 KST — IRIS 업데이트 버튼 없음 / 상단 스탯 쉼표 누락
+
+- 19:47 KST 후속: 한설 정상 종료 후 실제 최종ZIP0.2.1→0.2.2 helper/EXE/WebView·보호파일해시 불변 PASS. 최종패키지 EXE 자체 HTTPSCheckAsync 신버전 감지PASS·최종metadata포함webpack57/전체Node재검 exit0, 앞선 시험 차단 해소. 운영 실제 사용자 설치 교체/배포 후 확인만 후속, 보안/게임/DB 변경0.
+
+- P1 / 재현: 설치 Beta0.2.0 재실행→Beta 우측 업데이트 버튼 없음. 실제 .NET4-target HTTP 기본 SSL3/TLS1.0이 Vercel HTTPS에서 SecureChannelFailure; PowerShell SystemDefault 성공은 native 성공 증거가 아니었다. CheckAsync 실패→check_failed지만 UI에서 숨긴 상태였다.
+- 승인0.2.2 처리: 공통 업데이트 요청 TLS1.2(인증서/OS 프록시 보존), Beta 옆 조회 실패 안내. 실제 .NET CheckAsync 회귀 RED→GREEN. 구버전0.2.0/0.2.1은 실패 PC에서 ZIP 전체 수동 교체1회 필요, 이전0.2.1 내부갱신 안내의 HTTPS 검증 누락을 정정한다.
+- P2 / 재현: 위 생텀 스탯 문자열94282, 아래 인게임 숫자94,906으로 불일치. 기존 score로 표시만 공통 쉼표 적용, 0/null/기존쉼표/원본 보존 회귀4/관련16·합성390/320px 눈 확인 PASS. 저장/API/DB/RLS/권한 변경 없음.
+- 전체 Node·tsc·코드 리뷰·패키지 검사 PASS. 현재 IRIS 실행 때문에 마지막 실제0.2.1→0.2.2 교체/정책 시험이 안전 중단, 정상 종료 요청/강제 종료 없음. commit/push/Ready·운영 검증 및 한설 실제 사용 확인은 후속 대기. 공개 추가 노트 없음.
+
 ## 2026-10-11 19:18 KST — IRIS 길드버스 해산·탈퇴 무반응
 
 - 19:21 KST 처리 상태: main b343f24 / Vercel Production dpl_Bad1AjApPg5ri5ukj5LVMRoyhwpK READY·동일SHA, 운영다운로드0.2.1/ZIP해시/desktop 브라우저 방어·핵심8GET/authready 확인 완료. 한설 설치0.2.0은 내부 업데이트 지원, 재실행 후 업데이트 안내. 운영 삭제/탈퇴 시험은 하지 않았으며 실제 사용자 재확인은 남는다. 추가 공개노트 없음.

@@ -4,6 +4,10 @@
 
 ## YG-20261008-001 — UPDATED
 
+- 0.2.2 최종검증 — 2026-10-11 19:47 KST: 한설 정상종료 뒤 최종publicZIP 원본helper/EXE/새오프라인WebView0.2.1→0.2.2 교체ready/보호파일해시PASS(trial893df12a), 최종패키지EXE자체 실제CheckAsync TLS1.2/운영신버전감지PASS. native정책·프로세스success/crash/recover·전체Node재검/tsc/최종metadata포함webpack57 IeZhxx PASS. 아래 종료/build대기는해소, commit/push/Ready/운영확인후속. 구조변경없음·실사용설치대신교체0·구버전ZIP수동1회/보안우회금지·공개노트0·개인dirty/미ACK보존.
+
+- 0.2.2 후보 — 2026-10-11 19:43 KST: 한설 업데이트버튼 부재/생텀스탯 문자열 쉼표 누락 제보 및 수정·검증 후 mainpush승인/공개별도노트금지. 실제 .NET4 기본SSL3/TLS1.0 SecureChannelFailure→TLS1.2 HTTP200 확인, 실제CheckAsync REDcheck_failed→GREENavailable0.2.1/installed0.2.0. 공통 metadata/ZIP 프로세스TLS1.2·인증서/프록시 유지, Beta옆 조회실패표시/no falseoffer, StatsList기존score로문자열숫자쉼표 표시만. DB/API/권한/큐/게임변경0·구조변경없음. 기존0.2.1 “0.2.0 재시작후내부갱신”은 HTTPS검증누락으로정정: 실패0.2.0/0.2.1은수동ZIP전체1회필요. 전체Node/tsc/회귀16/리뷰/실React390·320표시/넘침 PASS, ZIP519982 SHA453d417129625d4c4af998627cdb8ac9a6a28c4dc5e8467532896c9077981f00 정책/manifest10파일/icon/미서명PASS. 실제교체시험은사용중IRIS안전중단/정상종료요청, 최종build/push/Ready/운영확인은후속. 강제종료/보안우회/공개게시0. 이전미ACK와개인dirty보존.
+
 - 0.2.1 운영 완료 — 2026-10-11 19:21 KST: main b343f24956f53eb9b21fad22091dd529173f1376 일반push→Vercel sanctum Production dpl_Bad1AjApPg5ri5ukj5LVMRoyhwpK READY/동일SHA 연결확인. 운영Chrome다운로드0.2.1/링크/4단계/보안안내·desktop브라우저편집방어·ZIP519786 SHA4f43cb87ff5a4c30100aa83b870c8b2bc60fb47df80b286b60b777f0a09fb13c 일치/핵심8GET200/authready. 설치본manifest0.2.0/updater1읽기확인→재실행/내부갱신안내. 실제격리0.2→0.2.1/helper/WebView/보호해시·policy·success/crash/recover·최종Node/tsc/webpack57PASS. 공개추가게시0/운영삭제탈퇴시험0/앱게임대신실행0/강제종료0. 실제사용재확인만남음, 후속문서구조변경없음/버전유지·기존미ACK/개인dirty보존.
 
 - 0.2.1 핫픽스 후보 — 2026-10-11 19:18 KST: 한설 길드버스 해산/탈퇴 무반응 제보→native 기본confirm꺼짐 원인. GuildBusCard두경로 기존IRISconfirm/notify·확인중actionLock·해산await·실패안내, 웹fallback/서버소유권·운행자권한/단일leave 유지. 회귀8RED→GREEN/전체Node/tsc/교차리뷰/React390px취소Escape성공명단갱신 PASS. finalZIP519786 SHA4f43cb87ff5a4c30100aa83b870c8b2bc60fb47df80b286b60b777f0a09fb13c, 실제원본helper/EXE0.2→0.2.1 새오프라인WebView 교체/준비·보호해시보존PASS(한설앱정상종료후). 사용중앱/게임강제종료·운영시험쓰기/DB/API권한변경0. mainpush승인/별도공개노트금지, 글16유지. 배포/운영확인후속대기, 기준dd227d6/dpl_7ASAXcAhXUWUk1kVVMwnHqoeJ9DY Ready. 기존미ACK/개인dirty보존; 회차완료/인계/이전요청은여전히범위밖.

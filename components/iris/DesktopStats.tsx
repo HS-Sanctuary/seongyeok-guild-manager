@@ -42,4 +42,4 @@ export function DesktopStats({accountId,characterId,locked,readGame,onSelectChar
     {notice&&<p role="status" className="text-sm">{notice}</p>}<p className="text-sm">누락된 값·클래스 레벨·길드공헌도는 업데이트하지 않아요. 자동 저장은 하지 않아요.</p>
   </div>;
 }
-function StatsList({stats}:{stats?:Record<string,string|number|null>}){return <dl className="iris-stats-values">{statKeys.map(key=><div key={key}><dt>{labels[key]}</dt><dd>{stats?.[key]==null?'미확인':typeof stats[key]==='number'?stats[key].toLocaleString('ko-KR'):stats[key]}</dd></div>)}</dl>;}
+function StatsList({stats}:{stats?:Record<string,string|number|null>}){return <dl className="iris-stats-values">{statKeys.map(key=>{const value=score(stats?.[key]);return <div key={key}><dt>{labels[key]}</dt><dd>{value===null?'미확인':value.toLocaleString('ko-KR')}</dd></div>;})}</dl>;}

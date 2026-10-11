@@ -33,6 +33,7 @@ export function DesktopUpdater({store,disabled,onBeforeApply,onBusyChange}:{stor
  const message=error==='preserve_failed'?'미저장 변경을 보관하지 못했어요. 입력과 저장 상태를 확인한 뒤 다시 시도해 주세요.':error?'업데이트를 완료하지 못했어요. 보호 기록은 지우지 않았어요. 앱이 잠긴 상태라면 정상 종료 후 다시 실행해 주세요.':state?.error==='prepare_failed'?'파일을 준비하지 못했어요. 연결과 폴더 쓰기 권한을 확인한 뒤 다시 시도해 주세요.':'';
  return <>
   <span className="iris-brand-version">{state?`Beta ${state.installedVersion}`:unsupported?'Beta · 수동 업데이트':'Beta · 앱 연결 대기'}</span>
+  {state?.error==='check_failed'&&<span role="status" className="iris-update-check-error" title="업데이트 서버에 연결하지 못했어요. 연결을 확인한 뒤 IRIS를 정상 종료하고 다시 실행해 주세요.">업데이트 조회 실패</span>}
   {available&&<button type="button" className="iris-update-button" disabled={disabled||busy} aria-label={`IRIS ${state.availableVersion} 업데이트`} onClick={()=>{setError('');setOpen(true);}}>↑ 업데이트</button>}
   {open&&state&&<DesktopFocusDialog title="IRIS 업데이트" onClose={()=>setOpen(false)} dismissDisabled={busy}>
    <p>Beta {state.installedVersion} → Beta {state.availableVersion}</p>

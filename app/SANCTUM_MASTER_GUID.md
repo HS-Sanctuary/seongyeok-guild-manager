@@ -1,5 +1,13 @@
 # 🏛️ SANCTUM Master Guide
 
+## 2026-10-11 19:43 KST — IRIS0.2.2 업데이트 조회/스탯 표시
+
+- 19:47 KST 최종 후보 검증 후속: 완성 패키지 어셈블리의 실제 CheckAsync HTTPS 감지 및 최종ZIP 원본helper/WebView0.2.1→0.2.2 교체/보호기록불변 PASS. 구조 변경 없음, 새 시험용 product API/bridge 추가 없음. native 네트워크 fixture의 optional PackagedExe는 테스트 호스트에서 어셈블리의 공용 CheckAsync만 호출한다.
+
+- 기존 desktop-update.cs Download(metadata/ZIP)는 .NET4-target 기본 SSL3/TLS1.0 대신 프로세스 내부 TLS1.2를 지정한다. OS/레지스트리/인증서 검증/프록시·고정 origin·버전·파일 정책은 변경하지 않는다. desktop-update-network.tests.ps1/fixture는 실제 같은 컴파일러 EXE의 CheckAsync로 공개 metadata만 조회해 신버전 탐지를 검증한다(설치·게임·로그인/큐 읽기 없음).
+- DesktopUpdater는 native check_failed 상태를 실제 installed Beta 옆 표시한다. availableVersion이 없는 실패를 업데이트 가능으로 오인하지 않는다. DesktopStats 공통 StatsList는 기존 score 검증 후 ko-KR 쉼표 표시, 숫자 문자열/0/null 처리와 저장 원본 보존. 독립 IRIS0.2.2 native/manifest/download metadata 및 README 구버전 수동 교체 안내.
+- **구조 변경 없음**: 새 API/bridge 명령/DB/RLS/권한/게임 쓰기/보호 기록 스키마 없음. 이전0.2.0/0.2.1의 HTTPS 실패는 웹 배포만으로 native를 수정할 수 없으므로 최신 ZIP 전체 수동 교체1회가 필요하다. 별도 공개 업데이트 글 없음.
+
 ## 2026-10-11 19:21 KST — IRIS0.2.1 운영 확인
 
 - 해산/탈퇴 확인 경로 및 동일버전native패키지는 main b343f24 / Vercel Production dpl_Bad1AjApPg5ri5ukj5LVMRoyhwpK READY/동일SHA로 공개됐다. 운영 다운로드0.2.1/metadata·ZIP해시 일치/desktop 브라우저 편집방어·핵심8GET200/authready 확인. 후속 문서 **구조 변경 없음**, DB/RLS/권한/공개노트 변경 없음. 실제 계정 운영 버스 삭제/탈퇴 시험을 했다는 뜻은 아니다.

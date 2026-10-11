@@ -58,10 +58,12 @@ function App(){const [shown,setShown]=React.useState(true);window.fixture.setSho
 function BrandApp(){
  const {DesktopTitlebar}=require('../components/iris/DesktopTitlebar.tsx'),{DesktopContextActions}=require('../components/iris/DesktopContextActions.tsx');
  const {DesktopUpdater}=require('../components/iris/DesktopUpdater.tsx'),{createDesktopStore}=require('../lib/irisDesktopStore.ts');
+ const {DesktopStats}=require('../components/iris/DesktopStats.tsx');
  const params=new URLSearchParams(location.search),enabled=params.has('updater');
  const updateStore=React.useMemo(()=>{
   if(!enabled)return null;window.__irisDesktopBridge={epoch:2,environment:'production'};window.fixture.updateCalls=[];window.fixture.preserved=0;window.fixture.closeDecisions=[];
-  const listeners=new Set(),state={supported:true,installedVersion:'0.1.0',availableVersion:['same','older'].includes(params.get('mode'))?null:'0.2.0',phase:['same','older'].includes(params.get('mode'))?'idle':'available',progress:0,error:null};
+  const failed=params.get('mode')==='check-failed';
+  const listeners=new Set(),state={supported:true,installedVersion:failed?'0.2.0':'0.1.0',availableVersion:failed||['same','older'].includes(params.get('mode'))?null:'0.2.0',phase:failed?'error':['same','older'].includes(params.get('mode'))?'idle':'available',progress:0,error:failed?'check_failed':null};
   const channel={addEventListener:(type,fn)=>listeners.add(fn),removeEventListener:(type,fn)=>listeners.delete(fn),postMessage(request){
    window.fixture.updateCalls.push(request.method);let value=state,ok=params.get('mode')!=='unsupported';
    if(request.method==='window.decision'){assertPayload(request.payload);window.fixture.closeDecisions.push(request.payload.open);value=null;}
@@ -77,6 +79,10 @@ function BrandApp(){
  const [settings,setSettings]=React.useState(false),[accountOpen,setAccountOpen]=React.useState(false);
  const actions=h(DesktopContextActions,{accountOpen,settingsOpen:settings,onAccount:()=>{setSettings(false);setAccountOpen(v=>!v);},onSettings:()=>{setAccountOpen(false);setSettings(v=>!v);}});
  const control=enabled?h(DesktopUpdater,{store:updateStore,disabled:false,onBusyChange:v=>window.fixture.updateBusy=v,onBeforeApply:async()=>{window.fixture.preserved++;return window.fixture.updateFailure!=='preserve';}}):undefined;
+ if(params.has('stats')){
+  window.fetch=async()=>new Response(JSON.stringify({accountId:'a',characters:[{id:'1',nickname:'거월',job:'대검전사',stats:{combat_power:'94282',life_energy:'8822',magic_resistance:'3616',charm:'16540'}}]}));
+  return h('main',{className:'iris-desktop'},h(DesktopTitlebar,{updateControl:control,onDrag(){},onMinimize(){},onClose(){}}),h(DesktopStats,{accountId:'a',characterId:'1',locked:false,onSelectCharacter(){},onBusyChange(){},readGame:async()=>({observedAt:new Date().toISOString(),job:'대검전사',level:100,stats:{combat_power:94906,life_energy:8822,magic_resistance:3616,charm:16548}})}));
+ }
  return h('main',{className:'iris-desktop'},h(DesktopTitlebar,{updateControl:control,onDrag:()=>window.fixture.drag=true,onMinimize:()=>window.fixture.minimize=true,onClose:()=>window.fixture.close=true}),
  h(DesktopCenter,{account:{id:'a',nickname:'한설',role:'길드원'},characters:[{id:'1',nickname:'열두글자닉네임테스트용',job:'장궁병'}],selected:homework,pending:[],locked:false,saveStatus:null,onSelectCharacter(){},onEdit(){},contextActions:actions,settingsOpen:settings,settingsPanel:h('p',null,'설정 화면')}));
 }

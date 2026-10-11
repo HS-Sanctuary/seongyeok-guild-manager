@@ -42,6 +42,7 @@
 .iris-update-button { font-size:.667rem; line-height:1.4; border:1px solid var(--accent); border-radius:.5rem; padding:.12rem .4rem; color:var(--accent-fg); background:var(--accent); box-shadow:0 0 .4rem color-mix(in srgb,var(--accent) 25%,transparent); cursor:pointer; white-space:nowrap; }
 .iris-update-button:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
 .iris-update-button:disabled { opacity:.55; cursor:default; }
+.iris-update-check-error { font-size:.667rem; line-height:1.4; color:var(--text-sub); border-bottom:1px dotted var(--accent); }
 .iris-update-actions { display:flex; flex-wrap:wrap; gap:.5rem; margin-top:.8rem; }
 .iris-titlebar-actions { display:flex; gap:.2rem; flex:none; }
 .iris-titlebar-actions button { cursor:pointer; display:grid; place-items:center; }
