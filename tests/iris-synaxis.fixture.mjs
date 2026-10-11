@@ -86,7 +86,15 @@ function BrandApp(){
  return h('main',{className:'iris-desktop'},h(DesktopTitlebar,{updateControl:control,onDrag:()=>window.fixture.drag=true,onMinimize:()=>window.fixture.minimize=true,onClose:()=>window.fixture.close=true}),
  h(DesktopCenter,{account:{id:'a',nickname:'한설',role:'길드원'},characters:[{id:'1',nickname:'열두글자닉네임테스트용',job:'장궁병'}],selected:homework,pending:[],locked:false,saveStatus:null,onSelectCharacter(){},onEdit(){},contextActions:actions,settingsOpen:settings,settingsPanel:h('p',null,'설정 화면')}));
 }
-createRoot(document.getElementById('app')).render(h(new URLSearchParams(location.search).has('brand')?BrandApp:App));`;
+function FeatureApp(){
+ const {DesktopTitlebar}=require('../components/iris/DesktopTitlebar.tsx');
+ const [locked,setLocked]=React.useState(false),[settings,setSettings]=React.useState(false),[account,setAccount]=React.useState(false),[selected,setSelected]=React.useState('1'),[drafts,setDrafts]=React.useState({});
+ Object.assign(window.fixture,{setLocked,setSettings,setAccount,setSelected,drafts});window.fixture.tabChanges??=[];
+ const details={...homework,characterId:selected,writeContext:{...homework.writeContext,classes:[{classId:'warrior',editable:true}]},details:{...homework.details,classes:[{id:'warrior',name:'전사',level:50}]}};
+ return h('main',{className:'iris-desktop'},h(DesktopTitlebar,{onDrag(){},onMinimize(){},onClose(){}}),h(DesktopCenter,{account:{id:'fixture-account',nickname:'합성계정',role:'길드원'},characters:[{id:'1',nickname:'열두글자닉네임테스트용',job:'전사'},{id:'2',nickname:'두번째캐릭터',job:'힐러'}],selected:details,pending:[],locked,saveStatus:null,settingsOpen:settings,contextPanelOpen:account,settingsPanel:h('p',null,'설정 화면'),contextActions:h(React.Fragment,null,h('button',{onClick:()=>setAccount(v=>!v)},'계정'),h('button',{onClick:()=>setSettings(v=>!v)},'설정')),onSelectCharacter:setSelected,onEdit(){},classDrafts:drafts,onClassDraft:(id,text)=>setDrafts(v=>({...v,[id]:{text,error:null}})),onTabChange:tab=>window.fixture.tabChanges.push(tab),statsPanel:h('p',null,'합성 스탯'),currenciesPanel:()=>h('p',null,'합성 재화'),synaxisPanel:()=>h('p',null,'합성 파티')}),account&&h('section',{'aria-label':'계정 화면'},'합성 계정'));
+}
+const params=new URLSearchParams(location.search);
+createRoot(document.getElementById('app')).render(h(params.has('features')?FeatureApp:params.has('brand')?BrandApp:App));`;
 const root=visit(resolve('tests/__synaxis-entry.js'),entry);
 const script=`(function(){const process={env:{NODE_ENV:'production'}};const modules=[${modules.join(',')}],cache={};function run(id){if(cache[id])return cache[id].exports;const module=cache[id]={exports:{}};const [fn,deps]=modules[id];fn(name=>run(deps[name]),module,module.exports);return module.exports;}run(${root});})();`;
 const tw=await postcss([tailwind({base:process.cwd()})]).process(readFileSync('app/globals.css','utf8'),{from:resolve('app/globals.css')});
