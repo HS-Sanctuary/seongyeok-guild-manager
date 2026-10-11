@@ -4,6 +4,8 @@
 
 ## YG-20261008-001 — UPDATED
 
+- 공식 운영·조사 후속 — 2026-10-11 14:30 KST: code44a958c 일반 main push, 동일SHA Vercel GitHub success·운영다운로드4폭/0.2.0/4단계/ZIP519708 SHA1ced8923c386f19c5892710d830c6b696f231aa6237bb38d23a7cd5b4f420cc7 일치·핵심6GET200/healthready/IRISguest401·pageerror/제출0·390/1280 눈확인. 직접Ready대시보드/서버로그 미관측 유지. 출시글 초안 완성/게시0(CUA/NodeREPL assets실패), 정상 연결 복구 뒤 중복 확인 게시만 남음·세션추출/DB우회금지. 커넥터3종 보고서49항목/설치소스·공식릴리스검토 완료·외부실행/게임행동0. 다음 IRIS 기능은 읽기HUD 제안뿐 미구현, 완료한 크로노스/시낙시스/updater 반복금지. 문서후속 구조변경없음/버전유지·개인dirty/이전미ACK누적보존.
+
 - 누적 공개 준비 — 2026-10-11 14:22 KST: 실제 native 시험 차단 해소(제품 수정0, 시험별 새 WebView 데이터/외부DNS차단/임시설치). 최종 공개ZIP 자체 원본helper+실제IRIS.exe 0.1→0.2/WebView handshake PASS·보호파일해시 동일·운영쓰기0. IRIS0.2.0/ZIP519708 SHA1ced8923c386f19c5892710d830c6b696f231aa6237bb38d23a7cd5b4f420cc7, 최초지원 수동1회. 전체Node/tsc/build57/lint/nativehost41/bridge/policy/3프로세스/UI4폭3글자6theme PASS. 한설 외출 중 main push·노트·후속 커넥터3종 브리핑 승인, 코드추가수정 없음. CUA/NodeREPL assets 실패로 관리자 게시연결은 아직 차단, 직접DB/세션추출 금지. 이전미ACK/개인dirty 보존, push/Ready/운영결과는 후속 누적.
 
 - 누적 출시 준비 — 2026-10-11 14:13 KST: 한설이 updater 실제2버전 시험→main push 및 기능 소개 `IRIS Beta 0.2.0 출시!` 게시 승인. 로컬 독립버전0.2.0/두패키지/따뜻한 분할 초안 준비, strict release 제목 판별+관련12/tsc/diff PASS. 실제 native trial은 sandbox AtomicText rename 권한 실패로 준비만/실앱실행0, 기존 합성3흐름과 구분. CUA/NodeREPL kernel assets 오류·정상 브라우저 세션 접근 불가(Chrome/Edge CDP포트 없음), 쿠키 추출/DB 우회0. 공개ZIP/운영/commit/push/게시0; HANDOFF 최신 차단·후속 순서 참고. 사용자 개인/관련없는 dirty 및 이전 미ACK 내용 모두 보존. 실앱 시험/브라우저 복구 후 정상 배포·게시만 이어갈 것, 완료한 크로노스/시낙시스 반복 금지.

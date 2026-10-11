@@ -2,6 +2,13 @@
 
 ## IRIS Beta 0.2.0 — 앱 내부 업데이트 / 출시 안내 — 2026-10-11 14:22 KST
 
+### 운영 확인·비교 보고 — 2026-10-11 14:30 KST
+
+- main 코드 `44a958c32bc97a00d9f228d8bbb786dac0c53b01` 일반 fast-forward push 완료. 해당 커밋의 GitHub Vercel 상태 success 및 배포 링크 `https://vercel.com/sanctum-sanctuary/sanctum/8DdZj7yt8YycSNYjYHz5Pj4bPcY4` 확인. 직접 대시보드 Ready/빌드 로그는 연결 제한으로 미조회이며 이를 별도 관측으로 과장하지 않는다.
+- 운영 `/iris/download` 실제 Chrome 320/390/768/1280에서 Beta0.2.0·네 단계·AI 커넥터 안내·다운로드 링크 확인, 가로 넘침/pageerror/비GET 제출0. 390/1280 캡처 눈 확인. 공개 metadata/ZIP GET200·519708bytes·위 SHA 일치, 핵심6경로 GET200·health ready=true·IRIS guest2경로401. 저장된 로그인·운영 파티/숙제 시험쓰기 없음. 캡처 `iris-production-release-QlXlAl`.
+- 따뜻한 기능 출시 본문은 docs/IRIS_UPDATE_POST.md 작성 완료, 케리그마 게시만 CUA/NodeREPL 연결 오류로 미완료. 실제 글 ID/게시 시각 없음; 우회 DB 쓰기와 세션 추출을 하지 않았다. 게시 연결 복구 뒤 중복 확인→정상 관리자 게시만 이어간다.
+- docs/IRIS_CONNECTOR_COMPARISON_20261011.md에 모비 생활 커넥터/MoFo/MobiWorks 기능표와49항목 도입 검토를 추가한다. 제작자 공개 자료·설치본 소스/README·실행파일 메타데이터를 대조하며 외부 앱 실행/게임 행동0. 후속 문서는 **구조 변경 없음**, 앱·DB·권한·SANCTUM v2.3·IRIS0.2.0 유지. 개인 미커밋 변경/삭제는 제외했다.
+
 - SANCTUM 기능 버전은 v2.3 유지, IRIS 독립 버전은 0.1.0→0.2.0이다. native 교체 기능 첫 공개이며 기존 지원 없는 앱은 ZIP을 한 번 수동으로 받아 모든 파일을 압축 해제해야 한다. 이후 더 새로운 지원 버전일 때만 앱 제목줄 버전 옆 업데이트 버튼을 강조한다.
 - 사용자 클릭→고정 운영 HTTPS 다운로드→ZIP/파일 SHA·버전·allowlist 검증→보호 보관→별도 설치 helper→자동 재시작. 실패 복구와 미완료 시작 복구를 연결한다. 설치된 native 버전으로 비교하며 웹에서 임의 URL/경로/명령을 넘기지 않는다. 게임·CLI·로그인 프로필·보호 대기함은 교체 대상 밖이다.
 - 생텀 상단 빠른 도구 2×2/테마 IRIS 로고 다운로드, 새 IRIS 버전별 계정·브라우저1회 안내(노트·다운로드·명시 닫기), 다운로드 안내 테마/4단계/상세 접기, 케리그마 생텀·IRIS 하위 탭을 함께 배포한다. 기능 소개 `IRIS Beta 0.2.0 출시!` 본문은 docs/IRIS_UPDATE_POST.md에 준비, 현재 게시 연결 도구 오류로 아직 게시되지 않았다.

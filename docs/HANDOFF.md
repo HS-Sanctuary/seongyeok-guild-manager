@@ -1,5 +1,13 @@
 # SANCTUM 작업 인계
 
+## 2026-10-11 14:30 KST 영겁 — IRIS0.2.0 main/운영 검증 완료, 게시 연결만 대기
+
+- 코드44a958c 일반 main push→동일커밋 Vercel GitHub success, 운영 Chrome 다운로드4폭/버전/4단계/실제 ZIP519708bytes·SHA1ced8923c386f19c5892710d830c6b696f231aa6237bb38d23a7cd5b4f420cc7 일치. 핵심6경로200·healthready·guestIRIS2경로401, pageerror/제출0. 390/1280 화면 눈 확인. 직접 Vercel 로그/Ready 대시보드 관측 제한은 유지; 운영 파일·화면은 확인했다.
+- 실제 native 두 버전 교체·준비 handshake/복구·보호 파일 해시 보존 및 전체 검증은 아래14:22와 RELEASE_NOTES를 따른다. 같은 크로노스/시낙시스나 updater를 다시 만들지 않는다. 최초 지원 ZIP 수동1회가 필요하고 현재 버전에는 업데이트 버튼이 뜨지 않는 것이 정상이다.
+- 남은 공개 작업은 docs/IRIS_UPDATE_POST.md의 출시글 게시 하나다. 정상 관리자 브라우저 접근 도구가 kernel assets 오류로 실패, CDP포트없음. 원문은 준비 완료이나 실제 게시0/글ID없음. 복구 뒤 기존 IRIS 글 여부를 확인하고 중복 없이 수정/1회생성; 정상 인증경로만 사용한다.
+- 읽기 조사 결과 docs/IRIS_CONNECTOR_COMPARISON_20261011.md 기능표/49항목/권리·정책·불확실성 기록. 생활커넥터 최신1.3.1/설치1.3.0, MobiWorks 최신·설치1.0.11, MoFo 설치metadata0.1.0/최신미확정. 외부 실행/자동화/계정정보 읽기 없음. 첫 후보는 미션·가공·환경·무게 읽기 HUD; 새 구현은 별도 지시 후 진행한다.
+- 후속 문서 push는 구조 변경 없음/동일 버전 유지. UPDATE_POST_v2.151/개인삭제/테마 실험·IRIS 개인메모는 계속 제외, 기존 미ACK 릴레이 보존. 오래된 자동화 automation은 이전에 삭제됐으며 복구하지 않는다.
+
 ## 2026-10-11 14:22 KST 영겁 — 실제 native 시험 통과 / main 공개 준비
 
 - 한설이 외출 중 기능 수정 없이 검증·main push·업데이트 노트 완료를 위임했다. 아래 실제시험 차단은 해소: Microsoft 공식 WebView 환경 옵션으로 시험 프로세스만 새 user-data+DNS 차단, 앱 코드는 그대로. 최종 공개 ZIP 자체를 실제 helper/IRIS.exe로 0.1.0→0.2.0 교체·WebView 준비 성공, 기존 Desktop 보호 파일/설정 전후 해시 동일. 테스트 스크립트의 OfflineIsolatedWebView 옵션과 fail-closed ID/경로 확인을 추가했으며 제품 코드 수정은 없다.

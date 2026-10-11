@@ -1,5 +1,10 @@
 # 🏛️ SANCTUM Master Guide
 
+## 2026-10-11 14:30 KST — IRIS0.2.0 운영 검증 / 조사 문서
+
+- updater·다운로드·헤더·케리그마 하위 분리 구조는 코드44a958c로 main 공개, 동일커밋 Vercel GitHub success 및 운영 다운로드/metadata/ZIP 실제 일치를 확인했다. 아래 공개 후보/미배포 기록은 당시 상태이며 최신 상태는 RELEASE_NOTES/HANDOFF를 따른다. SANCTUM v2.3/IRIS0.2.0.
+- docs/IRIS_CONNECTOR_COMPARISON_20261011.md는 외부 생활커넥터/MoFo/MobiWorks의 기능·49항목 도입 검토 근거다. IRIS native/API/DB/권한·실행 가능 명령을 추가하지 않는다. 이 문서 후속은 **구조 변경 없음**. 케리그마 출시 본문은 준비됐지만 게시 연결 차단으로 공개 글은 아직 없다.
+
 ## 2026-10-11 14:22 KST — IRIS Beta 0.2.0 공개 후보
 
 - 독립 IRIS0.2.0, ZIP/manifest/download.json/updater helper를 동일 배포로 공개 준비했다. 아래 14:13의 실제시험 권한 차단은 오프라인 새 WebView user-data 시험으로 해소됐으며 제품 파일 그대로 교체·준비 handshake 성공을 확인했다. 보호 파일/설정 해시 동일, 운영 웹/DB 시험쓰기 없음. 첫 지원 앱은 수동1회, 다음 새 지원 버전부터 내부 업데이트 가능.
