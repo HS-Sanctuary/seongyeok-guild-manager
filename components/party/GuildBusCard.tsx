@@ -109,7 +109,7 @@ interface GuildBusCardProps {
   catalog: PartyCatalog;
   characterProfiles?: Record<string, { alias?: string }>;
   onJoinClick: (party: Party) => void;
-  onDeleteClick: (partyId: string | number) => void;
+  onDeleteClick: (partyId: string | number) => void | Promise<void>;
   onRefresh: () => void | Promise<void>;
   isMasterOrAdmin: boolean;
 }
@@ -319,19 +319,28 @@ export default function GuildBusCard({
     }
   };
 
-  const handleAttemptDeleteParty = () => {
+  const handleAttemptDeleteParty = async () => {
+    if (!canManage || actionLock.current || (surface && (!surface.active || surface.locked))) return;
+    actionLock.current = true;
     const totalMembersCount = (party.members || []).length;
-    if (totalMembersCount > 0) {
-      const confirmed = window.confirm(
-        `⚠️ [길드 버스 해산 경고]\n\n현재 총 ${totalMembersCount}개의 캐릭터가 아직 버스 탑승 및 대기 상태에 있습니다.\n정말로 이 길드 버스를 해산하시겠습니까?\n(해산 시 등록된 모든 탑승 신청 정보가 삭제됩니다.)`
-      );
+    const message = totalMembersCount > 0
+      ? `⚠️ [길드 버스 해산 경고]\n\n현재 총 ${totalMembersCount}개의 캐릭터가 아직 버스 탑승 및 대기 상태에 있습니다.\n정말로 이 길드 버스를 해산하시겠습니까?\n(해산 시 등록된 모든 탑승 신청 정보가 삭제됩니다.)`
+      : "정말로 이 길드 버스를 해산하시겠습니까?";
+    const notify = (message: string) => surface?.notify ? surface.notify(message) : alert(message);
+    try {
+      const confirmed = surface?.confirm
+        ? await surface.confirm({title: '길드버스 해산', message, confirmLabel: '해산하기'})
+        : window.confirm(message);
       if (!confirmed) return;
-    } else {
-      const confirmed = window.confirm("정말로 이 길드 버스를 해산하시겠습니까?");
-      if (!confirmed) return;
+      setIsSyncing(true);
+      await onDeleteClick(party.id);
+      if (surface) notify('길드버스가 해산되었습니다.');
+    } catch (error) {
+      notify('길드버스 해산 실패: ' + (error instanceof Error ? error.message : '서버 연결을 확인해주세요.'));
+    } finally {
+      actionLock.current = false;
+      setIsSyncing(false);
     }
-
-    onDeleteClick(party.id);
   };
 
   const handleOpenTransferModal = async () => {
@@ -413,14 +422,21 @@ export default function GuildBusCard({
   };
 
   const handleLeave = async (charName: string) => {
-    if (actionLock.current || !confirm(`'${charName}' 캐릭터를 이 길드 버스에서 탈퇴 처리하시겠습니까?`)) return;
+    if (actionLock.current || (surface && (!surface.active || surface.locked))) return;
     actionLock.current = true;
-    setIsSyncing(true);
+    const notify = (message: string) => surface?.notify ? surface.notify(message) : alert(message);
     try {
+      const message = `'${charName}' 캐릭터를 이 길드 버스에서 탈퇴 처리하시겠습니까? 다시 신청하면 참가 시간을 새로 정할 수 있어요.`;
+      const confirmed = surface?.confirm
+        ? await surface.confirm({title: '길드버스 캐릭터 탈퇴', message, confirmLabel: '탈퇴하기'})
+        : confirm(message);
+      if (!confirmed) return;
+      setIsSyncing(true);
       await changeBusMember(party.id,{type:'leave',name:charName},request);
       await onRefresh();
-    } catch (err: any) {
-      alert(`탈퇴 처리 실패: ${err.message}`);
+      if (surface) notify(`[${charName}] 길드버스 탈퇴가 완료되었습니다. 다시 신청하면 참가 시간을 새로 정할 수 있어요.`);
+    } catch (error) {
+      notify('탈퇴 처리 실패: ' + (error instanceof Error ? error.message : '서버 연결을 확인해주세요.'));
     } finally {
       actionLock.current = false;
       setIsSyncing(false);
@@ -661,6 +677,7 @@ export default function GuildBusCard({
             <button
               type="button"
               onClick={handleAttemptDeleteParty}
+              disabled={isSyncing || surface?.locked}
               className="w-full sm:w-auto px-2 py-1 rounded-md sm:rounded-lg text-[10.5px] sm:text-xs font-black bg-rose-600 hover:bg-rose-700 text-white border border-rose-700 shadow-sm transition-all flex items-center justify-center gap-1 cursor-pointer active:scale-95"
             >
               <Trash2 className="w-3 h-3 shrink-0 text-white" />

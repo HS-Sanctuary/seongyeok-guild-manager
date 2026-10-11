@@ -4,6 +4,10 @@
 
 ## YG-20261008-001 — UPDATED
 
+- 0.2.1 핫픽스 후보 — 2026-10-11 19:18 KST: 한설 길드버스 해산/탈퇴 무반응 제보→native 기본confirm꺼짐 원인. GuildBusCard두경로 기존IRISconfirm/notify·확인중actionLock·해산await·실패안내, 웹fallback/서버소유권·운행자권한/단일leave 유지. 회귀8RED→GREEN/전체Node/tsc/교차리뷰/React390px취소Escape성공명단갱신 PASS. finalZIP519786 SHA4f43cb87ff5a4c30100aa83b870c8b2bc60fb47df80b286b60b777f0a09fb13c, 실제원본helper/EXE0.2→0.2.1 새오프라인WebView 교체/준비·보호해시보존PASS(한설앱정상종료후). 사용중앱/게임강제종료·운영시험쓰기/DB/API권한변경0. mainpush승인/별도공개노트금지, 글16유지. 배포/운영확인후속대기, 기준dd227d6/dpl_7ASAXcAhXUWUk1kVVMwnHqoeJ9DY Ready. 기존미ACK/개인dirty보존; 회차완료/인계/이전요청은여전히범위밖.
+
+- 게시 완료 후속 — 2026-10-11 15:23 KST: 사용자 Codex 재시작 후 정상 Chrome 관리자 UI 복구, IRIS Beta0.2.0 출시글16 `/kerygma?id=16` 1회 게시·SANCTUM 시스템 작성자·IRIS 탭 단일 표시 확인. raw HTML 초안은 미게시 상태에서 7구역 제목/테마 구분선으로 교정·상세 눈 확인. 아래 게시대기는 당시 경과, 글 중복 생성 금지. 작성창 IRIS 선택 UI는 없고 정규 제목·작성자 기반 분류라 명시 선택 미구현을 설명. 다운로드 “조직에서 차단함” P1 원인 미확정·정책 레지스트리4경로 부재만 읽기 확인, 차단 우회/보안 변경0. 제품/ZIP/버전/DB/push 변경0·로컬 문서만 기록·기존 미ACK/개인dirty 보존.
+
 - 공식 운영·조사 후속 — 2026-10-11 14:30 KST: code44a958c 일반 main push, 동일SHA Vercel GitHub success·운영다운로드4폭/0.2.0/4단계/ZIP519708 SHA1ced8923c386f19c5892710d830c6b696f231aa6237bb38d23a7cd5b4f420cc7 일치·핵심6GET200/healthready/IRISguest401·pageerror/제출0·390/1280 눈확인. 직접Ready대시보드/서버로그 미관측 유지. 출시글 초안 완성/게시0(CUA/NodeREPL assets실패), 정상 연결 복구 뒤 중복 확인 게시만 남음·세션추출/DB우회금지. 커넥터3종 보고서49항목/설치소스·공식릴리스검토 완료·외부실행/게임행동0. 다음 IRIS 기능은 읽기HUD 제안뿐 미구현, 완료한 크로노스/시낙시스/updater 반복금지. 문서후속 구조변경없음/버전유지·개인dirty/이전미ACK누적보존.
 
 - 누적 공개 준비 — 2026-10-11 14:22 KST: 실제 native 시험 차단 해소(제품 수정0, 시험별 새 WebView 데이터/외부DNS차단/임시설치). 최종 공개ZIP 자체 원본helper+실제IRIS.exe 0.1→0.2/WebView handshake PASS·보호파일해시 동일·운영쓰기0. IRIS0.2.0/ZIP519708 SHA1ced8923c386f19c5892710d830c6b696f231aa6237bb38d23a7cd5b4f420cc7, 최초지원 수동1회. 전체Node/tsc/build57/lint/nativehost41/bridge/policy/3프로세스/UI4폭3글자6theme PASS. 한설 외출 중 main push·노트·후속 커넥터3종 브리핑 승인, 코드추가수정 없음. CUA/NodeREPL assets 실패로 관리자 게시연결은 아직 차단, 직접DB/세션추출 금지. 이전미ACK/개인dirty 보존, push/Ready/운영결과는 후속 누적.

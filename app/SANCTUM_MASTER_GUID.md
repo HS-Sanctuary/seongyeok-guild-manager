@@ -1,5 +1,11 @@
 # 🏛️ SANCTUM Master Guide
 
+## 2026-10-11 19:18 KST — IRIS0.2.1 길드버스 확인 경로 핫픽스
+
+- `GuildBusCard` 해산/탈퇴 → 기존 `PartySurfaceContext.confirm/notify` → IRIS `DesktopSynaxisSurface` 확인창/결과 안내. 해산은 기존 삭제 callback을 await, 탈퇴는 기존 `_busMemberAction:leave` 요청으로 서버의 최신 명단·본인 소유권 검사를 재사용한다. 확인 중 단일 actionLock과 비활성/잠금 guard, 취소/실패 해제; 웹은 기본 confirm fallback 유지.
+- `lib/irisRelease.ts`의 독립 IRIS0.2.1 → native generated version/manifest/download.json/최종 공개 ZIP 동일 버전. 기존 native updater의 고정 URL/해시/파일 allowlist/보호 보관·helper 재시작 구조 재사용, 새 명령/bridge/API/DB/RLS/권한 구조 변경 없음. README는 해산/탈퇴 지원 및 남는 회차 완료/인계 제한을 구분한다.
+- `tests/iris-bus-controls.test.mjs`는 실제 두 핸들러·탈퇴 전송의 native confirm 차단/취소/중복/실패/권한/웹 fallback 회귀8개, 합성 React fixture는 leave 행동을 명단에 반영한다. 운영 파티 시험 쓰기 없음. 공개 출시글16은 기존0.2.0 유지하고 이번 별도 공개 노트는 만들지 않는다.
+
 ## 2026-10-11 14:30 KST — IRIS0.2.0 운영 검증 / 조사 문서
 
 - updater·다운로드·헤더·케리그마 하위 분리 구조는 코드44a958c로 main 공개, 동일커밋 Vercel GitHub success 및 운영 다운로드/metadata/ZIP 실제 일치를 확인했다. 아래 공개 후보/미배포 기록은 당시 상태이며 최신 상태는 RELEASE_NOTES/HANDOFF를 따른다. SANCTUM v2.3/IRIS0.2.0.
