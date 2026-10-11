@@ -36,7 +36,7 @@ export default function SpiritWingsMenu({ isOpen, menuRef, onToggle, onClose }: 
       </button>
 
       {isOpen && (
-        <div id="spirit-wings-menu" className="fixed sm:absolute top-16 sm:top-full right-3 sm:right-0 left-3 sm:left-auto mt-2 sm:w-[18rem] max-w-[calc(100vw-24px)] max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-2xl border border-[var(--panel-border)] bg-[var(--panel)] shadow-2xl z-[130] animate-in fade-in slide-in-from-top-2">
+        <div id="spirit-wings-menu" className="fixed top-[var(--sanctum-header-height,4rem)] right-3 left-3 sm:left-auto mt-2 sm:w-[18rem] max-w-[calc(100vw-24px)] max-h-[calc(100dvh-var(--sanctum-header-height,4rem)-1rem)] overflow-y-auto rounded-2xl border border-[var(--panel-border)] bg-[var(--panel)] shadow-2xl z-[130] animate-in fade-in slide-in-from-top-2">
           <div className="overflow-hidden rounded-2xl">
             <div className="flex items-start justify-between gap-3 px-3 py-3 border-b border-[var(--panel-border)] bg-[var(--inner-box)]">
               <div>

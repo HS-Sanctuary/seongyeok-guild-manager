@@ -2,6 +2,8 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { isIrisUpdate, type UpdateChannel } from "@/lib/kerygmaUpdates";
 import { supabase } from "@/lib/supabase";
 import { mutateNotice } from "@/lib/noticeClient";
 import { Notice, CommentItem, PollData } from "@/types/kerygma";
@@ -16,20 +18,26 @@ function KerygmaContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const noticeIdParam = searchParams.get("id");
+  const isIrisNotes = !noticeIdParam && searchParams.get("note") === "iris";
+  const rawUpdates = searchParams.get("updates");
+  const updatesParam = rawUpdates === 'iris' || rawUpdates === 'sanctum' ? rawUpdates : null;
+  const updateChannel: UpdateChannel = isIrisNotes || updatesParam === 'iris' ? 'iris' : 'sanctum';
 
   // Opening/closing a notice changes only the query string, so reset the
   // retained scroll position before the fixed banner/header covers its actions.
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => window.scrollTo(0, 0));
     return () => window.cancelAnimationFrame(frame);
-  }, [noticeIdParam]);
+  }, [noticeIdParam, isIrisNotes, updatesParam]);
 
   const [user, setUser] = useState<any>(null);
   const [notices, setNotices] = useState<Notice[]>([]);
   const [accountsMap, setAccountsMap] = useState<Record<string, { role?: string; equipped_title?: string; titles?: string[]; job?: string; main_class?: string }>>({});
   const [dbCharacters, setDbCharacters] = useState<any[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("전체");
+  const activeCategory = updatesParam || isIrisNotes ? '생텀 업데이트' : selectedCategory;
   const [loading, setLoading] = useState(true);
+  const [noticesLoadFailed, setNoticesLoadFailed] = useState(false);
   const [selectedNotice, setSelectedNotice] = useState<Notice | null>(null);
 
   // 댓글 상태 관리 (DB 연동)
@@ -134,11 +142,14 @@ function KerygmaContent() {
         .order("created_at", { ascending: false });
 
       if (error) {
+        setNoticesLoadFailed(true);
         console.error("Supabase notices fetch error:", error);
       } else if (data) {
+        setNoticesLoadFailed(false);
         setNotices(data as Notice[]);
       }
     } catch (err) {
+      setNoticesLoadFailed(true);
       console.error("Notices fetch exception:", err);
     } finally {
       setLoading(false);
@@ -171,6 +182,14 @@ function KerygmaContent() {
 
   // 공지 선택 및 DB 댓글 트리 동기화
   useEffect(() => {
+    if (isIrisNotes) {
+      // Reuse the existing list query. Never redirect to a guessed numeric ID.
+      const found = notices.find(isIrisUpdate);
+      setSelectedNotice(found ? withViewerVotes(found) : null);
+      const rawComments = (found as (Notice & { comments?: CommentItem[] }) | undefined)?.comments;
+      setCommentsTree(Array.isArray(rawComments) ? rawComments : []);
+      return;
+    }
     if (noticeIdParam && notices.length > 0) {
       const found = notices.find((n) => Number(n.id) === Number(noticeIdParam));
       if (found) {
@@ -196,7 +215,7 @@ function KerygmaContent() {
       setSelectedNotice(null);
       setCommentsTree([]);
     }
-  }, [noticeIdParam, notices]);
+  }, [noticeIdParam, notices, isIrisNotes]);
 
   const handleTogglePin = async (id: number, currentPinned: boolean) => {
     if (!canWriteNotice) return alert("필독 고정 권한이 없습니다.");
@@ -222,7 +241,8 @@ function KerygmaContent() {
   const handleOpenNotice = (notice: Notice) => {
     // These are client-only query transitions. Update history synchronously
     // so closing a reader cannot leave its old URL behind a visible list.
-    window.history.pushState(null, "", `/kerygma?id=${notice.id}`);
+    const channelQuery = activeCategory === '생텀 업데이트' ? `&updates=${updateChannel}` : '';
+    window.history.pushState(null, "", `/kerygma?id=${notice.id}${channelQuery}`);
     // Also recover an already-desynchronised same-URL selection: a router
     // navigation to the same id need not rerun the selection effect.
     setSelectedNotice(withViewerVotes(notice));
@@ -232,9 +252,19 @@ function KerygmaContent() {
 
   const handleCloseReader = () => {
     setSelectedCategory("전체");
-    window.history.replaceState(null, "", "/kerygma");
+    const channel = isIrisUpdate(selectedNotice) ? 'iris' : updatesParam;
+    window.history.replaceState(null, "", channel ? `/kerygma?updates=${channel}` : "/kerygma");
     setSelectedNotice(null);
     setCommentsTree([]);
+  };
+
+  const handleSelectCategory = (category: string) => {
+    if (category !== '생텀 업데이트') setSelectedCategory(category);
+    window.history.pushState(null, '', category === '생텀 업데이트' ? '/kerygma?updates=sanctum' : '/kerygma');
+  };
+
+  const handleSelectUpdateChannel = (channel: UpdateChannel) => {
+    window.history.pushState(null, '', `/kerygma?updates=${channel}`);
   };
 
   useEffect(() => {
@@ -345,8 +375,9 @@ function KerygmaContent() {
   };
 
   const filteredNotices = notices.filter((n) => {
-    if (selectedCategory === "전체") return true;
-    return n.type === selectedCategory;
+    if (activeCategory === "전체") return true;
+    if (n.type !== activeCategory) return false;
+    return activeCategory !== '생텀 업데이트' || isIrisUpdate(n) === (updateChannel === 'iris');
   });
 
   const formatNoticeDate = (dateStr: string) => {
@@ -397,10 +428,16 @@ function KerygmaContent() {
           />
         ) : (
           <div className="space-y-3">
+            {isIrisNotes && !loading && <section role="status" aria-label="IRIS 업데이트 노트" className="space-y-2 rounded-2xl border border-[var(--panel-border)] bg-[var(--panel)] p-4 text-sm break-keep [overflow-wrap:anywhere]">
+              <p>{noticesLoadFailed ? "IRIS 업데이트 노트를 불러오지 못했어요. 연결을 확인하고 다시 접속해 주세요." : "IRIS 업데이트 노트는 아직 게시 준비 중이에요. 운영 배포 확인 후 이곳에서 안내할게요."}</p>
+              <Link href="/iris/download" className="inline-block font-bold text-[var(--accent)] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-[var(--accent)]">IRIS 다운로드 안내</Link>
+            </section>}
             <KerygmaCategoryTabs
-              activeCategory={selectedCategory}
-              onSelectCategory={setSelectedCategory}
+              activeCategory={activeCategory}
+              onSelectCategory={handleSelectCategory}
               canWriteNotice={canWriteNotice}
+              updateChannel={updateChannel}
+              onSelectUpdateChannel={handleSelectUpdateChannel}
             />
 
             <KerygmaTableList

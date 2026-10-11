@@ -1,8 +1,61 @@
 {
-    "createdAtUtc":  "2026-10-10T17:12:39.3115547Z",
-    "architecture":  "win-x64",
+    "schemaVersion":  1,
+    "version":  "0.2.0",
     "signature":  "unsigned",
+    "architecture":  "win-x64",
+    "createdAtUtc":  "2026-10-11T05:19:18.5163167Z",
+    "minUpdaterVersion":  1,
+    "queueSchemaVersion":  3,
+    "product":  "IRIS for SANCTUM",
+    "updaterVersion":  1,
+    "sizeBytes":  519708,
+    "sha256":  "1ced8923c386f19c5892710d830c6b696f231aa6237bb38d23a7cd5b4f420cc7",
     "channel":  "beta-candidate",
-    "sha256":  "77a87c1f87e6eab4aa41daf803292ff11e20b398811a316525cacef263145b87",
-    "sizeBytes":  431067
+    "files":  [
+                  {
+                      "sizeBytes":  176640,
+                      "sha256":  "3c5d8c86987bd507a5afe5677083240d24177068d49495c8f91227f37345e381",
+                      "name":  "IRIS.exe"
+                  },
+                  {
+                      "sizeBytes":  64770,
+                      "sha256":  "0b997eb69fcb73472ec00a79f2d29783cbf1fef7ce9d5b2ccd49803b5de54739",
+                      "name":  "IRIS.ico"
+                  },
+                  {
+                      "sizeBytes":  90624,
+                      "sha256":  "742d7c9b27aa5593d0cd622b63f81f14504f30854e4ebb7316cf5e9a6988bdbe",
+                      "name":  "IRIS.Updater.exe"
+                  },
+                  {
+                      "sizeBytes":  1487,
+                      "sha256":  "0af8f1b807512aae39c2ac1aa4d0cae65cabecb6fd554b8439a5162a0d6eca55",
+                      "name":  "LICENSE.WebView2.txt"
+                  },
+                  {
+                      "sizeBytes":  698208,
+                      "sha256":  "d60e6e94245078cb56e44ebd5f360dc04bf18e460136be93bfc4cfca43b98505",
+                      "name":  "Microsoft.Web.WebView2.Core.dll"
+                  },
+                  {
+                      "sizeBytes":  38752,
+                      "sha256":  "6a9e6856f23c463783c3afb0ca5d78f56324c86657162ccb16d5227b3233b32a",
+                      "name":  "Microsoft.Web.WebView2.WinForms.dll"
+                  },
+                  {
+                      "sizeBytes":  3894,
+                      "sha256":  "106423785c5b7eba0a8e61d1837f2132e9c828e20ad530f565d981c1df60dd90",
+                      "name":  "NOTICE.WebView2.txt"
+                  },
+                  {
+                      "sizeBytes":  3264,
+                      "sha256":  "f08f2183061ee3ab6cd45de4da4c8495d1c4f1bb0c5689fb5b8bae3d5038ab5b",
+                      "name":  "README.txt"
+                  },
+                  {
+                      "sizeBytes":  194912,
+                      "sha256":  "3426dcc55fdfb8b5e7ac623cf33b4ccf283fbf68a0c5a65bddfdb4d749a8abee",
+                      "name":  "WebView2Loader.dll"
+                  }
+              ]
 }

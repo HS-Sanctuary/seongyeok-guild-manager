@@ -5,6 +5,7 @@ import {createDesktopController} from '@/lib/irisDesktopController';
 import {createDesktopTransport,type DesktopAccount} from '@/lib/irisDesktopTransport';
 import {createDesktopStore,parseDesktopWindowEvent,type DesktopAddonState,type DesktopAddonPreferences} from '@/lib/irisDesktopStore';
 import {DesktopTitlebar} from '@/components/iris/DesktopTitlebar';
+import {DesktopUpdater} from '@/components/iris/DesktopUpdater';
 import {DesktopContextActions} from '@/components/iris/DesktopContextActions';
 import {DesktopAddonSettings} from '@/components/iris/DesktopAddonSettings';
 import {useDesktopAppearance} from '@/components/iris/useDesktopAppearance';
@@ -33,6 +34,7 @@ export default function DesktopPage() {
   const [synaxisBusy,setSynaxisBusy]=useState(false);
   const [synaxisActivity,setSynaxisActivity]=useState({party:0,bus:0});
   const [closing,setClosing]=useState(false);
+  const [updateBusy,setUpdateBusy]=useState(false);const updateActive=useRef(false);
   const closingRef=useRef(false),addonReady=useRef(false);
   const [closeReason,setCloseReason]=useState<'manual'|'game-exit'>('manual');
   const [addon,setAddon]=useState<DesktopAddonState|null>(null),[addonError,setAddonError]=useState(''),[addonBusy,setAddonBusy]=useState(false);
@@ -44,7 +46,7 @@ export default function DesktopPage() {
   const watchContext=useRef(0),[watchVersion,setWatchVersion]=useState(0);
   const invalidateWatch=useCallback(()=>{watchContext.current++;setWatchVersion(watchContext.current);},[]);
   const getWatchContext=useCallback(()=>watchContext.current,[]);
-  const requestClose=useCallback((reason:'manual'|'game-exit'='manual')=>{if(closingRef.current)return;closingRef.current=true;invalidateWatch();setAccountOpen(false);setSettingsOpen(false);setCloseReason(reason);setClosing(true);if(addonReady.current)void protectedStore.current?.setCloseDecision(true).catch(()=>setAddonError('종료 연결을 확인해 주세요.'));},[invalidateWatch]);
+  const requestClose=useCallback((reason:'manual'|'game-exit'='manual')=>{if(closingRef.current||updateActive.current)return;closingRef.current=true;invalidateWatch();setAccountOpen(false);setSettingsOpen(false);setCloseReason(reason);setClosing(true);if(addonReady.current)void protectedStore.current?.setCloseDecision(true).catch(()=>setAddonError('종료 연결을 확인해 주세요.'));},[invalidateWatch]);
   const [statsBusy,setStatsBusy]=useState(false);
   const statsBusyChanged=useCallback((value:boolean)=>{if(value)invalidateWatch();setStatsBusy(value);},[invalidateWatch]);
   const gameReadInFlight=useRef<Promise<GameStats>|null>(null);
@@ -90,7 +92,7 @@ export default function DesktopPage() {
     const refresh=()=>{const c=controller.current;if(!alive||!c||refreshing||Date.now()-lastRefresh<30000)return;refreshing=true;lastRefresh=Date.now();void c.refresh().then(publish).catch(e=>{setError(e instanceof Error?e.message:'기간을 확인해 주세요.');publish();}).finally(()=>{refreshing=false;});};
     const visible=()=>{if(document.visibilityState==='visible')refresh();};
     window.addEventListener('focus',refresh);document.addEventListener('visibilitychange',visible);
-    const interval=setInterval(()=>{if(!alive)return;setNow(Date.now());if(gameDay()!==day){day=gameDay();lastRefresh=0;refresh();}const c=controller.current;if(c){void c.tick().then(publish).catch(e=>{setError(e instanceof Error?e.message:'저장 상태를 확인해 주세요.');publish();});publish();}},1000);
+    const interval=setInterval(()=>{if(!alive)return;setNow(Date.now());if(gameDay()!==day){day=gameDay();lastRefresh=0;refresh();}const c=controller.current;if(c&&!updateActive.current){void c.tick().then(publish).catch(e=>{setError(e instanceof Error?e.message:'저장 상태를 확인해 주세요.');publish();});publish();}},1000);
     const warn=(e:BeforeUnloadEvent)=>{if(controller.current?.state().queue.entries.length){e.preventDefault();e.returnValue='';}};
     window.addEventListener('beforeunload',warn);
     const close=(event:Event)=>{const native=window as NativeWindow;const message=parseDesktopWindowEvent((event as CustomEvent).detail,native.__irisDesktopBridge??null);if(message?.kind==='window.close.request'){native.__irisDesktopPendingClose=null;requestClose(message.reason);}};window.addEventListener('iris-desktop-close',close);
@@ -112,14 +114,14 @@ export default function DesktopPage() {
     }catch{/* Display metadata is optional; never use it as authentication. */}
     return()=>{live=false;};
   },[accountMemoryId,accountMemoryNickname,accountMemoryRole]);
-  const account=accountForMemory,selected=state?.selected??null,baseLocked=!state||state.locked||busy,locked=baseLocked||statsBusy||synaxisBusy;
+  const account=accountForMemory,selected=state?.selected??null,baseLocked=!state||state.locked||busy,locked=baseLocked||statsBusy||synaxisBusy||updateBusy;
   const entries=state?.queue.entries.filter(e=>e.accountId===account?.id)??[];
   const appearance=useDesktopAppearance(environment,account?.id??null);
-  const openAccount=()=>{if(closing||busy||synaxisBusy)return;invalidateWatch();setSettingsOpen(false);setCharacterPickerRequest(0);setAccountOpen(true);};
+  const openAccount=()=>{if(closing||busy||synaxisBusy||updateActive.current)return;invalidateWatch();setSettingsOpen(false);setCharacterPickerRequest(0);setAccountOpen(true);};
   const contextActions=<DesktopContextActions accountOpen={accountOpen} settingsOpen={settingsOpen} disabled={closing||busy||synaxisBusy} onAccount={openAccount} onSettings={()=>{if(closing||busy||synaxisBusy)return;invalidateWatch();setAccountOpen(false);setSettingsOpen(value=>!value);}}/>;
   const settingsPanel=<DesktopAddonSettings appearance={appearance} addonState={addon} busy={addonBusy||closing} error={addonError} onPreferencesChange={value=>void preferencesChange(value)} onBack={()=>setSettingsOpen(false)} accountPanel={<><p className="iris-caption">{account?`${account.nickname} · 계정`:'생텀 계정으로 로그인해 주세요.'}</p><button type="button" className="iris-desktop-button" disabled={closing||busy} onClick={openAccount}>계정 관리 열기</button></>}/>;
   return <main className="iris-desktop">
-    <DesktopTitlebar onDrag={()=>windowAction('drag')} onMinimize={()=>windowAction('minimize')} onClose={()=>requestClose()}/>
+    <DesktopTitlebar onDrag={()=>windowAction('drag')} onMinimize={()=>windowAction('minimize')} onClose={()=>requestClose()} updateControl={<DesktopUpdater store={protectedStore.current} disabled={closing||busy||statsBusy||synaxisBusy||accountOpen||settingsOpen||!!state?.durabilityError||!!state?.hasInvalidClassDraft} onBusyChange={value=>{updateActive.current=value;setUpdateBusy(value);if(value)invalidateWatch();}} onBeforeApply={async()=>{if(statsBusy||synaxisBusy||closingRef.current||!controller.current)return false;return !!await run(c=>c.shutdown('keep'),true);}}/>}/>
     {!account&&<div className="iris-context-header iris-login-tools">{contextActions}</div>}
     {accountOpen&&!closing&&<DesktopFocusDialog title="생텀 계정" onClose={()=>setAccountOpen(false)} dismissDisabled={busy}>{error&&<p role="alert">{error}</p>}{account?<DesktopAccountPanel account={account} remembered={remembered} busy={locked} onClose={()=>setAccountOpen(false)} onSwitch={id=>run(c=>c.switchAccount(id),true)} onLogout={()=>run(c=>c.logout('keep'),true)} onLogin={(n,code,keep)=>run(c=>c.login(n,code,keep),true)}/>:<DesktopLogin busy={!!state?.durabilityError||busy} onLogin={async(n,code,keep)=>{if(await run(c=>c.login(n,code,keep),true))setAccountOpen(false);}}/>}</DesktopFocusDialog>}
     {closing&&<DesktopCloseDialog reason={closeReason} busy={busy||statsBusy||synaxisBusy} storageFailed={state?.durabilityError||closeFailed} onCancel={cancelClose} onChoose={action=>void run(async c=>{await c.shutdown(action);await protectedStore.current?.close();},true).then(ok=>{if(!ok)setCloseFailed(true);})} onUnsafeClose={()=>void run(async c=>{await c.shutdownWithoutSaving();await protectedStore.current?.close();},true)}/>}

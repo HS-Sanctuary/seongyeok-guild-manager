@@ -1,11 +1,14 @@
 "use client";
 
 import Link from 'next/link';
+import {useRef} from 'react';
 import { useRouter } from 'next/navigation';
 import { NavItem, AccountPreset } from '../../types/layout';
 import NotificationInbox from './NotificationInbox';
 import SpiritWingsMenu from './SpiritWingsMenu';
 import MarkIcon from '@/components/common/MarkIcon';
+import IrisBrandMark from '@/components/iris/IrisBrandMark';
+import IrisWelcomeGuide from './IrisWelcomeGuide';
 import { SANCTUM_BETA_VERSION } from '@/lib/release';
 import { useNoticeNotifications } from '@/hooks/useNoticeNotifications';
 
@@ -23,6 +26,7 @@ interface NavbarProps {
   setIsThemeModalOpen: (val: boolean) => void;
   mounted: boolean;
   activeAccount: AccountPreset | null;
+  verifiedAccountId?: string | null;
   accounts: AccountPreset[];
   accountMenuRef: React.RefObject<HTMLDivElement | null>;
   isAccountMenuOpen: boolean;
@@ -46,6 +50,7 @@ export default function Navbar({
   setIsThemeModalOpen,
   mounted,
   activeAccount,
+  verifiedAccountId,
   accounts,
   accountMenuRef,
   isAccountMenuOpen,
@@ -55,6 +60,7 @@ export default function Navbar({
   handleLogout
 }: NavbarProps) {
   const router = useRouter();
+  const irisDownloadRef = useRef<HTMLAnchorElement>(null);
   const {
     browserPermission,
     isLoaded: isNotificationsLoaded,
@@ -192,6 +198,7 @@ export default function Navbar({
           </div>
 
           <div className="ml-auto flex items-center gap-1.5 xl:gap-2 relative shrink-0">
+            <div role="group" aria-label="생텀 빠른 도구" className="grid grid-cols-2 gap-1.5">
             <SpiritWingsMenu
               isOpen={isWingsOpen}
               menuRef={wingsRef}
@@ -200,7 +207,7 @@ export default function Navbar({
             />
             <button 
               onClick={openThemeSettings}
-              className="hidden sm:flex w-8 h-8 sm:w-9 sm:h-9 border rounded-xl transition cursor-pointer items-center justify-center shadow-sm border-[var(--panel-border)] hover:border-[var(--accent)] hover:scale-105 text-base select-none bg-[var(--inner-box)] shrink-0"
+              className="flex w-8 h-8 sm:w-9 sm:h-9 border rounded-xl transition cursor-pointer items-center justify-center shadow-sm border-[var(--panel-border)] hover:border-[var(--accent)] hover:scale-105 text-base select-none bg-[var(--inner-box)] shrink-0"
               title="생텀 페이지 설정"
               aria-label="생텀 페이지 설정 열기"
             >
@@ -231,6 +238,15 @@ export default function Navbar({
               setModuleEnabled={setModuleEnabled}
               settingsError={settingsError}
             />
+            <Link ref={irisDownloadRef} href="/iris/download" aria-label="IRIS 다운로드" title="IRIS 다운로드 안내" onClick={() => {
+              setIsWingsOpen(false);
+              setIsNotificationInboxOpen(false);
+              setIsAccountMenuOpen(false);
+            }} className="flex h-8 w-8 items-center justify-center rounded-xl border border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-fg)] transition hover:brightness-105 motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] sm:h-9 sm:w-9" style={{boxShadow:'0 0 .5rem color-mix(in srgb, var(--accent) 30%, transparent)'}}>
+              <IrisBrandMark className="h-6 w-6 sm:h-7 sm:w-7" colorClass="text-[var(--accent-fg)]" />
+            </Link>
+            </div>
+            {mounted && showNavbar && activeAccount && verifiedAccountId === activeAccount.id && pathname !== '/iris/download' && <IrisWelcomeGuide key={activeAccount.id} accountId={activeAccount.id} targetRef={irisDownloadRef} />}
 
             {mounted && activeAccount ? (
               <div className="relative shrink-0" ref={accountMenuRef}>
@@ -250,7 +266,7 @@ export default function Navbar({
                 </button>
 
                 {isAccountMenuOpen && (
-                  <div id="sanctum-account-menu" className="absolute right-0 mt-2 w-[min(18rem,calc(100vw-1.5rem))] max-h-[calc(100dvh-5rem)] overflow-y-auto border rounded-2xl shadow-2xl z-[130] p-2 bg-[var(--panel)] border-[var(--panel-border)] text-[var(--text-main)]">
+                  <div id="sanctum-account-menu" className="fixed right-3 top-[var(--sanctum-header-height,4rem)] mt-2 w-[min(18rem,calc(100vw-1.5rem))] max-h-[calc(100dvh-var(--sanctum-header-height,4rem)-1rem)] overflow-y-auto border rounded-2xl shadow-2xl z-[130] p-2 bg-[var(--panel)] border-[var(--panel-border)] text-[var(--text-main)]">
                     <div className="text-[0.67rem] font-bold text-[var(--text-sub)] px-2 py-1">현재 활성 계정</div>
                     <div className="flex items-center justify-between p-2 rounded-lg mb-2 border-l-4 bg-[var(--inner-box)] border-[var(--accent)]">
                       <div className="flex flex-col min-w-0">

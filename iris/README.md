@@ -1,5 +1,13 @@
 # IRIS 로컬 읽기 시제품
 
+## Native 내부 업데이트 후보 — 2026-10-11 (공개 미반영)
+
+- production 패키지부터 설치된 native Beta 버전을 표시하고 더 높은 버전이 있을 때만 업데이트 버튼을 제공한다. 사용자 클릭으로 파일 검증→기존 보호 보관→정상 종료→백업·교체→재시작한다. 실패 시 원본 restore, 실행 중 다른 IRIS/원본 hash 변경 시 안전 중단. 게임/CLI/로그인/테마/보호 큐는 교체하지 않는다.
+- 새 builder payload는9개+manifest1개(`IRIS.Updater.exe` 포함), 엄격한 manifest/version/zip hash/파일 size·hash를 가진 sidecar metadata를 생성한다. 이전9파일 기록은 이전 빌드 기준이다. 현재 public ZIP은 그대로이며 첫 지원 버전은 수동1회 설치해야 한다. 무료 unsigned, 보안 프로그램 비활성화/관리자 권한/런타임 자동 설치 없음.
+- `desktop-update.tests.ps1`: 악성/변조 ZIP·버전·원본 추출 중 변경·공유 mutex 복구 방어·handshake. `desktop-update-process.tests.ps1`: 임시 실제 프로세스 교체 성공/새 앱 crash rollback/중단된 설치 recovery. `release-package.tests.ps1`: 실제 app/helper compile·10파일/hash/icon·metadata로 실제 ZIP 검증. 실제 사용자 WebView 앱 두 버전 업그레이드·Windows 차단·다른 PC는 추가 검증 대상이다.
+- 시작 전 취소할 수 있고 다운로드/검증을 시작한 뒤에는 취소를 잠근다. 쓰기 권한이 없거나 Windows가 차단하면 기록을 지우거나 보안을 낮추지 말고 중단한다. 성공한 백업은 즉시 지우지 않는다.
+
+
 ## Windows 베타 후보 패키지 — 2026-10-10
 
 - `powershell -NoProfile -File iris/build-beta.ps1 -PrepareDownload`: 로컬의 공식 WebView2 SDK와 Windows .NET compiler로 production-only x64 `IRIS.exe` ZIP을 생성한다. generated archive/manifest는 public/IRIS/downloads, ICO는 public/IRIS/logo, 재현 빌드 디렉터리는 ignored build/iris-beta다. 자동 SDK/CLI/OS 설치는 하지 않는다.

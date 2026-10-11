@@ -1,5 +1,62 @@
 # SANCTUM 작업 인계
 
+## 2026-10-11 14:22 KST 영겁 — 실제 native 시험 통과 / main 공개 준비
+
+- 한설이 외출 중 기능 수정 없이 검증·main push·업데이트 노트 완료를 위임했다. 아래 실제시험 차단은 해소: Microsoft 공식 WebView 환경 옵션으로 시험 프로세스만 새 user-data+DNS 차단, 앱 코드는 그대로. 최종 공개 ZIP 자체를 실제 helper/IRIS.exe로 0.1.0→0.2.0 교체·WebView 준비 성공, 기존 Desktop 보호 파일/설정 전후 해시 동일. 테스트 스크립트의 OfflineIsolatedWebView 옵션과 fail-closed ID/경로 확인을 추가했으며 제품 코드 수정은 없다.
+- 공개 패키지 준비: IRIS Beta0.2.0/519708 bytes/SHA1ced8923c386f19c5892710d830c6b696f231aa6237bb38d23a7cd5b4f420cc7. 동일 버전 manifest/metadata/helper10파일, 최초 지원 ZIP은 수동1회. 전체 Node·tsc·webpack57/대상lint·nativepolicy/host41/bridge·실프로세스3흐름·UI4폭/3글자/6theme 통과. 실제 게시/운영 확인은 아직 대기, 성공 전 완료로 기록하지 않는다.
+- 계속 남는 연결 제한: CUA/NodeREPL kernel assets 오류, Chrome/Edge 및 msedgewebview2 remote-debugging port 없음. 관리자 세션을 추출하거나 직접 운영DB로 게시하지 않는다. 출시글은 docs/IRIS_UPDATE_POST.md 준비; Ready 후 정상 브라우저 연결로 기존 IRIS 글 조회/수정 또는1회생성. 서버 관측 MCP403/CLI없음 제한도 유지.
+- 푸시 뒤 생활커넥터/MoFo/MobiWorks의 공식 자료·설치본 비교 보고서를 docs/IRIS_CONNECTOR_COMPARISON_20261011.md에 추가한다. 조사 범위는 읽기/브리핑, 게임 조작·외부 자동화·앱 기능 추가·DB 구조 변경을 위임받은 것이 아니다. 이전 개인 dirty/삭제·UPDATE_POST_v2.151·테마 실험은 커밋에서 제외한다.
+
+## 2026-10-11 14:13 KST 영겁 — IRIS 0.2.0 출시 준비 / 게시 연결 차단
+
+- 한설이 자동 업데이트 검증 후 main push와 기능 소개를 포함한 `IRIS Beta 0.2.0 출시!` 게시를 승인했다. `lib/irisRelease.ts`를 로컬 0.2.0 후보로 올리고 실제 0.1.0/0.2.0 native 패키지를 ignored build/iris-updater-verify에 준비했다. 공개 ZIP/download.json은 여전히 이전 배포 그대로다. commit/push/배포/게시/운영 DB 쓰기를 실행하지 않았다.
+- docs/IRIS_UPDATE_POST.md에 따뜻한 출시 본문을 기능·이번 업데이트·시작4단계·보안/한계·피드백 절로 나눠 작성했다. 기존 IRIS 시스템 글이 있으면 이전 이력을 보존해 수정하고, 없다면 한 번만 생성한다. 정상 관리자 API, SANCTUM 시스템 작성자, Ready/운영 확인 뒤 게시 원칙 유지.
+- `lib/kerygmaUpdates.ts`는 기존 고정 제목과 엄격한 `IRIS Beta x.y.z 출시!` 시스템 제목을 함께 인식한다. 해당 제목/잘못된 작성자·분류·버전·접미사 회귀4/4 및 다운로드·updater 관련 총12, 독립 tsc/diff check exit0. 기존 전체/native/UI/빌드 통과 범위는 아래 기록을 유지한다.
+- 새 실제 release EXE 시험 스크립트는 sandbox AppData임을 확인하고 실제 사용자 설치/프로필을 건드리지 않는다. 두 번 모두 준비 단계 AtomicText/File.Move가 sandbox 접근 거부로 실패해 helper/실제 WebView 앱을 실행하지 못했다. 로그: sandbox 임시 iris-update-live-6556af943e3f4453855e8afd33891d23. 이는 실앱 업그레이드 성공 증거가 아니다. 기존 합성 success/crash/recover 3/3과 구분하며 새 실제 시험이 끝나기 전 무검증 설치 파일 공개를 진행하지 않았다. 일반/관리자 실제 사용자 AppData로 우회 실행하지 않는다.
+- 게시 연결 차단: CUA와 Node REPL이 kernel assets 경로 오류, 초기화 재시도도 동일. 기존 Chrome/Edge 원격 디버깅 포트 숫자만 승인 조회했으나 없어 세션을 정상 재사용할 수 없었다. 쿠키/로그인 코드 추출·직접 DB INSERT로 우회하지 않았다. Vercel MCP403/CLI 미설치는 아래 기존 제한. 브라우저 연결 복구와 실제 격리 앱 시험 후 공개 패키지 교체→최종검증→문서/relay→main push→Ready/운영 확인→기존 글 조회/게시→ID·시간 기록 순서로 이어갈 것. 오래된 크로노스/시낙시스 완료 작업은 반복하지 않는다.
+
+## 2026-10-11 영겁 — IRIS 내부 자동 업데이트 (로컬 후보, 미배포)
+
+- 현재 작업은 크로노스/시낙시스 재구현이 아닌 native 자동 업데이트다. 오래된 `automation` 예약을 삭제했다. 아래 이전의 "설계 대기/새 updater 코드 없음"은 당시 기록이며 이 항목이 최신이다. 한설은 사용량 낭비를 지적하고 자동 업데이트만 우선 이어가도록 지정했다.
+- `desktop-update-policy.cs`의 고정 HTTPS metadata/ZIP·엄격한 버전/파일 allowlist/hash/크기/내부 manifest 검증 → `desktop-update.cs`의 30분 조회 제한/단일 준비 → `desktop-update-install.cs`의 원본 백업/journal/원자 교체/별도 helper/재시작 handshake/실패 복구를 연결했다. 웹은 URL·파일 경로·명령을 넘기지 않는다. EXE와 `IRIS.Updater.exe`를 함께 빌드하고 ZIP10파일/버전 metadata를 만든다.
+- 실제 설치된 native 버전 옆에 새 버전이 있을 때만 테마 강조 버튼. 확인·진행·노트·오류 표시, 보호 보관 실패/잘못된 입력/파티 쓰기 중 설치 차단. 다운로드 전 native 종료 방어를 켜고, 성공 시 프로세스 종료까지 버튼을 잠근다. 보호 대기함/프로필/로그인/게임/CLI/DB는 업데이트 파일 대상이 아니다.
+- fresh reviewer Important2건을 회귀 테스트 RED→GREEN으로 수정: 추출 중 원본 변경을 새 baseline으로 수용하지 않음(원래 manifest digest 포함), 복구도 공통 queue mutex·live install 확인·journal 재조회 적용. helper 동작 중 중복 시작은 복구 journal을 덮어쓰지 않는다. Minor: 다운로드 시작 이후 취소는 현재 잠김; 시작 전 명시적 취소 가능, 후속 개선으로 보류.
+- 검증: 전체 Node exit0, 독립 tsc/새 컴포넌트·store lint exit0, 격리 webpack57 exit0(`sanctum-iris-build-gr7ehJ`). native 정책/브리지/WebView/패키지 빌드 및 metadata 실제 추출 통과. 임시 실제 프로세스3개 흐름(success/crash/recover)에서 교체·재시작·rollback 확인(`iris-update-process-29131c41c5bc4fe1ab010badde9000e9`). UI4폭/PC3글자·native version·지원 없음·실패 보관·종료 방어·중복 클릭 합성 통과, 320px 캡처 눈 확인. 실제 사용자 앱/게임 종료·운영 DB 쓰기는 없음.
+- 다음: 현재 공개 ZIP은 updater 없는 구형이고 그대로 유지했다. 최초 지원 버전은 수동 다운로드1회 필요하며 그 다음부터 내부 업데이트 가능. 실제 WebView 앱 두 버전 업그레이드/SmartScreen·권한 제한/다른 PC 검증과 공개 패키지 교체·버전 상승·push·배포는 아직 미실행. 지원 패키지 공개 시 `build-beta.ps1 -PrepareDownload`로 EXE/ZIP/download.json을 같은 버전으로 준비하고 웹 배포 성공도 확인한다. 내부 설계/계획/검증 기록만 갱신; 기존 unrelated dirty 변경과 개인 파일 삭제는 보존한다.
+- 최종 보강: fixed update-note URL 검증41/41, 실제 startup PID/start/version handshake와 rollback 이후 거부, 실제 generated metadata/ZIP 재검 통과. 최종 UI는6테마 accent와 Escape도 확인(`iris-update-ui-fVGM7D`). 테마 전환 도중 색을 채집하던 합성 테스트는 animation을 fixture에서만 끄고 검증했으며 제품 애니메이션은 변경하지 않았다.
+
+## 2026-10-11 영겁 — 케리그마 업데이트 하위 분류 / 실행 4단계 (로컬, 미배포)
+
+- 한설 승인 후 생텀 업데이트 아래 생텀 업데이트/IRIS 업데이트 버튼을 추가했다. KerygmaCategoryTabs는 전역 테마·aria-pressed/키보드 포커스·2열로 표시하며 기존 선택/작성 권한은 보존한다. URL updates=sanctum|iris로 선택을 유지하고 기존 notices 목록만 필터한다. lib/kerygmaUpdates.ts는 정확한 IRIS 업데이트 노트/생텀 업데이트/SANCTUM 시스템 글만 IRIS로 판별하며 새 DB type/조회는 없다.
+- numeric id와 note=iris 링크 유지, 글 읽기 후 해당 하위 목록 복귀·새로고침/뒤로가기·모바일 카테고리 선택/다른 분류 전환을 합성 검증했다. 기존 추출 navigation 테스트는 실제 판별 함수를 연결해 구형 전체목록 이동 회귀를 유지한다. IRIS 안내 테스트의 목록 복귀 기대를 새 승인 동선으로 갱신했다. 실제 공지 게시·운영 DB 시험 쓰기는 하지 않는다.
+- 추가 사용자 피드백 반영: /iris/download 실행 안내는 AI 커넥터 켜기 → 압축 풀기 → IRIS.exe 실행 → 생텀 로그인 4단계다. 인게임 설정 게임 탭의 "마비노기 모바일 AI 커넥터 beta" 켜기 문구는 한설이 제공한 명칭/경로를 사용한다. 게임 설정을 대신 조작하지 않았다. 카드는 모바일1/태블릿2/넓은PC4열, 공개 ZIP/native는 보존한다.
+- docs/IRIS_UPDATE_POST.md 초안을 두 하위 탭/4단계로 갱신했다. 앞으로 IRIS 실제 배포 확인 때 동일 IRIS 글 위에 버전 이력을 누적한다. 새 공개 글·배포·push·버전 상승은 없다.
+- 최종 검증: 전체 Node 테스트 exit0, 격리 webpack57 exit0(sanctum-iris-build-0w9kUz). 독립 tsc/변경 대상 lint exit0, 실제 로컬 브라우저 하위 탭·URL/읽기 복귀·모바일 분류·키보드·4폭/3글자/6테마 통과(kerygma-updates-ZdCLaj), 다운로드/안내 기존 동선·4단계/4폭/3글자/6테마+사용자 지정·ZIP hash 통과(iris-download-page-Zwup38). 320px 하위 탭과 390px 실행4단계 캡처 눈 확인, diff check 통과. 기존 Kerygma 전체 lint12오류/4경고는 이번 변경과 별개로 유지한다. 운영 게시·실앱 재시작/DPI 확인을 완료로 주장하지 않는다.
+- 다음 요청(설계 대기): IRIS 설치된 native 버전 옆에 새 버전이 있을 때만 강조된 업데이트 버튼을 보여주고 사용자 클릭으로 내부 다운로드/파일 교체/재시작. 현 native는 고정 운영 웹 화면을 읽고 실행 파일 자동 업데이트는 없다. 현재 download.json에는 native 버전 필드가 없고 웹 IRIS_VERSION_LABEL은 설치 버전이 아니다. 별도 helper/신뢰된 배포 확인/보호 큐 보존/실패 복구 설계를 승인받은 뒤 구현해야 한다. 새 updater 코드는 아직 없다.
+
+## 2026-10-11 영겁 — 상단 IRIS 도구 / 첫 안내 오버레이 (로컬, 미배포)
+
+- 한설이 홈 다운로드 카드 대신 상단 날개/테마/알림/IRIS 2×2 배치를 승인했다. 홈 카드 호출 및 신규 임시 IrisDownloadEntry 파일은 제거했다. Navbar의 IRIS 링크는 테마 accent 배경/대조색 원본 SVG/정적 광원, /iris/download 이동이다. 네 버튼은 모바일에서도 동일 크기이며 테마 버튼도 보인다. 기존 전역 메뉴·알림·계정 권한은 유지한다.
+- header ResizeObserver의 기존 측정 결과를 --sanctum-header-height로 전달해 날개/알림/계정 메뉴가 두 줄 도구 아래에 열린다. 계정 메뉴 겹침은 320px RED→GREEN으로 보완했다.
+- 로그인 확인 완료 계정에만 IrisWelcomeGuide native dialog를 띄운다. 로컬 계정 프리셋만으로 열지 않고 기존 session GET의 확인 ID를 재사용한다. 추가 조회 없음. 계정별 이 브라우저에서 한 번 안내하며 Esc/바깥 클릭/명시적 닫기/다운로드 이동 시 완료를 로컬에 기록한다. 원본 버튼 강조/화살표, 테마 안내/키보드·배경 조작 차단/스크롤 복원·좁은 화면 내부 스크롤을 적용한다.
+- 교차 리뷰 5건 보완: 계정 메뉴 하단 정렬, 늦은 배너 때 nav 관찰/강조 이동, 로그인 GET 확인 전 안내 방지, 숨은 헤더에서는 안내 유예/전환 완료 후 측정, 로그아웃 때 sync generation 무효화로 늦은 로그인 응답이 계정을 복원하지 않기. 모두 좁힌 RED→GREEN, 최종 리뷰 새 차단 문제 없음. 브라우저 fixture의 첫 RAF 대기 경계는 요소 표시를 기다리도록 수정했다.
+- 한설이 실화면 도구/안내 정상 노출을 확인했고 × 대신 닫기를 요청해 반영했다. 후속 승인: IRIS 독립 Beta 0.1.0/같은 케리그마 글 최신 상단 누적. lib/irisRelease.ts의 버전/제목/정규 링크를 애드온 제목·다운로드·안내에 공유한다. 안내 키는 버전+계정이며 예전 v1 완료 기록은 새 버전을 막지 않는다. 옆 노트 버튼도 완료 처리한다. /kerygma?note=iris는 기존 목록에서 정확한 시스템 제목/분류/작성자 글을 열고, 미게시/조회 실패 시 안내·다운로드 우회 링크를 보인다. 숫자 id 경로는 유지한다. 추가 목록 조회/DB 변경 없음.
+- docs/IRIS_UPDATE_POST.md는 고정 제목·단일 글 누적·게시 순서와 Beta 0.1.0 공개 본문 초안이다. 아직 글 ID/게시 시각이 없고 공개 게시하지 않았다. main 배포 Ready 및 운영 실화면 확인 뒤 기존 관리자 공지 API로 최초 게시 또는 같은 글 수정, 실제 ID/시간을 기록해야 한다. 임의 글 ID/기존 생텀 글 재사용 금지. 안내 버전은 웹 애드온 식별이며 기존 ZIP을 새 빌드처럼 재표기·재생성하지 않는다. SANCTUM은 v2.3 유지.
+- 독립 버전 후속 검증: 애드온 버전 미표시/구형 안내 완료로 새 안내 없음/정규 링크 미게시 안내 없음 RED 후 GREEN. 전체 Node·독립 tsc·신규 버전/제목/다운로드/안내 lint exit0, 격리 webpack57 exit0(sanctum-iris-build-Myr6L6). 최종 실제 로컬 브라우저 4폭/3글자/6테마+사용자 지정·두 CTA/동일 버전 재안내 없음·미게시/조회 실패 구별·일반 동명 글 제외·정규 시스템 글/숫자 링크/목록 복귀·ZIP hash 통과(iris-download-page-AcNb3j). 애드온 제목 합성 4폭/3글자/6테마 통과(iris-brand-header-3GK0NZ); 320/390 안내 및 애드온 캡처 눈 확인. 읽음 POST는 기존 Reader 동작으로 합성 글991에만 허용, 운영 HTTP/외부 WS 차단. 의도적 실패의 Next dev stack 조회는 개발 진단 요청으로 구분한다. 좁힌 교차 리뷰 새 결함 없음. Kerygma 전체 lint는 HEAD와 현재 모두 기존12오류(any9/set-state-in-effect3)·4경고(exhaustive-deps1/unused3)로 규칙별 개수 동일하며 해결 완료로 주장하지 않는다. 실제 운영 게시/배포/native 재시작·DPI 검증은 미완료다.
+- 마지막 UI 보완: 여유 폭에서도 두 CTA가 세로로 내려가는 390px RED를 확인하고 반응형 2열 grid(360px 미만 1열)로 수정했다. 최종 전체 Node·독립 tsc·신규 대상 lint와 4폭/3글자/7테마·모든 안내/공지 이동 회귀 exit0(iris-download-page-dMyVSz), 390px 밝은 안내 두 버튼 나란히 눈 확인. 최종 격리 webpack57 exit0(sanctum-iris-build-8uXJTC). 내용/권한/배포 파일 영향 없음.
+- 최종 전체 Node·독립tsc·변경된 신규 TSX/알림 대상 lint·분리 webpack57 exit0, 실제 로컬 4폭·6테마+사용자 지정·3글자·안내4폭·Esc/바깥/다운로드 뒤 재노출 방지/지연 인증·배너·스크롤·로그아웃·ZIP hash 통과. 최종 캡처 iris-download-page-7lZvml, 빌드 sanctum-iris-build-9ljBSJ. 320 안내/1280 헤더와 이전390 밝은 안내 눈 확인. 합성 API/외부 WS 차단, 테스트 로그아웃 POST는 fixture에서만 응답하고 실제 운영 쓰기는 없다. 별도 날개 컴포넌트 lint의 기존 favicon img 경고1개는 유지한다. 초기 tsc에 포함된 ignored build 검증 사본의 구형 Navbar 호출은 새 optional 검증 ID(미제공 시 안내 없음)로 호환하며 tsconfig/사본을 수정·삭제하지 않았다.
+- ZIP/metadata/native/DB/SQL/권한·SANCTUM 버전·commit/push/배포/공지 게시 변화 없음. 현재 확인은 http://localhost:3000/ 상단과 /iris/download, /iris/desktop 제목, /kerygma?note=iris. 아래 홈 카드 작업 기록은 이전 경과다.
+
+## 2026-10-11 02:37 KST 영겁 — 홈 IRIS 진입 / 다운로드 안내 개선 (로컬, 미배포)
+
+- 후속 사용자 승인: 유료 서명 없이 무료 미서명 베타 유지 및 사용자 선택/보안 주의 문구를 다운로드 화면에 반영했다. 이어서 한설의 컴팩트 카드 승인 후 로고/제목/소개/여백을 축소하고 큰 전체 폭 CTA를 작은 우측 버튼으로 바꿨다. 폭이 부족하면 버튼만 다음 행 우측으로 배치하며 제목/글자는 숨기지 않는다. 파일·DB·배포 변화 없음.
+- 컴팩트 후속 검증: 기존320px 전체 폭 버튼을 브라우저 검사로 RED 재현 후 수정, 320/390/768/1280·PC18/20/22·6테마+사용자 지정에서 버튼 폭/카드 높이/넘침0/테마/이동/ZIP hash 통과. 전체 Node·독립tsc·대상 lint exit0, 홈390/1280 캡처 눈 확인(iris-download-page-IIebMX). 문구만 바뀌어 실패하는 기존 정적 테스트 단어 검사는 제거했고 다운로드/유효성/확인값 계약 검사는 유지한다. 이번 작은 UI/문구 후속에서 빌드를 다시 실행하지 않았으며 앞선 전체 디자인의 격리빌드 결과와 구분한다.
+- 한설의 짧은 디자인 승인 후 홈 상단 위젯 아래 IrisDownloadEntry를 추가했다. app/iris/download/page.tsx는 소개/다운로드/실행3단계/항상 보이는 보안·버스 우회 안내/선택적 details 설명으로 재구성했다. IrisBrandMark는 기존 SVG를 테마 accent 마스크로 재사용한다. 별도 상태·조회·설치/자동 업데이트 기능은 추가하지 않았다.
+- 최종 실제 로컬 브라우저: 홈 버튼→다운로드 이동, 확인값 기본 접힘·Enter 펼침/닫힘, 보안/웹 시낙시스 링크 노출, 두 화면 320/390/768/1280·PC18/20/22·6테마+사용자 지정, 펼친 긴 확인값 넘침0, CTA/배지 대비4.5 이상, 실제 ZIP hash 일치 통과. 다운로드3/전체Node·tsc·신규TSX lint·격리webpack57 통과, 최종 사용자 지정 배경 수정 후 전체Node/격리webpack57도 exit0. 밝음/어두움/모바일·홈 카드 캡처 눈 확인, 독립 좁힌 리뷰 잔여 지적 없음. 최종 캡처 iris-download-page-Ax4dol, 빌드 sanctum-iris-build-OOdtxM.
+- 검증 보완: 초기 HTTP 응답 대체만으로 Realtime 차단을 보장하지 못했다. 최종 테스트는 운영 HTTP/API 응답 대체·외부 소켓 차단, 로컬 Next HMR만 허용한다. 모든 소켓 차단 시 Turbopack hydration 미시작을 진단했고 테스트 설정만 수정했다. ELYSIUM 작은 배지3.89 대비 RED→주요 글자색으로 GREEN, 전역 테마 값/제품 동작은 보존한다.
+- 사용자 지정 밝은 테마는 layout이 accent-soft를 덮어쓰지 않아 배지 대비1.22를 추가 RED 재현했다. 이 화면의 배경만 accent12%/panel88% 혼합으로 바꿔 GREEN, 전역 설정은 변경하지 않았다. 브라우저 color(srgb)0~1 반환도 검증기의 대비 계산에 반영했다.
+- ZIP/metadata/native/DB/SQL/권한·버전·commit/push/배포/공지 변화 없음. 기존 개인 삭제·메모·UPDATE_POST·테마 실험 변경은 유지한다. 확인 경로 http://localhost:3000/ 및 /iris/download, 실제 운영 페이지는 기존 v2.3 디자인 유지. 이후 한설의 명시적 push 요청 전에는 배포하지 않는다.
+
 ## 2026-10-11 02:18 KST 영겁 — v2.3 IRIS 베타 공개 다운로드 운영 확인
 
 - 코드2b9067e main 일반push, Vercel dpl_Bk8w2ww62gSTqaXaqLHbkEYV5cVt Ready/Production/28초/동일commit/운영도메인 직접확인. https://sanctum-tawny-three.vercel.app/iris/download 공개 안내와 최종ZIP431067bytes/SHA77a87c1f87e6eab4aa41daf803292ff11e20b398811a316525cacef263145b87 GET200 일치. 공개9화면200·health ready=true·IRIS 비로그인401, 실제부마스터 `/party` 공용화면 표시·관찰콘솔0.

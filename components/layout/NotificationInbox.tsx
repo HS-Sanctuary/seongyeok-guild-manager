@@ -108,7 +108,7 @@ export default function NotificationInbox({
       </button>
 
       {isOpen && (
-        <div id="sanctum-notification-inbox" className="fixed sm:absolute right-3 sm:right-0 top-16 sm:top-full mt-2 w-[min(28rem,calc(100vw-24px))] max-h-[calc(100dvh-5rem)] overflow-hidden flex flex-col rounded-2xl border border-[var(--panel-border)] bg-[var(--panel)] shadow-2xl z-[120]">
+        <div id="sanctum-notification-inbox" className="fixed right-3 top-[var(--sanctum-header-height,4rem)] mt-2 w-[min(28rem,calc(100vw-24px))] max-h-[calc(100dvh-var(--sanctum-header-height,4rem)-1rem)] overflow-hidden flex flex-col rounded-2xl border border-[var(--panel-border)] bg-[var(--panel)] shadow-2xl z-[120]">
           <div className="flex flex-wrap items-start justify-between gap-2 px-3 sm:px-4 py-3 border-b border-[var(--panel-border)] bg-[var(--panel)] shrink-0">
             <div>
               <div className="flex items-center gap-2">

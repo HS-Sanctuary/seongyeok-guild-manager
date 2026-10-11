@@ -4,6 +4,10 @@
 
 ## YG-20261008-001 — UPDATED
 
+- 누적 공개 준비 — 2026-10-11 14:22 KST: 실제 native 시험 차단 해소(제품 수정0, 시험별 새 WebView 데이터/외부DNS차단/임시설치). 최종 공개ZIP 자체 원본helper+실제IRIS.exe 0.1→0.2/WebView handshake PASS·보호파일해시 동일·운영쓰기0. IRIS0.2.0/ZIP519708 SHA1ced8923c386f19c5892710d830c6b696f231aa6237bb38d23a7cd5b4f420cc7, 최초지원 수동1회. 전체Node/tsc/build57/lint/nativehost41/bridge/policy/3프로세스/UI4폭3글자6theme PASS. 한설 외출 중 main push·노트·후속 커넥터3종 브리핑 승인, 코드추가수정 없음. CUA/NodeREPL assets 실패로 관리자 게시연결은 아직 차단, 직접DB/세션추출 금지. 이전미ACK/개인dirty 보존, push/Ready/운영결과는 후속 누적.
+
+- 누적 출시 준비 — 2026-10-11 14:13 KST: 한설이 updater 실제2버전 시험→main push 및 기능 소개 `IRIS Beta 0.2.0 출시!` 게시 승인. 로컬 독립버전0.2.0/두패키지/따뜻한 분할 초안 준비, strict release 제목 판별+관련12/tsc/diff PASS. 실제 native trial은 sandbox AtomicText rename 권한 실패로 준비만/실앱실행0, 기존 합성3흐름과 구분. CUA/NodeREPL kernel assets 오류·정상 브라우저 세션 접근 불가(Chrome/Edge CDP포트 없음), 쿠키 추출/DB 우회0. 공개ZIP/운영/commit/push/게시0; HANDOFF 최신 차단·후속 순서 참고. 사용자 개인/관련없는 dirty 및 이전 미ACK 내용 모두 보존. 실앱 시험/브라우저 복구 후 정상 배포·게시만 이어갈 것, 완료한 크로노스/시낙시스 반복 금지.
+
 - 공식운영확인 — 2026-10-11 02:18 KST: v2.3 code2b9067e main push·dpl_Bk8w2ww62gSTqaXaqLHbkEYV5cVt Ready/Production/28초·동일commit/운영domain 직접확인. 공개다운로드안내/ZIP431067bytes SHA77a87c1f87e6eab4aa41daf803292ff11e20b398811a316525cacef263145b87 GET200·공개9경로/healthready/IRISguest401·실제부마party공용화면/관찰콘솔0. 추가설치는대부분불필요/Runtime없다는오류만설치, 기존CLI재사용; 한설PC존재읽기확인. 네이티브재시작/다른PC/장시간/운영쓰기·Realtime실수신·일부버스기본확인창웹우회 미완료유지. MCP403/CLI없음 서버로그drains미점검·브라우저기존GitHub세션사용. SQL/DB/권한/공지0, 확인문서후속구조변경없음·개인파일/이전미ACK보존.
 
 - 2026-10-11 02:15 KST 최종안내후속: 정확한후보 독립tsc/webpack57 exit0·공개ZIP9file/manifest전체SHA/EXENotSigned 확인. 아래 최종안내빌드 대기는 해소, main/운영확인은 다음 단계. 구조 추가 변경 없음·기존미ACK 보존.

@@ -18,6 +18,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const [mounted, setMounted] = useState(false);
   const [accounts, setAccounts] = useState<AccountPreset[]>([]);
   const [activeAccount, setActiveAccount] = useState<AccountPreset | null>(null);
+  const [verifiedAccountId, setVerifiedAccountId] = useState<string | null>(null);
+  const accountSyncGeneration = useRef(0);
 
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const [isWingsOpen, setIsWingsOpen] = useState(false);
@@ -73,6 +75,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
     const measureHeader = () => {
       const nextHeight = Math.ceil(el.getBoundingClientRect().height);
+      el.style.setProperty('--sanctum-header-height', `${nextHeight}px`);
       if (nextHeight > lastMeasuredHeaderHeight.current && window.scrollY > 0 && window.scrollY < nextHeight) {
         // A banner that expands the fixed header can otherwise cover the page's first controls.
         window.scrollTo(0, 0);
@@ -389,10 +392,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
   // 브라우저에 저장된 계정 표시는 서버 세션과 일치할 때만 신뢰한다.
   const syncAccountRoleWithDB = async (accList: AccountPreset[]) => {
+    const generation = ++accountSyncGeneration.current;
+    setVerifiedAccountId(null);
     try {
       const response = await fetch('/api/auth/session', { cache: 'no-store' });
       if (!response.ok) return;
       const { account: sessionAccount } = await response.json();
+      if (generation !== accountSyncGeneration.current) return;
       if (sessionAccount) {
         const updatedAccounts = accList.map(account => ({
           ...account,
@@ -405,6 +411,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         const current = updatedAccounts.find(account => account.id === sessionAccount.id);
         if (current) {
           setActiveAccount(current);
+          setVerifiedAccountId(current.id);
           localStorage.setItem("nexus_user", JSON.stringify({
             nickname: current.nickname,
             alias: current.alias,
@@ -426,6 +433,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   };
 
   const loadAccounts = () => {
+    accountSyncGeneration.current += 1;
+    setVerifiedAccountId(null);
     try {
       const oldUser = localStorage.getItem("nexus_user");
       const savedAccounts = localStorage.getItem("sanctum_accounts");
@@ -462,6 +471,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   };
 
   const switchAccount = async (acc: AccountPreset) => {
+    accountSyncGeneration.current += 1;
+    setVerifiedAccountId(null);
     const response = await fetch('/api/auth/switch', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -475,6 +486,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     const { account: verifiedAccount } = await response.json();
     acc = { ...acc, role: verifiedAccount.role };
     setActiveAccount(acc);
+    setVerifiedAccountId(verifiedAccount.id);
     setTempTheme(acc.theme || 'aureum');
 
     localStorage.setItem("sanctum_active_account_id", acc.id);
@@ -630,6 +642,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
   const handleLogout = async () => {
     if (!activeAccount) return;
+    accountSyncGeneration.current += 1;
+    setVerifiedAccountId(null);
     await fetch('/api/auth/logout', { method: 'POST' });
     const remaining = accounts.filter(account => account.id !== activeAccount.id);
     setAccounts(remaining);
@@ -672,6 +686,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               setIsThemeModalOpen={setIsThemeModalOpen}
               mounted={mounted}
               activeAccount={activeAccount}
+              verifiedAccountId={verifiedAccountId}
               accounts={accounts}
               accountMenuRef={accountMenuRef}
               isAccountMenuOpen={isAccountMenuOpen}

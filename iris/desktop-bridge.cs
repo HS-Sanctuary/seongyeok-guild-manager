@@ -23,6 +23,8 @@ namespace IrisDesktop {
         public void BindAddon(Func<object> state,Func<string,bool,bool> preferences,Action<bool> decision){addonState=state;addonPreferences=preferences;addonDecision=decision;}
         Func<object> overlayState;Func<bool,bool> overlayInput;Func<int,bool> overlayOpacity;
         Func<Task<object>> gameRead,currencyRead; bool gameBusy;
+        Func<object> updateState,updateApply;Func<Task<object>> updateCheck,updatePrepare;
+        public void BindUpdater(Func<object> state,Func<Task<object>> check,Func<Task<object>> prepare,Func<object> apply){updateState=state;updateCheck=check;updatePrepare=prepare;updateApply=apply;}
         public void BindGameStats(Func<Task<object>> read){gameRead=read;}
         public void BindCurrencies(Func<Task<object>> read){currencyRead=read;}
         public async Task<string> HandleAsync(Uri source,string json){
@@ -30,11 +32,11 @@ namespace IrisDesktop {
             var receipt=Handle(source,json);var serializer=new JavaScriptSerializer();
             var result=serializer.DeserializeObject(receipt) as Dictionary<string,object>;
             var marker=result!=null&&result.ContainsKey("value")?result["value"] as Dictionary<string,object>:null;
-            if(marker==null||!marker.ContainsKey("gameReadPending"))return receipt;
-            var epoch=Epoch;gameBusy=true;
-            try{var value=await (marker.ContainsKey("currency")?currencyRead():gameRead());if(epoch!=Epoch||document==null)throw new ArgumentException();result["value"]=value;}
+            if(marker==null||(!marker.ContainsKey("gameReadPending")&&!marker.ContainsKey("updatePending")))return receipt;
+            bool update=marker.ContainsKey("updatePending");var epoch=Epoch;if(!update)gameBusy=true;
+            try{var value=await (update?(Equals(marker["updatePending"],"check")?updateCheck():updatePrepare()):(marker.ContainsKey("currency")?currencyRead():gameRead()));if(epoch!=Epoch||document==null)throw new ArgumentException();result["value"]=value;}
             catch{result["ok"]=false;result["value"]=null;result["error"]="game_stats_unavailable";}
-            finally{gameBusy=false;}
+            finally{if(!update)gameBusy=false;}
             return serializer.Serialize(result);
         }
         public void BindOverlay(Func<object> state,Func<bool,bool> input,Func<int,bool> opacity){overlayState=state;overlayInput=input;overlayOpacity=opacity;}
@@ -63,6 +65,14 @@ namespace IrisDesktop {
                 lastId = sequence;
                 object value = null;
                 switch (message["method"] as string) {
+                    case "window.update.state":
+                        if(message["payload"]!=null||updateState==null)throw new ArgumentException();value=updateState();break;
+                    case "window.update.check":
+                        if(message["payload"]!=null||updateCheck==null)throw new ArgumentException();value=new {updatePending="check"};break;
+                    case "window.update.prepare":
+                        if(message["payload"]!=null||updatePrepare==null)throw new ArgumentException();value=new {updatePending="prepare"};break;
+                    case "window.update.apply":
+                        if(message["payload"]!=null||updateApply==null)throw new ArgumentException();value=updateApply();if(CloseRequested!=null)CloseRequested(this,EventArgs.Empty);break;
                     case "store.capabilities":
                         if(message["payload"]!=null)throw new ArgumentException();value=new Dictionary<string,object>{{"schemaVersion",3},{"barter",true},{"workspace",true}};break;
                     case "window.addon.state":

@@ -21,6 +21,9 @@ namespace IrisDesktop {
         string pendingCloseReason;
         DateTime pendingCloseDeadline;
         DesktopBridge bridge;
+        Func<object> updateState,updateApply;Func<Task<object>> updateCheck,updatePrepare;
+        public void BindUpdater(Func<object> state,Func<Task<object>> check,Func<Task<object>> prepare,Func<object> apply){if(development)throw new ArgumentException("Production updater only");updateState=state;updateCheck=check;updatePrepare=prepare;updateApply=apply;}
+        public void NotifyUpdateChanged(){if(IsDisposed||!IsHandleCreated)return;if(InvokeRequired){try{BeginInvoke(new Action(NotifyUpdateChanged));}catch{}return;}if(documentReady&&bridge!=null&&updateState!=null)try{Browser.CoreWebView2.PostWebMessageAsJson(new JavaScriptSerializer().Serialize(new {version=1,kind="window.update.changed",epoch=bridge.Epoch,environment="production",state=updateState()}));}catch{/* A closed/navigated document gets no updater event. */}}
         public WebView2 Browser { get; private set; }
         public DesktopOverlayCoordinator Overlay {get;private set;}
         public DesktopGameWindowTracker Addon {get;private set;}
@@ -112,7 +115,7 @@ namespace IrisDesktop {
                 // A user-clicked party-list link opens only the fixed same-environment route.
                 // No arbitrary external URL, script popup, or WebView navigation is granted.
                 if (documentReady && e.IsUserInitiated && Uri.TryCreate(core.Source, UriKind.Absolute, out source) &&
-                    Uri.TryCreate(e.Uri, UriKind.Absolute, out target) && (DesktopHostPolicy.ValidatePartyExternal(source, target, development) || DesktopHostPolicy.ValidateHomeExternal(source, target, development))) {
+                    Uri.TryCreate(e.Uri, UriKind.Absolute, out target) && (DesktopHostPolicy.ValidatePartyExternal(source, target, development) || DesktopHostPolicy.ValidateHomeExternal(source, target, development) || DesktopHostPolicy.ValidateUpdateNotesExternal(source,target,development))) {
                     try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(target.AbsoluteUri) { UseShellExecute = true }); }
                     catch { MessageBox.Show(this,"브라우저를 열지 못했어요. 생텀의 시낙시스 화면에서 파티 목록을 확인해주세요.","SANCTUM IRIS"); }
                 }
@@ -121,6 +124,7 @@ namespace IrisDesktop {
             core.DownloadStarting += (sender, e) => { e.Cancel = true; };
             if (store != null) {
                 bridge = new DesktopBridge(store, development);
+                if(updateState!=null)bridge.BindUpdater(updateState,updateCheck,updatePrepare,updateApply);
                 bridge.BindGameStats(DesktopGameStatsReader.ReadAsync);
                 bridge.BindCurrencies(DesktopGameStatsReader.ReadCurrenciesAsync);
                 bridge.BindOverlay(Overlay.State,Overlay.SetClickThrough,Overlay.SetOpacityPercent);
@@ -131,7 +135,7 @@ namespace IrisDesktop {
                 bridge.HideRequested += (sender, e) => {Addon.RecordManualVisibility(true);Hide();};
                 bridge.CloseRequested += (sender,e) => { allowClose = true; BeginInvoke(new Action(Close)); };
                 // Runs before page scripts, so the completion announcement is never lost during hydration.
-                await core.AddScriptToExecuteOnDocumentCreatedAsync("window.__irisDesktopBridge=null;window.__irisDesktopPendingClose=null;chrome.webview.addEventListener('message',function(e){var d=e.data;if(!d||d.version!==1)return;if(d.kind==='bridge.ready'&&Number.isSafeInteger(d.epoch)&&d.epoch>0&&['development','production'].includes(d.environment)){window.__irisDesktopBridge=d;window.dispatchEvent(new CustomEvent('iris-desktop-ready'));return;}var c=window.__irisDesktopBridge;if(!c||d.epoch!==c.epoch||d.environment!==c.environment)return;if(d.kind==='window.close.request'&&['manual','game-exit'].includes(d.reason)){window.__irisDesktopPendingClose=d;window.dispatchEvent(new CustomEvent('iris-desktop-close',{detail:d}));}if(d.kind==='window.addon.changed')window.dispatchEvent(new CustomEvent('iris-addon-state',{detail:d}));});");
+                await core.AddScriptToExecuteOnDocumentCreatedAsync("window.__irisDesktopBridge=null;window.__irisDesktopPendingClose=null;chrome.webview.addEventListener('message',function(e){var d=e.data;if(!d||d.version!==1)return;if(d.kind==='bridge.ready'&&Number.isSafeInteger(d.epoch)&&d.epoch>0&&['development','production'].includes(d.environment)){window.__irisDesktopBridge=d;window.dispatchEvent(new CustomEvent('iris-desktop-ready'));return;}var c=window.__irisDesktopBridge;if(!c||d.epoch!==c.epoch||d.environment!==c.environment)return;if(d.kind==='window.close.request'&&['manual','game-exit'].includes(d.reason)){window.__irisDesktopPendingClose=d;window.dispatchEvent(new CustomEvent('iris-desktop-close',{detail:d}));}if(d.kind==='window.addon.changed')window.dispatchEvent(new CustomEvent('iris-addon-state',{detail:d}));if(d.kind==='window.update.changed')window.dispatchEvent(new CustomEvent('iris-update-state',{detail:d}));});");
                 core.NavigationStarting += (sender, e) => { documentReady = false; bridge.Revoke(); core.Settings.IsWebMessageEnabled = false; };
                 core.NavigationCompleted += (sender, e) => {
                     Uri source;

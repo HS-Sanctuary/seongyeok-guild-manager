@@ -37,6 +37,12 @@
 .iris-context-actions svg { width:.9rem; height:.9rem; }
 .iris-login-tools { display:flex; justify-content:flex-end; }
 .iris-titlebar h1 span { font-size:.7rem; font-weight:600; letter-spacing:0; }
+.iris-titlebar .iris-brand-version { display:block; font-size:.667rem; line-height:1.4; color:var(--text-sub); }
+.iris-brand-version-row { display:flex; flex-wrap:wrap; align-items:center; gap:.35rem; margin-top:.1rem; }
+.iris-update-button { font-size:.667rem; line-height:1.4; border:1px solid var(--accent); border-radius:.5rem; padding:.12rem .4rem; color:var(--accent-fg); background:var(--accent); box-shadow:0 0 .4rem color-mix(in srgb,var(--accent) 25%,transparent); cursor:pointer; white-space:nowrap; }
+.iris-update-button:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
+.iris-update-button:disabled { opacity:.55; cursor:default; }
+.iris-update-actions { display:flex; flex-wrap:wrap; gap:.5rem; margin-top:.8rem; }
 .iris-titlebar-actions { display:flex; gap:.2rem; flex:none; }
 .iris-titlebar-actions button { cursor:pointer; display:grid; place-items:center; }
 .iris-desktop-button { border: 1px solid var(--panel-border); border-radius: 1rem; background: var(--inner-box); color: var(--text-main); padding: .5rem .8rem; min-height: 2.25rem; }

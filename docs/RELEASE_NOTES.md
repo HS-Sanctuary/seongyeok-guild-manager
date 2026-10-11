@@ -1,5 +1,16 @@
 # SANCTUM 업데이트 노트
 
+## IRIS Beta 0.2.0 — 앱 내부 업데이트 / 출시 안내 — 2026-10-11 14:22 KST
+
+- SANCTUM 기능 버전은 v2.3 유지, IRIS 독립 버전은 0.1.0→0.2.0이다. native 교체 기능 첫 공개이며 기존 지원 없는 앱은 ZIP을 한 번 수동으로 받아 모든 파일을 압축 해제해야 한다. 이후 더 새로운 지원 버전일 때만 앱 제목줄 버전 옆 업데이트 버튼을 강조한다.
+- 사용자 클릭→고정 운영 HTTPS 다운로드→ZIP/파일 SHA·버전·allowlist 검증→보호 보관→별도 설치 helper→자동 재시작. 실패 복구와 미완료 시작 복구를 연결한다. 설치된 native 버전으로 비교하며 웹에서 임의 URL/경로/명령을 넘기지 않는다. 게임·CLI·로그인 프로필·보호 대기함은 교체 대상 밖이다.
+- 생텀 상단 빠른 도구 2×2/테마 IRIS 로고 다운로드, 새 IRIS 버전별 계정·브라우저1회 안내(노트·다운로드·명시 닫기), 다운로드 안내 테마/4단계/상세 접기, 케리그마 생텀·IRIS 하위 탭을 함께 배포한다. 기능 소개 `IRIS Beta 0.2.0 출시!` 본문은 docs/IRIS_UPDATE_POST.md에 준비, 현재 게시 연결 도구 오류로 아직 게시되지 않았다.
+- 구조 변경: standalone desktop-update-policy/install/helper/manager, strict manifest/download.json, native bridge window.update.*(null), DesktopUpdater 상태/잠금/보관 연결, lib/irisRelease 독립 버전 및 kerygmaUpdates 시스템 글 판별. 기존 공지·auth·DB/RLS/권한/Realtime 변경 없음. 기존 크로노스·시낙시스 기능 재구현 없음.
+- 최종 공개 ZIP 519708 bytes, SHA-256 `1ced8923c386f19c5892710d830c6b696f231aa6237bb38d23a7cd5b4f420cc7`. 9 payload+manifest, 개인 설정·게임/CLI·비밀값 미포함. 무료 미서명 베타이며 SHA는 파일 일치 검사이지 코드 서명/제작자 인증을 대체하지 않는다.
+- 검증: 전체 Node dot/독립 tsc exit0, 분리 production webpack57 exit0(sanctum-iris-build-wbVXuB), 대상 lint exit0, native host41/bridge/policy/실제 프로세스 success·crash·recover3 흐름 PASS. UI4폭/PC3글자/6accent·실패/보관/중복/종료 방어 PASS. **배포할 최종 ZIP 자체**로 원본 helper·실제 release EXE 0.1.0→0.2.0 교체와 실제 WebView 준비 handshake PASS(iris-update-live-7da3c0ee0d964eb0bac88a22a5a3d819). 시험은 별도 설치·새 WebView 데이터·외부 네트워크 차단, 보호 파일 전후 해시 동일·로그인/운영 시험쓰기0. 시험용 0.1.0은 updater 지원 기준 빌드로, 기존 공개 0.1.0 앱의 자동 업데이트 지원을 뜻하지 않는다.
+- 알려진 제한: 다운로드 시작 뒤 취소 불가, 다른 PC/DPI/SmartScreen·장시간 실제 사용 미검증. 일부 버스 운영/이전 요청 확인창은 기존 웹 party 우회 안내 유지. 실제 운영 웹 연결+사용자 보호 보관+업그레이드의 전체 연속 동작은 합성 UI/오프라인 native 시험과 구분한다. CUA/NodeREPL kernel assets 오류로 기존 관리자 브라우저 세션/공개 공지 게시 접근 불가. 서버 로그 관측도 기존 Vercel MCP403/CLI 없음 제한을 유지한다.
+- 되돌리기 기준선: SANCTUM v2.3 / 코드2b9067e·문서62bdfc2, production Ready `dpl_Bk8w2ww62gSTqaXaqLHbkEYV5cVt`. 앱/웹 파일을 이전 정상본으로 되돌리더라도 DB와 보호 큐를 삭제하거나 구형 schema로 역변환하지 않는다. main push 및 새 배포 Ready/운영 화면·ZIP 확인은 후속 실제 결과로 추가한다.
+
 ## v2.3 — IRIS Windows 베타 다운로드 / 크로노스·시낙시스 연동 — 2026-10-10 23:45 KST
 
 ### 운영 확인 — 2026-10-11 02:18 KST

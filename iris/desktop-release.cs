@@ -10,13 +10,13 @@ namespace IrisDesktop {
     // embedded credentials. Reuses the existing host, DPAPI store and mutexes.
     internal static class ReleaseProgram {
         [STAThread]
-        static void Main() {
+        static void Main(string[] args) {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            try { Run(); }
+            try { string directory=AppDomain.CurrentDomain.BaseDirectory.TrimEnd(System.IO.Path.DirectorySeparatorChar);if(DesktopUpdateInstall.RecoverStartup(directory,args))return;if(args.Length!=0&&(args.Length!=2||args[0]!="--updated"))throw new ArgumentException();Run(args.Length==2?args[1]:null); }
             catch { MessageBox.Show("IRIS를 시작하지 못했어요. ZIP을 모두 압축 해제했는지, Microsoft Edge WebView2 Runtime이 설치되어 있는지 확인해주세요. 기존 보호 대기함은 지우지 않아요.", "IRIS for SANCTUM", MessageBoxButtons.OK, MessageBoxIcon.Warning); }
         }
-        static void Run() {
+        static void Run(string updateToken) {
             const string environment = "production";
             string directory = AppDomain.CurrentDomain.BaseDirectory;
             string profile = DesktopHostPolicy.ProfilePath(environment);
@@ -33,6 +33,9 @@ namespace IrisDesktop {
                         using (var tray = new NotifyIcon())
                         using (var menu = new ContextMenuStrip())
                         using (var timer = new System.Windows.Forms.Timer { Interval = 250 }) {
+                            var updater=new DesktopUpdater(directory.TrimEnd(Path.DirectorySeparatorChar),DesktopNativeVersion.Value);
+                            window.BindUpdater(updater.State,updater.CheckAsync,updater.PrepareAsync,updater.Apply);
+                            updater.Changed+=(s,e)=>window.NotifyUpdateChanged();
                             window.Icon = icon;
                             window.EnableDesktopLifecycle();
                             tray.Icon = icon; tray.Text = "IRIS for SANCTUM"; tray.ContextMenuStrip = menu; tray.Visible = true;
@@ -44,6 +47,7 @@ namespace IrisDesktop {
                             window.Shown += async (s,e) => {
                                 try {
                                     await window.InitializeAsync(Path.Combine(directory, "WebView2Loader.dll"));
+                                    if(updateToken!=null)DesktopUpdateInstall.MarkReady(updateToken,directory.TrimEnd(Path.DirectorySeparatorChar));
                                     if (!window.IsDisposed) window.Browser.CoreWebView2.Navigate("https://sanctum-tawny-three.vercel.app/iris/desktop");
                                 } catch {
                                     MessageBox.Show(window, "내장 화면을 시작하지 못했어요. Microsoft Edge WebView2 Runtime과 압축 해제된 파일을 확인해주세요. 자동 설치는 하지 않아요.", "IRIS for SANCTUM");

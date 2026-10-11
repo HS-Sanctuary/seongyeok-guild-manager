@@ -1,5 +1,39 @@
 # 🏛️ SANCTUM Master Guide
 
+## 2026-10-11 14:22 KST — IRIS Beta 0.2.0 공개 후보
+
+- 독립 IRIS0.2.0, ZIP/manifest/download.json/updater helper를 동일 배포로 공개 준비했다. 아래 14:13의 실제시험 권한 차단은 오프라인 새 WebView user-data 시험으로 해소됐으며 제품 파일 그대로 교체·준비 handshake 성공을 확인했다. 보호 파일/설정 해시 동일, 운영 웹/DB 시험쓰기 없음. 첫 지원 앱은 수동1회, 다음 새 지원 버전부터 내부 업데이트 가능.
+- 테스트 전용 desktop-update-live 옵션은 명시적 offline fresh profile과 전체 DNS 차단을 검증하며 임시 설치 외 앱 파일을 교체하지 않는다. 제품에는 시험용 URL/경로/명령/브리지 API를 추가하지 않았다. 새 외부 프로그램 비교는 문서 조사만이며 IRIS native 허용 메서드를 확장하지 않는다. 공식 구조의 상세는 아래 updater·하위탭 절을 따른다.
+
+## 2026-10-11 14:13 KST 로컬 출시 준비 — IRIS 0.2.0
+
+- lib/irisRelease.ts의 독립 버전은 0.2.0 로컬 후보다. 아래 0.1.0/공개 ZIP 보존 기록은 당시 상태를 유지한다. 현재 공개 패키지·운영 코드에는 아직 적용하지 않았다.
+- lib/kerygmaUpdates.ts는 기존 고정 IRIS 제목과 엄격한 버전 형식의 `IRIS Beta x.y.z 출시!`를 시스템 작성자/생텀 업데이트 분류일 때만 IRIS 이력으로 분리한다. note=iris 최신 글 진입과 기존 글 ID 경로를 유지하며 새 DB/API/권한 변경은 없다.
+- iris/desktop-update-live.fixture.cs/.tests.ps1는 실제 두 release 패키지를 별도 임시 설치에 복사하고 sandbox AppData에서만 시험한다. 현재 sandbox 파일 rename 거부로 준비 단계 실패, 실앱 교체 미검증이다. 자동 업데이트 공개와 케리그마 게시는 HANDOFF의 차단 조건 해소 뒤 진행한다.
+
+## 2026-10-11 로컬 후속 — IRIS native updater
+
+- `DesktopUpdater.tsx` → `irisDesktopStore`의 고정 `window.update.state/check/prepare/apply(null)` 및 epoch-scoped event → production `DesktopBridge` → `desktop-update.cs`. 설치된 native 버전만 비교하며 같은/낮은 버전·구형 bridge에는 업데이트 버튼이 없다. parent는 기존 `shutdown('keep')` 보호 보관 성공 뒤에만 apply한다. native 종료 결정 방어/모달 inert/작업 잠금은 유지한다.
+- `desktop-update-policy.cs`는 고정 운영 HTTPS의 release metadata와 ZIP9 payload+manifest를 검증한다. `desktop-update-install.cs`는 설치 폴더 원본 hash/백업/journal/marker/원자 교체·restore/ready PID·시작시각·버전 확인을 담당한다. `desktop-update-helper.cs`는 설치된 검증 helper를 transaction으로 복사해 정상 종료 이후 실행한다. 정상 교체/복구 모두 공유 queue mutex와 실행 중 설치 확인을 사용한다. 시작 시 미완료 marker는 복구 helper로 연결한다.
+- `build-beta.ps1`은 `lib/irisRelease.ts`의 버전을 native 상수에 주입하고 standalone helper/strict manifest/download.json을 생성한다. 임의 파일·URL·명령·DB/RLS/API 권한 확장은 없다. 프로필·보호 큐·게임·CLI는 교체 대상 밖이다. 무료 unsigned; 최초 지원 패키지는 수동1회 교체 필요. 현재 공개 ZIP/metadata·버전·운영 배포는 보존하며 실제 사용자 앱 업그레이드는 검증 대기다.
+
+
+## 2026-10-11 로컬 후속 — 업데이트 하위 탭 / IRIS 실행 4단계
+
+- KerygmaCategoryTabs → 생텀 업데이트 선택 시 생텀 업데이트/IRIS 업데이트 하위 버튼. app/kerygma/page.tsx는 updates=sanctum|iris URL에서 선택/필터를 파생한다. lib/kerygmaUpdates.ts의 정확한 시스템 IRIS 노트 판별을 목록 분리와 기존 note=iris 읽기에 공유한다. 글 읽기/목록 복귀/새로고침/뒤로가기에서 하위 분류를 유지하고 numeric id 경로도 보존한다. 기존 목록 조회 재사용, DB type/스키마/API/권한 변경 없음.
+- 다운로드 실행 안내에 한설 제공 인게임 설정 → 게임 탭 → "마비노기 모바일 AI 커넥터 beta" 켜기를 추가해 4단계로 구성한다. 카드열은 모바일1/md2/xl4, 전역 테마·rem·긴 문구 방어는 유지한다. 공개 ZIP·빌드 메타데이터·native 계약은 변경하지 않는다.
+- IRIS 누적 공지 초안/기록 규칙만 갱신하며 운영 게시와 푸시는 별도 배포 승인/성공 확인 이후다.
+
+## 2026-10-11 로컬 후보 — 홈 IRIS 다운로드 / 안내 구조
+
+- 최신 승인 후속: 홈 IrisDownloadEntry 카드 대신 전역 Navbar 빠른 도구 2×2(날개/테마, 알림/IRIS) → /iris/download. 별도 홈 카드 컴포넌트는 제거했다. IRIS는 accent 배경/contrast SVG/정적 광원, 네 도구는 같은 크기다. 기존 홈 숙제/파티/랭킹·상단 메뉴를 보존한다.
+- layout 기존 헤더 측정 → --sanctum-header-height → 날개/알림/계정 팝오버의 헤더 아래 위치·남은 화면 높이 제한. 기존 session GET/성공한 switch 확인 ID → Navbar → IrisWelcomeGuide. 새 조회나 저장 API 없이 localStorage 계정별 첫 안내, native dialog/버튼 강조·화살표/명시적 닫기·Esc·바깥/다운로드 이동 완료 기록이다. 숨은 헤더 안내 유예/애니메이션 완료 후 측정/nav·target 관찰, 종료 시 비동기 취소·스크롤 복원, 인증 load/switch/logout의 늦은 GET 무효화 방어를 적용한다.
+- 독립 IRIS Beta 0.1.0을 lib/irisRelease.ts에서 관리한다(SANCTUM v2.3·ZIP 빌드 메타데이터와 별개). DesktopTitlebar·다운로드·IrisWelcomeGuide에 같은 버전 표시. 안내 완료 키는 버전+계정, 새 버전마다 브라우저별 재안내이며 다운로드/노트/닫기/바깥/Esc에서 완료한다. 무료 미서명 유지/사용자 실행 선택/보안 프로그램 유지/문제 시 중단·제보 문구는 다운로드 화면에 적용했다.
+- 정규 노트 링크 /kerygma?note=iris → 기존 notices 목록의 IRIS 업데이트 노트/생텀 업데이트/SANCTUM 시스템 정확 일치 글 선택. numeric id 이동/닫기는 기존 유지, 미게시/조회 실패는 상태 안내와 /iris/download 링크로 처리하며 추가 조회·정책 변경 없음. docs/IRIS_UPDATE_POST.md 초안을 준비했지만 공개 게시/글 ID는 없다. 실제 배포 확인 뒤 한 글에 최신 버전부터 누적한다.
+- /iris/download는 정적 manifest 유효성 검사를 보존한다. 소개/테마 로고/고정 ZIP 링크/실행3단계, 항상 보이는 미서명 경고·길드버스 웹 우회, 네이티브 details의 Runtime/CLI/로그인·정상 종료/확인값 안내로 분리한다. IrisBrandMark는 원본 public/IRIS/logo/IRIS 로고 마크.svg의 accent 마스크만 재사용한다.
+- 전역 panel/inner-box/accent/accent-fg/text-main/text-sub·rem을 적용, 768px부터 2열 소개/3열 단계다. 배지/단계 수는 text-main을 상속하며 배경은 accent12%/panel88% 혼합으로 사용자 지정 테마에도 대응한다. 외부 Runtime 안내는 기존 공식 링크/new-tab noopener를 유지한다.
+- 공개 ZIP/API/DB/RLS/권한/native·자동 설치/업데이트 계약 변경 없음. 운영 미배포, 새 디자인과 IRIS 버전 안내는 로컬 확인 후 명시적 push 승인 대상이다.
+
 ## 2026-10-10 v2.3 IRIS 베타 공식 배포 범위
 
 - 운영확인 후속 — 2026-10-11 02:18 KST: 코드2b9067e/main, dpl_Bk8w2ww62gSTqaXaqLHbkEYV5cVt Production Ready·동일커밋·운영도메인. 실제다운로드/최종ZIP SHA 및 공용party읽기화면·콘솔0 확인, 공개9경로/health/비로그인IRIS차단 통과. 이하 후보 미완료는 이 범위에서 해소, 실제native재시작/다른PC/장시간·버스확인창잔여/운영쓰기·Realtime실수신은 남는다. 후속 문서는 구조 변경 없음, DB/권한/공지0.

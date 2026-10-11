@@ -35,6 +35,18 @@ $bridge.add_CloseRequested({$script:closeCount++})
 Assert ((Send 1 'window.close' $null $url $bridge.Epoch).ok) 'Guarded close unavailable'
 Assert ($script:closeCount -eq 1) 'Close not dispatched exactly once'
 Write-Output 'Desktop bridge: source/route/epoch/method/replay/schema/revocation PASS'
+if(!$bridge.GetType().GetMethod('BindUpdater')){throw 'Missing scoped updater methods: web cannot request a verified app update'}
+$originalBridge=$bridge
+$bridge=New-Object IrisDesktop.DesktopBridge($store,$true)
+Assert ($bridge.Activate($url)) 'Updater document activation failed'
+Add-Type -TypeDefinition 'public static class UpdateBridgeFixture { public static object State(){return new System.Collections.Generic.Dictionary<string,object>{{"supported",true},{"installedVersion","0.1.0"},{"availableVersion","0.2.0"},{"phase","available"},{"progress",0},{"error",null}};} public static System.Threading.Tasks.Task<object> Check(){return System.Threading.Tasks.Task.FromResult(State());} public static object Apply(){return State();} }' -ReferencedAssemblies @('System.Core')
+$updateState=[Delegate]::CreateDelegate([Func[object]],[UpdateBridgeFixture].GetMethod('State'))
+$updateCheck=[Delegate]::CreateDelegate([Func[Threading.Tasks.Task[object]]],[UpdateBridgeFixture].GetMethod('Check'))
+$bridge.BindUpdater($updateState,$updateCheck,$updateCheck,$updateState)
+Assert (!(Send 2 'window.update.state' @{path='C:/evil'} $url $bridge.Epoch).ok) 'Updater accepted browser paths'
+Assert ((Send 3 'window.update.state' $null $url $bridge.Epoch).value.installedVersion -eq '0.1.0') 'Installed native version missing'
+Assert (!(Send 4 'window.update.apply' $null ([Uri]'https://evil.test/iris/desktop') $bridge.Epoch).ok) 'Foreign document triggered install'
+$bridge=$originalBridge
 Add-Type -TypeDefinition 'public static class OverlayBridgeFixture { public static object Read(){return new {clickThrough=false,shortcutsAvailable=true,opacityPercent=100};} public static bool Input(bool enabled){return true;} public static bool Opacity(int percent){return true;} }'
 $read=[Delegate]::CreateDelegate([Func[object]],[OverlayBridgeFixture].GetMethod('Read'))
 $input=[Delegate]::CreateDelegate([Func[bool,bool]],[OverlayBridgeFixture].GetMethod('Input'))

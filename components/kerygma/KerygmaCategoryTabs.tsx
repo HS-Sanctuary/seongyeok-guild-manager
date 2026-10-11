@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import type { UpdateChannel } from "@/lib/kerygmaUpdates";
 
 const CATEGORIES = [
   "전체",
@@ -17,12 +18,16 @@ interface KerygmaCategoryTabsProps {
   activeCategory: string;
   onSelectCategory: (category: string) => void;
   canWriteNotice: boolean;
+  updateChannel?: UpdateChannel;
+  onSelectUpdateChannel?: (channel: UpdateChannel) => void;
 }
 
 export default function KerygmaCategoryTabs({
   activeCategory,
   onSelectCategory,
   canWriteNotice,
+  updateChannel = 'sanctum',
+  onSelectUpdateChannel,
 }: KerygmaCategoryTabsProps) {
   const router = useRouter();
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
@@ -132,6 +137,14 @@ export default function KerygmaCategoryTabs({
           </button>
         )}
       </div>
+
+      {activeCategory === '생텀 업데이트' && onSelectUpdateChannel && (
+        <div role="group" aria-label="업데이트 분류" className="grid grid-cols-2 gap-2 rounded-2xl border border-[var(--panel-border)] bg-[var(--panel)] p-2">
+          {([['sanctum', '생텀 업데이트'], ['iris', 'IRIS 업데이트']] as const).map(([channel, label]) => (
+            <button key={channel} type="button" aria-pressed={updateChannel === channel} onClick={() => onSelectUpdateChannel(channel)} className={`min-w-0 rounded-xl border px-2 py-2 text-sm font-bold break-keep [overflow-wrap:anywhere] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] ${updateChannel === channel ? 'border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-fg)]' : 'border-[var(--panel-border)] bg-[var(--inner-box)] text-[var(--text-main)] hover:border-[var(--accent)]'}`}>{label}</button>
+          ))}
+        </div>
+      )}
 
       {/* 📂 모바일 전용 카테고리 선택 바텀시트 모달 */}
       {isCategoryModalOpen && (

@@ -57,9 +57,27 @@ window.fetch=async(url,init)=>{if(!init||init.method!=='POST')return new Respons
 function App(){const [shown,setShown]=React.useState(true);window.fixture.setShown=setShown;const params=new URLSearchParams(location.search),[activity,setActivity]=React.useState({party:0,bus:0}),[busy,setBusy]=React.useState(false),[confirming,setConfirming]=React.useState(false),[statsBusy,setStatsBusy]=React.useState(false);window.fixture.setStatsBusy=setStatsBusy;window.fixture.confirmationActions??=[];window.fixture.homeworkEdits??=[];const account=React.useMemo(()=>({id:'fixture-account',nickname:'합성계정',role:params.get('member')?'길드원':'길드마스터'}),[]);return h('main',{className:'iris-desktop'},h('header',{style:{height:'2.25rem'}},'IRIS for SANCTUM'),h(DesktopCenter,{account,characters:chars.filter(c=>c.owner===account.nickname),selected:params.has('spacing')?homework:null,pending:[],locked:busy,saveStatus:null,onSelectCharacter(){},onEdit:(key,base,desired)=>window.fixture.homeworkEdits.push({key,base,desired}),statsPanel:active=>active&&params.has('nav')?h(React.Fragment,null,h('button',{className:'iris-desktop-button',onClick:()=>setConfirming(true)},'스탯 확인 열기'),confirming&&h(DesktopStatsConfirmation,{target:chars[1],characters:chars.filter(c=>c.owner===account.nickname),job:'힐러',busy:statsBusy,canConfirm:true,onConfirm:()=>window.fixture.confirmationActions.push('confirm'),onSelectCharacter:id=>{window.fixture.confirmationActions.push('select:'+id);setConfirming(false);},onCancel:()=>{window.fixture.confirmationActions.push('cancel');setConfirming(false);}})):null,synaxisUnread:activity.party+activity.bus>0,synaxisPanel:active=>h(DesktopSynaxisSurface,{account,active:active&&shown,locked:false,onBusyChange:setBusy,onActivityChange:setActivity})}));}
 function BrandApp(){
  const {DesktopTitlebar}=require('../components/iris/DesktopTitlebar.tsx'),{DesktopContextActions}=require('../components/iris/DesktopContextActions.tsx');
+ const {DesktopUpdater}=require('../components/iris/DesktopUpdater.tsx'),{createDesktopStore}=require('../lib/irisDesktopStore.ts');
+ const params=new URLSearchParams(location.search),enabled=params.has('updater');
+ const updateStore=React.useMemo(()=>{
+  if(!enabled)return null;window.__irisDesktopBridge={epoch:2,environment:'production'};window.fixture.updateCalls=[];window.fixture.preserved=0;window.fixture.closeDecisions=[];
+  const listeners=new Set(),state={supported:true,installedVersion:'0.1.0',availableVersion:['same','older'].includes(params.get('mode'))?null:'0.2.0',phase:['same','older'].includes(params.get('mode'))?'idle':'available',progress:0,error:null};
+  const channel={addEventListener:(type,fn)=>listeners.add(fn),removeEventListener:(type,fn)=>listeners.delete(fn),postMessage(request){
+   window.fixture.updateCalls.push(request.method);let value=state,ok=params.get('mode')!=='unsupported';
+   if(request.method==='window.decision'){assertPayload(request.payload);window.fixture.closeDecisions.push(request.payload.open);value=null;}
+   else if(request.payload!==null)throw Error('Updater must not pass file paths');
+   if(request.method==='window.update.prepare')value={...state,phase:window.fixture.updateFailure==='download'?'error':'ready',error:window.fixture.updateFailure==='download'?'prepare_failed':null,progress:100};
+   if(request.method==='window.update.apply')value={...state,phase:'installing',progress:100};
+   const reply=()=>listeners.forEach(fn=>fn({data:{version:1,id:request.id,epoch:request.epoch,ok,value}}));
+   if(request.method==='window.update.prepare'&&window.fixture.delayPrepare)window.fixture.finishPrepare=reply;else queueMicrotask(reply);
+  }};
+  function assertPayload(p){if(Object.keys(p).length!==1||typeof p.open!=='boolean')throw Error('Bad close-decision payload');}
+  return createDesktopStore({channel,context:()=>window.__irisDesktopBridge,environment:'production'});
+ },[]);
  const [settings,setSettings]=React.useState(false),[accountOpen,setAccountOpen]=React.useState(false);
  const actions=h(DesktopContextActions,{accountOpen,settingsOpen:settings,onAccount:()=>{setSettings(false);setAccountOpen(v=>!v);},onSettings:()=>{setAccountOpen(false);setSettings(v=>!v);}});
- return h('main',{className:'iris-desktop'},h(DesktopTitlebar,{onDrag:()=>window.fixture.drag=true,onMinimize:()=>window.fixture.minimize=true,onClose:()=>window.fixture.close=true}),
+ const control=enabled?h(DesktopUpdater,{store:updateStore,disabled:false,onBusyChange:v=>window.fixture.updateBusy=v,onBeforeApply:async()=>{window.fixture.preserved++;return window.fixture.updateFailure!=='preserve';}}):undefined;
+ return h('main',{className:'iris-desktop'},h(DesktopTitlebar,{updateControl:control,onDrag:()=>window.fixture.drag=true,onMinimize:()=>window.fixture.minimize=true,onClose:()=>window.fixture.close=true}),
  h(DesktopCenter,{account:{id:'a',nickname:'한설',role:'길드원'},characters:[{id:'1',nickname:'열두글자닉네임테스트용',job:'장궁병'}],selected:homework,pending:[],locked:false,saveStatus:null,onSelectCharacter(){},onEdit(){},contextActions:actions,settingsOpen:settings,settingsPanel:h('p',null,'설정 화면')}));
 }
 createRoot(document.getElementById('app')).render(h(new URLSearchParams(location.search).has('brand')?BrandApp:App));`;

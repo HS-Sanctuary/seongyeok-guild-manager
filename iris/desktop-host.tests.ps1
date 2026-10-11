@@ -36,4 +36,6 @@ foreach($url in @('https://sanctum-tawny-three.vercel.app/?x=1','https://sanctum
     Expect ([IrisDesktop.DesktopHostPolicy]::ValidateHomeExternal($desktopSource,[uri]$url,$true)) $false $url
 }
 Expect ([IrisDesktop.DesktopHostPolicy]::ValidateHomeExternal([uri]'https://example.org/iris/desktop',[uri]'https://sanctum-tawny-three.vercel.app/',$false)) $false 'untrusted source'
+Expect ([IrisDesktop.DesktopHostPolicy]::ValidateUpdateNotesExternal($desktopSource,[uri]'https://sanctum-tawny-three.vercel.app/kerygma?note=iris',$true)) $true 'fixed production update notes'
+foreach($url in @('https://sanctum-tawny-three.vercel.app/kerygma?note=iris&url=evil','https://example.org/kerygma?note=iris','https://sanctum-tawny-three.vercel.app/kerygma?note=sanctum','https://sanctum-tawny-three.vercel.app/kerygma?note=iris#x')){Expect ([IrisDesktop.DesktopHostPolicy]::ValidateUpdateNotesExternal($desktopSource,[uri]$url,$true)) $false 'untrusted update notes'}
 Write-Output "desktop host policy: $passed passed"

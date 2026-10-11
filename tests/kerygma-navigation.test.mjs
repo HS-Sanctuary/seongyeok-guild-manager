@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import ts from 'typescript';
+import {loadTS} from './load-ts.mjs';
+const {isIrisUpdate}=loadTS('lib/kerygmaUpdates.ts');
 
 // Execute the actual page handlers, not a copy of their navigation logic.
 // Router transitions may finish later; native history changes the URL now.
@@ -22,6 +24,7 @@ function fixture() {
   const state = {url:'/kerygma?id=14', selected:null, comments:[], category:'전체'};
   const pending = [];
   const scope = {
+    activeCategory:'전체', updateChannel:'sanctum', updatesParam:null, selectedNotice:null, isIrisUpdate,
     window:{history:{
       pushState:(_data,_title,url)=>{state.url=url;},
       replaceState:(_data,_title,url)=>{state.url=url;},
@@ -56,4 +59,10 @@ test('rapid open-close-reopen keeps the last URL, notice and comments together',
   assert.equal(state.url,'/kerygma?id=13');
   assert.equal(state.selected?.id,13);
   assert.deepEqual(state.comments,[]);
+});
+test('official IRIS release headlines remain in IRIS history without accepting lookalikes',()=>{
+ const release={title:'IRIS Beta 0.2.0 출시!',type:'생텀 업데이트',author:'SANCTUM 시스템'};
+ assert.equal(isIrisUpdate(release),true);
+ for(const bad of [{...release,author:'한설'},{...release,type:'길드 공지사항'},{...release,title:'IRIS Beta 0.02.0 출시!'},{...release,title:'IRIS Beta 0.2.0 출시! 광고'}])assert.equal(isIrisUpdate(bad),false);
+ assert.equal(isIrisUpdate({...release,title:'IRIS 업데이트 노트'}),true);
 });
