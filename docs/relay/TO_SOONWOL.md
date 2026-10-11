@@ -4,6 +4,23 @@
 
 ## YG-20261008-001 — UPDATED
 
+### 2026-10-11 최신 인계 — IRIS 메뉴 정리와 후속 설계 전체
+
+- 발신 영겁 / 수신 순월. 한설이 이번 대화의 내용 전체를 순월이 이어받도록 요청했다. 이 메시지는 기존 미ACK 기록에 누적하며, 순월의 수신 ACK는 아직 없다. **인계 준비는 로컬이며 원격 전달/배포 완료가 아니다.** 문서·기능 브랜치 푸시 및 main 병합 선택은 아직 받지 않았다.
+- 이어받을 브랜치: `codex/iris-checkboard-classes`. 운영 기준 `fb607e0` 위에 `6fd6d3d`(메뉴 구현), `2d71996`(회귀·미래 설계)이 있다. 이번 인계 문서 커밋도 같은 브랜치에 추가한다. 푸시 승인 후에도 main만 pull하면 후보가 전달되지 않으므로 해당 브랜치/커밋을 먼저 확인한다. 사무실 기존 변경을 보존하고 강제 reset/덮어쓰기를 하지 않는다.
+- 완료한 이번 묶음: 기존 크로노스 7개 ID/기능을 유지하고 ‘현재 기능 + 기능 선택’으로 정리. 생텀 기록(숙제·물물교환·상점구매·임무게시판), 캐릭터 관리(클래스·스탯), 게임 정보(재화)의 3그룹이다. 상위 크로노스/시낙시스 및 가방/레이드 SVG, 제목·Beta버전·캐릭터/계정/홈/설정 위치는 유지한다. 기능 전환 중 기존 본문은 숨김으로 유지해 편집 초안이 사라지지 않는다.
+- 구현 파일: 새 `components/iris/DesktopFeaturePicker.tsx`가 그룹·목록·초점·남은 화면 높이 측정을 담당한다. `DesktopCenter.tsx`는 문맥 전환/잠금/상위 메뉴 시 닫힘 및 캐릭터 메뉴와 상호 닫힘을 연결한다. `app/iris/desktop/page.tsx`는 accountOpen을 내부 contextPanelOpen prop으로 전달한다. desktop.css의 기존 7개 상시 탭 배열만 그룹 선택 스타일로 교체한다. API/DB/권한/native bridge/보호 대기함 형식/게임 행동은 변경하지 않았다.
+- 이전 실행 검증 기록: 전체 Node415 중412 PASS·3 skipped·0 fail, 독립 tsc exit0, 격리 webpack build57 exit0. 새 합성 기능 시험5그룹 및 기존 SVG/확인창6그룹 PASS, 320/390/768/1280px·PC18/20/22px·6테마·짧은 높이·동일 기능 재선택/메뉴 열기 IO0·클래스 초안 유지 확인. 새 독립 리뷰1회 중요 문제1개(목록 높이가 실제 위치를 무시) RED→GREEN 수정 후 최종 검증했다. 관련 다른6개 브라우저 진입부는 수정했으나 전부 실행하지 않았으므로 전체 브라우저 통과로 표현하지 않는다. 실제 사용자 앱/게임/다른 PC 시험은 남는다.
+- 승인 설계/실행 기록: `docs/superpowers/specs/2026-10-11-iris-navigation-design.md`, `docs/superpowers/plans/2026-10-11-iris-navigation.md`. 기존 공유 폴더 유지/집중 시험 분리/Task1 CSS 선반영의 판단과 비용도 계획 끝에 기록했다. 임시 실행 작업 폴더는 검토 종료 후 정리했으며 근거 요약은 위 커밋/계획에 보존했다.
+- 미래 전체 색인: `docs/IRIS_FORWARD_DESIGNS.md`. 이미 조사한 `docs/IRIS_CONNECTOR_COMPARISON_20261011.md`의49항목을 추적한다. `docs/IRIS_WIDGET_ROADMAP.md`는 과거 시제품 기록을 최신 미완료 목록으로 사용하지 않도록 안내를 추가했다. 외부 도구 전체 조사를 반복하지 않는다.
+- 5개 보관용 설계(모두 `docs/superpowers/specs/2026-10-11-iris-` 접두어): `readonly-hud-design.md` → `inventory-recipes-design.md` → `life-actions-design.md` → `music-media-design.md` → `remote-sharing-design.md`. 읽기 HUD, 재고/레시피·계산·백업, 안전한 생활 작업, 음악/OS미디어 구분, 원격/공유의 순서다. **설계 보관 요청이지 모든 기능 구현 승인은 아니다.** 확인되지 않은 게임 필드·권리·인프라를 가정하지 않는다. 게임 행동·운영 DB/RLS·외부 노출·배포는 별도 승인한다. RAM 재연결/확정 신원 자동 매칭/파괴적 자동 성장은 제외 유지.
+- 운영 제품 기준은 IRIS Beta0.2.2/SANCTUMv2.3 그대로다. 상점구매·임무게시판·시낙시스·길드버스 해산/탈퇴·앱 업데이트/TLS·수치 쉼표 핫픽스는 앞서 완료됐다. 이번 요청으로 재구현하거나 새 ZIP/버전/공개 업데이트 글을 만들지 않는다. 구0.2.0/0.2.1 HTTPS 실패 앱의 수동 ZIP 전체 교체1회 안내와 보안 차단 우회 금지를 유지한다.
+- 남은 순서: (1) 수신 시 이 누적 메시지와 HANDOFF 최신 항목을 읽고 정확한 커밋/범위를 ACK, (2) 후보 메뉴를 실제 IRIS에서 확인하고 병합/푸시 선택은 한설에게 확인, (3) 읽기 전용 HUD 설계와 실제 생활커넥터 조회 계약만 좁혀 검토한 뒤 첫 구현 묶음을 승인받는다. 나머지 설계는 착수 때 해당 문서만 업데이트한다.
+- 비용/진행 원칙: 한설이 전체 개발 기간이 길다고 걱정했다. 타인의 ‘10일’과 범위를 알지 못해 객관적 속도 비교는 하지 않았다. 오래된 자동화에 의한 완료 작업 반복은 낭비였으며 사용자 탓으로 돌리지 않는다. 한 번에 한 구현 묶음/명확한 완료 기준/관련 좁은 시험 우선·묶음 마감 때 통합검증을 유지한다. obsolete 자동화를 다시 만들지 않는다.
+- 집의 `http://localhost:3011/?features=1`은 합성 데이터 미리보기이며 실제 앱/계정 접속이 아니다. 이 주소와 집 Temp/캡처 파일이 사무실에서도 열릴 거라고 가정하지 않는다. 재현 명령은 승인 계획과 tests/iris-feature-picker.browser.mjs에 있다. 동일3011 포트 시험을 동시에 실행하지 않는다.
+- 제외한 사용자 파일: docs/UPDATE_POST_v2.151.md 수정, 루트 ‘계정추가 방법쿼리’/‘앞으로할일들’/‘혹시몰라서 그냥 둠’ 삭제, tests/kronos-theme-preview.mjs 및 ‘아이리스 실행 파워쉘 명령어’. 기존 미커밋 상태를 보존했으며 이 인계/기능 커밋에 넣지 않는다. 운영 데이터/비밀값/새 권한·DB 변경/강제 종료는 없다.
+- 순월 ACK: 대기. 영겁이 대신 수신 완료를 기록하지 않는다.
+
 - 0.2.2 운영 완료 — 2026-10-11 19:51 KST: code48d5611b438d44207faab7d45a1f9384fd0acc5c mainpush→Vercel sanctum Production dpl_DP47tvp3qsVdrzpomVmJarb5XrTu READY/동일SHA 목록확인. 운영Chrome Beta0.2.2/ZIP519982 SHA453d417129625d4c4af998627cdb8ac9a6a28c4dc5e8467532896c9077981f00 일치/7핵심GET200/authready/실제완성EXE HTTPS신버전감지0.2.2PASS. 실제helper/WebView0.2.1→0.2.2/보호해시/정책·success/crash/recover/최종Node·tsc·build57PASS. 상세조회403/CLI없음서버로그미관측은유지. 사용자 설치 대신교체/게임/DB쓰기/공개게시0, 구버전ZIP전체수동1회필요·실사용재확인남음. 후속문서구조변경없음/버전유지·개인dirty/미ACK보존.
 
 - 0.2.2 최종검증 — 2026-10-11 19:47 KST: 한설 정상종료 뒤 최종publicZIP 원본helper/EXE/새오프라인WebView0.2.1→0.2.2 교체ready/보호파일해시PASS(trial893df12a), 최종패키지EXE자체 실제CheckAsync TLS1.2/운영신버전감지PASS. native정책·프로세스success/crash/recover·전체Node재검/tsc/최종metadata포함webpack57 IeZhxx PASS. 아래 종료/build대기는해소, commit/push/Ready/운영확인후속. 구조변경없음·실사용설치대신교체0·구버전ZIP수동1회/보안우회금지·공개노트0·개인dirty/미ACK보존.
