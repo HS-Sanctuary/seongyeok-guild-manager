@@ -2,6 +2,12 @@
 
 ## IRIS Beta 0.2.1 — 길드버스 해산·탈퇴 핫픽스 — 2026-10-11 19:18 KST
 
+### 운영 배포 확인 — 2026-10-11 19:21 KST
+
+- main `b343f24956f53eb9b21fad22091dd529173f1376` 일반 push, Vercel `dpl_Bad1AjApPg5ri5ukj5LVMRoyhwpK` / sanctum / Production / READY / 동일 SHA를 연결 도구로 확인했다. https://vercel.com/sanctum-sanctuary/sanctum/Bad1AjApPg5ri5ukj5LVMRoyhwpK . 아래 배포 대기는 이 확인으로 해소됐다.
+- 운영 Chrome `/iris/download` Beta0.2.1·정상 다운로드 링크·4단계·미서명 제한 및 `/iris/desktop` 앱 연결 대기/브라우저 편집 방어를 눈 확인. 공개 metadata/ZIP GET200·519786bytes·SHA4f43cb87ff5a4c30100aa83b870c8b2bc60fb47df80b286b60b777f0a09fb13c 일치, 핵심8페이지 GET200·authhealth ready=true. 캡처 `iris-0.2.1-production.jpg`. 인증 후 운영 버스 삭제/탈퇴 시험은 하지 않았다.
+- 사용 중이던 Downloads/IRIS-beta의 공개 manifest는 installed0.2.0/updater1로 읽기 확인, 정상 재실행 후 내부 업데이트 안내 가능. 사용자 앱을 대신 설치/실행하지 않았으며 실제 계정 동작 재확인은 한설에게 안내한다. 공개 추가 게시0. 후속 검증 문서는 **구조 변경 없음**, SANCTUMv2.3/IRIS0.2.1 유지.
+
 - 한설 승인: 수정·검증 후 main push, IRIS 0.2.0→0.2.1. SANCTUM v2.3 유지. 별도 케리그마 공개 업데이트 글은 작성하지 않는다. 이 항목은 내부 배포 기록이다.
 - 길드버스 해산·본인 캐릭터 탈퇴의 기본 브라우저 확인창이 native 설정에 막혀 요청되지 않던 문제를 기존 IRIS 확인창/결과 안내로 연결했다. 취소·Escape는 요청하지 않으며 확인 중 중복 클릭을 막고 해산 완료/서버 오류를 기다려 표시한다. 웹의 기존 확인창과 서버 소유권·운행자 권한 검사, 탈퇴 단일 행동 요청은 유지한다.
 - 검증: 실제 핸들러 회귀8/8 RED→GREEN, 전체 Node/독립 tsc exit0, 최종 공개 메타데이터 포함 격리 webpack57 exit0(`sanctum-iris-build-Qfn41W`), 교차 리뷰 새 결함 없음. 실제 React 합성 화면 390px에서 해산 확인/취소/성공 카드 제거, 탈퇴 Escape/성공/0명 갱신·재신청 안내·가로 넘침 없음 확인. 패키지 allowlist10/manifest·파일 SHA/unsigned 상태 및 native 업데이트 정책·임시 프로세스 success/crash/recover 검증 통과.

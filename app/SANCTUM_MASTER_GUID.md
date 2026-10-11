@@ -1,5 +1,9 @@
 # 🏛️ SANCTUM Master Guide
 
+## 2026-10-11 19:21 KST — IRIS0.2.1 운영 확인
+
+- 해산/탈퇴 확인 경로 및 동일버전native패키지는 main b343f24 / Vercel Production dpl_Bad1AjApPg5ri5ukj5LVMRoyhwpK READY/동일SHA로 공개됐다. 운영 다운로드0.2.1/metadata·ZIP해시 일치/desktop 브라우저 편집방어·핵심8GET200/authready 확인. 후속 문서 **구조 변경 없음**, DB/RLS/권한/공개노트 변경 없음. 실제 계정 운영 버스 삭제/탈퇴 시험을 했다는 뜻은 아니다.
+
 ## 2026-10-11 19:18 KST — IRIS0.2.1 길드버스 확인 경로 핫픽스
 
 - `GuildBusCard` 해산/탈퇴 → 기존 `PartySurfaceContext.confirm/notify` → IRIS `DesktopSynaxisSurface` 확인창/결과 안내. 해산은 기존 삭제 callback을 await, 탈퇴는 기존 `_busMemberAction:leave` 요청으로 서버의 최신 명단·본인 소유권 검사를 재사용한다. 확인 중 단일 actionLock과 비활성/잠금 guard, 취소/실패 해제; 웹은 기본 confirm fallback 유지.

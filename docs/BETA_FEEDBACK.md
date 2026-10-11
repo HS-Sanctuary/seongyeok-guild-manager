@@ -2,6 +2,7 @@
 
 ## 2026-10-11 19:18 KST — IRIS 길드버스 해산·탈퇴 무반응
 
+- 19:21 KST 처리 상태: main b343f24 / Vercel Production dpl_Bad1AjApPg5ri5ukj5LVMRoyhwpK READY·동일SHA, 운영다운로드0.2.1/ZIP해시/desktop 브라우저 방어·핵심8GET/authready 확인 완료. 한설 설치0.2.0은 내부 업데이트 지원, 재실행 후 업데이트 안내. 운영 삭제/탈퇴 시험은 하지 않았으며 실제 사용자 재확인은 남는다. 추가 공개노트 없음.
 - P1 / 재현: IRIS 시낙시스 길드버스 생성 후 [해산] 또는 본인 캐릭터 탈퇴 클릭→아무 반응 없음. native 기본 script dialog 비활성 설정과 공유 카드의 기본 confirm 경로가 충돌해 쓰기 전에 취소되던 원인 확인.
 - 처리: 두 경로를 기존 IRIS 확인창/결과 안내로 연결, 확인 중 중복 잠금·해산 callback await·서버 실패 안내. 취소/Escape 무전송, 기존 본인 소유권/운행자·운영진 권한 및 단일 leave 요청 유지. IRIS0.2.1, 한설 수정·검증·push 승인/공개 별도 노트 없음.
 - 검증: 회귀8 RED→GREEN·전체 Node/tsc·교차 리뷰·React390px 확인/취소/성공/명단 갱신 PASS. 최종 공개 ZIP 실제 helper/EXE0.2.0→0.2.1 격리 교체·WebView 준비/보호 파일 해시 보존 PASS. 운영 시험 쓰기0, 실제 사용자 재확인·배포 후 관측은 대기.

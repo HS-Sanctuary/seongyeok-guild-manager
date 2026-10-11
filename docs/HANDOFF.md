@@ -1,5 +1,11 @@
 # SANCTUM 작업 인계
 
+## 2026-10-11 19:21 KST 영겁 — IRIS0.2.1 운영 확인 완료
+
+- 핫픽스 main b343f24956f53eb9b21fad22091dd529173f1376 push, Vercel sanctum Production dpl_Bad1AjApPg5ri5ukj5LVMRoyhwpK READY/동일SHA를 연결 도구로 확인. 운영 Chrome 다운로드 Beta0.2.1/링크/4단계/보안안내·desktop 일반브라우저 연결대기/편집방어 확인, 공개metadata·ZIP519786 SHA4f43cb87ff5a4c30100aa83b870c8b2bc60fb47df80b286b60b777f0a09fb13c 일치/핵심8GET200/authready. 아래 배포 대기는 해소.
+- 현재 사용자 설치본 공개manifest0.2.0/updater1 읽기 확인; 다시 실행→새버전 버튼으로 내부 갱신 안내. 실제 helper/EXE0.2→0.2.1 격리 시험·보호파일 해시 보존과 업데이트 정책/success/crash/recover/최종Node·tsc·webpack57 모두 통과. 운영 버스 시험삭제/탈퇴0, 한설 실제 사용 재확인만 남는다. 앱/게임 대신 실행·강제종료·DB변경·공개추가게시0.
+- 이 후속은 구조 변경 없음/버전 유지. 출시글16을 다시 게시하거나 HUD/기존완료 기능을 반복하지 않는다. 남는 회차완료/인계/이전확인 제한, unrelated dirty/개인삭제/미ACK 릴레이 보존.
+
 ## 2026-10-11 19:18 KST 영겁 — IRIS 0.2.1 길드버스 핫픽스 / 공개 준비
 
 - 최신 한설 요청만 처리: 길드버스 해산/본인 캐릭터 탈퇴 무반응. `GuildBusCard` 두 핸들러가 native에서 꺼진 기본 confirm 대신 기존 surface.confirm/notify를 사용하며 확인 전 actionLock, 해산 async callback await, 결과/오류 안내를 적용한다. 웹 fallback과 기존 서버 소유권/권한·단일 leave payload 유지, DB/API/권한 변경 없음.

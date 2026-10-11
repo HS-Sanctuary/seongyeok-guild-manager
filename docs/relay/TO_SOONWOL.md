@@ -4,6 +4,8 @@
 
 ## YG-20261008-001 — UPDATED
 
+- 0.2.1 운영 완료 — 2026-10-11 19:21 KST: main b343f24956f53eb9b21fad22091dd529173f1376 일반push→Vercel sanctum Production dpl_Bad1AjApPg5ri5ukj5LVMRoyhwpK READY/동일SHA 연결확인. 운영Chrome다운로드0.2.1/링크/4단계/보안안내·desktop브라우저편집방어·ZIP519786 SHA4f43cb87ff5a4c30100aa83b870c8b2bc60fb47df80b286b60b777f0a09fb13c 일치/핵심8GET200/authready. 설치본manifest0.2.0/updater1읽기확인→재실행/내부갱신안내. 실제격리0.2→0.2.1/helper/WebView/보호해시·policy·success/crash/recover·최종Node/tsc/webpack57PASS. 공개추가게시0/운영삭제탈퇴시험0/앱게임대신실행0/강제종료0. 실제사용재확인만남음, 후속문서구조변경없음/버전유지·기존미ACK/개인dirty보존.
+
 - 0.2.1 핫픽스 후보 — 2026-10-11 19:18 KST: 한설 길드버스 해산/탈퇴 무반응 제보→native 기본confirm꺼짐 원인. GuildBusCard두경로 기존IRISconfirm/notify·확인중actionLock·해산await·실패안내, 웹fallback/서버소유권·운행자권한/단일leave 유지. 회귀8RED→GREEN/전체Node/tsc/교차리뷰/React390px취소Escape성공명단갱신 PASS. finalZIP519786 SHA4f43cb87ff5a4c30100aa83b870c8b2bc60fb47df80b286b60b777f0a09fb13c, 실제원본helper/EXE0.2→0.2.1 새오프라인WebView 교체/준비·보호해시보존PASS(한설앱정상종료후). 사용중앱/게임강제종료·운영시험쓰기/DB/API권한변경0. mainpush승인/별도공개노트금지, 글16유지. 배포/운영확인후속대기, 기준dd227d6/dpl_7ASAXcAhXUWUk1kVVMwnHqoeJ9DY Ready. 기존미ACK/개인dirty보존; 회차완료/인계/이전요청은여전히범위밖.
 
 - 게시 완료 후속 — 2026-10-11 15:23 KST: 사용자 Codex 재시작 후 정상 Chrome 관리자 UI 복구, IRIS Beta0.2.0 출시글16 `/kerygma?id=16` 1회 게시·SANCTUM 시스템 작성자·IRIS 탭 단일 표시 확인. raw HTML 초안은 미게시 상태에서 7구역 제목/테마 구분선으로 교정·상세 눈 확인. 아래 게시대기는 당시 경과, 글 중복 생성 금지. 작성창 IRIS 선택 UI는 없고 정규 제목·작성자 기반 분류라 명시 선택 미구현을 설명. 다운로드 “조직에서 차단함” P1 원인 미확정·정책 레지스트리4경로 부재만 읽기 확인, 차단 우회/보안 변경0. 제품/ZIP/버전/DB/push 변경0·로컬 문서만 기록·기존 미ACK/개인dirty 보존.
