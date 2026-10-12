@@ -11,13 +11,8 @@ import {
 } from "@/lib/kronos";
 import ReminderWindows from "./ReminderWindows";
 import ProgressiveGrid from "./ProgressiveGrid";
-
-type QueuedProgress = {
-  confirmed: Progress | undefined;
-  desired: Progress;
-  running: boolean;
-  timer: ReturnType<typeof setTimeout> | null;
-};
+import {createKronosAutosave,type KronosSaveFields} from '@/lib/kronosAutosave';
+export type KronosWorkspaceSaveSource=Pick<ReturnType<typeof createKronosAutosave>,'state'|'flush'>;
 
 function shopRequirement(item: ShopItem) {
   if (item.reward === "사포" && ["앨빈", "델렌"].includes(item.npc)) return "구매 조건: 생활력 7,000";
@@ -31,13 +26,16 @@ export default function KronosWorkspace({
   shopVisible,
   missionVisible,
   reminderRequest,
+  onSaveSource,
 }: {
   character: string;
   account: string;
   shopVisible: boolean;
   missionVisible: boolean;
   reminderRequest: number;
+  onSaveSource?:(source:KronosWorkspaceSaveSource|null)=>void;
 }) {
+  const [autosave]=useState(()=>createKronosAutosave());
   const [shops, setShops] = useState<ShopItem[]>([]);
   const [missions, setMissions] = useState<Mission[]>([]);
   const [progress, setProgress] = useState<Progress[]>([]);
@@ -47,7 +45,9 @@ export default function KronosWorkspace({
   const [busy, setBusy] = useState<string[]>([]);
   const pending = useRef(new Set<string>());
   const progressRef = useRef<Progress[]>([]);
-  const queues = useRef(new Map<string, QueuedProgress>());
+  const confirmedRef=useRef<Progress[]>([]);
+  const saveItemsRef=useRef<{shops:ShopItem[];missions:Mission[]}>({shops:[],missions:[]});
+  const uncertainRef=useRef(false);
   const [shopSearch, setShopSearch] = useState("");
   const [missionSearch, setMissionSearch] = useState("");
   const [now, setNow] = useState(new Date());
@@ -83,6 +83,9 @@ export default function KronosWorkspace({
         setShops(d.shops);
         setMissions(d.missions);
         progressRef.current = d.progress;
+        confirmedRef.current=d.progress;
+        saveItemsRef.current={shops:d.shops,missions:d.missions};
+        autosave.reset(saveFields(d.progress));
         setProgress(d.progress);
         setNotes(d.notes);
         setReady(true);
@@ -95,52 +98,31 @@ export default function KronosWorkspace({
       abort.abort();
       clearInterval(timer);
     };
-  }, [character]);
+  }, [character,autosave]);
+  useEffect(()=>{onSaveSource?.(autosave);const unsubscribe=autosave.subscribe(()=>onSaveSource?.(autosave));return()=>{unsubscribe();onSaveSource?.(null);autosave.dispose();};},[autosave,onSaveSource]);
+  function saveFields(rows:Progress[]):KronosSaveFields{
+    const fields:KronosSaveFields={};
+    for(const kind of ['shop','mission'] as const)for(const item of kind==='shop'?saveItemsRef.current.shops:saveItemsRef.current.missions){const p=rows.find(row=>row.kind===kind&&row.item_id===item.id);fields[kind+item.id]=JSON.stringify([currentProgress(p,kind==='shop'&&(item as ShopItem).reset_type==='일간',new Date()),p?.bookmarked??false]);}
+    return fields;
+  }
+  async function saveBatch(desired:Progress[],keys:ReadonlySet<string>){
+    if(uncertainRef.current){const response=await fetch('/api/kronos?character='+encodeURIComponent(character),{cache:'no-store'});const data=await response.json();if(!response.ok||!Array.isArray(data.progress))throw Error('저장 결과를 다시 확인하지 못했어요.');confirmedRef.current=data.progress;uncertainRef.current=false;}
+    for(const next of desired){
+      const key=next.kind+next.item_id;
+      if(!keys.has(key))continue;
+      const daily=next.kind==='shop'&&saveItemsRef.current.shops.find(item=>item.id===next.item_id)?.reset_type==='일간';
+      if(Date.parse(next.period_start)!==kronosPeriodStart(new Date(),daily))throw Error('초기화 시간이 지났어요. 새로고침 후 기록을 확인해 주세요.');
+      const before=confirmedRef.current.find(row=>row.kind===next.kind&&row.item_id===next.item_id);
+      const delta=next.count-currentProgress(before,daily,new Date()),bookmarked=next.bookmarked===(before?.bookmarked??false)?undefined:next.bookmarked;
+      if(!delta&&bookmarked===undefined){const current=progressRef.current.find(row=>row.kind===next.kind&&row.item_id===next.item_id);if(current?.count===next.count&&current.bookmarked===next.bookmarked)pending.current.delete(key);continue;}
+      try{const response=await fetch('/api/kronos',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({character,action:'progress',kind:next.kind,itemId:next.item_id,delta,bookmarked})});const data=await response.json();if(!response.ok||!data.progress)throw Error(data.message||'저장 결과를 확인하지 못했어요.');confirmedRef.current=[...confirmedRef.current.filter(row=>!(row.kind===next.kind&&row.item_id===next.item_id)),data.progress];if(data.progress.kind!==next.kind||data.progress.item_id!==next.item_id||data.progress.count!==next.count||data.progress.bookmarked!==next.bookmarked)throw Error('다른 기록이 함께 변경됐어요. 다시 저장하기 전에 확인해 주세요.');const current=progressRef.current.find(row=>row.kind===next.kind&&row.item_id===next.item_id);if(current?.count===next.count&&current.bookmarked===next.bookmarked){showProgress(data.progress);pending.current.delete(key);}}
+      catch(reason){uncertainRef.current=true;setError(reason instanceof Error?reason.message:'저장에 실패했어요.');throw reason;}
+    }
+    setBusy([...pending.current]);setError('');
+  }
   function showProgress(next: Progress) {
     progressRef.current = [...progressRef.current.filter((p) => !(p.kind === next.kind && p.item_id === next.item_id)), next];
     setProgress(progressRef.current);
-  }
-  async function flush(key: string, kind: "shop" | "mission", itemId: number) {
-    const queue = queues.current.get(key);
-    if (!queue || queue.running) return;
-    queue.running = true;
-    queue.timer = null;
-    const daily = kind === "shop" && shops.find((s) => s.id === itemId)?.reset_type === "일간";
-    const delta = queue.desired.count - currentProgress(queue.confirmed, daily, new Date());
-    const bookmarked = queue.desired.bookmarked === (queue.confirmed?.bookmarked ?? false) ? undefined : queue.desired.bookmarked;
-    if (delta === 0 && bookmarked === undefined) {
-      queues.current.delete(key);
-      pending.current.delete(key);
-      setBusy([...pending.current]);
-      return;
-    }
-    try {
-      const r = await fetch("/api/kronos", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ character, action: "progress", kind, itemId, delta, bookmarked }),
-      });
-      const d = await r.json();
-      if (!r.ok) throw Error(d.message);
-      queue.confirmed = d.progress;
-      queue.running = false;
-      if (queue.desired.count !== d.progress.count || queue.desired.bookmarked !== d.progress.bookmarked) {
-        queue.timer = setTimeout(() => void flush(key, kind, itemId), 80);
-      } else {
-        showProgress(d.progress);
-        queues.current.delete(key);
-        pending.current.delete(key);
-        setBusy([...pending.current]);
-      }
-    } catch (e) {
-      progressRef.current = progressRef.current.filter((p) => !(p.kind === kind && p.item_id === itemId));
-      if (queue.confirmed) progressRef.current.push(queue.confirmed);
-      setProgress([...progressRef.current]);
-      queues.current.delete(key);
-      pending.current.delete(key);
-      setBusy([...pending.current]);
-      setError((e as Error).message);
-    }
   }
   function update(
     kind: "shop" | "mission",
@@ -162,16 +144,13 @@ export default function KronosWorkspace({
       bookmarked: bookmarked ?? previous?.bookmarked ?? false,
       period_start: new Date(kronosPeriodStart(now, daily)).toISOString(),
     };
-    const queue = queues.current.get(key);
-    if (queue) queue.desired = optimistic;
-    else queues.current.set(key, { confirmed: previous, desired: optimistic, running: false, timer: null });
     pending.current.add(key);
     setBusy([...pending.current]);
     showProgress(optimistic);
     setError("");
-    const next = queues.current.get(key)!;
-    if (next.timer) clearTimeout(next.timer);
-    if (!next.running) next.timer = setTimeout(() => void flush(key, kind, itemId), 150);
+    const desired=progressRef.current.map(row=>({...row}));
+    const keys=new Set(pending.current);
+    autosave.edit(saveFields(desired),()=>saveBatch(desired,keys));
   }
   function row(kind: "shop" | "mission", id: number) {
     return progress.find((p) => p.kind === kind && p.item_id === id);
@@ -213,7 +192,7 @@ export default function KronosWorkspace({
           +
         </button>
         {showMax && <button aria-label={count >= max ? `${kind === "shop" ? "구매" : "임무"} 횟수 모두 초기화` : `${kind === "shop" ? "남은 구매" : "남은 임무"} 횟수 모두 완료`} onClick={() => update(kind, id, count >= max ? -count : max - count)} className="rounded-md border border-[var(--accent)] px-1.5 py-1 text-xs font-bold text-[var(--accent)]">{count >= max ? "MIN" : "MAX"}</button>}
-        {wait && <span className={compact ? "sr-only" : "text-xs text-[var(--text-sub)]"}>저장 중…</span>}
+        {wait && <span className={compact ? "sr-only" : "text-xs text-[var(--text-sub)]"}>{autosave.state().saving?'저장 중…':'미저장'}</span>}
       </div>
     );
   }

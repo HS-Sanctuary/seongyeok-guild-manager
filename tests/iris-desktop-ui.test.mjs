@@ -6,6 +6,23 @@ import {renderToStaticMarkup} from 'react-dom/server';
 import {loadTS} from './load-ts.mjs';
 const file='components/iris/DesktopCheckboard.tsx';
 
+test('font size dropdown includes point-size bounds without display-resolution labels',()=>{
+  const {DesktopAddonSettings}=loadTS('components/iris/DesktopAddonSettings.tsx');
+  const html=renderToStaticMarkup(React.createElement(DesktopAddonSettings,{accountPanel:null,appearance:{theme:'aureum',persistent:true,fontSize:18,setTheme(){},setFontSize(){}},addonState:null,onPreferencesChange(){},onBack(){}}));
+  assert.match(html,/<select[^>]*aria-label="글자 크기"/);for(const size of [6,22])assert.match(html,new RegExp('<option[^>]*>'+size+'pt</option>'));
+  assert.doesNotMatch(html,/FHD|QHD/);
+});
+
+test('all Kronos features are immediately available without opening a picker',()=>{
+  const {DesktopFeaturePicker}=loadTS('components/iris/DesktopFeaturePicker.tsx');
+  const html=renderToStaticMarkup(React.createElement(DesktopFeaturePicker,{value:'homework',disabled:false,onChoose(){}}));
+  for(const title of ['숙제','클래스','스탯','재화','물물교환','상점구매','임무게시판'])assert.match(html,new RegExp('<button[^>]*>'+title+'</button>'));
+  assert.doesNotMatch(html,/기능 선택|aria-expanded/);
+  assert.match(html,/aria-pressed="true"[^>]*>숙제<\/button>/);
+  const locked=renderToStaticMarkup(React.createElement(DesktopFeaturePicker,{value:'homework',disabled:true,onChoose(){}}));
+  assert.equal((locked.match(/disabled=""/g)??[]).length,8);
+});
+
 test('account actions and remembered accounts are directly available without a switch step',()=>{
   const {DesktopAccountPanel}=loadTS('components/iris/DesktopAccountPanel.tsx');
   const html=renderToStaticMarkup(React.createElement(DesktopAccountPanel,{account:{id:'a',nickname:'화연',role:'길드원'},remembered:[],busy:false,onSwitch:async()=>{},onLogout:async()=>{},onLogin:async()=>{}}));
@@ -21,7 +38,7 @@ test('center enables barter, shop and missions as separate Kronos panels',()=>{
   assert.match(html,/aria-label="상위 메뉴"/);assert.match(html,/aria-label="크로노스 기능"/);
   for(const id of ['shop','missions','barter'])assert.match(html,new RegExp('id="iris-pane-'+id+'"'));
   const {DesktopFeaturePicker}=loadTS('components/iris/DesktopFeaturePicker.tsx');
-  const choices=renderToStaticMarkup(React.createElement(DesktopFeaturePicker,{value:'homework',open:true,disabled:false,onOpenChange(){},onChoose(){}}));
+  const choices=renderToStaticMarkup(React.createElement(DesktopFeaturePicker,{value:'homework',disabled:false,onChoose(){}}));
   for(const label of ['상점구매','임무게시판','물물교환'])assert.match(choices,new RegExp('<button(?![^>]*disabled)[^>]*>'+label));
   assert.doesNotMatch(html,/<span>준비 중<\/span>/);
   assert.match(html,/생텀 선택/);assert.match(html,/열두글자캐릭터닉네임확인/);
@@ -145,7 +162,18 @@ test('native close dialog offers save keep discard and cancel instead of silentl
   const {DesktopCloseDialog}=loadTS('components/iris/DesktopSaveStatus.tsx');
   assert.equal(typeof DesktopCloseDialog,'function');
   const html=renderToStaticMarkup(React.createElement(DesktopCloseDialog,{busy:false,onChoose(){},onCancel(){}}));
-  for(const text of ['저장하고 종료','보관하고 종료','버리고 종료','돌아가기'])assert.ok(html.includes(text));
+  for(const text of ['생텀에 저장 후 종료','이 PC에 보관 후 종료','버리고 종료','돌아가기'])assert.ok(html.includes(text));
+});
+test('clean native close has one exit action but storage failures retain recovery choices',()=>{
+  const {DesktopCloseDialog}=loadTS('components/iris/DesktopSaveStatus.tsx');
+  const props={busy:false,hasPending:false,onChoose(){},onCancel(){}};
+  const clean=renderToStaticMarkup(React.createElement(DesktopCloseDialog,props));
+  assert.match(clean,/>종료<\/button>/);
+  assert.doesNotMatch(clean,/생텀에 저장 후 종료|이 PC에 보관 후 종료|버리고 종료/);
+  const failed=renderToStaticMarkup(React.createElement(DesktopCloseDialog,{...props,storageFailed:true}));
+  assert.match(failed,/생텀에 저장 후 종료/);assert.match(failed,/이 PC에 보관 후 종료/);
+  const busy=renderToStaticMarkup(React.createElement(DesktopCloseDialog,{...props,busy:true}));
+  assert.match(busy,/<button[^>]*disabled=""[^>]*>종료<\/button>/);
 });
 test('storage failure close exposes explicit recent-change loss warning',()=>{
   const {DesktopCloseDialog}=loadTS('components/iris/DesktopSaveStatus.tsx');

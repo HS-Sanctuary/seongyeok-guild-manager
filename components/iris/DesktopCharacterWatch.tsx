@@ -37,7 +37,7 @@ export function DesktopCharacterWatch({accountId,characterId,characters,locked,r
   const latest=useRef({characters,locked,onSelectCharacter,onChooseOther,onCharactersRead}),runtime=useRef<Runtime|null>(null);
   useEffect(()=>{latest.current={characters,locked,onSelectCharacter,onChooseOther,onCharactersRead};},[characters,locked,onSelectCharacter,onChooseOther,onCharactersRead]);
   useEffect(()=>{
-    const version=getContextVersion(),context:Runtime={active:true,confirming:false,generation:0,tracker:createCharacterSwitchTracker(characterId,getPreviousGame()),observation:null,catalog:[]};runtime.current=context;
+    const version=getContextVersion(),context:Runtime={active:true,confirming:false,generation:0,tracker:createCharacterSwitchTracker(characterId,getPreviousGame(),Date.now(),true),observation:null,catalog:[]};runtime.current=context;
     const current=()=>context.active&&version===getContextVersion();
     let reading=false,nextReadAt=-Infinity,catalogAttempted=false,fallback:StatsCharacter[]=[];
     let timer:ReturnType<typeof setTimeout>|undefined,fastProbeId:string|null=null;
@@ -60,8 +60,8 @@ export function DesktopCharacterWatch({accountId,characterId,characters,locked,r
         if(!current()||generation!==context.generation||context.confirming)return;
         if(latest.current.locked||document.visibilityState!=='visible'){invalidate();return;}
         context.observation=game;context.catalog=latest.current.characters.length?latest.current.characters:fallback;
-        onGameRead(game);
         setCandidate(context.tracker.observe(context.catalog,game));setNotice('');
+        const reference=context.tracker.baselineObservation();if(reference)onGameRead(reference);
       }catch{if(current()&&generation===context.generation&&!context.confirming)invalidate();}
       finally{
         reading=false;

@@ -2,6 +2,7 @@ import type { DesktopQueue, QueueSnapshot, TaskKey,PendingEdit,SaveOutcome } fro
 import { DesktopTransportError, type DesktopAccount, type DesktopCharacter, type DesktopDetails, type DesktopTransport } from './irisDesktopTransport';
 import type {BarterKey} from './irisBarter';
 import type {WorkspaceKey} from './irisWorkspace';
+import {parseCharacterMetaIntent,type CharacterMetaIntent} from './irisCharacterManagement';
 export type DesktopStore = { load(): Promise<QueueSnapshot | null>; replace(value: QueueSnapshot): Promise<void> };
 export type DesktopSaveConfirmation = {characterId:string;nickname:string;confirmedAt:number};
 export type DesktopClassDraft={text:string;error:string|null};
@@ -178,6 +179,11 @@ export function createDesktopController(options: { queue: DesktopQueue; transpor
     } finally { changing = false; }
   }
   return {
+    async characterMetadata(){if(locked()||!account)throw Error('현재 작업이 끝난 뒤 다시 읽어 주세요.');const owner=account.id,current=epoch,result=await transport.characterMetadata(owner);if(account?.id!==owner||epoch!==current)throw Error('계정이 바뀌었어요. 다시 읽어 주세요.');characters=[...result.characters,...characters.filter(c=>c.editable===false&&!result.characters.some(row=>row.id===c.id))];charactersLoaded=true;return result;},
+    async manageCharacter(raw:CharacterMetaIntent){
+      if(locked()||!account)throw Error('현재 작업을 먼저 확인해 주세요.');const intent=parseCharacterMetaIntent(raw),owner=account.id,current=epoch;
+      await transition(async()=>{if(account?.id!==owner||epoch!==current)throw Error('계정이 바뀌었어요.');const result=await transport.manageCharacter(owner,intent);if(account?.id!==owner||epoch!==current)throw Error('계정이 바뀌었어요.');characters=[...result.characters,...characters.filter(c=>c.editable===false&&!result.characters.some(row=>row.id===c.id))];charactersLoaded=true;if(selected){const latest=await read(selected.characterId);if(account?.id===owner&&epoch===current)selected=latest;}},'save');
+    },
     async start() {
       if (changing || running || closed || durabilityError) throw Error('앱을 다시 확인해 주세요.');
       changing = true; selection++; epoch++;

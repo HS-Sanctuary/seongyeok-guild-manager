@@ -17,8 +17,9 @@ export function DesktopSaveStatus({entries,characters=[],selected=null,lastSaveC
     <details className="text-sm iris-save-help"><summary className="cursor-pointer">저장 안내 · 자동 15초</summary><p className="text-sm" role="status">{lastSaveConfirmation?<>{lastSaveConfirmation.nickname} · 마지막 저장 확인 <time dateTime={new Date(lastSaveConfirmation.confirmedAt).toISOString()}>{confirmationTimeFormat.format(lastSaveConfirmation.confirmedAt)}</time> (한국 시간)</>:'이번 실행에서 확인한 저장 시각 없음'}</p><p>마지막 유효 수정 후 15초 자동저장해요. 캐릭터를 바꿔도 이전 캐릭터의 변경은 따로 보관돼요.</p><p>지금 저장과 변경 버리기는 선택 캐릭터와 계정당 물물교환에 적용돼요.</p></details>
   </section>;
 }
-export function DesktopCloseDialog({busy,onChoose,onCancel,storageFailed=false,onUnsafeClose,reason='manual'}:{busy:boolean;onChoose(action:'save'|'keep'|'discard'):void;onCancel():void;storageFailed?:boolean;onUnsafeClose?():void;reason?:'manual'|'game-exit'}) {
+export function DesktopCloseDialog({busy,onChoose,onCancel,storageFailed=false,onUnsafeClose,reason='manual',hasPending=true}:{busy:boolean;onChoose(action:'save'|'keep'|'discard'):void;onCancel():void;storageFailed?:boolean;onUnsafeClose?():void;reason?:'manual'|'game-exit';hasPending?:boolean}) {
   const root=useRef<HTMLDivElement>(null);
+  const needsChoice=hasPending||storageFailed;
   useEffect(()=>{
     const previous=document.activeElement as HTMLElement|null,overflow=document.body.style.overflow;
     document.body.style.overflow='hidden';root.current?.querySelector<HTMLButtonElement>('button')?.focus();
@@ -30,9 +31,10 @@ export function DesktopCloseDialog({busy,onChoose,onCancel,storageFailed=false,o
   },[busy,onCancel]);
   return <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={e=>{if(e.target===e.currentTarget&&!busy)onCancel();}}>
     <div ref={root} role="dialog" aria-modal="true" aria-labelledby="iris-close-heading" className="max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl border border-[var(--panel-border)] bg-[var(--panel)] p-5 max-w-xl space-y-4">
-      <h2 id="iris-close-heading" className="font-bold">{reason==='game-exit'?'게임이 종료됐어요. IRIS도 종료할까요?':'IRIS를 종료할까요?'}</h2><p>보관한 변경은 다음 실행에서 본인 확인 후 재시도할 수 있어요. 저장 결과가 불명확하면 창을 유지해요.</p>
+      <h2 id="iris-close-heading" className="font-bold">{reason==='game-exit'?'게임이 종료됐어요. IRIS도 종료할까요?':'IRIS를 종료할까요?'}</h2>
+      {needsChoice?<dl className="iris-caption space-y-2"><div><dt className="font-semibold">생텀에 저장 후 종료</dt><dd>미저장 변경을 생텀 DB에 저장해요. 실패하거나 결과가 불확실하면 종료하지 않아요.</dd></div><div><dt className="font-semibold">이 PC에 보관 후 종료</dt><dd>아직 보내지 않은 변경을 이 PC에만 보관해요. 다음 실행에서 본인 확인 후 다시 저장할 수 있어요. 다른 PC에는 전달되지 않아요.</dd></div></dl>:<p className="iris-caption">미저장 변경이 없어요.</p>}
       {storageFailed&&<div role="alert"><p>보관 또는 종료 연결에 실패했어요. 기존 보호 대기함은 유지돼요. 연결을 확인한 뒤 다시 시도해 주세요.</p>{reason==='manual'&&<><p>최근 변경을 잃을 수 있어요. 기존 보호 대기함을 덮어쓰지 않아요.</p><button type="button" className="iris-desktop-button" disabled={busy} onClick={onUnsafeClose}>손실 가능성을 확인하고 종료</button></>}</div>}
-      <div className="flex flex-wrap gap-3">{(reason==='game-exit'?['save','keep'] as const:['save','keep','discard'] as const).map(action=><button type="button" key={action} className="iris-desktop-button" disabled={busy} onClick={()=>onChoose(action)}>{{save:'저장하고 종료',keep:'보관하고 종료',discard:'버리고 종료'}[action]}</button>)}<button type="button" className="iris-desktop-button" disabled={busy} onClick={onCancel}>{reason==='game-exit'?'취소':'돌아가기'}</button></div>
+      <div className="flex flex-wrap gap-3">{needsChoice?(reason==='game-exit'?['save','keep'] as const:['save','keep','discard'] as const).map(action=><button type="button" key={action} className="iris-desktop-button" disabled={busy} onClick={()=>onChoose(action)}>{{save:'생텀에 저장 후 종료',keep:'이 PC에 보관 후 종료',discard:'버리고 종료'}[action]}</button>):<button type="button" className="iris-desktop-button" disabled={busy} onClick={()=>onChoose('save')}>종료</button>}<button type="button" className="iris-desktop-button" disabled={busy} onClick={onCancel}>{reason==='game-exit'?'취소':'돌아가기'}</button></div>
     </div>
   </div>;
 }

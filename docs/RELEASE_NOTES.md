@@ -1,5 +1,21 @@
 # SANCTUM 업데이트 노트
 
+## SANCTUM v2.31 / IRIS Beta 0.3.0 — 2026-10-12 KST 준비 후보
+
+- 20:53 KST 최종 후보 검증: 전체 Node455 중452 PASS/3기존skip/0fail, 독립 tsc exit0·격리 webpack58 exit0·diff check PASS. 마지막 소스 변경 후 재검사했다. 정상 push/운영 검증·공지 게시 결과는 아직 별도다.
+
+- 20:20 실행 후 홈 Kronos Check Board15초 묶음 저장 구현. 연속 체크·전송 중 새 입력/되돌림·캐릭터별 baseline·수동 지금/다시 저장·실패 보존·모든 홈 버튼 이동/계정 전환 보호를 적용한다. 선택적 기간 메타데이터와 기존 delta merge/CAS 유지, DB스키마/RLS 변경 없음. 관련24/실제 React 회귀·독립tsc·최종 격리webpack58 exit0, 전체 최종 결과는 운영 후속에 기록한다.
+- native 실제0.2.2→0.3.0 EXE/helper/새 offline WebView trial PASS/보호해시 보존; 아래 ‘남음’은17시 경과다. 같은 리뷰 자리의 geometry/header/opacity 및 홈 저장 경계 Important를 수정해 잔여 없음. 실제 게임/다른DPI 실사용 확인은 여전히 남는다.
+
+- **아직 공식 push/운영 배포/게시 미완료.** 한설이 마감·업데이트 가능한ZIP·따뜻한 중제목공지2글 게시를승인. 사용량96%구간 checkpoint/20:20동일대화재개예약. 완료시정확한KST시각·SHA·Ready·운영눈확인·게시ID를추가기록한다.
+- SANCTUM: 크로노스웹15초묶음저장/즉시편집·수동저장·pending때만컴팩트반투명상태, 기능버튼높이축소. 상단3패널은호출버튼근처/header도구전체아래/작은화면경계/내부스크롤. 웹원래테마·권한·기록보존.
+- IRIS: 애드온바/제목통합·상시하위8버튼·숙제그룹/미완료필터·추천/수동선택통일, 스탯재조회·확인후업데이트/계정길드공헌도, 재화·강조/시낙시스·기존상점/임무기능보존, 메모리정리제거유지. 설치글꼴자동검색/6~22pt/폭360~720/로컬기억/투명도30~100·테마선택, □작은바/고정위치600패널·내부scroll/게임최대화·일반복귀좌우도킹/같은층·최소화·바탕화면/둥근region. 캐릭터연필·추가·대표·메타추천새로고침, 알림4종·기본ON/개별음소거/짧은자가벨·기존제보·예상과확정구분. 종료저장·보관설명/초안보존.
+- 구조변화: IRIS character-management endpoint·controller와표시용nativefonts/presentation/sound 고정bridge, 홈/IRIS시간계산공유, header panelposition hook. 기존DB테이블만사용, **DB스키마/RLS/권한 변경없음**. 대표clear/set는cross-client전역원자성없음/postread부분실패경고, 신규RPC없음. 운영시험쓰기/삭제/게임행동/보안우회0.
+- 검증후보: Node443/440PASS/3기존skip·독립tsc/격리webpack58 exit0, 대상lint0오류/날개기존imgwarning1·기존Synaxis broadlint부채별도. 이전단일fullbundle리뷰와중요회귀수정PASS. 최신nativeaddon82/grip22/bridge/presentation/fonts/bell/WebView/startupclose, 실제React합성폰트/폭/접기/opacity30reload/5폭header/메뉴/알림/카드 PASS(범위상세HANDOFF). 최종좁힌geometry/header/opacity 리뷰와실제최신ZIP live교체trial/운영확인은20:20후속.
+- 패키지후보: public IRIS ZIP0.3.0/527716bytes/SHA2562dfda82795e997415173b87c2359d3550465d8a1564cf049c51b3bdf7306bcdd, allowlist10파일/manifesthash/icon/unsigned PASS. updaterpolicy 및임시프로세스success/crash/recover PASS, sandbox경로거부/relative인수실패는절대경로/승인된격리시험경계에서분리재검. 실제0.2.2→0.3.0 EXE/helper/WebView교체와보호hash시험은아직남음.
+- 알려진제한: 실제게임/다른DPI 최종재확인남음, 미서명베타/조직차단우회금지, 구0.2.0/0.2.1 HTTPS실패앱은ZIP전체수동1회교체. 현재글초안2개는게시전이며Ready뒤중복검사후SANCTUM시스템으로각1회게시.
+- 되돌리기기준: 직전정상 origin/main fb607e051eaf53afeac52dc88905dd2c08643ea0(제품코드48d5611), SANCTUMv2.3/IRIS0.2.2 Production dpl_DP47tvp3qsVdrzpomVmJarb5XrTu READY. 현재운영DB구조는그대로이며실패시안전한코드/패키지롤백을먼저검토한다.
+
 ## 개발 인계 기록 — 2026-10-12 KST — 운영 버전 변경 없음
 
 - 한설 승인으로 영겁의 `codex/iris-checkboard-classes`를 순월에게 공유한다. **공식 운영 릴리스가 아니며** main/운영 제품 SANCTUMv2.3·IRISBeta0.2.2를 변경하지 않는다. 새 ZIP/공개 업데이트 게시/운영 DB 변경 없음.

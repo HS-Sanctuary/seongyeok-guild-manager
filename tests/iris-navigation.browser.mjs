@@ -12,8 +12,8 @@ const browser=await chromium.launch({headless:true,channel:'chrome'});
 const page=await browser.newPage({viewport:{width:390,height:1050},deviceScaleFactor:3}),failures=[],errors=[];
 const screenshots=mkdtempSync(join(tmpdir(),'iris-navigation-'));
 page.setDefaultTimeout(4000);page.on('pageerror',e=>errors.push(e.message));
-const go=async(font=18)=>{await page.goto('http://127.0.0.1:3011/?nav=1&font='+font);await page.getByRole('button',{name:'기능 선택',exact:true}).waitFor();};
-const chooseFeature=async(name)=>{await page.getByRole('button',{name:'기능 선택',exact:true}).click();await page.getByRole('region',{name:'크로노스 기능 선택',exact:true}).getByRole('button',{name,exact:true}).click();};
+const go=async(font=18)=>{await page.goto('http://127.0.0.1:3011/?nav=1&font='+font);await page.getByRole('navigation',{name:'크로노스 기능',exact:true}).waitFor();};
+const chooseFeature=async(name)=>{await page.getByRole('navigation',{name:'크로노스 기능',exact:true}).getByRole('button',{name,exact:true}).click();};
 const scenario=async(name,run)=>{try{await run();console.log('PASS '+name);}catch(e){failures.push(e);console.error('FAIL '+name+' '+e.message);}};
 const fits=async()=>{
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,'document horizontal overflow');
@@ -75,7 +75,6 @@ try{
   });
   await scenario('main navigation visually leads child tabs in all six themes',async()=>{
     await go();
-    await page.getByRole('button',{name:'기능 선택',exact:true}).click();
     for(const theme of ['aureum','lumen','nemeton','vesper','rosarium','elysium']){
       await page.evaluate(theme=>document.documentElement.dataset.theme=theme,theme);
       await page.waitForFunction(()=>{
@@ -86,12 +85,12 @@ try{
       const selected=main.getByRole('button',{name:'크로노스',exact:true});
       assert.equal(await selected.locator('.iris-main-tab-icon').count(),1,'main menu includes a decorative icon');
       const colors=await page.evaluate(()=>{
-        const main=document.querySelector('.iris-main-tabs button[aria-pressed=true]'),child=document.querySelector('.iris-feature-list button[aria-pressed=true]');
+        const main=document.querySelector('.iris-main-tabs button[aria-pressed=true]'),child=document.querySelector('.iris-feature-picker button[aria-pressed=true]');
         const swatch=document.createElement('span');swatch.style.background='var(--accent)';document.body.append(swatch);
         const result=[getComputedStyle(main).backgroundColor,getComputedStyle(child).backgroundColor,getComputedStyle(swatch).backgroundColor];swatch.remove();return result;
       });
       assert.equal(colors[0],colors[2],theme+' main selected fills with accent');assert.notEqual(colors[0],colors[1],theme+' child selected stays quieter');
-      assert.equal(await child.getByRole('region',{name:'크로노스 기능 선택',exact:true}).getByRole('button').count(),7);await fits();
+      assert.equal(await child.getByRole('button').count(),7);await fits();
       if(['aureum','lumen'].includes(theme))await page.screenshot({path:join(screenshots,theme+'-navigation.png')});
     }
     await page.getByRole('button',{name:'스탯',exact:true}).click();await page.getByRole('button',{name:'시낙시스',exact:true}).click();

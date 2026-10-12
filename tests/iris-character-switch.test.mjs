@@ -137,3 +137,17 @@ test('existing two-positive-stat exact matching remains available without tolera
   assert.equal(observe(t,game(10000,'힐러',[20000,4000,null,null]),rows),null);
   assert.equal(observe(t,game(20000,'힐러',[20000,4000,null,null]),rows)?.id,'b');
 });
+
+test('a pending candidate never replaces the comparison baseline across a watch pause',()=>{
+  const t=tracker();observe(t,game());observe(t,game(10000,'힐러',[20000,4000,2000,6000]));
+  assert.equal(typeof t.baselineObservation,'function');
+  const resume=loadTS('lib/irisCharacterSwitch.ts').createCharacterSwitchTracker('a',t.baselineObservation(),now+11000,true);
+  assert.equal(observe(resume,game(12000,'힐러',[20000,4000,2000,6000])),null);
+  assert.equal(observe(resume,game(13000,'힐러',[20000,4000,2000,6000]))?.id,'b');
+});
+test('account-local historical reference detects a change after a long minimized pause using two fresh reads',()=>{
+  const create=loadTS('lib/irisCharacterSwitch.ts').createCharacterSwitchTracker;
+  const t=create('a',game(),now+120000,true);
+  assert.equal(observe(t,game(121000,'힐러',[20000,4000,2000,6000])),null);
+  assert.equal(observe(t,game(122000,'힐러',[20000,4000,2000,6000]))?.id,'b');
+});

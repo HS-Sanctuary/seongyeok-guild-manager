@@ -366,6 +366,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
   useEffect(() => {
     if (!mounted) return;
+    if(pathname==='/iris/desktop')return;
+    delete document.documentElement.dataset.irisFontSize;
+    delete document.documentElement.dataset.irisLargeFont;
+    delete document.documentElement.dataset.irisExtraLargeFont;
     localStorage.setItem('nexus_font_size', fontSizeLevel);
 
     const handleResizeAndFont = () => {
@@ -388,7 +392,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     handleResizeAndFont();
     window.addEventListener('resize', handleResizeAndFont);
     return () => window.removeEventListener('resize', handleResizeAndFont);
-  }, [fontSizeLevel, mounted]);
+  }, [fontSizeLevel, mounted,pathname]);
 
   // 브라우저에 저장된 계정 표시는 서버 세션과 일치할 때만 신뢰한다.
   const syncAccountRoleWithDB = async (accList: AccountPreset[]) => {
@@ -471,8 +475,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   };
 
   const switchAccount = async (acc: AccountPreset) => {
+    try{await (await import('@/lib/pageSaveGuard')).flushPageBeforeAccountChange();}catch{alert('미저장 숙제를 저장하지 못했어요. 메인 화면에서 지금 저장을 다시 눌러주세요.');return;}
     accountSyncGeneration.current += 1;
     setVerifiedAccountId(null);
+    try {
     const response = await fetch('/api/auth/switch', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -502,6 +508,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     
     window.dispatchEvent(new CustomEvent("sanctum_account_changed", { detail: acc }));
     window.location.reload();
+    } catch {
+      alert('계정 전환 결과를 확인하지 못했어요. 안전하게 현재 로그인 상태를 다시 확인할게요.');
+      window.location.reload();
+    }
   };
 
   const handleSaveThemeSettings = () => {
@@ -642,21 +652,28 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
   const handleLogout = async () => {
     if (!activeAccount) return;
+    try{await (await import('@/lib/pageSaveGuard')).flushPageBeforeAccountChange();}catch{alert('미저장 숙제를 저장하지 못했어요. 메인 화면에서 지금 저장을 다시 눌러주세요.');return;}
     accountSyncGeneration.current += 1;
     setVerifiedAccountId(null);
-    await fetch('/api/auth/logout', { method: 'POST' });
+    try {
+    const response=await fetch('/api/auth/logout', { method: 'POST' });
+    if(!response.ok)throw Error('logout failed');
     const remaining = accounts.filter(account => account.id !== activeAccount.id);
     setAccounts(remaining);
     localStorage.setItem("sanctum_accounts", JSON.stringify(remaining));
 
     if (remaining.length > 0) {
-      switchAccount(remaining[0]);
+      await switchAccount(remaining[0]);
     } else {
       setAccounts([]);
       setActiveAccount(null);
       localStorage.removeItem("nexus_user");
       localStorage.removeItem("sanctum_active_account_id");
       router.push("/login");
+    }
+    } catch {
+      alert('로그아웃 결과를 확인하지 못했어요. 안전하게 현재 로그인 상태를 다시 확인할게요.');
+      window.location.reload();
     }
   };
 

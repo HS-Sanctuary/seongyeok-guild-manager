@@ -4,6 +4,7 @@ import { mergeChecklistEdit, setChecklistField } from '@/lib/matchingUtils';
 import { isGuildBusParty } from '@/lib/guildBusPolicy';
 import {saveGuildBusSettings, BusSettingsError} from '@/lib/server/guildBusSettings';
 import type {Member} from '@/components/party/types';
+import {kronosPeriodStart} from '@/lib/kronos';
 
 type Table = "characters" | "parties" | "inquiries";
 type Action = "insert" | "update" | "upsert" | "delete";
@@ -60,6 +61,9 @@ export async function POST(request: NextRequest) {
     let cleanPayload = isRecord(payload) ? { ...payload } : {};
     let busMembersBefore: unknown = undefined;
     const characterChecksBefore: Record<string, unknown> = {};
+    let checklistPeriods: Record<string, unknown>|null = null;
+    const periodsExpired=()=>checklistPeriods!==null&&Object.keys(checklistPeriods).some(field=>checklistPeriods![field]!==new Date(kronosPeriodStart(new Date(),field==='daily_checks')).toISOString());
+    const periodConflict=()=>NextResponse.json({message:'숙제 초기화 시간이 지났습니다. 현재 기간을 다시 조회해주세요.'},{status:409});
     const ownedNicknameUpdate = table === "characters" && action === "update" && filter?.column === "nickname" && typeof filter.value === "string" && !filter.exceptNickname;
 
     if (table === "characters") {
@@ -110,10 +114,12 @@ export async function POST(request: NextRequest) {
       }
       const base = cleanPayload._checklistBase;
       delete cleanPayload._checklistBase;
+      if('_checklistPeriods' in cleanPayload){const periods=cleanPayload._checklistPeriods;delete cleanPayload._checklistPeriods;const fields=['daily_checks','weekly_checks','raid_checks'].filter(field=>field in cleanPayload);if(!isRecord(periods)||Object.keys(periods).length!==fields.length||fields.some(field=>typeof periods[field]!=='string'))return NextResponse.json({message:'숙제 저장 기간을 확인해주세요.'},{status:400});checklistPeriods=periods;if(periodsExpired())return periodConflict();}
       const {data: character,error} = await supabase.from('characters').select('*')
         .eq('nickname',filter!.value).eq('owner',account.nickname).maybeSingle();
       if (error) throw error;
       if (!character) return NextResponse.json({message:'본인 캐릭터를 확인하지 못했습니다.'},{status:403});
+      if(periodsExpired())return periodConflict();
       for (const field of ['daily_checks','weekly_checks','raid_checks']) {
         if (!(field in cleanPayload)) continue;
         if (!(field in base)) return NextResponse.json({message:'숙제 기준 정보가 누락됐습니다. 새로고침해주세요.'},{status:400});
@@ -275,6 +281,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    if(periodsExpired())return periodConflict();
     let query;
     if (action === "insert") query = supabase.from(table).insert(cleanPayload).select();
     else if (action === "upsert" && table === "characters") query = supabase.from(table).upsert(cleanPayload, { onConflict: "nickname" }).select();

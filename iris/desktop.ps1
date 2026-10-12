@@ -13,7 +13,7 @@ if(!(Test-Path $irisDesktopCore)){throw 'Approved project-local WebView2 SDK is 
 [void][Reflection.Assembly]::LoadFrom($irisDesktopCore)
 [void][Reflection.Assembly]::LoadFrom($irisDesktopForms)
 $irisDesktopReferences=@($irisDesktopCore,$irisDesktopForms,'System.Windows.Forms','System.Drawing','System.Core','System.Security','System.Web.Extensions')
-Add-Type -Path @('overlay-native.cs','desktop-overlay.cs','desktop-addon-policy.cs','desktop-addon.cs','desktop-host.cs','desktop-store.cs','desktop-bridge.cs','desktop-lifecycle.cs','desktop-webview.cs'|ForEach-Object{Join-Path $PSScriptRoot $_}) -ReferencedAssemblies $irisDesktopReferences
+Add-Type -Path @('overlay-native.cs','desktop-overlay.cs','desktop-addon-policy.cs','desktop-addon.cs','desktop-host.cs','desktop-store.cs','desktop-bridge.cs','desktop-fonts.cs','desktop-presentation.cs','desktop-alert-sound.cs','desktop-lifecycle.cs','desktop-webview.cs'|ForEach-Object{Join-Path $PSScriptRoot $_}) -ReferencedAssemblies $irisDesktopReferences
 $irisDesktopProfile=[IrisDesktop.DesktopHostPolicy]::ProfilePath($irisDesktopEnvironment)
 $irisDesktopOwner=New-Object IrisDesktop.DesktopSingleInstance($irisDesktopEnvironment,$irisDesktopProfile)
 if(!$irisDesktopOwner.IsOwner){$irisDesktopOwner.Dispose();exit 0}

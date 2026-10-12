@@ -16,15 +16,16 @@ function rankSwitchCandidates(characters:StatsCharacter[],game:GameStats) {
 }
 
 // A suggestion is not an identity: no writes or automatic selection occur here.
-export function createCharacterSwitchTracker(selectedId:string,previous:GameStats|null=null,now=Date.now()) {
+export function createCharacterSwitchTracker(selectedId:string,previous:GameStats|null=null,now=Date.now(),historicalReference=false) {
   // A fresh account-local observation survives a selected-watch remount, but
   // never counts toward the two new observations required to offer a switch.
-  let baseline=previous&&freshStats(previous,now)&&statKeys.filter(key=>(previous.stats[key]??0)>0).length>=2?previous:null;
+  let baseline=previous&&(freshStats(previous,now)||(historicalReference&&Number.isFinite(Date.parse(previous.observedAt))&&Date.parse(previous.observedAt)<=now))&&statKeys.filter(key=>(previous.stats[key]??0)>0).length>=2?previous:null;
   let lastObserved=baseline?Date.parse(baseline.observedAt):-Infinity,pendingId:string|null=null,count=0;
   let dismissedId:string|null=null,candidate:StatsCharacter|null=null;
   const invalidate=()=>{pendingId=null;count=0;candidate=null;return null;};
   return {
     invalidate,
+    baselineObservation(){return baseline;},
     unconfirmedCandidate(){return count===1?pendingId:null;},
     dismiss(){dismissedId=pendingId;invalidate();},
     observe(characters:StatsCharacter[],game:GameStats,now=Date.now()):StatsCharacter|null {

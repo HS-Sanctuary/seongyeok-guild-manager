@@ -42,9 +42,9 @@ namespace IrisDesktop {
             if(!Apply(enabled,opacity)){Apply(false,100);clickThrough=false;opacity=100;Changed();return false;}
             clickThrough=enabled;Changed();return true;
         }
-        public bool SetOpacityPercent(int percent){if(disposed||percent<50||percent>100||(addonMode&&percent!=100))return false;if(!Apply(clickThrough,percent))return false;opacity=percent;Changed();return true;}
+        public bool SetOpacityPercent(int percent){if(disposed||percent<30||percent>100)return false;if(!Apply(clickThrough,percent))return false;opacity=percent;Changed();return true;}
         public Rectangle ClampBounds(Rectangle requested,Rectangle workingArea){
-            int width=Math.Min(Math.Max(requested.Width,320),Math.Min(480,workingArea.Width));
+            int width=Math.Min(Math.Max(requested.Width,addonMode?360:320),Math.Min(addonMode?720:480,workingArea.Width));
             int height=Math.Min(Math.Max(requested.Height,120),workingArea.Height);
             return new Rectangle(Math.Max(workingArea.Left,Math.Min(requested.X,workingArea.Right-width)),Math.Max(workingArea.Top,Math.Min(requested.Y,workingArea.Bottom-height)),width,height);
         }

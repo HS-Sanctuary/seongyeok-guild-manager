@@ -41,6 +41,17 @@ test('unreadable store permits only explicit loss-confirmed close without overwr
   await c.shutdownWithoutSaving();assert.equal(writes,0);assert.equal(c.state().locked,true);
 });
 function deferred(){let resolve;const promise=new Promise(r=>resolve=r);return {promise,resolve};}
+test('owned metadata acknowledgement retains selected read-only legacy character',async()=>{
+ const s=await setup();s.transport.characters=async()=>[{id:'A',nickname:'뉴월',job:'댄서',alias:null,editable:false},{id:'B',nickname:'순월',job:'검술사',alias:null,editable:true}];const c=create({queue:s.queue,transport:s.transport,environment:'development',store:{load:async()=>null,replace:async()=>{}}});await c.start();await c.selectCharacter('A');let writes=0;
+ s.transport.manageCharacter=async()=>{writes++;return {characters:[{id:'B',nickname:'새별',job:'검술사',alias:null,editable:true}]};};
+ await c.manageCharacter({action:'update',characterId:'B',nickname:'새별',job:'검술사',expected:{nickname:'순월',job:'검술사',isMain:false}});assert.equal(writes,1);assert.deepEqual(c.state().characters.map(row=>row.id),['B','A']);assert.equal(c.state().selected.characterId,'A');
+});
+test('metadata mutation waits for in-flight save and refuses unresolved queue before changing a name',async()=>{
+ const wait=deferred(),s=await setup({transport:{save:async()=>wait.promise}});let writes=0;s.transport.manageCharacter=async()=>{writes++;return {characters:s.controller.state().characters};};
+ await s.controller.edit(key,0,1);const saving=s.controller.saveNow();await new Promise(r=>setImmediate(r));
+ const changing=s.controller.manageCharacter({action:'update',characterId:'A',nickname:'새별',job:'댄서',expected:{nickname:'젼설',job:'댄서',isMain:false}});
+ assert.equal(s.controller.state().locked,true);assert.equal(writes,0);wait.resolve({kind:'unknown'});await saving;await assert.rejects(changing,/남은 변경/);assert.equal(writes,0);assert.equal(s.queue.snapshot().entries.length,1);
+});
 test('character load failure remains distinct from an empty account and permits read-only retry',async()=>{
   const s=await setup();let writes=0;
   s.transport.characters=async()=>{throw Error('invalid response');};

@@ -1,4 +1,5 @@
 import type { PendingEdit } from './irisDesktopQueue';
+import {parseCharacterMetaIntent,parseCharacterMetaDirectory,type CharacterMetaIntent,type CharacterMetaDirectory} from './irisCharacterManagement';
 import type { IrisClassDetail, IrisTaskDetail } from './irisKronos';
 import type { Category } from './irisKronosWrite';
 import type {ClassWriteContext} from './irisClassWrite';
@@ -6,7 +7,7 @@ import {parseWorkspaceRows,type WorkspaceRow} from './irisWorkspace';
 import {parseBarterPayload,validBarterRecords,type IrisBarterDetail,type BarterWriteContext,type BarterBaseRecord} from './irisBarter';
 
 export type DesktopAccount = { id: string; nickname: string; role: string };
-export type DesktopCharacter = { id: string; nickname: string; job: string; alias: string | null };
+export type DesktopCharacter = { id: string; nickname: string; job: string; alias: string | null;isMain?:boolean;editable?:boolean };
 export type DesktopDetails = {
   accountId: string; characterId: string; observedAt: string;
   writeContext: { periodKeys: Record<Category, string>;classes:ClassWriteContext[];barter?:BarterWriteContext[] };
@@ -94,7 +95,7 @@ export function createDesktopTransport(options: { fetch: typeof fetch; timeoutMs
           const response = await options.fetch(path, { method: body === undefined ? 'GET' : 'POST', credentials: 'same-origin',
             cache: 'no-store', redirect: 'error', signal: abort.signal,
             ...(body === undefined ? {} : { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }) });
-          if (!response.ok) throw new DesktopTransportError(response.status, path === '/api/auth/login' ? 'login' : 'request');
+          if (!response.ok) {const error=new DesktopTransportError(response.status, path === '/api/auth/login' ? 'login' : 'request');if(path==='/api/iris/character-management'){try{const body=await response.json();if(typeof body?.message==='string'&&body.message.length<=300&&!/[\x00-\x1f]/.test(body.message))error.message=body.message;}catch{}}throw error;}
           return await response.json() as unknown;
         })(),
         new Promise<never>((_, reject) => { timer = setTimeout(() => { abort.abort(); reject(new DesktopTransportError(0)); }, timeout); }),
@@ -123,9 +124,12 @@ export function createDesktopTransport(options: { fetch: typeof fetch; timeoutMs
         const id = typeof row.id === 'number' && Number.isSafeInteger(row.id) ? String(row.id) : row.id;
         if (!identity(id) || ids.has(id) || !text(row.nickname) || !text(row.job) ||
           (row.alias != null && row.alias !== '' && !text(row.alias))) throw new DesktopTransportError(502);
-        ids.add(id); return { id, nickname: row.nickname, job: row.job, alias: row.alias === '' ? null : row.alias as string | null ?? null };
+        if((row.isMain!==undefined&&typeof row.isMain!=='boolean')||(row.editable!==undefined&&typeof row.editable!=='boolean'))throw new DesktopTransportError(502);
+        ids.add(id); return { id, nickname: row.nickname, job: row.job, alias: row.alias === '' ? null : row.alias as string | null ?? null,...(row.isMain===undefined?{}:{isMain:row.isMain}),...(row.editable===undefined?{}:{editable:row.editable}) };
       });
     },
+    async characterMetadata(accountId:string):Promise<CharacterMetaDirectory>{return parseCharacterMetaDirectory(await request('/api/iris/character-management'),accountId);},
+    async manageCharacter(accountId:string,intent:CharacterMetaIntent):Promise<CharacterMetaDirectory>{const parsed=parseCharacterMetaIntent(intent),result=await request('/api/iris/character-management',parsed);try{return parseCharacterMetaDirectory(result,accountId);}catch{throw new DesktopTransportError(502);}},
     async details(accountId: string, characterId: string): Promise<DesktopDetails> {
       if (!identity(accountId) || !identity(characterId)) throw new DesktopTransportError(400);
       return parseDetails(await request('/api/iris/kronos?characterId=' + encodeURIComponent(characterId)), accountId, characterId);

@@ -9,6 +9,10 @@ import {DesktopUpdater} from '@/components/iris/DesktopUpdater';
 import {DesktopContextActions} from '@/components/iris/DesktopContextActions';
 import {DesktopAddonSettings} from '@/components/iris/DesktopAddonSettings';
 import {useDesktopAppearance} from '@/components/iris/useDesktopAppearance';
+import {useDesktopFonts} from '@/components/iris/useDesktopFonts';
+import {useDesktopPresentation} from '@/components/iris/useDesktopPresentation';
+import {useDesktopContentAlerts} from '@/components/iris/useDesktopContentAlerts';
+import {DesktopContentAlerts,DesktopContentAlertModal} from '@/components/iris/DesktopContentAlerts';
 import {DesktopLogin} from '@/components/iris/DesktopLogin';
 import {DesktopAccountPanel} from '@/components/iris/DesktopAccountPanel';
 import {DesktopFocusDialog} from '@/components/iris/DesktopFocusDialog';
@@ -21,6 +25,7 @@ import {DesktopWorkspace} from '@/components/iris/DesktopWorkspace';
 import {DesktopSynaxisSurface} from '@/components/iris/DesktopSynaxisSurface';
 import type {CurrencySnapshot} from '@/lib/irisCurrencies';
 import type {GameStats} from '@/lib/irisStats';
+import type {CharacterMetaIntent} from '@/lib/irisCharacterManagement';
 import {DesktopSaveStatus,DesktopCloseDialog} from '@/components/iris/DesktopSaveStatus';
 import './desktop.css';
 type Controller=ReturnType<typeof createDesktopController>;
@@ -29,6 +34,9 @@ type NativeWindow=Window & {__irisDesktopBridge?:NativeContext;__irisDesktopPend
 export default function DesktopPage() {
   const controller=useRef<Controller|null>(null),starting=useRef(false);
   const protectedStore=useRef<ReturnType<typeof createDesktopStore>|null>(null);
+  const [uiStore,setUiStore]=useState<ReturnType<typeof createDesktopStore>|null>(null);
+  const [compactPanelOpen,setCompactPanelOpen]=useState(false);
+  const [characterDialogOpen,setCharacterDialogOpen]=useState(false),[reportBusy,setReportBusy]=useState(false),[catalogVersion,setCatalogVersion]=useState(0);
   const [environment,setEnvironment]=useState<'development'|'production'>('production');
   const [workspaceReady,setWorkspaceReady]=useState(false);
   const [synaxisBusy,setSynaxisBusy]=useState(false);
@@ -66,6 +74,8 @@ export default function DesktopPage() {
     finally{publish();if(block)setBusy(false);}
   },[publish,invalidateWatch]);
   const selectCharacter=useCallback((id:string)=>{invalidateWatch();setCharacterPickerRequest(0);return run(c=>c.selectCharacter(id));},[invalidateWatch,run]);
+  const readCharacterMetadata=useCallback(async()=>{const c=controller.current;if(!c)throw Error('앱에 연결해 주세요.');try{const before=JSON.stringify(c.state().characters.map(row=>[row.id,row.nickname,row.job])),result=await c.characterMetadata();if(before!==JSON.stringify(c.state().characters.map(row=>[row.id,row.nickname,row.job])))setCatalogVersion(v=>v+1);return result;}finally{publish();}},[publish]);
+  const manageCharacter=useCallback(async(intent:CharacterMetaIntent)=>{const c=controller.current;if(!c)throw Error('앱에 연결해 주세요.');invalidateWatch();setBusy(true);setError('');try{const operation=c.manageCharacter(intent);publish();await operation;setCatalogVersion(v=>v+1);}catch(e){setError(e instanceof Error?e.message:'캐릭터 정보를 확인해 주세요.');throw e;}finally{publish();setBusy(false);}},[invalidateWatch,publish]);
   useEffect(()=>{
     let alive=true;
     const start=async()=>{
@@ -77,6 +87,7 @@ export default function DesktopPage() {
         const queue=createDesktopQueue({environment:context.environment,now:Date.now,id:()=>crypto.randomUUID()});
         const store=createDesktopStore({channel:native.chrome.webview,context:()=>native.__irisDesktopBridge??null,environment:context.environment});
         protectedStore.current=store;
+        if(alive)setUiStore(store);
         const c=createDesktopController({queue,store,transport:createDesktopTransport({fetch:window.fetch.bind(window)}),environment:context.environment});
         controller.current=c;await c.start();if(alive)publish();
         try{await store.workspaceCapabilities();if(alive)setWorkspaceReady(true);}catch{if(alive)setWorkspaceReady(false);}
@@ -114,23 +125,32 @@ export default function DesktopPage() {
     }catch{/* Display metadata is optional; never use it as authentication. */}
     return()=>{live=false;};
   },[accountMemoryId,accountMemoryNickname,accountMemoryRole]);
-  const account=accountForMemory,selected=state?.selected??null,baseLocked=!state||state.locked||busy,locked=baseLocked||statsBusy||synaxisBusy||updateBusy;
+  const account=accountForMemory,selected=state?.selected??null,baseLocked=!state||state.locked||busy,locked=baseLocked||statsBusy||synaxisBusy||updateBusy||reportBusy;
   const entries=state?.queue.entries.filter(e=>e.accountId===account?.id)??[];
   const appearance=useDesktopAppearance(environment,account?.id??null);
+  const opacityChain=useRef<Promise<unknown>>(Promise.resolve());
+  useEffect(()=>{if(!uiStore||!appearance.opacityReady)return;let live=true;const timer=setTimeout(()=>{opacityChain.current=opacityChain.current.catch(()=>{}).then(async()=>{if(!live)return;try{await uiStore.setOpacityPercent(appearance.opacityPercent);}catch{if(live)setAddonError('투명도를 적용하지 못했어요. 새 아이리스 앱으로 실행해 주세요.');}});},100);return()=>{live=false;clearTimeout(timer);};},[uiStore,appearance.opacityReady,appearance.opacityPercent]);
+  const fonts=useDesktopFonts(uiStore,environment,settingsOpen);
+  const presentation=useDesktopPresentation(uiStore,compactPanelOpen||settingsOpen||accountOpen||closing);
+  const compact=presentation.state?.compact??false;
+  useEffect(()=>{if(compact)queueMicrotask(()=>setSettingsOpen(false));},[compact]);
+  const contentAlerts=useDesktopContentAlerts(account?.id??null,environment,locked||closing||accountOpen||settingsOpen);
   const openAccount=()=>{if(closing||busy||synaxisBusy||updateActive.current)return;invalidateWatch();setSettingsOpen(false);setCharacterPickerRequest(0);setAccountOpen(true);};
   const contextActions=<DesktopContextActions accountOpen={accountOpen} settingsOpen={settingsOpen} disabled={closing||busy||synaxisBusy} onAccount={openAccount} onSettings={()=>{if(closing||busy||synaxisBusy)return;invalidateWatch();setAccountOpen(false);setSettingsOpen(value=>!value);}}/>;
-  const settingsPanel=<DesktopAddonSettings appearance={appearance} addonState={addon} busy={addonBusy||closing} error={addonError} onPreferencesChange={value=>void preferencesChange(value)} onBack={()=>setSettingsOpen(false)} accountPanel={<><p className="iris-caption">{account?`${account.nickname} · 계정`:'생텀 계정으로 로그인해 주세요.'}</p><button type="button" className="iris-desktop-button" disabled={closing||busy} onClick={openAccount}>계정 관리 열기</button></>}/>;
-  return <main className="iris-desktop">
-    <DesktopTitlebar onDrag={()=>windowAction('drag')} onMinimize={()=>windowAction('minimize')} onClose={()=>requestClose()} updateControl={<DesktopUpdater store={protectedStore.current} disabled={closing||busy||statsBusy||synaxisBusy||accountOpen||settingsOpen||!!state?.durabilityError||!!state?.hasInvalidClassDraft} onBusyChange={value=>{updateActive.current=value;setUpdateBusy(value);if(value)invalidateWatch();}} onBeforeApply={async()=>{if(statsBusy||synaxisBusy||closingRef.current||!controller.current)return false;return !!await run(c=>c.shutdown('keep'),true);}}/>}/>
+  const settingsPanel=<DesktopAddonSettings appearance={appearance} fonts={fonts} addonState={addon} busy={addonBusy||closing} error={addonError} onPreferencesChange={value=>void preferencesChange(value)} onBack={()=>setSettingsOpen(false)} accountPanel={<><p className="iris-caption">{account?`${account.nickname} · 계정`:'생텀 계정으로 로그인해 주세요.'}</p><button type="button" className="iris-desktop-button" disabled={closing||busy} onClick={openAccount}>계정 관리 열기</button></>}/>;
+  return <main className="iris-desktop" style={{fontFamily:appearance.fontFamilyCss}}>
+    <DesktopContentAlertModal blocked={closing||accountOpen||settingsOpen} alerts={contentAlerts} playSound={uiStore?()=>uiStore.playAlertSound():undefined}/>
+    <DesktopTitlebar compact={presentation.state?.compact??false} onToggleCompact={presentation.state?()=>void presentation.toggle():undefined} compactBusy={presentation.busy||closing} onDrag={()=>windowAction('drag')} onMinimize={()=>windowAction('minimize')} onClose={()=>requestClose()} updateControl={<DesktopUpdater store={uiStore} disabled={closing||busy||statsBusy||synaxisBusy||accountOpen||settingsOpen||!!state?.durabilityError||!!state?.hasInvalidClassDraft} onBusyChange={value=>{updateActive.current=value;setUpdateBusy(value);if(value)invalidateWatch();}} onBeforeApply={async()=>{if(statsBusy||synaxisBusy||closingRef.current||!controller.current)return false;return !!await run(c=>c.shutdown('keep'),true);}}/>}/>
     {!account&&<div className="iris-context-header iris-login-tools">{contextActions}</div>}
     {accountOpen&&!closing&&<DesktopFocusDialog title="생텀 계정" onClose={()=>setAccountOpen(false)} dismissDisabled={busy}>{error&&<p role="alert">{error}</p>}{account?<DesktopAccountPanel account={account} remembered={remembered} busy={locked} onClose={()=>setAccountOpen(false)} onSwitch={id=>run(c=>c.switchAccount(id),true)} onLogout={()=>run(c=>c.logout('keep'),true)} onLogin={(n,code,keep)=>run(c=>c.login(n,code,keep),true)}/>:<DesktopLogin busy={!!state?.durabilityError||busy} onLogin={async(n,code,keep)=>{if(await run(c=>c.login(n,code,keep),true))setAccountOpen(false);}}/>}</DesktopFocusDialog>}
-    {closing&&<DesktopCloseDialog reason={closeReason} busy={busy||statsBusy||synaxisBusy} storageFailed={state?.durabilityError||closeFailed} onCancel={cancelClose} onChoose={action=>void run(async c=>{await c.shutdown(action);await protectedStore.current?.close();},true).then(ok=>{if(!ok)setCloseFailed(true);})} onUnsafeClose={()=>void run(async c=>{await c.shutdownWithoutSaving();await protectedStore.current?.close();},true)}/>}
+    {closing&&<DesktopCloseDialog reason={closeReason} hasPending={!state||entries.length>0||state.hasInvalidClassDraft} busy={busy||statsBusy||synaxisBusy||reportBusy} storageFailed={state?.durabilityError||closeFailed} onCancel={cancelClose} onChoose={action=>void run(async c=>{await c.shutdown(action);await protectedStore.current?.close();},true).then(ok=>{if(!ok)setCloseFailed(true);})} onUnsafeClose={()=>void run(async c=>{await c.shutdownWithoutSaving();await protectedStore.current?.close();},true)}/>}
     {error&&<p role="alert" className="rounded-2xl border border-[var(--accent)] p-4">{error}{state?.durabilityError&&' 미저장 변경 보관에 실패했어요. 재시작 전에 복구가 필요해요.'}</p>}
     {!account&&settingsOpen?settingsPanel:!state?<p role="status">IRIS 전용 앱에서 열면 보호된 대기함과 연결돼요. 일반 브라우저에서는 편집하지 않아요.</p>:!account?<section className="rounded-2xl border border-[var(--panel-border)] bg-[var(--panel)] p-5"><DesktopLogin busy={state.durabilityError||busy} onLogin={async(n,code,keep)=>{await run(c=>c.login(n,code,keep),true);}}/></section>:<>
-      <DesktopStatsSession key={account.id} accountId={account.id} characterId={selected?.characterId??null} locked={locked||closing||accountOpen||settingsOpen} readGame={readGameStats} watchVersion={watchVersion} getContextVersion={getWatchContext} onSelectCharacter={selectCharacter} onChooseOther={()=>setCharacterPickerRequest(value=>value+1)}>{({suggestion,onCharactersRead})=><DesktopCenter account={account} characters={state.characters} selected={selected} pending={entries} locked={locked} contextPanelOpen={accountOpen} settingsOpen={settingsOpen} settingsPanel={settingsPanel} characterPickerRequest={characterPickerRequest} classDrafts={state.classDrafts} onClassDraft={(id,text)=>void run(c=>c.setClassDraft(id,text))} onRevertClassDraft={id=>void run(c=>c.revertClassDraft(id))} onSelectCharacter={id=>void selectCharacter(id)} onEdit={(key,base,desired)=>void run(c=>c.edit(key,base,desired))}
+      <DesktopStatsSession catalogVersion={catalogVersion} key={account.id} accountId={account.id} characterId={selected?.characterId??null} locked={locked||closing||accountOpen||settingsOpen||characterDialogOpen||!!contentAlerts.nextAlert} readGame={readGameStats} watchVersion={watchVersion} getContextVersion={getWatchContext} onSelectCharacter={selectCharacter} onChooseOther={()=>{setCharacterDialogOpen(true);setCharacterPickerRequest(value=>value+1);}}>{({suggestion,onCharactersRead})=><DesktopCenter suspendDialogs={closing||accountOpen} onCharacterDialogOpenChange={setCharacterDialogOpen} onReadMetadata={readCharacterMetadata} onManageCharacter={manageCharacter} compact={presentation.state?.compact??false} onPanelOpenChange={setCompactPanelOpen} account={account} characters={state.characters} selected={selected} pending={entries} locked={locked} contextPanelOpen={accountOpen} settingsOpen={settingsOpen} settingsPanel={settingsPanel} characterPickerRequest={characterPickerRequest} classDrafts={state.classDrafts} onClassDraft={(id,text)=>void run(c=>c.setClassDraft(id,text))} onRevertClassDraft={id=>void run(c=>c.revertClassDraft(id))} onSelectCharacter={id=>void selectCharacter(id)} onEdit={(key,base,desired)=>void run(c=>c.edit(key,base,desired))}
         contextActions={contextActions} onTabChange={tab=>{if((tab==='homework'||tab==='classes'||tab==='barter'||tab==='shop'||tab==='missions')&&!tabRefresh.current){const pending=run(c=>c.refresh()).then(()=>{}).finally(()=>{if(tabRefresh.current===pending)tabRefresh.current=null;});tabRefresh.current=pending;}}}
-        statsPanel={active=>selected?<DesktopStats key={account.id+':'+selected.characterId} accountId={account.id} characterId={selected.characterId} locked={baseLocked} active={active} readGame={readGameStats} onSelectCharacter={id=>void selectCharacter(id)} onBusyChange={statsBusyChanged} onCharactersRead={onCharactersRead}/>:<p>캐릭터를 선택해 주세요.</p>}
+        statsPanel={active=>selected?<DesktopStats onChooseOther={()=>{invalidateWatch();setCharacterDialogOpen(true);setCharacterPickerRequest(value=>value+1);}} key={account.id+':'+selected.characterId} accountId={account.id} characterId={selected.characterId} locked={baseLocked} active={active} readGame={readGameStats} onSelectCharacter={id=>void selectCharacter(id)} onBusyChange={statsBusyChanged} onCharactersRead={onCharactersRead}/>:<p>캐릭터를 선택해 주세요.</p>}
         currenciesPanel={active=><DesktopCurrencies key={account.id} active={active} readCurrencies={readCurrencies} accountId={account.id} environment={environment}/>}
+        alertsPanel={<DesktopContentAlerts suspendDialogs={closing||accountOpen} onReportBusy={setReportBusy} alerts={contentAlerts} locked={locked||closing}/>}
         barterPanel={<DesktopBarter selected={selected} pending={entries} locked={locked} onEdit={(key,base,desired)=>void run(c=>c.editBarter(key,base,desired))}/>}
         shopPanel={<>{!workspaceReady&&<p role="status" className="iris-caption">저장을 사용하려면 IRIS를 정상 종료하고 최신 앱으로 다시 실행해 주세요.</p>}<DesktopWorkspace key={account.id+':shop'} selected={selected} pending={entries} locked={locked||!workspaceReady} kind="shop" onEdit={(key,base,desired)=>void run(c=>c.editWorkspace(key,base,desired))}/></>}
         missionsPanel={<>{!workspaceReady&&<p role="status" className="iris-caption">저장을 사용하려면 IRIS를 정상 종료하고 최신 앱으로 다시 실행해 주세요.</p>}<DesktopWorkspace key={account.id+':missions'} selected={selected} pending={entries} locked={locked||!workspaceReady} kind="mission" onEdit={(key,base,desired)=>void run(c=>c.editWorkspace(key,base,desired))}/></>}

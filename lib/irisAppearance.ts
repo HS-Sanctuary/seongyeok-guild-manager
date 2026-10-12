@@ -1,6 +1,11 @@
 export const irisThemes={lumen:'Lumen',elysium:'Elysium',aureum:'Aureum',nemeton:'Nemeton',vesper:'Vesper',rosarium:'Rosarium'} as const;
 export type IrisTheme=keyof typeof irisThemes;
 export type AppearanceEnvironment='development'|'production';
+export type IrisFontSize=number;
+export const irisFontPoints=[...Array.from({length:17},(_,i)=>i+6),13.5,16.5].sort((a,b)=>a-b);
+export const validIrisFontSize=(size:unknown):size is number=>typeof size==='number'&&Number.isFinite(size)&&irisFontPoints.some(pt=>Math.abs(pt*4/3-size)<.00001);
+export function normalizeIrisFontFamily(value:unknown):string{if(typeof value!=='string'||value.length>80||value&& !/^[\p{L}\p{N}][\p{L}\p{N} ._-]*$/u.test(value.trim()))throw Error('설치된 글꼴 이름만 입력해 주세요.');return value.trim();}
+export function irisFontFamilyCss(value:string):string|undefined{const name=normalizeIrisFontFamily(value);return name?`"${name}", Arial, "Malgun Gothic", sans-serif`:undefined;}
 export type CurrencyEmphasis={color:string|null;bold:boolean;italic:boolean};
 export type CurrencyEmphasisMap=Record<string,CurrencyEmphasis>;
 export const defaultEmphasis:CurrencyEmphasis={color:null,bold:false,italic:false};
@@ -10,6 +15,16 @@ export function currencyColorContrast(foreground:string,background:string):numbe
   const a=luminance(foreground),b=luminance(background);return (Math.max(a,b)+.05)/(Math.min(a,b)+.05);
 }
 const scope=(environment:AppearanceEnvironment)=>{if(!['development','production'].includes(environment))throw Error('표시 설정 환경을 확인해 주세요.');return `iris_appearance:v1:${environment}`;};
+export const validIrisOpacity=(value:unknown):value is number=>typeof value==='number'&&Number.isInteger(value)&&value>=30&&value<=100;
+export function readIrisOpacity(storage:Pick<Storage,'getItem'>,environment:AppearanceEnvironment):{percent:number;persistent:boolean}{try{const raw=storage.getItem(`${scope(environment)}:opacity`);if(raw===null)return {percent:100,persistent:true};const percent=Number(raw);if(!validIrisOpacity(percent))throw Error();return {percent,persistent:true};}catch{return {percent:100,persistent:false};}}
+export function writeIrisOpacity(storage:Pick<Storage,'setItem'>,environment:AppearanceEnvironment,percent:number):boolean{try{if(!validIrisOpacity(percent))return false;storage.setItem(`${scope(environment)}:opacity`,String(percent));return true;}catch{return false;}}
+export function readIrisFontSize(storage:Pick<Storage,'getItem'>,environment:AppearanceEnvironment):{fontSize:IrisFontSize;persistent:boolean}{
+  try{const raw=storage.getItem(`${scope(environment)}:font`);if(raw===null)return {fontSize:18,persistent:true};const size=Number(raw);if(!validIrisFontSize(size))throw Error();return {fontSize:size,persistent:true};}catch{return {fontSize:18,persistent:false};}
+}
+export function writeIrisFontSize(storage:Pick<Storage,'setItem'>,environment:AppearanceEnvironment,size:IrisFontSize){try{if(!validIrisFontSize(size))throw Error();storage.setItem(`${scope(environment)}:font`,String(size));return true;}catch{return false;}}
+export function applyIrisFontSize(size:IrisFontSize){if(!validIrisFontSize(size))return;document.documentElement.style.fontSize=size+'px';document.documentElement.dataset.irisFontSize=String(size);document.documentElement.dataset.irisLargeFont=String(size>=20);document.documentElement.dataset.irisExtraLargeFont=String(size>24);}
+export function readIrisFontFamily(storage:Pick<Storage,'getItem'>,environment:AppearanceEnvironment):{fontFamily:string;persistent:boolean}{try{return {fontFamily:normalizeIrisFontFamily(storage.getItem(`${scope(environment)}:font-family`)??''),persistent:true};}catch{return {fontFamily:'',persistent:false};}}
+export function writeIrisFontFamily(storage:Pick<Storage,'setItem'>,environment:AppearanceEnvironment,font:string):boolean{try{storage.setItem(`${scope(environment)}:font-family`,normalizeIrisFontFamily(font));return true;}catch{return false;}}
 const currencyKey=(environment:AppearanceEnvironment,id:string)=>{if(!id||id.length>200)throw Error('표시 설정 계정을 확인해 주세요.');return `${scope(environment)}:currencies:${encodeURIComponent(id)}`;};
 export function parseCurrencyEmphasis(value:unknown):CurrencyEmphasisMap{
   if(!value||typeof value!=='object'||Array.isArray(value)||Object.keys(value).length>200)throw Error('재화 강조 설정을 확인해 주세요.');

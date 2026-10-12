@@ -1,6 +1,7 @@
 "use client";
 
 import MarkIcon from "@/components/common/MarkIcon";
+import {useHeaderPanelPosition} from '@/hooks/useHeaderPanelPosition';
 
 interface SpiritWingsMenuProps {
   isOpen: boolean;
@@ -17,6 +18,7 @@ const quickLinks = [
 ];
 
 export default function SpiritWingsMenu({ isOpen, menuRef, onToggle, onClose }: SpiritWingsMenuProps) {
+  useHeaderPanelPosition(isOpen,menuRef);
   return (
     <div className="relative shrink-0" ref={menuRef}>
       <button
@@ -36,7 +38,7 @@ export default function SpiritWingsMenu({ isOpen, menuRef, onToggle, onClose }: 
       </button>
 
       {isOpen && (
-        <div id="spirit-wings-menu" className="fixed top-[var(--sanctum-header-height,4rem)] right-3 left-3 sm:left-auto mt-2 sm:w-[18rem] max-w-[calc(100vw-24px)] max-h-[calc(100dvh-var(--sanctum-header-height,4rem)-1rem)] overflow-y-auto rounded-2xl border border-[var(--panel-border)] bg-[var(--panel)] shadow-2xl z-[130] animate-in fade-in slide-in-from-top-2">
+        <div id="spirit-wings-menu" data-header-panel style={{visibility:'hidden'}} className="absolute w-[min(18rem,calc(100vw-24px))] overflow-y-auto rounded-2xl border border-[var(--panel-border)] bg-[var(--panel)] shadow-2xl z-[130] animate-in fade-in slide-in-from-top-2">
           <div className="overflow-hidden rounded-2xl">
             <div className="flex items-start justify-between gap-3 px-3 py-3 border-b border-[var(--panel-border)] bg-[var(--inner-box)]">
               <div>

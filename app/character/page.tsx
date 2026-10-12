@@ -1,17 +1,18 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef,useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { memberMutationOrThrow } from "@/lib/memberMutationClient";
 import { normalizeChecklist } from '@/lib/matchingUtils';
+import {createKronosAutosave,kronosSaveFields,type KronosSaveState} from '@/lib/kronosAutosave';
 
 import CharacterStats from "@/components/character/CharacterStats";
 import ClassLevelManager from "@/components/character/ClassLevelManager";
 import ContentChecklist from "@/components/character/ContentChecklist";
 import TradeList from "@/components/character/TradeList";
-import KronosWorkspace from "@/components/character/KronosWorkspace";
+import KronosWorkspace,{type KronosWorkspaceSaveSource} from "@/components/character/KronosWorkspace";
 import { getKronosResetDay, kronosPeriodStart } from "@/lib/kronos";
 import { getKronosTaskLists } from "@/lib/irisKronos";
 import { validateFavoriteAccountId } from "@/lib/barterFavorites";
@@ -72,10 +73,20 @@ export default function CharacterPage() {
   const isInitialLoad = useRef(true);
   const toastTimerRef = useRef<NodeJS.Timeout | null>(null);
   const progressSavesRef = useRef<Set<Promise<void>>>(new Set());
-  const progressSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const [autosave] = useState(()=>createKronosAutosave());
+  const [saveState,setSaveState] = useState<KronosSaveState>({pending:0,saving:false,error:false,dueAt:null});
+  const [saveClock,setSaveClock] = useState(0);
+  const [loadingCharacter,setLoadingCharacter] = useState(true);
+  const [switchingCharacter,setSwitchingCharacter] = useState(false);
+  const navigationBusyRef=useRef(false);
+  const currentUrlRef=useRef('');
+  const saveWriterRef=useRef<()=>Promise<void>>(async()=>{});
+  const workspaceSaveRef=useRef<KronosWorkspaceSaveSource|null>(null);
+  const flushAllRef=useRef<()=>Promise<void>>(async()=>{});
+  const [workspaceSaveState,setWorkspaceSaveState]=useState<KronosSaveState>({pending:0,saving:false,error:false,dueAt:null});
+  const registerWorkspace=useCallback((source:KronosWorkspaceSaveSource|null)=>{workspaceSaveRef.current=source;const next=source?.state()??{pending:0,saving:false,error:false,dueAt:null};queueMicrotask(()=>setWorkspaceSaveState(next));},[]);
   const checklistBaseRef = useRef<{nickname: string; daily_checks: unknown; weekly_checks: unknown; raid_checks: unknown} | null>(null);
   const manageSaveLockRef = useRef(false);
-  const skipNextAutosaveRef = useRef(false);
 
   const [selectedTabs, setSelectedTabs] = useState<string[]>([]);
   const [reminderRequest, setReminderRequest] = useState(0);
@@ -280,6 +291,7 @@ export default function CharacterPage() {
 
   const loadCharacterData = async (charName: string, contentsList = dbContents, tradesList = dbTrades) => {
     isInitialLoad.current = true;
+    setLoadingCharacter(true);
     try {
       const { data: allOwnedChars } = await supabase
         .from('characters')
@@ -433,15 +445,15 @@ export default function CharacterPage() {
     } finally {
       setTimeout(() => {
         isInitialLoad.current = false;
+        setLoadingCharacter(false);
         setSaveToast(current => current === 'saving' ? 'idle' : current);
       }, 500);
     }
   };
 
   const performSaveProgress = async () => {
-    if (isInitialLoad.current || manageSaveLockRef.current || isManageModalOpen || !profile.nickname.trim() || !user?.nickname) return;
+    if (isInitialLoad.current || manageSaveLockRef.current || isManageModalOpen || !profile.nickname.trim() || !user?.nickname) throw new Error('현재 화면에서 저장할 수 없어요.');
     try {
-      setSaveToast('saving');
       const needsMainSync = profile.isMain && myCharacters.some((char: any) => char.nickname !== profile.nickname && char.is_main);
       if (needsMainSync) {
         await memberMutationOrThrow({ table: "characters", action: "update", filter: { column: "owner", value: user.nickname, exceptNickname: profile.nickname }, payload: { is_main: false } });
@@ -487,10 +499,6 @@ export default function CharacterPage() {
         nickname: profile.nickname, daily_checks: payload.daily_checks,
         weekly_checks: payload.weekly_checks, raid_checks: payload.raid_checks,
       };
-      tradeRecordsRef.current = tradePayload;
-      changedTradeIds.forEach(id => {
-        if (tradeEditVersionsRef.current[id] === savedTradeVersions[id]) dirtyTradeIdsRef.current.delete(id);
-      });
       const contributionValue = Number(accountContribution) || 0;
       const needsContributionSync = allCharacters.some((char: any) => char.owner === user.nickname && Number(char.contribution || 0) !== contributionValue);
       if (needsContributionSync) {
@@ -542,44 +550,57 @@ export default function CharacterPage() {
         setMyCharacters((prev: any[]) => prev.map(c => c.nickname === profile.nickname ? { ...c, alias: profile.alias, job: profile.job, is_main: profile.isMain } : needsMainSync ? { ...c, is_main: false } : c));
       }
 
-      setSaveToast('saved');
-      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-      toastTimerRef.current = setTimeout(() => {
-        setSaveToast('idle');
-      }, 2500);
+      // Keep shared trade edits retryable if any later account-wide write fails.
+      tradeRecordsRef.current = tradePayload;
+      changedTradeIds.forEach(id => {
+        if (tradeEditVersionsRef.current[id] === savedTradeVersions[id]) dirtyTradeIdsRef.current.delete(id);
+      });
 
     } catch (error) { 
       setSaveToast('error');
+      throw error;
     }
   };
 
   const saveProgress = () => {
-    const task = progressSaveQueueRef.current.then(() => performSaveProgress());
-    progressSaveQueueRef.current = task.catch(() => {});
+    const task = (async()=>{await autosave.flush();await workspaceSaveRef.current?.flush();setSaveToast('idle');})();
     progressSavesRef.current.add(task);
-    void task.finally(() => progressSavesRef.current.delete(task));
+    void task.then(()=>progressSavesRef.current.delete(task),()=>progressSavesRef.current.delete(task));
     return task;
   };
+  useEffect(()=>{saveWriterRef.current=performSaveProgress;flushAllRef.current=saveProgress;});
 
+  const saveFields=kronosSaveFields({profile,contribution:accountContribution,levels,daily:dailyChecks,weekly:weeklyChecks,repeat:repeatChecks,abyss:abyssChecks,raid:raidChecks,trade:tradeProgress,buyers:tradeCompletedBy});
+  const saveSignature=JSON.stringify(saveFields);
   useEffect(() => {
-    if (skipNextAutosaveRef.current) {
-      skipNextAutosaveRef.current = false;
-      return;
-    }
-    if (isInitialLoad.current || isManageModalOpen || manageSaveLockRef.current) return;
-    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-    setSaveToast('saving');
-    const timer = setTimeout(() => {
-      saveProgress();
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [profile, accountContribution, levels, dailyChecks, weeklyChecks, repeatChecks, abyssChecks, raidChecks, tradeProgress, tradeCompletedBy, isManageModalOpen]);
+    const fields=JSON.parse(saveSignature);
+    if(loadingCharacter){autosave.reset(fields);return;}
+    if(isManageModalOpen||manageSaveLockRef.current)return;
+    const write=saveWriterRef.current;
+    autosave.edit(fields,write);
+  }, [autosave,saveSignature,loadingCharacter,isManageModalOpen]);
+
+  useEffect(()=>{
+    let live=true;
+    const publish=()=>{const next=autosave.state();queueMicrotask(()=>{if(live){setSaveState(next);setSaveClock(Date.now());}});};
+    const unsubscribe=autosave.subscribe(publish);
+    const timer=setInterval(()=>{if(autosave.state().pending||workspaceSaveRef.current?.state().pending)setSaveClock(Date.now());},1000);
+    currentUrlRef.current=window.location.href;
+    const hasPending=()=>{const local=autosave.state(),workspace=workspaceSaveRef.current?.state();return local.pending||local.saving||workspace?.pending||workspace?.saving;};
+    const unload=(event:BeforeUnloadEvent)=>{if(hasPending()){event.preventDefault();event.returnValue='';}};
+    const leave=async(url:string)=>{if(navigationBusyRef.current)return;navigationBusyRef.current=true;setSwitchingCharacter(true);try{await flushAllRef.current();window.location.assign(url);}catch{setSaveToast('error');setSwitchingCharacter(false);}finally{navigationBusyRef.current=false;}};
+    const click=(event:MouseEvent)=>{if(event.defaultPrevented||event.button!==0||event.ctrlKey||event.metaKey||event.shiftKey||event.altKey)return;const anchor=(event.target as Element)?.closest?.('a[href]') as HTMLAnchorElement|null;if(!anchor||anchor.download||anchor.target==='_blank')return;const url=new URL(anchor.href,window.location.href);if(!['http:','https:'].includes(url.protocol)||url.href===window.location.href||(url.pathname===location.pathname&&url.search===location.search&&url.hash))return;if(!hasPending())return;event.preventDefault();event.stopPropagation();void leave(url.href);};
+    const pop=(event:PopStateEvent)=>{if(!hasPending())return;const destination=window.location.href;event.stopImmediatePropagation();window.history.pushState(window.history.state,'',currentUrlRef.current);void leave(destination);};
+    document.addEventListener('click',click,true);window.addEventListener('beforeunload',unload);window.addEventListener('popstate',pop,true);
+    return()=>{live=false;unsubscribe();clearInterval(timer);autosave.dispose();document.removeEventListener('click',click,true);window.removeEventListener('beforeunload',unload);window.removeEventListener('popstate',pop,true);};
+  },[autosave]);
 
   const switchCharacter = async (targetName: string) => { 
-    if (targetName === profile.nickname) return;
-    await saveProgress();
-    await loadCharacterData(targetName, dbContents, dbTrades);
-    window.history.replaceState(null, '', `?char=${encodeURIComponent(targetName)}`);
+    if (targetName === profile.nickname||navigationBusyRef.current) return;
+    navigationBusyRef.current=true;setSwitchingCharacter(true);
+    try{await saveProgress();await loadCharacterData(targetName, dbContents, dbTrades);window.history.replaceState(null, '', `?char=${encodeURIComponent(targetName)}`);currentUrlRef.current=window.location.href;}
+    catch{setSaveToast('error');}
+    finally{navigationBusyRef.current=false;setSwitchingCharacter(false);}
   };
 
   const updateProfile = (field: string, value: any) => setProfile(prev => ({ ...prev, [field]: value }));
@@ -665,8 +686,10 @@ export default function CharacterPage() {
     }
   };
 
-  const openManageModal = () => {
-    if (manageSaveLockRef.current) return;
+  const openManageModal = async () => {
+    if (manageSaveLockRef.current||navigationBusyRef.current) return;
+    navigationBusyRef.current=true;setSwitchingCharacter(true);
+    try{await saveProgress();}catch{setSaveToast('error');return;}finally{navigationBusyRef.current=false;setSwitchingCharacter(false);}
     if (progressSavesRef.current.size === 0) {
       setSaveToast(current => current === 'saving' ? 'idle' : current);
     }
@@ -751,8 +774,8 @@ export default function CharacterPage() {
         || activeChars[0].tempNickname.trim();
       profileRef.current = { ...profileRef.current, nickname: targetNick };
       window.history.replaceState(null, '', `?char=${encodeURIComponent(targetNick)}`);
+      currentUrlRef.current=window.location.href;
       await fetchMasterData(user.nickname);
-      skipNextAutosaveRef.current = true;
       setIsManageModalOpen(false);
       setSaveToast('saved');
       if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
@@ -811,6 +834,7 @@ export default function CharacterPage() {
   if (!mounted || !user) return null;
 
   const earnedTitles = getMyEarnedTitles();
+  const combinedSave={pending:saveState.pending+workspaceSaveState.pending,saving:saveState.saving||workspaceSaveState.saving,error:saveState.error||workspaceSaveState.error,dueAt:Math.min(saveState.dueAt??Infinity,workspaceSaveState.dueAt??Infinity)};
 
   const isDailyAllChecked = visibleDailyList.length > 0 && visibleDailyList.filter((t: any) => !t.type?.startsWith('repeat')).every((t: any) => dailyChecks.some(c => String(c) === String(t.id)));
   const isWeeklyAllChecked = visibleWeeklyList.length > 0 && visibleWeeklyList.filter((t: any) => !t.type?.startsWith('repeat')).every((t: any) => weeklyChecks.some(c => String(c) === String(t.id)));
@@ -821,7 +845,7 @@ export default function CharacterPage() {
     <div className="max-w-[1400px] mx-auto text-[var(--text-main)] font-sans pb-28 md:pb-16 pt-1 md:pt-4 px-2 md:px-6 relative bg-transparent [-webkit-text-size-adjust:100%]">
       
       {/* 토스트 알림 */}
-      {mounted && saveToast !== 'idle' && createPortal(
+      {mounted && saveToast !== 'idle' && !combinedSave.pending && !combinedSave.saving && !combinedSave.error && createPortal(
         <div role="status" aria-live="polite" style={{ backgroundColor: "color-mix(in srgb, var(--panel) 76%, transparent)" }} className={`fixed top-[5rem] right-3 sm:right-5 z-[10000] pointer-events-none max-w-[calc(100vw-1rem)] px-3 py-1.5 rounded-full border shadow-lg backdrop-blur-md text-[0.72rem] font-bold flex items-center gap-1.5 text-[var(--text-main)] ${
           saveToast === 'error' ? 'border-rose-500' : 'border-[var(--accent)]'
         }`}>
@@ -839,7 +863,6 @@ export default function CharacterPage() {
         isOpen={isManageModalOpen}
         onClose={() => {
           if (!manageSaveLockRef.current) {
-            skipNextAutosaveRef.current = true;
             setIsManageModalOpen(false);
           }
         }}
@@ -852,7 +875,13 @@ export default function CharacterPage() {
         saveManageModal={saveManageModal}
       />
 
-      <div className="space-y-3 md:space-y-4">
+      {mounted&&!loadingCharacter&&(combinedSave.pending>0||combinedSave.saving||combinedSave.error)&&createPortal(
+        <div className="fixed top-[5rem] right-2 sm:right-4 z-[10000] flex max-w-[calc(100vw-1rem)] flex-wrap items-center gap-2 rounded-xl border border-[var(--panel-border)] px-2.5 py-1.5 text-xs text-[var(--text-main)] shadow-lg backdrop-blur-md" style={{backgroundColor:'color-mix(in srgb, var(--panel) 80%, transparent)'}} aria-label="크로노스 저장 상태">
+          <span role="status" aria-live="polite">{combinedSave.error?`저장 실패 · 미저장 ${combinedSave.pending}개`:combinedSave.saving?`저장 중 · 미저장 ${combinedSave.pending}개`:`미저장 ${combinedSave.pending}개 · ${Math.max(0,Math.ceil((combinedSave.dueAt-saveClock)/1000))}초 후 저장`}</span>
+          <button type="button" className="rounded-lg border border-[var(--accent)] px-2 py-0.5 leading-snug text-[var(--accent)] disabled:opacity-40" disabled={switchingCharacter||combinedSave.saving||!combinedSave.pending||isManageModalOpen} onClick={()=>void saveProgress().catch(()=>setSaveToast('error'))}>{combinedSave.error?'다시 저장':'지금 저장'}</button>
+        </div>,document.body
+      )}
+      <fieldset disabled={loadingCharacter||switchingCharacter} className="min-w-0 space-y-3 md:space-y-4">
         
         {/* 상단 헤더 */}
         <header className="relative overflow-hidden rounded-xl bg-[var(--panel)] border border-[var(--panel-border)] py-2.5 px-3 md:py-3.5 md:px-5 shadow-xs">
@@ -947,7 +976,7 @@ export default function CharacterPage() {
               type="button"
               aria-pressed={selectedTabs.includes(tab.id)}
               onClick={() => setSelectedTabs(old => old.includes(tab.id) ? old.filter(id => id !== tab.id) : [...old, tab.id])}
-              className={`min-h-12 py-2 px-1 text-xs md:text-sm font-black text-center transition cursor-pointer break-keep leading-snug rounded-lg border focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] ${
+              className={`py-1.5 px-1 text-xs md:text-sm font-black text-center transition cursor-pointer break-keep leading-snug rounded-lg border focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] ${
                 selectedTabs.includes(tab.id)
                   ? 'bg-[var(--accent)] text-[var(--accent-fg)] border-[var(--accent)] shadow-sm'
                   : 'bg-[var(--panel)] text-[var(--text-main)] border-[var(--panel-border)] hover:border-[var(--accent)] hover:bg-[var(--accent-soft)]'
@@ -1005,7 +1034,7 @@ export default function CharacterPage() {
             />
           )}
 
-          {profile.nickname && <KronosWorkspace key={user.nickname + ':' + profile.nickname} account={user.nickname} character={profile.nickname} shopVisible={sectionVisible('shop')} missionVisible={sectionVisible('missions')} reminderRequest={reminderRequest}/>}
+          {profile.nickname && <KronosWorkspace key={user.nickname + ':' + profile.nickname} account={user.nickname} character={profile.nickname} shopVisible={sectionVisible('shop')} missionVisible={sectionVisible('missions')} reminderRequest={reminderRequest} onSaveSource={registerWorkspace}/>}
 
           {sectionVisible('levels') && (
             <ClassLevelManager
@@ -1018,7 +1047,7 @@ export default function CharacterPage() {
           )}
         </div>
 
-      </div>
+      </fieldset>
     </div>
   );
 }

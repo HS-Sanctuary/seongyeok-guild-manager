@@ -7,7 +7,7 @@ $core=Join-Path $sdk 'lib/net462/Microsoft.Web.WebView2.Core.dll'
 $forms=Join-Path $sdk 'lib/net462/Microsoft.Web.WebView2.WinForms.dll'
 [void][Reflection.Assembly]::LoadFrom($core)
 [void][Reflection.Assembly]::LoadFrom($forms)
-$sources=@('overlay-native.cs','desktop-overlay.cs','desktop-addon-policy.cs','desktop-addon.cs','desktop-host.cs','desktop-store.cs','desktop-bridge.cs','desktop-webview.cs'|ForEach-Object{Get-Content -LiteralPath (Join-Path $PSScriptRoot $_) -Raw -Encoding UTF8})
+$sources=@('overlay-native.cs','desktop-overlay.cs','desktop-addon-policy.cs','desktop-addon.cs','desktop-host.cs','desktop-store.cs','desktop-bridge.cs','desktop-fonts.cs','desktop-presentation.cs','desktop-alert-sound.cs','desktop-webview.cs'|ForEach-Object{Get-Content -LiteralPath (Join-Path $PSScriptRoot $_) -Raw -Encoding UTF8})
 $sources+=@'
 using System;using System.Drawing;using System.Reflection;using System.Windows.Forms;
 namespace IrisDesktop {
@@ -16,18 +16,35 @@ namespace IrisDesktop {
   public static int Run(string profile){
    using(var window=new DesktopWebView(true,profile)){
     var property=typeof(DesktopWebView).GetProperty("Addon");Check(property!=null,"Missing owned tracker");
-    ((IDisposable)property.GetValue(window,null)).Dispose();window.Overlay.Dispose();
+    ((IDisposable)property.GetValue(window,null)).Dispose();
     Check(!window.TopMost,"Addon remains globally topmost");
-    Check(window.Controls.Count==1&&window.Browser.Dock==DockStyle.Fill,"Duplicate native chrome instead of web title");
+    Check(window.Controls.Count==3&&window.Browser.Dock==DockStyle.Fill,"Expected web surface and two manual width edges only");
     Check(window.Browser.CoreWebView2==null,"Construction opens real browser");
-    window.CreateControl();
+    window.CreateControl();var ownedHandle=window.Handle;
+    Check(window.Region!=null&&!window.Region.IsVisible(0,0)&&window.Region.IsVisible(2,window.Height/2),"Actual window corners or middle resize edge are square/clipped");
     var fit=typeof(DesktopWebView).GetMethod("FitContentHeight",BindingFlags.Instance|BindingFlags.NonPublic);
-    fit.Invoke(window,new object[]{340});window.PerformLayout();Check(window.Height==340&&window.Browser.Height==340,"Native chrome crops content");
-    fit.Invoke(window,new object[]{120});window.PerformLayout();Check(window.Height==120,"Minimum content does not fit");
-    Check(!window.Overlay.SetClickThrough(true),"Addon enables click through");Check(!window.Overlay.SetOpacityPercent(50),"Addon opacity changes");
+    fit.Invoke(window,new object[]{340});window.PerformLayout();Check(window.Height==640&&window.Browser.Height==640,"Independent expanded window must not resize per menu");
+    fit.Invoke(window,new object[]{120});window.PerformLayout();Check(window.Height==640,"Short menu must not shrink expanded window");
+    Check(!window.Overlay.SetClickThrough(true),"Addon enables click through");Check(window.Overlay.SetOpacityPercent(30)&&window.Overlay.OpacityPercent==30,"Addon must allow user opacity down to 30 percent");Check(!window.Overlay.SetOpacityPercent(29),"Opacity below 30 accepted");window.Overlay.SetOpacityPercent(100);
     Check(!window.Overlay.ShortcutsAvailable&&!window.Overlay.ClickThrough&&window.Overlay.OpacityPercent==100,"Addon keeps overlay hotkey");
     Check(!window.Visible&&window.Browser.CoreWebView2==null,"Fixture opens user session");
-   }return passed;
+   }
+   string widthProfile=System.IO.Path.Combine(profile+"-width","profile");
+   using(var window=new DesktopWebView(true,widthProfile)){
+    window.Width=600;window.Addon.RecordPreferredWidth(600);window.Addon.Dispose();window.Overlay.Dispose();window.CreateControl();
+    var fit=typeof(DesktopWebView).GetMethod("FitContentHeight",BindingFlags.Instance|BindingFlags.NonPublic);fit.Invoke(window,new object[]{350});
+    Check(window.Width==600,"Automatic content height must not change manual width");
+    var placement=(Func<Rectangle,Rectangle,bool?,bool>)typeof(DesktopGameWindowTracker).GetField("presentationPlacement",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(window.Addon);
+    var work=new Rectangle(0,0,1920,1080);Check(placement(work,work,true)&&window.Height<350&&window.Width==600,"Fullscreen compact inherits game height or loses manual width");
+    window.Bounds=new Rectangle(10,365,600,240);window.Presentation.RecordManualMove();
+    window.Presentation.SetPanelOpen(true);placement(work,work,true);Check(window.Top==365&&window.Height<=600,"Opening a compact menu must not move the manually placed bar or fill monitor");
+    int panelHeight=window.Height;fit.Invoke(window,new object[]{1800});Check(window.Top==365&&window.Height==panelHeight,"Long classes must scroll within fixed panel without moving its anchor");fit.Invoke(window,new object[]{340});Check(window.Height==panelHeight,"Short menu must keep the same panel height");
+    window.Presentation.SetPanelOpen(false);placement(work,work,true);Check(window.Height<350,"Closed dialog must discard measured settings height");
+    window.Presentation.Toggle();placement(work,work,true);Check(!window.Presentation.Compact,"Repeated fullscreen overwrites user override");
+    placement(new Rectangle(0,0,1280,720),work,false);Check(window.Width==600,"Windowed return loses stored width");
+   }
+   using(var restored=new DesktopWebView(true,widthProfile)){restored.Addon.Dispose();restored.Overlay.Dispose();Check(restored.Width==600,"Preferred width must restore on native restart");Check(restored.Browser.CoreWebView2==null,"Width restore must not open a user browser session");}
+   return passed;
   }
  }
 }

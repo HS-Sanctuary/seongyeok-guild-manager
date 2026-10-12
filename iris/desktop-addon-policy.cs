@@ -27,12 +27,15 @@ namespace IrisDesktop {
         public static bool ShouldKeepAbove(bool enabled, IntPtr foreground, IntPtr own, IntPtr game) {
             return enabled && own != IntPtr.Zero && game != IntPtr.Zero && (foreground == game || foreground == own);
         }
-        public static AddonDockPlacement Place(Rectangle game, Rectangle work, Size addon, string side) {
+        public static AddonDockPlacement Place(Rectangle game, Rectangle work, Size addon, string side, bool matchGameHeight=true) {
             var result = new AddonDockPlacement();
             if (side == "off" || (side != "right" && side != "left") || work.Width < 320 || work.Height < 120 || game.Width <= 0 || game.Height <= 0) return result;
-            int width = Math.Max(320, Math.Min(480, addon.Width));
-            int height = Math.Min(work.Height, Math.Max(120, game.Height));
-            int top = Math.Max(work.Top, Math.Min(game.Top, work.Bottom - height));
+            int width = Math.Max(320, Math.Min(720, addon.Width));
+            // Match the visible game segment instead of moving a tall addon above the game.
+            int top = Math.Max(work.Top, game.Top);
+            int visibleHeight = Math.Min(work.Bottom, game.Bottom) - top;
+            if (visibleHeight <= 0) return result;
+            int height = Math.Min(work.Bottom-top, Math.Max(120, matchGameHeight?visibleHeight:addon.Height));
             bool right = game.Right >= work.Left && game.Right + width <= work.Right;
             bool left = game.Left <= work.Right && game.Left - width >= work.Left;
             string actual = side == "right" ? (right ? "right" : left ? "left" : "off") : (left ? "left" : right ? "right" : "off");
@@ -56,7 +59,7 @@ namespace IrisDesktop {
     // Window replacement and inaccessible processes are deliberately not an exit signal.
     public sealed class GameWindowSession {
         int pid; long started; bool minimized, hiddenByGame, askedExit;
-        public void ManualVisibility() { hiddenByGame = false; }
+        public void ManualVisibility() { hiddenByGame = false; minimized = false; }
         public AddonWindowDecision Observe(GameWindowObservation observation, bool manuallyHidden, bool decisionOpen) {
             var result = new AddonWindowDecision();
             if (observation == null || observation.ProcessId <= 0 || observation.StartedAtTicks <= 0) return result;
@@ -68,7 +71,7 @@ namespace IrisDesktop {
                 if (!askedExit) { askedExit = true; result.RequestClose = true; }
                 return result;
             }
-            if (observation.Alive != true || observation.Handle == IntPtr.Zero || !observation.Frame.HasValue) return result;
+            if (observation.Alive != true || observation.Handle == IntPtr.Zero) return result;
             if (decisionOpen) { minimized = observation.Minimized; return result; }
             if (observation.Minimized && !minimized && !manuallyHidden) {
                 hiddenByGame = true; result.Minimize = true;

@@ -48,7 +48,7 @@ test('overlay client uses bounded correlated requests and rejects malformed stat
   const p=s.store.setClickThrough(true);assert.equal(s.sent[0].method,'overlay.input');assert.deepEqual(s.sent[0].payload,{clickThrough:true});
   s.reply({version:1,id:'1',epoch:2,ok:true,value:{clickThrough:true,shortcutsAvailable:true,opacityPercent:100}});
   assert.equal((await p).clickThrough,true);
-  await assert.rejects(s.store.setOpacityPercent(49));assert.equal(s.sent.length,1);
+  await assert.rejects(s.store.setOpacityPercent(29));assert.equal(s.sent.length,1);
   const state=s.store.overlayState();s.reply({version:1,id:'2',epoch:2,ok:true,value:{clickThrough:true,shortcutsAvailable:false,opacityPercent:100}});
   await assert.rejects(state);
 });

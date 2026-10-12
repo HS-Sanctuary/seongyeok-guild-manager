@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import {useRef} from 'react';
+import {useHeaderPanelPosition} from '@/hooks/useHeaderPanelPosition';
 import { useRouter } from 'next/navigation';
 import { NavItem, AccountPreset } from '../../types/layout';
 import NotificationInbox from './NotificationInbox';
@@ -60,6 +61,7 @@ export default function Navbar({
   handleLogout
 }: NavbarProps) {
   const router = useRouter();
+  useHeaderPanelPosition(isAccountMenuOpen,accountMenuRef);
   const irisDownloadRef = useRef<HTMLAnchorElement>(null);
   const {
     browserPermission,
@@ -116,7 +118,7 @@ export default function Navbar({
   };
 
   return (
-    <nav 
+    <nav data-sanctum-header
       ref={headerRef} 
       className={`fixed top-0 left-0 right-0 z-[90] flex flex-col shadow-lg border-b backdrop-blur-md w-full transition-transform duration-300 bg-[var(--panel)] border-[var(--panel-border)] ${
         showNavbar ? 'translate-y-0' : '-translate-y-full'
@@ -266,7 +268,7 @@ export default function Navbar({
                 </button>
 
                 {isAccountMenuOpen && (
-                  <div id="sanctum-account-menu" className="fixed right-3 top-[var(--sanctum-header-height,4rem)] mt-2 w-[min(18rem,calc(100vw-1.5rem))] max-h-[calc(100dvh-var(--sanctum-header-height,4rem)-1rem)] overflow-y-auto border rounded-2xl shadow-2xl z-[130] p-2 bg-[var(--panel)] border-[var(--panel-border)] text-[var(--text-main)]">
+                  <div id="sanctum-account-menu" data-header-panel style={{visibility:'hidden'}} className="absolute w-[min(18rem,calc(100vw-1.5rem))] overflow-y-auto border rounded-2xl shadow-2xl z-[130] p-2 bg-[var(--panel)] border-[var(--panel-border)] text-[var(--text-main)]">
                     <div className="text-[0.67rem] font-bold text-[var(--text-sub)] px-2 py-1">현재 활성 계정</div>
                     <div className="flex items-center justify-between p-2 rounded-lg mb-2 border-l-4 bg-[var(--inner-box)] border-[var(--accent)]">
                       <div className="flex flex-col min-w-0">

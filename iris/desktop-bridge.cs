@@ -23,6 +23,12 @@ namespace IrisDesktop {
         public void BindAddon(Func<object> state,Func<string,bool,bool> preferences,Action<bool> decision){addonState=state;addonPreferences=preferences;addonDecision=decision;}
         Func<object> overlayState;Func<bool,bool> overlayInput;Func<int,bool> overlayOpacity;
         Func<Task<object>> gameRead,currencyRead; bool gameBusy;
+        Func<bool,Task<object>> fontsRead;bool fontsBusy;
+        public void BindFonts(Func<bool,Task<object>> read){fontsRead=read;}
+        Func<bool> alertSound;
+        public void BindAlertSound(Func<bool> play){alertSound=play;}
+        Func<object> presentationState,presentationToggle;Func<bool,object> presentationPanel;
+        public void BindPresentation(Func<object> state,Func<object> toggle,Func<bool,object> panel){presentationState=state;presentationToggle=toggle;presentationPanel=panel;}
         Func<object> updateState,updateApply;Func<Task<object>> updateCheck,updatePrepare;
         public void BindUpdater(Func<object> state,Func<Task<object>> check,Func<Task<object>> prepare,Func<object> apply){updateState=state;updateCheck=check;updatePrepare=prepare;updateApply=apply;}
         public void BindGameStats(Func<Task<object>> read){gameRead=read;}
@@ -32,11 +38,11 @@ namespace IrisDesktop {
             var receipt=Handle(source,json);var serializer=new JavaScriptSerializer();
             var result=serializer.DeserializeObject(receipt) as Dictionary<string,object>;
             var marker=result!=null&&result.ContainsKey("value")?result["value"] as Dictionary<string,object>:null;
-            if(marker==null||(!marker.ContainsKey("gameReadPending")&&!marker.ContainsKey("updatePending")))return receipt;
-            bool update=marker.ContainsKey("updatePending");var epoch=Epoch;if(!update)gameBusy=true;
-            try{var value=await (update?(Equals(marker["updatePending"],"check")?updateCheck():updatePrepare()):(marker.ContainsKey("currency")?currencyRead():gameRead()));if(epoch!=Epoch||document==null)throw new ArgumentException();result["value"]=value;}
-            catch{result["ok"]=false;result["value"]=null;result["error"]="game_stats_unavailable";}
-            finally{if(!update)gameBusy=false;}
+            if(marker==null||(!marker.ContainsKey("gameReadPending")&&!marker.ContainsKey("updatePending")&&!marker.ContainsKey("fontsPending")))return receipt;
+            bool update=marker.ContainsKey("updatePending"),fonts=marker.ContainsKey("fontsPending");var epoch=Epoch;if(fonts)fontsBusy=true;else if(!update)gameBusy=true;
+            try{var value=await (fonts?fontsRead(Equals(marker["fontsPending"],true)):update?(Equals(marker["updatePending"],"check")?updateCheck():updatePrepare()):(marker.ContainsKey("currency")?currencyRead():gameRead()));if(epoch!=Epoch||document==null)throw new ArgumentException();result["value"]=value;}
+            catch{result["ok"]=false;result["value"]=null;result["error"]=fonts?"fonts_unavailable":"game_stats_unavailable";}
+            finally{if(fonts)fontsBusy=false;else if(!update)gameBusy=false;}
             return serializer.Serialize(result);
         }
         public void BindOverlay(Func<object> state,Func<bool,bool> input,Func<int,bool> opacity){overlayState=state;overlayInput=input;overlayOpacity=opacity;}
@@ -65,6 +71,17 @@ namespace IrisDesktop {
                 lastId = sequence;
                 object value = null;
                 switch (message["method"] as string) {
+                    case "window.alert.sound":
+                        if(message["payload"]!=null||alertSound==null||!alertSound())throw new ArgumentException();break;
+                    case "window.presentation.state":
+                        if(message["payload"]!=null||presentationState==null)throw new ArgumentException();value=presentationState();break;
+                    case "window.presentation.toggle":
+                        if(message["payload"]!=null||presentationToggle==null)throw new ArgumentException();value=presentationToggle();break;
+                    case "window.presentation.panel":
+                        var panel=message["payload"] as Dictionary<string,object>;if(panel==null||panel.Count!=1||!panel.ContainsKey("open")||!(panel["open"] is bool)||presentationPanel==null)throw new ArgumentException();value=presentationPanel((bool)panel["open"]);break;
+                    case "window.fonts.list":
+                    case "window.fonts.refresh":
+                        if(message["payload"]!=null||fontsRead==null||fontsBusy)throw new ArgumentException();value=new {fontsPending=Equals(message["method"],"window.fonts.refresh")};break;
                     case "window.update.state":
                         if(message["payload"]!=null||updateState==null)throw new ArgumentException();value=updateState();break;
                     case "window.update.check":
@@ -114,7 +131,7 @@ namespace IrisDesktop {
                     case "overlay.opacity":
                         var opacity=message["payload"] as Dictionary<string,object>;
                         if(opacity==null||opacity.Count!=1||!opacity.ContainsKey("percent")||!(opacity["percent"] is int)||overlayOpacity==null)throw new ArgumentException();
-                        int percent=(int)opacity["percent"];if(percent<50||percent>100||!overlayOpacity(percent))throw new ArgumentException();value=overlayState();break;
+                        int percent=(int)opacity["percent"];if(percent<30||percent>100||!overlayOpacity(percent))throw new ArgumentException();value=overlayState();break;
                     default: throw new ArgumentException();
                 }
                 return serializer.Serialize(new { version = 1, id = id, epoch = epoch, ok = true, value = value });

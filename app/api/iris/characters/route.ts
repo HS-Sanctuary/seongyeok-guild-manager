@@ -10,14 +10,14 @@ export async function GET(request: NextRequest) {
     const supabase = getServerSupabase();
     const { data, error } = await supabase
       .from("characters")
-      .select("id, nickname, job, alias, sort_order")
+      .select("id, nickname, job, alias, sort_order, owner, is_main")
       .eq("owner", account.nickname)
       .order("sort_order", { ascending: true }).limit(101);
     if (error) throw error;
     // 크로노스의 구형 대표 캐릭터는 owner가 비어 있을 수 있다.
     const { data: legacyMain, error: legacyError } = await supabase
       .from("characters")
-      .select("id, nickname, job, alias, sort_order, owner")
+      .select("id, nickname, job, alias, sort_order, owner, is_main")
       .eq("nickname", account.nickname)
       .maybeSingle();
     if (legacyError) throw legacyError;
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     }
     if (characters.length > 100) throw new Error('Too many characters');
     return NextResponse.json({ accountId: account.id, characters: characters.map(char=>({
-      id:char.id,nickname:char.nickname,job:char.job,alias:char.alias,sort_order:char.sort_order,
+      id:char.id,nickname:char.nickname,job:char.job,alias:char.alias,sort_order:char.sort_order,isMain:char.is_main===true,editable:char.owner===account.nickname,
     })) }, { headers: { "Cache-Control": "private, no-store" } });
   } catch {
     return NextResponse.json({ message: "캐릭터 목록을 불러오지 못했습니다." }, { status: 503, headers: { "Cache-Control": "private, no-store" } });

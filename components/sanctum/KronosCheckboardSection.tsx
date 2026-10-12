@@ -3,19 +3,27 @@
 import React from "react";
 import MarkIcon from "../common/MarkIcon";
 import ClassIcon from "../common/ClassIcon";
+import type {HomeCharacter} from '@/lib/homeChecklistAutosave';
+type HomeItem={id:string|number;name:string;short_name?:string};
+type HomeCard=HomeCharacter&{job?:string;is_main?:boolean};
 
 interface KronosCheckboardSectionProps {
-  myCharacters: any[];
-  dailyTasks: any[];
-  weeklyTasks: any[];
-  abyssList: any[];
-  raidList: any[];
+  myCharacters: HomeCard[];
+  dailyTasks: HomeItem[];
+  weeklyTasks: HomeItem[];
+  abyssList: HomeItem[];
+  raidList: HomeItem[];
   accountProgressRate: number;
-  checkTaskDone: (char: any, item: any, type: "daily" | "weekly" | "raid") => boolean;
-  onToggleTask?: (char: any, item: any, type: "daily" | "weekly" | "raid") => void;
+  checkTaskDone: (char: HomeCard, item: HomeItem, type: "daily" | "weekly" | "raid") => boolean;
+  onToggleTask?: (char: HomeCard, item: HomeItem, type: "daily" | "weekly" | "raid") => void;
   taskSaveStatus?: "idle" | "saving" | "saved" | "error";
+  saveState?:{pending:number;saving:boolean;error:string};
+  saveRemaining?:number;
+  onSaveNow?():void;
+  locked?:boolean;
+  saveMessage?:string;
   formatName: (fullName: string) => string;
-  router: any;
+  router: {push(path:string):unknown};
 }
 
 export default function KronosCheckboardSection({
@@ -28,6 +36,7 @@ export default function KronosCheckboardSection({
   checkTaskDone,
   onToggleTask,
   taskSaveStatus = "idle",
+  saveState,saveRemaining=15,onSaveNow,locked=false,saveMessage='',
   formatName,
   router,
 }: KronosCheckboardSectionProps) {
@@ -80,15 +89,13 @@ export default function KronosCheckboardSection({
 
       </div>
 
-      <div role="status" aria-live="polite" className="min-h-[1.1rem] text-[0.7rem] font-bold text-[var(--text-sub)]">
-        {taskSaveStatus === "saving" ? "저장 중… 완료 표시가 나올 때까지 새로고침하지 마세요." : taskSaveStatus === "saved" ? "저장 완료" : taskSaveStatus === "error" ? "저장 실패 — 다시 시도해주세요." : ""}
-      </div>
+      {(saveState?.pending||saveState?.saving||saveState?.error||saveMessage||taskSaveStatus==='saved')?<div role="status" aria-live="polite" className="flex flex-wrap items-center gap-2 mb-2 text-[0.7rem] font-bold text-[var(--text-sub)]"><span>{saveMessage||saveState?.error||(saveState?.saving?'저장 중… 계속 체크할 수 있어요.':saveState?.pending?`${saveState.pending}개 변경 · 마지막 수정 후 ${saveRemaining}초에 저장`:'저장 완료')}</span>{!!saveState?.pending&&<button type="button" onClick={onSaveNow} disabled={locked} className="rounded-lg border border-[var(--accent)] bg-[var(--inner-box)] px-2 py-1 text-[var(--accent)]">{saveState.error?'다시 저장':'지금 저장'}</button>}</div>:null}
       
       {/* 2. 캐릭터별 숙제 그리드 카드 (모바일 2열 ~ PC 6열) */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-1.5 md:gap-2.5">
         {myCharacters.length === 0 ? (
           <div className="col-span-full text-center py-6 text-xs font-bold text-[var(--text-sub)]">
-            등록된 캐릭터가 없습니다. 'Learn More'에서 캐릭터를 등록해주세요!
+            등록된 캐릭터가 없습니다. Learn More에서 캐릭터를 등록해주세요!
           </div>
         ) : (
           myCharacters.map((char) => {
@@ -110,7 +117,7 @@ export default function KronosCheckboardSection({
                 {/* 캐릭터 헤더 (직업 아이콘 + 닉네임 + 대표 뱃지) */}
                 <div className="flex items-center justify-between border-b pb-1 gap-1 border-[var(--panel-border)]">
                   <div className="flex items-center gap-1 w-full truncate">
-                    <ClassIcon job={char.job} size="xs" />
+                    <ClassIcon job={char.job||'전사'} size="xs" />
                     <span className="font-black text-[0.72rem] md:text-[0.8rem] truncate flex-1 min-w-0 text-[var(--text-main)]">
                       {char.nickname}
                     </span>
@@ -160,7 +167,7 @@ export default function KronosCheckboardSection({
                           <button
                             type="button"
                             key={a.id}
-                            disabled={taskSaveStatus === "saving"}
+                            disabled={locked}
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation(); // 카드 상세 이동 방지
@@ -202,7 +209,7 @@ export default function KronosCheckboardSection({
                           <button
                             type="button"
                             key={r.id}
-                            disabled={taskSaveStatus === "saving"}
+                            disabled={locked}
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation(); // 카드 상세 이동 방지

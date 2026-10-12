@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect,useCallback } from "react";
+import {useHomeChecklistAutosave} from '@/hooks/useHomeChecklistAutosave';
+import { calculateSanctumEvents } from "@/lib/sanctumEventTimes";
 import { useRouter } from "next/navigation";
 import { supabase } from "../lib/supabase";
 import { memberMutationOrThrow } from "@/lib/memberMutationClient";
@@ -8,8 +10,7 @@ import { filterApprovedCharacters, getApprovedAccountNames } from "@/lib/approve
 import { usePartyCatalog } from '@/hooks/usePartyCatalog';
 import { 
   isTaskChecked,
-  cleanItemName,
-  setChecklistField
+  cleanItemName
 } from "../lib/matchingUtils";
 
 import SanctumHeaderWidgets from "../components/sanctum/SanctumHeaderWidgets";
@@ -65,7 +66,6 @@ export default function Home() {
   const [user, setUser] = useState<any>(null);
 
   const [myCharacters, setMyCharacters] = useState<any[]>([]);
-  const [taskSaveStatus, setTaskSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [allCharactersMap, setAllCharactersMap] = useState<Record<string, string>>({});
   const [allCharactersList, setAllCharactersList] = useState<any[]>([]);
   const [nexusContents, setNexusContents] = useState<any[]>([]);
@@ -128,71 +128,11 @@ export default function Home() {
   useEffect(() => {
     const timer = setInterval(() => {
       const now = new Date();
-      const m = now.getMinutes();
-      const s = now.getSeconds();
-
-      let bStatus = 'waiting';
-      let bSec = 0;
-      if (m < 2) {
-        bStatus = 'imminent';
-        bSec = (1 * 60 + 59) - (m * 60 + s); 
-      } else if (m >= 2 && m < 4) {
-        bStatus = 'active';
-        bSec = (3 * 60 + 59) - (m * 60 + s); 
-      } else {
-        bStatus = 'waiting';
-        const nextHour = new Date(now);
-        nextHour.setHours(now.getHours() + 1, 0, 0, 0);
-        bSec = Math.floor((nextHour.getTime() - now.getTime()) / 1000);
-      }
-      setBarrierEvent({ status: bStatus, sec: bSec });
-
-      const bossTimes: number[] = [12, 15, 18, 20, 22];
-      let fStatus = 'waiting';
-      let fSec = 0;
-      let nextBossTime: Date | null = null;
-      let currentBossTime: Date | null = null;
-      
-      for (const hour of bossTimes) {
-        const bossStart = new Date(now);
-        bossStart.setHours(hour, 0, 0, 0);
-        const bossImminent = new Date(bossStart.getTime() - 2 * 60000);
-        const bossEnd = new Date(bossStart.getTime() + 30 * 60000);
-        
-        if (now >= bossImminent && now < bossStart) {
-          fStatus = 'imminent';
-          fSec = Math.floor((bossStart.getTime() - now.getTime()) / 1000);
-          currentBossTime = bossStart;
-          break;
-        } else if (now >= bossStart && now < bossEnd) {
-          fStatus = 'active';
-          fSec = Math.floor((bossEnd.getTime() - now.getTime()) / 1000);
-          currentBossTime = bossStart;
-          break;
-        } else if (now < bossImminent && !nextBossTime) {
-          nextBossTime = bossStart;
-        }
-      }
-      
-      if (!currentBossTime) {
-        fStatus = 'waiting';
-        if (!nextBossTime) {
-          nextBossTime = new Date(now);
-          nextBossTime.setDate(now.getDate() + 1);
-          nextBossTime.setHours(bossTimes[0], 0, 0, 0);
-        }
-        fSec = Math.floor((nextBossTime.getTime() - now.getTime()) / 1000);
-      }
-      setFieldBossEvent({ status: fStatus, sec: fSec });
-
-      const nextDeepReset = new Date(now);
-      if (now.getMinutes() < 30) nextDeepReset.setMinutes(30, 0, 0);
-      else nextDeepReset.setHours(now.getHours() + 1, 0, 0, 0);
-      
-      const deepDiff = nextDeepReset.getTime() - now.getTime();
-      const dM = Math.floor(deepDiff / 1000 / 60).toString().padStart(2, '0');
-      const dS = Math.floor((deepDiff / 1000) % 60).toString().padStart(2, '0');
-      setDeepTimer(`${dM}:${dS}`);
+      const events = calculateSanctumEvents(now.getTime(), abyssReports);
+      setBarrierEvent({ status: events.barrier.status, sec: events.barrier.sec });
+      setFieldBossEvent({ status: events.fieldBoss.status, sec: events.fieldBoss.sec });
+      const seconds = events.deep.sec;
+      setDeepTimer(`${Math.floor(seconds / 60).toString().padStart(2, '0')}:${(seconds % 60).toString().padStart(2, '0')}`);
 
       updateAbyssDisplay(now.getTime());
     }, 1000);
@@ -201,41 +141,11 @@ export default function Home() {
   }, [abyssReports]);
 
   const updateAbyssDisplay = (nowMs: number) => {
-    const HOLE_DURATION = 15 * 60 * 1000; 
-    const IMMINENT_DURATION = 2 * 60 * 1000;
-
-    const validReports = abyssReports
-      .filter(r => r.status === 'approved')
-      .filter(r => (new Date(r.hole_time).getTime() + HOLE_DURATION) > nowMs)
-      .sort((a, b) => new Date(b.hole_time).getTime() - new Date(a.hole_time).getTime());
-    
-    if (validReports.length > 0) {
-      const latest = validReports[0];
-      const targetTime = new Date(latest.hole_time).getTime();
-      const diffMs = targetTime - nowMs;
-
-      if (diffMs > 0 && diffMs <= IMMINENT_DURATION) {
-        setAbyssDisplay({ status: 'imminent', timeText: '출현 임박!', subText: `제보자: ${latest.reporter_name}`, isDefault: false });
-      } else if (diffMs <= 0 && diffMs > -HOLE_DURATION) {
-        setAbyssDisplay({ status: 'active', timeText: '출현중!!', subText: `제보자: ${latest.reporter_name}`, isDefault: false });
-      } else {
-        const diffSec = Math.floor(diffMs / 1000);
-        setAbyssDisplay({ status: 'waiting', timeText: formatTimeHM(diffSec), subText: '다음 출현까지', isDefault: false });
-      }
-    } else {
-      const baseCycle = (36 * 3600) + (15 * 60); 
-      const epoch = new Date('2024-01-01T00:00:00Z').getTime() / 1000;
-      const currentSec = nowMs / 1000;
-      const elapsed = currentSec - epoch;
-      const nextSpawnSec = baseCycle - (elapsed % baseCycle);
-
-      setAbyssDisplay({ 
-        status: 'waiting',
-        timeText: formatTimeHM(nextSpawnSec), 
-        subText: '다음 출현까지', 
-        isDefault: true 
-      });
-    }
+    const event = calculateSanctumEvents(nowMs, abyssReports).abyss;
+    setAbyssDisplay({ status: event.status,
+      timeText: event.status === 'imminent' ? '출현 임박!' : event.status === 'active' ? '출현중!!' : formatTimeHM(event.sec),
+      subText: event.status === 'waiting' ? '다음 출현까지' : `제보자: ${event.reporter}`,
+      isDefault: event.isDefault ?? false });
   };
 
   const fetchDashboardData = async (currentUser: any) => {
@@ -457,40 +367,9 @@ export default function Home() {
     return isTaskChecked(rawChecks, item, nexusContents);
   };
 
-  const handleToggleTask = async (char: any, item: any, type: "daily" | "weekly" | "raid") => {
-    if (!char || taskSaveStatus === "saving") return;
-    const fieldMap: Record<string, string> = { daily: "daily_checks", weekly: "weekly_checks", raid: "raid_checks" };
-    const field = fieldMap[type] || "raid_checks";
-    
-    const raw = char[field];
-    const isDone = checkTaskDone(char, item, type);
-    const itemKey = item.id || item.name;
-
-    const updatedPayload = setChecklistField(raw, item, !isDone, type, nexusContents);
-
-    setTaskSaveStatus("saving");
-    setMyCharacters((prev) =>
-      prev.map((c) => {
-        if ((c.id && c.id === char.id) || (c.nickname && c.nickname === char.nickname)) {
-          return { ...c, [field]: updatedPayload };
-        }
-        return c;
-      })
-    );
-
-    try {
-      if (!char.id) throw new Error("캐릭터 ID가 없습니다.");
-      const saved = await memberMutationOrThrow({ table: "characters", action: "update", filter: { column: "id", value: char.id }, payload: {_checklistAction:{type,id:item.id,completed:!isDone}} }) as any[];
-      if (saved?.[0]) setMyCharacters(prev => prev.map(current => current.id === char.id ? saved[0] : current));
-      setTaskSaveStatus("saved");
-      setTimeout(() => setTaskSaveStatus((current) => current === "saved" ? "idle" : current), 2500);
-    } catch (err) {
-      console.error("Supabase 숙제 업데이트 실패:", err);
-      setMyCharacters((prev) => prev.map((current) => current.id === char.id ? { ...current, [field]: raw } : current));
-      setTaskSaveStatus("error");
-      alert("숙제 체크를 저장하지 못했습니다. 다시 시도해주세요.");
-    }
-  };
+  const homeSaved=useCallback((row:import('@/lib/homeChecklistAutosave').HomeCharacter)=>setMyCharacters(prev=>prev.map(current=>current.id===row.id?row:current)),[]);
+  const homeSave=useHomeChecklistAutosave(user,myCharacters,nexusContents,homeSaved);
+  const guardedRouter={push:(url:string)=>void homeSave.navigate(()=>router.push(url))};
 
   const submitDeepHole = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -534,7 +413,7 @@ export default function Home() {
   };
 
   const openJoinPopup = (party: any) => {
-    router.push(`/party?join=${encodeURIComponent(String(party.id))}`);
+    void homeSave.navigate(()=>router.push(`/party?join=${encodeURIComponent(String(party.id))}`));
   };
 
   const handleLeaveParty = async (party: any, charName: string) => {
@@ -558,7 +437,7 @@ export default function Home() {
   const formatName = (fullName: string) => fullName.replace('어비스 - ', '').replace('레이드 - ', '').substring(0, 2);
 
   let totalAccountCurrent = 0, totalAccountMax = 0;
-  myCharacters.forEach(char => {
+  homeSave.characters.forEach(char => {
     const completedDaily = dailyTasks.filter(t => checkTaskDone(char, t, "daily")).length;
     const completedWeekly = weeklyTasks.filter(t => checkTaskDone(char, t, "weekly")).length;
     const completedAbyss = abyssList.filter(a => checkTaskDone(char, a, "raid")).length;
@@ -594,22 +473,27 @@ export default function Home() {
         setIsAbyssModalOpen={setIsAbyssModalOpen}
         setIsDeepModalOpen={setIsDeepModalOpen}
         formatTimeHM={formatTimeHM}
-        router={router}
+        router={guardedRouter}
       />
 
       {/* 2. 크로노스 숙제 체크보드 섹션 */}
       <KronosCheckboardSection
-        myCharacters={myCharacters}
+        myCharacters={homeSave.characters}
         dailyTasks={dailyTasks}
         weeklyTasks={weeklyTasks}
         abyssList={abyssList}
         raidList={raidList}
         accountProgressRate={accountProgressRate}
         checkTaskDone={checkTaskDone}
-        onToggleTask={handleToggleTask}
-        taskSaveStatus={taskSaveStatus}
+        onToggleTask={homeSave.toggle}
+        saveState={homeSave.state}
+        taskSaveStatus={homeSave.confirmed?'saved':'idle'}
+        saveRemaining={homeSave.remaining}
+        onSaveNow={()=>void homeSave.flush().catch(()=>{})}
+        locked={homeSave.locked}
+        saveMessage={homeSave.message}
         formatName={formatName}
-        router={router}
+        router={guardedRouter}
       />
 
       {/* 3. 시낙시스 오토 파티 매칭 위젯 섹션 */}
@@ -627,7 +511,7 @@ export default function Home() {
         onRefresh={async () => { if (user) await fetchDashboardData(user); }}
         catalog={partyCatalog}
         currentUserAccountId={user?.id}
-        router={router}
+        router={guardedRouter}
       />
 
       {/* 4. 판테온 명예의 전당 6대 랭킹 섹션 */}
@@ -637,7 +521,7 @@ export default function Home() {
         pantheonSlideIdx={pantheonSlideIdx}
         setPantheonSlideIdx={setPantheonSlideIdx}
         PANTHEON_CATEGORIES={PANTHEON_CATEGORIES}
-        router={router}
+        router={guardedRouter}
       />
 
       {/* 5. 모달 팝업 집합 */}

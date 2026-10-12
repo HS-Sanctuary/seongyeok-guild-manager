@@ -8,11 +8,11 @@ const other = {id:2,nickname:'driver',owner:'admin',raid_checks:[11]};
 const party = {id:7,content_name:'레이드 - 에이렐',difficulty:'어려움',party_type:'1회 클리어',sub_content:'[성역 길드 버스] memo',leader_name:'driver',status:'운행중',members:[
   {character_name:'driver',owner:'admin',allow_repeat:true}, {character_name:'alt',owner:'owner',allow_repeat:true},
 ]};
-function setup(path, account = {nickname:'owner',role:'길드원'}) {
+function setup(path, account = {nickname:'owner',role:'길드원'}, dependencies = {}) {
   const db = memoryDB({characters:[own,other],parties:[party],nexus_contents:[{id:13,name:'에이렐',type:'raid'}],nexus_tasks:[{id:3,name:'weekly',type:'weekly'}]});
   const { POST } = loadTS(path, {'@/lib/server/sanctumSession':{
     getServerSupabase:()=>db,getSessionAccount:async()=>account,isPendingAccount:()=>false,SANCTUM_SESSION_COOKIE:'session',
-  }});
+  },...dependencies});
   const call = body => POST(new NextRequest('http://localhost:3000/api/test',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}));
   return {db,call};
 }
@@ -84,6 +84,8 @@ test('KRONOS autosave merges only edits against the loaded baseline', async () =
   assert.deepEqual(db.tables.characters[0].raid_checks,[12,13]);
   assert.equal('_checklistBase' in db.tables.characters[0],false);
 });
+test('home batch rejects expired reset periods before updating character checks',async()=>{const {db,call}=setup('app/api/member-mutations/route.ts');const before=structuredClone(db.tables.characters[0]);const response=await call({table:'characters',action:'update',filter:{column:'nickname',value:'alt'},payload:{raid_checks:[12],_checklistBase:{raid_checks:[11,12]},_checklistPeriods:{raid_checks:'1970-01-01T00:00:00.000Z'}}});assert.equal(response.status,409);assert.deepEqual(db.tables.characters[0],before);});
+for(const crossing of [2,3])test(`home period is revalidated at checkpoint ${crossing} after admission`,async()=>{let checks=0;const start=Date.parse('2026-10-12T00:00:00Z');const {db,call}=setup('app/api/member-mutations/route.ts',undefined,{'@/lib/kronos':{kronosPeriodStart:()=>++checks<crossing?start:start+86400000}});const before=structuredClone(db.tables.characters[0]);const response=await call({table:'characters',action:'update',filter:{column:'nickname',value:'alt'},payload:{raid_checks:[12],_checklistBase:{raid_checks:[11,12]},_checklistPeriods:{raid_checks:new Date(start).toISOString()}}});assert.equal(response.status,409);assert.deepEqual(db.tables.characters[0],before);assert.equal(db.writes.length,0);});
 test('concurrent bus join is preserved and stale toggle reports a conflict', async () => {
   const {db,call}=setup('app/api/member-mutations/route.ts');
   const from=db.from;

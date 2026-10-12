@@ -162,7 +162,7 @@ async function choose(page,name,job){
   await identity(page,name);
 }
 async function run(name,body,options){
-  if(scenario&&scenario!==name)return;
+  if(scenario&&!scenario.split(',').includes(name))return;
   const f=await fixture(options);
   try{
     await body(f);
@@ -178,6 +178,23 @@ async function run(name,body,options){
 }
 
 try{
+  await run('pending-switch-survives-settings-restart',async({page,requests})=>{
+    await setGame(page,'8');await poll(page);
+    assert.equal(await prompt(page).count(),0);
+    const reads=await page.evaluate(()=>window.fixture.reads),remote=requests.statsReads;
+    await page.getByRole('button',{name:'설정',exact:true}).click();await page.getByRole('button',{name:'설정',exact:true}).click();
+    await page.waitForFunction(before=>window.fixture.reads>before&&window.fixture.settled===window.fixture.reads,reads);
+    await poll(page,{advance:1000});await prompt(page).waitFor();
+    assert.equal(requests.statsReads,remote,'Pause recovery reuses the account catalog');
+  });
+  await run('long-minimized-pause-retains-comparison-reference',async({page,requests})=>{
+    const reads=await page.evaluate(()=>window.fixture.reads),remote=requests.statsReads;
+    await page.evaluate(()=>{window.fixture.hidden=true;document.dispatchEvent(new Event('visibilitychange'));});
+    await page.clock.runFor(120000);assert.equal(await page.evaluate(()=>window.fixture.reads),reads,'Hidden app does not poll CLI');
+    await setGame(page,'8');await page.evaluate(()=>{window.fixture.hidden=false;document.dispatchEvent(new Event('visibilitychange'));});
+    await page.waitForFunction(before=>window.fixture.reads>before&&window.fixture.settled===window.fixture.reads,reads);
+    await poll(page,{advance:1000});await prompt(page).waitFor();assert.equal(requests.statsReads,remote);
+  });
   await run('stale-stat-offer-confirm-local-only',async({page,requests})=>{
     const remote=requests.statsReads,kronos=requests.kronosReads.length;
     await offer(page);
@@ -278,7 +295,7 @@ try{
     await offer(page);
     await prompt(page).getByRole('button',{name:'네',exact:true}).click();
     await identity(page,'순월');await delay(80);
-    await page.getByRole('button',{name:'설정',exact:true}).click();
+    await page.getByRole('button',{name:'계정',exact:true}).click();
     await page.getByRole('button',{name:'로그아웃',exact:true}).click();
     await page.getByRole('button',{name:'로그인',exact:true}).waitFor();
     // Force the new account's initial game probe to fail: only a wrongly
@@ -441,7 +458,7 @@ try{
   await run('locked-account-operation-stops-polling',async f=>{
     const {page}=f;
     f.holdLogout();
-    await page.getByRole('button',{name:'설정',exact:true}).click();
+    await page.getByRole('button',{name:'계정',exact:true}).click();
     await page.getByRole('button',{name:'로그아웃',exact:true}).click();
     await f.waitForLogout();
     const before=await page.evaluate(()=>window.fixture.reads);
@@ -511,7 +528,7 @@ try{
   await run('logout-cancels-old-read',async({page})=>{
     await setGame(page,'8');await poll(page);
     await setGame(page,'8',{holdNext:1});await poll(page,{held:true});
-    await page.getByRole('button',{name:'설정',exact:true}).click();
+    await page.getByRole('button',{name:'계정',exact:true}).click();
     await page.getByRole('button',{name:'로그아웃',exact:true}).click();
     await page.getByRole('button',{name:'로그인',exact:true}).waitFor();
     await page.evaluate(()=>window.fixtureReleaseGame());await delay(120);

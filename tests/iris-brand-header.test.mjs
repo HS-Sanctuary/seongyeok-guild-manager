@@ -16,5 +16,5 @@ test('context tools appear next to character picker rather than below content',(
   const {DesktopCenter}=loadTS('components/iris/DesktopCenter.tsx');
   const html=renderToStaticMarkup(h(DesktopCenter,{account:{id:'a',nickname:'한설',role:'길드원'},characters:[],selected:null,pending:[],locked:false,saveStatus:null,onSelectCharacter(){},onEdit(){},contextActions:h('nav',{'aria-label':'계정 도구'},'tools')}));
   assert.match(html,/iris-character-bar[\s\S]*aria-label="계정 도구"/);
-  assert.ok(html.indexOf('aria-label="계정 도구"')<html.indexOf('id="iris-character-list"'));
+  assert.ok(html.indexOf('aria-label="계정 도구"')<html.indexOf('class="iris-center-content"'));
 });

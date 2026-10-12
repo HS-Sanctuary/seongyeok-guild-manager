@@ -41,6 +41,17 @@ namespace IrisDesktop {
             } catch { return false; }
             finally { try { if (File.Exists(temporary)) File.Delete(temporary); } catch { } }
         }
+        public int LoadWidth(out bool valid){
+            valid=true;
+            try{var widthPath=Path.Combine(root,"window-width-v1.json");if(!File.Exists(widthPath))return 420;if(new FileInfo(widthPath).Length>1024)throw new ArgumentException();var data=new JavaScriptSerializer().DeserializeObject(File.ReadAllText(widthPath)) as Dictionary<string,object>;if(data==null||data.Count!=2||!data.ContainsKey("version")||!Equals(data["version"],1)||!data.ContainsKey("width")||!(data["width"] is int))throw new ArgumentException();int width=(int)data["width"];if(width<360||width>720)throw new ArgumentException();return width;}
+            catch{valid=false;return 420;}
+        }
+        public bool SaveWidth(int width){
+            if(width<360||width>720)return false;
+            string target=Path.Combine(root,"window-width-v1.json"),temporary=Path.Combine(root,"window-width-"+Guid.NewGuid().ToString("N")+".tmp");
+            try{Directory.CreateDirectory(root);using(var stream=new FileStream(temporary,FileMode.CreateNew,FileAccess.Write,FileShare.None)){var bytes=Encoding.UTF8.GetBytes(new JavaScriptSerializer().Serialize(new {version=1,width=width}));stream.Write(bytes,0,bytes.Length);stream.Flush(true);}if(File.Exists(target))File.Replace(temporary,target,null);else File.Move(temporary,target);return true;}
+            catch{return false;}finally{try{if(File.Exists(temporary))File.Delete(temporary);}catch{}}
+        }
     }
     public sealed class DesktopGameWindowTracker : IDisposable {
         readonly Form window;
@@ -50,18 +61,23 @@ namespace IrisDesktop {
         readonly Func<bool> taskbarNeedsFront;
         AddonWindowPreferences preferences;
         GameWindowObservation tracked;
-        bool persistent, disposed, decisionOpen, manuallyHidden, dragging;
+        bool persistent, disposed, decisionOpen, manuallyHidden, dragging, hiddenByScreen;
         string status="searching", actualSide="off", published;
         IntPtr layerHandle;
         bool layerTopMost;
         DateTime nextDiscovery=DateTime.MinValue;
+        public int PreferredWidth {get;private set;}
+        public string PreferredDockSide {get{return preferences.DockSide;}}
         public bool IsAttached { get { return status=="attached"; } }
+        Func<Rectangle,Rectangle,bool?,bool> presentationPlacement;
+        public void BindPresentation(Func<Rectangle,Rectangle,bool?,bool> placement){presentationPlacement=placement;}
         public event EventHandler StateChanged, GameExited;
         public DesktopGameWindowTracker(Form window, string environment) : this(window, environment,
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"SANCTUM","IRIS",environment)) { }
         public DesktopGameWindowTracker(Form window, string environment, string preferencesRoot, Func<bool> taskbarNeedsFront = null) {
             if(window==null || (environment!="development" && environment!="production")) throw new ArgumentException();
             this.window=window; file=new AddonPreferencesFile(preferencesRoot); preferences=file.Load(out persistent);
+            bool widthValid;PreferredWidth=file.LoadWidth(out widthValid);persistent=persistent&&widthValid;
             this.taskbarNeedsFront=taskbarNeedsFront??(()=>TaskbarNeedsFront(window.Handle));
             window.TopMost=false; timer.Tick+=(s,e)=>Tick(); timer.Start();
         }
@@ -77,7 +93,8 @@ namespace IrisDesktop {
         }
         public void SetDecisionOpen(bool open) { decisionOpen=open; }
         public void SetDragging(bool value) { dragging=value; }
-        public void RecordManualVisibility(bool hidden) { manuallyHidden=hidden; session.ManualVisibility(); }
+        public void RecordPreferredWidth(int width){if(disposed)return;PreferredWidth=Math.Max(360,Math.Min(720,width));persistent=file.SaveWidth(PreferredWidth)&&persistent;Tick();Publish();}
+        public void RecordManualVisibility(bool hidden) { manuallyHidden=hidden; hiddenByScreen=false; session.ManualVisibility(); }
         public void DetachAfterDrag() { SetPreferences(new AddonWindowPreferences {DockSide="off",SameLayer=preferences.SameLayer}); }
         void Tick() {
             if(disposed||window.IsDisposed||!window.IsHandleCreated)return;
@@ -100,28 +117,61 @@ namespace IrisDesktop {
                 status="independent"; actualSide="off"; tracked=null; nextDiscovery=DateTime.UtcNow.AddSeconds(1);
                 decisionOpen=true; Publish(); if(GameExited!=null)GameExited(this,EventArgs.Empty); return;
             }
-            if(tracked.Alive!=true||!tracked.Frame.HasValue) {status="unavailable";actualSide="off";Publish();return;}
+            if(tracked.Alive!=true) {status="unavailable";actualSide="off";Publish();return;}
             if(decisionOpen) { Publish(); return; }
             if(action.Minimize)window.WindowState=FormWindowState.Minimized;
             if(action.Restore) {window.Show();window.WindowState=FormWindowState.Normal;}
+            if(FollowGameVisibility()) {Publish();return;}
             if(tracked.Minimized||manuallyHidden||!window.Visible) {Publish();return;}
+            if(!tracked.Frame.HasValue){status="unavailable";actualSide="off";Publish();return;}
             Rectangle frame=tracked.Frame.Value,work=Screen.FromRectangle(frame).WorkingArea;
-            var placement=AddonWindowPolicy.Place(frame,work,window.Size,preferences.DockSide);
+            bool compactPlacement=false;
+            if(presentationPlacement!=null){var monitor=Screen.FromRectangle(frame).Bounds;bool fills=frame.Left<=monitor.Left+2&&frame.Top<=monitor.Top+2&&frame.Right>=monitor.Right-2&&frame.Bottom>=monitor.Bottom-2;bool? fullscreen=tracked.Handle==IntPtr.Zero?(bool?)null:IsZoomed(tracked.Handle)||fills;compactPlacement=presentationPlacement(frame,work,fullscreen);if(compactPlacement&&fullscreen!=false){status="independent";actualSide="off";Publish();return;}}
+            var placement=AddonWindowPolicy.Place(frame,work,new Size(PreferredWidth,window.Height),preferences.DockSide,!compactPlacement);
             status=preferences.DockSide=="off"?"independent":placement.Attached?"attached":"no-space";actualSide=placement.ActualSide;
             if(placement.Attached) {
-                window.MaximumSize=new Size(480,work.Height);
+                window.MaximumSize=new Size(720,work.Height);
                 if(window.Bounds!=placement.Bounds)SetWindowPos(window.Handle,IntPtr.Zero,placement.Bounds.X,placement.Bounds.Y,placement.Bounds.Width,placement.Bounds.Height,0x0014); // NOACTIVATE|NOZORDER
             }
             Publish();
             } finally { ApplySameLayer(GetForegroundWindow()); }
         }
+        bool FollowGameVisibility() {
+            if(tracked==null||tracked.Alive!=true||!tracked.Frame.HasValue||decisionOpen)return hiddenByScreen;
+            bool outside=preferences.DockSide!="off";
+            if(outside)foreach(var screen in Screen.AllScreens)if(screen.Bounds.IntersectsWith(tracked.Frame.Value)){outside=false;break;}
+            if(outside){if(!manuallyHidden){hiddenByScreen=true;window.Hide();}return true;}
+            if(hiddenByScreen&&!tracked.Minimized){hiddenByScreen=false;if(!manuallyHidden)window.Show();}
+            return hiddenByScreen;
+        }
         void ApplySameLayer(IntPtr foreground) {
             if(disposed||window.IsDisposed||!window.IsHandleCreated)return;
             bool desired=!decisionOpen&&!manuallyHidden&&window.Visible&&window.WindowState!=FormWindowState.Minimized&&
                 tracked!=null&&tracked.Alive==true&&!tracked.Minimized&&tracked.Frame.HasValue&&
-                AddonWindowPolicy.ShouldKeepAbove(preferences.SameLayer,foreground,window.Handle,tracked.Handle);
+                preferences.SameLayer&&(AddonWindowPolicy.ShouldKeepAbove(true,foreground,window.Handle,tracked.Handle)||IsDesktopBackground(foreground));
             if(desired&&taskbarNeedsFront())desired=false;
             SetLayer(desired);
+            // HWND_NOTOPMOST leaves a demoted window at the front of ordinary windows.
+            // Yield our own HWND behind the clicked app as well; never move/activate it.
+            if(!desired&&preferences.SameLayer&&!decisionOpen&&!manuallyHidden&&window.Visible&&
+                window.WindowState!=FormWindowState.Minimized&&tracked!=null&&tracked.Alive==true&&!tracked.Minimized&&
+                foreground!=IntPtr.Zero&&foreground!=window.Handle&&foreground!=tracked.Handle&&IsWindow(foreground)&&!IsDesktopBackground(foreground)&&
+                IsAbove(window.Handle,foreground)) {
+                if(SetWindowPos(window.Handle,foreground,0,0,0,0,0x0213))layerTopMost=false;
+            }
+        }
+        static bool IsDesktopBackground(IntPtr handle) {
+            if(handle==IntPtr.Zero||!IsWindow(handle))return false;
+            IntPtr root=GetAncestor(handle,2);if(root==IntPtr.Zero)root=handle;
+            if(root==GetShellWindow())return true;
+            var name=new StringBuilder(64);GetClassName(root,name,name.Capacity);
+            return name.ToString()=="Progman"||name.ToString()=="WorkerW"||name.ToString()=="SHELLDLL_DefView";
+        }
+        static bool IsAbove(IntPtr own,IntPtr other) {
+            int remaining=4096;
+            for(IntPtr current=GetWindow(own,2);current!=IntPtr.Zero&&remaining-->0;current=GetWindow(current,2))
+                if(current==other)return true;
+            return false;
         }
         static bool TaskbarNeedsFront(IntPtr own) {
             // Read shell geometry only. Never move/activate the taskbar or change its settings.
@@ -213,7 +263,10 @@ namespace IrisDesktop {
         [DllImport("user32.dll")]static extern bool IsWindow(IntPtr handle);
         [DllImport("user32.dll")]static extern bool IsWindowVisible(IntPtr handle);
         [DllImport("user32.dll")]static extern bool IsIconic(IntPtr handle);
+        [DllImport("user32.dll")]static extern bool IsZoomed(IntPtr handle);
         [DllImport("user32.dll")]static extern IntPtr GetForegroundWindow();
+        [DllImport("user32.dll")]static extern IntPtr GetShellWindow();
+        [DllImport("user32.dll")]static extern IntPtr GetAncestor(IntPtr handle,uint flags);
         [DllImport("user32.dll")]static extern IntPtr GetWindow(IntPtr handle,uint command);
         [DllImport("user32.dll")]static extern uint GetWindowThreadProcessId(IntPtr handle,out uint pid);
         [DllImport("user32.dll",CharSet=CharSet.Unicode)]static extern int GetWindowText(IntPtr handle,StringBuilder text,int count);

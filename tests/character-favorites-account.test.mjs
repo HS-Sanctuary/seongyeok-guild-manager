@@ -28,6 +28,7 @@ async function fixture(display, body, inspect) {
   let release;
   const response = new Promise(resolve => {release=resolve;});
   const react = {...React,
+    useCallback(callback) {return callback;},
     useState(init) {const i=stateCursor++;if (!(i in states)) {const value=typeof init==='function'?init():init;states[i]=value?.job==='전사' && value.nickname===''?{...value,nickname:'뉴월'}:value;}return [states[i],value=>{states[i]=typeof value==='function'?value(states[i]):value;}];},
     useRef(init) {const i=refCursor++;return refs[i]??= {current:init};},
     useEffect(effect) {if(first) effects.push(effect);},

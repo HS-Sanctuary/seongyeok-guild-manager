@@ -1,7 +1,7 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
 import type {StatsCharacter} from '@/lib/irisStats';
-export function DesktopStatsConfirmation({target,characters,job,busy,canConfirm,onConfirm,onSelectCharacter,onCancel,locked=false}:{target:StatsCharacter;characters:StatsCharacter[];job:string;busy:boolean;canConfirm:boolean;onConfirm():void;onSelectCharacter(id:string):void;onCancel():void;locked?:boolean}){
+export function DesktopStatsConfirmation({target,characters,job,busy,canConfirm,onConfirm,onSelectCharacter,onCancel,onChooseOther,locked=false}:{target:StatsCharacter;characters:StatsCharacter[];job:string;busy:boolean;canConfirm:boolean;onConfirm():void;onSelectCharacter(id:string):void;onCancel():void;onChooseOther?():void;locked?:boolean}){
   const root=useRef<HTMLDivElement>(null),[choosing,setChoosing]=useState(false);
   useEffect(()=>{
     const previous=document.activeElement as HTMLElement|null,overflow=document.body.style.overflow;
@@ -27,7 +27,7 @@ export function DesktopStatsConfirmation({target,characters,job,busy,canConfirm,
         {!canConfirm&&<p role="status" className="text-sm">정보가 오래됐어요. 창을 닫고 스탯을 다시 읽어 주세요.</p>}
       </>}
       <div className="iris-stats-confirm-actions" data-choosing={choosing}>
-        {!choosing&&<><button type="button" className="iris-desktop-button" disabled={busy||locked||!canConfirm} onClick={onConfirm}>{busy?'업데이트 중…':'네, 업데이트'}</button><button type="button" className="iris-desktop-button" disabled={busy||locked} onClick={()=>setChoosing(true)}>아니요, 다른 캐릭터</button></>}
+        {!choosing&&<><button type="button" className="iris-desktop-button" disabled={busy||locked||!canConfirm} onClick={onConfirm}>{busy?'업데이트 중…':'네, 업데이트'}</button><button type="button" className="iris-desktop-button" disabled={busy||locked} onClick={()=>{if(onChooseOther){onCancel();onChooseOther();}else setChoosing(true);}}>아니요, 다른 캐릭터</button></>}
         <button type="button" data-cancel className="iris-desktop-button" disabled={busy} onClick={onCancel}>취소</button>
       </div>
     </div>

@@ -4,7 +4,7 @@ import {freshStats,score,statKeys,statsFingerprint,type GameStats,type StatsChar
 import {createStatsTransport} from '@/lib/irisStatsTransport';
 import {DesktopStatsConfirmation} from './DesktopStatsConfirmation';
 const labels={combat_power:'전투력',life_energy:'생활력',magic_resistance:'마도저항',charm:'매력'};
-export function DesktopStats({accountId,characterId,locked,readGame,onSelectCharacter,onBusyChange,onCharactersRead,active=true}:{accountId:string;characterId:string|null;locked:boolean;readGame():Promise<GameStats>;onSelectCharacter(id:string):void;onBusyChange(busy:boolean):void;onCharactersRead?(rows:StatsCharacter[]):void;active?:boolean}){
+export function DesktopStats({accountId,characterId,locked,readGame,onSelectCharacter,onBusyChange,onCharactersRead,onChooseOther,active=true}:{accountId:string;characterId:string|null;locked:boolean;readGame():Promise<GameStats>;onSelectCharacter(id:string):void;onBusyChange(busy:boolean):void;onCharactersRead?(rows:StatsCharacter[]):void;onChooseOther?():void;active?:boolean}){
   const [characters,setCharacters]=useState<StatsCharacter[]>([]),[game,setGame]=useState<GameStats|null>(null),[confirming,setConfirming]=useState(false),[busy,setBusy]=useState(false),[notice,setNotice]=useState(''),[now,setNow]=useState(0);
   const transport=useRef<ReturnType<typeof createStatsTransport>|null>(null),generation=useRef(0),inflight=useRef(false),alive=useRef(false);
   const target=characters.find(c=>c.id===characterId);
@@ -37,7 +37,7 @@ export function DesktopStats({accountId,characterId,locked,readGame,onSelectChar
     <section className="iris-stats-card"><h2>생텀 데이터 스테이터스</h2><p className="text-sm">{target?`${target.nickname} · ${target.job}`:'캐릭터를 선택해 주세요.'}</p><StatsList stats={target?.stats}/></section>
     <div className="iris-stats-actions"><button type="button" className="iris-desktop-button" disabled={busy||locked} onClick={()=>void load()}>{busy?'조회 중…':'스탯 재조회'}</button><button type="button" aria-haspopup="dialog" className="iris-desktop-button" disabled={busy||locked||!target||!game||!freshStats(game,now)||!change} onClick={()=>setConfirming(true)}>↑ 생텀 DB에 업데이트</button></div>
     {game&&!change&&<p className="text-sm">읽은 스탯과 생텀 값이 같아요. 저장할 변경이 없어요.</p>}
-    {confirming&&target&&game&&<DesktopStatsConfirmation target={target} characters={characters} job={game.job} busy={busy} locked={locked} canConfirm={freshStats(game,now)&&!locked} onConfirm={()=>void save()} onSelectCharacter={id=>{setConfirming(false);onSelectCharacter(id);}} onCancel={cancelConfirmation}/>}
+    {confirming&&target&&game&&<DesktopStatsConfirmation onChooseOther={onChooseOther} target={target} characters={characters} job={game.job} busy={busy} locked={locked} canConfirm={freshStats(game,now)&&!locked} onConfirm={()=>void save()} onSelectCharacter={id=>{setConfirming(false);onSelectCharacter(id);}} onCancel={cancelConfirmation}/>}
     <section className="iris-stats-card"><h2>실제 인게임 스테이터스</h2><p className="text-sm">{game?`${game.job} · 캐릭터 레벨 ${game.level??'미확인'}`:'아직 게임 정보를 읽지 않았어요.'}</p><StatsList stats={game?.stats}/>{game&&<p className="text-sm">조회: {new Date(game.observedAt).toLocaleTimeString('ko-KR',{timeZone:'Asia/Seoul'})}{!freshStats(game,now)&&' · 오래된 정보예요. 다시 읽어 주세요.'}</p>}</section>
     {notice&&<p role="status" className="text-sm">{notice}</p>}<p className="text-sm">누락된 값·클래스 레벨·길드공헌도는 업데이트하지 않아요. 자동 저장은 하지 않아요.</p>
   </div>;

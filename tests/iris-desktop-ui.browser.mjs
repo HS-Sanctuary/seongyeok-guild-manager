@@ -146,7 +146,7 @@ try{
   }
   await page.setViewportSize({width:320,height:260});
   await page.evaluate(()=>{window.fixtureCloseFailure=true;window.dispatchEvent(new CustomEvent('iris-desktop-close'));});
-  await page.getByRole('button',{name:'보관하고 종료',exact:true}).click();
+  await page.getByRole('button',{name:'이 PC에 보관 후 종료',exact:true}).click();
   await page.getByText('보관 또는 종료 연결에 실패했어요.',{exact:false}).waitFor();
   assert.equal(await page.getByRole('dialog').evaluate(e=>{const b=e.getBoundingClientRect();return b.top>=0&&b.bottom<=innerHeight;}),true,'Fitted HUD clips storage-failure recovery');
   await page.getByRole('button',{name:'손실 가능성을 확인하고 종료',exact:true}).focus();
@@ -161,7 +161,7 @@ try{
   }
   await page.setViewportSize({width:1280,height:800});await page.evaluate(()=>{document.documentElement.style.fontSize='20px';document.documentElement.dataset.theme='aureum';});
   await page.getByRole('button',{name:'설정',exact:true}).click();
-  assert.equal(await page.getByRole('heading',{name:'Appearance',exact:true}).count(),1,'Addon settings missing');
+  assert.equal(await page.getByRole('heading',{name:'테마 선택',exact:true}).count(),1,'Addon settings missing');
   assert.equal(await page.getByText('게임 창에 붙이기',{exact:true}).count(),1,'Dock setting missing');
   assert.equal(await page.getByRole('button',{name:'클릭 통과 켜기',exact:true}).count(),0,'Overlay-only click-through setting must be absent');
   await page.getByRole('button',{name:account.nickname+' · 계정',exact:true}).click();

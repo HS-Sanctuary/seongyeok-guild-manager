@@ -1,5 +1,49 @@
 # 순월 → 영겁 수신함
 
+## SW-20261012-001 — UPDATED (사무실 로컬 후보)
+
+- 최종 후보 tree 검증455중452PASS/3skip·tsc·격리webpack58 exit0·diffcheck PASS, 20:53 KST 승인 변경만 commit/main 일반push 준비. 개인3영역 제외·보존; 운영상태는 후속 명시한다.
+
+- 20:20 재개 후 최신: 메인 숙제카드15초 저장 구현/즉시 연속체크·flight중 새 입력/되돌림·캐릭터별 baseline·수동 재시도/실패 보존, 모든 홈 이동·계정 인증 지연 전체 잠금. 선택적 기간 metadata admission/read후/write전 재검·기존merge/CAS·DBschema/RLS변경0. 실제React 합성/관련24·tsc·격리webpack58 PASS, 동일 리뷰 후속 Important잔여0. native 실제old0.2.2→new0.3.0 offline EXE/helper/WebView 교체/보호해시PASS. 아래 미구현/남음은17시 당시경과다. 현재 commit/push/운영/게시미완료, final후속에SHA·Vercel결과·ZIP·게시ID명시 예정. Vercel403/UI로그인필요 우회0, GitHubVercel commit status읽기 가능. 개인dirty/미ACK이력보존.
+
+- 최신 추가 요청: SANCTUM 메인 Kronos Check Board 카드도15초묶음저장으로 변경/이번공식push·생텀공지포함. screenshot/코드 app/page.tsx371 handleToggleTask: saving전역lock으로다음체크막고매클릭POST하는원인확인. **아직수정0**, 20:20 heartbeatiris-sanctum prompt에추가update성공/일정유지. 연속체크즉시표시·최종입력15초·여러캐릭터/계정격리·저장중추가입력/실패보존·수동저장/이탈경고·기존길드버스동기화/서버동시수정방어 유지, 상세크로노스helper/API재사용부터검토. 이전마감과제를대체하지않고함께처리한다.
+
+- checkpoint시험최종정정: updaterprocess sandbox --prepare실패는escalated동일own임시시험success/crash/recover 모두PASS로해소, session22075실패종료/대기시험없음. 내부RELEASE_NOTES에v2.31/IRIS0.3.0준비후보/되돌리기fb607e0·dpl_DP47.../검증·제한·**운영push/게시미완료**를기록했다. live old0.2.2→new0.3.0trial/최신좁힌finalreview1회/commit/mainFFpush/Ready/운영/게시2건은20:20재개첫과제. 리뷰스킬·템플릿은읽었으나dispatch아직0. 개인파일/이전미ACK보존.
+
+- 공식 마감 승인/예약: 한설이 이번 전체 구현·검증·정상 main push·운영 배포·최신 IRIS ZIP 및 SANCTUM/IRIS 업데이트 글 각각 게시를 승인했다. 예약 heartbeat `iris-sanctum`은 오늘 KST20:20 1회, 한설은 사무실 PC/Codex 켜두고 간다고 확인. 17시경 사용량96%(4%잔여)로 안전한 checkpoint 후 예약에서 미완료만 이어간다. push/Ready/게시완료로 보고하지 않는다. 게시용 초안2개는 docs/UPDATE_POST_SANCTUM_v2.31.md, docs/UPDATE_POST_IRIS_0.3.0.md; 중제목·따뜻한 문체·작성자 SANCTUM 시스템·기존IRIS 제목분류, Ready/운영확인 뒤각1회.
+- 현재 최종후보: v2.31/IRIS0.3.0, 위치고정 compact panel600(아래남은높이제한)/독립expanded640·메뉴별자동높이금지, fullscreen 수동이동 후dockSide보존/일반창compact도좌우재연동. 투명도30~100 로컬기억/nativebridge검증, Appearance→테마 선택. Header패널은기존owner내absolute/버튼정렬/header전체아래/viewportclamp;resize/scroll/observer정리. nativeaddon82/grip22/bridge·실pageopacity30reload/글꼴/접기/5폭웹패널 PASS, Node443/440PASS/3기존skip, 독립tsc/격리webpack58 PASS. 대상lint0오류/날개기존imgwarning1. 공개ZIP527716 SHA2dfda82795e997415173b87c2359d3550465d8a1564cf049c51b3bdf7306bcdd 준비. release-package absolute인수 재실행allowlist/hash/unsigned PASS, updater정책은sandboxFile차단 후escalated PASS. update-process 시험session22075 결과확인필요, 실제0.2.2→0.3.0 offline 교체trial/마지막좁힌리뷰/native재실행/공식문서·commit/push/Ready/운영확인/게시2건 미완료. 사용자 정상종료 확인2회, 강제종료 금지.
+- 원격fetch/pull 인계브랜치up-to-date, origin/main fb607e0는HEADd72f218 조상0/4. 승인diff만commit 후main정상FFpush 가능, 개인푸시풀명령어/public recruitment/옛plan 제외. 연결된Chrome production탭745886768 관측만, CUA getState 초기화済. 직접세션추출/DB게시우회금지. Vercel listteams []·CLI gh 없음, 배포 list_deployments 프로젝트sanctum/team slug sanctum-sanctuary 또는기존연결목록으로ReadOnly확인해야함. 운영DBschema/RLS/삭제/게임행동/보안변경0. 기존미ACK/dirty보존.
+
+- 실제 피드백 후속: 게임 화면 아래 넘침에서 addon top만 위로 이동하던 docking을 visible vertical segment로 수정; 모든 모니터 밖 게임은 IRIS만 숨김/비활성 복원(직접 숨김/연동 끔/종료 확인/unknown frame 보존). 설정·클래스에서 □ 접기 및 자동 fullscreen 접기 회귀를 RED→GREEN 수정: compact 진입 설정 닫힘, expanded만100dvh, 닫힌패널 contentHeight 폐기/늦은측정 revision 방어. addon81/grip20/presentation/WebView/startupclose/실page 합성 manual·auto 접기/전체Node439PASS·3skip/types/대상lint/diff PASS. 정상종료 후 새 Development PID9872 실행, 시작/실게임 확인 후속. 이번 추가는 웹build/패키지 재생성0, DB/게임HWND제어/commit/push/배포/버전0. 이전 미ACK와 개인dirty 보존.
+
+- 누적최신 — 한설실행계획직접진행승인. 설치font자동목록/검색/캐시·□compact/autoFullscreen/실제regionround·알림4종/기본ON개별음소거/자가벨·캐릭터카드연필/대표/추가/수동선택통일을구현. 기존ownerless legacy읽기전용보존/CAS/대표postread, 신규schema/RLS/운영시험쓰기0. 이전‘미구현/검토대기’는당시경과로유지.
+- 마지막fresh reviewer1회만사용, 종료/늦은추천과편집modal중첩·legacy선택유실·storagegetterCrash를재현수정. 추천카탈로그stale를important로재분류해메타변경후1회갱신. 실제센터old pointerdown충돌/깨진제보응답/320px clipping까지RED→GREEN. fullNode442/439PASS/3기존skip,독립types/대상lint/diff,격리웹/nativebuild PASS; nativeaddon75/grip19/fonts/presentation/silentbell/bridge/WebView/startupclose,합성browser21폭pt×6테마·실pagefont/compact/늦은추천/카드0/1/6/100/종료취소/제보/토글/차단storage PASS. broad Synaxis기존lint부채는별도.
+- 한설정상종료확인후Development PID27456 새실행/Responding true·stderr0/중복0. 실제게임fullscreen복귀/최소화/다른앱·desktop/round/소리 확인대기. 운영v2.3/Beta0.2.2/공개ZIP/commit/push/배포변경0. HANDOFF최신항목과4계획참조. 사소한보류2: 구native접기오류문구표시, font방향키option스크롤·강조. 로컬미커밋증거scratch는보존하고개인dirty/기존미ACK누적삭제0.
+
+- 추가승인요구: 설치글꼴자동목록·콘텐츠소리ON/OFF/짧은벨·실제둥근모서리. 스펙갱신과4세부실행계획/색인 `docs/superpowers/plans/2026-10-12-iris-update-bundle.md` 작성·자체검토. 직접순차Native권장·추가agent0·native재시작묶기. 설치목록최초1회/새로고침캐시,고정bridge/epoch·실제음소리시험0,대표clear/set비원자한계·모서리resize/모달높이등명시.
+- 현재는실행계획사용자검토/방법선택대기,새4기능구현0·DB/버전/패키지/commit/push/배포0. 기존완료후보/미ACK/개인dirty를보존했다. “업데이트하자”를공식Gitpush/배포승인으로해석하지않음.
+
+- 최신: 바탕화면click가림회귀→Progman/WorkerWyield제외 및 desktop게임layer유지. 실제WorkerWtopmost·일반Z순서예외 실측/native75 PASS. 6~22pt themedselect/기존18·20·22px호환·로컬폰트기본/3개/직접80자/다운로드0·큰글자재배치. 전체Node427/3skip·tsc/lint/diff·native75/grip13/bridge·실page12조합/font/reload PASS. 정상종료후PID25212시작stderr0/응답, 핵심desktopfix포함/invalidHWND보호1줄은후속재시작반영. 실제desktopclick확인대기, 버전/DB/배포없음.
+- 신규3묶음 요청은 docs/superpowers/specs/2026-10-12-iris-compact-alerts-character-design.md 설계후보: □축소/전체화면auto, 알림4종·기본ON/로컬토글/SVG모달/기존제보, 카드연필/대표/추가1카드/추천수동선택통일. 아직구현0·설계확인대기. CLIcapabilities실측구멍출현직접조회없음. 홈심층00/30은초기화·어비스기본주기는예상, 확정출현단정금지. 기존reports/member-mutations와is_main조사·DB쓰기0. 기존미ACK/개인dirty누적보존.
+
+- 최신 사용자 확인: 한설이 이전 메뉴 “정상복구 확인완료”를 전달했다. 후속 □축소 버튼/최대화·전체화면 자동 축소/축소 메뉴의 임시 펼침 요청은 설계 제안 단계, 아직 구현/승인 설계 확정/배포 아님. 이전 외형 확인 대기 기록은 당시 경과로 보존.
+
+- 추가 한설 방향 변경: 그룹 기능선택 드롭다운을 원하지 않아 기존7개 상시 버튼(숙제/클래스/스탯/재화 + 물물교환/상점구매/임무게시판 4+3줄) 복원, 상위크로노스/시낙시스 높이2.4→1.75rem. popup만 제거/hidden 본문·초안/계정잠금/재선택무조회 유지. 과거 드롭다운 승인/구현 기록은 보존하되 최신DECISIONS 우선.
+- UI23·전체Node424/3skip·tsc/lint/diff·실React21폭글자×6테마/7선택/잠금/클래스초안 PASS, 캡처 눈확인. 첫 browser commit 전 단언은 DOM대기로 수정 후PASS. 공유 feature helper/기존navigation 선택자도 변경했지만 navigation 전체실행은 안 함. 개발HMR 반영/실사용외형대기, native 재시작/버전/DB/패키지/배포 없음. 기존 후보/개인dirty·미ACK 보존.
+
+- 승인 추가: 실게임→Codex 클릭 시 IRIS 잔류. NOTOPMOST 일반창 최상단 계약/실제 합성창 RED 확인, sameLayer 활성 때 자신의 HWND만 다른 foreground 뒤로 배치. 이미 non-topmost 재상승/옵션해제/초점·게임 창 불변 포함native70 PASS. 게임 복귀raise 유지.
+- 종료 이름/설명은 DB저장 대 PC보관, 미저장없음 단일 종료(기존 save 안전 경계), store/close 실패 복구 유지. 전체Node423/3skip·tsc/lint/diff·종료합성9·grip13/bridge PASS; sandbox Edge 시작실패 뒤 승인 시험PASS. 첫수정PID12444 정상시작 이후 한설 정상종료/최신PID680 시작stderr0·응답 확인. 실제 가림/복귀 사용자 확인 대기. 기존 미ACK/개인dirty·미커밋/미푸시·버전/운영 유지.
+
+- IRIS 후속: 한설의 간헐 추천/최소화 및 수동폭/글자 개선 승인. 비교 기준을 미확정 후보로 대체하던 pause/remount 경계·장시간 숨김 seed 경계, frame 누락 시 최소화 무시를 재현/수정했다. 계정 내부 역사 기준은 비교용이며 새 신선한2회/네 재조회/수동 선택·주기DB 증가0 유지.
+- 양쪽 native5px 가장자리360~720 폭/별도width파일 기억, 도킹/자동높이 선택폭 보존. 설정18/20/22 IRIS 환경별 기억, RootLayout desktop resize 글자초기화 제외, 24rem상한 제거/큰글자 좁은숙제1열. native61/grip13/bridge/WebView·관련26/전체Node/타입/대상lint/build57·합성추천18/폰트폭12 통과. 과거 browser계정 selector3곳 수정 후 관련18재검증, 전체browser완료 주장은 하지 않는다. 실제 간헐 문제 전체 원인 실측/새 native 실사용/DPI는 정상 종료·재실행 뒤 사용자 확인 대기.
+- 현재 PID16040은 이전 native 실행. 새 native를 강제로 덮어 실행하지 않는다. 기존 웹15초/개인dirty 보존, 미커밋·미푸시·버전/패키지/DB/운영 배포 없음.
+
+- 순월 수신: `codex/iris-checkboard-classes` HEAD `d72f218`, YG-20261008-001 ACK를 기록했다. 사무실 개인 변경을 보존했고 기존 메뉴를 다시 구현하지 않았다.
+- 한설 승인으로 웹 크로노스 저장을15초/지금 저장/미저장 수·실패 보류·이동 보호로 변경. 스냅샷 단일 진행/최신 변경 병합, 상점·임무 합산·실패 후 서버 재조회로 중복 delta 방지. 메모는 기존 별도 저장. 운영 응답 지연은 실측하지 않았으므로 서버 속도 해결로 보고하지 않는다.
+- 신규7건·전체Node·타입·새 helper/Workspace lint·최종분리webpack57·실제페이지 합성15초/수동/경합/실패/유실/이동/4폭 통과. 기존 페이지 lint채무는 보존, 실제 로컬 사용자/운영 체감은 대기. 강제 브라우저 종료 영구 복구는 없다.
+- 개발 IRIS 정상 실행 PID16040/로컬200/시작stderr0, 메뉴·게임 실확인 대기. 변경은 미커밋/미푸시; DB/API/권한·새버전·배포 없음. 다음은 현재 후보 사용자 확인 후 읽기HUD 설계·조회 계약 검토. main 통합은 별도 승인 경계다.
+- ACK: 대기.
+
 ## SW-20261008-002 — ACKNOWLEDGED (실게임 확인 대기)
 
 - ACK — 영겁, 2026-10-08 20:21 KST: 최신 릴레이/핸드오프와 애드온 바 설정·창 정책·재화 강조·RAM 제거·검증 제한을 확인했다. 집 HEAD와 실제 원격main은 모두224eb6f816585fe083da958e63aeec6e458f4f97이며 아래 미푸시 표기는 작성 당시 상태다. 실게임 위치/최소화/종료/DPI 및 최종 빌드 환경 확인은 미완료로 유지한다. 이번 ACK는 로컬 기록이며 다음 공식 push에 포함한다.

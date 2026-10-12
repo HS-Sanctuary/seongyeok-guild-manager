@@ -1,5 +1,57 @@
 # 🏛️ SANCTUM Master Guide
 
+## 2026-10-12 — 메인 Kronos 15초 묶음 저장 구조
+
+- app/page→useHomeChecklistAutosave→homeChecklistAutosave의 캐릭터별 baseline/의도/version/단일 flight, 기존 memberMutationClient→member-mutations→mergeChecklistEdit/CAS. 승인 응답의 실제 값만 ACK하며 전송 후 입력은 유지한다. Board는 즉시 overlay·수동 저장/카운트다운/실패 상태, 홈 모든 widget router와 파티 참가 버튼은 navigate flush를 거친다.
+- pageSaveGuard의 before-account 이벤트는 모든 pending drain 후 인증을 시작하고 홈 편집 잠금을 새 화면/세션까지 유지한다. 저장 준비 실패만 abort 이벤트로 해제, 불명확 인증 결과는 Layout 재조회(reload). beforeunload/링크/popstate 보호는 강제 종료 복구를 보장하지 않는다.
+- 서버 선택적 _checklistPeriods는 UI가 캡처한 daily/weekly 기간을 진입/조회 후/갱신 직전 비교한다. 기존 인증·owner 범위·길드버스 병합/CAS 유지. DB 구조/RLS 변경 없음, DB 자체 기간 원자성은 기존 제약이다.
+
+## 2026-10-12 — v2.31/IRIS0.3.0 최종 후보 구조 (배포 전)
+
+- hooks/useHeaderPanelPosition: Navbar data-sanctum-header와각패널data-header-panel, 기존owner안의absolute좌표를ResizeObserver/windowresize·scroll에서requestAnimationFrame1회로갱신·정리. 계정/NotificationInbox/SpiritWingsMenu 공통사용, 기존Esc/바깥클릭 유지.
+- desktop native: ApplyAnchoredBounds는compact패널600/아래공간제한·top유지. expanded독립창은640초기높이로본문별자동맞춤을중지. tracker의compactPlacement는fullscreen에서만독립처리, 일반창은Place(matchGameHeight=false)로도킹상태/실제좌우를복원. fullscreen drag는side설정을지우지않는다.
+- 기존overlay.opacity 고정bridge범위를30~100으로확장/실제ownalpha만변경. irisAppearance 환경별opacity기억→useDesktopAppearance→page의100msdebounce·직렬native적용; 테마선택/투명도slider. protectedqueue·인증·게임HWND·DBschema/RLS 변경없음. 공개ZIP는Beta0.3.0후보이며Ready/운영검증후최종상태를기록한다.
+
+## 2026-10-12 — IRIS 화면 밖 연동·접기 높이 후속
+
+- AddonWindowPolicy.Place는 게임의 보이는 세로 구간으로 위치/높이를 계산한다. Tracker.FollowGameVisibility는 모든 모니터 밖 게임에 대해 소유 IRIS만 숨김/복원하며 직접 숨김·연동 끔·종료 확인을 구분한다.
+- DesktopPage compact 진입 시 설정 닫음, classes 100dvh는 expanded에만 적용. DesktopWebView는 패널 닫힐 때 측정 높이를 폐기하고 layoutRevision으로 늦은 이전 측정을 거른다. 기존 bridge/보호 대기함/API/DB 구조 변경 없음.
+
+## 2026-10-12 — IRIS 글꼴·presentation·알림·캐릭터관리 로컬 후보 구조
+
+- `DesktopInstalledFonts`→fixed `window.fonts.list/refresh`→store exact parser→page owner `useDesktopFonts`→`DesktopFontPicker`. 이름만캐시/검색, 파일업로드·다운로드0. `useDesktopAppearance`의 IRIS 로컬font는main과포털dialog에만적용하고route해제시CSS변수를정리한다.
+- `DesktopPresentationState`/별도window-presentation-v1 로컬파일→`window.presentation.state/toggle/panel`/epoch event→`useDesktopPresentation`→Titlebar□/Center hidden 유지. Tracker는read-only 최대화/모니터frame으로관측, compact높이는게임높이와분리/패널임시높이. WebView폼Region은GraphicsPath로크기/DPI변경시소유자원정리하며갱신한다. 기존addon 상태와protectedQueue 형식은그대로.
+- `sanctumEventTimes`는홈과IRIS KST 규칙공유. `irisContentAlerts` 설정/once tracker, `useDesktopContentAlerts` 단일page owner의bounded조회/2Realtime구독/로컬초시계, `DesktopContentAlerts/Report/AlertModal`은기존SVG/FocusDialog/명시적reports POST. `DesktopAlertSound` 고정자가WAV→`window.alert.sound`, browser가URL/파일/볼륨을전달할수없음. 크로노스하위8개버튼(4+4,좁거나큰글자는2열).
+- `/api/iris/character-management` GET/POST + `irisCharacterManagement` 서버/클라이언트 검증; existing `characters`(id/owner/nickname/job/is_main)와활성 `nexus_classes`만 사용. Controller는기존큐save/drain/reconcile 뒤메타변경하고directory/selected를갱신,legacy읽기전용행을보존한다. `DesktopCharacterPicker/Editor`는실제카드+추가1카드/연필/대표, 모든실제추천수동선택과스탯확인other는단일선택창으로연결. metadata변경에만추천목록1회재조회.
+- page는picker/report/추천/종료의modal 우선순위·busy를연결, 종료확인취소에초안이복귀한다. DB스키마/RLS/권한/게임행동/운영배포 변경없음; 대표clear/set는cross-client원자성없으며현재값postread/부분실패로방어한다. 이 항목은미커밋로컬후보이지production완료표시가아니다.
+
+## 2026-10-12 — IRIS 로컬 폰트/바탕화면 경계 후보
+
+- DesktopGameWindowTracker는 Progman/WorkerW/desktop root를 일반앱 yield 대상에서 제외하고 게임같은층을 유지한다. 다른앱은 여전히 뒤로 이동. 시스템배경/게임/다른창은 수정하지 않는다.
+- irisAppearance/useDesktopAppearance/설정은6~22pt를px로환산한 기존font키에 기억(이전18/20/22px호환), font-family별도환경키/80자설치이름검사. DesktopPage main fontFamily만 적용하고웹전역변경없음, RootLayout은IRIS폰트dataset를웹이동시정리. CSS큰글자 메뉴2열/숙제1열. DB/API/nativebridge/운영버전변경없음.
+- 축소바/알림/캐릭터관리 새구조는 현재설계후보이며 실제구조도에 구현완료로 넣지 않는다. 기준은docs/superpowers/specs/2026-10-12-iris-compact-alerts-character-design.md.
+
+## 2026-10-12 — IRIS 상시 하위 버튼 복원 로컬 후보
+
+- `DesktopFeaturePicker.tsx`는 드롭다운/effect 없이 기존7개 기능을 4+3 두줄에 상시 표시한다. `DesktopCenter`의 featureOpen만 제거, contextPanelOpen 잠금/본문hidden·초안 유지. desktop.css의 하위7버튼과 축소 상위버튼은 rem/테마 기반. 사용자가 인계 드롭다운을 거부해 기존 버튼형으로 복원한 결정이며 기능/저장/API/DB/native 변경 없음.
+
+## 2026-10-12 — IRIS 창 순서/종료 설명 로컬 후속
+
+- `DesktopGameWindowTracker.ApplySameLayer`는 NOTOPMOST 해제 후 다른 foreground 창보다 앞에 있는 자신의 HWND만 뒤로 배치한다. `IsAbove`는 실제 Z-order를 제한 순회한다. 게임/다른 앱 창·초점/geometry 변경 없음, sameLayer 해제·작업표시줄/종료·기존 복귀raise 유지.
+- `DesktopCloseDialog`의 `hasPending`을 DesktopPage가 현재계정 큐/invalid draft에서 계산. DB저장/PC보관 이름·설명 제공, clean은 기존save 경계를 사용하는 단일 종료. store/close 오류는 복구 선택 유지. API/DB/보호store·native bridge 메서드/버전·패키지 변경 없음.
+
+## 2026-10-12 — IRIS 수동 폭·글자와 감시 경계 로컬 후보
+
+- `irisCharacterSwitch.baselineObservation`/`DesktopCharacterWatch`: 후보 관측 대신 계정 세션의 비교 기준을 보존하고 장시간 숨김 후 역사 기준을 허용한다. 실제 추천은 새로운 신선한2관측을 요구한다. 자동DB 쓰기·새 주기DB 조회 없음.
+- `GameWindowSession`/`DesktopGameWindowTracker`: frame 읽기와 최소화 결정을 분리, 수동 표시 복귀 후 최소화 재적용. `AddonPreferencesFile`은 기존 창 설정과 별개인 `window-width-v1.json`을 엄격히 저장/로드한다. `DesktopWebView` 양쪽 네이티브5px resize edge와360~720 폭/재실행 복원, fit/dock은 사용자 폭 유지.
+- `irisAppearance`/`useDesktopAppearance`/`DesktopAddonSettings`: 환경별18/20/22 font 저장·root 적용. `RootLayout`은 IRIS font의 소유권을 넘기고 웹 이동 시 기존 전역 기준을 다시 적용한다. desktop CSS의 가변 폭/큰글자 좁은 숙제1열. DB/API/브리지 메서드/패키지·버전 변경 없음.
+
+## 2026-10-12 — 웹 크로노스 15초 저장 로컬 후보
+
+- `lib/kronosAutosave.ts`: 마지막 수정 후15초·최신 snapshot 단일 진행·명시 flush·미저장 leaf 수·실패 보류·진행 중 새 수정/되돌림을 관리한다. 페이지 세션 메모리만 사용하며 영구 보호 큐를 새로 만들지 않는다.
+- `/character`: 기존 mutation/checklist 병합 경로에 미저장/저장/오류 때만 나타나는 우측 상단 반투명 패널·지금/다시 저장·로딩/전환 잠금·링크/뒤로 이동 전 flush·beforeunload 경고를 연결한다. 기능 필터 버튼은 고정 최소 높이 없이 작은 세로 여백을 쓴다. 캐릭터 관리창도 기존 변경을 먼저 저장한다. 공유 교환 dirty ID는 전체 관련 쓰기 성공 뒤 해제한다.
+- `KronosWorkspace`: 상점/임무 count·즐겨찾기를 동일 autosave 정책에 등록하고 페이지 합산 상태/flush에 참여한다. delta 결과 유실은 수동 retry 전에 기존 GET으로 재확인한다. 메모는 기존 별도 저장, API/DB/RLS/native/권한 구조 변경 없음. 운영 반영·새 버전은 아직 없다.
+
 ## 2026-10-12 KST — 순월 인계 브랜치 공유
 
 - 이번 인계 문서 후속은 **구조 변경 없음**. `docs/IRIS_SOONWOL_HANDOFF.md`에 수신 안내를 추가하고 기존 릴레이에 푸시 승인 범위를 누적했다. 아래 탐색 후보는 main에 통합하지 않은 개발 브랜치다. 운영 SANCTUMv2.3/IRISBeta0.2.2·API/native/DB/RLS/보호 기록은 그대로이며 미래 HUD 구현/공개 배포는 별도다.

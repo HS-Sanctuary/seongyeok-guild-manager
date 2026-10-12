@@ -28,7 +28,7 @@ namespace IrisDesktop {
                     web.NavigateToString("<html><body style='background:#223344'><button>WebView child</button></body></html>");
                     await Task.Delay(700);
                     Check(overlay.ShortcutsAvailable,"Both shortcuts must be available for native fixture (close competing IRIS manually)");
-                    Check(!overlay.SetOpacityPercent(49)&&!overlay.SetOpacityPercent(101),"Invalid opacity accepted");
+                    Check(!overlay.SetOpacityPercent(29)&&!overlay.SetOpacityPercent(101),"Invalid opacity accepted");
                     Check(overlay.SetOpacityPercent(50)&&overlay.SetOpacityPercent(100),"Bounded opacity rejected");
                     Check(overlay.SetClickThrough(true),"Click-through failed");
                     if(!skipClick){
