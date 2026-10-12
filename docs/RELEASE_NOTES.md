@@ -4,6 +4,8 @@
 
 ### 운영 확인과 게시 완료 — 21:11 KST
 
+- 21:23 KST 후속 배포 복구: 인계 문서 커밋9cfcfb222ee7734d7d8aae0d75e0b3a1bac2b004의 첫 Production dpl_AbKLQpbzhfgmajDmPxFZzabd7ssN은 git_info_fail로 ERROR였다. 기존 정상 제품 배포/공개0.3.0는 유지됨을 확인했고, 같은 프로젝트/같은 커밋을 설정 변경 없이 정상 재배포했다. dpl_6W4wLEF8k1CBbwjBXEku8Zv2ChUg **READY·동일SHA·Production·공식 도메인 aliasError null** 확인. https://vercel.com/sanctum-sanctuary/sanctum/6W4wLEF8k1CBbwjBXEku8Zv2ChUg . 상세 build log403/CLI없음은 미확인 제한이며 인증 우회0. 코드/ZIP/공지 변경 없이 복구, 이 기록은 구조 변경 없음.
+
 - 게시 분류 후속: 기존 엄격한 IRIS 제목 계약에 맞춰18번 제목만 ‘IRIS Beta 0.3.0 출시!’로 정상 수정 UI에서 정리한다. 공지 분류 코드/DB유형 확장 없음·본문/중제목 유지·중복 생성0. 단일 예약 iris-sanctum은 앱 도구로 PAUSED/저장 상태 확인, 완료 작업 반복 금지.
 - 제목 수정 후 실제 운영 `/kerygma?note=iris` 재로드에서 **IRIS Beta0.3.0 최신 글18/시스템 작성자/본문4중제목** 자동 연결 확인. 이전16번으로 열리던 준비 단계는 해소됐으며 이 결과까지 마감 인계한다.
 

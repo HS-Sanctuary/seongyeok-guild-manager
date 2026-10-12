@@ -2,6 +2,8 @@
 
 ## 2026-10-12 — v2.31 / IRIS0.3.0 공식 적용
 
+- 후속 문서9cfcfb2의 Git정보조회 배포 오류는 같은 커밋 정상재배포 dpl_6W4wLEF8k1CBbwjBXEku8Zv2ChUg READY/공식domain 연결 확인으로 복구했다. 코드/패키지·구조 변경 없음. 정확한 실패/복구 경과는 RELEASE_NOTES/HANDOFF에 있다.
+
 - 제품 커밋 d70b0e5·Production dpl_GwtYnzwu2YndBELvBR9TgB98Eitk READY·실제 운영 표시/ZIP 확인, 공지17(생텀)/18(IRIS) 정상 UI 게시 완료. 아래 새 구조는 운영 적용됐다. 이번 마감 문서 후속은 구조 변경 없음·제품 버전 유지/DB스키마·RLS 변경 없음. 실제 게임/다른 DPI 사용 확인은 HANDOFF 첫 과제다.
 
 ## 2026-10-12 — 메인 Kronos 15초 묶음 저장 구조

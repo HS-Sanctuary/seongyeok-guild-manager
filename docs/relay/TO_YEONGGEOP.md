@@ -2,6 +2,8 @@
 
 ## SW-20261012-001 — UPDATED (공식 배포·게시 확인)
 
+- 21:23 복구 후속: 인계문서9cfcfb2 첫배포 dpl_AbKL... git_info_fail ERROR→운영0.3.0유지확인→같은프로젝트/커밋·설정으로정상재배포 dpl_6W4wLEF8k1CBbwjBXEku8Zv2ChUg READY/Production/정확SHA9cfcfb222ee7734d7d8aae0d75e0b3a1bac2b004/공식aliasErrornull 확인. 상세로그403/CLI없음 미확인·우회0. 제품코드d70b0e5/ZIP/게시2건 유지·이번기록구조변경없음/복구뒤공지재게시0.
+
 - 마감 예약iris-sanctum PAUSED 저장확인/다시실행금지. IRIS분류는 정확한 ‘IRIS Beta x.y.z 출시!’ 계약이므로18번 제목만 ‘IRIS Beta 0.3.0 출시!’로 기존 정상수정UI에서맞춤/본문4중제목보존·새글0. 이전‘IRIS 제목분류’ 단정은 최종이확인으로보완한다.
 - 최종 운영 `/kerygma?note=iris` 재로드가최신글18/0.3.0을자동표시함을확인했다. 이전16번과새18번을중복게시로혼동하지말것. 인계일반push뒤제품코드재변경/새ZIP/새공지0.
 
