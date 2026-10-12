@@ -1,5 +1,16 @@
 # SANCTUM 작업 인계
 
+## 2026-10-12 순월 — 공식 push·운영 배포·공지 2건 마감
+
+- 예약 iris-sanctum은 완료 후 앱 도구로 PAUSED 전환/저장 상태 확인했다. 같은 작업 재개·중복 게시하지 않는다. 기존 IRIS 분류는 정확한 ‘IRIS Beta x.y.z 출시!’ 제목만 허용하여18번 제목을 ‘IRIS Beta0.3.0 출시!’(실제 공백 포함 표준형)로 정상 수정 UI에서 맞췄다. 본문4중제목 유지·추가 글 생성0.
+- 최종 `/kerygma?note=iris` 재로드에서 최신 글18/IRIS0.3.0 자동 연결·작성자·본문 확인 완료. 이전16번은 과거 출시 기록으로 남는다. 공개 공지 재게시/추가 제목 변경 필요 없다.
+
+- 제품 코드 d70b0e52f446747ceb1e385a63375baee7c087a3 main/인계 브랜치 일반push·원격일치. Production dpl_GwtYnzwu2YndBELvBR9TgB98Eitk READY/동일SHA, 실제 운영 Chrome 메인/상단3패널·상세크로노스·다운로드 확인. SANCTUMv2.31/IRIS0.3.0, 공개ZIP527716/SHA2dfda82795e997415173b87c2359d3550465d8a1564cf049c51b3bdf7306bcdd 일치. 필수8GET200. 최종 문서 후속은 제품 코드/버전·구조 변경 없음.
+- 공지 게시 완료: SANCTUM시스템 생텀업데이트 글17(v2.31) / 글18(IRIS0.3.0), 정상 Chrome 관리자 작성 UI·중제목3/4구역·상세 내용 눈 확인·각1회·중복 없음. https://sanctum-tawny-three.vercel.app/kerygma?id=17 / https://sanctum-tawny-three.vercel.app/kerygma?id=18 . 이전 ‘게시 미완료’는 경과이며 다시 게시 금지. 공지 외 운영 숙제/캐릭터 시험쓰기0·DBschema/RLS·게임행동·보안우회0.
+- **집 영겁 첫 순서:** 개인 dirty부터 확인하고 정상 `git pull --ff-only origin main` 후 이 최신 항목/릴레이를 읽고 ACK한다. 아이리스를 켜고 실제 게임 최대화 자동 작은 바·클래스 메뉴 위치 유지/패널 내부 스크롤·일반 창 복귀 왼쪽/오른쪽 도킹·실제 최소화/복원·다른 앱/바탕화면을 확인한다. 실제 벨/글꼴·30~100투명도·재실행 기억·다른 DPI도 사용자와 확인. 이후 홈 두 캐릭터 연속 체크/15초·저장중 입력·실패 재시도는 사용자 실제 이용 때 확인(시험 임의 기록쓰기 금지).
+- 사무실 Development 새 소스1회 실행 PID23852/Respondingtrue/stderr0. 공개 ZIP 업데이트 준비·실제0.2.2→0.3.0 EXE/helper/offline WebView 교체/보호해시 시험PASS; 집의 실제 사용자 설치본을 대신 교체한 것은 아니다. 구0.2.0/0.2.1 HTTPS실패앱 ZIP전체수동1회 안내/미서명·조직보안차단우회금지 유지.
+- 전체455/452PASS/3기존skip·독립tsc·격리webpack58 exit0/실React/native/좁힌교차리뷰 중요잔여0. 실제게임/다른DPI는 미확인으로 남긴다. 사소한 보류2(구native 접기 오류문구 표시/font방향키option강조·스크롤)는 그대로다. Vercel slug403→기본연결 실제 projectId 정상조회로 Ready 확인, 인증 추출/CLI설치/DB게시우회0. 개인 푸시풀명령어/public recruitment/옛계획3영역은 보존·미커밋. 이번 단일 예약은 마감 후 종료해 완료 작업을 반복하지 않는다.
+
 ## 2026-10-12 순월 — 20:20 예약 마감 실행 / 최종 후보 검증
 
 - 최종 tree 전체 Node455 중452 PASS/3기존skip/0fail, 독립 tsc·격리webpack58 exit0, same reviewer 중요 잔여0. 20:53 KST 승인 범위만 commit/main 정상push 준비, 운영 결과는 후속 기록한다.

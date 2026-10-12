@@ -1,6 +1,12 @@
 # 순월 → 영겁 수신함
 
-## SW-20261012-001 — UPDATED (사무실 로컬 후보)
+## SW-20261012-001 — UPDATED (공식 배포·게시 확인)
+
+- 마감 예약iris-sanctum PAUSED 저장확인/다시실행금지. IRIS분류는 정확한 ‘IRIS Beta x.y.z 출시!’ 계약이므로18번 제목만 ‘IRIS Beta 0.3.0 출시!’로 기존 정상수정UI에서맞춤/본문4중제목보존·새글0. 이전‘IRIS 제목분류’ 단정은 최종이확인으로보완한다.
+- 최종 운영 `/kerygma?note=iris` 재로드가최신글18/0.3.0을자동표시함을확인했다. 이전16번과새18번을중복게시로혼동하지말것. 인계일반push뒤제품코드재변경/새ZIP/새공지0.
+
+- 21:11 KST 마감: 제품 d70b0e52f446747ceb1e385a63375baee7c087a3 main/인계 브랜치 일반push/원격일치, Production dpl_GwtYnzwu2YndBELvBR9TgB98Eitk READY·동일SHA·운영Chrome메인/3패널/크로노스/다운로드/8GET200 확인. v2.31/IRIS0.3.0·공개ZIP527716 SHA2dfda82795e997415173b87c2359d3550465d8a1564cf049c51b3bdf7306bcdd 일치. SANCTUM시스템 생텀글17 / IRIS글18 각1회 정상UI·중제목3/4·상세눈확인, 다시게시금지. 공지외 운영시험쓰기/DBschema/RLS/게임행동/보안우회0. 마감문서후속은구조변경없음/버전유지.
+- 영겁첫과제: dirty보존→main `git pull --ff-only origin main`→이최신릴레이/HANDOFF ACK→IRIS켜고 실제게임최대화 작은바/메뉴위치유지/일반창좌우도킹/최소화복원/다른앱·바탕화면/벨·폰트·투명도·다른DPI 사용자확인. 합성검증으로실게임확정하지말것. 사무실Development소스새실행PID23852응답/stderr0·forcekill0, 집설치본대신교체0. 구HTTPS실패앱ZIP전체1회/미서명보안차단우회금지. 코드·관련시험완료(455/452PASS/3skip·tsc·격리build58·realReact/native/liveupdate), 이전남음문구는당시경과. 개인3영역/미ACK누적보존, 예약단일마감후종료예정.
 
 - 최종 후보 tree 검증455중452PASS/3skip·tsc·격리webpack58 exit0·diffcheck PASS, 20:53 KST 승인 변경만 commit/main 일반push 준비. 개인3영역 제외·보존; 운영상태는 후속 명시한다.
 

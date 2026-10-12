@@ -1,6 +1,19 @@
 # SANCTUM 업데이트 노트
 
-## SANCTUM v2.31 / IRIS Beta 0.3.0 — 2026-10-12 KST 준비 후보
+## SANCTUM v2.31 / IRIS Beta 0.3.0 — 2026-10-12 KST 공식 배포
+
+### 운영 확인과 게시 완료 — 21:11 KST
+
+- 게시 분류 후속: 기존 엄격한 IRIS 제목 계약에 맞춰18번 제목만 ‘IRIS Beta 0.3.0 출시!’로 정상 수정 UI에서 정리한다. 공지 분류 코드/DB유형 확장 없음·본문/중제목 유지·중복 생성0. 단일 예약 iris-sanctum은 앱 도구로 PAUSED/저장 상태 확인, 완료 작업 반복 금지.
+- 제목 수정 후 실제 운영 `/kerygma?note=iris` 재로드에서 **IRIS Beta0.3.0 최신 글18/시스템 작성자/본문4중제목** 자동 연결 확인. 이전16번으로 열리던 준비 단계는 해소됐으며 이 결과까지 마감 인계한다.
+
+- 제품 커밋 d70b0e52f446747ceb1e385a63375baee7c087a3를 main/인계 브랜치에 정상 push하고 원격 SHA 일치 확인. Vercel project prj_toZtfgFvZWlw1q0OXuBlungxW6Q7 / Production dpl_GwtYnzwu2YndBELvBR9TgB98Eitk READY·main 동일 SHA 확인: https://vercel.com/sanctum-sanctuary/sanctum/GwtYnzwu2YndBELvBR9TgB98Eitk . 팀 slug 범위403은 우회하지 않았으며 기본 연결의 실제 프로젝트 ID 조회로 정상 범위를 확인했다. 정상 UI Vercel 로그인은 하지 않았다.
+- 운영 Chrome 메인 카드·상단 계정/알림/정령의 날개 버튼 근처 배치, Escape 닫힘/알림 바깥 클릭, 상세 크로노스 기능 버튼·다운로드 Beta0.3.0 눈 확인. 공개 metadata0.3.0·ZIP527716bytes·SHA2562dfda82795e997415173b87c2359d3550465d8a1564cf049c51b3bdf7306bcdd 일치. /·login·character·kerygma·party·admin·iris/download·auth/health 8GET200(실제 로그인 새 입력/운영 숙제 쓰기 시험은 아님).
+- 정상 로그인된 Chrome 한설 계정의 케리그마 작성 UI로 SANCTUM 시스템·생텀 업데이트 각1회 게시. 생텀 v2.31 글17 https://sanctum-tawny-three.vercel.app/kerygma?id=17 , IRIS0.3.0 글18 https://sanctum-tawny-three.vercel.app/kerygma?id=18 . 게시 전 동일 버전 없음 확인, 실제 중제목 도구3/4구역·본문·작성자·상세 표시 확인. 붙여넣기 서식/입력 위치 문제는 미게시 상태에서 바로잡았고 raw HTML은 게시하지 않았다. 공지2건 외 운영 기록 시험쓰기/삭제·DB스키마/RLS·게임행동·보안 우회0.
+- 사무실 정상 종료된 Development IRIS를 최종 소스로1회 재시작 PID23852/Responding true/stderr0 확인. 사용자 설치본 강제 교체/강제 종료 없음. 집 첫 과제는 IRIS 실행 후 게임 최대화→작은 바/메뉴 위치 유지→일반창 좌우 도킹→최소화/복원과 다른 DPI 실사용 확인이다. 합성/native 시험을 실제 게임 확인으로 대신하지 않는다.
+- 전체455 중452 PASS/3기존skip, 독립tsc·격리webpack58·실React 회귀·native/실제 업데이트 교체 검증 통과. 직전 정상 fb607e0(코드48d5611)/dpl_DP47tvp3qsVdrzpomVmJarb5XrTu가 되돌리기 기준이다. 이 마감 기록 후속은 **구조 변경 없음/제품 버전 유지**이며 다시 게시하지 않는다.
+
+### 이전 준비 기록 — 아래 항목은 배포 전 경과
 
 - 20:53 KST 최종 후보 검증: 전체 Node455 중452 PASS/3기존skip/0fail, 독립 tsc exit0·격리 webpack58 exit0·diff check PASS. 마지막 소스 변경 후 재검사했다. 정상 push/운영 검증·공지 게시 결과는 아직 별도다.
 

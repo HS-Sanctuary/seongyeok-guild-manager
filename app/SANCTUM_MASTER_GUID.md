@@ -1,5 +1,9 @@
 # 🏛️ SANCTUM Master Guide
 
+## 2026-10-12 — v2.31 / IRIS0.3.0 공식 적용
+
+- 제품 커밋 d70b0e5·Production dpl_GwtYnzwu2YndBELvBR9TgB98Eitk READY·실제 운영 표시/ZIP 확인, 공지17(생텀)/18(IRIS) 정상 UI 게시 완료. 아래 새 구조는 운영 적용됐다. 이번 마감 문서 후속은 구조 변경 없음·제품 버전 유지/DB스키마·RLS 변경 없음. 실제 게임/다른 DPI 사용 확인은 HANDOFF 첫 과제다.
+
 ## 2026-10-12 — 메인 Kronos 15초 묶음 저장 구조
 
 - app/page→useHomeChecklistAutosave→homeChecklistAutosave의 캐릭터별 baseline/의도/version/단일 flight, 기존 memberMutationClient→member-mutations→mergeChecklistEdit/CAS. 승인 응답의 실제 값만 ACK하며 전송 후 입력은 유지한다. Board는 즉시 overlay·수동 저장/카운트다운/실패 상태, 홈 모든 widget router와 파티 참가 버튼은 navigate flush를 거친다.
