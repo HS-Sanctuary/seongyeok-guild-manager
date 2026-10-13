@@ -2,6 +2,8 @@
 
 ## 최신 인계 — 2026-10-13 KST
 
+- 전송된기능기준: `c1f302de51ba99ad9d625c3cdb6d156b583ed9ad` 일반push/원격일치. 서면설계117af74포함, 이후문서마감도같은브랜치에추가한다. 아래명령으로최신HEAD를받고최종전달SHA와대조한다. GitHubVercel검사pending/대시보드조회403이므로Preview실확인을완료로추정하지않는다.
+
 - 한설 승인: 영겁의 로컬 후보·설계를 `codex/iris-checkboard-classes`에만 검증 후 commit/push하고 사무실에서 이어간다. 운영main/제품버전0.3.0/공개ZIP/공지/DB 변경 없음. 새벽예약·PC자동종료는 생성/실행하지 않는다.
 - 수신 순서: AGENTS → CODEX_RELAY → relay/TO_SOONWOL의 YG-20261013-001 → HANDOFF 최신 → BETA_FEEDBACK → superpowers/specs/2026-10-13-ergon-quantity-stop-design.md. 순월 ACK 후 현재남은일을 짧게 브리핑한다. 아래2026-10-12 메뉴/HUD우선순위는 당시경과이며 이번우선순위가아니다.
 - 완료한 후보를 재구현하지 않는다: 기존생활조회7종/단일native행동/원장/nonce + 영겁의 수동제작예산보존/중지·기한/메뉴왕복·ABA늦은응답방어, LastRunningInteractionType과거이력오인수정(현재Compass+15flags+던전밖).

@@ -2,6 +2,8 @@
 
 ## 2026-10-13 — 사무실 인계 체크포인트 구조 경계
 
+- 전송마감문서후속은구조변경없음. 후보코드c1f302d/설계117af74가인계브랜치에일반push·원격SHA일치, main1d8e374유지. 새수량/실제stop구조는설계검토대기이며현재다운로드제품에반영됐다고표시하지않는다.
+
 - 기능브랜치후보의수동묶음모델/지속실행영역/세대폐기/현재mainButtonState 검사구조는아래최신항목대로유지. 서버/API/운영DB/RLS·공개패키지구조변경없음. 정상운영 v2.31/IRIS0.3.0에새자동채집완료를추가한것이아니다.
 - `docs/IRIS_SOONWOL_HANDOFF.md` 최신수신명령/사용자전달문장과 `superpowers/specs/2026-10-13-ergon-quantity-stop-design.md` A(목표감시실제stop/추가수량/압축UI)→B(확인BOM부족분chain) 설계검토대기를인계. 새native goal/stop bridge·부분stopped원장·순차chain은아직구현하지않았다. 기존원장·본인소유권·보호대기함을재사용할예정이지변경완료아님.
 

@@ -2,6 +2,8 @@
 
 ### 2026-10-13 23:09 KST — ERGON 기능브랜치 인계 체크포인트
 
+- 전달확인: 기능커밋c1f302de51ba99ad9d625c3cdb6d156b583ed9ad/원격인계브랜치SHA동일 일반push성공. 설계117af74도포함. GitHubVercel검사는전송직후pending, MCP403/CLI없음으로Ready·Preview눈확인은미확인. 후속문서commit은구조변경없음/제품버전유지/운영배포0이며사용자는최신인계브랜치를pull한다.
+
 - 배포조회주의: 연결된Vercel MCP가동일운영scope조회403, CLI fallback설치없음. 이번은인계푸시만이며Preview Ready를검증했다고보고하지않는다. 운영배포/승격을우회실행하거나팀권한을변경하지않는다.
 
 - **제품버전유지:** SANCTUMv2.31/IRISBeta0.3.0. 한설승인기능브랜치인계이며main·공개ZIP·게시·DB/RLS를변경하지않는다. 정상운영기준 main1d8e374 / dpl_F6ymNLT5U6aJJLNofK4wtEi8sWXR, 운영구조변경없음. 후보의로컬상태/활동조회필드구조변경은MASTERGUID 최신기록참조.

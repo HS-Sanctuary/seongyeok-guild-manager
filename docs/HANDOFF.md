@@ -2,6 +2,8 @@
 
 ## 2026-10-13 23:09 KST 영겁 — 사무실 수신용 체크포인트 마감
 
+- 전송확인: 기능코드·인계커밋 `c1f302de51ba99ad9d625c3cdb6d156b583ed9ad` 일반push성공/ls-remote정확일치(선행설계117af74포함). origin/main1d8e374변경없음. GitHub combinedstatus의 Vercel은전송직후pending, 연결MCP403으로Ready/실제Preview화면은미확인. 이문서마감후속은코드c1f302d위의문서전용이며최신브랜치HEAD를수신하면된다.
+
 - Vercel상태조회는same scope403/CLI없음으로미확인. Git인계전송과Preview Ready확인을구분, 이번에수동배포/production승격/권한변경을하지않는다. 순월이접근가능할때인계브랜치Preview를read-only확인할것.
 
 - 한설명시승인으로 기능브랜치 `codex/iris-checkboard-classes` 후보만 검증·commit/push한다. 운영main/제품SANCTUMv2.31·IRISBeta0.3.0/공개ZIP/공지17·18/DB 유지. 새벽자동화·컴퓨터종료는하지않는다. 최종정확SHA/원격일치/Preview상태는아래마감후속참조.
