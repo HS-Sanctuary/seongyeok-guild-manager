@@ -1,5 +1,18 @@
 # 🏛️ SANCTUM Master Guide
 
+## 2026-10-13 — 사무실 인계 체크포인트 구조 경계
+
+- 기능브랜치후보의수동묶음모델/지속실행영역/세대폐기/현재mainButtonState 검사구조는아래최신항목대로유지. 서버/API/운영DB/RLS·공개패키지구조변경없음. 정상운영 v2.31/IRIS0.3.0에새자동채집완료를추가한것이아니다.
+- `docs/IRIS_SOONWOL_HANDOFF.md` 최신수신명령/사용자전달문장과 `superpowers/specs/2026-10-13-ergon-quantity-stop-design.md` A(목표감시실제stop/추가수량/압축UI)→B(확인BOM부족분chain) 설계검토대기를인계. 새native goal/stop bridge·부분stopped원장·순차chain은아직구현하지않았다. 기존원장·본인소유권·보호대기함을재사용할예정이지변경완료아님.
+
+## 2026-10-13 — 제한 수동 묶음 후속 로컬 구조
+
+- 준비 차단 핫픽스: native 활동 정규화에 `mainButtonState=Mode.MainButtonState`, client 활동 형식은 구형 frame을 `null`로 호환 조회(실행 허용 아님). native/client 안전조건은 NotInDungeon·기존15flags=false·Compass만 허용. `interactionType`은 공식 LastRunningInteractionType 이력을 보존하되 현재 busy 조건으로 쓰지 않는다. Stop/Fishing/FishingPull/Combat/Hide/누락/미확인 상태는 실행 전/최종 동의 후 재검에서도 차단. DB·브리지 명령 종류·nonce/원장·cost 한도 변경 없음.
+
+- `irisErgonRunQueue`는 순수 수동 묶음 예산/중지/만료 모델. `refreshErgonQueue`는 관측값만 갱신하고 예산·완료ID·중지·첫 준비5분 기한을 유지한다. `advanceErgonQueue`는 중복이 아닌 완료 관측의 재고 증가/날개5 감소만 차감한다. 자동 명령 발송기가 아니다.
+- `ConnectedErgon`의 실행 section은 내부 메뉴 이동 시 unmount 대신 hidden 유지, 활성 실행 영역만 `active` 전달. `DesktopErgonExecution`은 요청 세대 번호로 화면/계획/계정 ABA 응답을 취소하고, 결과 관측을 이어가되 비활성 idle polling은 정지한다. 상태 조회 중첩 및 늦은 다른 문맥 이력 반영도 차단한다. 수동 명시적 새 묶음·다음 작업 중지 버튼과 만료 타이머만 추가, native CLI/DPAPI/고정 bridge/API/DB 구조 변경 없음.
+- 운영 v2.31/IRIS0.3.0·공개ZIP 유지. 합성 검증 통과와 통나무1회 실게임 시험은 구분하며 후자는 아직 사용자 화면 확인 대기다.
+
 ## 2026-10-13 — ERGON 단일 생활 동작 로컬 후보 구조 (운영 미배포)
 
 - native `DesktopLifeActionPolicy`/`DesktopLifeCli`/`DesktopLifeExecutor`가 기존 `DesktopLifeReader` 조회를 바탕으로 고정 4명령(채집·가공 등록·제작·시설 완료분 수령)의 요청/조건/비용을 검사한다. `DesktopLifeJournal`은 DPAPI·원자 저장·전역 배타 파일잠금·계정/환경 경계와 결과불명 차단을 담당한다. 준비 nonce/네이티브 Yes/No/승인 뒤 재조회 후에만 명령을 발송한다.

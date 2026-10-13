@@ -1,5 +1,31 @@
 # SANCTUM 베타 피드백 보드
 
+## 2026-10-13 P1 ERGON 목표수량/중지 의미 불일치 — 후속 설계 대기
+
+- 사용자 정상 앱 복구·실제 통나무 채집 시작을 확인. 목표1개였지만 벌목4개/6개 뒤 계속 채집, 게임의 통나무 목표0/100 및 앱 결과확인중 화면 첨부. 단일 CLI 호출이 최대100개인 기존 계약과 일치하나 앱 목표수량과 실제종료 조건이 연결되지 않아 사용자 기대와 불일치. 소비명령은 사용자가 진짜 IRIS에서 승인/시작한1회, 추가 명령 발송0. 실제 최종결과/날개차감·원장완료는 아직 확인하지 않았다.
+- 사용자 ‘중지 눌러도 계속 캐고 UIUX/긴 설명 별로’, 목표수량 증가/가공품 부족재료만 채집 요청. 현재 다음작업중지는 running 게임명령을 멈추지 않는 기능이므로 실제현재작업중지와 분리 필요. 이번 공식 get_activity 읽기는 Compass/autoTravelfalse/전투false로 더이상 진행상태를 표시하지 않음; 이 조회만으로 성공/수량/날개를 확정하지 않는다.
+- 생활커넥터 설치 소스04/08/05에서 StopActionAsync/재고감시 목표도달→stop_action/필요량×제작횟수−보유 부족분 연결 확인. MobiWorks workqueue도 가방시작값+추가수량과 목표감시/실제중지 제공. 타앱을 실행/변경/재배포하지 않고 메커니즘만 참고한다. 반복중지/오류자동재시도/연주명령으로채집밀어내기는 IRIS에 그대로 복사하지 않는다.
+- 권장후속: 실제현재작업중지와 수량기반진행/간결한화면부터, 확인된재료표 기반부족분계획→채집/가공체인은 별도 단계. 공식 CLI는 목표숫자 입력이 없으므로 관측간격/벌목산출/중지지연의 초과량을 허용·표시하고 정확1개 약속금지. 미확인 BOM은 부분/미확인으로 표시·자동chain 차단. 제품수정0/설계방향승인전 구현하지 않음.
+
+## 2026-10-13 P1 개발환경 — IRIS Internal Server Error
+
+- 사용자 앱5756 오류화면 유지 확인. 실제 앱 주소 localhost로 page/layout.js/desktop page.js 모두 HTTP200(각12641/3533408/7166083bytes) 재확인, 서버10247/새캐시 유지. 앱은 캐시 재생성 이전500 때 열린 문서이며 아직 현재 정상서버로 새 문서를 불러온 실앱확인 없음. 사용자 정상종료→이제정상서버에서 재실행으로 확인, 추가캐시삭제·서버재시작·강제종료 금지. 앱종료실패면 보호기록을 지우는 방식으로 해결하지 말 것.
+
+- 재발/복구 후속: 사용자 Ctrl+R 무반응 후 정상 종료 확인. 서버7732는 page200 이후 layout.js openUNKNOWN 재발, 단순 서버 재시작만으로 해결됐다는 안내를 정정했다. 종료 확인 후 앱5756 재실행 당시 GET도500이었음(검사 오류가 PowerShell 비종결이라 시작이 진행됨); 이후 명령에는 ErrorActionPreference Stop으로 선행 검사 실패 시 중단한다. native 강제 종료는 하지 않았다.
+- own7732 Ctrl+C 종료, `.next/dev`와 부모가 reparse 아님/양쪽 절대 경로가 작업폴더 안임을 검증한 뒤 생성 캐시만 `.next/dev-before-ergon-recovery-20261013`로 이동 보존(삭제0). 새 own webpack3000 서버10247 Ready565ms. 실제 익명 Chrome에서 페이지/모든 스크립트/React 화면3회 연속 진입200·500응답0·pageerror0 PASS. 보호 저장/원장/계획·소스·보안 설정 변경0, 생성 캐시는 보관 위치에서 복구 가능하다. 앱5756 RespondingTrue/stderr0, 실제 앱 오류화면 갱신 여부 사용자 확인 대기. 근본 파일읽기 환경 원인은 아직 확정하지 않는다.
+
+- 정상 native 재실행 뒤 사용자 화면이 Internal Server Error. 개발 서버30786 로그에서 `.next/dev/static/chunks/app/iris/desktop/page.js` open UNKNOWN -4094 및 webpack pack rename ENOENT 반복. 같은 파일을 별도 읽기로 열 수 있어 생성 파일 읽기 실패의 근본 환경 원인은 미확정, 소스 오류로 단정하지 않는다.
+- 직접 시작한 개발 서버만 Ctrl+C 정상 중단 후 호스트 권한의 같은 localhost3000 webpack 서버7732 재시작. 파일 삭제/캐시 제거/보호 저장·계획·native/게임 종료0. Ready659ms, 실제 IRIS 페이지 연속 GET200과 화면 script GET200 확인. 사용자 WebView 새로고침/실제 화면 복구는 별도 확인 대기. 통나무 소비명령0 유지.
+
+## 2026-10-13 P1 후보 검증 — ERGON 실행 준비 실패 이유 안내 / 실게임 시험 보류
+
+- 후속 원인 정정: 사용자 던전 밖 화선연 화면에서도 거절. 공식 조회는 `NotInDungeon`/전장false/모든 작업false/주 버튼Compass지만 `LastRunningInteractionType=EnterDungeon`이 남음. 이 과거 이력을 현재 busy로 판정한 IRIS 검사 버그가 확인됐다. native 조회에 현재 `Mode.MainButtonState`를 추가, 모든 기존 안전 flags + 던전 밖 + Compass일 때만 허용으로 수정. Stop/Fishing/Combat/Hide/누락값은 차단, 마지막 상호작용은 조회 이력으로만 보존한다.
+- native reader/actor 및 화면 순수검사 RED→GREEN, 전체Node496/493PASS/3기존skip/0fail·tsc/관련lint/격리webpack58 exit0. 실제 공식 활동을 수정 native normalizer→정책으로 읽어 검사 PASS(명령소비0). 한설 정상종료 확인 뒤 수정 개발 IRIS PID29448 재실행, 통나무1회 준비/최종 확인/실게임 결과는 아직 미실시다. 이전 ‘마을로 나오면 해결’ 안내는 과거 이력 조건까지 확인 전의 설명으로 정정한다.
+
+- 한설 첨부 화면: 실제 개발 IRIS의 채집166/가공91/제작1834 목록, 재료/무게/가공 현황 표시 확인. 계획 없는 실행 버튼 잠금, 달걀→통나무 계획 선택 후 준비 실패 안내. 조회/목록 표시 확인과 소비 명령 성공은 구분한다.
+- 실제 공식 `get_activity` 읽기만 확인: `Battlefield.IsInBattleField=true`, `Dungeon.State=InProgress`, `Interaction.LastRunningInteractionType=EnterDungeon`. native SafeActivity와 시작 전 점검이 현재 상태를 거부하는 근거 확인. 안전 검사를 해제하지 않고 던전 밖 안정된 상태에서 재조회 후 승인된 통나무1회 시험을 이어간다. 이번 소비 명령0.
+- 안내 문제: 실행 준비 실패가 화면/캐릭터/재료/날개 일반 안내로 뭉쳐 실제 막힌 조건을 찾기 어렵다. 시작 전 점검에 ‘native 실행 연결 준비 중’이라는 단일동작 연결 이전 문구도 남아 있어 혼동 가능. 원인별 안전한 사용자 문구/가용 채집 품목 표시 개선은 후속 후보이며 이번 진단에서 코드 변경0. 내부 코드 `not_enough_ingredient` 노출도 향후 읽기 쉬운 안내로 정리한다.
+
 ## 2026-10-13 P2 검증 중 기존 운영 알림 ID 충돌 가능성 — 별도 조사 대기
 
 - 기존 bus-live-notifications `duplicate full events...` 전체 시험1회에서 예상3알림 중2, 단독25/25와 전체 직렬457PASS로 미재현. 이번 에르곤/저장 표시 변경과 해당hook의 의존성 없음.

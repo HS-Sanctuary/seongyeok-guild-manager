@@ -7,7 +7,8 @@ export function checkErgonStart(input:{snapshots:ErgonSnapshots;currencies:Curre
  const fresh=(kind:ErgonReadKind)=>{const value=input.snapshots[kind];return value&&!ergonSnapshotStale(value,input.now)?value:null;};
  const activity=fresh('activity')?.data as ErgonData['activity']|undefined;
  const flags=['autoPlaying','autoTraveling','dead','reviving','inCombat','dialoguePlaying','waitingForSelection','inBattlefield','tutorialPlaying','inScenario','sequencePlaying','performancePlaying','minigame','housingEdit','abyssSequence'] as const;
- if(!activity||activity.dungeonState!=='NotInDungeon'||activity.interactionType!=='None'||flags.some(key=>activity[key]!==false))blockers.push('게임 상태가 작업 가능 상태인지 확인하지 못했어요. 전투·이동·다른 자동 작업 중이거나 확인되지 않은 상태예요.');
+ // LastRunningInteractionType is history, not a live busy flag. Unknown current mode stays blocked.
+ if(!activity||activity.dungeonState!=='NotInDungeon'||activity.mainButtonState!=='Compass'||flags.some(key=>activity[key]!==false))blockers.push('게임 상태가 작업 가능 상태인지 확인하지 못했어요. 전투·이동·다른 자동 작업 중이거나 확인되지 않은 상태예요.');
  const inventory=fresh('inventory')?.data as NonNullable<ErgonSnapshots['inventory']>['data']|undefined;
  if(!inventory||inventory.weight===null||inventory.maxWeight===null||inventory.maxWeight<=0||inventory.weight>=inventory.maxWeight)blockers.push('가방 무게를 확인하거나 공간을 확보해 주세요.');
  const currency=input.currencies,age=currency?input.now-Date.parse(currency.observedAt):NaN;

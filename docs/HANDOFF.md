@@ -1,5 +1,38 @@
 # SANCTUM 작업 인계
 
+## 2026-10-13 23:09 KST 영겁 — 사무실 수신용 체크포인트 마감
+
+- Vercel상태조회는same scope403/CLI없음으로미확인. Git인계전송과Preview Ready확인을구분, 이번에수동배포/production승격/권한변경을하지않는다. 순월이접근가능할때인계브랜치Preview를read-only확인할것.
+
+- 한설명시승인으로 기능브랜치 `codex/iris-checkboard-classes` 후보만 검증·commit/push한다. 운영main/제품SANCTUMv2.31·IRISBeta0.3.0/공개ZIP/공지17·18/DB 유지. 새벽자동화·컴퓨터종료는하지않는다. 최종정확SHA/원격일치/Preview상태는아래마감후속참조.
+- 최종 fresh검증 Node496/493PASS/3기존skip/0fail·독립tsc·관련eslint0error0warning·native reader/actor PASS·실React 제한예산/중지전후/기한/부모메뉴/ABA/6테마 PASS·격리webpack58 exit0. 후보diff는직접대조, 마지막독립queue리뷰중요2수정·회귀통과이며현장활동오인수정은native/TS/실읽기검증으로추가했다. 실제전체생활자동화완료검증아님.
+- 후보수정/완료범위는아래누적기록. 사용자통나무1회실앱시작/획득·계속채집관측, 최종응답/날개5차감미확정. 현재목표1은계획값/CLI최대100, 다음중지는실제게임Stop아님. **다음작업**은quantity-stop-design 서면검토대기→A실제중지/추가수량/진행/간결UI의계획검토·직접구현, B확인BOM부족분chain별도계획. 상세사용자복사문장·VSCode수신명령은 IRIS_SOONWOL_HANDOFF.md 최신항목.
+- 개인파일 UPDATE_POST_v2.151/루트삭제3개/새실행메모/kronos-theme-preview는제외·보존, 개발캐시·프로필·DPAPI·전체재고·비밀값은커밋하지않는다. 집서버10247/개발IRIS2072는현재실행상태일뿐사무실에서자동실행할근거아님. 보호unknown 해제/운영시험쓰기/추가게임명령금지.
+
+## 2026-10-13 21:28 KST 영겁 — 제한 수동 묶음 후속 / 실게임 시험 대기
+
+- 수량/중지 후속설계: 한설 ‘진행하자 참고를좀많이…’로 방향승인. 설치모비웍스workqueue/work/recipedb/UI와생활커넥터02/03/04/05/08 동작을깊게정적대조. `docs/superpowers/specs/2026-10-13-ergon-quantity-stop-design.md` 새파일만local117af74 commit, fetch/pull인계브랜치up-to-date, push0/기존dirty보존. **서면설계검토대기**: A추가수량/IRIS현재채집중지/간결UI, B확인BOM부족분chain별도계획. 공식작업ID없음/다른행동stop잔여위험과별도목표중지동의, partialBOM자동차단·창고판정검증·초과확보표시를명시. 서면승인전계획/제품코드착수금지, 새실게임명령0. 기존1회최종완료·비용검증미확정유지.
+
+- 실게임/요청최신: 사용자 실제IRIS 복구 및 통나무1회 시작 성공을 알림(목표1인데4+6획득후계속/게임통나무0/100/앱running화면). 이후 다음중지도채집계속/긴설명·UIUX비판/수량증가·가공품부족재료만수급요청. 아래 game명령0은 시험전 경과, **현재는 사용자가실앱에서1회실행, agent추가발송0; 최종완료/날개5차감검증미완료**. 마지막read-only는Compass/이동전투false. 보호원장해제/재시도금지.
+- 생활커넥터04/08/05 및 MobiWorks workqueue 정적참고: 재고감시목표도달→stop_action, 부족량계산/수급연결. 새구조설계방향제안단계로 actualstop/수량진행+간결UI부터, 확인재료표부족분chain후속. 목표정확1개/자동생산완료약속금지, 조회·중지지연초과량표시. 타앱코드/데이터재배포·설정변경·실행0,제품추가구현0. 먼저신규설계승인필요.
+
+- 재실행 최신: 한설 ‘종료했어’ 확인 뒤 기존IRIS없음·localhost page/layout/desktop script모두200 선행guard통과 후 개발PID2072 시작. 서버10247·보관캐시 유지/추가파일변경0. 실제앱이새문서를표시하는지 사용자확인전, 실제채집명령0. PID5756은 종료된 이전오류문서다.
+
+- 최신 개발환경: Ctrl+R 안 됨/사용자 정상종료 후 앱5756 재시작. 서버7732 layout.js openUNKNOWN 재발, own서버만 종료→검증된 cache `.next/dev`를 `.next/dev-before-ergon-recovery-20261013`에 이동 보존→새3000서버10247. 익명 실제Chrome 페이지+assets+React3회200/500·pageerror0 PASS. 캐시삭제/소스수정/앱게임forceclose/기록변경0, 파일환경 원인미확정. 앱5756 RespondingTrue/stderr0이나 오류화면갱신은 user확인대기. 앞으로 GET실패 시 ErrorActionPreference Stop으로 launch중단, 이미실행된앱은 임의재시작/강제종료금지. 아래 서버7732/PID29448 복구완료 표현은 재발전경과다.
+
+- 개발 서버 오류 최신: native29448 재시작 뒤 WebView Internal Server Error, own Next30786의 page.js open UNKNOWN/pack rename ENOENT 기록. 별도 파일읽기 가능해 환경 근본원인 미확정. own서버만 Ctrl+C→escalated동일3000 webpack7732 정상시작; 연속 page200/script200. cache삭제/원장변경/앱·게임강제종료/소비명령0. 사용자 WebView Ctrl+R 후 실제 복구 확인 대기, 서버 HTTP성공을 앱 화면/채집 성공으로 보고하지 말 것.
+
+- 최신 실게임 준비 차단 수정: 던전 밖/전장false인데 LastRunningInteractionType=EnterDungeon 유지 → 과거 행동을 현재로 해석한 버그. 활동 조회에 mainButtonState 추가, native/client 점검에서 NotInDungeon·모든15flags=false·Compass만 허용. 이력 자체는 보존, 기존 형식은 현재mode=null로 처리하여 실행 차단. reader/actor/TS 회귀 RED→GREEN, 전체496/493PASS/3skip·tsc/lint/격리58 PASS. 실제 공식 read-only→수정native정책 PASS. 한설 정상종료 후 개발 PID29448 재실행/원장·저장파일 보존. 통나무1회 실행은 아직0, 새 화면의 준비 확인을 기다린다. 아래 던전 밖 대기/PID28028은 이 수정 전 경과다.
+
+- 사용자 실제 화면 후속: 목록/재료/가공 현황 및 통나무 계획 선택을 확인. 통나무 준비도 거부됨. 공식 `get_activity` read-only에서 던전 InProgress·전장true·EnterDungeon 확인 → 현재 SafeActivity 차단 근거. 던전 밖 안정 상태/게임 캐릭터 확인 전 소비시험 보류, 게임 명령0 유지. 안내 포괄 오류와 단일동작 연결 이전 ‘native 준비 중’ 문구를 BETA_FEEDBACK에 기록. 코드 안전조건 수정/추가 시험 명령/운영 변경0.
+
+- 집 HEAD/원격 `codex/iris-checkboard-classes` `71cdadda98089301e3f023d30c82e4175ea4c6ea` 수신·ff-only 확인. 완료된 native/bridge Tasks 1/2는 재구현하지 않았다. 아래 순월 기록은 수신 당시 경과로 보존한다.
+- 로컬 후보: 제작 수동 묶음 최대 5회/날개25 예산 유지, 완료 재고 증가·정확한 날개 감소만 차감, 다음 작업 중지/첫 준비 후 5분 새 시작 제한/명시적 새 묶음. 중지는 이미 보낸 게임 작업을 취소하지 않는다. 내부 메뉴 왕복에도 실행 컴포넌트를 유지하여 중지/소진 예산을 보존하고, 문맥·화면 세대 번호로 늦은 준비 응답을 폐기한다. 비활성·비실행 화면의 주기 조회를 멈추고 중첩 상태 조회/다른 문맥의 늦은 이력 응답을 차단한다.
+- 최종 독립 리뷰 1회 Critical0/Important2, 모두 회귀 RED→GREEN: 실제 부모 메뉴 왕복 예산 소실, 준비 중 화면/계획 A→B→A 늦은 nonce 채택. 추가 리뷰 반복 없음. 전체 Node496/493PASS/3기존skip/0fail, 독립 tsc exit0·관련 eslint0error0warning·격리 webpack58페이지 exit0. 실제 React 중지 전/후·5회 소진·5분 만료·메뉴 왕복/지연 응답·6테마×12폭/글자 조합 PASS. 합성 IO이며 게임 소비 검증으로 대체하지 않는다.
+- 한설 승인: 통나무 채집 명령 **1회만 / 날개 최대5 / 최대100개 채집**, 반복·제작·가공 시험 금지. 승인 전후 실제 게임 소비 명령0. 개발 서버3000 GET200, 개발 native 정상 PID28028/RespondingTrue/stderr0로 시작. Windows Computer Use kernel assets 경로 초기화 오류가 재설정 후에도 반복되어 화면 조작 중단, 사용자 에르곤 화면 요청 상태. 로그인/게임 신원을 임의 입력·추정하지 말 것. 사용자가 제공할 화면을 확인하고 진짜 앱 준비/네이티브 최종 확인 경로로만 시험한다. direct CLI/가짜 확인 함수로 우회하지 않는다.
+- 실제 시험에서 unknown/timeout이면 재실행 금지·보호 원장 보존. CLI 응답 제한10분은 게임 작업 중지 기능이 아니다. 전체 BOM·Chronos·시설 슬롯/반복 수령·낚시·자동 다음 명령은 미완료. 상세 판단은 실행계획 후속 기록 참조.
+- 미커밋 후보, 새 push/main배포/제품 버전/공개ZIP/업데이트 게시/DB변경0. 개인 변경·삭제·새 루트 파일·kronos-theme-preview는 그대로 보존. 실제 시험 전 완료/출시로 보고하지 않는다.
+
 ## 2026-10-13 순월 — ERGON 단일 생활 동작 후보 (기능 브랜치, 운영 미배포)
 
 - 기준: `codex/iris-checkboard-classes`의 기존 체크포인트 `81a2724` 위에 작업 중. 공식 제품은 SANCTUM v2.31 / IRIS Beta 0.3.0, 운영 `main` 1d8e374 / Production dpl_F6ymNLT5U6aJJLNofK4wtEi8sWXR. 공개 ZIP·공지 17/18·DB 구조/RLS/운영 데이터는 바꾸지 않았다. 이 항목의 정확한 새 커밋·원격 상태는 후속 기록을 확인한다.

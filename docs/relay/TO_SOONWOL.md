@@ -1,5 +1,31 @@
 # 영겁 → 순월 수신함
 
+## YG-20261013-001 — UPDATED (인계브랜치 푸시 마감)
+
+- VercelMCP 동일scope조회403/CLI없음, Preview상태미확인/수동배포·승격·권한변경0. Git푸시성공을PreviewReady/운영배포완료와혼동하지말것. 사무실접근권한이있으면후속read-only확인.
+
+- 발신영겁/수신순월, 최초2026-10-13 21:28·마감23:09KST. 한설인계브랜치만정상commit/push승인, 공개버전·운영main/ZIP/게시/DB그대로. 아래‘로컬미푸시·명령0’은당시경과이며마감정확SHA/실게임경계는최신후속을따른다. 이전미ACK누적은삭제하지않는다.
+- 최종검증 freshNode496/493PASS/3skip/0fail·tsc/lint/native reader·actor·실React회귀·격리58 PASS. 후보코드와인계문서만포함/개인dirty·삭제보존. 사용자통나무1회시작/채집관측, 최종결과·날개검증미확정. 실제중지/수량목표미연결/긴UI를알려진사항으로기록했다.
+- 순월첫작업: CODEX_RELAY/이수신함/HANDOFF/BETA_FEEDBACK ACK→quantity-stop-design 서면검토대기확인→필요승인후A구현계획·직접구현/검증→B확인BOM부족분chain별도계획. 기구현native조회/단일행동/수동예산을반복하지말것. 사용자명령문·VSCodepull은IRIS_SOONWOL_HANDOFF.md 최신항목. main/외부배포/DB/추가실게임행동은별도승인, 밤예약재개/자동PC종료없음.
+
+- 새설계local117af74: user모비웍스/생활커넥터적극참고방향승인, 설치workqueue/work/recipedb/UI·PS02/03/04/05/08확인. quantity-stop-design 서면검토대기. A추가수량/실제IRIS채집stop/간결UI, B부분BOM완전성확인후부족분chain. 명령ID없음잔여위험/별도자동중지동의·stopped와unknown·원래CLI종료전후속0·재고초과·창고검증 명시. 새설계1파일만commit/push0/나머지dirty보존, remote71cdadd그대로. 서면승인→실행계획검토후제품착수, 추가게임행동0.
+
+- 사용자 실제 앱 복구·통나무1회 시작보고, 목표1개인데4/6획득후계속/게임0/100; 다음중지눌러도계속/UI설명과밀도별로/목표늘리기·부족재료수급요청. 이전소비0은시험전경과, 사용자실앱1회시작/agent추가발송0/최종결과·날개차감미확정. 현재readOnlyactivityCompass/이동전투false지만완료원장증거아님.
+- 설치생활커넥터04/08/05와MobiWorksworkqueue 정적확인으로 재고감시후실제stop_action/부족분계획적용가능. 현재 IRIS다음중지는실제gameStop아니라UX불일치. 신규실제중지·수량목표·간결UI→검증BOM부족분chain 설계방향제안, user설계승인후착수. 목표정확개수보장/무조건반복Stop/연주밀어내기/타앱코드그대로복사·재배포금지. 새제품코드수정0/운영0.
+
+- 환경재발후속: user CtrlR 안됨/종료확인→앱5756. 서버7732 page200뒤layoutUNKNOWN재발, 복구완료단정정정. own서버만종료/cache절대경로검증·reparse없음확인→.next/dev-before-ergon-recovery-20261013에이동보존→3000서버10247. 실제익명Chrome화면/모든assets3회200·500/pageerror0PASS. 앱5756응답/stderr0/user실화면갱신대기, game명령0·보호기록/소스/공개0. 추가시작은GET실패종결guard사용; rootfilesystem원인미확정.
+
+- 환경 후속: 수정 native앱 화면 Internal Server Error. owndev30786 page.js openUNKNOWN/packrenameENOENT→own서버정상Ctrl+C/같은3000 host webpack7732 재시작, 연속page200/script200. 원인환경상세미확정/캐시삭제·앱·게임강제종료·소비0. 사용자가WebView새로고침하여실제화면복구확인할때까지 대기. 소스수정/공식배포추가없음.
+
+- 최신후속: 한설 화선연 던전밖에서도 통나무 준비거절. get_activity read-only로 NotInDungeon/전장false/Compass인데 LastRunningInteractionType=EnterDungeon 유지 확인 → 이력을 현재로 검사한 문제를 native reader/policy/client순수검사에서 수정. 현재mode 신규필드, 구형조회는 null호환/실행failclosed; 모든15flags와던전조건유지·Compass만허용. native/TS RED→GREEN·전체496/493PASS/3skip·tsc/lint/격리58 PASS, 실제읽기→수정native정책PASS. user 정상종료 확인 후 개발 PID29448, 통나무실행0/다음준비화면대기. 아래처음 던전차단안내는후속정정전경과. 개인dirty/원장/공개버전/ZIP/DB 유지.
+
+- 사용자 화면 후속: 실제 개발 앱 조회/가공현황·통나무 계획 확인. 준비 실패는 공식 read-only 활동 조회의 던전 InProgress/전장true/EnterDungeon과 SafeActivity 차단조건 일치. 안전조건 유지, 던전 밖 안정 상태 재조회 전 통나무시험 보류/소비명령0. 포괄 오류·연결 전 옛 점검문구 개선 후보를 BETA_FEEDBACK에 기록했다. 전체 작업 완료로 보고하지 않는다.
+
+- 영겁 2026-10-13 21:28 KST: SW-20261012-001/기능 브랜치71cdadd 수신·ff-only 확인·영겁 수신함 ACK. 완료된 Tasks1/2 반복 없음. 수동 제한 묶음 예산/관측값 갱신/중지·5분 기한·명시적 재준비를 보완했다.
+- 실제 부모 메뉴 왕복의 중지 예산 소실 및 화면/계획 ABA 지연 nonce 채택은 마지막 독립 리뷰 중요2건으로 재현·수정·회귀통과. 실행 영역을 hidden 유지하고 요청 세대 번호·중첩 상태 조회 방어를 사용한다. 자동 다음 명령/전체BOM/Chronos/시설반복은 여전히 미완료.
+- 최종 Node496/493PASS/3기존skip/0fail·tsc/관련lint/격리webpack58·React테마/폭/예산/기한/중지/ABA PASS. native 코드는 변경 없음. 한설 통나무1회/날개5 승인, 실제 게임 명령0. 새 개발 IRIS PID28028/서버3000 정상, Computer Use 초기화 실패로 사용자 에르곤 화면 대기. 재시험은 진짜 앱 준비/최종 확인만, direct CLI/unknown 재시도 금지.
+- 로컬 미커밋 후보, remote는71cdadd 그대로. 제품0.3.0/운영v2.31/ZIP/공지17·18/DB 유지, 개인dirty·삭제·루트파일 보존. 현재5h 잔여15% 조건 미도달로 체크포인트push를 추정하지 않는다. 이 내용을 ACK 전 삭제/요약대체하지 않는다.
+
 - 사용자 확인 추가 — 2026-10-08 KST: 한설이 “계정전환도 잘되고있어”로 실제 계정 전환 성공을 확인했다. 앞서 활성 범위 창 표시도 확인 완료. 신규 로그인·로그아웃·미저장 보존 개별 실검증은 별도이며 아래 대기 기록은 당시 경과로 보존한다. 확인 문서만 추가, 코드·DB·commit/push 없음.
 
 ## YG-20261008-001 — ACKNOWLEDGED
