@@ -1,4 +1,4 @@
-param([string]$OutputRoot=(Join-Path $PSScriptRoot '../build/iris-beta'),[switch]$PrepareDownload)
+﻿param([string]$OutputRoot=(Join-Path $PSScriptRoot '../build/iris-beta'),[switch]$PrepareDownload)
 $ErrorActionPreference='Stop'
 Add-Type -AssemblyName System.Drawing
 Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -51,7 +51,7 @@ $nativeVersion=$Matches[1]
 $generated=Join-Path $root ('native-version-'+[guid]::NewGuid().ToString('N')+'.cs')
 [IO.File]::WriteAllText($generated,('namespace IrisDesktop { internal static class DesktopNativeVersion { public const string Value="'+$nativeVersion+'"; } }'),[Text.UTF8Encoding]::new($false))
 $updateSources=@('desktop-update-policy.cs','desktop-update-install.cs')|ForEach-Object{Join-Path $PSScriptRoot $_}
-$sources=@('overlay-native.cs','desktop-overlay.cs','desktop-addon-policy.cs','desktop-addon.cs','desktop-host.cs','desktop-store.cs','desktop-bridge.cs','desktop-fonts.cs','desktop-presentation.cs','desktop-alert-sound.cs','desktop-lifecycle.cs','desktop-webview.cs','desktop-release.cs','desktop-update.cs')|ForEach-Object{Join-Path $PSScriptRoot $_}
+$sources=@('overlay-native.cs','desktop-overlay.cs','desktop-addon-policy.cs','desktop-addon.cs','desktop-host.cs','desktop-store.cs','desktop-bridge.cs','desktop-life-read.cs','desktop-life-journal.cs','desktop-fonts.cs','desktop-presentation.cs','desktop-alert-sound.cs','desktop-lifecycle.cs','desktop-webview.cs','desktop-release.cs','desktop-update.cs')|ForEach-Object{Join-Path $PSScriptRoot $_}
 $sources+=$updateSources
 $sources+=$generated
 $exe=Join-Path $release 'IRIS.exe'

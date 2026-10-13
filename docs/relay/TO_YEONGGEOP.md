@@ -2,6 +2,26 @@
 
 ## SW-20261012-001 — UPDATED (공식 배포·게시 확인)
 
+- 최종체크포인트시험484/481PASS3기존skip/0fail·tsc/lint/격리webpackexit0·native패키지/DPAPI/filelock/bridge/startup/grip22/WebViewprofile분리PASS. 실제현재앱복구종료는사용자확인전. commit/push결과는아래추가또는최종대화SHA를확인할것; 미완료자동생활실행을완성기능으로운영배포하지말것.
+
+- 2026-10-13 마감: 사용자OR조건5h잔여3%/주간10% 충족으로새작업중단·인계commit/기능branch만정상push. 운영/main/버전0.3.0/공개ZIP/공지 그대로. 사용자종료모달보관실패·전버튼종료실패 제보: FastRefresh재생성requestid초기화/replay거부 RED→GREEN,globalWeakMapchannel수명연속화(native검증유지). 기존막힌앱은트레이복구종료/미보관최근변경손실주의 안내·사용자확인전강제종료0·dpapi삭제덮어쓰기0. PID1864CIM존재/새native적용대기. 최신HANDOFF 첫항목을읽을것.
+- 마지막보호원장리뷰중요1은로그인세션간배타filelock RED→GREEN. 30일terminal정리는다음Begin/unknown영구보존. 조회리뷰4중요수정·StrictMode/잠깐이탈반환/실패poll0/시작전점검날개표시·순차조회취소PASS. 보류minor=조회나이UI일관성/page직렬통합race장기시험. 새원장실행/nonce/게임액션·반복채집은아직없음. 후속순서는HANDOFF대로, 사용자신규SVG/루트3개/옛계획보존.
+
+- 2026-10-13 구현후속: 한설 PC작업최대구현 승인으로 ERGON 조회7종/가방창고·계획검색·목표/로컬계정환경50개32KiB/시작전점검을 실제구현. native고정7명령1MiB2048행8초, page직렬조회/중복합치기/서스펜션generation·늦은응답폐기/가공poll수동성공활성화면만·실패중지. native실제읽기178채집91가공1834제작297재료28가공현황PASS. 커넥터재료표 수동보완/권리미확인으로복사0. 전체BOM·낚시구분·시설max 추측금지.
+- 최신4중요읽기리뷰 RED→GREEN(오류wrapper/숨김돌아옴/poll범위/불가사유), 실제React계획재로드/계정분리/20목표/2048목록/실패보존/비활성조회0/12폭글자·StrictMode PASS. 시작전점검은날개/상태만읽고모든조건canExecutefalse. **자동채집/반복가공/수령50%/Chronos대기열/전체부족분 아직미구현**. native DPAPI원장 기반클래스+합성시험만추가, 호스트/브라우저연결/게임명령0. 원장기반최종독립검토진행중.
+- 가장최근Node483/480PASS3skip·tsc/lint/standaloneDPAPI/7native실제읽기/브리지/시작종료/grip22/WebView/격리초기build/별도패키지compile PASS. 최신후속build·최종검토결과는 HANDOFF에 추가할것. 개인루트/사용자신규SVG/옛계획 보존·원격push0. 운영v2.31/IRIS0.3.0/공개ZIP/게시17·18/DB그대로. 이전‘착수전·검토대기’는경과이며최신실행상태아님. 중단조건OR3%, 마지막5h13%/주간12%로미충족.
+
+- 2026-10-13 추가승인: ‘구현해줘’로생활설계승인, 새ergon-read-planning 실행계획사용자검토대기(직접구현·마지막독립리뷰1회). 신생활코드착수전/실게임명령0. **5시간 OR 주간잔여3% 이하**면중단·인계·체크포인트push, 현재55%/19%미충족. 에르곤.18em으로자간되돌려자연화/크로노스.14유지·시낙시스기존어비스SVG bbox보정1.4/currentColor, actual12폭·pt 및새UI흐름PASS. 이전.42em은역사이며최신값아님. 개인dirty/미ACK누적보존.
+
+- 2026-10-13 설계 기록: ergon-life-manager-design 파일만 local960d66d 커밋, 원격push0/코드후보 및 개인dirty 보존. 최종제목·자간 격리webpack58 PASS. 실제생활기능은 설계 사용자검토→실행계획검토 뒤 시작, 아직게임명령0.
+
+- 2026-10-13 추가: 한설자간·컴팩트본문 승인→크로노스.14em/에르곤.42em·시낙시스기능설명제목·에르곤기능설명단일제목/소개삭제, 실제SSR/폭비율/큰글자/새UI/제목6조합PASS. 최신461/458PASS/3skip·tsc/관련lint0error(기존공용hookwarning1). 남은생활구현 요청으로 공식CLI help/capabilities+읽기7종만 확인, 행동0. 117KB/80KB/평면activity·날개5/채집100·부족재료만/낚시무기한/시설전체수령 계약. 새2026-10-13 ergon-life-manager-design 설계 검토 대기, 승인→실행계획→조회/계획부터. 아직실제생활미연결/음악원격HUD확장아님/개인rawGit제외. push·운영·ZIP·게시변경0, 마지막잔여60%/주간19%로 임계체크포인트 미충족.
+
+- 2026-10-13 UI 후속: 한설이 실제 새메뉴 화면의 생활SVG/부제 간격 부족 제보, 아이콘/글자2cqw 여백·생활마크추가확대제거·영문폭조정. 실제 간격RED→GREEN/12폭·pt·새UI흐름/관련SSR29PASS. launcherPID1864 후속종료됨/사용자첨부 실제IRIS새메뉴 확인·forcekill0. 마지막사용량69%/주간21%, 미push 유지.
+
+- 2026-10-13 누적 로컬 후보: 한설 집 후속작업없음/HEAD1d8e374 ff-only동일. 승인된 ERGON 3번째 상위 메뉴(한글두줄→선택·hover영어/SVG·수평전환·빛스침)와 테마 가마·불꽃 SVG, 소개/4영역 UI 추가. **생활 명령 미연결**. 저장표시만 body포털/유휴없음/완료3초/미리보기4초/오류복구유지, 4모서리 환경별local 설정. visible모달 중숨김/compact클릭예외 보존. 상세경로/시험은 HANDOFF·2026-10-13 계획 참조.
+- 이번분 미커밋/미push/미배포. 운영v2.31/IRIS0.3.0·ZIP·글17/18 그대로. push승인조건=5시간잔여2–3% 체크포인트, 마지막74%/주간22%로미충족. 기존미ACK/개인root/옛계획보존. 최종460/457PASS/3skip·tsc/lint/격리build58·실React/메뉴초안PASS; 기존버스알림시험간헐1회는실패기록/단독25·전체직렬재검PASS, 범위밖hook수정0. 독립리뷰중요1 실모달RED→GREEN. Development앱PID1864응답/stderr0·localhost200, 실게임/DPI별도. DB/native게임구조/패키지/게시변경0.
+
 - 21:23 복구 후속: 인계문서9cfcfb2 첫배포 dpl_AbKL... git_info_fail ERROR→운영0.3.0유지확인→같은프로젝트/커밋·설정으로정상재배포 dpl_6W4wLEF8k1CBbwjBXEku8Zv2ChUg READY/Production/정확SHA9cfcfb222ee7734d7d8aae0d75e0b3a1bac2b004/공식aliasErrornull 확인. 상세로그403/CLI없음 미확인·우회0. 제품코드d70b0e5/ZIP/게시2건 유지·이번기록구조변경없음/복구뒤공지재게시0.
 
 - 마감 예약iris-sanctum PAUSED 저장확인/다시실행금지. IRIS분류는 정확한 ‘IRIS Beta x.y.z 출시!’ 계약이므로18번 제목만 ‘IRIS Beta 0.3.0 출시!’로 기존 정상수정UI에서맞춤/본문4중제목보존·새글0. 이전‘IRIS 제목분류’ 단정은 최종이확인으로보완한다.

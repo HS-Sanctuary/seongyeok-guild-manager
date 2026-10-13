@@ -4,4 +4,5 @@ export function HomeIcon(){return <svg width="16" height="16" viewBox="0 0 24 24
 // Original SVG silhouettes measured against their viewBoxes; normalize the painted
 // bounds to .9rem square and center them without changing the shared source assets.
 export function KronosIcon(){const mask='url("'+encodeURI('/svgs/UI mark/가방 마크.svg')+'")';return <span className="iris-main-tab-mark" style={{maskImage:mask,WebkitMaskImage:mask,transform:'translate(-.029rem,-.052rem) scale(1.563,1.359)'}}/>;}
-export function SynaxisIcon(){const mask='url("'+encodeURI('/svgs/contens mark/레이드 마크.svg')+'")';return <span className="iris-main-tab-mark" style={{maskImage:mask,WebkitMaskImage:mask,transform:'translate(.0032rem,.0072rem) scale(1.249,1.224)'}}/>;}
+export function SynaxisIcon(){const mask='url("'+encodeURI('/svgs/contens mark/어비스 마크.svg')+'")';return <span className="iris-main-tab-mark" style={{maskImage:mask,WebkitMaskImage:mask,transform:'translateY(-2.4%) scale(1.4)'}}/>;}
+export function ErgonIcon(){const mask='url("'+encodeURI('/svgs/UI mark/생활 마크.svg')+'")';return <span className="iris-main-tab-mark" style={{maskImage:mask,WebkitMaskImage:mask}}/>;}

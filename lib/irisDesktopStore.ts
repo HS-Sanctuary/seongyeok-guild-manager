@@ -1,6 +1,7 @@
 import type { QueueSnapshot } from './irisDesktopQueue';
 import {parseGameStats,type GameStats} from './irisStats';
 import {parseCurrencies,type CurrencySnapshot} from './irisCurrencies';
+import {ergonReadKinds,validErgonReadKind,parseErgonSnapshot,type ErgonReadKind,type ErgonSnapshot} from './irisErgonRead';
 import {parseDesktopUpdateState,type DesktopUpdateState} from './irisDesktopUpdate';
 
 type Context = { epoch: number; environment: string };
@@ -46,6 +47,12 @@ export function createDesktopStore(options: { channel: Channel; context(): Conte
   let sequence = 0;
   let supportedEpoch:number|null=null;
   let workspaceEpoch:number|null=null;
+  let lifeEpoch:number|null=null;
+  async function lifeCapabilities():Promise<void>{
+    const epoch=options.context()?.epoch;if(epoch!==undefined&&epoch===lifeEpoch)return;
+    let value:unknown;try{value=await request('game.life.capabilities',null);}catch{throw Error('생활 조회를 사용하려면 IRIS를 정상 종료하고 최신 앱으로 다시 실행해 주세요.');}
+    if(!exactObject(value,['schemaVersion','readOnly','kinds'])||value.schemaVersion!==1||value.readOnly!==true||!Array.isArray(value.kinds)||value.kinds.length!==ergonReadKinds.length||ergonReadKinds.some(k=>!(value.kinds as unknown[]).includes(k))||epoch!==options.context()?.epoch)throw Error('생활 조회 연결을 확인하지 못했어요. 최신 앱으로 다시 실행해 주세요.');lifeEpoch=epoch??null;
+  }
   async function queueCapabilities():Promise<{schemaVersion:3;barter:true}>{
     const epoch=options.context()?.epoch;
     if(epoch!==undefined&&epoch===supportedEpoch)return {schemaVersion:3,barter:true};
@@ -55,13 +62,20 @@ export function createDesktopStore(options: { channel: Channel; context(): Conte
     if(epoch!==options.context()?.epoch)throw Error('앱 연결이 바뀌었어요. 다시 실행해 주세요.');supportedEpoch=epoch??null;workspaceEpoch=value.workspace===true?epoch??null:null;
     return {schemaVersion:3,barter:true};
   }
-  function request(method: 'store.capabilities' | 'store.load' | 'store.replace' | 'window.hide' | 'window.close' | 'window.addon.state' | 'window.addon.preferences' | 'window.drag' | 'window.minimize' | 'window.decision' | 'overlay.state' | 'overlay.input' | 'overlay.opacity' | 'game.stats.read' | 'game.currencies.read' | 'window.update.state' | 'window.update.check' | 'window.update.prepare' | 'window.update.apply' | 'window.fonts.list' | 'window.fonts.refresh' | 'window.presentation.state' | 'window.presentation.toggle' | 'window.presentation.panel' | 'window.alert.sound', payload: unknown): Promise<unknown> {
+  function request(method: 'game.life.capabilities' | 'game.life.read' | 'store.capabilities' | 'store.load' | 'store.replace' | 'window.hide' | 'window.close' | 'window.addon.state' | 'window.addon.preferences' | 'window.drag' | 'window.minimize' | 'window.decision' | 'overlay.state' | 'overlay.input' | 'overlay.opacity' | 'game.stats.read' | 'game.currencies.read' | 'window.update.state' | 'window.update.check' | 'window.update.prepare' | 'window.update.apply' | 'window.fonts.list' | 'window.fonts.refresh' | 'window.presentation.state' | 'window.presentation.toggle' | 'window.presentation.panel' | 'window.alert.sound', payload: unknown): Promise<unknown> {
     return new Promise((resolve, reject) => {
       const context = options.context();
       if (!context || context.environment !== options.environment || !Number.isSafeInteger(context.epoch) || context.epoch < 1 || sequence >= Number.MAX_SAFE_INTEGER) {
         reject(Error('보호된 대기함에 연결할 수 없어요.')); return;
       }
-      const id = String(++sequence), epoch = context.epoch;
+      // Fast Refresh can recreate the module/controller without navigating the native document.
+      // Keep channel request IDs monotonic across those recreations; native replay checks stay intact.
+      const sequenceKey=Symbol.for('SANCTUM.IRIS.request-sequences.v1');
+      const runtime=globalThis as typeof globalThis&{[key:symbol]:WeakMap<object,number>|undefined};
+      const sequences=runtime[sequenceKey]??(runtime[sequenceKey]=new WeakMap<object,number>());
+      sequence=Math.max(sequence,sequences.get(options.channel)??0);
+      if(sequence>=Number.MAX_SAFE_INTEGER){reject(Error('앱 요청 한도에 도달했어요. 정상 재시작해 주세요.'));return;}
+      const id = String(++sequence), epoch = context.epoch;sequences.set(options.channel,sequence);
       const fail = () => Error('보호된 대기함 응답을 확인하지 못했어요. 변경을 보존하고 연결을 확인해 주세요.');
       const cleanup = () => { clearTimeout(timer); options.channel.removeEventListener('message', listener); };
       const listener = (event: Message) => {
@@ -80,6 +94,8 @@ export function createDesktopStore(options: { channel: Channel; context(): Conte
     });
   }
   return {
+    lifeCapabilities,
+    async readLife<K extends ErgonReadKind>(kind:K):Promise<ErgonSnapshot<K>>{if(!validErgonReadKind(kind))throw Error('지원하지 않는 생활 조회예요.');await lifeCapabilities();return parseErgonSnapshot(kind,await request('game.life.read',{kind}));},
     async playAlertSound():Promise<void>{await request('window.alert.sound',null);},
     async presentationState():Promise<DesktopPresentation>{return parseDesktopPresentation(await request('window.presentation.state',null));},
     async togglePresentation():Promise<DesktopPresentation>{return parseDesktopPresentation(await request('window.presentation.toggle',null));},

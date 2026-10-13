@@ -168,6 +168,7 @@ namespace IrisDesktop {
                 var alertSound=new DesktopAlertSound();bridge.BindAlertSound(alertSound.Play);
                 bridge.BindPresentation(Presentation.State,()=>{Presentation.Toggle();return Presentation.State();},open=>{Presentation.SetPanelOpen(open);return Presentation.State();});
                 bridge.BindCurrencies(DesktopGameStatsReader.ReadCurrenciesAsync);
+                bridge.BindLifeRead(async kind=>{if(!Visible||WindowState==FormWindowState.Minimized||closeDecision)throw new ArgumentException();return await DesktopLifeReader.ReadAsync(kind);});
                 bridge.BindOverlay(Overlay.State,Overlay.SetClickThrough,Overlay.SetOpacityPercent);
                 bridge.BindAddon(Addon.State,(side,layer)=>Addon.SetPreferences(new AddonWindowPreferences {DockSide=side,SameLayer=layer}),Decision);
                 bridge.DragRequested+=(sender,e)=>{dragPending=true;};

@@ -1,5 +1,25 @@
 # 🏛️ SANCTUM Master Guide
 
+- 2026-10-13 체크포인트 최종검증: Node484/481PASS3skip·tsc/lint·격리webpack·생활native/보호원장/host/packagePASS. 구조도추가만인계브랜치에공유하며운영구조·공개버전·DB변경없음. 실제종료복구및소비명령미연결은HANDOFF참고.
+
+- 개발체크포인트추가: `irisDesktopStore` 요청번호는Symbol.for globalWeakMap의channel별수명으로FastRefresh 재생성에도연속유지한다. native origin/epoch/lastId 검증은그대로다. `DesktopLifeJournal` 동기화는LocalMutex가아닌로그인세션간배타FileShare.None파일잠금이며30일완료분정리는다음Begin에서실시,미확정은보존한다. 아래원장NamedMutex표기는교체전경과다. 실제게임실행endpoint는여전히없음.
+
+## 2026-10-13 — ERGON 읽기·계획 및 자동 작업 안전 기반 로컬 구현
+
+- `DesktopCenter.ergonPanel(active)`→`DesktopErgon`→`useErgonSession`→`irisErgonSession`/`irisErgonRead`. 페이지의 공유 nativeReads 직렬 큐·종류별합치기·시작 전/응답 문맥 및 visibility generation을 검사한다. 활동/가방무게/재료/가공현황/채집·가공·제작목록7종, 최신15초 판정. 가공 현황은 수동 성공 후 활성 재료 화면에서만10초 조회, 오류 시 중지.
+- native `DesktopLifeReader` 고정7명령/Ingredient고정필터/UTF8 1MiB/2048행/8초/nullable. `DesktopBridge.BindLifeRead`, `game.life.capabilities`(readOnly)/`game.life.read`(kind enum1개)로 origin/epoch/replay/gameBusy 잠금을 유지. 기존 stats/currency64KB 상한은 유지. error/pipe/거부status/body.error 응답은 성공으로 만들지 않는다. WebView Visible/실제최소화/종료 상태 재확인.
+- `irisErgonPlan`: localStorage `iris_ergon_plans:v1:<환경>:<계정>` 목표의도50개/32KiB. 검색·수량1..1000000/개별삭제/손상원본 보존·명시적초기화/저장실패세션보존. 산출량으로ceil 횟수; 제작 배치날개범위/채집최소/가공등록소모, 부족분은현재1회만. 전체BOM·실제신원·일반채집/낚시분류·시설정원 추측 금지.
+- `irisErgonStart`/시작전점검은 최신 활동14필드/던전·무게·날개5·후보조건·캐릭터확인·미확정기록을 **읽기만** 검사. 모든 상태에서 `canExecute:false`, game.execute/stop endpoint 없음. 조회 중 화면/계정/잠금이 바뀌면 후속 단계와 늦은 재화 응답 폐기.
+- `DesktopLifeJournal`은 native-only 보호원장 기반 클래스/독립합성시험이다. DPAPI CurrentUser/환경분리/atomic flush+replace/NamedMutex, 최근300/30일(미확정은삭제금지), 다른계정 포함미확정 차단·재생거부·재시작 inflight→unknown·손상보존. native 소스목록에는 포함하되 **호스트/브라우저 실행·기록 UI와 아직 연결하지 않음**. 실행nonce/사전native 재조회/명령·결과확인/반복큐는 남음.
+- 기존 SANCTUM 서버/API/DB/RLS/보호저장큐·운영버전·공개패키지·공지 변경 없음. 아래 UI-only/구조변경없음은 이 조회착수 이전 경과다. 새 native 출력을 포함한 compile은 scratch에서만 검증한다.
+
+## 2026-10-13 — IRIS 에르곤·저장 안내 로컬 후보 (미배포)
+
+- DesktopCenter→DesktopMainTabs(kronos/synaxis/ergon), 기존 숨김 유지 패널/초안 유지. DesktopErgon 소개·4영역은 UI만, 생활 API/native 명령·게임 실행 큐 미연결.
+- DesktopIcons.ErgonIcon: `public/svgs/UI mark/생활 마크.svg` currentColor CSS mask. 배경/비트맵/외부 리소스 없음.
+- DesktopSaveStatus는 기존 controller pending/confirmation을 body 포털로 표시. 유휴숨김/완료3초/미리보기4초/오류복구 유지, visible aria-modal 동안 CSS로 숨김(숨겨 둔 패널 제외). DesktopAddonSettings→useDesktopAppearance→irisAppearance의 `iris_appearance:v1:<environment>:save-position` 4모서리 로컬 설정, DB·계정 공유 없음.
+- 기존 저장 controller/보호 대기함/서버/API/DB/RLS/native 구조 변경 없음. 운영 버전·다운로드·공지 변경 없음.
+
 ## 2026-10-12 — v2.31 / IRIS0.3.0 공식 적용
 
 - 후속 문서9cfcfb2의 Git정보조회 배포 오류는 같은 커밋 정상재배포 dpl_6W4wLEF8k1CBbwjBXEku8Zv2ChUg READY/공식domain 연결 확인으로 복구했다. 코드/패키지·구조 변경 없음. 정확한 실패/복구 경과는 RELEASE_NOTES/HANDOFF에 있다.

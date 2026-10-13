@@ -95,11 +95,48 @@
 .iris-stats-actions { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.6fr); gap:.35rem; }
 .iris-stats-actions button { white-space:normal; }
 .iris-hud-tabs button { padding: .4rem .15rem; font-size: .7rem; border-radius: 1.2rem; min-height: 2rem; }
-.iris-main-tabs { grid-template-columns:repeat(2,minmax(0,1fr)); gap:.25rem; margin:.2rem 0 .35rem; padding:.18rem; border:1px solid var(--panel-border); border-radius:.75rem; background:var(--inner-box); }
-.iris-main-tabs .iris-desktop-button { display:flex; align-items:center; justify-content:center; gap:.3rem; min-width:0; min-height:1.75rem; padding:.2rem .3rem; line-height:1.25; border-radius:.55rem; border-color:transparent; background:transparent; color:var(--text-main); font-size:.75rem; font-weight:800; white-space:nowrap; }
+.iris-main-tabs { container-type:inline-size; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.2rem; margin:.2rem 0 .35rem; padding:.18rem; border:1px solid var(--panel-border); border-radius:.75rem; background:var(--inner-box); }
+.iris-main-tabs .iris-desktop-button { position:relative; isolation:isolate; overflow:hidden; display:flex; align-items:center; justify-content:center; gap:2cqw; min-width:0; min-height:2.8rem; padding:.2rem .15rem; line-height:1.25; border-radius:.55rem; border-color:transparent; background:transparent; color:var(--text-main); font-size:.75rem; font-weight:800; white-space:nowrap; }
 .iris-main-tabs .iris-desktop-button:hover:not(:disabled):not([aria-pressed=true]) { background:color-mix(in srgb,var(--accent) 8%,var(--inner-box)); color:var(--accent); }
 .iris-main-tabs .iris-desktop-button[aria-pressed=true] { border-color:var(--accent); background:var(--accent); color:var(--accent-fg); }
-.iris-main-tab-icon { display:inline-flex; flex:none; width:.85rem; height:.85rem; }
+.iris-main-tab-icon { display:inline-flex; flex:none; width:clamp(.4rem,4.8cqw,.95rem); height:clamp(.4rem,4.8cqw,.95rem); }
+.iris-main-tab-label { display:grid; position:relative; min-width:0; }
+.iris-main-label-ko { grid-area:1/1;display:grid; gap:.16rem; transition:opacity .22s ease,transform .28s ease,filter .22s ease; }
+.iris-main-label-ko strong { font-size:clamp(.35rem,4.4cqw,.75rem); }
+.iris-main-label-ko[data-module=kronos] strong {letter-spacing:.14em;}
+.iris-main-label-ko[data-module=ergon] strong {letter-spacing:.18em;}
+.iris-main-label-ko small { font-size:clamp(.4rem,3.8cqw,.667rem); font-weight:500; opacity:.78; }
+.iris-main-label-en { grid-area:1/1; display:grid; place-items:center; font-size:clamp(.35rem,3.6cqw,.72rem); letter-spacing:.015em; opacity:0; transform:translateX(.3rem); filter:blur(.08rem); transition:opacity .22s ease,transform .28s ease,filter .22s ease; }
+.iris-main-tabs button:is([aria-pressed=true],:hover:not(:disabled),:focus-visible) .iris-main-label-ko {opacity:0;transform:translateX(-.25rem);filter:blur(.08rem);}
+.iris-main-tabs button:is([aria-pressed=true],:hover:not(:disabled),:focus-visible) .iris-main-label-en {opacity:1;transform:none;filter:none;}
+.iris-main-tabs button::after {content:"";position:absolute;inset:-50% auto -50% -60%;width:30%;z-index:-1;background:linear-gradient(100deg,transparent,color-mix(in srgb,currentColor 16%,transparent),transparent);transform:skewX(-20deg);pointer-events:none;}
+.iris-main-tabs button:is(:hover:not(:disabled),:focus-visible)::after {animation:iris-tab-sheen .55s ease-out both;}
+@keyframes iris-tab-sheen {to{left:140%;}}
+.iris-ergon {display:grid;gap:.65rem;padding:.35rem;}
+.iris-ergon header {border-bottom:1px solid var(--panel-border);padding-bottom:.5rem;}
+.iris-ergon header small,.iris-ergon header p {font-size:.667rem;color:var(--text-sub);}
+.iris-ergon h2 {font-size:.8rem;line-height:1.5;font-weight:800;color:var(--accent);}
+.iris-ergon-meaning {font-size:.8rem;}
+.iris-ergon nav {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.25rem;}
+.iris-ergon nav button {font-size:.7rem;min-height:1.8rem;padding:.25rem;}
+.iris-ergon>section {padding:.65rem;border:1px solid var(--panel-border);border-radius:.75rem;background:var(--inner-box);display:grid;gap:.35rem;}
+.iris-ergon h3 {font-size:.8rem;font-weight:700;}
+.iris-ergon-stage {font-size:.667rem;color:var(--text-sub);}
+.iris-save-overlay {position:fixed;z-index:30;width:max-content;max-width:min(19rem,calc(100vw - .8rem));max-height:calc(100dvh - .8rem);overflow-y:auto;box-sizing:border-box;padding:.5rem .6rem;border:1px solid color-mix(in srgb,var(--accent) 40%,var(--panel-border));border-radius:.75rem;background:color-mix(in srgb,var(--panel) 90%,transparent);color:var(--text-main);box-shadow:0 .3rem 1rem #0002;backdrop-filter:blur(6px);font-family:var(--iris-font-family,inherit);word-break:keep-all;overflow-wrap:anywhere;animation:iris-save-appear .18s ease-out;}
+.iris-save-overlay[data-position^=top] {top:.4rem;}
+.iris-save-overlay[data-position^=bottom] {bottom:max(.4rem,env(safe-area-inset-bottom));}
+.iris-save-overlay[data-position$=left] {left:.4rem;}
+.iris-save-overlay[data-position$=right] {right:.4rem;}
+.iris-save-overlay :focus-visible {outline:.12rem solid var(--accent);outline-offset:.12rem;}
+/* A visible modal owns the interaction surface, including body portals. Hidden
+   retained panels must not suppress feedback in the active panel. */
+body:has([role="dialog"][aria-modal="true"]:not([hidden],[hidden] *)) .iris-save-overlay {display:none;}
+.iris-save-overlay strong {font-size:.75rem;color:var(--accent);}
+.iris-save-overlay small {font-size:.667rem;color:var(--text-sub);}
+.iris-save-help {border-top:1px solid var(--panel-border);padding-top:.25rem;}
+.iris-save-position-buttons {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.3rem;}
+@keyframes iris-save-appear {from{opacity:0;transform:translateY(.2rem)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.iris-main-label-ko,.iris-main-label-en{transition:none!important;filter:none!important;transform:none!important}.iris-main-tabs button::after{animation:none!important;display:none}.iris-save-overlay{animation:none}}
 .iris-main-tab-mark { display:block; width:100%; height:100%; background:currentColor; mask-size:contain; -webkit-mask-size:contain; mask-repeat:no-repeat; -webkit-mask-repeat:no-repeat; mask-position:center; -webkit-mask-position:center; }
 .iris-stats-confirm-actions { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.35fr) auto; align-items:stretch; gap:.25rem; }
 .iris-stats-confirm-actions .iris-desktop-button { min-width:0; padding:.4rem .3rem; min-height:2.1rem; font-size:.7rem; white-space:nowrap; }
@@ -218,7 +255,7 @@
 .iris-font-options [role=listbox]{max-height:min(14rem,40vh);overflow:auto;overscroll-behavior:contain;margin-top:.3rem}
 .iris-font-option{display:block;width:100%;text-align:left;border:0;background:transparent;color:var(--text-main);padding:.3rem .4rem;border-radius:.35rem;overflow-wrap:anywhere}
 .iris-font-option:hover,.iris-font-option:focus-visible,.iris-font-option[aria-selected=true]{background:var(--inner-box);outline:1px solid var(--accent)}
-.iris-hud[data-compact=true] .iris-main-tabs .iris-desktop-button{min-height:1.4rem;padding:.1rem .25rem}
+.iris-hud[data-compact=true] .iris-main-tabs .iris-desktop-button{min-height:2.3rem;padding:.1rem .15rem}
 .iris-hud[data-compact=true] .iris-feature-row .iris-desktop-button{min-height:1.4rem;padding:.1rem .1rem}
 .iris-hud[data-compact=true] .iris-hud-body:not([hidden]){border-top:1px solid var(--accent);padding-top:.4rem}
 .iris-content-alerts>header{display:flex;align-items:center;gap:.4rem;justify-content:space-between}
@@ -246,3 +283,10 @@
 .iris-opacity-control{display:flex;align-items:center;gap:.6rem;font-size:.8rem}
 .iris-opacity-control input{width:100%;min-width:0;accent-color:var(--accent)}
 @container (max-width:17rem){.iris-feature-picker .iris-feature-row{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.iris-ergon-controls{display:flex;flex-wrap:wrap;gap:.4rem;margin-block:.4rem}
+.iris-ergon label{display:flex;flex-wrap:wrap;align-items:center;gap:.4rem;margin-block:.5rem}
+.iris-ergon input,.iris-ergon select{min-width:0;max-width:100%;border:1px solid var(--panel-border);border-radius:.6rem;background:var(--inner-box);color:var(--text-main);padding:.35rem .5rem;font:inherit}
+.iris-ergon input[type=number]{width:6rem}
+.iris-ergon article{display:flex;flex-wrap:wrap;align-items:center;gap:.45rem;border:1px solid var(--panel-border);border-radius:.7rem;padding:.5rem;margin-block:.4rem;overflow-wrap:anywhere}
+.iris-ergon article strong,.iris-ergon article p{min-width:0;flex-basis:100%}
+.iris-ergon-list{max-height:18rem;overflow-y:auto;overscroll-behavior:contain}

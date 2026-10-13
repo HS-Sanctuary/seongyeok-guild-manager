@@ -28,7 +28,8 @@
 .iris-party-confirm-submit { background:var(--accent)!important; color:var(--accent-fg)!important; }
 .iris-synaxis-toolbar { display:grid; gap:.6rem; margin-block-end:.9rem; }
 .iris-synaxis-heading { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:var(--iris-control-gap,.4rem); }
-.iris-synaxis-heading h2 { font-weight:800; color:var(--accent); }
+.iris-synaxis-heading h2 { flex:1;min-width:0;word-break:keep-all;overflow-wrap:anywhere;font-weight:800; color:var(--accent); }
+.iris-synaxis-heading>button {flex:none;}
 .iris-synaxis-tabs,.iris-synaxis-primary-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:var(--iris-control-gap,.4rem); margin:0; }
 .iris-synaxis-toolbar button,.iris-synaxis-filters button,.iris-synaxis-recovery button { font-size:.75rem; min-height:1.9rem; padding:.3rem .45rem; }
 .iris-synaxis-primary-actions>button:only-child { grid-column:1/-1; }

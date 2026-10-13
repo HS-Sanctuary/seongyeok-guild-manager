@@ -15,6 +15,11 @@ export function currencyColorContrast(foreground:string,background:string):numbe
   const a=luminance(foreground),b=luminance(background);return (Math.max(a,b)+.05)/(Math.min(a,b)+.05);
 }
 const scope=(environment:AppearanceEnvironment)=>{if(!['development','production'].includes(environment))throw Error('표시 설정 환경을 확인해 주세요.');return `iris_appearance:v1:${environment}`;};
+export const irisSavePositions={'top-left':'왼쪽 위','top-right':'오른쪽 위','bottom-left':'왼쪽 아래','bottom-right':'오른쪽 아래'} as const;
+export type IrisSavePosition=keyof typeof irisSavePositions;
+export const validIrisSavePosition=(value:unknown):value is IrisSavePosition=>typeof value==='string'&&Object.hasOwn(irisSavePositions,value);
+export function readIrisSavePosition(storage:Pick<Storage,'getItem'>,environment:AppearanceEnvironment):{position:IrisSavePosition;persistent:boolean}{try{const raw=storage.getItem(`${scope(environment)}:save-position`);if(raw===null)return {position:'bottom-right',persistent:true};if(!validIrisSavePosition(raw))throw Error();return {position:raw,persistent:true};}catch{return {position:'bottom-right',persistent:false};}}
+export function writeIrisSavePosition(storage:Pick<Storage,'setItem'>,environment:AppearanceEnvironment,position:IrisSavePosition):boolean{try{if(!validIrisSavePosition(position))return false;storage.setItem(`${scope(environment)}:save-position`,position);return true;}catch{return false;}}
 export const validIrisOpacity=(value:unknown):value is number=>typeof value==='number'&&Number.isInteger(value)&&value>=30&&value<=100;
 export function readIrisOpacity(storage:Pick<Storage,'getItem'>,environment:AppearanceEnvironment):{percent:number;persistent:boolean}{try{const raw=storage.getItem(`${scope(environment)}:opacity`);if(raw===null)return {percent:100,persistent:true};const percent=Number(raw);if(!validIrisOpacity(percent))throw Error();return {percent,persistent:true};}catch{return {percent:100,persistent:false};}}
 export function writeIrisOpacity(storage:Pick<Storage,'setItem'>,environment:AppearanceEnvironment,percent:number):boolean{try{if(!validIrisOpacity(percent))return false;storage.setItem(`${scope(environment)}:opacity`,String(percent));return true;}catch{return false;}}

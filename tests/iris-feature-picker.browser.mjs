@@ -36,10 +36,10 @@ try{
    await page.evaluate(theme=>document.documentElement.dataset.theme=theme,theme);
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`${width}/${font}/${theme} outer overflow`);
    const clipped=await nav().getByRole('button').evaluateAll(elements=>elements.filter(e=>e.scrollWidth>e.clientWidth+2||e.scrollHeight>e.clientHeight+2).map(e=>e.textContent));assert.deepEqual(clipped,[],`${width}/${font}/${theme} feature clipping`);
-   const bounds=await page.getByRole('navigation',{name:'상위 메뉴',exact:true}).getByRole('button',{name:'크로노스',exact:true}).boundingBox();assert.ok(bounds.height<=font*2,`Upper button must be compact: ${bounds.height}`);assert.ok(bounds.height>=24,'Compact controls remain usable');
+   const bounds=await page.getByRole('navigation',{name:'상위 메뉴',exact:true}).getByRole('button',{name:'크로노스',exact:true}).boundingBox();assert.ok(bounds.height<=font*3,`Two-line upper button stays bounded: ${bounds.height}`);assert.ok(bounds.height>=24,'Controls remain usable');
   }
  }
- console.log('PASS 21 width/font combinations × six themes; smaller upper buttons, unclipped labels');
+ console.log('PASS 21 width/font combinations × six themes; bounded two-line upper buttons, unclipped feature labels');
  await page.setViewportSize({width:390,height:850});await go();await page.screenshot({path:'.superpowers/iris-restored-tabs-20261012.png'});
  assert.deepEqual(errors,[]);
 }finally{await browser.close();await new Promise(resolve=>server.close(resolve));}

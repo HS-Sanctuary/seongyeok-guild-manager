@@ -23,6 +23,9 @@ namespace IrisDesktop {
         public void BindAddon(Func<object> state,Func<string,bool,bool> preferences,Action<bool> decision){addonState=state;addonPreferences=preferences;addonDecision=decision;}
         Func<object> overlayState;Func<bool,bool> overlayInput;Func<int,bool> overlayOpacity;
         Func<Task<object>> gameRead,currencyRead; bool gameBusy;
+        Func<string,Task<object>> lifeRead;
+        static readonly string[] lifeKinds={"activity","inventory","works","materials","gathering","altering","crafting"};
+        public void BindLifeRead(Func<string,Task<object>> read){lifeRead=read;}
         Func<bool,Task<object>> fontsRead;bool fontsBusy;
         public void BindFonts(Func<bool,Task<object>> read){fontsRead=read;}
         Func<bool> alertSound;
@@ -38,9 +41,9 @@ namespace IrisDesktop {
             var receipt=Handle(source,json);var serializer=new JavaScriptSerializer();
             var result=serializer.DeserializeObject(receipt) as Dictionary<string,object>;
             var marker=result!=null&&result.ContainsKey("value")?result["value"] as Dictionary<string,object>:null;
-            if(marker==null||(!marker.ContainsKey("gameReadPending")&&!marker.ContainsKey("updatePending")&&!marker.ContainsKey("fontsPending")))return receipt;
+            if(marker==null||(!marker.ContainsKey("gameReadPending")&&!marker.ContainsKey("lifeReadPending")&&!marker.ContainsKey("updatePending")&&!marker.ContainsKey("fontsPending")))return receipt;
             bool update=marker.ContainsKey("updatePending"),fonts=marker.ContainsKey("fontsPending");var epoch=Epoch;if(fonts)fontsBusy=true;else if(!update)gameBusy=true;
-            try{var value=await (fonts?fontsRead(Equals(marker["fontsPending"],true)):update?(Equals(marker["updatePending"],"check")?updateCheck():updatePrepare()):(marker.ContainsKey("currency")?currencyRead():gameRead()));if(epoch!=Epoch||document==null)throw new ArgumentException();result["value"]=value;}
+            try{var value=await (fonts?fontsRead(Equals(marker["fontsPending"],true)):update?(Equals(marker["updatePending"],"check")?updateCheck():updatePrepare()):marker.ContainsKey("lifeReadPending")?lifeRead((string)marker["lifeReadPending"]):(marker.ContainsKey("currency")?currencyRead():gameRead()));if(epoch!=Epoch||document==null)throw new ArgumentException();result["value"]=value;}
             catch{result["ok"]=false;result["value"]=null;result["error"]=fonts?"fonts_unavailable":"game_stats_unavailable";}
             finally{if(fonts)fontsBusy=false;else if(!update)gameBusy=false;}
             return serializer.Serialize(result);
@@ -108,6 +111,12 @@ namespace IrisDesktop {
                     case "game.stats.read":
                         if(message["payload"]!=null||gameRead==null||gameBusy)throw new ArgumentException();
                         value=new {gameReadPending=true};break;
+                    case "game.life.capabilities":
+                        if(message["payload"]!=null||lifeRead==null)throw new ArgumentException();value=new {schemaVersion=1,readOnly=true,kinds=lifeKinds};break;
+                    case "game.life.read":
+                        var lifePayload=message["payload"] as Dictionary<string,object>;
+                        if(lifeRead==null||gameBusy||lifePayload==null||lifePayload.Count!=1||!lifePayload.ContainsKey("kind"))throw new ArgumentException();
+                        var lifeKind=lifePayload["kind"] as string;if(lifeKind==null||Array.IndexOf(lifeKinds,lifeKind)<0)throw new ArgumentException();value=new {lifeReadPending=lifeKind};break;
                     case "game.currencies.read":
                         if(message["payload"]!=null||currencyRead==null||gameBusy)throw new ArgumentException();
                         value=new {gameReadPending=true,currency=true};break;

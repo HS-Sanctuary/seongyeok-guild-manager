@@ -44,11 +44,10 @@ test('center enables barter, shop and missions as separate Kronos panels',()=>{
   assert.match(html,/생텀 선택/);assert.match(html,/열두글자캐릭터닉네임확인/);
 });
 
-test('empty save status does not reserve a blank live-status row and places save-time info in disclosure',()=>{
+test('empty save status does not reserve any inline toolbar or live-status row',()=>{
   const {DesktopSaveStatus}=loadTS('components/iris/DesktopSaveStatus.tsx');
   const html=renderToStaticMarkup(React.createElement(DesktopSaveStatus,{entries:[],now:0,locked:false,onSave(){},onDiscard(){},onRecover(){}}));
-  assert.doesNotMatch(html,/<div role="status"><\/div>/);
-  assert.match(html,/<details[^>]*>[\s\S]*이번 실행에서 확인한 저장 시각 없음[\s\S]*<\/details>/);
+  assert.equal(html,'');
 });
 
 test('stats actions expose refresh before update and confirmation highlights the target nickname',()=>{
@@ -119,7 +118,7 @@ test('checkboard projects optimistic values with stable category/task keys throu
 test('save status explains 15-second debounce and exposes manual save and discard',()=>{
   const path='components/iris/DesktopSaveStatus.tsx';assert.equal(existsSync(path),true,'Missing desktop save status');
   const {DesktopSaveStatus}=loadTS(path);
-  const html=renderToStaticMarkup(React.createElement(DesktopSaveStatus,{entries:[],now:0,locked:false,onSave(){},onDiscard(){},onRecover(){}}));
+  const html=renderToStaticMarkup(React.createElement(DesktopSaveStatus,{entries:[{characterId:'A',category:'daily',taskId:'t',requestId:'r',deadlineAt:15000,phase:'pending'}],now:0,locked:false,onSave(){},onDiscard(){},onRecover(){}}));
   assert.match(html,/15초/);assert.match(html,/지금 저장/);assert.match(html,/변경 버리기/);
 });
 

@@ -1,5 +1,50 @@
 # SANCTUM 작업 인계
 
+## 2026-10-13 순월 — 사용량 3% 개발 체크포인트 / 종료 연결 복구 주의
+
+- 최종확인: 전체Node484/481PASS/3기존skip/0fail, 독립tsc·관련eslint exit0, 최종격리webpack exit0. nativeReader/DPAPI/FileShareNone/브리지/정상종료/grip22/WebView(개별profilescope분리)/scratch패키지 compile PASS. 사용자현재 종료실패앱은아직미복구확인으로남긴다. 아래예전483/480·NamedMutex·build진행중은당시경과다.
+
+- 5시간사용량 잔여3%(used97), 주간10%에 사용자 OR조건 충족. 새 구현중단/아래후보 최종검증·인계브랜치 `codex/iris-checkboard-classes`만 정상commit/push. main/운영/제품버전/공개ZIP/공지 변경 금지. 개인새SVG/루트파일/옛addon계획은 제외·보존.
+- 사용자 ‘안꺼져 뭘눌러도’ +보관실패 종료모달 제보: FastRefresh로createDesktopStore재생성시id1부터 시작→native lastId replay거부를 동일channel+모듈재생성시험으로RED재현/GREEN수정. Symbol.for globalWeakMap으로channel별번호연속보존, native origin/epoch/replay검증 약화0. 기존막힌문서는native epoch 재설정이 필요하므로 **트레이 IRIS우클릭→복구 종료·최근 변경 손실 주의**를 사용자에게 안내했다. 기존보호dpapi 덮어쓰기/삭제0, 아직실앱종료·재실행확인전. 실행PID1864는escalatedCIM에서존재(일반sandboxGetProcess에서는조회실패); 강제종료하지않음. stderr0. 사용자 정상종료 답변후에만 새Development소스실행.
+- 보호원장최종독립검토 Important1: LocalMutex로그인세션경계를 실제배타파일잠금으로RED→GREEN수정. terminal30일정리는다음Begin때, 미확정삭제금지. 원장constructor재시작 inflight→unknown/중복ID/다른계정차단/DPAPI암호화/손상보존/파일잠금PASS. 원장미연결·실제게임명령0.
+- 읽기독립검토 중요4건은수정/검증했고추가리뷰반복하지않음. 보류사소함: 재료/무게/작업조회 나이UI일관성, 실제page직렬큐까지포함한통합race장기시험; 실제ReactStrictMode/단기서스펜션/실패poll0은PASS. 외부커넥터BOM복사·미확인낚시/시설정원·게임신원 자동확정금지.
+- nativeWebView재실행에서공유fixture부모의접기설정이시험간남아expanded안정성실패→현재계획전용probe-GUID/WebView로설정scope분리,재시험PASS. 제품창로직수정아님. PSBOM실패복구/잘못된PS7AddType실패/격리SWC권한실패도원인기록했고정상PS5/escalated동일build로검증했다.
+- 다음: (1) 사용자트레이복구종료·실제새native조회확인 (2) 보호원장호스트접속/계정필터history/nonce·확인창/사전native재조회 (3) 승인된품목1회액션/결과불명차단부터 (4) 일반채집/낚시구분 검증후제한큐 (5) 전체BOM/실제재고부족계산·Chronos계획추가·시설slots/50%완료수령/빈칸보충·완료소리. **자동 채집 실행은 아직 구현완료 아님**.
+
+## 2026-10-13 순월 — ERGON 조회·계획 구현 중 (운영 미배포)
+
+- 한설 ‘PC 작업부터…구현 최대한’으로 계획 실행 승인. readonly7종 native 고정 allowlist/1MiB/8초/2048행, client 재검증/직렬조회/문맥 변경 폐기와 에르곤 조회·계획 화면을 구현했다. 개인 SVG/루트 파일은 보존. 아직 새 실행 명령 endpoint는 없으며 조회로 게임 재료·날개 소비하지 않는다.
+- 공식 CLI 실제 native ReadAsync7종 성공: 채집178/가공91/제작1834/재료297/가공현황28행. 가공·제작 목록은 별도 입력 불필요. 커넥터03_RecipeEngine은 일부 수동·관측 보완표이고 권리/완전성 미확인이라 복사0. 전체 BOM/시설 최대slots는 확인 전 추측 금지.
+- 계획50개/32KiB/계정·환경별 localStorage, 목표1~1000000, 검색/위치별재고/잠김/무게/작업현황. 손상원본 자동덮어쓰기 금지·저장실패 세션 유지. crafting craftCount 여러회 묶음 가능→날개5~(횟수×5), 가공은등록회수×5, 채집100은최대이므로 최소소모만. 아직 총부족재료/자동채집·50%수령·반복생산/Chronos연결은 미구현.
+- 검증: 전체Node478/475PASS/3기존skip(다음수정으로재실행필요),독립tsc/관련lint, 실제React2048목록/20목표/계획재로드/계정분리/가방창고/실패보존/비활성poll/12폭글자PASS. nativeNormalizer/bridge/시작종료/grip22/WebView 및scratch패키지compile PASS. WebView기존높이시험은확장창자동축소를전제해실패→현재정상고정/컴팩트Toggle구분으로수정PASS. PSsource목록기계수정에서BOM없어한글encoding RED→BOM복구PASS.
+- 초기직접Add-Type를PowerShell7에서시도한실패는런타임불일치(.NETFrameworkrefs)였음. WindowsPowerShell5 -File실제7종읽기는PASS. 실제게임행동0, 공개ZIP/버전/운영DB/공지/push0. 최신사용량5h29%/주간14%, OR3%체크포인트조건미충족. 독립review1회진행중, 격리build새source재복사후검증/실앱정상종료후native적용/자동실행후속이남음.
+
+## 2026-10-13 순월 — 생활 설계 승인 / 조회·계획 실행계획 검토 대기
+
+- 한설 ‘구현해줘’로 생활 설계 승인. docs/superpowers/plans/2026-10-13-ergon-read-planning.md는 파일/읽기bridge/모델/계산/계획저장/UI/검증을 구체화한 **사용자 검토 대기 실행계획**. 새생활코드 아직착수전. 직접구현/최종독립리뷰1회 방식 유지.
+- 사용량 중단 조건 추가 승인: **5시간 OR 주간 잔여3% 이하**에 새작업중단/인계/체크포인트push. 마지막조회5시간55%/주간19%로 미충족. 예비5%근처에는정리비용을확보. 미완성생활명령 운영합침/공지0.
+- 최신UI피드백: 크로노스.14em은유지, 에르곤은과한.42em→.18em으로좁힘. 시낙시스레이드마크→기존어비스마크, 실제SVG bbox를확인해uniform1.4배/중앙보정(currentColor mask). 실제12폭·pt/6테마/저장안내흐름/자간제한PASS. 제목/소개삭제 유지. 새UI코드와원격push는아직후속.
+
+## 2026-10-13 순월 — 제목·자간 후속 완료 / ERGON 기능 설계 검토 대기
+
+- 설계 문서만 로컬 커밋960d66d로 보존했다. 코드 후보/개인 변경은 미커밋 그대로이며 원격 push0. 제목·자간 최종 격리webpack58 exit0 확인. 설계 검토 승인 후 실행계획 작성/검토 단계로 이어간다.
+
+- 한설 승인: 크로노스 .14em/에르곤 .42em 한글 이름만 자간 확대, 시낙시스/영어 유지. 실제 제목/부제 폭비율0.9~1.1·큰글자/좁은창/아이콘간격PASS. IRIS 시낙시스 제목 ‘시낙시스 - 스마트 파티 매칭 시스템 및 길드 버스’, 에르곤 제목 ‘에르곤 - 스마트 채집 가공 제작 생활 매니저’. 에르곤 브랜드/영어 제목/중복 부제/그리스어·소개 문단 제거. SANCTUM 웹 제목과 DB 변경 없음.
+- 기능 구현 요청을 받아 기존 재고/생활 보관 설계와 공식 CLI --help/capabilities 및 읽기7종(activity/무게/가공현황/채집후보/제작후보/가공후보/Ingredient재료)을 실제 확인했다. 게임 행동0. activity는 실제평면필드이며 생활목록117KB/80KB로 기존64KB reader와 다르다. 기록에는 응답형태만, 개인 재고 원문은 Git제외 scratch만 사용.
+- 중요한 계약: 채집/가공등록/제작 호출당날개5; 채집1회최대100/작은목표정확종료미확인; 낚시started는무기한; 수령은1시설완료전체; 전체BOM/작업전용StopID없음. 기존native8초reader로 행동을 실행하지 않는다. 실패/불명 재전송0.
+- docs/superpowers/specs/2026-10-13-ergon-life-manager-design.md는 **사용자 설계 검토 대기**. 에르곤 조회/재고/레시피/계획/단일행동/제한큐/원장 경계와 비용·소유권·불명·재시작안전 설명. 음악/모바일원격/독립HUD 추가 아님. 승인 후 파일별실행계획 검토를 거쳐 조회부터 구현. 현재 실제생활 기능은 아직 미연결이다.
+- 최신 Node461/458PASS/3기존skip, tsc exit0, 관련eslint0error/공용SynaxisSurface의 기존useEffect 의존성warning1은 이번 제목 수정과 무관해 보존. 제목 실React6폭·글자 조합 및 메뉴·저장 전체fixturePASS. 격리build검증은 해당계획의 최신 기록 참조. 제품버전/ZIP/push/게시변경0, 현재5시간잔여60%/주간19%로 체크포인트push조건 미충족.
+
+## 2026-10-13 순월 — 에르곤·저장 안내 로컬 후보 (미배포)
+
+- 한설은 집 후속 작업 없음 확인. 사무실 HEAD1d8e374 인계 브랜치 ff-only up-to-date, 기존 개인 root파일/옛계획/미ACK 보존. 이번분 commit/push/운영 배포·게시·패키지 갱신 없음, v2.31/IRIS0.3.0·ZIP·글17/18 유지.
+- 상위 세 메뉴는 한글 이름/부제 두 줄→선택·hover·focus 영어+SVG, 수평 교차전환·1회 빛 스침/reduced-motion. 에르곤 소개와 작업 계획·재료 확보·자동 실행·작업 기록은 **UI 준비만**, 실제 게임 명령 미연결.
+- 저장 안내는 body 포털: 유휴없음, 변경/저장중/오류 유지, 완료3초/미리보기4초. 네 모서리 위치는 환경별 이 PC에만 저장. 실제 변경이 있을 때 미리보기도 실제 상태임을 알리며 저장·게임 IO를 만들지 않는다. 모든 visible모달 중 안내 숨김, compact 포털 클릭으로 메뉴가 닫히지 않음. 기존 controller/큐/save/discard/recover 유지.
+- 실제React 360/390/600/720×6/13.5/22pt·6테마/네모서리/재시작/차단저장·복구/완료/compact/Escape/reduced-motion PASS. 기존 메뉴21폭·폰트조합×6테마/클래스 초안 유지 PASS. 영문잘림 RED→GREEN, 독립리뷰 Important1(스탯·추천 모달 뒤 안내) 실모달 RED→GREEN 수정. subtitle도 기본18px에서12px 가독성 확보.
+- 최종 전체 Node460/457PASS/3기존skip, 단독tsc/관련lint/격리webpack58 PASS. 중간 전체시험에서 기존 bus-live-notifications 반복 출발 시험1회 간헐 실패(2/3알림); 단독25/25 및 전체 직렬 재검증 PASS. 기존 -Date.now()-random1000 ID 충돌 가능성 별도 기록, 이번 범위 밖 hook 수정하지 않음. 실패 숨김0.
+- localhost3000 webpack 정상 실행·/iris/desktop200. Development launcherPID1864 최초응답true/stderr0, 후속조회에서는 종료됨. 사용자 첨부 실제 새메뉴 화면 확인 후 SVG/부제 간격 제보→2cqw 간격/생활마크 확대 제거·영문 폭 조정, 실제 간격RED→GREEN/12폭·pt 및 관련29시험PASS. 실제 게임·다른DPI는 이번 시험으로 확정하지 않는다. native 수정/강제종료0.
+- 사용자 승인 push조건은 **5시간 잔여2–3% 체크포인트**. 마지막잔여69%/주간21%로 미충족, 아직 미push. 실제 생활 실행은 별도 안전 첫기능 설계/승인 후 연결. SVG 요청 예시 docs/IRIS_ASSET_PROMPTS.md, 구현 기록 docs/superpowers/plans/2026-10-13-iris-ergon-navigation.md.
+
 ## 2026-10-12 순월 — 공식 push·운영 배포·공지 2건 마감
 
 - **21:23 추가 복구 확인:** 문서 후속 커밋9cfcfb2 최초 배포는 git_info_fail ERROR(dpl_AbKL...)였다. 실제 운영0.3.0 유지 확인 후 동일 커밋·기존 프로젝트 설정으로 재배포하여 dpl_6W4wLEF8k1CBbwjBXEku8Zv2ChUg READY/Production/9cfcfb222ee7734d7d8aae0d75e0b3a1bac2b004/공식domain aliasError null 확인했다. 실패를 숨기거나 코드·설정·보안 권한을 바꾸지 않았다. 상세로그는403/CLI없음으로 미확인. 제품코드d70b0e5/패키지·게시2건 그대로, 이번 복구 기록은 문서 전용이다.

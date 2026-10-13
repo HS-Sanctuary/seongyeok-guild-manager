@@ -1,12 +1,15 @@
 'use client';
 import {useCallback,useEffect,useState} from 'react';
-import {readIrisOpacity,writeIrisOpacity,validIrisOpacity} from '@/lib/irisAppearance';
+import {readIrisOpacity,writeIrisOpacity,validIrisOpacity,readIrisSavePosition,writeIrisSavePosition,validIrisSavePosition,type IrisSavePosition} from '@/lib/irisAppearance';
 import {irisThemes,applyIrisTheme,applyIrisFontSize,validIrisFontSize,readIrisFontSize,writeIrisFontSize,readIrisFontFamily,writeIrisFontFamily,normalizeIrisFontFamily,irisFontFamilyCss,readAppearance,writeTheme,writeCurrencyEmphasis,type AppearanceEnvironment,type CurrencyEmphasisMap,type IrisTheme,type IrisFontSize} from '@/lib/irisAppearance';
 export function useDesktopAppearance(environment:AppearanceEnvironment,accountId:string|null,manageTheme=true){
   const [state,setState]=useState(()=>({theme:'aureum' as IrisTheme,emphasis:{} as CurrencyEmphasisMap,persistent:true,scope:''}));
   const [fontSize,setFontState]=useState<IrisFontSize>(18);
   const [fontFamily,setFamilyState]=useState('');
   const [opacity,setOpacityState]=useState({percent:100,scope:''});
+  const [savePosition,setSavePositionState]=useState<IrisSavePosition>('bottom-right');
+  useEffect(()=>{if(!manageTheme)return;let live=true;queueMicrotask(()=>{if(!live)return;let value;try{value=readIrisSavePosition(window.localStorage,environment);}catch{value={position:'bottom-right' as const,persistent:false};}setSavePositionState(value.position);if(!value.persistent)setState(old=>({...old,persistent:false}));});return()=>{live=false;};},[environment,manageTheme]);
+  const setSavePosition=useCallback((position:IrisSavePosition)=>{if(!validIrisSavePosition(position))return;let persistent=false;try{persistent=writeIrisSavePosition(window.localStorage,environment,position);}catch{}setSavePositionState(position);if(!persistent)setState(old=>({...old,persistent:false}));},[environment]);
   useEffect(()=>{if(!manageTheme)return;let live=true;queueMicrotask(()=>{if(!live)return;let value;try{value=readIrisOpacity(window.localStorage,environment);}catch{value={percent:100,persistent:false};}setOpacityState({percent:value.percent,scope:environment});if(!value.persistent)setState(old=>({...old,persistent:false}));});return()=>{live=false;};},[environment,manageTheme]);
   const setOpacityPercent=useCallback((percent:number)=>{if(!validIrisOpacity(percent))return;let persistent=false;try{persistent=writeIrisOpacity(window.localStorage,environment,percent);}catch{}setOpacityState({percent,scope:environment});if(!persistent)setState(old=>({...old,persistent:false}));},[environment]);
   const currentScope=environment+':'+(accountId??'');
@@ -31,5 +34,5 @@ export function useDesktopAppearance(environment:AppearanceEnvironment,accountId
   const setEmphasis=useCallback((emphasis:CurrencyEmphasisMap)=>{let persisted=false;try{if(accountId)persisted=writeCurrencyEmphasis(window.localStorage,environment,accountId,emphasis);}catch{}setState(old=>({...old,emphasis,persistent:old.persistent&&persisted,scope:currentScope}));},[environment,accountId,currentScope]);
   const setFontSize=useCallback((size:IrisFontSize)=>{if(!validIrisFontSize(size))return;let persisted=false;try{persisted=writeIrisFontSize(window.localStorage,environment,size);}catch{}applyIrisFontSize(size);setFontState(size);if(!persisted)setState(old=>({...old,persistent:false}));},[environment]);
   const setFontFamily=useCallback((family:string)=>{let normalized:string;try{normalized=normalizeIrisFontFamily(family);}catch{return false;}let persisted=false;try{persisted=writeIrisFontFamily(window.localStorage,environment,normalized);}catch{}setFamilyState(normalized);if(!persisted)setState(old=>({...old,persistent:false}));return true;},[environment]);
-  return {...state,opacityPercent:opacity.scope===environment?opacity.percent:100,opacityReady:opacity.scope===environment,setOpacityPercent,fontSize,setFontSize,fontFamily,fontFamilyCss:irisFontFamilyCss(fontFamily),setFontFamily,emphasis:state.scope===currentScope?state.emphasis:{},setTheme,setEmphasis};
+  return {...state,savePosition,setSavePosition,opacityPercent:opacity.scope===environment?opacity.percent:100,opacityReady:opacity.scope===environment,setOpacityPercent,fontSize,setFontSize,fontFamily,fontFamilyCss:irisFontFamilyCss(fontFamily),setFontFamily,emphasis:state.scope===currentScope?state.emphasis:{},setTheme,setEmphasis};
 }

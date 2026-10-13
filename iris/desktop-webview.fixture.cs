@@ -108,7 +108,10 @@ namespace IrisDesktop {
                 await Navigate(app, "/iris/desktop");
                 Check(app.Browser.CoreWebView2.Settings.IsWebMessageEnabled, "Desktop bridge disabled on authorized page");
                 int nativeChrome=0;foreach(Control control in app.Controls)if(control.Dock==DockStyle.Top||control.Dock==DockStyle.Bottom)nativeChrome+=control.Height;
-                await Task.Delay(700);Check(app.Height==340+nativeChrome,"Overlay did not fit trusted content height");
+                int expandedHeight=app.Height;
+                await Task.Delay(700);Check(app.Height==expandedHeight,"Expanded window changed with menu content");
+                app.Presentation.Toggle();
+                await Task.Delay(700);Check(app.Height==340+nativeChrome,"Compact overlay did not fit trusted content height");
                 await app.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('main').style.height='120px'");
                 await Task.Delay(700);Check(app.Height==120+nativeChrome,"Folded content did not shrink native window");
                 string ready = await app.Browser.CoreWebView2.ExecuteScriptAsync("window.__irisDesktopBridge.epoch");
