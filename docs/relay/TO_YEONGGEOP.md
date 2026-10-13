@@ -2,6 +2,9 @@
 
 ## SW-20261012-001 — UPDATED (공식 배포·게시 확인)
 
+- 2026-10-13 새 인계(최종 SHA는 후속 기록): 사용자 재개 승인으로 `81a2724` 위에 ERGON 단일 생활 명령 후보를 구현했다. native 정책/가짜 CLI/120초nonce/승인 뒤 재조회/DPAPI 원장·전역파일잠금/고정bridge, IRIS 준비·수동확인·상태/계정별 기록을 연결했다. 최대5명령/날개25는 계획 미리보기일 뿐 **자동 다음 명령 없음**. 등록은 생산완료가 아님, 결과불명은 재시도 차단. 가방 부족분 전체BOM/Chronos 대기열/시설자리·50%수령/반복생산/모바일 푸시는 미구현. 마지막 리뷰·시험/기능 브랜치 일반push 결과는 뒤이어 기록; 실제 게임 명령 시험0·운영/main·공개ZIP/버전·공지·DB변경0. 집에서는 `codex/iris-checkboard-classes` 원격 새 SHA를 확인하고 dirty 보존 후 `git fetch origin`, `git switch codex/iris-checkboard-classes`, `git pull --ff-only origin codex/iris-checkboard-classes`로 수신. 운영 배포/실제 게임 행동을 추측해서 진행하지 말 것. 기존 미ACK 항목은 그대로 누적 보존한다.
+- 독립 action 리뷰 Critical0/Important6: 업데이트적용 native차단/탭이탈잠금/재시작unknown기록조회/숨김뒤이미보낸명령결과관측/채집성과>=목표/처음만든품목빈이름필터=보유0 수정. 동명 이종 category 혼합 차단. native합성executor/bridge 및 React browser/전체Node492중489PASS3skip·tsc/native scratch패키지/가짜공개env격리webpack정적58/58 통과. **실게임가방·소모/시설 명령은 한번도 발송 안 함.** 아래 이전 ‘소비명령 미연결’은 81a2724 당시 기록이고, 이 체크포인트부터 단일 동작 연결 후보이지만 실제 게임 검증·자동반복은 아니다.
+
 - 최종체크포인트시험484/481PASS3기존skip/0fail·tsc/lint/격리webpackexit0·native패키지/DPAPI/filelock/bridge/startup/grip22/WebViewprofile분리PASS. 실제현재앱복구종료는사용자확인전. commit/push결과는아래추가또는최종대화SHA를확인할것; 미완료자동생활실행을완성기능으로운영배포하지말것.
 
 - 2026-10-13 마감: 사용자OR조건5h잔여3%/주간10% 충족으로새작업중단·인계commit/기능branch만정상push. 운영/main/버전0.3.0/공개ZIP/공지 그대로. 사용자종료모달보관실패·전버튼종료실패 제보: FastRefresh재생성requestid초기화/replay거부 RED→GREEN,globalWeakMapchannel수명연속화(native검증유지). 기존막힌앱은트레이복구종료/미보관최근변경손실주의 안내·사용자확인전강제종료0·dpapi삭제덮어쓰기0. PID1864CIM존재/새native적용대기. 최신HANDOFF 첫항목을읽을것.

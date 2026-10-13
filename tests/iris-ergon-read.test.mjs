@@ -38,7 +38,7 @@ test('read snapshots preserve fractional weight, incomplete status and facility 
 });
 test('unknown activity is preserved, never coerced to safe idle state',()=>{
   assert.equal(typeof api.parseErgonSnapshot,'function');
-  const data=Object.fromEntries(['autoPlaying','autoTraveling','dead','reviving','inCombat','dialoguePlaying','waitingForSelection','inBattlefield','tutorialPlaying','inScenario','sequencePlaying','performancePlaying','minigame','housingEdit','dungeonState'].map(k=>[k,null]));
+  const data=Object.fromEntries(['autoPlaying','autoTraveling','dead','reviving','inCombat','dialoguePlaying','waitingForSelection','inBattlefield','tutorialPlaying','inScenario','sequencePlaying','performancePlaying','minigame','housingEdit','abyssSequence','dungeonState','interactionType'].map(k=>[k,null]));
   assert.deepEqual(api.parseErgonSnapshot('activity',frame('activity',data)).data,data);
   assert.throws(()=>api.parseErgonSnapshot('activity',frame('activity',{...data,inCombat:'false'})));
 });

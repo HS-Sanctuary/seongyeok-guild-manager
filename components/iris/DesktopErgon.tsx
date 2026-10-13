@@ -4,11 +4,15 @@ import {useErgonSession,type ErgonSessionProps} from './useErgonSession';
 import {calculateErgonPlan} from '@/lib/irisErgonPlan';
 import type {ErgonRecipe} from '@/lib/irisErgonRead';
 import {checkErgonStart} from '@/lib/irisErgonStart';
+import {DesktopErgonExecution} from './DesktopErgonExecution';
+import type {createDesktopStore} from '@/lib/irisDesktopStore';
+type ActionApi=Pick<ReturnType<typeof createDesktopStore>,'lifeActionCapabilities'|'setLifeContext'|'prepareLifeAction'|'confirmLifeAction'|'cancelLifeAction'|'lifeActionState'|'lifeActionHistory'>;
+type ConnectedProps=ErgonSessionProps&{actions?:ActionApi;accountLabel?:string;characterLabel?:string;onActionBusyChange?:(busy:boolean)=>void};
 export function DesktopErgonRecipeStatus({recipe,unlocked}:{recipe:ErgonRecipe;unlocked?:boolean|null}){
  return <><span>{recipe.available===true?'가능':recipe.available===false?'재료·조건 확인':'조건 미확인'}</span>{unlocked===false&&<p className="iris-caption">제작 기능이 잠겨 있어요.</p>}{recipe.reason&&<p className="iris-caption">{recipe.reason}</p>}{recipe.missing&&<p className="iris-caption">현재 1회 부족분: {recipe.missing.map(m=>`${m.name} 필요 ${m.required??'?'} / 보유 ${m.owned??'?'}`).join(', ')}</p>}</>;
 }
 const areas={plan:{label:'작업 계획',text:'목표 품목·횟수·재료 소모를 먼저 확인하고 작업 순서를 계획하는 공간이에요.'},materials:{label:'재료 확보',text:'필요한 재료와 현재 재고를 비교하는 조회 기능을 순서대로 연결할 예정이에요.'},execution:{label:'자동 실행',text:'시설 하나의 수령부터 대상·소모 한도·중지 방법을 확인한 뒤 연결해요. 지금은 게임 명령을 실행하지 않아요.'},history:{label:'작업 기록',text:'아이리스가 요청한 작업과 실제 확인된 결과를 구분해서 보여줄 예정이에요. 생텀 숙제 기록과는 따로 관리해요.'}} as const;
-export function DesktopErgon(props:ErgonSessionProps|{read?:undefined}={}){
+export function DesktopErgon(props:ConnectedProps|{read?:undefined}={}){
   return props?.read?<ConnectedErgon {...props}/>:<ErgonShell/>;
 }
 function ErgonShell(){
@@ -19,7 +23,7 @@ function ErgonShell(){
     <section id="iris-ergon-area" aria-label={areas[area].label}><h3>{areas[area].label}</h3><p className="iris-caption">{areas[area].text}</p><p className="iris-ergon-stage">화면 준비 · 게임 연결 전</p></section>
   </div>;
 }
-function ConnectedErgon(props:ErgonSessionProps){
+function ConnectedErgon(props:ConnectedProps){
  const [area,setArea]=useState<keyof typeof areas>('plan'),[kind,setKind]=useState<'gathering'|'altering'|'crafting'>('altering'),[search,setSearch]=useState(''),[quantity,setQuantity]=useState('1'),[location,setLocation]=useState('inventory'),[message,setMessage]=useState('');
  const session=useErgonSession({...props,watchWorks:area==='materials'});
  const [checked,setChecked]=useState(false),[planId,setPlanId]=useState('');
@@ -29,7 +33,7 @@ function ConnectedErgon(props:ErgonSessionProps){
  const save=(next:typeof session.plans)=>{try{session.changePlans(next);setMessage('');}catch{setMessage('계획은 최대 50개, 목표는 1~1,000,000 정수로 입력해 주세요.');}};
  const title={gathering:'채집',altering:'가공',crafting:'제작'};
  return <div className="iris-ergon"><header><h2>에르곤 - 스마트 채집 가공 제작 생활 매니저</h2></header>
-  <nav aria-label="에르곤 기능">{Object.entries(areas).map(([id,item])=><button key={id} type="button" className="iris-desktop-button" aria-pressed={area===id} onClick={()=>setArea(id as keyof typeof areas)}>{item.label}</button>)}</nav>
+  <nav aria-label="에르곤 기능">{Object.entries(areas).map(([id,item])=><button key={id} type="button" className="iris-desktop-button" disabled={disabled} aria-pressed={area===id} onClick={()=>setArea(id as keyof typeof areas)}>{item.label}</button>)}</nav>
   {session.notice&&<p role="alert">{session.notice} 이전 값은 조회 당시 정보예요.</p>}{message&&<p role="alert">{message}</p>}
   {area==='plan'&&<section aria-label="작업 계획">
    <div className="iris-ergon-controls">{(['gathering','altering','crafting'] as const).map(value=><button type="button" key={value} className="iris-desktop-button" disabled={disabled||session.loadingKinds.includes(value)} onClick={()=>{setKind(value);refresh(value);}}>{title[value]} 목록 조회</button>)}</div>
@@ -46,7 +50,7 @@ function ConnectedErgon(props:ErgonSessionProps){
    <div className="iris-ergon-list">{session.snapshots.materials?.data.items.filter(row=>row.location===location&&row.name.includes(search)).map((row,index)=><article key={index}><strong>{row.name}</strong><span>{row.count??'?'}개 · {row.locked===true?'잠김':row.locked===false?'잠금 해제':'잠금 미확인'}</span></article>)}</div>
    <h3>가공 중인 작업</h3>{session.snapshots.works?.data.items.map((row,index)=><article key={index}><strong>{row.facility} · {row.name}</strong><span>{row.completed===true?'수령 가능':row.remainingSeconds===null?'시간 미확인':`${row.remainingSeconds}초 남음`}</span></article>)}
   </section>}
-  {area==='execution'&&<section aria-label="자동 실행"><h3>작업 시작 전 점검</h3><p className="iris-caption">조회만 수행해요. 실제 채집·가공·제작은 아직 시작하지 않아요.</p><label>점검할 계획<select value={selectedPlan?.id??''} onChange={event=>{setPlanId(event.target.value);setChecked(false);}}>{session.plans.map(item=><option key={item.id} value={item.id}>{item.displayName} · {item.targetQuantity}개</option>)}</select></label><button type="button" className="iris-desktop-button" disabled={disabled||!selectedPlan||session.loadingKinds.length>0||session.currencyBusy} onClick={()=>{setChecked(true);void session.inspect(selectedPlan.kind);}}>시작 전 점검</button>{session.currencyNotice&&<p role="alert">{session.currencyNotice}</p>}{checked&&selectedPlan&&(()=>{const result=checkErgonStart({snapshots:session.snapshots,currencies:session.currencies,kind:selectedPlan.kind,displayName:selectedPlan.displayName,now:session.now,unresolved:false,identityConfirmed:false});return <><p>정령의 날개 보유 {result.wings??'미확인'}개 · 채집/가공 등록/제작 명령당 {result.costPerCommand}개</p>{result.blockers.map(text=><p className="iris-caption" key={text}>{text}</p>)}{result.warnings.map(text=><p className="iris-caption" key={text}>{text}</p>)}</>;})()}</section>}
-  {area==='history'&&<section><h3>{areas.history.label}</h3><p className="iris-caption">{areas.history.text}</p><p>실제 작업 기록은 보호 원장을 연결한 뒤 표시할게요. 조회나 계획 추가를 생산 성공으로 기록하지 않아요.</p></section>}
+  {area==='execution'&&<section aria-label="자동 실행"><h3>작업 시작 전 점검</h3><p className="iris-caption">목록과 재료를 먼저 살펴보고, 1회 실행은 게임 캐릭터를 직접 확인한 뒤 시작해요.</p><label>점검할 계획<select value={selectedPlan?.id??''} onChange={event=>{setPlanId(event.target.value);setChecked(false);}}>{session.plans.map(item=><option key={item.id} value={item.id}>{item.displayName} · {item.targetQuantity}개</option>)}</select></label><button type="button" className="iris-desktop-button" disabled={disabled||!selectedPlan||session.loadingKinds.length>0||session.currencyBusy} onClick={()=>{setChecked(true);void session.inspect(selectedPlan.kind);}}>시작 전 점검</button>{session.currencyNotice&&<p role="alert">{session.currencyNotice}</p>}{checked&&selectedPlan&&(()=>{const result=checkErgonStart({snapshots:session.snapshots,currencies:session.currencies,kind:selectedPlan.kind,displayName:selectedPlan.displayName,now:session.now,unresolved:false,identityConfirmed:false});return <><p>정령의 날개 보유 {result.wings??'미확인'}개 · 채집/가공 등록/제작 명령당 {result.costPerCommand}개</p>{result.blockers.map(text=><p className="iris-caption" key={text}>{text}</p>)}{result.warnings.map(text=><p className="iris-caption" key={text}>{text}</p>)}</>;})()}<DesktopErgonExecution api={props.actions} plan={selectedPlan??null} accountId={props.accountId} characterId={props.characterId} accountLabel={props.accountLabel??''} characterLabel={props.characterLabel??''} active={props.active} locked={props.locked} onBusyChange={props.onActionBusyChange}/></section>}
+  {area==='history'&&<section><h3>{areas.history.label}</h3><p className="iris-caption">{areas.history.text}</p><p>보호 작업 기록은 자동 실행 탭의 1회 작업 아래에서 확인해 주세요. 조회나 계획 추가는 생산 성공으로 기록하지 않아요.</p></section>}
  </div>;
 }

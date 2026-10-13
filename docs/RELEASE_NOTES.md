@@ -1,5 +1,13 @@
 # SANCTUM 업데이트 노트
 
+### 2026-10-13 개발 체크포인트 — ERGON 단일 동작 후보, 미배포
+
+- **공개 버전 변화 없음:** SANCTUM v2.31 / IRIS Beta 0.3.0 유지. 이번 기록은 기능 브랜치 인계용이며 운영 `main`·공개 ZIP·업데이트 게시물은 변경하지 않는다. 구조 변경은 IRIS 로컬 native 생활 실행/원장/고정 bridge와 화면에 한정, DB 스키마·RLS 변경 없음. 직전 정상 운영 기준은 main `1d8e374` / Production `dpl_F6ymNLT5U6aJJLNofK4wtEi8sWXR`.
+- 사용자에게 보일 후보: 에르곤에서 단일 채집·가공 등록·제작·완료분 수령의 조건/날개 예상치를 보고 두 단계로 확인할 수 있다. 완료/등록/결과불명을 구분하고 기록을 확인한다. 최대 5회·25날개 묶음은 **계획 미리보기**만 제공하며 반복 자동 실행은 아니다. 잘못된 문맥/오래된 조회/미확정 결과/재시도는 차단한다.
+- 검증 후보: 가짜 CLI·합성 게임 응답·React 화면/브리지/native 원장 시험, 전체 Node 492중489 PASS·3기존 skip·0 fail, 독립 tsc exit0/격리 webpack 정적58·native scratch 패키지 컴파일 통과. 빌드는 가짜 공개 환경값만 사용했다. 정확한 push SHA는 최종 전송에서 확인한다. 실제 게임 행동·사용자 설치/운영 페이지 확인은 **미실시**, 따라서 이 체크포인트를 공개 기능 완료로 안내하지 않는다.
+- 독립 리뷰 Critical 0/Important 6건을 수정: 업데이트 중첩 native 거부, 실행 중 메뉴 잠금, 재시작 후 결과불명 이력 조회, 숨김 뒤 결과 확인, 목표 초과 채집 응답, 첫 생산품의 보유0 처리. 동명 이종분류는 합산하지 않는다. 관련 native·브리지·브라우저 합성 테스트를 다시 통과했고 전체 Node 492/489 PASS·3 기존 skip/0 fail, 독립 tsc exit0, scratch native EXE/ZIP compile exit0, 격리 webpack 정적58/58 exit0.
+- 알려진 제한: 전체 BOM/현재 가방 부족분 자동 계산·Chronos 생산 대기열·시설 병렬 슬롯/50% 수령·자동 반복·낚시/소량 채집·완료 푸시 알림은 미구현. 비용을 확정할 수 없는 수령은 별도 경고가 필요하다. 원장 unknown은 자동 재시도/해제하지 않는다.
+
 ### 2026-10-13 개발 체크포인트 마감 추가
 
 - 마지막소스전체Node484중481PASS/3기존skip/0fail·tsc/관련lint0error·격리webpackexit0. native생활읽기/보호기록·배타파일잠금/브리지/시작종료/창grip22/WebView격리profile·scratch패키지compilePASS. 실제종료복구·새native적용은사용자확인대기.

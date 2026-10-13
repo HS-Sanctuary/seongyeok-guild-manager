@@ -1,5 +1,11 @@
 # 🏛️ SANCTUM Master Guide
 
+## 2026-10-13 — ERGON 단일 생활 동작 로컬 후보 구조 (운영 미배포)
+
+- native `DesktopLifeActionPolicy`/`DesktopLifeCli`/`DesktopLifeExecutor`가 기존 `DesktopLifeReader` 조회를 바탕으로 고정 4명령(채집·가공 등록·제작·시설 완료분 수령)의 요청/조건/비용을 검사한다. `DesktopLifeJournal`은 DPAPI·원자 저장·전역 배타 파일잠금·계정/환경 경계와 결과불명 차단을 담당한다. 준비 nonce/네이티브 Yes/No/승인 뒤 재조회 후에만 명령을 발송한다.
+- `DesktopBridge` 고정 `game.life.actions.*` → `irisDesktopStore`/`irisErgonActions` → `DesktopErgonExecution`으로 단일 동작 준비/승인/상태/계정별 기록을 연결한다. page는 실행 중 전환/닫힘 잠금, native는 진짜 소비 명령 실행 시 자체 가드를 둔다. `irisErgonRunQueue`는 최대 5회·25날개 **순수 미리보기**, 자동 발송/재시작 재개가 아니다. 완료가 관측돼도 다음 명령은 새 사용자 확인이 필요하다.
+- 공식 읽기 7종·15초 숙제 저장·보호 대기함·SANCTUM 서버/API/DB/RLS는 변경하지 않는다. 공개 IRIS0.3.0 패키지와 운영 v2.31에는 포함되지 않았다. 실제 게임 행동/사용자 설치 시험 전 완료 기능으로 분류하지 않는다. 전체 BOM·Chronos 연결·반복 시설 운영/푸시 알림은 미구현.
+
 - 2026-10-13 체크포인트 최종검증: Node484/481PASS3skip·tsc/lint·격리webpack·생활native/보호원장/host/packagePASS. 구조도추가만인계브랜치에공유하며운영구조·공개버전·DB변경없음. 실제종료복구및소비명령미연결은HANDOFF참고.
 
 - 개발체크포인트추가: `irisDesktopStore` 요청번호는Symbol.for globalWeakMap의channel별수명으로FastRefresh 재생성에도연속유지한다. native origin/epoch/lastId 검증은그대로다. `DesktopLifeJournal` 동기화는LocalMutex가아닌로그인세션간배타FileShare.None파일잠금이며30일완료분정리는다음Begin에서실시,미확정은보존한다. 아래원장NamedMutex표기는교체전경과다. 실제게임실행endpoint는여전히없음.

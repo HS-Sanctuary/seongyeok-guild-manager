@@ -2,9 +2,9 @@ export const ergonReadKinds=['activity','inventory','works','materials','gatheri
 export type ErgonReadKind=typeof ergonReadKinds[number];
 export type ErgonMaterial={name:string;category:string;categoryName:string|null;location:'inventory'|'account_storage'|'character_storage';count:number|null;locked:boolean|null};
 export type ErgonRecipe={name:string;available:boolean|null;producedPerUnit:number|null;reason:string|null;missing:{name:string;required:number|null;owned:number|null}[]|null};
-const activityFlags=['autoPlaying','autoTraveling','dead','reviving','inCombat','dialoguePlaying','waitingForSelection','inBattlefield','tutorialPlaying','inScenario','sequencePlaying','performancePlaying','minigame','housingEdit'] as const;
+const activityFlags=['autoPlaying','autoTraveling','dead','reviving','inCombat','dialoguePlaying','waitingForSelection','inBattlefield','tutorialPlaying','inScenario','sequencePlaying','performancePlaying','minigame','housingEdit','abyssSequence'] as const;
 export type ErgonData={
-  activity:Record<typeof activityFlags[number],boolean|null>&{dungeonState:string|null};
+  activity:Record<typeof activityFlags[number],boolean|null>&{dungeonState:string|null;interactionType:string|null};
   inventory:{weight:number|null;maxWeight:number|null};
   works:{completedCount:number|null;items:{name:string;facility:string;state:string|null;completed:boolean|null;remainingSeconds:number|null}[]};
   materials:{items:ErgonMaterial[]};
@@ -40,9 +40,9 @@ function recipe(value:unknown):ErgonRecipe{
 function data(kind:ErgonReadKind,value:unknown):ErgonData[ErgonReadKind]{
   switch(kind){
     case 'activity':{
-      const r=object(value,[...activityFlags,'dungeonState']);
+      const r=object(value,[...activityFlags,'dungeonState','interactionType']);
       const result=Object.fromEntries(activityFlags.map(k=>[k,bool(r[k])])) as ErgonData['activity'];
-      return {...result,dungeonState:text(r.dungeonState,true)};
+      return {...result,dungeonState:text(r.dungeonState,true),interactionType:text(r.interactionType,true)};
     }
     case 'inventory':{const r=object(value,['weight','maxWeight']);return {weight:number(r.weight,true),maxWeight:number(r.maxWeight,true)};}
     case 'works':{

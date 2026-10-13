@@ -20,7 +20,10 @@ Assert ($taskReload.HasUnresolved()) 'Restart lost unknown operation'
 $taskRaw=[IO.File]::ReadAllBytes($taskReload.FilePath)
 Assert (![Text.Encoding]::UTF8.GetString($taskRaw).Contains('character-a')) 'Journal exposed plaintext'
 $taskOther=New-Object IrisDesktop.DesktopLifeJournal([IO.Path]::GetFullPath($taskRoot),'production')
-Assert (!$taskOther.HasUnresolved()) 'Environment mixed'
+Assert ($taskOther.EntriesFor('account-a').Length -eq 0) 'Environment records mixed'
+Assert ($taskOther.HasUnresolved()) 'Changing environment bypassed unknown game action'
+$taskRunLease=$taskStore.AcquireExecutionLease()
+try { Reject { $taskOther.AcquireExecutionLease() } } finally { $taskRunLease.Dispose() }
 $taskRecoveryRoot=Join-Path $taskRoot 'restart'
 $taskInflight=New-Object IrisDesktop.DesktopLifeJournal($taskRecoveryRoot,'development')
 $taskInflight.Begin([guid]::NewGuid().ToString(),'account-a','character-a','crafting','wood',5)

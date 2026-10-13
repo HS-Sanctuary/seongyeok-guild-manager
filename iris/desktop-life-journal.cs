@@ -10,18 +10,22 @@ namespace IrisDesktop {
     // Native-only future action journal. No browser method or game command is exposed here.
     public sealed class DesktopLifeJournal {
         const int Limit=1048576;
-        readonly string environment;
+        readonly string environment,rootPath;
         readonly byte[] entropy;
         readonly JavaScriptSerializer json=new JavaScriptSerializer {MaxJsonLength=Limit,RecursionLimit=16};
         static readonly UTF8Encoding Utf8=new UTF8Encoding(false,true);
         static readonly string[] Fields={"requestId","accountId","characterId","action","displayName","expectedWings","startedAt","state"};
         public string FilePath {get;private set;}
-        public DesktopLifeJournal(string root,string environment){
+        public DesktopLifeJournal(string root,string environment):this(root,environment,true){}
+        public DesktopLifeJournal(string root,string environment,bool recoverInflight){
             if(!Path.IsPathRooted(root)||!new[]{"development","production"}.Contains(environment))throw new ArgumentException();
-            this.environment=environment;FilePath=Path.Combine(Path.GetFullPath(root),environment,"ergon-actions-v1.dpapi");
+            this.environment=environment;rootPath=Path.GetFullPath(root);FilePath=Path.Combine(rootPath,environment,"ergon-actions-v1.dpapi");
             entropy=Utf8.GetBytes("SANCTUM:IRIS:ErgonActions:v1:"+environment);
-            Locked(()=>{var rows=Read();bool changed=false;foreach(var row in rows)if(Equals(row["state"],"inflight")){row["state"]="unknown";changed=true;}if(changed)Write(rows);return true;});
+            if(recoverInflight)RecoverInterrupted();else Locked(()=>{Read();return true;});
         }
+        public FileStream AcquireExecutionLease(){Directory.CreateDirectory(rootPath);return new FileStream(Path.Combine(rootPath,"ergon-game.run-lock"),FileMode.OpenOrCreate,FileAccess.ReadWrite,FileShare.None);}
+        public void RecoverInterrupted(){using(var lease=AcquireExecutionLease())Locked(()=>{var rows=Read();bool changed=false;foreach(var row in rows)if(Equals(row["state"],"inflight")){row["state"]="unknown";changed=true;}if(changed)Write(rows);return true;});}
+        public object[] EntriesFor(string accountId){if(!Text(accountId,100))throw new ArgumentException();return Locked(()=>Read().Where(row=>Equals(row["accountId"],accountId)).Select(row=>(object)new Dictionary<string,object>(row)).ToArray());}
         T Locked<T>(Func<T> action){
             Directory.CreateDirectory(Path.GetDirectoryName(FilePath));
             // File sharing locks span Windows login/RDP sessions, unlike a Local named mutex.
@@ -54,9 +58,10 @@ namespace IrisDesktop {
             try{using(var stream=new FileStream(temporary,FileMode.CreateNew,FileAccess.Write,FileShare.None)){stream.Write(encrypted,0,encrypted.Length);stream.Flush(true);}if(File.Exists(FilePath))File.Replace(temporary,FilePath,null);else File.Move(temporary,FilePath);}
             finally{if(File.Exists(temporary))File.Delete(temporary);}
         }
-        public bool HasUnresolved(){return Locked(()=>Read().Any(Unresolved));}
+        bool PeerUnresolved(){foreach(var mode in new[]{"development","production"}){if(mode==environment)continue;var file=Path.Combine(rootPath,mode,"ergon-actions-v1.dpapi");if(File.Exists(file)){var peer=new DesktopLifeJournal(rootPath,mode,false);if(peer.Locked(()=>peer.Read().Any(Unresolved)))return true;}}return false;}
+        public bool HasUnresolved(){return Locked(()=>Read().Any(Unresolved))||PeerUnresolved();}
         public void Begin(string requestId,string accountId,string characterId,string action,string displayName,int? expectedWings){Locked(()=>{
-            var rows=Read();Guid id;if(!Guid.TryParse(requestId,out id)||id==Guid.Empty||rows.Any(row=>Equals(row["requestId"],id.ToString("D")))||rows.Any(Unresolved))throw new IOException("Life action blocked");
+            var rows=Read();Guid id;if(!Guid.TryParse(requestId,out id)||id==Guid.Empty||rows.Any(row=>Equals(row["requestId"],id.ToString("D")))||rows.Any(Unresolved)||PeerUnresolved())throw new IOException("Life action blocked");
             long now=(long)(DateTime.UtcNow-new DateTime(1970,1,1)).TotalMilliseconds;
             rows.RemoveAll(row=>!Unresolved(row)&&now-Convert.ToInt64(row["startedAt"])>30L*86400000);
             while(rows.Count>=300){var oldest=rows.FindIndex(row=>!Unresolved(row));if(oldest<0)throw new IOException("Unresolved journal full");rows.RemoveAt(oldest);}

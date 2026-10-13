@@ -21,8 +21,28 @@ namespace IrisDesktop {
         string pendingCloseReason;
         DateTime pendingCloseDeadline;
         DesktopBridge bridge;
+        DesktopLifeExecutor lifeActor;
         Func<object> updateState,updateApply;Func<Task<object>> updateCheck,updatePrepare;
         public void BindUpdater(Func<object> state,Func<Task<object>> check,Func<Task<object>> prepare,Func<object> apply){if(development)throw new ArgumentException("Production updater only");updateState=state;updateCheck=check;updatePrepare=prepare;updateApply=apply;}
+        bool LifeActionAllowed(){return documentReady&&Visible&&WindowState!=FormWindowState.Minimized&&!closeDecision&&!allowClose;}
+        bool ConfirmLifeAction(object preview){
+            if(IsDisposed||Disposing)return false;
+            if(InvokeRequired)return (bool)Invoke(new Func<bool>(()=>ConfirmLifeAction(preview)));
+            if(!LifeActionAllowed())return false;
+            var row=DesktopLifePolicy.Plain(preview);
+            var action=(string)row["action"];
+            var label=action=="gathering"?"채집":action=="altering"?"가공 등록":action=="crafting"?"제작":"가공 완료품 모두 받기";
+            var cost=row["expectedWings"]==null?"날개 소모량 미확인":Convert.ToString(row["expectedWings"])+"개";
+            var message="생텀 계정: "+row["accountLabel"]+"\n선택 캐릭터: "+row["characterLabel"]+"\n게임 화면의 실제 캐릭터가 같은지 직접 확인해 주세요.\n\n"+label+": "+row["displayName"]+"\n예상 날개: "+cost+" / 최근 조회 보유: "+row["wings"]+"개";
+            if(action=="collect"){
+                var completed=row["completed"] as object[];
+                message+="\n\n"+row["facility"]+" 시설의 완료품 전체를 수령해요. 확인 이후 새로 완료된 품목도 함께 받을 수 있어요.";
+                if(completed!=null)foreach(var item in completed){var entry=item as System.Collections.Generic.Dictionary<string,object>;if(entry!=null)message+="\n· "+entry["displayName"]+" × "+entry["count"];}
+                message+="\n수령 비용을 확인할 수 없어요. 게임 화면도 확인해 주세요.";
+            }
+            message+="\n\n한 번 실행하면 결과를 확인하기 전 자동 재시도하지 않아요. 이 작업을 시작할까요?";
+            return MessageBox.Show(this,message,"에르곤 작업 최종 확인",MessageBoxButtons.YesNo,MessageBoxIcon.Warning,MessageBoxDefaultButton.Button2)==DialogResult.Yes;
+        }
         public void NotifyUpdateChanged(){if(IsDisposed||!IsHandleCreated)return;if(InvokeRequired){try{BeginInvoke(new Action(NotifyUpdateChanged));}catch{}return;}if(documentReady&&bridge!=null&&updateState!=null)try{Browser.CoreWebView2.PostWebMessageAsJson(new JavaScriptSerializer().Serialize(new {version=1,kind="window.update.changed",epoch=bridge.Epoch,environment="production",state=updateState()}));}catch{/* A closed/navigated document gets no updater event. */}}
         public WebView2 Browser { get; private set; }
         public DesktopOverlayCoordinator Overlay {get;private set;}
@@ -115,6 +135,7 @@ namespace IrisDesktop {
         }
         void RequestClose(string reason) {
             if(allowClose||closeDecision)return;
+            if(lifeActor!=null&&lifeActor.Busy){MessageBox.Show(this,"게임 작업 응답을 확인 중이에요. 작업 결과가 표시된 뒤 종료해 주세요. 응답이 끊기면 재실행 때 결과 미확정으로 보호해요.","IRIS for SANCTUM",MessageBoxButtons.OK,MessageBoxIcon.Information);return;}
             Decision(true);pendingCloseReason=reason;pendingCloseDeadline=DateTime.UtcNow.AddSeconds(10);Overlay.RestoreInteractive();
             if(documentReady)PostCloseRequest();
         }
@@ -169,13 +190,28 @@ namespace IrisDesktop {
                 bridge.BindPresentation(Presentation.State,()=>{Presentation.Toggle();return Presentation.State();},open=>{Presentation.SetPanelOpen(open);return Presentation.State();});
                 bridge.BindCurrencies(DesktopGameStatsReader.ReadCurrenciesAsync);
                 bridge.BindLifeRead(async kind=>{if(!Visible||WindowState==FormWindowState.Minimized||closeDecision)throw new ArgumentException();return await DesktopLifeReader.ReadAsync(kind);});
+                try {
+                    var journalRoot=Path.GetDirectoryName(Path.GetDirectoryName(store.FilePath));
+                    var lifeJournal=new DesktopLifeJournal(journalRoot,development?"development":"production");
+                    lifeActor=new DesktopLifeExecutor(lifeJournal,DesktopLifeReader.ReadAsync,DesktopGameStatsReader.ReadCurrenciesAsync,DesktopLifeCli.ReadNamedItemsAsync,DesktopLifeCli.PerformAsync,ConfirmLifeAction,
+                        ()=>!IsDisposed&&!Disposing&&((!InvokeRequired)?LifeActionAllowed():(bool)Invoke(new Func<bool>(LifeActionAllowed))),()=>bridge.Epoch,()=>DateTime.UtcNow);
+                    bridge.BindLifeActions(lifeActor.Capabilities,(method,payload)=>{
+                        switch(method){
+                            case "game.life.actions.context":return lifeActor.SetContext(payload);
+                            case "game.life.actions.cancel":return lifeActor.CancelPrepared(payload);
+                            case "game.life.actions.state":return lifeActor.State();
+                            case "game.life.actions.history":return lifeActor.History(payload);
+                            default:throw new ArgumentException();
+                        }
+                    },(method,payload)=>method=="game.life.actions.prepare"?lifeActor.PrepareAsync(payload):method=="game.life.actions.confirm"?lifeActor.ConfirmAsync(payload):Task.FromException<object>(new ArgumentException()),()=>lifeActor.Busy);
+                } catch { lifeActor=null; /* Other IRIS features stay available; execution remains closed. */ }
                 bridge.BindOverlay(Overlay.State,Overlay.SetClickThrough,Overlay.SetOpacityPercent);
                 bridge.BindAddon(Addon.State,(side,layer)=>Addon.SetPreferences(new AddonWindowPreferences {DockSide=side,SameLayer=layer}),Decision);
                 bridge.DragRequested+=(sender,e)=>{dragPending=true;};
                 bridge.MinimizeRequested+=(sender,e)=>{if(!closeDecision){Addon.RecordManualVisibility(true);WindowState=FormWindowState.Minimized;}};
                 Overlay.StateChanged+=(sender,e)=>{if(documentReady)core.PostWebMessageAsJson(new JavaScriptSerializer().Serialize(new {version=1,kind="overlay.changed",epoch=bridge.Epoch,state=Overlay.State()}));};
                 bridge.HideRequested += (sender, e) => {Addon.RecordManualVisibility(true);Hide();};
-                bridge.CloseRequested += (sender,e) => { allowClose = true; BeginInvoke(new Action(Close)); };
+                bridge.CloseRequested += (sender,e) => { if(lifeActor!=null&&lifeActor.Busy){RequestClose("manual");return;}allowClose = true; BeginInvoke(new Action(Close)); };
                 // Runs before page scripts, so the completion announcement is never lost during hydration.
                 await core.AddScriptToExecuteOnDocumentCreatedAsync("window.__irisDesktopBridge=null;window.__irisDesktopPendingClose=null;chrome.webview.addEventListener('message',function(e){var d=e.data;if(!d||d.version!==1)return;if(d.kind==='bridge.ready'&&Number.isSafeInteger(d.epoch)&&d.epoch>0&&['development','production'].includes(d.environment)){window.__irisDesktopBridge=d;window.dispatchEvent(new CustomEvent('iris-desktop-ready'));return;}var c=window.__irisDesktopBridge;if(!c||d.epoch!==c.epoch||d.environment!==c.environment)return;if(d.kind==='window.close.request'&&['manual','game-exit'].includes(d.reason)){window.__irisDesktopPendingClose=d;window.dispatchEvent(new CustomEvent('iris-desktop-close',{detail:d}));}if(d.kind==='window.addon.changed')window.dispatchEvent(new CustomEvent('iris-addon-state',{detail:d}));if(d.kind==='window.presentation.changed')window.dispatchEvent(new CustomEvent('iris-presentation-state',{detail:d}));if(d.kind==='window.update.changed')window.dispatchEvent(new CustomEvent('iris-update-state',{detail:d}));});");
                 core.NavigationStarting += (sender, e) => { documentReady = false; bridge.Revoke(); core.Settings.IsWebMessageEnabled = false; };

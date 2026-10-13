@@ -14,6 +14,8 @@ $craft=Read 'crafting' '{"craftingUnlocked":true,"items":[{"DisplayName":"wood",
 Assert ($craft.data.items[0].missing -eq $null -and $craft.data.items[0].producedPerUnit -eq 3) 'Unknown BOM invented'
 $activity=Read 'activity' '{"IsInCombat":false,"Dungeon":{"State":"NotInDungeon"}}'
 Assert ($activity.data.inCombat -eq $false -and $activity.data.autoPlaying -eq $null -and $activity.data.dungeonState -eq 'NotInDungeon') 'Missing state became safe'
+$taskInteraction=Read 'activity' '{"IsAbyssResultSequencePlaying":true,"Interaction":{"LastRunningInteractionType":"Gathering"}}'
+Assert ($taskInteraction.data.abyssSequence -eq $true -and $taskInteraction.data.interactionType -eq 'Gathering') 'Action safety fields discarded'
 Reject 'execute_gathering' '{}';Reject 'inventory' '{"pipe":"disconnected"}'
 Reject 'inventory' '{"status":"rejected","body":{"error":"game_off"}}'
 Reject 'activity' '{"status":"accepted","body":{"error":"unavailable"}}'

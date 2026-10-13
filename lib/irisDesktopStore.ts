@@ -2,6 +2,7 @@ import type { QueueSnapshot } from './irisDesktopQueue';
 import {parseGameStats,type GameStats} from './irisStats';
 import {parseCurrencies,type CurrencySnapshot} from './irisCurrencies';
 import {ergonReadKinds,validErgonReadKind,parseErgonSnapshot,type ErgonReadKind,type ErgonSnapshot} from './irisErgonRead';
+import {parseErgonChallenge,parseErgonActionReceipt,parseErgonActionState,parseErgonActionHistory,type ErgonAction,type ErgonChallenge,type ErgonActionState} from './irisErgonActions';
 import {parseDesktopUpdateState,type DesktopUpdateState} from './irisDesktopUpdate';
 
 type Context = { epoch: number; environment: string };
@@ -62,7 +63,7 @@ export function createDesktopStore(options: { channel: Channel; context(): Conte
     if(epoch!==options.context()?.epoch)throw Error('앱 연결이 바뀌었어요. 다시 실행해 주세요.');supportedEpoch=epoch??null;workspaceEpoch=value.workspace===true?epoch??null:null;
     return {schemaVersion:3,barter:true};
   }
-  function request(method: 'game.life.capabilities' | 'game.life.read' | 'store.capabilities' | 'store.load' | 'store.replace' | 'window.hide' | 'window.close' | 'window.addon.state' | 'window.addon.preferences' | 'window.drag' | 'window.minimize' | 'window.decision' | 'overlay.state' | 'overlay.input' | 'overlay.opacity' | 'game.stats.read' | 'game.currencies.read' | 'window.update.state' | 'window.update.check' | 'window.update.prepare' | 'window.update.apply' | 'window.fonts.list' | 'window.fonts.refresh' | 'window.presentation.state' | 'window.presentation.toggle' | 'window.presentation.panel' | 'window.alert.sound', payload: unknown): Promise<unknown> {
+  function request(method: 'game.life.capabilities' | 'game.life.read' | 'game.life.actions.capabilities' | 'game.life.actions.context' | 'game.life.actions.prepare' | 'game.life.actions.confirm' | 'game.life.actions.cancel' | 'game.life.actions.state' | 'game.life.actions.history' | 'store.capabilities' | 'store.load' | 'store.replace' | 'window.hide' | 'window.close' | 'window.addon.state' | 'window.addon.preferences' | 'window.drag' | 'window.minimize' | 'window.decision' | 'overlay.state' | 'overlay.input' | 'overlay.opacity' | 'game.stats.read' | 'game.currencies.read' | 'window.update.state' | 'window.update.check' | 'window.update.prepare' | 'window.update.apply' | 'window.fonts.list' | 'window.fonts.refresh' | 'window.presentation.state' | 'window.presentation.toggle' | 'window.presentation.panel' | 'window.alert.sound', payload: unknown): Promise<unknown> {
     return new Promise((resolve, reject) => {
       const context = options.context();
       if (!context || context.environment !== options.environment || !Number.isSafeInteger(context.epoch) || context.epoch < 1 || sequence >= Number.MAX_SAFE_INTEGER) {
@@ -88,7 +89,7 @@ export function createDesktopStore(options: { channel: Channel; context(): Conte
         cleanup(); resolve(value.value);
       };
       options.channel.addEventListener('message', listener);
-      const timer = setTimeout(() => { cleanup(); reject(fail()); }, method==='window.update.prepare'?Math.max(timeout,90000):method==='window.update.check'?Math.max(timeout,15000):method.startsWith('game.')?Math.max(timeout,10000):timeout);
+      const timer = setTimeout(() => { cleanup(); reject(fail()); }, method==='game.life.actions.confirm'?Math.max(timeout,150000):method==='game.life.actions.prepare'?Math.max(timeout,90000):method==='window.update.prepare'?Math.max(timeout,90000):method==='window.update.check'?Math.max(timeout,15000):method.startsWith('game.')?Math.max(timeout,10000):timeout);
       try { options.channel.postMessage({ version: 1, id, epoch, method, payload }); }
       catch { cleanup(); reject(fail()); }
     });
@@ -96,6 +97,13 @@ export function createDesktopStore(options: { channel: Channel; context(): Conte
   return {
     lifeCapabilities,
     async readLife<K extends ErgonReadKind>(kind:K):Promise<ErgonSnapshot<K>>{if(!validErgonReadKind(kind))throw Error('지원하지 않는 생활 조회예요.');await lifeCapabilities();return parseErgonSnapshot(kind,await request('game.life.read',{kind}));},
+    async lifeActionCapabilities():Promise<void>{const value=await request('game.life.actions.capabilities',null);if(!exactObject(value,['schemaVersion','actions','gatheringNames','queue','collectCostKnown'])||value.schemaVersion!==1||!Array.isArray(value.actions)||value.actions.join(',')!=='gathering,altering,crafting,collect'||!Array.isArray(value.gatheringNames)||value.gatheringNames.join(',')!=='통나무'||value.queue!==false||value.collectCostKnown!==false)throw Error('에르곤 실행 기능을 확인하지 못했어요. 최신 앱으로 다시 실행해 주세요.');},
+    async setLifeContext(value:{accountId:string;characterId:string|null;accountLabel:string;characterLabel:string|null}):Promise<void>{if(!exactObject(value,['accountId','characterId','accountLabel','characterLabel'])||!value.accountId.trim()||!value.accountLabel.trim()||(value.characterId===null?value.characterLabel!==null:typeof value.characterId!=='string'||!value.characterId.trim()||typeof value.characterLabel!=='string'||!value.characterLabel.trim()))throw Error('계정과 캐릭터 선택을 확인해 주세요.');const result=await request('game.life.actions.context',value);if(!exactObject(result,['schemaVersion'])||result.schemaVersion!==1)throw Error('에르곤 작업 문맥을 확인하지 못했어요.');},
+    async prepareLifeAction(value:{accountId:string;characterId:string;action:ErgonAction;displayName:string}):Promise<ErgonChallenge>{if(!exactObject(value,['accountId','characterId','action','displayName'])||!['gathering','altering','crafting','collect'].includes(String(value.action))||[value.accountId,value.characterId,value.displayName].some(text=>typeof text!=='string'||!text.trim()))throw Error('작업할 품목과 캐릭터를 확인해 주세요.');return parseErgonChallenge(await request('game.life.actions.prepare',value));},
+    async confirmLifeAction(nonce:string):Promise<ReturnType<typeof parseErgonActionReceipt>>{if(!/^[0-9a-f-]{36}$/i.test(nonce))throw Error('작업 확인 기한이 지났어요.');return parseErgonActionReceipt(await request('game.life.actions.confirm',{nonce}));},
+    async cancelLifeAction(nonce:string):Promise<void>{if(!/^[0-9a-f-]{36}$/i.test(nonce))return;await request('game.life.actions.cancel',{nonce});},
+    async lifeActionState():Promise<ErgonActionState>{return parseErgonActionState(await request('game.life.actions.state',null));},
+    async lifeActionHistory(accountId:string){if(!accountId||accountId.length>100)throw Error('계정을 확인해 주세요.');const value=parseErgonActionHistory(await request('game.life.actions.history',{accountId}));if(value.records.some(row=>row.accountId!==accountId))throw Error('다른 계정의 기록이 섞였어요.');return value;},
     async playAlertSound():Promise<void>{await request('window.alert.sound',null);},
     async presentationState():Promise<DesktopPresentation>{return parseDesktopPresentation(await request('window.presentation.state',null));},
     async togglePresentation():Promise<DesktopPresentation>{return parseDesktopPresentation(await request('window.presentation.toggle',null));},

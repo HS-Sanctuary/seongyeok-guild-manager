@@ -1,0 +1,27 @@
+$ErrorActionPreference='Stop'
+$taskSource=Join-Path $PSScriptRoot 'desktop-life-cli.cs'
+if(!(Test-Path $taskSource)){throw 'Fixed life CLI boundary missing'}
+Add-Type -Path @($taskSource,(Join-Path $PSScriptRoot 'desktop-life-read.cs')) -ReferencedAssemblies @('System.Core','System.Web.Extensions')
+$taskRoot=[IO.Path]::GetFullPath((Join-Path (Join-Path $PSScriptRoot '../.superpowers') ('life-cli-'+[guid]::NewGuid().ToString('N'))))
+[void][IO.Directory]::CreateDirectory($taskRoot)
+$taskExe=Join-Path $taskRoot 'MabinogiMobile_CLI.exe'
+$taskProgram=@'
+using System;using System.Text;using System.Web.Script.Serialization;
+public static class FakeCli {public static void Main(string[] args){Console.OutputEncoding=new UTF8Encoding(false);var json=new JavaScriptSerializer();var body=json.DeserializeObject(args[1]) as System.Collections.Generic.Dictionary<string,object>;var name=(string)body[args[0]=="get_items"?"name":"displayName"];if(name=="sleep")System.Threading.Thread.Sleep(12000);if(args[0]=="get_items")Console.Write(json.Serialize(new object[]{new {DisplayName=name,Category="Food",CategoryDisplayName="Food",Location="inventory",Count=3,IsLocked=false}}));else Console.Write(json.Serialize(new {command=args[0],name=name,craftCount=body.ContainsKey("craftCount")?body["craftCount"]:null}));}}
+'@
+Add-Type -TypeDefinition $taskProgram -ReferencedAssemblies @('System.Web.Extensions') -OutputAssembly $taskExe -OutputType ConsoleApplication
+$taskBefore=[Environment]::GetEnvironmentVariable('MABINOGI_CLI_PATH')
+try{
+ [Environment]::SetEnvironmentVariable('MABINOGI_CLI_PATH',$taskExe)
+ foreach($taskName in @('wood','a"b\tail','trailing\','spaces in name')){
+  $taskValue=[IrisDesktop.DesktopLifeCli]::PerformAsync('crafting',$taskName).GetAwaiter().GetResult()|ConvertFrom-Json
+  if($taskValue.command -ne 'execute_crafting' -or $taskValue.name -ne $taskName -or $taskValue.craftCount -ne 1){throw 'CLI JSON argument changed'}
+  $taskRead=[IrisDesktop.DesktopLifeCli]::ReadNamedItemsAsync($taskName).GetAwaiter().GetResult()|ConvertTo-Json -Depth 20 -Compress|ConvertFrom-Json
+  if($taskRead.data.items[0].name -ne $taskName -or $taskRead.data.items[0].count -ne 3){throw 'Named consumable lookup failed'}
+ }
+ try{$null=[IrisDesktop.DesktopLifeCli]::PerformAsync('stop_action','wood').GetAwaiter().GetResult();throw 'Generic game command accepted'}catch{if($_.Exception.Message -eq 'Generic game command accepted'){throw}}
+ $taskWatch=[Diagnostics.Stopwatch]::StartNew();$taskTimedOut=$false
+ try{$null=[IrisDesktop.DesktopLifeCli]::ReadNamedItemsAsync('sleep').GetAwaiter().GetResult()}catch{$taskTimedOut=$true}
+ if(!$taskTimedOut -or $taskWatch.ElapsedMilliseconds -gt 10000){throw 'Absolute 8s read deadline was not enforced'}
+}finally{[Environment]::SetEnvironmentVariable('MABINOGI_CLI_PATH',$taskBefore)}
+Write-Output 'PASS fixed action commands/craftCount1/Windows JSON escaping/named Food lookup; spawned fake CLI only'

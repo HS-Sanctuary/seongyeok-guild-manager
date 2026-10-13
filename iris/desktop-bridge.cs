@@ -24,6 +24,9 @@ namespace IrisDesktop {
         Func<object> overlayState;Func<bool,bool> overlayInput;Func<int,bool> overlayOpacity;
         Func<Task<object>> gameRead,currencyRead; bool gameBusy;
         Func<string,Task<object>> lifeRead;
+        Func<object> lifeActionCapabilities;Func<string,Dictionary<string,object>,object> lifeActionSync;
+        Func<string,Dictionary<string,object>,Task<object>> lifeActionAsync;Func<bool> lifeActionBusy;
+        public void BindLifeActions(Func<object> capabilities,Func<string,Dictionary<string,object>,object> sync,Func<string,Dictionary<string,object>,Task<object>> action,Func<bool> busy){lifeActionCapabilities=capabilities;lifeActionSync=sync;lifeActionAsync=action;lifeActionBusy=busy;}
         static readonly string[] lifeKinds={"activity","inventory","works","materials","gathering","altering","crafting"};
         public void BindLifeRead(Func<string,Task<object>> read){lifeRead=read;}
         Func<bool,Task<object>> fontsRead;bool fontsBusy;
@@ -41,10 +44,10 @@ namespace IrisDesktop {
             var receipt=Handle(source,json);var serializer=new JavaScriptSerializer();
             var result=serializer.DeserializeObject(receipt) as Dictionary<string,object>;
             var marker=result!=null&&result.ContainsKey("value")?result["value"] as Dictionary<string,object>:null;
-            if(marker==null||(!marker.ContainsKey("gameReadPending")&&!marker.ContainsKey("lifeReadPending")&&!marker.ContainsKey("updatePending")&&!marker.ContainsKey("fontsPending")))return receipt;
-            bool update=marker.ContainsKey("updatePending"),fonts=marker.ContainsKey("fontsPending");var epoch=Epoch;if(fonts)fontsBusy=true;else if(!update)gameBusy=true;
-            try{var value=await (fonts?fontsRead(Equals(marker["fontsPending"],true)):update?(Equals(marker["updatePending"],"check")?updateCheck():updatePrepare()):marker.ContainsKey("lifeReadPending")?lifeRead((string)marker["lifeReadPending"]):(marker.ContainsKey("currency")?currencyRead():gameRead()));if(epoch!=Epoch||document==null)throw new ArgumentException();result["value"]=value;}
-            catch{result["ok"]=false;result["value"]=null;result["error"]=fonts?"fonts_unavailable":"game_stats_unavailable";}
+            if(marker==null||(!marker.ContainsKey("gameReadPending")&&!marker.ContainsKey("lifeReadPending")&&!marker.ContainsKey("lifeActionPending")&&!marker.ContainsKey("updatePending")&&!marker.ContainsKey("fontsPending")))return receipt;
+            bool update=marker.ContainsKey("updatePending"),fonts=marker.ContainsKey("fontsPending"),action=marker.ContainsKey("lifeActionPending");var epoch=Epoch;if(fonts)fontsBusy=true;else if(!update)gameBusy=true;
+            try{var value=await (action?lifeActionAsync((string)marker["lifeActionPending"],(Dictionary<string,object>)marker["payload"]):fonts?fontsRead(Equals(marker["fontsPending"],true)):update?(Equals(marker["updatePending"],"check")?updateCheck():updatePrepare()):marker.ContainsKey("lifeReadPending")?lifeRead((string)marker["lifeReadPending"]):(marker.ContainsKey("currency")?currencyRead():gameRead()));if(epoch!=Epoch||document==null)throw new ArgumentException();result["value"]=value;}
+            catch{result["ok"]=false;result["value"]=null;result["error"]=action?"life_action_unavailable":fonts?"fonts_unavailable":"game_stats_unavailable";}
             finally{if(fonts)fontsBusy=false;else if(!update)gameBusy=false;}
             return serializer.Serialize(result);
         }
@@ -90,9 +93,9 @@ namespace IrisDesktop {
                     case "window.update.check":
                         if(message["payload"]!=null||updateCheck==null)throw new ArgumentException();value=new {updatePending="check"};break;
                     case "window.update.prepare":
-                        if(message["payload"]!=null||updatePrepare==null)throw new ArgumentException();value=new {updatePending="prepare"};break;
+                        if(message["payload"]!=null||updatePrepare==null||(lifeActionBusy!=null&&lifeActionBusy()))throw new ArgumentException();value=new {updatePending="prepare"};break;
                     case "window.update.apply":
-                        if(message["payload"]!=null||updateApply==null)throw new ArgumentException();value=updateApply();if(CloseRequested!=null)CloseRequested(this,EventArgs.Empty);break;
+                        if(message["payload"]!=null||updateApply==null||(lifeActionBusy!=null&&lifeActionBusy()))throw new ArgumentException();value=updateApply();if(CloseRequested!=null)CloseRequested(this,EventArgs.Empty);break;
                     case "store.capabilities":
                         if(message["payload"]!=null)throw new ArgumentException();value=new Dictionary<string,object>{{"schemaVersion",3},{"barter",true},{"workspace",true}};break;
                     case "window.addon.state":
@@ -109,17 +112,41 @@ namespace IrisDesktop {
                     case "window.minimize":
                         if(message["payload"]!=null||addonState==null)throw new ArgumentException();if(MinimizeRequested!=null)MinimizeRequested(this,EventArgs.Empty);break;
                     case "game.stats.read":
-                        if(message["payload"]!=null||gameRead==null||gameBusy)throw new ArgumentException();
+                        if(message["payload"]!=null||gameRead==null||gameBusy||(lifeActionBusy!=null&&lifeActionBusy()))throw new ArgumentException();
                         value=new {gameReadPending=true};break;
                     case "game.life.capabilities":
                         if(message["payload"]!=null||lifeRead==null)throw new ArgumentException();value=new {schemaVersion=1,readOnly=true,kinds=lifeKinds};break;
                     case "game.life.read":
                         var lifePayload=message["payload"] as Dictionary<string,object>;
-                        if(lifeRead==null||gameBusy||lifePayload==null||lifePayload.Count!=1||!lifePayload.ContainsKey("kind"))throw new ArgumentException();
+                        if(lifeRead==null||gameBusy||(lifeActionBusy!=null&&lifeActionBusy())||lifePayload==null||lifePayload.Count!=1||!lifePayload.ContainsKey("kind"))throw new ArgumentException();
                         var lifeKind=lifePayload["kind"] as string;if(lifeKind==null||Array.IndexOf(lifeKinds,lifeKind)<0)throw new ArgumentException();value=new {lifeReadPending=lifeKind};break;
                     case "game.currencies.read":
-                        if(message["payload"]!=null||currencyRead==null||gameBusy)throw new ArgumentException();
+                        if(message["payload"]!=null||currencyRead==null||gameBusy||(lifeActionBusy!=null&&lifeActionBusy()))throw new ArgumentException();
                         value=new {gameReadPending=true,currency=true};break;
+                    case "game.life.actions.capabilities":
+                        if(message["payload"]!=null||lifeActionCapabilities==null)throw new ArgumentException();value=lifeActionCapabilities();break;
+                    case "game.life.actions.context":
+                    case "game.life.actions.cancel":
+                    case "game.life.actions.state":
+                    case "game.life.actions.history":
+                        if(lifeActionSync==null)throw new ArgumentException();
+                        var syncMethod=(string)message["method"];
+                        var syncPayload=message["payload"] as Dictionary<string,object>;
+                        if(syncMethod=="game.life.actions.state") {if(message["payload"]!=null)throw new ArgumentException();syncPayload=new Dictionary<string,object>();}
+                        else if(syncPayload==null)throw new ArgumentException();
+                        if(syncMethod=="game.life.actions.context") {if(syncPayload.Count!=4||!syncPayload.ContainsKey("accountId")||!syncPayload.ContainsKey("characterId")||!syncPayload.ContainsKey("accountLabel")||!syncPayload.ContainsKey("characterLabel")||gameBusy||(lifeActionBusy!=null&&lifeActionBusy()))throw new ArgumentException();}
+                        else if(syncMethod=="game.life.actions.cancel") {if(syncPayload.Count!=1||!syncPayload.ContainsKey("nonce"))throw new ArgumentException();}
+                        else if(syncMethod=="game.life.actions.history") {if(syncPayload.Count!=1||!syncPayload.ContainsKey("accountId"))throw new ArgumentException();}
+                        value=lifeActionSync(syncMethod,syncPayload);break;
+                    case "game.life.actions.prepare":
+                    case "game.life.actions.confirm":
+                        var actionMethod=(string)message["method"];
+                        var actionPayload=message["payload"] as Dictionary<string,object>;
+                        if(lifeActionAsync==null||gameBusy||(lifeActionBusy!=null&&lifeActionBusy())||actionPayload==null)throw new ArgumentException();
+                        if(actionMethod=="game.life.actions.prepare"){
+                            if(actionPayload.Count!=4||!actionPayload.ContainsKey("accountId")||!actionPayload.ContainsKey("characterId")||!actionPayload.ContainsKey("action")||!actionPayload.ContainsKey("displayName")||Array.IndexOf(new[]{"gathering","altering","crafting","collect"},actionPayload["action"] as string)<0)throw new ArgumentException();
+                        }else if(actionPayload.Count!=1||!actionPayload.ContainsKey("nonce"))throw new ArgumentException();
+                        value=new Dictionary<string,object>{{"lifeActionPending",actionMethod},{"payload",actionPayload}};break;
                     case "store.load":
                         if (message["payload"] != null) throw new ArgumentException();
                         var restored = store.Load(); value = restored == null ? null : serializer.DeserializeObject(restored); break;
