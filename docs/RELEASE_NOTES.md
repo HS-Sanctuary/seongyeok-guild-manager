@@ -1,5 +1,13 @@
 # SANCTUM 업데이트 노트
 
+### 2026-10-14 11:05 KST — ERGON 추가 수량·현재 중지 로컬 후보 (미배포)
+
+- 공개 제품버전은 SANCTUMv2.31/IRISBeta0.3.0 유지. 직전 정상 운영 main1d8e374 / dpl_F6ymNLT5U6aJJLNofK4wtEi8sWXR. 공개 다운로드/운영 화면/게시물은 이번 후보로 갱신하지 않았다.
+- 후보 변화: 통나무 추가 수량1~100, 확보·남은·초과량/날개 표시, 현재 채집 ‘지금 중지’, 별도 동의한 목표 자동 중지, 접힌 안내/기록과 새 계획 복귀. 원래 가지고 있던 재고는 새 성과로 세지 않는다. 채집 묶음/읽기·중지 지연 때문에 목표를 초과할 수 있다.
+- 수정: 일반 실행 busy와 별도로 scoped stop 통로, 완료 CLI에 늦은 stop 전송 차단, 잘못된 재고 위치 차단, 메뉴 왕복·만료 후 재준비, 늦은 stop 응답의 완료 상태 덮어쓰기 방어. 기존 보호 기록과 구형 응답 읽기를 보존한다.
+- 검증: 전체Node499/496PASS/3기존skip/0fail·독립tsc/eslint·native 수량/actor/CLI/원장/bridge/reader/startup/grip22·실제React 수량/중지/구앱/폭·글자/기존제작회귀 PASS, 격리webpack58·scratch native패키지 compile exit0. 실제 게임 채집·현재 중지·날개 차감은 아직 별도 시험 전이다.
+- 구조는 IRIS 로컬 native목표/stop bridge/보호원장schema2와 UI만 변경, 운영 서버/API/DB/RLS 구조 변경 없음. 제작 추가수량/전체BOM·부족분chain·Chronos·시설 반복/수령·모바일 알림은 남는다. 미확정 기록 자동해제/소비 자동재시도 없음. 코드 후보를 완성된 공개 생활 자동화로 안내하지 않는다.
+
 ### 2026-10-13 23:09 KST — ERGON 기능브랜치 인계 체크포인트
 
 - 전달확인: 기능커밋c1f302de51ba99ad9d625c3cdb6d156b583ed9ad/원격인계브랜치SHA동일 일반push성공. 설계117af74도포함. GitHubVercel검사는전송직후pending, MCP403/CLI없음으로Ready·Preview눈확인은미확인. 후속문서commit은구조변경없음/제품버전유지/운영배포0이며사용자는최신인계브랜치를pull한다.

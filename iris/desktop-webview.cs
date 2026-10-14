@@ -34,6 +34,12 @@ namespace IrisDesktop {
             var label=action=="gathering"?"채집":action=="altering"?"가공 등록":action=="crafting"?"제작":"가공 완료품 모두 받기";
             var cost=row["expectedWings"]==null?"날개 소모량 미확인":Convert.ToString(row["expectedWings"])+"개";
             var message="생텀 계정: "+row["accountLabel"]+"\n선택 캐릭터: "+row["characterLabel"]+"\n게임 화면의 실제 캐릭터가 같은지 직접 확인해 주세요.\n\n"+label+": "+row["displayName"]+"\n예상 날개: "+cost+" / 최근 조회 보유: "+row["wings"]+"개";
+            if(action=="gathering"&&row.ContainsKey("gathering")){
+                var goal=DesktopLifePolicy.Object(row["gathering"]);
+                message+="\n가방 시작 "+goal["beforeOwned"]+"개 + 추가 "+goal["additionalQuantity"]+"개 → 목표 "+goal["targetOwned"]+"개";
+                message+=(bool)goal["allowAutoStop"]?"\n목표 확보 시 현재 채집 중지를 요청해요.":"\n목표 자동 중지는 꺼져 있어요. 최대 100개까지 계속 캘 수 있어요.";
+                message+="\n벌목 묶음·조회 지연으로 목표보다 더 캘 수 있어요.\n작업 중 다른 자동화 앱·연주·수동 행동을 함께 사용하지 마세요. 중지 명령은 현재 게임 행동에 영향을 줄 수 있어요.";
+            }
             if(action=="collect"){
                 var completed=row["completed"] as object[];
                 message+="\n\n"+row["facility"]+" 시설의 완료품 전체를 수령해요. 확인 이후 새로 완료된 품목도 함께 받을 수 있어요.";
@@ -195,6 +201,7 @@ namespace IrisDesktop {
                     var lifeJournal=new DesktopLifeJournal(journalRoot,development?"development":"production");
                     lifeActor=new DesktopLifeExecutor(lifeJournal,DesktopLifeReader.ReadAsync,DesktopGameStatsReader.ReadCurrenciesAsync,DesktopLifeCli.ReadNamedItemsAsync,DesktopLifeCli.PerformAsync,ConfirmLifeAction,
                         ()=>!IsDisposed&&!Disposing&&((!InvokeRequired)?LifeActionAllowed():(bool)Invoke(new Func<bool>(LifeActionAllowed))),()=>bridge.Epoch,()=>DateTime.UtcNow);
+                    lifeActor.BindStop(DesktopLifeCli.StopAsync);
                     bridge.BindLifeActions(lifeActor.Capabilities,(method,payload)=>{
                         switch(method){
                             case "game.life.actions.context":return lifeActor.SetContext(payload);
@@ -203,7 +210,7 @@ namespace IrisDesktop {
                             case "game.life.actions.history":return lifeActor.History(payload);
                             default:throw new ArgumentException();
                         }
-                    },(method,payload)=>method=="game.life.actions.prepare"?lifeActor.PrepareAsync(payload):method=="game.life.actions.confirm"?lifeActor.ConfirmAsync(payload):Task.FromException<object>(new ArgumentException()),()=>lifeActor.Busy);
+                    },(method,payload)=>method=="game.life.actions.prepare"?lifeActor.PrepareAsync(payload):method=="game.life.actions.confirm"?lifeActor.ConfirmAsync(payload):method=="game.life.actions.stop"?lifeActor.StopAsync(payload):Task.FromException<object>(new ArgumentException()),()=>lifeActor.Busy);
                 } catch { lifeActor=null; /* Other IRIS features stay available; execution remains closed. */ }
                 bridge.BindOverlay(Overlay.State,Overlay.SetClickThrough,Overlay.SetOpacityPercent);
                 bridge.BindAddon(Addon.State,(side,layer)=>Addon.SetPreferences(new AddonWindowPreferences {DockSide=side,SameLayer=layer}),Decision);

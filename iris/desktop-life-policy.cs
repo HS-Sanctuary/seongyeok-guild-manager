@@ -47,6 +47,18 @@ namespace IrisDesktop {
    return result;
   }
   public static long? Owned(Dictionary<string,object> named,string name){var rows=Items(named).Select(Object).Where(row=>Equals(Get(row,"name"),name)).ToArray();if(rows.Select(row=>Get(row,"category") as string).Distinct().Count()>1)Fail("life_ambiguous_output");long count=0;foreach(var row in rows.Where(row=>Equals(Get(row,"location"),"inventory"))){if(!Equals(Get(row,"locked"),false))Fail("life_output_locked");count=checked(count+Integer(Get(row,"count")));if(count>9007199254740991L)Fail("life_invalid");}return count;}
+  public static long GatherStock(Dictionary<string,object> named,string name){
+   var rows=Items(named).Select(Object).ToArray();if(rows.Any(row=>!Equals(Get(row,"name"),name)||!Equals(Get(row,"category"),"Ingredient")||!new[]{"inventory","account_storage","character_storage"}.Contains(Get(row,"location") as string)))Fail("life_ambiguous_output");
+   var inventory=rows.Where(row=>Equals(Get(row,"location"),"inventory")).ToArray();if(inventory.Length>1)Fail("life_ambiguous_output");
+   if(inventory.Length==0)return 0;if(!Equals(Get(inventory[0],"locked"),false))Fail("life_output_locked");return Integer(Get(inventory[0],"count"));
+  }
+  public static bool GatherActivity(Dictionary<string,object> data){
+   if(!Equals(Get(data,"dungeonState"),"NotInDungeon")||Flags.Where(key=>key!="autoTraveling").Any(key=>!Equals(Get(data,key),false)))Fail("life_game_changed");
+   string mode=Get(data,"mainButtonState") as string;
+   if(mode=="Stop"){if(!Equals(Get(data,"interactionType"),"Gathering")||!Equals(Get(data,"autoTraveling"),false))Fail("life_game_changed");return true;}
+   if(mode!="Compass"&&mode!="Hide")Fail("life_game_changed");return false;
+  }
+  public static string StopResult(string raw){try{var root=Object(new JavaScriptSerializer().DeserializeObject(raw));var body=Get(root,"body") as Dictionary<string,object>;if(body==null)return "unknown";if(Equals(Get(body,"error"),"invalid_state"))return "invalid_state";return Equals(Get(root,"status"),"accepted")&&!body.ContainsKey("error")?"requested":"unknown";}catch{return "unknown";}}
   public static string Outcome(string action,string name,string raw,Dictionary<string,object> afterWorks,LifePreflight before){
    Dictionary<string,object> root;try{root=Object(new JavaScriptSerializer {MaxJsonLength=1048576,RecursionLimit=16}.DeserializeObject(raw));}catch{return "unknown";}
    var body=Get(root,"body") as Dictionary<string,object>;if(body==null)return "unknown";
@@ -55,6 +67,7 @@ namespace IrisDesktop {
    if(action=="altering")return Equals(Get(body,"result"),"started")&&Items(afterWorks).Select(Object).Count(row=>Equals(Get(row,"name"),name)&&Equals(Get(row,"completed"),false))>before.pendingBefore?"registered":"unknown";
    if(action=="crafting")return Equals(Get(body,"result"),"completed")&&Get(body,"craftCount")!=null&&Integer(Get(body,"craftCount"),1,1)==1?"completed":"unknown";
    if(action=="gathering"){
+    if(Equals(Get(body,"result"),"stopped"))return "stopped";
     if(!Equals(Get(body,"result"),"completed"))return "unknown";try{long gained=Integer(Get(body,"gained"),1),target=Integer(Get(body,"target"),1,100);return gained>=target?"completed":"unknown";}catch{return "unknown";}
    }
    if(action=="collect"){

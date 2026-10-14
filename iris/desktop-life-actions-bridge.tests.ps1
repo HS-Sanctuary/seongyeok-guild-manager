@@ -43,6 +43,9 @@ $updateTask=[Func[Threading.Tasks.Task[object]]]{return [Threading.Tasks.Task]::
 $updateApply=[Func[object]]{return @{schemaVersion=1}}
 $taskBridge.BindUpdater($updateState,$updateTask,$updateTask,$updateApply)
 [LifeBridgeFixture]::IsBusy=$true
+if(!(Request 'game.life.actions.stop' @{requestId='123e4567-e89b-12d3-a456-426614174000';accountId='a';characterId='c'}).ok){throw 'Current stop was blocked by ordinary action busy gate'}
+if((Request 'game.life.actions.stop' @{requestId='n';accountId='a';characterId='c';command='stop_action'}).ok){throw 'Extra stop command field accepted'}
+if((Request 'game.life.actions.stop' @{requestId='n';accountId='a';characterId='c'} ([Uri]'https://evil.test/iris/desktop')).ok){throw 'Foreign stop origin accepted'}
 if((Request 'window.update.prepare' $null).ok){throw 'Update preparation overlapped a running life action'}
 if((Request 'window.update.apply' $null).ok){throw 'Update helper started during a running life action'}
 [LifeBridgeFixture]::IsBusy=$false

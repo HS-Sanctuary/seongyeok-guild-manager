@@ -38,20 +38,23 @@ namespace IrisDesktop {
         void Validate(List<Dictionary<string,object>> rows){
             if(rows.Count>300)throw new IOException("Life journal limit");var ids=new HashSet<string>();
             foreach(var row in rows){Guid id;
-                if(row==null||row.Count!=Fields.Length||Fields.Any(field=>!row.ContainsKey(field))||!(row["requestId"] is string)||!Guid.TryParse((string)row["requestId"],out id)||id==Guid.Empty||!ids.Add(id.ToString("D"))||!Text(row["accountId"],100)||!Text(row["characterId"],100)||!Text(row["displayName"],160)||!new[]{"gathering","altering","crafting","collect"}.Contains(row["action"] as string)||!new[]{"inflight","unknown","registered","completed","rejected"}.Contains(row["state"] as string)||!Integer(row["startedAt"],1,8640000000000000L)||!(Equals(row["action"],"collect")?row["expectedWings"]==null:Integer(row["expectedWings"],5,5)))throw new IOException("Life journal invalid");
+                if(row==null||!(row.Count==Fields.Length||row.Count==Fields.Length+1&&row.ContainsKey("gathering"))||Fields.Any(field=>!row.ContainsKey(field))||!(row["requestId"] is string)||!Guid.TryParse((string)row["requestId"],out id)||id==Guid.Empty||!ids.Add(id.ToString("D"))||!Text(row["accountId"],100)||!Text(row["characterId"],100)||!Text(row["displayName"],160)||!new[]{"gathering","altering","crafting","collect"}.Contains(row["action"] as string)||!new[]{"inflight","unknown","registered","completed","rejected","stopped"}.Contains(row["state"] as string)||!Integer(row["startedAt"],1,8640000000000000L)||!(Equals(row["action"],"collect")?row["expectedWings"]==null:Integer(row["expectedWings"],5,5)))throw new IOException("Life journal invalid");
+                if(row.ContainsKey("gathering")){if(!Equals(row["action"],"gathering"))throw new IOException("Life journal invalid");ValidateGathering(row["gathering"]);}
+                if(Equals(row["state"],"stopped")&&(!Equals(row["action"],"gathering")||!row.ContainsKey("gathering")))throw new IOException("Life journal invalid");
             }
         }
+        static void ValidateGathering(object value){var g=value as Dictionary<string,object>;var keys=new[]{"additionalQuantity","beforeOwned","targetOwned","currentOwned","allowAutoStop","stopReason","stopState"};if(g==null||g.Count!=keys.Length||keys.Any(k=>!g.ContainsKey(k))||!Integer(g["additionalQuantity"],1,100)||!Integer(g["beforeOwned"],0,9007199254740891L)||!Integer(g["targetOwned"],1,9007199254740991L)||Convert.ToInt64(g["targetOwned"])!=Convert.ToInt64(g["beforeOwned"])+Convert.ToInt64(g["additionalQuantity"])||!Integer(g["currentOwned"],0,9007199254740991L)||!(g["allowAutoStop"] is bool)||!(g["stopReason"]==null||Equals(g["stopReason"],"goal")||Equals(g["stopReason"],"manual"))||!new[]{"none","waiting","requested","unavailable","unknown"}.Contains(g["stopState"] as string))throw new IOException("Life gathering journal invalid");}
         List<Dictionary<string,object>> Read(){
             if(!File.Exists(FilePath))return new List<Dictionary<string,object>>();
             if(new FileInfo(FilePath).Length>Limit+4096)throw new IOException("Life journal limit");
             var bytes=ProtectedData.Unprotect(File.ReadAllBytes(FilePath),entropy,DataProtectionScope.CurrentUser);
             if(bytes.Length>Limit)throw new IOException("Life journal limit");
             var envelope=json.DeserializeObject(Utf8.GetString(bytes)) as Dictionary<string,object>;
-            if(envelope==null||envelope.Count!=3||!envelope.ContainsKey("schemaVersion")||!Equals(envelope["schemaVersion"],1)||!envelope.ContainsKey("environment")||!Equals(envelope["environment"],environment)||!envelope.ContainsKey("records")||!(envelope["records"] is object[]))throw new IOException("Life journal invalid");
+            if(envelope==null||envelope.Count!=3||!envelope.ContainsKey("schemaVersion")||!(Equals(envelope["schemaVersion"],1)||Equals(envelope["schemaVersion"],2))||!envelope.ContainsKey("environment")||!Equals(envelope["environment"],environment)||!envelope.ContainsKey("records")||!(envelope["records"] is object[]))throw new IOException("Life journal invalid");
             var rows=((object[])envelope["records"]).Select(value=>value as Dictionary<string,object>).ToList();Validate(rows);return rows;
         }
         void Write(List<Dictionary<string,object>> rows){
-            Validate(rows);var bytes=Utf8.GetBytes(json.Serialize(new {schemaVersion=1,environment=environment,records=rows}));
+            Validate(rows);var bytes=Utf8.GetBytes(json.Serialize(new {schemaVersion=rows.Any(row=>row.ContainsKey("gathering"))?2:1,environment=environment,records=rows}));
             if(bytes.Length>Limit)throw new IOException("Life journal limit");
             var encrypted=ProtectedData.Protect(bytes,entropy,DataProtectionScope.CurrentUser);var temporary=FilePath+"."+Guid.NewGuid().ToString("N")+".tmp";
             Directory.CreateDirectory(Path.GetDirectoryName(FilePath));
@@ -69,10 +72,11 @@ namespace IrisDesktop {
             Write(rows);return true;
         });}
         public void SetOutcome(string requestId,string state){Locked(()=>{
-            Guid id;if(!Guid.TryParse(requestId,out id)||!new[]{"unknown","registered","completed","rejected"}.Contains(state))throw new ArgumentException();
+            Guid id;if(!Guid.TryParse(requestId,out id)||!new[]{"unknown","registered","completed","rejected","stopped"}.Contains(state))throw new ArgumentException();
             var rows=Read();var record=rows.SingleOrDefault(row=>Equals(row["requestId"],id.ToString("D")));
             if(record==null||!Equals(record["state"],"inflight")||(state=="registered"&&!Equals(record["action"],"altering")))throw new IOException("Life action outcome invalid");
             record["state"]=state;Write(rows);return true;
         });}
+        public void UpdateGathering(string requestId,Dictionary<string,object> gathering){Locked(()=>{ValidateGathering(gathering);var rows=Read();var record=rows.SingleOrDefault(row=>Equals(row["requestId"],requestId));if(record==null||!Equals(record["state"],"inflight")||!Equals(record["action"],"gathering"))throw new IOException("Life journal update invalid");record["gathering"]=new Dictionary<string,object>(gathering);Write(rows);return true;});}
     }
 }

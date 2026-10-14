@@ -36,6 +36,7 @@ namespace IrisDesktop {
    }
   }
   public static async Task<object> ReadNamedItemsAsync(string displayName){Name(displayName);var body=new JavaScriptSerializer().Serialize(new {name=displayName});return DesktopLifeReader.Normalize("materials",await Run("get_items",body,8000));}
+  public static Task<string> StopAsync(){return Run("stop_action",null,8000);}
   public static Task<string> PerformAsync(string action,string displayName){
    Name(displayName);string command;
    switch(action){case "gathering":command="execute_gathering";break;case "altering":command="execute_altering";break;case "crafting":command="execute_crafting";break;case "collect":command="complete_altering_work";break;default:throw new ArgumentException();}

@@ -1,5 +1,17 @@
 # SANCTUM 작업 인계
 
+## 2026-10-14 11:05 KST 순월 — ERGON 수량·현재 채집 중지 A 로컬 후보
+
+- 한설이 서면 설계 뒤 ‘진행하자’로 A 직접 구현을 승인했다. 기준 e5b4ed6/기능브랜치 ff-only 최신. 추가 채집1..100/가방 시작+추가 목표, native1초 single-flight 재고·활동 감시, 별도 현재 stop control, 원래 CLI 종료까지 잠금, 부분 stopped/unknown 보호 원장을 연결했다. 실제 품목은 기존 통나무1종/소비1회·날개5, 자동 다음 소비명령은 없다.
+- 자동 목표중지는 기본off이며 사용자 체크와 native 최종 동의에 묶인다. stop_action 행동ID 부재 잔여 경합 때문에 다른 앱·수동 행동 동시사용을 금하고, 교체 징후/불명 조회는 전송0. Stop 상태만 전송, invalid_state만 새 읽기 뒤 최대3회/10초 시도창; accepted 응답은 중지 요청 접수이지 완료가 아니다. 원래 결과·재고·날개·idle을 확인한 뒤만 terminal을 정한다. 초과량도 표시하며 정확1개 보장은 없다.
+- strict schema2 capabilities/목표/진행과 scoped stop bridge, schema1 파서/DPAPI 읽기·기존 entropy/path 보존. v2 기록에는 gathering 목표·마지막 재고·중지 이유/상태를 보존한다. 구앱은 조회를 유지하고 새 수량 실행을 잠근다. 손상/unknown/실행 중 기록을 삭제하거나 자동해제하지 않는다.
+- 화면: 추가 수량 스테퍼/동의, 확보·남은·초과/날개/지금 중지, 긴 안내·기록 details, 메뉴 복귀/만료 뒤 명시적 새 계획. 연결된 실행 화면의 중복 사전점검을 제거했고 read-only 점검은 유지한다. 기존 제작5회/날개25/5분/ABA/메뉴 보존 회귀를 통과했다. 제작의 추가 결과물 의미/부족분 연결은 B에서 바꾼다.
+- 검증: 전체 Node499/496PASS/3기존skip/0fail, 독립 tsc/eslint exit0, native quantity/old executor/journal/CLI/bridge/reader·startup/grip22 PASS, 실제 React 수량/자동중지 동의/실행 중 stop/메뉴 복귀/늦은 응답/구앱/320·390·720·6..22pt PASS. 격리 webpack58 exit0, 비공개 scratch native EXE/ZIP compile exit0. localhost 최초 sandbox 차단·격리 junction EPERM은 같은 범위 승인 실행으로 해소. 구 dry-run browser의 불완전 활동 fixture는 현재 계약 필드를 채워 재검 PASS.
+- 마지막 독립 리뷰 Critical0/Important3/Minor1. 실제 완료 task가 journal/state lock 뒤 중지되던 경합·새 계획 복귀·unknown location→0은 RED→GREEN. 늦은 stop 응답의 완료 화면 덮어쓰기도 실제 React RED→GREEN으로 중요도를 올려 수정했다. 재리뷰 반복 없음.
+- 개발 서버 own session30435/3000 Ready, 페이지+6 scripts HTTP200 뒤 개발 IRIS PID20364 정상 시작/RespondingTrue/stderr0. 실제 앱 화면은 한설 확인 대기이며 실제 채집·Stop·날개 검증은 수행하지 않았다. local capabilities 읽기만 game_off였다. 기존 집의 통나무1회 결과 미확정은 새 완료로 덮지 않는다.
+- 공개 SANCTUMv2.31/IRIS0.3.0, main1d8e374/Production dpl_F6ymNLT5U6aJJLNofK4wtEi8sWXR, 공개ZIP·공지·운영DB/RLS 유지. 이번 후보는 로컬, push/운영배포 없음. 개인 루트 수정/삭제·신규SVG·옛addon계획 보존. 종료/보호원장 강제 삭제 금지.
+- 다음: 사용자 화면 확인→명시적으로 새로 승인한 통나무 추가수량/1회/날개최대5/목표중지 포함 시험→최종 CLI/실재고·날개/partial stopped/unknown 검사. 직접 CLI·가짜 동의로 우회하지 않는다. 그 뒤 B 확인된 완전 재료표만 부족분 미리보기→수동 단계→별도 제한 순차실행. Chronos/시설슬롯·수령50%/모바일은 아직 미구현. 5시간 잔여15%에서 새 구현 중단·영겁 인계/기능브랜치 checkpoint push 지시 유지.
+
 ## 2026-10-13 23:09 KST 영겁 — 사무실 수신용 체크포인트 마감
 
 - 전송확인: 기능코드·인계커밋 `c1f302de51ba99ad9d625c3cdb6d156b583ed9ad` 일반push성공/ls-remote정확일치(선행설계117af74포함). origin/main1d8e374변경없음. GitHub combinedstatus의 Vercel은전송직후pending, 연결MCP403으로Ready/실제Preview화면은미확인. 이문서마감후속은코드c1f302d위의문서전용이며최신브랜치HEAD를수신하면된다.

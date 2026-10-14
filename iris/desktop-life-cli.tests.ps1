@@ -7,12 +7,14 @@ $taskRoot=[IO.Path]::GetFullPath((Join-Path (Join-Path $PSScriptRoot '../.superp
 $taskExe=Join-Path $taskRoot 'MabinogiMobile_CLI.exe'
 $taskProgram=@'
 using System;using System.Text;using System.Web.Script.Serialization;
-public static class FakeCli {public static void Main(string[] args){Console.OutputEncoding=new UTF8Encoding(false);var json=new JavaScriptSerializer();var body=json.DeserializeObject(args[1]) as System.Collections.Generic.Dictionary<string,object>;var name=(string)body[args[0]=="get_items"?"name":"displayName"];if(name=="sleep")System.Threading.Thread.Sleep(12000);if(args[0]=="get_items")Console.Write(json.Serialize(new object[]{new {DisplayName=name,Category="Food",CategoryDisplayName="Food",Location="inventory",Count=3,IsLocked=false}}));else Console.Write(json.Serialize(new {command=args[0],name=name,craftCount=body.ContainsKey("craftCount")?body["craftCount"]:null}));}}
+public static class FakeCli {public static void Main(string[] args){Console.OutputEncoding=new UTF8Encoding(false);var json=new JavaScriptSerializer();if(args[0]=="stop_action"){Console.Write(json.Serialize(new {command=args[0],argumentCount=args.Length}));return;}var body=json.DeserializeObject(args[1]) as System.Collections.Generic.Dictionary<string,object>;var name=(string)body[args[0]=="get_items"?"name":"displayName"];if(name=="sleep")System.Threading.Thread.Sleep(12000);if(args[0]=="get_items")Console.Write(json.Serialize(new object[]{new {DisplayName=name,Category="Food",CategoryDisplayName="Food",Location="inventory",Count=3,IsLocked=false}}));else Console.Write(json.Serialize(new {command=args[0],name=name,craftCount=body.ContainsKey("craftCount")?body["craftCount"]:null}));}}
 '@
 Add-Type -TypeDefinition $taskProgram -ReferencedAssemblies @('System.Web.Extensions') -OutputAssembly $taskExe -OutputType ConsoleApplication
 $taskBefore=[Environment]::GetEnvironmentVariable('MABINOGI_CLI_PATH')
 try{
  [Environment]::SetEnvironmentVariable('MABINOGI_CLI_PATH',$taskExe)
+ $taskStop=[IrisDesktop.DesktopLifeCli]::StopAsync().GetAwaiter().GetResult()|ConvertFrom-Json
+ if($taskStop.command -ne 'stop_action' -or $taskStop.argumentCount -ne 1){throw 'Fixed stop gained an injected body'}
  foreach($taskName in @('wood','a"b\tail','trailing\','spaces in name')){
   $taskValue=[IrisDesktop.DesktopLifeCli]::PerformAsync('crafting',$taskName).GetAwaiter().GetResult()|ConvertFrom-Json
   if($taskValue.command -ne 'execute_crafting' -or $taskValue.name -ne $taskName -or $taskValue.craftCount -ne 1){throw 'CLI JSON argument changed'}

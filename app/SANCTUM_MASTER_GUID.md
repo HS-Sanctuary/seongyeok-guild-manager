@@ -1,5 +1,14 @@
 # 🏛️ SANCTUM Master Guide
 
+## 2026-10-14 — ERGON 수량·현재 채집 중지 A 로컬 구조
+
+- `DesktopLifeExecutor` gathering intent는 additionalQuantity1..100/allowAutoStop과 확정 가방 baseline을 nonce에 묶는다. 동의 뒤 동일 baseline/조건을 재검하고 소비1명령/날개5를 보낸다. runtime 목표와 문맥/epoch는 불변; `WatchGathering`은 약1초 간격으로 별도 native 조회를 소유하여 창 숨김 뒤에도 관측한다.
+- `DesktopLifePolicy.GatherStock`는 named complete 자료의 정확한 Ingredient·정상 위치·잠금 해제 inventory1행만 사용한다. 정상 빈/창고만 있는 결과는 가방0, 불완전 위치/다른 분류/중복/불명 count는 차단한다. 활동은 현재 Stop+Gathering과 모든 안전 flags를 확인하며, 교체/미확인은 자동·수동 control 전송을 차단한다.
+- `DesktopLifeCli.StopAsync()` 고정 stop_action/body 없음/8초/1MiB. `DesktopBridge`의 game.life.actions.stop({requestId,accountId,characterId})는 별도 control busy로 일반 gameBusy를 우회하되 origin/epoch/replay/정확 payload를 유지한다. actor의 request/context/확정 epoch + 원래 performTask.IsCompleted를 journal IO 이후 전송 직전 재검한다. invalid_state만 최대3회·10초 시도창; 원래 CLI·이미 보낸 control 응답 이후까지 실행 잠금 유지.
+- 원장 파일/entropy v1 유지, schema1/2 읽기와 gathering 메타/부분 stopped 저장을 지원한다. accepted stop은 접수일 뿐; 원래 stopped/completed·최종 재고/날개5·idle과 일치한 경우만 중지/목표 완료, 불명은 unknown으로 차단한다. 재시작 inflight→unknown·300건/30일/전역 실행 lease·환경/계정 분리는 유지한다.
+- typed client capabilities schema2로 새 실행을 gate, 구형 응답 파서는 유지. `DesktopErgonExecution` 수량/동의/진행·주 중지/새 계획/details, generation+request+상태 관측 revision으로 늦은 stop 응답 폐기. 연결된 부모 실행 view는 선택+실행 카드로 정리, read-only preflight와 기존 제작 예산/deadline/ABA 동작은 보존한다.
+- 운영 DB/API/RLS/공개 v2.31·IRIS0.3.0/ZIP/공지 변화 없음. 실제 game stop/최종 날개 검증 전 후보이며 B 완전 재료표/부족분 chain·Chronos·시설 반복은 별도 남은 작업이다.
+
 ## 2026-10-13 — 사무실 인계 체크포인트 구조 경계
 
 - 전송마감문서후속은구조변경없음. 후보코드c1f302d/설계117af74가인계브랜치에일반push·원격SHA일치, main1d8e374유지. 새수량/실제stop구조는설계검토대기이며현재다운로드제품에반영됐다고표시하지않는다.

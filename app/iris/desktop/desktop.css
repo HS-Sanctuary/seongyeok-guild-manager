@@ -290,3 +290,14 @@ body:has([role="dialog"][aria-modal="true"]:not([hidden],[hidden] *)) .iris-save
 .iris-ergon article{display:flex;flex-wrap:wrap;align-items:center;gap:.45rem;border:1px solid var(--panel-border);border-radius:.7rem;padding:.5rem;margin-block:.4rem;overflow-wrap:anywhere}
 .iris-ergon article strong,.iris-ergon article p{min-width:0;flex-basis:100%}
 .iris-ergon-list{max-height:18rem;overflow-y:auto;overscroll-behavior:contain}
+.iris-ergon-execution{display:grid;gap:.45rem;min-width:0}
+.iris-ergon-execution p{overflow-wrap:anywhere;margin:0;line-height:1.5}
+.iris-ergon-execution details{border-top:1px solid var(--panel-border);padding-top:.5rem;font-size:.7rem}
+.iris-ergon-execution summary{cursor:pointer;color:var(--text-sub)}
+.iris-ergon-progress{display:grid;gap:.35rem;padding:.55rem;border:1px solid var(--panel-border);border-radius:.65rem;background:var(--inner-box)}
+.iris-ergon-progress progress{appearance:none;width:100%;height:.45rem;border:0;border-radius:1rem;overflow:hidden;background:var(--panel-border);accent-color:var(--accent)}
+.iris-ergon-progress progress::-webkit-progress-bar{background:var(--panel-border);border-radius:1rem}
+.iris-ergon-progress progress::-webkit-progress-value{background:var(--accent);border-radius:1rem}
+.iris-ergon-progress progress::-moz-progress-bar{background:var(--accent);border-radius:1rem}
+.iris-ergon-quantity>div{display:flex;gap:.4rem;align-items:center;flex-wrap:wrap}
+.iris-ergon-quantity input{width:4.5rem;text-align:center}

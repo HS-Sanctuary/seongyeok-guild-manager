@@ -22,7 +22,7 @@ namespace IrisDesktop {
         Func<object> addonState;Func<string,bool,bool> addonPreferences;Action<bool> addonDecision;
         public void BindAddon(Func<object> state,Func<string,bool,bool> preferences,Action<bool> decision){addonState=state;addonPreferences=preferences;addonDecision=decision;}
         Func<object> overlayState;Func<bool,bool> overlayInput;Func<int,bool> overlayOpacity;
-        Func<Task<object>> gameRead,currencyRead; bool gameBusy;
+        Func<Task<object>> gameRead,currencyRead; bool gameBusy,lifeControlBusy;
         Func<string,Task<object>> lifeRead;
         Func<object> lifeActionCapabilities;Func<string,Dictionary<string,object>,object> lifeActionSync;
         Func<string,Dictionary<string,object>,Task<object>> lifeActionAsync;Func<bool> lifeActionBusy;
@@ -45,10 +45,10 @@ namespace IrisDesktop {
             var result=serializer.DeserializeObject(receipt) as Dictionary<string,object>;
             var marker=result!=null&&result.ContainsKey("value")?result["value"] as Dictionary<string,object>:null;
             if(marker==null||(!marker.ContainsKey("gameReadPending")&&!marker.ContainsKey("lifeReadPending")&&!marker.ContainsKey("lifeActionPending")&&!marker.ContainsKey("updatePending")&&!marker.ContainsKey("fontsPending")))return receipt;
-            bool update=marker.ContainsKey("updatePending"),fonts=marker.ContainsKey("fontsPending"),action=marker.ContainsKey("lifeActionPending");var epoch=Epoch;if(fonts)fontsBusy=true;else if(!update)gameBusy=true;
+            bool update=marker.ContainsKey("updatePending"),fonts=marker.ContainsKey("fontsPending"),action=marker.ContainsKey("lifeActionPending"),control=action&&Equals(marker["lifeActionPending"],"game.life.actions.stop");var epoch=Epoch;if(control)lifeControlBusy=true;else if(fonts)fontsBusy=true;else if(!update)gameBusy=true;
             try{var value=await (action?lifeActionAsync((string)marker["lifeActionPending"],(Dictionary<string,object>)marker["payload"]):fonts?fontsRead(Equals(marker["fontsPending"],true)):update?(Equals(marker["updatePending"],"check")?updateCheck():updatePrepare()):marker.ContainsKey("lifeReadPending")?lifeRead((string)marker["lifeReadPending"]):(marker.ContainsKey("currency")?currencyRead():gameRead()));if(epoch!=Epoch||document==null)throw new ArgumentException();result["value"]=value;}
             catch{result["ok"]=false;result["value"]=null;result["error"]=action?"life_action_unavailable":fonts?"fonts_unavailable":"game_stats_unavailable";}
-            finally{if(fonts)fontsBusy=false;else if(!update)gameBusy=false;}
+            finally{if(control)lifeControlBusy=false;else if(fonts)fontsBusy=false;else if(!update)gameBusy=false;}
             return serializer.Serialize(result);
         }
         public void BindOverlay(Func<object> state,Func<bool,bool> input,Func<int,bool> opacity){overlayState=state;overlayInput=input;overlayOpacity=opacity;}
@@ -144,9 +144,14 @@ namespace IrisDesktop {
                         var actionPayload=message["payload"] as Dictionary<string,object>;
                         if(lifeActionAsync==null||gameBusy||(lifeActionBusy!=null&&lifeActionBusy())||actionPayload==null)throw new ArgumentException();
                         if(actionMethod=="game.life.actions.prepare"){
-                            if(actionPayload.Count!=4||!actionPayload.ContainsKey("accountId")||!actionPayload.ContainsKey("characterId")||!actionPayload.ContainsKey("action")||!actionPayload.ContainsKey("displayName")||Array.IndexOf(new[]{"gathering","altering","crafting","collect"},actionPayload["action"] as string)<0)throw new ArgumentException();
+                            bool quantity=actionPayload.ContainsKey("additionalQuantity")||actionPayload.ContainsKey("allowAutoStop");
+                            if(actionPayload.Count!=(quantity?6:4)||!actionPayload.ContainsKey("accountId")||!actionPayload.ContainsKey("characterId")||!actionPayload.ContainsKey("action")||!actionPayload.ContainsKey("displayName")||Array.IndexOf(new[]{"gathering","altering","crafting","collect"},actionPayload["action"] as string)<0||quantity&&(!Equals(actionPayload["action"],"gathering")||!actionPayload.ContainsKey("additionalQuantity")||!actionPayload.ContainsKey("allowAutoStop")||!(actionPayload["allowAutoStop"] is bool)))throw new ArgumentException();
                         }else if(actionPayload.Count!=1||!actionPayload.ContainsKey("nonce"))throw new ArgumentException();
                         value=new Dictionary<string,object>{{"lifeActionPending",actionMethod},{"payload",actionPayload}};break;
+                    case "game.life.actions.stop":
+                        var stopPayload=message["payload"] as Dictionary<string,object>;
+                        if(lifeActionAsync==null||lifeControlBusy||stopPayload==null||stopPayload.Count!=3||!stopPayload.ContainsKey("requestId")||!stopPayload.ContainsKey("accountId")||!stopPayload.ContainsKey("characterId"))throw new ArgumentException();
+                        value=new Dictionary<string,object>{{"lifeActionPending","game.life.actions.stop"},{"payload",stopPayload}};break;
                     case "store.load":
                         if (message["payload"] != null) throw new ArgumentException();
                         var restored = store.Load(); value = restored == null ? null : serializer.DeserializeObject(restored); break;
