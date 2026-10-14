@@ -1,5 +1,34 @@
 # 순월에게 IRIS 작업 이어받기
 
+## 집 영겁 수신 — 2026-10-14 퇴근 인계
+
+- 코드885e97f Preview READY를 실제projectId/정확SHA로확인. 보호된실페이지조회는임시공유접근별도승인없어자동검토거부, 우회0. 집에서직접확인하거나링크생성을별도승인받을것; Ready만으로실게임·공개배포완료아님.
+
+- 기능 코드 `885e97f4281acf341cbe1bc79c4a39872fb6348d`(A f07470d 포함)을 `codex/iris-checkboard-classes`에 일반 push, 원격 일치 확인. 문서 마감 커밋이 추가되면 최신 branch HEAD까지 받는다. 운영main1d8e374/공개IRIS0.3.0·ZIP·공지·DB 변경 없음.
+- 우선 AGENTS→CODEX_RELAY→TO_YEONGGEOP(SW-20261014-001)→HANDOFF18:50 최신을 읽고 ACK. 개인 변경을 덮어쓰지 않고 이미 완료된 A/P1/읽기전용수급을 다시 만들지 않는다. 참고파일/개인재고/DPAPI/사무실native패키지는 Git으로 전달되지 않음.
+- 집 개발 후보는 Git수신 후 개발서버와 native를 다시 시작해야 한다. 현재 앱이 있으면 사용자 정상× 종료 확인부터, 보호 파일 삭제/forcekill 금지. 게임 시험은 사용자 native 최종 동의에서 품목·수량·날개한도를 확인한 후 진행한다.
+- 기존 S1개 제작만 사용자 확인/날개 모름, unknown 보호 유지. 수동복구 버튼 질문 미응답이므로 별도 선택 필요. 전체BOM 확보·부족분native 총예산순차chain/7칸50%수령재충전/Chronos 큐는 미완료. 다음은 실앱 수량/작업대/보호이유 확인과 이 경계부터 이어받는다.
+
+### 한설이 영겁에게 보낼 말
+
+> 영겁아, 오늘 순월이 인계한 `codex/iris-checkboard-classes` 최신을 받아서 이어가줘. 코드 기준은 `885e97f`이고 문서 마감까지 최신 HEAD를 받아줘. 개인 변경을 보존하고 릴레이·네 수신함·HANDOFF 최신을 읽고 ACK해줘. 수량 채집/현재 중지·수량 제작/작업대·읽기전용 수급 순서는 다시 만들지 말고 새 앱에 적용해 확인하자. 예전 제작은 아이템1개만 확인했고 날개는 몰라서 미확정 보호 기록을 지우면 안 돼. 복구 방식은 나에게 먼저 확인하고, 다음에 검증된 전체 재료표로 부족분 채집→가공→수령→제작을 연결해줘. 실제 게임 추가 소비와 운영 배포·DB 변경은 먼저 확인해줘.
+
+### 집 VS Code PowerShell 수신
+
+```powershell
+Set-Location 'C:\Users\Moon\seongyeok-guild-manager'
+git status --short
+```
+
+변경이 있으면 영겁에게 먼저 보존을 맡긴다. 깨끗할 때 아래 한 줄씩, 오류 시 다음 줄은 실행하지 않는다.
+
+```powershell
+git fetch origin
+git switch codex/iris-checkboard-classes
+git pull --ff-only origin codex/iris-checkboard-classes
+git log -2 --oneline
+```
+
 ## 최신 인계 — 2026-10-13 KST
 
 - 전송된기능기준: `c1f302de51ba99ad9d625c3cdb6d156b583ed9ad` 일반push/원격일치. 서면설계117af74포함, 이후문서마감도같은브랜치에추가한다. 아래명령으로최신HEAD를받고최종전달SHA와대조한다. GitHubVercel검사pending/대시보드조회403이므로Preview실확인을완료로추정하지않는다.

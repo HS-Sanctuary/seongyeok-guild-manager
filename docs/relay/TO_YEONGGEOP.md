@@ -2,6 +2,9 @@
 
 ## SW-20261014-001 — UPDATED (A·수량 제작·수급 작업대 퇴근 인계 / 마감 상태 참조)
 
+- 18:56KST 전송: 코드885e97f4281acf341cbe1bc79c4a39872fb6348d(A f07470d포함) 일반push·원격exact확인, main1d8e374 그대로. Previewdpl_AYQu36cM6WFdqnUeBq4ikbB4A7M3 READY/SHA/project일치MCP확인, 이후문서전용마감까지최신HEAD수신할것. developerIRIS page200/소비0.
+- Preview 실화면은일반302/보호된URL fetch의임시공유접근생성을auto-review가별도승인없다고거부. CLI없음/우회·비밀추출·보호해제0. 한설에게링크승인질문미응답, 집직접확인또는별도승인필요. Ready와실검증구분, 공개배포완료아님. 이번실제projectId기본MCP는예전403과달리상태읽기정상.
+
 - finalfresh: Node613/610PASS/3기존skip/0fail·독립tsc/lint0·실React supply/workbench/craft/quantity/legacyactions·native actor/quantity/journal/CLI/reference/bridge·격리webpack58/nativecompile PASS. 최종5h31%/주간45%로15%전, 새소비자동화는미확정복구/완전자료확인필요해검증된후보부터전달. 정확코드SHA/원격결과후속.
 
 - 2026-10-14 18:50KST 누적: 퇴근 전15%중단/인계push 재승인. 아래15:28철회는당시경과. 기능브랜치만전달, 운영main/v2.31/IRIS0.3.0/공개ZIP/공지/DB유지·개인dirty제외. 정확SHA/원격일치/Preview후속마감참조.

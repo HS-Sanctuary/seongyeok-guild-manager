@@ -2,6 +2,8 @@
 
 ## 2026-10-14 — 부족분 수급 프리뷰·안전 준비 오류 / 인계 구조
 
+- 전달마감 문서 후속은 구조변경없음. 코드885e97f 기능branch push·원격일치/동일PreviewREADY 확인, 실화면접근은임시공유권한별도승인없어미확인. 운영main/서비스권한/공개제품에승격하지않음.
+
 - `buildErgonSupplyPreview`: fresh 공식 자료+선택 installed-reference, root 추가결과 수량, 정확이름 provider, 공유가방 예약·단위산출 잔량, 공식 missing 합집합/불명 수량 차단. 창고·잠김·다중경로·순환·미해금 방어, 32노드/8깊이/품목별32재료. 가공 등록·수령 분리, `automaticReady:false`, 추정 날개는 실행예산 아님.
 - `DesktopErgonSupplyPanel`: 필요 하위자료 하나씩 직렬 조회(max31+root), sibling 갱신으로 다음 조회 취소·중복 방지, scope/active cleanup으로 늦은값 폐기. Workbench 접힌 순서와 단계 계획 추가만 제공, native 자동 실행 없음.
 - `DesktopBridge` action 비동기 오류는 정해진 safe code만, `irisErgonErrors`의 안내는 active epoch/environment에서만 적용. raw 예외/stale frame은 일반 오류. Stop/nonce/원장 보호 유지.
