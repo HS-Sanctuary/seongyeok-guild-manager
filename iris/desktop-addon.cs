@@ -70,7 +70,8 @@ namespace IrisDesktop {
         public string PreferredDockSide {get{return preferences.DockSide;}}
         public bool IsAttached { get { return status=="attached"; } }
         Func<Rectangle,Rectangle,bool?,bool> presentationPlacement;
-        public void BindPresentation(Func<Rectangle,Rectangle,bool?,bool> placement){presentationPlacement=placement;}
+        Func<bool> independentPlacement;
+        public void BindPresentation(Func<Rectangle,Rectangle,bool?,bool> placement,Func<bool> independent=null){presentationPlacement=placement;independentPlacement=independent;}
         public event EventHandler StateChanged, GameExited;
         public DesktopGameWindowTracker(Form window, string environment) : this(window, environment,
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"SANCTUM","IRIS",environment)) { }
@@ -125,8 +126,13 @@ namespace IrisDesktop {
             if(tracked.Minimized||manuallyHidden||!window.Visible) {Publish();return;}
             if(!tracked.Frame.HasValue){status="unavailable";actualSide="off";Publish();return;}
             Rectangle frame=tracked.Frame.Value,work=Screen.FromRectangle(frame).WorkingArea;
-            bool compactPlacement=false;
-            if(presentationPlacement!=null){var monitor=Screen.FromRectangle(frame).Bounds;bool fills=frame.Left<=monitor.Left+2&&frame.Top<=monitor.Top+2&&frame.Right>=monitor.Right-2&&frame.Bottom>=monitor.Bottom-2;bool? fullscreen=tracked.Handle==IntPtr.Zero?(bool?)null:IsZoomed(tracked.Handle)||fills;compactPlacement=presentationPlacement(frame,work,fullscreen);if(compactPlacement&&fullscreen!=false){status="independent";actualSide="off";Publish();return;}}
+            var monitor=Screen.FromRectangle(frame).Bounds;bool fills=frame.Left<=monitor.Left+2&&frame.Top<=monitor.Top+2&&frame.Right>=monitor.Right-2&&frame.Bottom>=monitor.Bottom-2;
+            ApplyPlacement(frame,work,tracked.Handle==IntPtr.Zero?(bool?)null:IsZoomed(tracked.Handle)||fills);
+            } finally { ApplySameLayer(GetForegroundWindow()); }
+        }
+        void ApplyPlacement(Rectangle frame,Rectangle work,bool? fullscreen){
+            bool compactPlacement=presentationPlacement!=null&&presentationPlacement(frame,work,fullscreen);
+            if(independentPlacement!=null&&independentPlacement()||compactPlacement&&fullscreen!=false){status="independent";actualSide="off";Publish();return;}
             var placement=AddonWindowPolicy.Place(frame,work,new Size(PreferredWidth,window.Height),preferences.DockSide,!compactPlacement);
             status=preferences.DockSide=="off"?"independent":placement.Attached?"attached":"no-space";actualSide=placement.ActualSide;
             if(placement.Attached) {
@@ -134,7 +140,6 @@ namespace IrisDesktop {
                 if(window.Bounds!=placement.Bounds)SetWindowPos(window.Handle,IntPtr.Zero,placement.Bounds.X,placement.Bounds.Y,placement.Bounds.Width,placement.Bounds.Height,0x0014); // NOACTIVATE|NOZORDER
             }
             Publish();
-            } finally { ApplySameLayer(GetForegroundWindow()); }
         }
         bool FollowGameVisibility() {
             if(tracked==null||tracked.Alive!=true||!tracked.Frame.HasValue||decisionOpen)return hiddenByScreen;

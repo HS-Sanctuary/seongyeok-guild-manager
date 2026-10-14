@@ -38,6 +38,8 @@ namespace IrisDesktop {
         public void BindAlertSound(Func<bool> play){alertSound=play;}
         Func<object> presentationState,presentationToggle;Func<bool,object> presentationPanel;
         public void BindPresentation(Func<object> state,Func<object> toggle,Func<bool,object> panel){presentationState=state;presentationToggle=toggle;presentationPanel=panel;}
+        Func<bool,object> workspace;
+        public void BindWorkspace(Func<bool,object> apply){workspace=apply;}
         Func<object> updateState,updateApply;Func<Task<object>> updateCheck,updatePrepare;
         public void BindUpdater(Func<object> state,Func<Task<object>> check,Func<Task<object>> prepare,Func<object> apply){updateState=state;updateCheck=check;updatePrepare=prepare;updateApply=apply;}
         public void BindGameStats(Func<Task<object>> read){gameRead=read;}
@@ -80,6 +82,10 @@ namespace IrisDesktop {
                 lastId = sequence;
                 object value = null;
                 switch (message["method"] as string) {
+                    case "window.workspace":
+                        var workspacePayload=message["payload"] as Dictionary<string,object>;
+                        if(workspace==null||workspacePayload==null||workspacePayload.Count!=1||!workspacePayload.ContainsKey("expanded")||!(workspacePayload["expanded"] is bool))throw new ArgumentException();
+                        value=workspace((bool)workspacePayload["expanded"]);break;
                     case "window.alert.sound":
                         if(message["payload"]!=null||alertSound==null||!alertSound())throw new ArgumentException();break;
                     case "window.presentation.state":

@@ -1,5 +1,37 @@
 # SANCTUM 작업 인계
 
+## 2026-10-15 00:43 KST 영겁 → 순월 — 검증 위임·인계 브랜치 전송
+
+- 한설이 “순월이한테 인계할꺼 푸시…검증은 순월이 통해서” 요청. `codex/iris-checkboard-classes`의 후보와 인계 문서만 일반 commit/push한다. 공개 SANCTUM v2.31 / IRIS Beta 0.3.0 유지, main 병합·운영 배포·공개 ZIP·공지·DB/RLS 변경은 하지 않는다. 정상 운영 기준 main `1d8e374` / `dpl_F6ymNLT5U6aJJLNofK4wtEi8sWXR` 유지.
+- 수신 순서: AGENTS → CODEX_RELAY → TO_SOONWOL의 YG-20261014-001 누적 → 이 최신 항목 → IRIS_SOONWOL_HANDOFF. 순월이 직접 ACK한다. 완료된 수량 채집/현재 중지 A, 수량 제작, 읽기 전용 수급, 아래 관제실·업데이트 요약을 재구현하지 않는다.
+- 10월 14일 최종 검증 증거는 아래 21:28 항목과 동일하다. Node 519/516 PASS/3 기존 skip/0 fail, 타입·관련 lint·격리 빌드·private native 컴파일 및 React/native 회귀 통과 로그를 재확인했다. 이번 전송 단계는 전체 테스트를 반복하지 않고 scoped diff/공백 검사와 원격 ff-only 최신 확인만 한다. 실제 게임·설치·다른 DPI 검증이 끝났다고 표시하지 않는다.
+- 순월의 첫 확인: 최신 native를 별도 빌드하고 기존 IRIS가 있으면 한설의 정상 종료 후 적용 → 에르곤 좁은/넓은/복원·다른 메뉴 왕복·게임 일반창/전체화면/모니터·DPI → 수량/필요량·미확정 보호와 계정별 기록 → 업데이트 변경요약/실패 안내를 확인한다. 집에서 넓은 화면 표시는 한설이 확인했고, 실게임 중지·비용과 실제 업데이트 교체는 미확인이다.
+- 다음 구현 경계: 감사 가능한 수동복구는 방향만 합의, 실제 unknown 해제는 미승인이다. 원래 기록 보존·완료/성공 위조·자동 재전송 금지. 완전한 재료표 검증과 native 총예산 순차 chain, 시설 반복·Chronos·모바일은 미완료. 추가 게임 시험은 품목·수량·횟수·날개 한도를 새로 확인하고 최종 native 동의를 받아야 한다.
+- 환경 주의: 집의 webpack dev 파일 접근 오류는 Turbopack 우회이며 영구 해결이 아니다. 캐시 백업·사용자 원장·설정·참고파일·private 패키지·검증 로그는 Git으로 보내지 않는다. 사용자 개인 dirty/삭제 파일은 제외하고 보존한다. 최신 인계 브랜치 전체를 pull해야 하며 main만 받아서는 후보가 없다.
+
+## 2026-10-14 21:28 KST 영겁 — ERGON 관제실·설치 전 변경요약 로컬 완료
+
+- 한설이 역할별 버튼색/선택 작업 중심/작은바+확장 화면을 승인하고 ‘바로 구현’ 요청. 기존 feature checkout/HEAD5ec9988 위 로컬 수정, 개인 dirty·삭제·untracked 보존. commit/push/main병합/공개버전·ZIP·공지·운영 DB/RLS 변경0.
+- ERGON: 현황/검색목록/선택 수량·필요·가방·부족재료/실행준비가 같은 작업화면. 320~좁은 폭은 수직, 중간2영역/넓은3영역. 실행은 기존1인스턴스를 계속 mount, 새게임명령/원장해제/예산변경 없음. 금색(테마accent) 주요행동·청록 담기·무채색 일반·적색 현재중지, 상태문구/아이콘 병용. 현황/목록 수치 쉼표, 긴 출처안내·보관계획 details. 미확정 ‘기록 확인’→계정별 실제 이력으로 연결, 성공 위조/해제/재전송0.
+- bool-only `window.workspace`는 opt-in1240폭/작업영역 제한·이전 좁은bounds 복원·기존360~720 저장폭 미변경. 비활성/이탈의 늦은응답복원, compact/native navigation 복원. 최종 단일 독립리뷰 Important1(일반 창에서 tracker도킹이 넓은폭 덮음)을 실제 tracker placement 합성 RED→GREEN으로 수정. 기존 windowed compact도킹/fullscreen은 보존. 그 밖 Critical0/Minor0, 재리뷰 반복0.
+- 실앱: 한설 정상종료 확인 후 최신 Development PID27308/응답True/자체로그0. 한설 ‘응넓은화면 잘나온다’ 확인. 실제 채집/제작/현재중지·비용/다른DPI의 추가시험은0, 이전unknown 그대로. 별도실게임승인을 추정하지 않는다.
+- 후속 업데이트창: 기존 installer/metadata/C#업데이트계약은 변경하지 않고 `/IRIS/notes/<version>.json`의 버전일치 plain-text요약 표시. 16KiB 스트림/6구역·10항목·글자수제한·8초취소/닫힘·버전교체 응답폐기. HTML실행/쿠키/리다이렉트/임의주소0, 조회실패·다른버전은 상세노트링크 안내/기존설치흐름유지. 0.3.0 요약은 이미 공개한 기능만 기록(ERGON 후보를 출시기능으로 쓰지 않음). 향후 새버전 배포 시 해당파일도 작성해야 한다. 공개 게시 자동화0.
+- fresh검증: 최종Node519/516PASS/3기존skip/0fail·독립tsc/관련eslint0·최종격리webpack exit0, private native 최종compile0. real React 새관제실/6테마·320~1240/늦은창·unknown기록·기존수량/채집stop/제작/느린준비·동의/예산·read-only2048/계정분리/사전점검 PASS. native geometry/strictbool bridge/실tracker배치/기존compact PASS. 업데이트창은 별도 bounded후속으로 실제React 버전요약/HTML글자표시/다른버전fallback/기존설치보관·실패·재시작 합성 PASS. 공유fixture는 updater쿼리일 때만 합성origin의 고정notes GET 통과, 다른 API는 기존fake 그대로다.
+- 환경: webpack dev layout.js open UNKNOWN/packrename 오류 재발. own43805 중지→`.next/dev-before-workspace-20261014-2115`로 캐시 이동보관(삭제0)→53913 일시복구 후 재발. 생성파일 자체는 OpenRead 성공, Windows 상세원인은 미확정. 같은 프로젝트 설정/보안정책을 바꾸지 않고 설치된Turbopack dev로 전환(own34828/3000), 마지막 `/iris/desktop`·`/IRIS/notes/0.3.0.json` HTTP200. 캐시 재삭제 반복/보안해제/사용자앱 forcekill0. 이 환경 우회를 영구 원인 해결이라고 표시하지 않는다.
+- 남음: 감사가능 수동복구 상세설계·실제해제 별도승인, 완전BOM/native총예산chain/시설반복·Chronos/모바일. 실제업데이트 설치본 교체·운영배포/공지 미실행. 검증 ledger와 screenshot은 미커밋 증거라 `.superpowers/sdd/2026-10-14-ergon-command-workspace`에 보관한다.
+
+## 2026-10-14 20:40 KST 영겁 — 집 수신·좁힌 회귀·개발 후보 적용
+
+- 추가 UX요청: 생활커넥터3열을 참고한 작은바+확장생활작업화면 방향 제안(폭 선택 미응답), 복구 설계 방향은 사용자 동의/실제 해제0. 추가로 업데이트 버튼 클릭 시 대상 버전의 변경내역을 앱 안에서 먼저 표시 요청. 설치폴더 version1.3.1/13_AppUpdate·UpdateCore readonly 확인, IRIS 기존창은 외부노트링크만 존재. 버전일치 내역/별도 설치·오류fallback/기존검증·작업잠금 보존 범위 제안, 아직 제품수정0. BETA_FEEDBACK/DECISIONS 참조.
+
+- 후속 실화면: 한설 첨부4장으로 ERGON 네 탭/생활 현황/가공 목록·재료/보호 차단 안내 표시를 확인했다. 날개71041·무게726/930·가공완료6→7·시설15칸은 사진 시점의 관측값이며 비용·정원 계약의 증명이 아니다. 계획0/50이고 새 실행은 결과불명 보호로 잠김. 선택 후 통합 작업대/새 소비·목표중지·수량제작 성공은 아직 실게임 미확인. 작업 기록 탭은 안내만 있고 실제 보호 이력은 자동 실행 details에 분산되어 있어, 감사 가능한 복구와 함께 정리할 다음 설계 범위로 제안한다. 원장 변경/보호해제 승인으로 해석하지 않는다.
+
+- `codex/iris-checkboard-classes` HEAD5ec9988 수신, fetch/ff-only pull up-to-date 확인. SW-20261014-001 수신 ACK. 완료된 A/수량 제작/작업대/읽기전용 수급은 재구현하지 않았다. 개인 공지 초안·루트 삭제·untracked 파일은 보존했다.
+- 집 fresh 검증: 재료/참고/수급/오류 Node13/13 PASS, real React quantity/craft/supply/workbench 4개 스크립트 PASS, native quantity/reference 합성 PASS, 독립 tsc exit0. 최초 sandbox 원자 파일교체·SWC 접근거부는 동일 범위 정상 권한 재검으로 통과. 이번에는 제품 코드 변경이 없어 전체613/빌드를 반복하지 않았으며, 전체 검증은 위 순월의 해당 커밋 결과와 구분한다.
+- 한설이 다운로드 IRIS 정상 종료를 확인한 뒤, 개발서버3000(session43805) `/iris/desktop` 및 6개 script HTTP200 선행 검사 후 새 Development native PID2196 시작. 자체 stderr/stdout 0byte/RespondingTrue, 한설은 새 IRIS 화면이 보임을 확인했다. sky 도구에는 해당 native 창이 반환되지 않아 실제 작업대 화면/보호 안내는 스크린샷 요청 대기. 정상 페이지 응답·사용자 창 확인만으로 전체 기능 실게임 검증 완료로 표시하지 않는다.
+- 집에도 설치 참고 JSON 2개/공식 CLI 존재 확인(파일 복사·재배포 없음). 실제 채집/제작/중지 명령·원장 직접 열람/해제·운영 DB/공개 패키지/게시/푸시0. 과거 결과불명 처리의 승인 미응답은 계속 보존한다.
+- 다음: 사용자 ERGON 화면 확인 → 기록 삭제나 완료 위조 없이 감사 가능한 수동 결과 확인/보호 해제의 범위를 사용자에게 설명·승인 → 필요한 경우 새 품목·수량·날개/목표중지 시험을 별도 승인. full BOM 및 총예산 순차 chain은 별도 설계이며 부분 참고표를 실행 권위로 승격하지 않는다.
+
 ## 2026-10-14 18:50 KST 순월 — 퇴근 인계 / 수급 순서·수량 제작
 
 - **전송 결과18:56KST:** 기능코드 `885e97f4281acf341cbe1bc79c4a39872fb6348d`(A f07470d 포함) 일반push 성공·ls-remote 일치, main1d8e374 unchanged. 해당코드 Preview `dpl_AYQu36cM6WFdqnUeBq4ikbB4A7M3` READY/project·branch·SHA 일치 MCP확인: https://vercel.com/sanctum-sanctuary/sanctum/AYQu36cM6WFdqnUeBq4ikbB4A7M3 . 개발페이지 HTTP200. 이 후속은 문서 전용, 최종 branch HEAD까지수신한다.

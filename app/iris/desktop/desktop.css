@@ -321,3 +321,77 @@ body:has([role="dialog"][aria-modal="true"]:not([hidden],[hidden] *)) .iris-save
 .iris-ergon-supply ol{display:grid;gap:.35rem;list-style:decimal;margin-left:1rem;padding:.4rem 0}
 .iris-ergon-supply li{min-width:0;padding:.4rem;border:1px solid var(--panel-border);border-radius:.5rem;font-size:.7rem;overflow-wrap:anywhere}
 .iris-ergon-supply li>div{display:flex;gap:.3rem;justify-content:space-between;flex-wrap:wrap}
+
+/* ERGON: one selected task, semantic actions; never alter other IRIS modules. */
+.iris-ergon{--ergon-add:color-mix(in srgb,#008f8b 65%,var(--text-main));--ergon-danger:color-mix(in srgb,#cc233d 65%,var(--text-main));--ergon-warning:var(--kronos-cost,var(--accent));gap:.45rem;min-width:0}
+.iris-ergon [hidden]{display:none!important}
+.iris-ergon .iris-desktop-button{background:var(--panel);color:var(--text-main);border-color:var(--panel-border);border-radius:.4rem;font-size:.7rem;min-height:1.9rem;padding:.3rem .55rem;box-shadow:none}
+.iris-ergon .iris-desktop-button:hover:not(:disabled){background:var(--panel-hover);border-color:var(--text-sub)}
+.iris-ergon .iris-desktop-button:focus-visible,.iris-ergon summary:focus-visible{outline:.12rem solid var(--accent);outline-offset:.12rem}
+.iris-ergon .iris-desktop-button:disabled{opacity:.55;cursor:not-allowed}
+.iris-ergon button[data-ergon-role=primary]{background:var(--accent);color:var(--accent-fg);border-color:var(--accent);font-weight:800;min-height:2.4rem;width:100%}
+.iris-ergon button[data-ergon-role=primary]:hover:not(:disabled){background:var(--accent-strong);border-color:var(--accent-strong);color:var(--accent-fg)}
+.iris-ergon button[data-ergon-role=add]{color:var(--ergon-add);border-color:var(--ergon-add);background:color-mix(in srgb,var(--ergon-add) 10%,var(--panel));font-weight:700}
+.iris-ergon .iris-ergon-progress button{background:var(--ergon-danger);border-color:var(--ergon-danger);color:var(--panel);font-weight:800;width:100%;min-height:2.4rem}
+.iris-ergon nav{display:flex;flex-wrap:wrap;gap:.15rem;border-bottom:1px solid var(--panel-border);padding-bottom:.2rem}
+.iris-ergon nav button{flex:1 1 4rem;border:0;border-radius:.3rem .3rem 0 0;border-bottom:.15rem solid transparent;color:var(--text-sub)}
+.iris-ergon nav button[aria-pressed=true]{background:var(--panel-hover);color:var(--text-main);border-bottom-color:var(--accent);font-weight:800}
+.iris-ergon-workspace{display:grid;grid-template-columns:minmax(0,1fr);gap:.55rem;align-items:start;min-width:0}
+.iris-ergon-workspace>section{min-width:0;padding:.55rem;border:1px solid var(--panel-border);border-radius:.6rem;background:var(--inner-box)}
+.iris-ergon-overview{grid-row:1}
+.iris-ergon-workspace .iris-ergon-plan-picker{grid-row:2;display:grid;gap:.2rem}
+.iris-ergon-workspace .iris-ergon-focus{grid-row:3}
+.iris-ergon-title h2{font-size:.85rem}
+.iris-ergon-title>.iris-desktop-button{flex:none}
+.iris-ergon-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.35rem;margin:.35rem 0}
+.iris-ergon-metrics p{padding:.3rem;border:0;border-inline-start:.12rem solid var(--panel-border);border-radius:0;font-size:.667rem;gap:.1rem}
+.iris-ergon-metrics p:last-child{grid-column:1/-1}
+.iris-ergon-metrics strong{color:var(--text-main);font-variant-numeric:tabular-nums;font-size:.85rem}
+.iris-ergon-overview>p{font-size:.667rem}
+.iris-ergon .iris-ergon-controls{margin:.2rem 0;gap:.25rem}
+.iris-ergon-controls button{flex:1 1 4rem}
+.iris-ergon label{margin:.25rem 0;font-size:.7rem;gap:.3rem}
+.iris-ergon input[type=search]{width:100%;flex:1 1 7rem}
+.iris-ergon-catalog{max-height:14rem;margin:.2rem 0}
+.iris-ergon .iris-ergon-catalog article{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.2rem .35rem;border:0;border-bottom:1px solid var(--panel-border);border-radius:0;padding:.4rem .25rem;margin:0;font-size:.7rem}
+.iris-ergon-catalog article[data-selected=true]{background:color-mix(in srgb,var(--accent) 9%,var(--panel));border-inline-start:.15rem solid var(--accent)}
+.iris-ergon-catalog article strong{grid-column:1;font-weight:700;overflow-wrap:anywhere}
+.iris-ergon-catalog article>span{grid-column:1;color:var(--text-sub);font-size:.667rem}
+.iris-ergon-catalog article>.iris-desktop-button{grid-column:2;grid-row:1/3;align-self:center;font-size:.667rem;min-height:1.8rem;padding:.25rem .35rem}
+.iris-ergon-saved-plans{border-top:1px solid var(--panel-border);padding-top:.4rem;font-size:.7rem}
+.iris-ergon-saved-plans summary{cursor:pointer;color:var(--text-sub)}
+.iris-ergon .iris-ergon-needs{display:grid;gap:.3rem;border-top:1px solid var(--panel-border);padding-top:.5rem;min-width:0}
+.iris-ergon-needs>h3{font-size:.7rem;color:var(--text-sub)}
+.iris-ergon-needs>div{border:0;border-bottom:1px solid var(--panel-border);border-radius:0;padding:.35rem 0;gap:.2rem .5rem}
+.iris-ergon-needs>div strong{flex:1 1 7rem}
+.iris-ergon-needs>div p{flex-basis:100%;font-variant-numeric:tabular-nums}
+.iris-ergon-status{font-size:.667rem;color:var(--text-sub)}
+[data-material-state=shortage]>.iris-ergon-status,[data-record-state=unknown],[data-record-state=inflight]{color:var(--ergon-warning)}
+[data-material-state=enough]>.iris-ergon-status{color:var(--ergon-add)}
+.iris-ergon-blocker{border-inline-start:.2rem solid var(--ergon-warning);padding:.45rem .6rem;background:color-mix(in srgb,var(--ergon-warning) 8%,var(--panel));display:grid;gap:.35rem;font-size:.7rem}
+.iris-ergon-blocker>strong{color:var(--ergon-warning)}
+.iris-ergon-actions{position:sticky;bottom:.3rem;z-index:5;display:grid;gap:.35rem;padding:.4rem 0;background:var(--inner-box);border-top:1px solid var(--panel-border)}
+.iris-ergon-actions>[role=group]{display:grid;gap:.35rem}
+.iris-ergon-history{display:grid;gap:.4rem;min-width:0}
+.iris-ergon-history article{border:0;border-bottom:1px solid var(--panel-border);border-radius:0;margin:0;padding:.4rem 0}
+.iris-ergon-history article strong{flex:1 1 7rem}
+.iris-update-notes{margin:.6rem 0;padding:.55rem;border:1px solid var(--panel-border);border-radius:.55rem;background:var(--inner-box);max-height:14rem;overflow:auto}
+.iris-update-notes h3{font-size:.8rem;font-weight:800;color:var(--text-main)}
+.iris-update-notes h4{font-size:.75rem;font-weight:700;color:var(--accent);margin-top:.45rem}
+.iris-update-notes ul{list-style:disc;padding-inline-start:1rem;font-size:.75rem;display:grid;gap:.3rem}
+@container iris (min-width:34rem){
+ .iris-ergon-workspace[data-area=plan]{grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr)}
+ .iris-ergon-workspace[data-area=plan]>.iris-ergon-overview{grid-column:1/-1}
+ .iris-ergon-workspace[data-area=plan]>.iris-ergon-plan-picker{grid-column:1;grid-row:2}
+ .iris-ergon-workspace[data-area=plan]>.iris-ergon-focus{grid-column:2;grid-row:2}
+ .iris-ergon-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .iris-ergon-metrics p:last-child{grid-column:auto}
+}
+@container iris (min-width:58rem){
+ .iris-ergon-workspace[data-area=plan]{grid-template-columns:minmax(0,.75fr) minmax(0,1.05fr) minmax(0,1.2fr)}
+ .iris-ergon-workspace[data-area=plan]>.iris-ergon-overview{grid-column:1;grid-row:1}
+ .iris-ergon-workspace[data-area=plan]>.iris-ergon-plan-picker{grid-column:2;grid-row:1}
+ .iris-ergon-workspace[data-area=plan]>.iris-ergon-focus{grid-column:3;grid-row:1}
+ .iris-ergon-workspace[data-area=plan] .iris-ergon-metrics{grid-template-columns:minmax(0,1fr)}
+ .iris-ergon-catalog{max-height:25rem}
+}

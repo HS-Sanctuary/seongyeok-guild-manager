@@ -1,5 +1,37 @@
 # 순월에게 IRIS 작업 이어받기
 
+## 최신 수신 안내 — 2026-10-15 KST / 영겁 → 순월
+
+- 한설이 관제실·업데이트 요약 후보를 인계 브랜치에 push하고 실제 검증은 순월에게 맡기도록 요청했다. `codex/iris-checkboard-classes`의 최신 HEAD 전체를 받는다. 아래 10월 14일 집 수신 안내는 과거 경과다.
+- AGENTS → CODEX_RELAY → TO_SOONWOL의 YG-20261014-001 → HANDOFF의 10월15일 최신 항목 순으로 읽고 순월이 ACK한다. 완료된 A/수량 제작/수급 프리뷰/관제실/업데이트 요약은 다시 만들지 않는다.
+- 우선 최신 native 빌드와 정상 종료·재시작 후 에르곤의 좁은/넓은/복원, 메뉴 왕복, 모니터/DPI, 미확정 기록 보호, 수량·부족량과 업데이트 변경요약을 실제 앱에서 확인한다. 집에서는 넓은창 표시만 한설 확인, 추가 게임·실설치 검증은 미실행이다. 기존 로그의 합성 PASS와 실제 소비 결과를 구분한다.
+- 실제 게임 행동은 새 품목·수량·명령 횟수·날개 한도 및 native 최종 동의를 받은 뒤에만 시험한다. 과거 unknown 기록 삭제·자동해제·성공 위조·자동 재시도는 금지. 감사 가능한 수동복구는 설계 방향만 합의했고 실제 해제는 별도 승인이다.
+- 공개 SANCTUM v2.31/IRIS Beta0.3.0·main·ZIP·공지·DB 그대로. 완전 재료표/native 총예산 chain·시설 반복·Chronos·모바일은 남은 과제이고 일괄 구현 승인이 아니다. 집 캐시/원장/개인 설정/private 패키지/설치 참고파일은 Git으로 전달되지 않는다.
+
+### 한설이 순월에게 보낼 말
+
+> 순월아, 영겁이 푸시한 `codex/iris-checkboard-classes` 최신을 받아줘. 개인 변경을 보존하고 AGENTS 순서대로 릴레이·네 수신함·HANDOFF·IRIS_SOONWOL_HANDOFF 최신을 읽고 ACK해줘. 이미 구현한 생활 기능·관제실·업데이트 요약은 다시 만들지 말고, 최신 native를 적용해 실제 앱의 넓은 화면·복원·메뉴·기록·수량·업데이트 안내부터 검증해줘. 게임 시험은 품목·수량·횟수·날개 한도를 나와 새로 정하고 최종 동의를 받은 뒤 해줘. 미확정 보호 기록은 지우거나 해제하지 마. 운영 배포·공개 ZIP·공지·DB 변경은 별도 확인해줘.
+
+### 사무실 VS Code 터미널
+
+먼저 아래 두 줄을 실행한다. 파일 목록이 나오면 멈추고 순월에게 변경 보존을 맡긴다.
+
+```powershell
+Set-Location 'C:\Users\sungw\sanc\seongyeok-guild-manager'
+git status --short
+```
+
+출력이 없을 때만 한 줄씩 실행한다. 어느 줄이든 오류/충돌이 나면 다음 줄은 실행하지 않는다.
+
+```powershell
+git fetch origin
+git switch codex/iris-checkboard-classes
+git pull --ff-only origin codex/iris-checkboard-classes
+git log -2 --oneline
+```
+
+main만 pull하면 후보가 없다. 강제 reset/clean/덮어쓰기/임의 stash는 하지 않는다. 의존성과 개발 서버 재시작은 순월이 확인하며, native 창 전환 코드는 브라우저 새로고침만으로 적용되지 않는다.
+
 ## 집 영겁 수신 — 2026-10-14 퇴근 인계
 
 - 코드885e97f Preview READY를 실제projectId/정확SHA로확인. 보호된실페이지조회는임시공유접근별도승인없어자동검토거부, 우회0. 집에서직접확인하거나링크생성을별도승인받을것; Ready만으로실게임·공개배포완료아님.

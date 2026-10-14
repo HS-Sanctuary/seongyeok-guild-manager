@@ -1,5 +1,23 @@
 # 영겁 → 순월 수신함
 
+## YG-20261014-001 — UPDATED (관제실·업데이트요약 / 순월 검증용 인계)
+
+- 2026-10-15 00:43 KST 누적: 한설이 인계 브랜치 push와 순월 검증을 명시적으로 요청했다. `codex/iris-checkboard-classes` 최신 전체를 받아 AGENTS/릴레이/이 수신함/HANDOFF/IRIS_SOONWOL_HANDOFF 순서로 확인 후 ACK할 것. 아래 로컬 미전송·push0 표기는 당시 경과이며 삭제하지 않는다. 전송 SHA/원격 결과는 최종 전달과 후속 마감 기록을 참조한다.
+- 기존 A·수량 제작·읽기전용 수급·관제실·업데이트요약을 다시 구현하지 말 것. 첫 작업은 사무실 최신 native 적용 후 좁은/넓은/복원·기록·보호·업데이트 요약 및 모니터/DPI 실제 확인이다. 게임 중지/비용·실설치는 미검증, 새 품목/수량/횟수/날개 승인과 native 최종 동의 없이 추가 소비하지 않는다. unknown 해제는 별도 승인, 보호 파일 삭제/성공 위조/자동 재전송 금지.
+- 10월14일 최종 Node519/516PASS3skip0fail·타입/lint·격리build/private native·관련React/native PASS 로그 재확인. 이번 전송은 전체 재검증 없이 diff 검사와 ff-only 원격 확인만 수행한다. 실검증은 순월에게 위임. 운영main/v2.31/IRIS0.3.0·ZIP·공지·DB 유지, 사용자 개인 변경 제외. 집 webpack 캐시 오류/Turbopack 우회는 영구 해결 아님. 아래 미ACK 누적은 전부 보존한다.
+
+- 영겁21:28KST 누적: 한설 승인후 ERGON같은화면/역할색/현황쉼표/실제기록, bool1240넓은창 구현. 한설실앱‘넓은화면잘나온다’확인. 독립review Important1 일반창도킹축소를실tracker RED→GREEN 수정, 기존compact보존/재리뷰0. 새게임소비·stop·unknown해제0.
+- 후속업데이트창은버전일치plain-text요약/16KiB·8초/실패fallback/기존설치분리. 기존metadata/nativeinstaller변경0, 새버전마다public/IRIS/notes/<version>.json 작성. 공개0.3요약에는출시된기능만기록, ERGON출시로쓰지않음.
+- 최종Node519/516PASS3skip/tsc·lint0/격리webpack/nativecompile0/실React신구동선·업데이트·native실trackerPASS. sharedfixture는updater때고정public노트만합성origin GET통과. oldfixture의CSP none/모든GET계정fake를분리했고실운영IO0.
+- webpackdevUNKNOWN재발: ownserver중지·.next/dev-before-workspace-20261014-2115보관후일시복구/재발→설정·보안변경없이Turbopack dev3000(session34828), page/notes200. native27308로그0. 원인영구해결아님, 강제앱종료·원장삭제0. HEAD5ec9988위미커밋/개인dirty보존/push·공개배포·게시0. 남은수동복구설계/BOM/nativechain은HANDOFF21:28우선참조.
+
+- 추가 한설요청: 감사가능수동복구 설계 방향 동의(실제unknown해제 아님), 생활커넥터처럼 현황/목록/선택수량재료/조작 한눈 UX. native720 제한으로 작은바+확장화면 제안/폭 선택 미응답. 업데이트창 안 대상버전 변경내역도 요청. 타앱 고정설치131/updater2파일 read-only, IRIS외부링크만존재확인. 제품수정/소비/설치실행/원장해제0. BETA_FEEDBACK·HANDOFF 최신 참조.
+
+- 후속 한설4장으로 ERGON4탭/조회값/unknown 차단 안내 확인. 계획0/50, 선택 작업대/새실행/실제stop 검증은 별도. 기록 탭은 안내만/보호이력은 실행details에 분산되어 다음 복구 설계와 함께 정리 제안. 사진15칸을 실제 시설정원 계약으로 단정하지 않음. 실제기록변경/해제0.
+
+- 영겁20:40KST: HEAD5ec9988/fetch·ff-only 최신 확인, SW-20261014-001 ACK. 완료 후보 재구현0/개인dirty보존. Node13/13·real React quantity/craft/supply/workbench·native quantity/reference·독립tsc PASS. 제품 수정이 없어 전체613/빌드는 재실행하지 않음.
+- 한설 다운로드앱 정상종료확인 뒤 개발3000/page+6scripts200→native2196 시작/로그0/응답true. 한설 새 IRIS 보임 확인, sky에는 native 창 미반환이라 ERGON 스크린샷 요청 대기. 실게임·unknown 복구·완전BOM/nativechain·공개배포완료 아님. 소비/stop/원장해제/운영변경/push0. 집 HANDOFF20:40 참조, 아래 누적 기록 보존.
+
 ## YG-20261013-001 — ACKNOWLEDGED (인계브랜치 푸시 마감)
 
 - ACK: 순월 — 2026-10-14 10:01 KST, 사무실 `codex/iris-checkboard-classes` HEAD/`origin/codex/iris-checkboard-classes` `e5b4ed6f3f414590e93046a7095b9e9abdc9b3a1` 수신 확인. 누적 릴레이·최신 HANDOFF·BETA_FEEDBACK을 읽고, 선행 설계 `117af74`/기능 `c1f302d`/문서 마감 `e5b4ed6`의 범위와 통나무 1회 시작·최종 결과/날개 미확정, 수량·실제 중지 설계 검토 대기, Preview Ready 미확정 및 개인 변경 보존을 인지했다. 이는 수신 ACK이며 새 구현·실게임 행동·운영 배포/DB 변경 승인 또는 완료가 아니다. 기존 누적 항목은 보존한다.

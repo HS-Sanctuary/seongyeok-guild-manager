@@ -1,5 +1,18 @@
 # SANCTUM 업데이트 노트
 
+### 2026-10-15 00:43 KST — 순월 검증용 인계 후보 / 공개 버전 유지
+
+- 한설의 명시적 요청으로 `codex/iris-checkboard-classes`에 ERGON 관제실·선택적 넓은 작업창·업데이트 변경요약 후보와 인계 문서를 전송한다. 공개 SANCTUM v2.31 / IRIS Beta 0.3.0 및 ZIP·공지·DB/RLS는 그대로다. 운영 정상 기준 main `1d8e374` / `dpl_F6ymNLT5U6aJJLNofK4wtEi8sWXR`.
+- 구조 변경은 아래 10월 14일 로컬 UI/창 bridge/버전별 설명 JSON에 한정한다. 이번 인계 마감 자체의 추가 제품 구조 변경 없음. 운영 배포·실사용 검증 완료를 뜻하지 않는다.
+- 10월 14일 최종 Node 519/516 PASS/3 기존 skip/0 fail, 타입·관련 lint·격리 빌드·private native 컴파일·관련 React/native 통과 기록 확인. 이번에는 전체 검증을 반복하지 않고 scoped diff 검사/ff-only 최신 확인을 수행한다. 실제 앱·게임 중지와 소모·설치 교체·모니터/DPI 검증은 순월에게 위임한다. 미확정 보호는 유지하고 추가 소비는 별도 승인한다.
+
+### 2026-10-14 21:28 KST — ERGON 관제실·설치 전 변경요약 (로컬 미배포)
+
+- 공개 SANCTUMv2.31/IRISBeta0.3.0 유지. 정상운영기준 main1d8e374/dpl_F6ymNLT5U6aJJLNofK4wtEi8sWXR. commit/push/main·공개ZIP·공지·DB/RLS 변경 없음.
+- 현황/품목/수량·재료/실행을 한 작업화면으로 정리, 테마별 역할색·짧은안내·실제기록 확인. 작은바와 저장폭을 유지한 선택적 넓은 작업창. 한설 실제 넓은창 표시 확인, 일반창도킹 축소 버그를 실제tracker 합성으로 수정.
+- 업데이트창은 대상버전 변경요약을 먼저 표시하고 설치는 기존 별도 버튼으로 한다. 다른버전·실패 안내/크기·시간 제한/HTML실행0. 기존파일검증·보관·설치 계약은 유지. 구조변경은 로컬UI/boolean창bridge/설명JSON이며 운영 DB/API/RLS 구조변경 없음.
+- 최종 Node519/516PASS/3기존skip, 독립tsc/eslint0·격리webpack/nativecompile0·관련React/native 합성 PASS. 독립 UI리뷰 중요1 수정 RED→GREEN, 재리뷰0. 실제 게임 소비·수동복구·실설치/다른DPI는 미시험. dev webpack캐시 접근오류는 파일보관/Turbopack 우회로page/notes200, 상세원인 미확정.
+
 ### 2026-10-14 18:50 KST — ERGON 퇴근 인계 후보 / 공개버전 유지
 
 - 전송마감18:56KST: 코드885e97f 일반push/원격일치, Preview dpl_AYQu36cM6WFdqnUeBq4ikbB4A7M3 READY·동일SHA 확인. 본추가는문서전용/구조변경없음. 보호된Preview 실화면조회는임시공유링크별도승인없어 auto-review거부, 우회0·사용자질문미응답/실확인미완료. 운영main·공개버전/ZIP·공지 그대로.

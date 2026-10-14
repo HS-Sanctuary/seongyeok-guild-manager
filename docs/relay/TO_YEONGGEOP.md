@@ -1,6 +1,8 @@
 # 순월 → 영겁 수신함
 
-## SW-20261014-001 — UPDATED (A·수량 제작·수급 작업대 퇴근 인계 / 마감 상태 참조)
+## SW-20261014-001 — ACKNOWLEDGED (A·수량 제작·수급 작업대 퇴근 인계 / 마감 상태 참조)
+
+- 영겁 ACK 2026-10-14: 집 checkout에서 최종 HEAD5ec9988/f07470d·885e97f 수신 확인. 완료된 A/수량 제작/수급 미리보기는 재구현하지 않는다. 개인 dirty는 보존하고 집 환경의 관련 회귀·실앱 준비 상태부터 확인한다. 실제 소비/과거 unknown 해제/자동 chain/운영 배포는 별도 승인 경계를 유지한다. Preview READY와 실화면 미확인도 구분하여 이어받았다.
 
 - 18:56KST 전송: 코드885e97f4281acf341cbe1bc79c4a39872fb6348d(A f07470d포함) 일반push·원격exact확인, main1d8e374 그대로. Previewdpl_AYQu36cM6WFdqnUeBq4ikbB4A7M3 READY/SHA/project일치MCP확인, 이후문서전용마감까지최신HEAD수신할것. developerIRIS page200/소비0.
 - Preview 실화면은일반302/보호된URL fetch의임시공유접근생성을auto-review가별도승인없다고거부. CLI없음/우회·비밀추출·보호해제0. 한설에게링크승인질문미응답, 집직접확인또는별도승인필요. Ready와실검증구분, 공개배포완료아님. 이번실제projectId기본MCP는예전403과달리상태읽기정상.

@@ -58,6 +58,16 @@ namespace IrisDesktop {
         bool resizing;Rectangle resizeStart;int resizePointer;bool resizeLeft;
         public DesktopPresentationState Presentation {get;private set;}
         Rectangle expandedBounds;bool lastCompact,lastPanel;int contentHeight=240,layoutRevision;
+        Rectangle workspaceBounds;bool workspaceExpanded;
+        object SetWorkspace(bool expanded){
+            if(expanded&&(!LifeActionAllowed()||Presentation.Compact||lifeActor!=null&&lifeActor.Busy))throw new ArgumentException();
+            if(expanded!=workspaceExpanded){
+                var work=Screen.FromRectangle(Bounds).WorkingArea;
+                if(expanded){workspaceBounds=Bounds;workspaceExpanded=true;MaximumSize=new Size(1240,work.Height);Bounds=DesktopWorkspaceLayout.Expand(Bounds,work);}
+                else{workspaceExpanded=false;MaximumSize=new Size(720,work.Height);Bounds=DesktopWorkspaceLayout.Restore(workspaceBounds,work);}
+            }
+            return new {expanded=workspaceExpanded};
+        }
         [DllImport("user32.dll")] static extern bool ReleaseCapture();
         [DllImport("user32.dll")] static extern IntPtr SendMessage(IntPtr h,int message,IntPtr w,IntPtr l);
         protected override bool ShowWithoutActivation {get{return true;}}
@@ -80,7 +90,7 @@ namespace IrisDesktop {
             Width=Addon.PreferredWidth;
             Presentation=new DesktopPresentationState(Path.GetDirectoryName(profile));lastCompact=Presentation.Compact;expandedBounds=Bounds;
             Presentation.Changed+=(s,e)=>ApplyPresentation();
-            Addon.BindPresentation((frame,work,fullscreen)=>{Presentation.ObserveFullscreen(fullscreen);if(!Presentation.Compact)return false;var bounds=Bounds;bounds.Width=Addon.PreferredWidth;bounds.Height=Presentation.PanelOpen||closeDecision?600:contentHeight;if(Presentation.AnchorGameCorner){bounds.X=Addon.PreferredDockSide=="left"?work.Left+8:work.Right-bounds.Width-8;bounds.Y=work.Top+8;}ApplyAnchoredBounds(bounds,work);return true;});
+            Addon.BindPresentation((frame,work,fullscreen)=>{Presentation.ObserveFullscreen(fullscreen);if(workspaceExpanded){Bounds=DesktopWorkspaceLayout.Restore(Bounds,work);return true;}if(!Presentation.Compact)return false;var bounds=Bounds;bounds.Width=Addon.PreferredWidth;bounds.Height=Presentation.PanelOpen||closeDecision?600:contentHeight;if(Presentation.AnchorGameCorner){bounds.X=Addon.PreferredDockSide=="left"?work.Left+8:work.Right-bounds.Width-8;bounds.Y=work.Top+8;}ApplyAnchoredBounds(bounds,work);return true;},()=>workspaceExpanded);
             Location=new Point(Screen.PrimaryScreen.WorkingArea.Right-Width-20,Screen.PrimaryScreen.WorkingArea.Top+40);
             AddResizeEdge(true);AddResizeEdge(false);
             Overlay=new DesktopOverlayCoordinator(this,Browser,true);
@@ -111,6 +121,7 @@ namespace IrisDesktop {
         }
         void ApplyPresentation(){
             if(IsDisposed)return;
+            if(Presentation.Compact&&workspaceExpanded)SetWorkspace(false);
             layoutRevision++;
             if(Presentation.Compact&&lastPanel&&!Presentation.PanelOpen)contentHeight=240;
             lastPanel=Presentation.PanelOpen;
@@ -124,9 +135,9 @@ namespace IrisDesktop {
         void AddResizeEdge(bool left){
             var edge=new Panel {Dock=left?DockStyle.Left:DockStyle.Right,Width=5,Cursor=Cursors.SizeWE,BackColor=Color.FromArgb(48,48,48),AccessibleName=left?"왼쪽 창 폭 조절":"오른쪽 창 폭 조절"};
             edge.MouseDown+=(s,e)=>{if(e.Button!=MouseButtons.Left||closeDecision)return;resizing=true;resizeStart=Bounds;resizePointer=Cursor.Position.X;resizeLeft=left;Addon.SetDragging(true);edge.Capture=true;};
-            edge.MouseMove+=(s,e)=>{if(!resizing||!edge.Capture)return;int delta=Cursor.Position.X-resizePointer;int width=Math.Max(360,Math.Min(720,resizeStart.Width+(resizeLeft?-delta:delta)));Bounds=new Rectangle(resizeLeft?resizeStart.Right-width:resizeStart.Left,resizeStart.Top,width,resizeStart.Height);};
+            edge.MouseMove+=(s,e)=>{if(!resizing||!edge.Capture)return;int delta=Cursor.Position.X-resizePointer;int width=Math.Max(360,Math.Min(workspaceExpanded?1240:720,resizeStart.Width+(resizeLeft?-delta:delta)));Bounds=new Rectangle(resizeLeft?resizeStart.Right-width:resizeStart.Left,resizeStart.Top,width,resizeStart.Height);};
             edge.MouseUp+=(s,e)=>{if(e.Button==MouseButtons.Left)edge.Capture=false;};
-            edge.MouseCaptureChanged+=(s,e)=>{if(!resizing||edge.Capture)return;resizing=false;Addon.SetDragging(false);Addon.RecordPreferredWidth(Width);};
+            edge.MouseCaptureChanged+=(s,e)=>{if(!resizing||edge.Capture)return;resizing=false;Addon.SetDragging(false);if(!workspaceExpanded)Addon.RecordPreferredWidth(Width);};
             Controls.Add(edge);
         }
         void DragWindow() {
@@ -195,6 +206,7 @@ namespace IrisDesktop {
                 var installedFonts=new DesktopInstalledFonts();bridge.BindFonts(installedFonts.ReadAsync);
                 var alertSound=new DesktopAlertSound();bridge.BindAlertSound(alertSound.Play);
                 bridge.BindPresentation(Presentation.State,()=>{Presentation.Toggle();return Presentation.State();},open=>{Presentation.SetPanelOpen(open);return Presentation.State();});
+                bridge.BindWorkspace(SetWorkspace);
                 bridge.BindCurrencies(DesktopGameStatsReader.ReadCurrenciesAsync);
                 bridge.BindLifeRead(async kind=>{if(!Visible||WindowState==FormWindowState.Minimized||closeDecision)throw new ArgumentException();return await DesktopLifeReader.ReadAsync(kind);});
                 bridge.BindLifeReference((kind,name)=>{if(!LifeActionAllowed())throw new ArgumentException();return DesktopLifeReference.Read(kind,name);});
@@ -224,7 +236,7 @@ namespace IrisDesktop {
                 bridge.CloseRequested += (sender,e) => { if(lifeActor!=null&&lifeActor.Busy){RequestClose("manual");return;}allowClose = true; BeginInvoke(new Action(Close)); };
                 // Runs before page scripts, so the completion announcement is never lost during hydration.
                 await core.AddScriptToExecuteOnDocumentCreatedAsync("window.__irisDesktopBridge=null;window.__irisDesktopPendingClose=null;chrome.webview.addEventListener('message',function(e){var d=e.data;if(!d||d.version!==1)return;if(d.kind==='bridge.ready'&&Number.isSafeInteger(d.epoch)&&d.epoch>0&&['development','production'].includes(d.environment)){window.__irisDesktopBridge=d;window.dispatchEvent(new CustomEvent('iris-desktop-ready'));return;}var c=window.__irisDesktopBridge;if(!c||d.epoch!==c.epoch||d.environment!==c.environment)return;if(d.kind==='window.close.request'&&['manual','game-exit'].includes(d.reason)){window.__irisDesktopPendingClose=d;window.dispatchEvent(new CustomEvent('iris-desktop-close',{detail:d}));}if(d.kind==='window.addon.changed')window.dispatchEvent(new CustomEvent('iris-addon-state',{detail:d}));if(d.kind==='window.presentation.changed')window.dispatchEvent(new CustomEvent('iris-presentation-state',{detail:d}));if(d.kind==='window.update.changed')window.dispatchEvent(new CustomEvent('iris-update-state',{detail:d}));});");
-                core.NavigationStarting += (sender, e) => { documentReady = false; bridge.Revoke(); core.Settings.IsWebMessageEnabled = false; };
+                core.NavigationStarting += (sender, e) => { SetWorkspace(false);documentReady = false; bridge.Revoke(); core.Settings.IsWebMessageEnabled = false; };
                 core.NavigationCompleted += (sender, e) => {
                     Uri source;
                     if (e.IsSuccess && Uri.TryCreate(core.Source, UriKind.Absolute, out source) && bridge.Activate(source)) {

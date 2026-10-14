@@ -5,10 +5,14 @@ import {parseDesktopWindowEvent} from '@/lib/irisDesktopStore';
 import type {DesktopUpdateState} from '@/lib/irisDesktopUpdate';
 import {IRIS_UPDATE_NOTES_HREF} from '@/lib/irisRelease';
 import {DesktopFocusDialog} from './DesktopFocusDialog';
+import {readIrisUpdateNotes,type IrisUpdateNotes} from '@/lib/irisUpdateNotes';
 type Store=ReturnType<typeof createDesktopStore>;
 export function DesktopUpdater({store,disabled,onBeforeApply,onBusyChange}:{store:Store|null;disabled:boolean;onBeforeApply():Promise<boolean>;onBusyChange(busy:boolean):void}){
  const [state,setState]=useState<DesktopUpdateState|null>(null),[unsupported,setUnsupported]=useState(false),[open,setOpen]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState('');
  const working=useRef(false),mounted=useRef(false),callbacks=useRef({onBeforeApply,onBusyChange});
+ const [notes,setNotes]=useState<{version:string;value:IrisUpdateNotes|null}|null>(null);
+ const notesVersion=state?.availableVersion;
+ useEffect(()=>{if(!open||!notesVersion)return;let alive=true;const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),8000);void readIrisUpdateNotes(notesVersion,controller.signal).then(value=>{if(alive)setNotes({version:notesVersion,value});}).catch(()=>{if(alive)setNotes({version:notesVersion,value:null});}).finally(()=>clearTimeout(timer));return()=>{alive=false;clearTimeout(timer);controller.abort();};},[open,notesVersion]);
  useEffect(()=>{callbacks.current={onBeforeApply,onBusyChange};},[onBeforeApply,onBusyChange]);
  useEffect(()=>{
   mounted.current=true;let alive=true,checking=false;
@@ -37,6 +41,7 @@ export function DesktopUpdater({store,disabled,onBeforeApply,onBusyChange}:{stor
   {available&&<button type="button" className="iris-update-button" disabled={disabled||busy} aria-label={`IRIS ${state.availableVersion} 업데이트`} onClick={()=>{setError('');setOpen(true);}}>↑ 업데이트</button>}
   {open&&state&&<DesktopFocusDialog title="IRIS 업데이트" onClose={()=>setOpen(false)} dismissDisabled={busy}>
    <p>Beta {state.installedVersion} → Beta {state.availableVersion}</p>
+   <section aria-label="이번 업데이트" className="iris-update-notes"><h3>이번 업데이트</h3>{!notes||notes.version!==notesVersion?<p role="status">변경 내용을 불러오는 중이에요…</p>:notes.value?notes.value.sections.map((section,index)=><div key={index}><h4>{section.title}</h4><ul>{section.items.map((item,itemIndex)=><li key={itemIndex}>{item}</li>)}</ul></div>):<p role="status">이 버전의 요약을 불러오지 못했어요. 자세한 업데이트 노트를 확인해 주세요.</p>}</section>
    <p className="iris-caption">새 파일을 확인한 뒤 미저장 변경을 보호 보관하고 IRIS를 다시 시작해요. 게임·로그인·테마 기록은 지우지 않아요.</p>
    <p className="iris-caption">무료 미서명 베타라 Windows에서 차단할 수 있어요. 보안 프로그램을 끄지 말고, 차단되면 중단하고 알려주세요.</p>
    {busy&&<p role="status">{state.phase==='downloading'?`다운로드 중 ${state.progress}%`:state.phase==='installing'?'업데이트 후 다시 시작해요.':'파일 확인·변경 보관 중…'}</p>}

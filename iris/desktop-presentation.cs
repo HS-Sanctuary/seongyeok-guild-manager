@@ -7,6 +7,16 @@ using System.Text;
 using System.Web.Script.Serialization;
 
 namespace IrisDesktop {
+ public static class DesktopWorkspaceLayout {
+  public static Rectangle Restore(Rectangle saved,Rectangle work){
+   if(work.Width<1||work.Height<1)throw new ArgumentException();
+   int width=Math.Min(Math.Max(1,saved.Width),work.Width),height=Math.Min(Math.Max(1,saved.Height),work.Height);
+   return new Rectangle(Math.Max(work.Left,Math.Min(saved.Left,work.Right-width)),Math.Max(work.Top,Math.Min(saved.Top,work.Bottom-height)),width,height);
+  }
+  public static Rectangle Expand(Rectangle current,Rectangle work){
+   return Restore(new Rectangle(current.Left,current.Top,1240,Math.Max(760,current.Height)),work);
+  }
+ }
  public sealed class DesktopPresentationState {
   readonly string path;
   bool manual,fullscreen,moved;

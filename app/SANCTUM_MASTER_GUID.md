@@ -1,5 +1,17 @@
 # 🏛️ SANCTUM Master Guide
 
+## 2026-10-15 — 순월 검증용 기능 브랜치 인계
+
+- 아래 10월 14일 관제실·bool 창 전환·버전별 업데이트 요약 구조를 `codex/iris-checkboard-classes`로 인계한다. 이번 문서 마감의 추가 구조 변경 없음. 운영 main/SANCTUM v2.31/IRIS Beta 0.3.0/공개 ZIP/DB/API/RLS/권한은 변경하지 않는다.
+- 한설 요청에 따라 실제 앱·게임·업데이트 설치 검증은 순월이 이어받는다. 합성 검증을 실게임 성공으로 취급하지 않고 unknown 원장 잠금과 기존 설치 검증 계약을 유지한다. 수신·재시작·검증 순서는 HANDOFF와 IRIS_SOONWOL_HANDOFF 최신 항목을 따른다.
+
+## 2026-10-14 — ERGON 관제실·업데이트 요약 로컬 구조
+
+- `ConnectedErgon`은 같은 session/실행 인스턴스를 유지하며 overview/catalog/focus 1~3영역으로 재배치한다. Workbench view=overview/materials로 현황을 중복조회하지 않고 선택재료를 실행 수량 아래에 배치. Execution historyVisible은 같은 계정의 기존 native history를 표시하며 unknown 해제/명령 추가 없음. 역할색 CSS는 iris-ergon 범위와 전역 변수 기반, 다른 모듈 버튼은 변경하지 않는다.
+- `createDesktopStore.setWorkspace(bool)`→strict same-origin/epoch `window.workspace`→DesktopWebView.SetWorkspace. DesktopWorkspaceLayout은 모니터 작업영역 clamp/1240확장·원래bounds복원. 저장폭 파일/컴팩트 설정 미변경. Tracker의 별도 independent placement 소유권은 일반창 도킹 덮어쓰기를 막고 기존 compact 배치는 보존한다. 실제 Tick이 사용하는 ApplyPlacement 경로를 합성프레임으로 시험한다.
+- `DesktopUpdater`→`readIrisUpdateNotes`→고정 `/IRIS/notes/<semver>.json`: 버전별 schema1/섹션 plain-text,16KiB/8초/strict구조·버전일치. 대상불일치·실패는 노트링크 안내, 닫힌창/지난버전 응답폐기. 설명은 설치 권위가 아니며 기존 download.json/ZIP hash/native updater 계약은 그대로다. 새공개버전마다 같은버전 설명 JSON을 함께 작성한다.
+- 운영 버전/공개ZIP/DB/API/RLS/권한 변경 없음. 로컬 dev만 webpack 파일접근오류 우회로Turbopack3000 실행, 캐시백업 보존. 실게임·설치·운영 검증과 UI/합성/컴파일 결과는 HANDOFF에서 구분한다.
+
 ## 2026-10-14 — 부족분 수급 프리뷰·안전 준비 오류 / 인계 구조
 
 - 전달마감 문서 후속은 구조변경없음. 코드885e97f 기능branch push·원격일치/동일PreviewREADY 확인, 실화면접근은임시공유권한별도승인없어미확인. 운영main/서비스권한/공개제품에승격하지않음.
