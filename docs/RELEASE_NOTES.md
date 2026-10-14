@@ -2,6 +2,7 @@
 
 ### 2026-10-15 00:43 KST — 순월 검증용 인계 후보 / 공개 버전 유지
 
+- 전송 확인: 기능 코드 `24c7534` 일반 push·원격 SHA 일치, main `1d8e374` 유지. 후속 문서 마감은 구조 변경 없음. GitHub Vercel 검사 pending, MCP 403/CLI 미설치로 Preview Ready·실화면 미확인. 운영 배포 완료나 공개 업데이트 게시로 표시하지 않는다.
 - 한설의 명시적 요청으로 `codex/iris-checkboard-classes`에 ERGON 관제실·선택적 넓은 작업창·업데이트 변경요약 후보와 인계 문서를 전송한다. 공개 SANCTUM v2.31 / IRIS Beta 0.3.0 및 ZIP·공지·DB/RLS는 그대로다. 운영 정상 기준 main `1d8e374` / `dpl_F6ymNLT5U6aJJLNofK4wtEi8sWXR`.
 - 구조 변경은 아래 10월 14일 로컬 UI/창 bridge/버전별 설명 JSON에 한정한다. 이번 인계 마감 자체의 추가 제품 구조 변경 없음. 운영 배포·실사용 검증 완료를 뜻하지 않는다.
 - 10월 14일 최종 Node 519/516 PASS/3 기존 skip/0 fail, 타입·관련 lint·격리 빌드·private native 컴파일·관련 React/native 통과 기록 확인. 이번에는 전체 검증을 반복하지 않고 scoped diff 검사/ff-only 최신 확인을 수행한다. 실제 앱·게임 중지와 소모·설치 교체·모니터/DPI 검증은 순월에게 위임한다. 미확정 보호는 유지하고 추가 소비는 별도 승인한다.

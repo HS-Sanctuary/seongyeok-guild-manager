@@ -2,6 +2,7 @@
 
 ## YG-20261014-001 — UPDATED (관제실·업데이트요약 / 순월 검증용 인계)
 
+- 전송 완료 누적: 기능 코드 `24c7534129e14811d0caa3fe7b2666e6119ea9cf` 일반 push/원격 정확 일치, main `1d8e374` 유지. 이 결과 문서 마감까지 최신 HEAD를 받을 것. 사용자 개인 변경은 제외하고 보존했다. GitHub Vercel pending 관측, 같은 project/team MCP403·CLI없음으로 Ready/실페이지 미확인. 우회·공유링크 생성·수동 배포0, 순월 접근 환경에서 상태 확인부터 이어받는다. ACK 전 기존 누적 삭제 금지.
 - 2026-10-15 00:43 KST 누적: 한설이 인계 브랜치 push와 순월 검증을 명시적으로 요청했다. `codex/iris-checkboard-classes` 최신 전체를 받아 AGENTS/릴레이/이 수신함/HANDOFF/IRIS_SOONWOL_HANDOFF 순서로 확인 후 ACK할 것. 아래 로컬 미전송·push0 표기는 당시 경과이며 삭제하지 않는다. 전송 SHA/원격 결과는 최종 전달과 후속 마감 기록을 참조한다.
 - 기존 A·수량 제작·읽기전용 수급·관제실·업데이트요약을 다시 구현하지 말 것. 첫 작업은 사무실 최신 native 적용 후 좁은/넓은/복원·기록·보호·업데이트 요약 및 모니터/DPI 실제 확인이다. 게임 중지/비용·실설치는 미검증, 새 품목/수량/횟수/날개 승인과 native 최종 동의 없이 추가 소비하지 않는다. unknown 해제는 별도 승인, 보호 파일 삭제/성공 위조/자동 재전송 금지.
 - 10월14일 최종 Node519/516PASS3skip0fail·타입/lint·격리build/private native·관련React/native PASS 로그 재확인. 이번 전송은 전체 재검증 없이 diff 검사와 ff-only 원격 확인만 수행한다. 실검증은 순월에게 위임. 운영main/v2.31/IRIS0.3.0·ZIP·공지·DB 유지, 사용자 개인 변경 제외. 집 webpack 캐시 오류/Turbopack 우회는 영구 해결 아님. 아래 미ACK 누적은 전부 보존한다.

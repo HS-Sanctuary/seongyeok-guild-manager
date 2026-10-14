@@ -2,6 +2,8 @@
 
 ## 2026-10-15 00:43 KST 영겁 → 순월 — 검증 위임·인계 브랜치 전송
 
+- 전송 마감: 코드 `24c7534129e14811d0caa3fe7b2666e6119ea9cf` 일반 push 성공, `ls-remote`와 정확히 일치. 원격 main `1d8e3749f306456bea1c2a7b2e05da813b98e5fa` 유지. 이번 후속은 전송 결과만 기록하는 문서 마감이므로 최신 branch HEAD까지 받는다. 사용자 개인 dirty/삭제/untracked만 로컬에 보존했다.
+- Preview는 GitHub Vercel 검사 `pending` 관측. Vercel MCP는 명시한 동일 project/team에서 403, CLI 미설치라 Ready/실화면 미확인이다. 권한 우회·임시 공유링크·수동 배포·승격은 하지 않았다. 순월이 접근 가능한 환경에서 read-only 확인할 것. 인계 push 성공과 운영 배포 완료는 별개다.
 - 한설이 “순월이한테 인계할꺼 푸시…검증은 순월이 통해서” 요청. `codex/iris-checkboard-classes`의 후보와 인계 문서만 일반 commit/push한다. 공개 SANCTUM v2.31 / IRIS Beta 0.3.0 유지, main 병합·운영 배포·공개 ZIP·공지·DB/RLS 변경은 하지 않는다. 정상 운영 기준 main `1d8e374` / `dpl_F6ymNLT5U6aJJLNofK4wtEi8sWXR` 유지.
 - 수신 순서: AGENTS → CODEX_RELAY → TO_SOONWOL의 YG-20261014-001 누적 → 이 최신 항목 → IRIS_SOONWOL_HANDOFF. 순월이 직접 ACK한다. 완료된 수량 채집/현재 중지 A, 수량 제작, 읽기 전용 수급, 아래 관제실·업데이트 요약을 재구현하지 않는다.
 - 10월 14일 최종 검증 증거는 아래 21:28 항목과 동일하다. Node 519/516 PASS/3 기존 skip/0 fail, 타입·관련 lint·격리 빌드·private native 컴파일 및 React/native 회귀 통과 로그를 재확인했다. 이번 전송 단계는 전체 테스트를 반복하지 않고 scoped diff/공백 검사와 원격 ff-only 최신 확인만 한다. 실제 게임·설치·다른 DPI 검증이 끝났다고 표시하지 않는다.
