@@ -1,5 +1,23 @@
 # SANCTUM 업데이트 노트
 
+### 2026-10-14 18:50 KST — ERGON 퇴근 인계 후보 / 공개버전 유지
+
+- 최종 fresh 검증: Node613/610PASS/3기존skip/0fail·독립tsc·관련lint0error0warning·신규supply/workbench/craft와기존quantity/actions 실React·native actor/quantity/CLI/journal/reference/bridge PASS, 격리webpack58 exit0·비공개nativecompile exit0. 마지막review 지적2개 RED→GREEN 및 직접회귀, 실제게임/Preview 완료 의미 아님.
+
+- 최신 퇴근 요청으로 기능브랜치 일반 push 승인. 실제 게임 전체 검증 전 후보라 공개 SANCTUMv2.31/IRIS0.3.0 유지, 정상 운영 main1d8e374 / dpl_F6ymNLT5U6aJJLNofK4wtEi8sWXR. 운영main/공개ZIP/공지/DB/RLS 변경 없음.
+- 현황·필요/보유/부족 재료·수량·준비를 같은 화면에 모으고 목록을 접음. 추가 제작 최대5횟수 한 요청/날개5/예상 산출 확인, 장비 미확인 재고를0으로 오판하지 않음.
+- 부족분 순서 미리보기: 가방 공유재고·산출잔량·참고자료/공식 부족 목록으로 채집→가공 등록→수령→제작 순서와 단계 계획 추가. 부분 자료이므로 자동 실행/전체 비용 확정 아님. 불명·충돌·미해금은 확인 안내, 임의 오류와 경로는 숨김.
+- 알려진 제한: 과거 S제작의 날개 미확정 보호 유지·수동복구 승인 미응답. 전체자동생활/시설반복·50%수령/Chronos/모바일 미완료, 마지막 native 안내는 정상 재시작 필요. 새실게임/Preview 검증 별도. 최종 검증·정확 SHA·Preview는 마감 후속 참조.
+- 구조: 로컬 수량 schema3/선택 참고자료/작업대/읽기전용 수급 프리뷰/안전 오류 안내 변경. 운영 서버API/DB/RLS 구조 변경 없음.
+
+### 2026-10-14 15:28 KST — ERGON 수량 제작·작업대 로컬 후보 (미배포)
+
+- 공개 버전 상승 없음: SANCTUMv2.31/IRIS0.3.0, 정상 운영 기준 main1d8e374/dpl_F6ymNLT5U6aJJLNofK4wtEi8sWXR 유지. 이번 push 금지 지시를 따라 로컬 후보만 수정했다.
+- 변화: 추가 결과 수량을 제작 횟수1~5로 묶어 한 번 요청/날개5, 장비는 확인할 수 없는 가방 수량을0으로 표시하지 않음. 선택 작업의 필요·가방·부족 재료/날개/가공현황과 실행 준비를 같은 화면에서 확인, 긴 목록·계획은 접는다. 설치 참고 재료표는 출처·날짜·미검증 상태를 표시하고 외부파일을 제품에 복사하지 않는다.
+- 수정: 실제 완료 횟수·날개 비용 판정, 수량 수정과 재료 계산 동기화, 준비/확인 중 자동조회 충돌 방어, 문맥 변경 시 지난 캐릭터 조회값 폐기. 기존 원장/nonce/실행 보호·구형 읽기/수동 예산/채집Stop 유지.
+- 알려진 사항: 기존 S1개 제작의 날개 차감은 사용자 미확인, 원장unknown 보존/자동 재시도 없음. 최신성·완전성이 입증되지 않은 참고자료를 자동연쇄 실행에 사용하지 않는다. 부족 재료 자동채집·가공·수령·최종제작/시설반복·Chronos 연결 미완료. 실제 게임/장시간 검증은 합성 시험으로 대체하지 않는다.
+- 검증: 전체Node507중504PASS/3기존skip·타입/관련lint·native actor/quantity/CLI/journal/bridge/reference·실제React 수량/설비/부족분/10초갱신/느린준비·확인·구동선·격리webpack58/native패키지 compile PASS. 독립 review 중요2 수정 RED→GREEN. 새 local readonly reference/수량 action 구조가 변경됐으나 DB/API/RLS/공개배포 구조 변경 없음. 최종 앱 적용·후속 확인은 HANDOFF에 기록한다.
+
 ### 2026-10-14 11:05 KST — ERGON 추가 수량·현재 중지 로컬 후보 (미배포)
 
 - 공개 제품버전은 SANCTUMv2.31/IRISBeta0.3.0 유지. 직전 정상 운영 main1d8e374 / dpl_F6ymNLT5U6aJJLNofK4wtEi8sWXR. 공개 다운로드/운영 화면/게시물은 이번 후보로 갱신하지 않았다.

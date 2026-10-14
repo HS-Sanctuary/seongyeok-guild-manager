@@ -11,6 +11,11 @@ test('duplicate refresh shares one read; disabled context starts no IO',async()=
  resolve(frame);await Promise.all([a,b]);assert.equal(session.state().snapshots.inventory.data.weight,2);
  active=false;await session.refresh('inventory');assert.equal(calls,1);
 });
+test('switching character clears previous stock and prevents late snapshot adoption',async()=>{
+ let resolve;const session=api.createErgonSession({read:()=>new Promise(r=>resolve=r),allowed:()=>true,context:()=>1,onChange(){}});
+ let pending=session.refresh('inventory');resolve(frame);await pending;assert.equal(session.state().snapshots.inventory.data.weight,2);
+ pending=session.refresh('inventory');assert.equal(typeof session.reset,'function');session.reset();assert.deepEqual(session.state().snapshots,{});resolve(frame);await pending;assert.deepEqual(session.state().snapshots,{});
+});
 test('suspension generation permanently discards reads even after returning',async()=>{
  let resolve;const session=api.createErgonSession({read:()=>new Promise(r=>resolve=r),allowed:()=>true,context:()=>1,onChange(){}});
  const operation=session.refresh('inventory');assert.equal(typeof session.invalidate,'function');session.invalidate();resolve(frame);await operation;

@@ -34,6 +34,7 @@ namespace IrisDesktop {
             var label=action=="gathering"?"채집":action=="altering"?"가공 등록":action=="crafting"?"제작":"가공 완료품 모두 받기";
             var cost=row["expectedWings"]==null?"날개 소모량 미확인":Convert.ToString(row["expectedWings"])+"개";
             var message="생텀 계정: "+row["accountLabel"]+"\n선택 캐릭터: "+row["characterLabel"]+"\n게임 화면의 실제 캐릭터가 같은지 직접 확인해 주세요.\n\n"+label+": "+row["displayName"]+"\n예상 날개: "+cost+" / 최근 조회 보유: "+row["wings"]+"개";
+            if(action=="crafting"&&row.ContainsKey("crafting")){var quantity=DesktopLifePolicy.Object(row["crafting"]);message+="\n제작 횟수: "+quantity["craftCount"]+"회 / 예상 결과물: "+quantity["expectedOutput"]+"개\n여러 횟수를 한 명령으로 요청해요. 재료가 부족하거나 시설 한도를 넘으면 거절될 수 있어요.";}
             if(action=="gathering"&&row.ContainsKey("gathering")){
                 var goal=DesktopLifePolicy.Object(row["gathering"]);
                 message+="\n가방 시작 "+goal["beforeOwned"]+"개 + 추가 "+goal["additionalQuantity"]+"개 → 목표 "+goal["targetOwned"]+"개";
@@ -196,12 +197,14 @@ namespace IrisDesktop {
                 bridge.BindPresentation(Presentation.State,()=>{Presentation.Toggle();return Presentation.State();},open=>{Presentation.SetPanelOpen(open);return Presentation.State();});
                 bridge.BindCurrencies(DesktopGameStatsReader.ReadCurrenciesAsync);
                 bridge.BindLifeRead(async kind=>{if(!Visible||WindowState==FormWindowState.Minimized||closeDecision)throw new ArgumentException();return await DesktopLifeReader.ReadAsync(kind);});
+                bridge.BindLifeReference((kind,name)=>{if(!LifeActionAllowed())throw new ArgumentException();return DesktopLifeReference.Read(kind,name);});
                 try {
                     var journalRoot=Path.GetDirectoryName(Path.GetDirectoryName(store.FilePath));
                     var lifeJournal=new DesktopLifeJournal(journalRoot,development?"development":"production");
                     lifeActor=new DesktopLifeExecutor(lifeJournal,DesktopLifeReader.ReadAsync,DesktopGameStatsReader.ReadCurrenciesAsync,DesktopLifeCli.ReadNamedItemsAsync,DesktopLifeCli.PerformAsync,ConfirmLifeAction,
                         ()=>!IsDisposed&&!Disposing&&((!InvokeRequired)?LifeActionAllowed():(bool)Invoke(new Func<bool>(LifeActionAllowed))),()=>bridge.Epoch,()=>DateTime.UtcNow);
                     lifeActor.BindStop(DesktopLifeCli.StopAsync);
+                    lifeActor.BindCraft(DesktopLifeCli.CraftAsync);
                     bridge.BindLifeActions(lifeActor.Capabilities,(method,payload)=>{
                         switch(method){
                             case "game.life.actions.context":return lifeActor.SetContext(payload);

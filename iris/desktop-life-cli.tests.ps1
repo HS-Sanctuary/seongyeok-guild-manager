@@ -18,12 +18,15 @@ try{
  foreach($taskName in @('wood','a"b\tail','trailing\','spaces in name')){
   $taskValue=[IrisDesktop.DesktopLifeCli]::PerformAsync('crafting',$taskName).GetAwaiter().GetResult()|ConvertFrom-Json
   if($taskValue.command -ne 'execute_crafting' -or $taskValue.name -ne $taskName -or $taskValue.craftCount -ne 1){throw 'CLI JSON argument changed'}
+  $taskBatch=[IrisDesktop.DesktopLifeCli]::CraftAsync($taskName,3).GetAwaiter().GetResult()|ConvertFrom-Json
+  if($taskBatch.command -ne 'execute_crafting' -or $taskBatch.name -ne $taskName -or $taskBatch.craftCount -ne 3){throw 'Batch craftCount or quoted name changed'}
   $taskRead=[IrisDesktop.DesktopLifeCli]::ReadNamedItemsAsync($taskName).GetAwaiter().GetResult()|ConvertTo-Json -Depth 20 -Compress|ConvertFrom-Json
   if($taskRead.data.items[0].name -ne $taskName -or $taskRead.data.items[0].count -ne 3){throw 'Named consumable lookup failed'}
  }
  try{$null=[IrisDesktop.DesktopLifeCli]::PerformAsync('stop_action','wood').GetAwaiter().GetResult();throw 'Generic game command accepted'}catch{if($_.Exception.Message -eq 'Generic game command accepted'){throw}}
+ foreach($taskCount in @(0,6)){try{$null=[IrisDesktop.DesktopLifeCli]::CraftAsync('wood',$taskCount).GetAwaiter().GetResult();throw 'Invalid crafting count accepted'}catch{if($_.Exception.Message -eq 'Invalid crafting count accepted'){throw}}}
  $taskWatch=[Diagnostics.Stopwatch]::StartNew();$taskTimedOut=$false
  try{$null=[IrisDesktop.DesktopLifeCli]::ReadNamedItemsAsync('sleep').GetAwaiter().GetResult()}catch{$taskTimedOut=$true}
  if(!$taskTimedOut -or $taskWatch.ElapsedMilliseconds -gt 10000){throw 'Absolute 8s read deadline was not enforced'}
 }finally{[Environment]::SetEnvironmentVariable('MABINOGI_CLI_PATH',$taskBefore)}
-Write-Output 'PASS fixed action commands/craftCount1/Windows JSON escaping/named Food lookup; spawned fake CLI only'
+Write-Output 'PASS fixed action commands/craftCount1+3 and bounds/Windows JSON escaping/named Food lookup; spawned fake CLI only'

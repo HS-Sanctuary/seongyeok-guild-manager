@@ -9,9 +9,11 @@ Add-Type -TypeDefinition @'
 using System;using System.Collections.Generic;using System.Threading.Tasks;
 public static class LifeBridgeFixture {
  public static int Calls;
+ public static string Failure;
+ public static void ClearFailure(){Failure=null;}
  public static object Cap(){return new {schemaVersion=1,actions=new[]{"crafting"}};}
  public static object Sync(string method,Dictionary<string,object> payload){return new {schemaVersion=1,method=method};}
- public static Task<object> Async(string method,Dictionary<string,object> payload){Calls++;return Task.FromResult<object>(new {schemaVersion=1,method=method});}
+ public static Task<object> Async(string method,Dictionary<string,object> payload){Calls++;if(Failure!=null)throw new Exception(Failure);return Task.FromResult<object>(new {schemaVersion=1,method=method});}
  public static bool IsBusy;
  public static bool Busy(){return IsBusy;}
 }
@@ -38,6 +40,13 @@ if(!(Request 'game.life.actions.context' @{accountId='a';characterId='c';account
 if(!(Request 'game.life.actions.prepare' @{accountId='a';characterId='c';action='crafting';displayName='wood'}).ok){throw 'Safe prepare not delivered'}
 if(!(Request 'game.life.actions.confirm' @{nonce='n'}).ok){throw 'Safe confirm not delivered'}
 if([LifeBridgeFixture]::Calls -ne 2){throw 'Prepare and confirm not delivered once'}
+[LifeBridgeFixture]::Failure='life_not_enough_wings'
+$taskFailure=Request 'game.life.actions.prepare' @{accountId='a';characterId='c';action='crafting';displayName='wood'}
+if($taskFailure.ok -or $taskFailure.error -ne 'life_not_enough_wings'){throw 'Known safe preparation reason was lost'}
+[LifeBridgeFixture]::Failure='C:/never-disclose/private-path.txt'
+$taskUnknown=Request 'game.life.actions.prepare' @{accountId='a';characterId='c';action='crafting';displayName='wood'}
+if($taskUnknown.ok -or ($taskUnknown|ConvertTo-Json) -match 'never-disclose' -or $taskUnknown.error -ne 'life_action_unavailable'){throw 'Unknown exception exposed raw details'}
+[LifeBridgeFixture]::ClearFailure()
 $updateState=[Func[object]]{return @{schemaVersion=1}}
 $updateTask=[Func[Threading.Tasks.Task[object]]]{return [Threading.Tasks.Task]::FromResult([object]@{schemaVersion=1})}
 $updateApply=[Func[object]]{return @{schemaVersion=1}}

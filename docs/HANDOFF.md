@@ -1,5 +1,31 @@
 # SANCTUM 작업 인계
 
+## 2026-10-14 18:50 KST 순월 — 퇴근 인계 / 수급 순서·수량 제작
+
+- 마감 검증: fresh 전체 Node613/610PASS/3기존skip/0fail, 독립tsc·관련eslint0error0warning, 새supply/quantity/workbench/craft/구actions 실제React PASS, nativeactor/quantity/CLI/journal/reference/bridge PASS, 최종별도webpack58 exit0/nativecompile exit0. 수급 리뷰 지적 수정 뒤 회귀와 빌드를 직접 재실행, 실게임 확인은 여전히 별도. 마지막5h잔여31%/주간45%로15%조건 전, 더 넓은 소비자동화는 복구/완전자료 확인이 필요해 검증 후보를 먼저 인계한다.
+
+- **최신 승인:** 퇴근 요청으로 기능브랜치 push·영겁 인계를 다시 승인, 5시간 잔여15%에서 새 구현 중단. 아래15:28 철회는 당시 경과. 대상 `codex/iris-checkboard-classes`만, 운영main/공개 SANCTUMv2.31·IRIS0.3.0/공개ZIP/공지/DB/RLS 유지. 최종 SHA·원격 일치·Preview는 후속 마감 참조.
+- 후보 완료 범위: A 추가 통나무 수량·현재 중지(f07470d), P1 추가 제작1~5횟수·장비 재고null 판정·한 화면 현황/재료/수량/실행, 읽기전용 부족분 수급 순서. 공유 가방 예약·산출 잔량·참고자료+공식 부족 목록 합집합으로 채집→가공 등록→수령→제작을 표시. 불명 수량/잠김/동명/다중 경로/순환/미해금은 확인 단계, 최대32노드·8깊이·root+필요 하위31자료 직렬 조회. 창고/과거cachedOwned 제외, 자동전체 실행·검증 전 채집품 실행 없음.
+- 확인 화면: `IRIS → ERGON → 작업 계획`에서 품목 선택, 목록은 접히고 현황·선택 재료·수량·준비가 우선. 재료 아래 `부족분 수급 순서 보기`로 펼쳐 날개 최소/상한 미확인과 단계 계획 추가 확인. 준비/native동의/실행 중 조회 정지. 준비 오류는 허용된 사유만 친절 안내, 임의 예외·경로·stale frame은 숨김.
+- 검증: sandbox 최초 localhost/EACCES·임시 설정 접근 차단 실패, 동일 합성 테스트 정상 권한 재검으로 구분. P1 리뷰 중요2(수량/조회경합), 수급 리뷰 중요1/사소1(공식 추가재료 누락/미해금) 각각 실제 회귀 RED→GREEN 수정, 중복 재리뷰 없음. 최종 fresh 전체·타입·브라우저·격리빌드 결과는 아래 마감에 기록한다.
+- 비공개 native EXE/ZIP compile PASS: `.superpowers/ergon-supply-final-package/IRIS-beta-20261014-184120-7cfcdae0`, 공개 다운로드 미복사. Development10540 RespondingTrue/stderr없음, 마지막 native 오류안내 bridge는 정상 재시작 필요. 사용자 종료 확인 없이 forcekill하지 않는다. dev own30435/3000 유지. 집에 이 패키지/PID/캐시/개인재고/보호원장이 Git으로 전달된다고 추정하지 않는다.
+- 실게임: 한설은 기존 S1개만 확인, 날개 차감은 모름. 기존unknown 보존·소비/원장조작/직접CLI/가짜동의0. 감사를 남긴 수동복구 버튼 질문 미응답이므로 구현하지 않음. 집에서 native 최종 동의로 품목·수량·소모한도를 확인해 실제 시험한다. 합성 시험으로 실제 비용 확인을 대체하지 않는다.
+- **영겁 다음:** 수신·ACK→완료 후보 재구현 금지→실앱 수량/보호 이유/작업대 확인→과거unknown 처리 방향 사용자 확인→공식 최신/완전 재료표 확보 경로 및 부족분 native 총예산 순차 실행 별도 설계. 시설7칸/50%수령재충전·Chronos 쇼핑 큐·모바일 푸시 미완료. 전체 자동생활 완성/운영배포로 공지하지 않는다. 개인 루트 수정·삭제/신규SVG/옛addon계획 제외·보존.
+
+## 2026-10-14 15:28 KST 순월 — ERGON 수량 제작·통합 작업대 로컬 후속
+
+- 최종 후속15:30KST: compact 적용뒤 fresh Node507/504PASS/3skip/0fail, 독립 tsc/관련eslint0error0warning, 새 작업대수량·느린준비/동의·resume·접힌목록/기존craft/readonly2048/시작점검 PASS, 별도webpack58 exit0. 변경목록/diffcheck 확인(개인dirty보존, LF→CRLF경고만). 기존IRIS20364/IRIS.exe/desktop.ps1프로세스부재 확인 뒤 page+6scripts200 선행검사로 Development PID30700 정상 시작/RespondingTrue/stderr0. 강제종료/원장조작/소비명령0. 현재새실앱화면·사용자실제작결과는한설확인전. 코드·문서미커밋/push없음.
+
+- 최신 사용자 지시: 이번에는 잔여15%여도 계속 작업하며 push하지 않는다. 다음 타임에 다시15% 약속을 요청하면 그때 적용한다. 아래 A 항목의15% checkpoint 지시는 당시 경과로 보존한다. HEAD f07470d 위 미커밋 후보, remote e5b4ed6/운영 main1d8e374·SANCTUMv2.31/IRIS0.3.0/공개ZIP·공지·DB/RLS 유지.
+- 사용자 제작 제보 원인: execute_crafting craftCount1 고정 + get_items가 장비를 제외하는데 결과물 재고 증가를 강제검사. 실제 official read-only S 카탈로그 availabletrue/산출1/부족표null, named 조회0행 확인. 최초 sandbox game_off는 호스트 실제 상태가 아닌 격리 조회 결과이며 실제 읽기는 연결됐다.
+- 수정: 신규 제작1..5횟수를 고정 CLI 한 명령/날개5로 전달. 목표는 추가 결과물이며 ceil(목표/산출)·산출단위 초과를 표시. native 수량 동의/nonce/epoch/후속 안전조회, actual craftCount와 정확 debit5 대조, known stock 무증가 unknown 유지. absent equipment stock=null로 표시, 공식 완료+debit로 확인. schema3 challenge/current/history/DPAPI crafting metadata(count/output/expectedOutput), schema1/2 읽기·기존 entropy/path·unknown 보존.
+- 화면: 계획에서 품목 선택 후 선택 재료·수량·실행을 먼저 표시, 목록/보관 계획은 접기. 현재 날개·가방 무게·시설 현황/대기 중10초 조회. 수량3→5가 재료 필요량/부족분에도 동기화된다. 준비·native 동의·실행 중에는 overview 조회를 멈추며 idle 응답만으로 준비 잠금을 풀지 않는다. 기존 수동5명령 예산/기간/ABA와 채집Stop 회귀 유지.
+- optional reference: 설치된 C:/Program Files/AI_Connector의 두 고정 JSON에서 선택 품목 사실만 읽음. 파일/코드/번들 복사배포0, 임의 경로/설정/로그/즐겨찾기 접근0. source installed-reference/2026-09-21/completefalse, cached Owned를 현재재고로 사용하지 않음. 공식 산출·재료 수량 충돌 시 참고 제외, 부분정보는 full BOM/자동chain으로 승격하지 않음. S 참고상급목재3+강철괴3 확인, 현재가방으로 필요·부족 계산, 부족품의 가공/검증 채집 계획 추가.
+- 검증: Node507/504PASS/3기존skip/0fail, tsc·관련lint exit0, native actor/quantity/bridge/CLI/journal/reference 및 real React batch3/null/wing5/no-repeat/workbench/10초poll/수량동기화/느린준비·동의11초·기존예산/Stop PASS. 격리webpack58·비공개 native EXE/ZIP compile PASS. 마지막 독립 review Critical0/Important2, 실제 React RED→GREEN 및 전체 suite로 수정(수량 불일치/읽기·행동 경합), 재리뷰 없음. 최종 compact 배치 뒤 fresh 회귀/빌드 결과와 앱 PID는 후속 기록을 확인한다.
+- 실제 게임: 사용자는 기존 S1개 생성만 확인했고 날개 차감은 모름. 이전 unknown 기록은 자동 해제/삭제/완료 처리하지 않았다. Agent 실제 소비/stop0. 이 보호 때문에 새 실행이 잠길 수 있으며 단순 재시작으로 해제하지 않는다. 개발 후보 정상 시작·사용자 실앱/게임 결과 검증은 별도다.
+- **남은 실제 목표**: 완전 재료표 검증/부족분 채집→가공→수령→제작 native 총예산·중단/시설7칸·50%완료 수령재충전/Chronos 큐는 미완료. 현재5회 제작을 전체 자동생활완료로 공지하지 않는다. 후보 적용 후 실제 화면 확인, 기존 미확정 결과의 감사가능 수동 복구 방식은 사용자 추가 선택이 필요하다. 보호 파일 직접 읽기·삭제·비밀 세션 추출·게임 CLI로 우회금지.
+- 개인 root수정/삭제·신규SVG·옛addon계획 보존, 새 push/commit/운영 배포/공지 게시0. 이 PC 설치 reference/실행프로세스/원장/개인 재고는 Git으로 전달되는 데이터가 아니다.
+
 ## 2026-10-14 11:05 KST 순월 — ERGON 수량·현재 채집 중지 A 로컬 후보
 
 - 한설이 서면 설계 뒤 ‘진행하자’로 A 직접 구현을 승인했다. 기준 e5b4ed6/기능브랜치 ff-only 최신. 추가 채집1..100/가방 시작+추가 목표, native1초 single-flight 재고·활동 감시, 별도 현재 stop control, 원래 CLI 종료까지 잠금, 부분 stopped/unknown 보호 원장을 연결했다. 실제 품목은 기존 통나무1종/소비1회·날개5, 자동 다음 소비명령은 없다.

@@ -301,3 +301,23 @@ body:has([role="dialog"][aria-modal="true"]:not([hidden],[hidden] *)) .iris-save
 .iris-ergon-progress progress::-moz-progress-bar{background:var(--accent);border-radius:1rem}
 .iris-ergon-quantity>div{display:flex;gap:.4rem;align-items:center;flex-wrap:wrap}
 .iris-ergon-quantity input{width:4.5rem;text-align:center}
+.iris-ergon-title{display:flex;align-items:center;justify-content:space-between;gap:.5rem;flex-wrap:wrap}
+.iris-ergon-metrics{display:flex;gap:.5rem;flex-wrap:wrap;font-size:.7rem}
+.iris-ergon-metrics p{flex:1 1 7rem;min-width:0;border:1px solid var(--panel-border);border-radius:.6rem;padding:.45rem;display:grid;gap:.25rem}
+.iris-ergon-metrics strong{font-size:.85rem;color:var(--accent)}
+.iris-ergon-facilities{font-size:.7rem}
+.iris-ergon-facilities summary{cursor:pointer;color:var(--text-sub)}
+.iris-ergon-facilities p{display:flex;justify-content:space-between;gap:.5rem;flex-wrap:wrap;padding:.35rem 0}
+.iris-ergon-needs>div{font-size:.7rem;padding:.45rem;border:1px solid var(--panel-border);border-radius:.5rem;display:flex;gap:.4rem;flex-wrap:wrap;align-items:center}
+.iris-ergon-needs>div strong{flex-basis:100%}
+.iris-ergon-catalog{max-height:11rem}
+.iris-ergon-catalog article{font-size:.7rem;gap:.3rem;padding:.4rem}
+.iris-ergon-catalog article strong{flex:1 1 8rem}
+.iris-ergon-catalog article p{display:none}
+.iris-ergon-plan-picker{padding:.65rem;border:1px solid var(--panel-border);border-radius:.75rem;background:var(--inner-box)}
+.iris-ergon-plan-picker>summary{cursor:pointer;color:var(--text-sub);font-size:.75rem}
+.iris-ergon-plan-picker>section{padding-top:.5rem}
+.iris-ergon-needs summary{cursor:pointer;font-size:.7rem;color:var(--accent)}
+.iris-ergon-supply ol{display:grid;gap:.35rem;list-style:decimal;margin-left:1rem;padding:.4rem 0}
+.iris-ergon-supply li{min-width:0;padding:.4rem;border:1px solid var(--panel-border);border-radius:.5rem;font-size:.7rem;overflow-wrap:anywhere}
+.iris-ergon-supply li>div{display:flex;gap:.3rem;justify-content:space-between;flex-wrap:wrap}

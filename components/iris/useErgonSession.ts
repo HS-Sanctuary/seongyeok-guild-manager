@@ -19,6 +19,7 @@ export function useErgonSession(props:ErgonSessionProps){
   session.current=reader;return()=>{session.current=null;};
  },[]);
  useLayoutEffect(()=>{generation.current++;session.current?.invalidate();},[props.active,props.locked,props.watchWorks]);
+ useLayoutEffect(()=>{generation.current++;session.current?.reset();},[props.environment,props.accountId,props.characterId]);
  useEffect(()=>{const changed=()=>{generation.current++;session.current?.invalidate();};document.addEventListener('visibilitychange',changed);return()=>document.removeEventListener('visibilitychange',changed);},[]);
  useEffect(()=>{mounted.current=true;let live=true;queueMicrotask(()=>{if(!live)return;try{const value=readErgonPlans(localStorage,props.environment,props.accountId);setPlans(value.items);setPersistent(value.persistent);setUnreadable(value.unreadable);}catch{setPersistent(false);}setReady(true);});return()=>{live=false;mounted.current=false;};},[props.environment,props.accountId]);
  const refresh=useCallback((kind:ErgonReadKind)=>session.current?.refresh(kind)??Promise.resolve(),[]);
@@ -37,6 +38,14 @@ export function useErgonSession(props:ErgonSessionProps){
   for(const next of ['activity','inventory',kind] as const){if(!allowed())return;await session.current?.refresh(next);if(!allowed()||session.current?.state().errors[next])return;}
   if(allowed())await refreshCurrencies();
  },[refreshCurrencies]);
+ const overviewPending=useRef<Promise<void>|null>(null);
+ const refreshOverview=useCallback(()=>{
+  if(overviewPending.current)return overviewPending.current;
+  const started=generation.current,context=latest.current.getContextVersion();
+  const allowed=()=>mounted.current&&started===generation.current&&context===latest.current.getContextVersion()&&latest.current.active&&!latest.current.locked&&document.visibilityState==='visible';
+  const operation=(async()=>{for(const kind of ['materials','works','inventory'] as const){if(!allowed())return;await session.current?.refresh(kind);if(!allowed()||session.current?.state().errors[kind])return;}if(allowed())await refreshCurrencies();})().finally(()=>{if(overviewPending.current===operation)overviewPending.current=null;});
+  overviewPending.current=operation;return operation;
+ },[refreshCurrencies]);
  useEffect(()=>{const timer=setInterval(()=>setNow(Date.now()),1000);return()=>clearInterval(timer);},[]);
  const canPoll=props.active&&!props.locked&&props.watchWorks&&!!snapshotState.snapshots.works&&!Object.keys(snapshotState.errors).length;
  useEffect(()=>{if(!canPoll)return;const timer=setInterval(()=>{if(document.visibilityState==='visible')void refresh('works');},10000);return()=>clearInterval(timer);},[canPoll,refresh]);
@@ -46,5 +55,5 @@ export function useErgonSession(props:ErgonSessionProps){
   let saved=false;try{saved=writeErgonPlans(localStorage,props.environment,props.accountId,next,reset);}catch{/* Preserve session edits when local storage is unavailable. */}
   setPersistent(saved);if(saved&&reset)setUnreadable(false);
  };
- return {...snapshotState,now,refresh,inspect,refreshCurrencies,currencies,currencyBusy,currencyNotice,plans,persistent,unreadable,ready,changePlans};
+ return {...snapshotState,now,refresh,inspect,refreshCurrencies,refreshOverview,currencies,currencyBusy,currencyNotice,plans,persistent,unreadable,ready,changePlans};
 }

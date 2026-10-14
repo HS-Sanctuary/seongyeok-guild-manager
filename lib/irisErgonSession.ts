@@ -4,7 +4,7 @@ export function createErgonSession(options:{read:<K extends ErgonReadKind>(kind:
  let snapshots:ErgonSnapshots={},notice='',generation=0;
  const errors:Partial<Record<ErgonReadKind,string>>={};
  const pending=new Map<ErgonReadKind,Promise<void>>();
- return {state:()=>({snapshots,notice,errors:{...errors},loadingKinds:[...pending.keys()]}),invalidate(){generation++;},refresh(kind:ErgonReadKind):Promise<void>{
+ return {state:()=>({snapshots,notice,errors:{...errors},loadingKinds:[...pending.keys()]}),invalidate(){generation++;},reset(){generation++;snapshots={};notice='';for(const key of Object.keys(errors) as ErgonReadKind[])delete errors[key];options.onChange();},refresh(kind:ErgonReadKind):Promise<void>{
   const current=pending.get(kind);if(current)return current;
   if(!options.allowed())return Promise.resolve();
   const context=options.context(),started=generation;

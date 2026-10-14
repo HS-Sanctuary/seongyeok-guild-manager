@@ -8,7 +8,7 @@ using System.Web.Script.Serialization;
 namespace IrisDesktop {
  public sealed class LifeActionException:Exception {public string Code {get;private set;}public LifeActionException(string code):base(code){Code=code;}}
  public sealed class LifePreflight {
-  public long wings;public int? expectedWings;public int outputPerRun;public long? owned;public string facility;public Dictionary<string,int> completedNames=new Dictionary<string,int>();public int pendingBefore;
+  public long wings;public int? expectedWings;public int outputPerRun;public int craftCount=1;public long? owned;public string facility;public Dictionary<string,int> completedNames=new Dictionary<string,int>();public int pendingBefore;
  }
  public static class DesktopLifePolicy {
   static readonly string[] Flags={"autoPlaying","autoTraveling","dead","reviving","inCombat","dialoguePlaying","waitingForSelection","inBattlefield","tutorialPlaying","inScenario","sequencePlaying","performancePlaying","minigame","housingEdit","abyssSequence"};
@@ -47,6 +47,8 @@ namespace IrisDesktop {
    return result;
   }
   public static long? Owned(Dictionary<string,object> named,string name){var rows=Items(named).Select(Object).Where(row=>Equals(Get(row,"name"),name)).ToArray();if(rows.Select(row=>Get(row,"category") as string).Distinct().Count()>1)Fail("life_ambiguous_output");long count=0;foreach(var row in rows.Where(row=>Equals(Get(row,"location"),"inventory"))){if(!Equals(Get(row,"locked"),false))Fail("life_output_locked");count=checked(count+Integer(Get(row,"count")));if(count>9007199254740991L)Fail("life_invalid");}return count;}
+  // get_items intentionally excludes equipment. Absence cannot establish a zero equipment inventory.
+  public static long? CraftOwned(Dictionary<string,object> named,string name){if(!Items(named).Select(Object).Any(row=>Equals(Get(row,"name"),name)))return null;return Owned(named,name);}
   public static long GatherStock(Dictionary<string,object> named,string name){
    var rows=Items(named).Select(Object).ToArray();if(rows.Any(row=>!Equals(Get(row,"name"),name)||!Equals(Get(row,"category"),"Ingredient")||!new[]{"inventory","account_storage","character_storage"}.Contains(Get(row,"location") as string)))Fail("life_ambiguous_output");
    var inventory=rows.Where(row=>Equals(Get(row,"location"),"inventory")).ToArray();if(inventory.Length>1)Fail("life_ambiguous_output");
@@ -65,7 +67,7 @@ namespace IrisDesktop {
    if(Equals(Get(root,"status"),"rejected")||Equals(Get(root,"status"),"invalid_body"))return "rejected";
    if(!Equals(Get(root,"status"),"accepted")||body.ContainsKey("error"))return "unknown";
    if(action=="altering")return Equals(Get(body,"result"),"started")&&Items(afterWorks).Select(Object).Count(row=>Equals(Get(row,"name"),name)&&Equals(Get(row,"completed"),false))>before.pendingBefore?"registered":"unknown";
-   if(action=="crafting")return Equals(Get(body,"result"),"completed")&&Get(body,"craftCount")!=null&&Integer(Get(body,"craftCount"),1,1)==1?"completed":"unknown";
+   if(action=="crafting"){try{return Equals(Get(body,"result"),"completed")&&Integer(Get(body,"craftCount"),1,5)==before.craftCount?"completed":"unknown";}catch{return "unknown";}}
    if(action=="gathering"){
     if(Equals(Get(body,"result"),"stopped"))return "stopped";
     if(!Equals(Get(body,"result"),"completed"))return "unknown";try{long gained=Integer(Get(body,"gained"),1),target=Integer(Get(body,"target"),1,100);return gained>=target?"completed":"unknown";}catch{return "unknown";}

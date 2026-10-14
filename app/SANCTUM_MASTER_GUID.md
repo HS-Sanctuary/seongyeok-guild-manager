@@ -1,5 +1,21 @@
 # 🏛️ SANCTUM Master Guide
 
+## 2026-10-14 — 부족분 수급 프리뷰·안전 준비 오류 / 인계 구조
+
+- `buildErgonSupplyPreview`: fresh 공식 자료+선택 installed-reference, root 추가결과 수량, 정확이름 provider, 공유가방 예약·단위산출 잔량, 공식 missing 합집합/불명 수량 차단. 창고·잠김·다중경로·순환·미해금 방어, 32노드/8깊이/품목별32재료. 가공 등록·수령 분리, `automaticReady:false`, 추정 날개는 실행예산 아님.
+- `DesktopErgonSupplyPanel`: 필요 하위자료 하나씩 직렬 조회(max31+root), sibling 갱신으로 다음 조회 취소·중복 방지, scope/active cleanup으로 늦은값 폐기. Workbench 접힌 순서와 단계 계획 추가만 제공, native 자동 실행 없음.
+- `DesktopBridge` action 비동기 오류는 정해진 safe code만, `irisErgonErrors`의 안내는 active epoch/environment에서만 적용. raw 예외/stale frame은 일반 오류. Stop/nonce/원장 보호 유지.
+- 기능브랜치 인계 push·15%중단 재승인, 운영 구조/제품버전/공개ZIP/DB/RLS/공지 변화 없음. commit/Preview는 HANDOFF 마감 참조.
+
+## 2026-10-14 — ERGON 수량 제작·통합 작업대 로컬 구조
+
+- `DesktopLifeCli.CraftAsync(name,count)`는1..5 execute_crafting만 전송, 명령당날개5. actor `BindCraft`/strict5-field craft intent/산출 baseline동결/native수량 동의, returned craftCount·debit·조회가능재고 대조. `CraftOwned`는 get_items에 없는 장비수량을null로 보존. 제작완료응답을 재료재고0→0만으로 실패처리하지 않는다.
+- action capabilities schema3(quantityCrafting/maxCraftCount5), crafting metadata craftCount/outputPerCraft/expectedOutput가 nonce/current/history/DPAPI schema3에 연결. schema1/2 및 entropy/path v1 유지. 구앱은신규수량기능이없으며 원장손상·unknown은닫힌실행상태로유지한다. 실제 행동이 결과불명인 과거행을 새코드로완료/삭제하지 않는다.
+- `DesktopLifeReference`/bridge game.life.reference({kind,displayName})는 crafting/altering 및 설치 두 고정 파일만 읽는다. 최대1MiB/2048items/32ingredients/중복·수량·reparse 방어. selected normalized facts/date/installed-reference/completefalse만 UI전달, cached Owned/Craftable·raw DB·파일경로·스크립트 실행0. 선택자료 parser와 `calculateErgonNeeds`는 fresh bag/partial provenance/공식 충돌을 구분한다.
+- `DesktopErgonWorkbench`: 현재캐릭터현황·재료비교·시설 details/부족품계획shortcut. `DesktopErgon`은 실행영역을계속mount해상태유지, 선택후목록접기/작업카드우선. `useErgonSession.refreshOverview`는materials/works/inventory/currency 순차·single-flight, 문맥reset/늦은값폐기. idle10초poll·선택catalog갱신, 준비/동의/running때읽기정지·실패보존.
+- `DesktopErgonExecution` local flight와 native busy를 함께부모에전달; idle status가준비잠금을풀지못함. quantity change는동일저장계획/필요량에반영, 반대방향live read중에는새준비잠금. 구형수동묶음5/25/5분·채집목표/stop/ABA 원칙보존.
+- DB/서버API/RLS/제품버전/공개ZIP/공지 변화없음. 완전BOM 기반자동부족분chain/시설50%수령재충전/Chronos/모바일은구현전.
+
 ## 2026-10-14 — ERGON 수량·현재 채집 중지 A 로컬 구조
 
 - `DesktopLifeExecutor` gathering intent는 additionalQuantity1..100/allowAutoStop과 확정 가방 baseline을 nonce에 묶는다. 동의 뒤 동일 baseline/조건을 재검하고 소비1명령/날개5를 보낸다. runtime 목표와 문맥/epoch는 불변; `WatchGathering`은 약1초 간격으로 별도 native 조회를 소유하여 창 숨김 뒤에도 관측한다.

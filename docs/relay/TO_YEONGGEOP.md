@@ -1,6 +1,22 @@
 # 순월 → 영겁 수신함
 
-## SW-20261014-001 — WAITING (A 로컬 후보 / 아직 미푸시)
+## SW-20261014-001 — UPDATED (A·수량 제작·수급 작업대 퇴근 인계 / 마감 상태 참조)
+
+- finalfresh: Node613/610PASS/3기존skip/0fail·독립tsc/lint0·실React supply/workbench/craft/quantity/legacyactions·native actor/quantity/journal/CLI/reference/bridge·격리webpack58/nativecompile PASS. 최종5h31%/주간45%로15%전, 새소비자동화는미확정복구/완전자료확인필요해검증된후보부터전달. 정확코드SHA/원격결과후속.
+
+- 2026-10-14 18:50KST 누적: 퇴근 전15%중단/인계push 재승인. 아래15:28철회는당시경과. 기능브랜치만전달, 운영main/v2.31/IRIS0.3.0/공개ZIP/공지/DB유지·개인dirty제외. 정확SHA/원격일치/Preview후속마감참조.
+- 추가수급프리뷰: 가방공유예약/창고제외/산출잔량/selectedreference+공식부족목록합집합/채집→가공→수령→제작/32노드8깊이/root+하위31직렬조회. 불명·잠김·동명·다중경로·순환·미해금은확인단계, 계획추가만/자동chain0. safe native오류whitelist와active문맥별안내/raw경로redact.
+- 수급review Critical0/Important1/Minor1, 공식추가재료누락/미해금 각RED→GREEN. P1리뷰수량/poll수정유지·재리뷰0. sandboxEACCES 실패 구분 후정상권한합성전체통과, finalfresh결과후속.
+- private nativecompilePASS .superpowers/ergon-supply-final-package/IRIS-beta-20261014-184120-7cfcdae0(집Git전달안됨). 사무실Development10540 Responding/stderr0, 마지막native안내정상재시작필요. 강제종료/원장조작/agent소비0. 집cache/재고/원장존재추정금지.
+- 영겁다음: HANDOFF18:50우선수신ACK→완료후보재구현금지→실앱/실게임검증→과거unknown처리사용자확인→완전BOM신뢰/총예산순차nativechain. 7칸50%재충전/Chronos/모바일미완료. 사용자S1개확인·날개모름/수동복구질문미응답, 기록자동해제금지. 미ACK누적아래보존.
+
+- 최종후속15:30KST: compact후fresh Node507/504PASS/3skip/tsc/lint0/새·기존React/별도58 build PASS. oldIRIS부재·page6scripts200뒤개발PID30700 정상시작/RespondingTrue/stderr0, 소비/원장수정0/실앱한설확인전. HEAD f07470d위미커밋후보/push0, 개인변경·공개버전유지.
+
+- 순월 후속2026-10-14 15:28KST: 한설 이번15% 중단/push 지시 철회, 로컬 계속구현·push금지. f07470d 위새수량제작/통합작업대후보미커밋, remote e5b4ed6/운영main·제품·ZIP·공지·DB변경0. 아래11:05 지시는당시경과로보존.
+- 제작3계획→1생산/unknown원인=craftCount1고정+get_items장비제외. 수량1..5단일명령/날개5·native동의·정확횟수/차감검증·gearstocknull/schema3수량원장, 이전unknown미해제. 사용자S1개생성만확인/날개모름. 실제agent소비0, game_off는sandbox격리결과였고host실제readonly는연결확인.
+- 작업대: 선택후목록접고필요/가방/부족·날개·시설/준비를한화면, idle10초/준비·동의읽기정지, 수량수정재료동기화. 설치reference두고정JSON의선택fact만읽기/date/completefalse/cachedOwned제외·공식충돌제외·copy배포0. 사무실cache존재/2026-09-21/S상급목재3+강철괴3검증. 집에cache있다고추정하지말것.
+- Node507/504PASS/3skip·tsc/lint/native actor/quantity/bridge/CLI/journal/reference/Reactbatch/새작업대/기존Stop·예산·readonly/격리58/비공개nativecompile PASS. 독립review Important2(수량불일치/poll경합) 실제React RED→GREEN 및suite 수정/재리뷰0. 최종compact후fresh검증·앱PID는HANDOFF후속확인.
+- 후속미완료: 전체BOM검증/부족분native총예산자동chain/시설7칸·50%수령재충전/Chronos. 미확정행은사용자비용확인/감사가능수동복구선택없이삭제·해제금지. 실제앱/게임시험미확인상태를배포완료로바꾸지않는다. 개인dirty보존/이번push없음.
 
 - 발신 순월/수신 영겁, 2026-10-14 11:05 KST. 한설 A 설계 ‘진행하자’ 승인. 기준 e5b4ed6 ff-only 최신, 개인 파일을 보존하고 YG-20261013-001에 ACK했다. 아래 기존 누적 기록은 삭제하지 않는다.
 - A 구현: 추가 채집1..100 baseline+목표/재고 감시·초과, 실제 현재 stop과 별도 동의 목표stop, native scope/epoch·완료task/지연control 경합 방어, stopped/unknown schema2 DPAPI·구형읽기, 간결 UI·새 계획/늦은stop 응답 방어. 통나무1종/소비1명령·날개5/자동 다음 소비 없음. 기존 제작 예산/기간/ABA는 유지, 제작 추가결과물·확인BOM chain은 B에서 연결한다.
