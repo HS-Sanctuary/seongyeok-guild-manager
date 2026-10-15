@@ -1,5 +1,10 @@
 # SANCTUM 업데이트 노트
 
+### 2026-10-15 23:38 KST — 인계 전송 확인 / 구조 변경 없음
+
+- 기능·인계 e7fa78d0c8c6ae56945dc3ff6d0100d4cf23580c 일반 push 및 원격 정확 일치 확인. 이 후속 마감은 문서만 변경하며 공개 버전/운영 기준/DB 유지, 구조 변경 없음.
+- push 직전 Node549/546PASS3skip0fail·타입/관련lint exit0. GitHub 해당 SHA의 Vercel 상태 pending: https://vercel.com/sanctum-sanctuary/sanctum/4LDmd4TjkbN19QiQUMXAKivZkKsb . 직접 Vercel403/CLI 없음이라 Ready·실페이지 미확인, 서비스 배포 완료 아님. 최종 문서 마감까지 최신 브랜치를 pull할 것.
+
 ### 2026-10-15 23:33 KST — ERGON 원클릭 수령 개발 후보 인계 / 공개 버전 유지
 
 - 한설 명시 요청으로 `codex/iris-checkboard-classes`만 인계 push한다. 실게임 수령 검증 전이므로 공개 SANCTUM v2.31/IRIS Beta0.3.0·운영 main1d8e374·공개 ZIP/공지/DB/RLS는 유지한다. 직전 운영 정상 기준은 dpl_F6ymNLT5U6aJJLNofK4wtEi8sWXR이며 운영 승격·되돌리기는 수행하지 않는다.
