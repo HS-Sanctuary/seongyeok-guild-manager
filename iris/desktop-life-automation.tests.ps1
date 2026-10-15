@@ -5,4 +5,6 @@ $taskSources=@('desktop-life-journal.cs','desktop-life-automation.cs','desktop-l
 Add-Type -Path $taskSources -ReferencedAssemblies @('System.Core','System.Web.Extensions','System.Security')
 $taskRoot=[IO.Path]::GetFullPath((Join-Path (Join-Path $PSScriptRoot '../.superpowers') ('life-automation-'+[guid]::NewGuid().ToString('N'))))
 [IrisDesktop.LifeAutomationFixture]::Run($taskRoot)
+& powershell.exe -NoProfile -File (Join-Path $PSScriptRoot 'desktop-life-journal.tests.ps1')
+if($LASTEXITCODE -ne 0){throw 'Journal regression failed'}
 Write-Output 'PASS original-preserving automatic separation store/grants/revocation/hash/environment/backup/atomic writes/rollback; synthetic private files only'

@@ -1,5 +1,5 @@
 $ErrorActionPreference='Stop'
-$source=Join-Path $PSScriptRoot 'desktop-life-read.cs'
+$source=@('desktop-life-read.cs','desktop-cli-activity.cs')|ForEach-Object{Join-Path $PSScriptRoot $_}
 if(!(Test-Path $source)){throw 'Life read normalizer missing'}
 Add-Type -Path $source -ReferencedAssemblies @('System.Core','System.Web.Extensions')
 function Read($kind,$raw){[IrisDesktop.DesktopLifeReader]::Normalize($kind,$raw)|ConvertTo-Json -Depth 20 -Compress|ConvertFrom-Json}

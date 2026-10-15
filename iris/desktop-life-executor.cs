@@ -12,23 +12,26 @@ namespace IrisDesktop {
   readonly Func<object,bool> confirm;readonly Func<bool> allowed;readonly Func<long> epoch;readonly Func<DateTime> clock;
   readonly SemaphoreSlim mutation=new SemaphoreSlim(1,1);readonly object stateGate=new object();
   Dictionary<string,object> context,prepared,current;long contextVersion;Task running;Task<string> performTask;
+  readonly long sessionStartedAt;bool coordinating;DesktopLifeAutomationStore automation;Func<object,bool> authorizeCollection;Func<Task<Dictionary<string,object>>> collectionProbe;
+  public void BindCollectionAutomation(DesktopLifeAutomationStore store,Func<object,bool> authorize,Func<Task<Dictionary<string,object>>> probe){if(store==null||authorize==null||probe==null)throw new ArgumentException();lock(stateGate){if(Busy)DesktopLifePolicy.Fail("life_busy");automation=store;authorizeCollection=authorize;collectionProbe=probe;journal.BindSeparation((mode,row)=>new DesktopLifeAutomationStore(journal.RootPath,mode).IsSeparated(mode,row));}}
   Func<Task<string>> stop;readonly SemaphoreSlim control=new SemaphoreSlim(1,1);
   bool performInFlight,gatherUnsafe,sawGathering;int stopAttempts;long runVersion,runDocument;DateTime stopDeadline;Dictionary<string,object> gathering;
   public void BindStop(Func<Task<string>> stop){if(stop==null)throw new ArgumentException();lock(stateGate){if(Busy)DesktopLifePolicy.Fail("life_busy");this.stop=stop;}}
   Func<string,int,Task<string>> craft;
   public void BindCraft(Func<string,int,Task<string>> craft){if(craft==null)throw new ArgumentException();lock(stateGate){if(Busy)DesktopLifePolicy.Fail("life_busy");this.craft=craft;}}
-  public bool Busy {get{lock(stateGate)return running!=null&&!running.IsCompleted;}}
+  public bool Busy {get{lock(stateGate)return coordinating||running!=null&&!running.IsCompleted;}}
   public DesktopLifeExecutor(DesktopLifeJournal journal,Func<string,Task<object>> read,Func<Task<object>> currency,Func<string,Task<object>> named,Func<string,string,Task<string>> perform,Func<object,bool> confirm,Func<bool> allowed,Func<long> epoch,Func<DateTime> clock){
    if(journal==null||read==null||currency==null||named==null||perform==null||confirm==null||allowed==null||epoch==null||clock==null)throw new ArgumentException();
    this.journal=journal;this.read=read;this.currency=currency;this.named=named;this.perform=perform;this.confirm=confirm;this.allowed=allowed;this.epoch=epoch;this.clock=clock;
+   sessionStartedAt=DesktopLifePolicy.Time(clock());
    try{journal.RecoverInterrupted();}catch(IOException){/* A living sibling may own the execution lease; do not reinterpret its action. */}
   }
-  public object Capabilities(){return new {schemaVersion=3,actions=new[]{"gathering","altering","crafting","collect"},gatheringNames=new[]{"\uD1B5\uB098\uBB34"},queue=false,collectCostKnown=false,quantityGathering=stop!=null,currentStop=stop!=null,quantityCrafting=craft!=null,maxCraftCount=5};}
+  public object Capabilities(){if(automation==null)return new {schemaVersion=3,actions=new[]{"gathering","altering","crafting","collect"},gatheringNames=new[]{"\uD1B5\uB098\uBB34"},queue=false,collectCostKnown=false,quantityGathering=stop!=null,currentStop=stop!=null,quantityCrafting=craft!=null,maxCraftCount=5};return new {schemaVersion=4,actions=new[]{"gathering","altering","crafting","collect"},gatheringNames=new[]{"\uD1B5\uB098\uBB34"},queue=false,collectCostKnown=false,quantityGathering=stop!=null,currentStop=stop!=null,quantityCrafting=craft!=null,maxCraftCount=5,oneClickCollection=true,automaticReconciliation=true,collectionPolicyVersion=1};}
   public object SetContext(Dictionary<string,object> value){
    DesktopLifePolicy.Exact(value,"accountId","characterId","accountLabel","characterLabel");
    DesktopLifePolicy.Text(value["accountId"],100);DesktopLifePolicy.Text(value["accountLabel"],100);
    if(value["characterId"]!=null){DesktopLifePolicy.Text(value["characterId"],100);DesktopLifePolicy.Text(value["characterLabel"],12);}else if(value["characterLabel"]!=null)DesktopLifePolicy.Fail("life_invalid");
-   lock(stateGate){if(running!=null&&!running.IsCompleted)DesktopLifePolicy.Fail("life_busy");if(context==null||value.Any(pair=>!Equals(DesktopLifePolicy.Get(context,pair.Key),pair.Value))){contextVersion++;prepared=null;context=new Dictionary<string,object>(value);}}
+   lock(stateGate){if(Busy)DesktopLifePolicy.Fail("life_busy");if(context==null||value.Any(pair=>!Equals(DesktopLifePolicy.Get(context,pair.Key),pair.Value))){contextVersion++;prepared=null;context=new Dictionary<string,object>(value);}}
    return new {schemaVersion=1};
   }
   Dictionary<string,object> Intent(Dictionary<string,object> value){
@@ -51,6 +54,7 @@ namespace IrisDesktop {
    var worksValue=await read("works");var works=DesktopLifePolicy.Data(worksValue,"works",clock());Ready(version,document);
    var catalogValue=action=="collect"?null:await read(action);var catalog=action=="collect"?null:DesktopLifePolicy.Data(catalogValue,action,clock());Ready(version,document);
    var before=DesktopLifePolicy.Target(action,name,catalog,works,wings);
+   if(action=="collect"&&intent.ContainsKey("collectionFacility")&&!Equals(intent["collectionFacility"],before.facility))DesktopLifePolicy.Fail("life_context_changed");
    if(intent.ContainsKey("craftCount")){before.craftCount=(int)DesktopLifePolicy.Integer(intent["craftCount"],1,5);if(intent.ContainsKey("baselineOutput")&&!Equals(intent["baselineOutput"],before.outputPerRun))DesktopLifePolicy.Fail("life_recipe_changed");}
    var namedValue=await named(name);var stock=DesktopLifePolicy.Data(namedValue,"materials",clock());Ready(version,document);before.owned=intent.ContainsKey("additionalQuantity")?DesktopLifePolicy.GatherStock(stock,name):action=="crafting"?DesktopLifePolicy.CraftOwned(stock,name):DesktopLifePolicy.Owned(stock,name);
    if(intent.ContainsKey("additionalQuantity")){long quantity=DesktopLifePolicy.Integer(intent["additionalQuantity"],1,100);if(before.owned.Value>9007199254740991L-quantity)DesktopLifePolicy.Fail("life_invalid");if(intent.ContainsKey("baselineOwned")&&!Equals(intent["baselineOwned"],before.owned.Value))DesktopLifePolicy.Fail("life_stock_changed");}
@@ -65,10 +69,45 @@ namespace IrisDesktop {
   }
   Dictionary<string,object> CraftGoal(LifePreflight before){return new Dictionary<string,object>{{"craftCount",before.craftCount},{"outputPerCraft",before.outputPerRun},{"expectedOutput",(long)before.craftCount*before.outputPerRun}};}
   Dictionary<string,object> Goal(Dictionary<string,object> intent,long owned){return new Dictionary<string,object>{{"additionalQuantity",DesktopLifePolicy.Integer(intent["additionalQuantity"],1,100)},{"beforeOwned",owned},{"targetOwned",owned+DesktopLifePolicy.Integer(intent["additionalQuantity"],1,100)},{"currentOwned",owned},{"allowAutoStop",intent["allowAutoStop"]},{"stopReason",null},{"stopState","none"}};}
+  void PolicyAccount(Dictionary<string,object> value){DesktopLifePolicy.Exact(value,"accountId");DesktopLifePolicy.Text(value["accountId"],100);lock(stateGate)if(automation==null||context==null||!Equals(context["accountId"],value["accountId"]))DesktopLifePolicy.Fail("life_context_changed");}
+  public object CollectionPolicy(Dictionary<string,object> value){PolicyAccount(value);try{return new {schemaVersion=1,policyVersion=1,granted=automation.CollectionAllowed((string)value["accountId"],1),separatedRequestIds=automation.SeparatedRequestIds((string)value["accountId"])};}catch{DesktopLifePolicy.Fail("life_permission_corrupt");return null;}}
+  public object RevokeCollection(Dictionary<string,object> value){PolicyAccount(value);lock(stateGate){if(Busy)DesktopLifePolicy.Fail("life_busy");try{automation.RevokeCollection((string)value["accountId"]);}catch{DesktopLifePolicy.Fail("life_permission_corrupt");}}return CollectionPolicy(value);}
+  void ClickReady(long version,long document,long deadline){Ready(version,document);if(DesktopLifePolicy.Time(clock())>=deadline)DesktopLifePolicy.Fail("life_nonce_expired");}
+  async Task<Dictionary<string,object>> ProbeCollection(long version,long document,long deadline){ClickReady(version,document,deadline);Dictionary<string,object> result;try{result=await collectionProbe();DesktopLifePolicy.SafeActivity(DesktopLifePolicy.Data(result["activity"],"activity",clock()));if(!Equals(result["cliAbsent"],true)||DesktopLifePolicy.Integer(result["gameProcessId"],1)<1||DesktopLifePolicy.Integer(result["gameStartedAt"],1,Int64.MaxValue)<1||DesktopCliActivity.HasUnclassifiedOrActionCli())DesktopLifePolicy.Fail("life_reconcile_unavailable");}catch{DesktopLifePolicy.Fail("life_reconcile_unavailable");return null;}ClickReady(version,document,deadline);result["contextVersion"]=version;result["document"]=document;return result;}
+  public async Task<object> CollectOneClickAsync(Dictionary<string,object> value){
+   DesktopLifePolicy.Exact(value,"requestId","requestedAt","accountId","characterId","facility","displayName");Guid parsed;string id=DesktopLifePolicy.Text(value["requestId"],36);if(!Guid.TryParseExact(id,"D",out parsed)||parsed==Guid.Empty)DesktopLifePolicy.Fail("life_invalid");
+   long requested=DesktopLifePolicy.Integer(value["requestedAt"],1,8640000000000000L),now=DesktopLifePolicy.Time(clock());if(requested>now||now-requested>=120000)DesktopLifePolicy.Fail("life_nonce_expired");long deadline=requested+120000;
+   DesktopLifePolicy.Text(value["facility"],160);if(automation==null)DesktopLifePolicy.Fail("life_unsupported");
+   if(!await mutation.WaitAsync(0))DesktopLifePolicy.Fail("life_busy");FileStream lease=null;
+   try{
+    if(Busy)DesktopLifePolicy.Fail("life_busy");var intent=Intent(new Dictionary<string,object>{{"accountId",value["accountId"]},{"characterId",value["characterId"]},{"action","collect"},{"displayName",value["displayName"]}});long version,document=epoch();lock(stateGate){version=contextVersion;coordinating=true;prepared=null;}
+    ClickReady(version,document,deadline);if(journal.EntriesFor((string)value["accountId"]).Cast<Dictionary<string,object>>().Any(r=>Equals(r["requestId"],id)))DesktopLifePolicy.Fail("life_request_replayed");
+    bool granted;try{granted=automation.CollectionAllowed((string)value["accountId"],1);}catch{DesktopLifePolicy.Fail("life_permission_corrupt");return null;}
+    if(!granted){Dictionary<string,object> labels;lock(stateGate)labels=new Dictionary<string,object>(context);if(!authorizeCollection(labels))return new {schemaVersion=1,id=id,state="cancelled"};ClickReady(version,document,deadline);try{automation.GrantCollection((string)value["accountId"],1);}catch{DesktopLifePolicy.Fail("life_permission_corrupt");}}
+    if(!await DesktopCliActivity.WaitForReadsAsync(10000))DesktopLifePolicy.Fail("life_busy");ClickReady(version,document,deadline);lease=journal.AcquireExecutionLease();
+    var originals=new Dictionary<string,Dictionary<string,object>[]>();foreach(var mode in new[]{"development","production"})originals[mode]=new DesktopLifeJournal(journal.RootPath,mode,false).UnresolvedEntries();
+    var first=await ProbeCollection(version,document,deadline);await Task.Delay(1000);var second=await ProbeCollection(version,document,deadline);
+    if(!Equals(first["gameProcessId"],second["gameProcessId"])||!Equals(first["gameStartedAt"],second["gameStartedAt"]))DesktopLifePolicy.Fail("life_reconcile_unavailable");
+    foreach(var mode in new[]{"development","production"}){
+     var source=new DesktopLifeJournal(journal.RootPath,mode,false);var store=new DesktopLifeAutomationStore(journal.RootPath,mode);
+     var latest=source.UnresolvedEntries();if(latest.Length!=originals[mode].Length||latest.Any(r=>!originals[mode].Any(o=>store.RecordHash(o)==store.RecordHash(r))))DesktopLifePolicy.Fail("life_reconcile_unavailable");
+     foreach(var row in originals[mode]){
+      if(store.IsSeparated(mode,row))continue;string hash=store.RecordHash(row);first["recordHash"]=hash;second["recordHash"]=hash;
+      var evidence=new Dictionary<string,object>{{"sessionStartedAt",sessionStartedAt},{"checkedAt",DesktopLifePolicy.Time(clock())},{"leaseHeld",true},{"noExecution",running==null||running.IsCompleted},{"cliAbsent",!DesktopCliActivity.HasUnclassifiedOrActionCli()},{"gameProcessId",second["gameProcessId"]},{"gameStartedAt",second["gameStartedAt"]},{"contextVersion",version},{"document",document},{"recordHash",hash},{"first",first},{"second",second}};
+      if(!DesktopLifeReconciliation.Evaluate(row,evidence))DesktopLifePolicy.Fail("life_reconcile_unavailable");ClickReady(version,document,deadline);
+      store.RecordSeparation(mode,row,new Dictionary<string,object>{{"sessionStartedAt",sessionStartedAt},{"checkedAt",evidence["checkedAt"]},{"firstObservedAt",DesktopLifePolicy.Plain(first["activity"])["observedAt"]},{"secondObservedAt",DesktopLifePolicy.Plain(second["activity"])["observedAt"]},{"gameProcessId",second["gameProcessId"]},{"contextVersion",version},{"policyVersion",1},{"cliAbsent",true}});
+     }
+    }
+    intent["collectionFacility"]=value["facility"];intent["nonce"]=id;var before=await Check(intent,version,document);var final=await ProbeCollection(version,document,deadline);if(!Equals(final["gameProcessId"],first["gameProcessId"])||!Equals(final["gameStartedAt"],first["gameStartedAt"]))DesktopLifePolicy.Fail("life_game_changed");ClickReady(version,document,deadline);
+    journal.Begin(id,(string)value["accountId"],(string)value["characterId"],"collect",(string)value["displayName"],null);
+    lock(stateGate){current=new Dictionary<string,object>{{"id",id},{"accountId",value["accountId"]},{"characterId",value["characterId"]},{"action","collect"},{"displayName",value["displayName"]},{"state","running"},{"expectedWings",null},{"beforeWings",before.wings},{"afterWings",null},{"afterOwned",null},{"message",null}};gathering=null;gatherUnsafe=false;performInFlight=false;performTask=null;runVersion=version;runDocument=document;var ownedLease=lease;lease=null;running=Task.Run(()=>Run(intent,before,version,document,ownedLease));}
+    return new {schemaVersion=1,id=id,state="running"};
+   }finally{if(lease!=null)lease.Dispose();lock(stateGate)coordinating=false;mutation.Release();}
+  }
   public async Task<object> PrepareAsync(Dictionary<string,object> value){
    if(!await mutation.WaitAsync(0))DesktopLifePolicy.Fail("life_busy");
    try{if(Busy)DesktopLifePolicy.Fail("life_busy");var intent=Intent(value);long version,document=epoch();lock(stateGate)version=contextVersion;
-    var before=await Check(intent,version,document);if(intent.ContainsKey("additionalQuantity"))intent["baselineOwned"]=before.owned.Value;if(intent.ContainsKey("craftCount"))intent["baselineOutput"]=before.outputPerRun;intent["nonce"]=Guid.NewGuid().ToString("D");intent["expiresAt"]=DesktopLifePolicy.Time(clock().AddSeconds(120));intent["document"]=document;intent["contextVersion"]=version;
+    var before=await Check(intent,version,document);if(Equals(intent["action"],"collect"))intent["collectionFacility"]=before.facility;if(intent.ContainsKey("additionalQuantity"))intent["baselineOwned"]=before.owned.Value;if(intent.ContainsKey("craftCount"))intent["baselineOutput"]=before.outputPerRun;intent["nonce"]=Guid.NewGuid().ToString("D");intent["expiresAt"]=DesktopLifePolicy.Time(clock().AddSeconds(120));intent["document"]=document;intent["contextVersion"]=version;
     lock(stateGate)prepared=intent;return Preview(intent,before);
    }finally{mutation.Release();}
   }

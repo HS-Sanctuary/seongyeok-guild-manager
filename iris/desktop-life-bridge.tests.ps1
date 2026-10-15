@@ -1,5 +1,5 @@
 $ErrorActionPreference='Stop'
-Add-Type -Path @('desktop-host.cs','desktop-store.cs','desktop-bridge.cs'|ForEach-Object{Join-Path $PSScriptRoot $_}) -ReferencedAssemblies @('System.Core','System.Security','System.Web.Extensions')
+Add-Type -Path @('desktop-host.cs','desktop-store.cs','desktop-bridge.cs','desktop-cli-activity.cs'|ForEach-Object{Join-Path $PSScriptRoot $_}) -ReferencedAssemblies @('System.Core','System.Security','System.Web.Extensions')
 if([IrisDesktop.DesktopBridge].GetMethod('BindLifeRead') -eq $null){throw 'Life bridge binding missing'}
 Add-Type -TypeDefinition @'
 using System;using System.Threading.Tasks;

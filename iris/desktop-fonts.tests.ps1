@@ -1,7 +1,7 @@
 ﻿$ErrorActionPreference='Stop'
 $fontSource=Join-Path $PSScriptRoot 'desktop-fonts.cs'
 if (!(Test-Path $fontSource)) { throw 'Installed font cache is missing; repeated reads cannot share a bounded name list' }
-Add-Type -Path @($fontSource,(Join-Path $PSScriptRoot 'desktop-host.cs'),(Join-Path $PSScriptRoot 'desktop-store.cs'),(Join-Path $PSScriptRoot 'desktop-bridge.cs')) -ReferencedAssemblies @('System.Drawing','System.Core','System.Security','System.Web.Extensions')
+Add-Type -Path @($fontSource,(Join-Path $PSScriptRoot 'desktop-host.cs'),(Join-Path $PSScriptRoot 'desktop-store.cs'),(Join-Path $PSScriptRoot 'desktop-bridge.cs'),(Join-Path $PSScriptRoot 'desktop-cli-activity.cs')) -ReferencedAssemblies @('System.Drawing','System.Core','System.Security','System.Web.Extensions')
 Add-Type -TypeDefinition @'
 using System;
 using System.Threading.Tasks;

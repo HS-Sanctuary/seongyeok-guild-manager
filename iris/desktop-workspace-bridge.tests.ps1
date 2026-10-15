@@ -1,5 +1,5 @@
 $ErrorActionPreference='Stop'
-Add-Type -Path @('desktop-host.cs','desktop-store.cs','desktop-bridge.cs','desktop-workspace.fixture.cs'|ForEach-Object{Join-Path $PSScriptRoot $_}) -ReferencedAssemblies @('System.Security','System.Web.Extensions','System.Core')
+Add-Type -Path @('desktop-host.cs','desktop-store.cs','desktop-bridge.cs','desktop-cli-activity.cs','desktop-workspace.fixture.cs'|ForEach-Object{Join-Path $PSScriptRoot $_}) -ReferencedAssemblies @('System.Security','System.Web.Extensions','System.Core')
 $taskRoot=Join-Path $PSScriptRoot ('../.superpowers/sdd/2026-10-14-ergon-command-workspace/bridge-'+[guid]::NewGuid().ToString('N'))
 $taskStore=New-Object IrisDesktop.DesktopStore($taskRoot,'development')
 $taskBridge=New-Object IrisDesktop.DesktopBridge($taskStore,$true)

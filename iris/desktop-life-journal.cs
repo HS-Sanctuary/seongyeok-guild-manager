@@ -16,6 +16,8 @@ namespace IrisDesktop {
         static readonly UTF8Encoding Utf8=new UTF8Encoding(false,true);
         static readonly string[] Fields={"requestId","accountId","characterId","action","displayName","expectedWings","startedAt","state"};
         public string FilePath {get;private set;}
+        internal string RootPath {get{return rootPath;}}
+        internal string EnvironmentName {get{return environment;}}
         Func<string,Dictionary<string,object>,bool> separation;
         public void BindSeparation(Func<string,Dictionary<string,object>,bool> predicate){separation=predicate;}
         bool Blocks(Dictionary<string,object> row){return Unresolved(row)&&!(separation!=null&&separation(environment,row));}

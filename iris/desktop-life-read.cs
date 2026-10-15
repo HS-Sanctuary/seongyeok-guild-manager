@@ -50,7 +50,7 @@ namespace IrisDesktop {
             var arguments=command+(kind=="materials"?" \"{\\\"category\\\":\\\"Ingredient\\\"}\"":"");
             using(var process=new Process()){
                 process.StartInfo=new ProcessStartInfo {FileName=path,Arguments=arguments,UseShellExecute=false,CreateNoWindow=true,RedirectStandardOutput=true,RedirectStandardError=true,StandardOutputEncoding=Encoding.UTF8,StandardErrorEncoding=Encoding.UTF8};
-                process.Start();try{
+                process.Start();using(var registration=DesktopCliActivity.Track(process.Id,true))try{
                     var stdout=BoundedRead(process.StandardOutput);var stderr=BoundedRead(process.StandardError);var exit=Task.Run(()=>process.WaitForExit());var all=Task.WhenAll(stdout,stderr,exit);
                     if(await Task.WhenAny(all,Task.Delay(8000))!=all)throw new ArgumentException();await all;if(process.ExitCode!=0)throw new ArgumentException();return Normalize(kind,await stdout);
                 }finally{if(!process.HasExited)try{process.Kill();}catch{} }

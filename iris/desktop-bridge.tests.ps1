@@ -1,7 +1,7 @@
 $ErrorActionPreference='Stop'
 $source=Join-Path $PSScriptRoot 'desktop-bridge.cs'
 if (!(Test-Path $source)) { throw 'Scoped desktop bridge is missing' }
-Add-Type -Path @((Join-Path $PSScriptRoot 'desktop-host.cs'),(Join-Path $PSScriptRoot 'desktop-store.cs'),$source) -ReferencedAssemblies @('System.Security','System.Web.Extensions','System.Core')
+Add-Type -Path @((Join-Path $PSScriptRoot 'desktop-host.cs'),(Join-Path $PSScriptRoot 'desktop-store.cs'),(Join-Path $PSScriptRoot 'desktop-cli-activity.cs'),$source) -ReferencedAssemblies @('System.Security','System.Web.Extensions','System.Core')
 $root=Join-Path (Split-Path $PSScriptRoot) ('.superpowers/sdd/2026-10-08-iris-addon-bar/bridge-probes/'+[Guid]::NewGuid().ToString('N'))
 $store=New-Object IrisDesktop.DesktopStore($root,'development')
 $bridge=New-Object IrisDesktop.DesktopBridge($store,$true)

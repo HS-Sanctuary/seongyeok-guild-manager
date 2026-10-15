@@ -1,7 +1,7 @@
 $ErrorActionPreference='Stop'
 $taskSource=Join-Path $PSScriptRoot 'desktop-life-cli.cs'
 if(!(Test-Path $taskSource)){throw 'Fixed life CLI boundary missing'}
-Add-Type -Path @($taskSource,(Join-Path $PSScriptRoot 'desktop-life-read.cs')) -ReferencedAssemblies @('System.Core','System.Web.Extensions')
+Add-Type -Path @($taskSource,(Join-Path $PSScriptRoot 'desktop-life-read.cs'),(Join-Path $PSScriptRoot 'desktop-cli-activity.cs')) -ReferencedAssemblies @('System.Core','System.Web.Extensions')
 $taskRoot=[IO.Path]::GetFullPath((Join-Path (Join-Path $PSScriptRoot '../.superpowers') ('life-cli-'+[guid]::NewGuid().ToString('N'))))
 [void][IO.Directory]::CreateDirectory($taskRoot)
 $taskExe=Join-Path $taskRoot 'MabinogiMobile_CLI.exe'
@@ -16,6 +16,8 @@ try{
  $taskStop=[IrisDesktop.DesktopLifeCli]::StopAsync().GetAwaiter().GetResult()|ConvertFrom-Json
  if($taskStop.command -ne 'stop_action' -or $taskStop.argumentCount -ne 1){throw 'Fixed stop gained an injected body'}
  foreach($taskName in @('wood','a"b\tail','trailing\','spaces in name')){
+  $taskCollect=[IrisDesktop.DesktopLifeCli]::PerformAsync('collect',$taskName).GetAwaiter().GetResult()|ConvertFrom-Json
+  if($taskCollect.command -ne 'complete_altering_work' -or $taskCollect.name -ne $taskName -or $null -ne $taskCollect.craftCount){throw 'Facility collection did not send the exact travel-and-collect command'}
   $taskValue=[IrisDesktop.DesktopLifeCli]::PerformAsync('crafting',$taskName).GetAwaiter().GetResult()|ConvertFrom-Json
   if($taskValue.command -ne 'execute_crafting' -or $taskValue.name -ne $taskName -or $taskValue.craftCount -ne 1){throw 'CLI JSON argument changed'}
   $taskBatch=[IrisDesktop.DesktopLifeCli]::CraftAsync($taskName,3).GetAwaiter().GetResult()|ConvertFrom-Json

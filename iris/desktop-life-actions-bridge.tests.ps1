@@ -1,5 +1,5 @@
 $ErrorActionPreference='Stop'
-Add-Type -Path @((Join-Path $PSScriptRoot 'desktop-host.cs'),(Join-Path $PSScriptRoot 'desktop-store.cs'),(Join-Path $PSScriptRoot 'desktop-bridge.cs')) -ReferencedAssemblies @('System.Security','System.Web.Extensions','System.Core')
+Add-Type -Path @((Join-Path $PSScriptRoot 'desktop-host.cs'),(Join-Path $PSScriptRoot 'desktop-store.cs'),(Join-Path $PSScriptRoot 'desktop-bridge.cs'),(Join-Path $PSScriptRoot 'desktop-cli-activity.cs')) -ReferencedAssemblies @('System.Security','System.Web.Extensions','System.Core')
 $taskRoot=Join-Path (Split-Path $PSScriptRoot) ('.superpowers/life-bridge-'+[guid]::NewGuid().ToString('N'))
 $taskStore=New-Object IrisDesktop.DesktopStore($taskRoot,'development')
 $taskBridge=New-Object IrisDesktop.DesktopBridge($taskStore,$true)
@@ -58,4 +58,12 @@ if((Request 'game.life.actions.stop' @{requestId='n';accountId='a';characterId='
 if((Request 'window.update.prepare' $null).ok){throw 'Update preparation overlapped a running life action'}
 if((Request 'window.update.apply' $null).ok){throw 'Update helper started during a running life action'}
 [LifeBridgeFixture]::IsBusy=$false
+$taskClick=@{requestId='123e4567-e89b-12d3-a456-426614174000';requestedAt=1792022400000L;accountId='a';characterId='c';facility='mill';displayName='wood'}
+if(!(Request 'game.life.actions.collect' $taskClick).ok){throw 'One-click collection endpoint missing'}
+if(!(Request 'game.life.actions.collectionPolicy' @{accountId='a'}).ok){throw 'Collection policy endpoint missing'}
+if(!(Request 'game.life.actions.revokeCollection' @{accountId='a'}).ok){throw 'Collection revocation endpoint missing'}
+$taskExtra=$taskClick.Clone();$taskExtra.action='crafting'
+if((Request 'game.life.actions.collect' $taskExtra).ok){throw 'Generic collection action field accepted'}
+if((Request 'game.life.actions.collectionPolicy' @{accountId='a';granted=$true}).ok){throw 'Browser supplied permission accepted'}
+if((Request 'game.life.actions.collect' $taskClick ([Uri]'https://evil.test/iris/desktop')).ok){throw 'Foreign collection origin accepted'}
 Write-Output 'PASS action bridge: source, epoch, fixed methods, strict payload and async callbacks'

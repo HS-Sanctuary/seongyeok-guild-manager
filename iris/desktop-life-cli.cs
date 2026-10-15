@@ -21,7 +21,7 @@ namespace IrisDesktop {
   static async Task<string> Run(string command,string body,int timeout){
    using(var process=new Process()){
     process.StartInfo=new ProcessStartInfo {FileName=PathToCli(),Arguments=command+(body==null?"":" "+QuoteArgument(body)),UseShellExecute=false,CreateNoWindow=true,RedirectStandardOutput=true,RedirectStandardError=true,StandardOutputEncoding=Encoding.UTF8,StandardErrorEncoding=Encoding.UTF8};
-    process.Start();try{
+    process.Start();using(var registration=DesktopCliActivity.Track(process.Id,command=="get_items"))try{
      var output=Bounded(process.StandardOutput);var errors=Bounded(process.StandardError);var exit=Task.Run(()=>process.WaitForExit());var all=Task.WhenAll(output,errors,exit);
      // Detect a broken/oversized stream without waiting for its blocked writer to exit.
      var deadline=Task.Delay(timeout);var first=await Task.WhenAny(all,deadline,output,errors);

@@ -3,7 +3,7 @@ Add-Type -AssemblyName System.Windows.Forms
 $sdk=Join-Path $PSScriptRoot 'vendor/webview2/1.0.4258.31'
 $core=Join-Path $sdk 'lib/net462/Microsoft.Web.WebView2.Core.dll';$forms=Join-Path $sdk 'lib/net462/Microsoft.Web.WebView2.WinForms.dll'
 [void][Reflection.Assembly]::LoadFrom($core);[void][Reflection.Assembly]::LoadFrom($forms)
-$sources=@('overlay-native.cs','desktop-overlay.cs','desktop-addon-policy.cs','desktop-addon.cs','desktop-host.cs','desktop-store.cs','desktop-bridge.cs','desktop-life-read.cs','desktop-life-journal.cs','desktop-life-policy.cs','desktop-life-cli.cs','desktop-life-executor.cs','desktop-fonts.cs','desktop-presentation.cs','desktop-alert-sound.cs','desktop-webview.cs')|ForEach-Object{Join-Path $PSScriptRoot $_}
+$sources=@('overlay-native.cs','desktop-overlay.cs','desktop-addon-policy.cs','desktop-addon.cs','desktop-host.cs','desktop-store.cs','desktop-bridge.cs','desktop-life-read.cs','desktop-life-journal.cs','desktop-life-policy.cs','desktop-life-cli.cs','desktop-life-executor.cs','desktop-life-automation.cs','desktop-life-reference.cs','desktop-life-reconciliation.cs','desktop-cli-activity.cs','desktop-fonts.cs','desktop-presentation.cs','desktop-alert-sound.cs','desktop-webview.cs')|ForEach-Object{Join-Path $PSScriptRoot $_}
 Add-Type -Path $sources -ReferencedAssemblies @($core,$forms,'System.Windows.Forms','System.Drawing','System.Core','System.Security','System.Web.Extensions')
 $profile=Join-Path ([IO.Path]::GetTempPath()) ('iris-startup-close-'+[guid]::NewGuid().ToString('N'))
 $store=New-Object IrisDesktop.DesktopStore((Join-Path $profile 'synthetic-store'),'production')
