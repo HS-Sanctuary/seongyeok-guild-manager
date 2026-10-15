@@ -12,7 +12,7 @@ namespace IrisDesktop {
   readonly Func<object,bool> confirm;readonly Func<bool> allowed;readonly Func<long> epoch;readonly Func<DateTime> clock;
   readonly SemaphoreSlim mutation=new SemaphoreSlim(1,1);readonly object stateGate=new object();
   Dictionary<string,object> context,prepared,current;long contextVersion;Task running;Task<string> performTask;
-  readonly long sessionStartedAt;bool coordinating;DesktopLifeAutomationStore automation;Func<object,bool> authorizeCollection;Func<Task<Dictionary<string,object>>> collectionProbe;
+  readonly long sessionStartedAt;bool coordinating;string pendingCollectionId;DesktopLifeAutomationStore automation;Func<object,bool> authorizeCollection;Func<Task<Dictionary<string,object>>> collectionProbe;
   public void BindCollectionAutomation(DesktopLifeAutomationStore store,Func<object,bool> authorize,Func<Task<Dictionary<string,object>>> probe){if(store==null||authorize==null||probe==null)throw new ArgumentException();lock(stateGate){if(Busy)DesktopLifePolicy.Fail("life_busy");automation=store;authorizeCollection=authorize;collectionProbe=probe;journal.BindSeparation((mode,row)=>new DesktopLifeAutomationStore(journal.RootPath,mode).IsSeparated(mode,row));}}
   Func<Task<string>> stop;readonly SemaphoreSlim control=new SemaphoreSlim(1,1);
   bool performInFlight,gatherUnsafe,sawGathering;int stopAttempts;long runVersion,runDocument;DateTime stopDeadline;Dictionary<string,object> gathering;
@@ -31,7 +31,7 @@ namespace IrisDesktop {
    DesktopLifePolicy.Exact(value,"accountId","characterId","accountLabel","characterLabel");
    DesktopLifePolicy.Text(value["accountId"],100);DesktopLifePolicy.Text(value["accountLabel"],100);
    if(value["characterId"]!=null){DesktopLifePolicy.Text(value["characterId"],100);DesktopLifePolicy.Text(value["characterLabel"],12);}else if(value["characterLabel"]!=null)DesktopLifePolicy.Fail("life_invalid");
-   lock(stateGate){if(Busy)DesktopLifePolicy.Fail("life_busy");if(context==null||value.Any(pair=>!Equals(DesktopLifePolicy.Get(context,pair.Key),pair.Value))){contextVersion++;prepared=null;context=new Dictionary<string,object>(value);}}
+   lock(stateGate){if(running!=null&&!running.IsCompleted)DesktopLifePolicy.Fail("life_busy");if(context==null||value.Any(pair=>!Equals(DesktopLifePolicy.Get(context,pair.Key),pair.Value))){contextVersion++;prepared=null;context=new Dictionary<string,object>(value);}}
    return new {schemaVersion=1};
   }
   Dictionary<string,object> Intent(Dictionary<string,object> value){
@@ -60,6 +60,7 @@ namespace IrisDesktop {
    if(intent.ContainsKey("additionalQuantity")){long quantity=DesktopLifePolicy.Integer(intent["additionalQuantity"],1,100);if(before.owned.Value>9007199254740991L-quantity)DesktopLifePolicy.Fail("life_invalid");if(intent.ContainsKey("baselineOwned")&&!Equals(intent["baselineOwned"],before.owned.Value))DesktopLifePolicy.Fail("life_stock_changed");}
    // The first snapshot may have aged while later fixed reads completed. Validate the whole set at the end.
    DesktopLifePolicy.SafeActivity(DesktopLifePolicy.Data(activity,"activity",clock()));DesktopLifePolicy.InventoryRoom(DesktopLifePolicy.Data(inventory,"inventory",clock()));DesktopLifePolicy.Wings(currencyValue,clock());DesktopLifePolicy.Data(worksValue,"works",clock());DesktopLifePolicy.Data(namedValue,"materials",clock());if(catalogValue!=null)DesktopLifePolicy.Data(catalogValue,action,clock());
+   before.validUntil=new[]{activity,inventory,worksValue,namedValue}.Select(frame=>DesktopLifePolicy.Integer(DesktopLifePolicy.Plain(frame)["observedAt"],1)+15000).Min();before.validUntil=Math.Min(before.validUntil,DesktopLifePolicy.Time(DateTimeOffset.Parse((string)DesktopLifePolicy.Plain(currencyValue)["observedAt"],System.Globalization.CultureInfo.InvariantCulture).UtcDateTime)+15000);if(catalogValue!=null)before.validUntil=Math.Min(before.validUntil,DesktopLifePolicy.Integer(DesktopLifePolicy.Plain(catalogValue)["observedAt"],1)+15000);
    return before;
   }
   object Preview(Dictionary<string,object> p,LifePreflight before){
@@ -80,7 +81,7 @@ namespace IrisDesktop {
    DesktopLifePolicy.Text(value["facility"],160);if(automation==null)DesktopLifePolicy.Fail("life_unsupported");
    if(!await mutation.WaitAsync(0))DesktopLifePolicy.Fail("life_busy");FileStream lease=null;
    try{
-    if(Busy)DesktopLifePolicy.Fail("life_busy");var intent=Intent(new Dictionary<string,object>{{"accountId",value["accountId"]},{"characterId",value["characterId"]},{"action","collect"},{"displayName",value["displayName"]}});long version,document=epoch();lock(stateGate){version=contextVersion;coordinating=true;prepared=null;}
+    if(Busy)DesktopLifePolicy.Fail("life_busy");var intent=Intent(new Dictionary<string,object>{{"accountId",value["accountId"]},{"characterId",value["characterId"]},{"action","collect"},{"displayName",value["displayName"]}});long version,document=epoch();lock(stateGate){version=contextVersion;coordinating=true;pendingCollectionId=id;prepared=null;}
     ClickReady(version,document,deadline);if(journal.EntriesFor((string)value["accountId"]).Cast<Dictionary<string,object>>().Any(r=>Equals(r["requestId"],id)))DesktopLifePolicy.Fail("life_request_replayed");
     bool granted;try{granted=automation.CollectionAllowed((string)value["accountId"],1);}catch{DesktopLifePolicy.Fail("life_permission_corrupt");return null;}
     if(!granted){Dictionary<string,object> labels;lock(stateGate)labels=new Dictionary<string,object>(context);if(!authorizeCollection(labels))return new {schemaVersion=1,id=id,state="cancelled"};ClickReady(version,document,deadline);try{automation.GrantCollection((string)value["accountId"],1);}catch{DesktopLifePolicy.Fail("life_permission_corrupt");}}
@@ -99,10 +100,11 @@ namespace IrisDesktop {
      }
     }
     intent["collectionFacility"]=value["facility"];intent["nonce"]=id;var before=await Check(intent,version,document);var final=await ProbeCollection(version,document,deadline);if(!Equals(final["gameProcessId"],first["gameProcessId"])||!Equals(final["gameStartedAt"],first["gameStartedAt"]))DesktopLifePolicy.Fail("life_game_changed");ClickReady(version,document,deadline);
+    if(DesktopLifePolicy.Time(clock())>=before.validUntil)DesktopLifePolicy.Fail("life_stale");
     journal.Begin(id,(string)value["accountId"],(string)value["characterId"],"collect",(string)value["displayName"],null);
     lock(stateGate){current=new Dictionary<string,object>{{"id",id},{"accountId",value["accountId"]},{"characterId",value["characterId"]},{"action","collect"},{"displayName",value["displayName"]},{"state","running"},{"expectedWings",null},{"beforeWings",before.wings},{"afterWings",null},{"afterOwned",null},{"message",null}};gathering=null;gatherUnsafe=false;performInFlight=false;performTask=null;runVersion=version;runDocument=document;var ownedLease=lease;lease=null;running=Task.Run(()=>Run(intent,before,version,document,ownedLease));}
     return new {schemaVersion=1,id=id,state="running"};
-   }finally{if(lease!=null)lease.Dispose();lock(stateGate)coordinating=false;mutation.Release();}
+   }finally{if(lease!=null)lease.Dispose();lock(stateGate){coordinating=false;pendingCollectionId=null;}mutation.Release();}
   }
   public async Task<object> PrepareAsync(Dictionary<string,object> value){
    if(!await mutation.WaitAsync(0))DesktopLifePolicy.Fail("life_busy");
@@ -195,10 +197,10 @@ namespace IrisDesktop {
   }
   public object CancelPrepared(Dictionary<string,object> value){
    DesktopLifePolicy.Exact(value,"nonce");var nonce=DesktopLifePolicy.Text(value["nonce"],36);
-   lock(stateGate)if(prepared!=null&&Equals(prepared["nonce"],nonce))prepared=null;
+   lock(stateGate){if(prepared!=null&&Equals(prepared["nonce"],nonce))prepared=null;if(coordinating&&pendingCollectionId==nonce&&(running==null||running.IsCompleted))contextVersion++;}
    return new {schemaVersion=1};
   }
-  public object State(){bool busy=Busy;Dictionary<string,object> job;lock(stateGate){job=current!=null&&context!=null&&Equals(current["accountId"],context["accountId"])?new Dictionary<string,object>(current):null;if(job!=null&&job.ContainsKey("gathering"))job["gathering"]=new Dictionary<string,object>(gathering);}return new {schemaVersion=job!=null&&job.ContainsKey("crafting")?3:job!=null&&job.ContainsKey("gathering")?2:1,busy=busy,blocked=busy||journal.HasUnresolved(),state=job==null?"idle":job["state"],current=job};}
+  public object State(){bool busy;lock(stateGate)busy=running!=null&&!running.IsCompleted;Dictionary<string,object> job;lock(stateGate){job=current!=null&&context!=null&&Equals(current["accountId"],context["accountId"])?new Dictionary<string,object>(current):null;if(job!=null&&job.ContainsKey("gathering"))job["gathering"]=new Dictionary<string,object>(gathering);}return new {schemaVersion=job!=null&&job.ContainsKey("crafting")?3:job!=null&&job.ContainsKey("gathering")?2:1,busy=busy,blocked=Busy||journal.HasUnresolved(),state=job==null?"idle":job["state"],current=job};}
   public object History(Dictionary<string,object> value){DesktopLifePolicy.Exact(value,"accountId");lock(stateGate)if(context==null||!Equals(context["accountId"],value["accountId"]))DesktopLifePolicy.Fail("life_context_changed");var rows=journal.EntriesFor((string)value["accountId"]);return new {schemaVersion=rows.Cast<Dictionary<string,object>>().Any(row=>row.ContainsKey("crafting"))?3:rows.Cast<Dictionary<string,object>>().Any(row=>row.ContainsKey("gathering"))?2:1,blocked=Busy||journal.HasUnresolved(),records=rows};}
  }
 }

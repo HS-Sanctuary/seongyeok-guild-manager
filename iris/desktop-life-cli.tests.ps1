@@ -7,12 +7,14 @@ $taskRoot=[IO.Path]::GetFullPath((Join-Path (Join-Path $PSScriptRoot '../.superp
 $taskExe=Join-Path $taskRoot 'MabinogiMobile_CLI.exe'
 $taskProgram=@'
 using System;using System.Text;using System.Web.Script.Serialization;
-public static class FakeCli {public static void Main(string[] args){Console.OutputEncoding=new UTF8Encoding(false);var json=new JavaScriptSerializer();if(args[0]=="stop_action"){Console.Write(json.Serialize(new {command=args[0],argumentCount=args.Length}));return;}var body=json.DeserializeObject(args[1]) as System.Collections.Generic.Dictionary<string,object>;var name=(string)body[args[0]=="get_items"?"name":"displayName"];if(name=="sleep")System.Threading.Thread.Sleep(12000);if(args[0]=="get_items")Console.Write(json.Serialize(new object[]{new {DisplayName=name,Category="Food",CategoryDisplayName="Food",Location="inventory",Count=3,IsLocked=false}}));else Console.Write(json.Serialize(new {command=args[0],name=name,craftCount=body.ContainsKey("craftCount")?body["craftCount"]:null}));}}
+public static class FakeCli {public static void Main(string[] args){Console.OutputEncoding=new UTF8Encoding(false);var json=new JavaScriptSerializer();if(args[0]=="orphan"){System.Threading.Thread.Sleep(1500);return;}if(args[0]=="stop_action"){Console.Write(json.Serialize(new {command=args[0],argumentCount=args.Length}));return;}var body=json.DeserializeObject(args[1]) as System.Collections.Generic.Dictionary<string,object>;var name=(string)body[args[0]=="get_items"?"name":"displayName"];if(name=="sleep")System.Threading.Thread.Sleep(12000);if(args[0]=="get_items")Console.Write(json.Serialize(new object[]{new {DisplayName=name,Category="Food",CategoryDisplayName="Food",Location="inventory",Count=3,IsLocked=false}}));else Console.Write(json.Serialize(new {command=args[0],name=name,craftCount=body.ContainsKey("craftCount")?body["craftCount"]:null}));}}
 '@
 Add-Type -TypeDefinition $taskProgram -ReferencedAssemblies @('System.Web.Extensions') -OutputAssembly $taskExe -OutputType ConsoleApplication
 $taskBefore=[Environment]::GetEnvironmentVariable('MABINOGI_CLI_PATH')
 try{
  [Environment]::SetEnvironmentVariable('MABINOGI_CLI_PATH',$taskExe)
+ $taskOrphan=Start-Process -FilePath $taskExe -ArgumentList 'orphan' -WindowStyle Hidden -PassThru
+ try{if(![IrisDesktop.DesktopCliActivity]::HasUnclassifiedOrActionCli()){throw 'Unclassified synthetic CLI was ignored'};if([IrisDesktop.DesktopCliActivity]::WaitForReadsAsync(0).GetAwaiter().GetResult()){throw 'Unclassified synthetic CLI allowed reconciliation'};$taskOrphan.WaitForExit()}finally{$taskOrphan.Dispose()}
  $taskStop=[IrisDesktop.DesktopLifeCli]::StopAsync().GetAwaiter().GetResult()|ConvertFrom-Json
  if($taskStop.command -ne 'stop_action' -or $taskStop.argumentCount -ne 1){throw 'Fixed stop gained an injected body'}
  foreach($taskName in @('wood','a"b\tail','trailing\','spaces in name')){

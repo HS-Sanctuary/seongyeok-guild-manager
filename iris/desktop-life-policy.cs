@@ -8,7 +8,7 @@ using System.Web.Script.Serialization;
 namespace IrisDesktop {
  public sealed class LifeActionException:Exception {public string Code {get;private set;}public LifeActionException(string code):base(code){Code=code;}}
  public sealed class LifePreflight {
-  public long wings;public int? expectedWings;public int outputPerRun;public int craftCount=1;public long? owned;public string facility;public Dictionary<string,int> completedNames=new Dictionary<string,int>();public int pendingBefore;
+  public long wings,validUntil;public int? expectedWings;public int outputPerRun;public int craftCount=1;public long? owned;public string facility;public Dictionary<string,int> completedNames=new Dictionary<string,int>();public int pendingBefore;
  }
  public static class DesktopLifePolicy {
   static readonly string[] Flags={"autoPlaying","autoTraveling","dead","reviving","inCombat","dialoguePlaying","waitingForSelection","inBattlefield","tutorialPlaying","inScenario","sequencePlaying","performancePlaying","minigame","housingEdit","abyssSequence"};

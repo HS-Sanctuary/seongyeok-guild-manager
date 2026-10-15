@@ -149,7 +149,7 @@ namespace IrisDesktop {
                         var syncPayload=message["payload"] as Dictionary<string,object>;
                         if(syncMethod=="game.life.actions.state") {if(message["payload"]!=null)throw new ArgumentException();syncPayload=new Dictionary<string,object>();}
                         else if(syncPayload==null)throw new ArgumentException();
-                        if(syncMethod=="game.life.actions.context") {if(syncPayload.Count!=4||!syncPayload.ContainsKey("accountId")||!syncPayload.ContainsKey("characterId")||!syncPayload.ContainsKey("accountLabel")||!syncPayload.ContainsKey("characterLabel")||gameBusy||collectionPending||(lifeActionBusy!=null&&lifeActionBusy()))throw new ArgumentException();}
+                        if(syncMethod=="game.life.actions.context") {if(syncPayload.Count!=4||!syncPayload.ContainsKey("accountId")||!syncPayload.ContainsKey("characterId")||!syncPayload.ContainsKey("accountLabel")||!syncPayload.ContainsKey("characterLabel"))throw new ArgumentException();}
                         else if(syncMethod=="game.life.actions.cancel") {if(syncPayload.Count!=1||!syncPayload.ContainsKey("nonce"))throw new ArgumentException();}
                         else if(syncMethod=="game.life.actions.history") {if(syncPayload.Count!=1||!syncPayload.ContainsKey("accountId"))throw new ArgumentException();}
                         else if(syncMethod=="game.life.actions.collectionPolicy"||syncMethod=="game.life.actions.revokeCollection") {if(syncPayload.Count!=1||!syncPayload.ContainsKey("accountId"))throw new ArgumentException();}
