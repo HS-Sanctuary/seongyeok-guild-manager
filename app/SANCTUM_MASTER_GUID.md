@@ -2,6 +2,10 @@
 
 ## 2026-10-15 — ERGON B1 통합 큐·추가 제작 진척 로컬 구조
 
+- 최종후보 whole629/626PASS3skip/독립타입·lint·격리58 PASS, 완료최종품 예약 회귀수정으로 한계·구조 검증. 운영 DB/API/RLS/native bridge/원장/공개버전 구조변경 없음. 기능브랜치 전송은 운영배포 완료를 뜻하지 않는다.
+
+- 최종 리뷰 후 `reservedOutputs`는 확인된 최종 목표 산출 중 `min(원래목표,확인량)`을 실제 가방의 가용량에서 별도로 공제한다. 완료 root를 남은목표 목록에서 제거한 뒤에도 예약은 유지하며 초과분만 다른 목표에 사용한다. 부분완료/중복품목 예약도 동일 컨텍스트다. native 원장/실제 소비 재고에 예약을 강제하는 구조가 아니라 읽기전용 계획 계산이다.
+
 - `lib/irisErgonSupply.ts`는 기존 단일 preview(32노드/8깊이)를 유지하며 같은 예약 컨텍스트의 `buildErgonSupplyBatchPreview`(50목표/32노드/4깊이)를 제공한다. 추가 root 결과물은 예약하고 단위 잔량만 공유한다. installed-reference는 complete:false/자동실행 false 유지, 소비 API를 갖지 않는다.
 - `DesktopErgonQueue.tsx`는 보관 원본 계획과 별도 임시 제작진척을 받아 남은 목표의 부족분을 한 번에 계산한다. 펼친 경우만 선택 참고32품목을 직렬 조회/실패기억·늦은범위폐기, 계정·캐릭터·환경 key를 따른다. `ConnectedErgon`은 큐가 열린 idle에 필요한3종 catalog를 기존 세션으로 갱신하며 실행중 잠금/오류 시 중단한다. 기존 실행 인스턴스/작업계획 localStorage v1은 그대로다.
 - `lib/irisErgonFacilities.ts`는 works를 시설별로 집계하고 capacity:null을 유지한다. 현재 등록된 작업의 절반 완료는 수령 검토 안내일 뿐 실제 정원/자동수령 계약이 아니다. Workbench overview가 이를 표시한다.

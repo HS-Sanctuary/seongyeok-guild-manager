@@ -11,14 +11,20 @@ export type ErgonSupplyInput={kind:Kind;displayName:string;additionalQuantity:nu
 export function buildErgonSupplyPreview(input:ErgonSupplyInput):ErgonSupplyPreview{
  return buildSupply(input,[{id:'single',kind:input.kind,displayName:input.displayName,targetQuantity:input.additionalQuantity}],8);
 }
-type BatchInput=Omit<ErgonSupplyInput,'kind'|'displayName'|'additionalQuantity'>&{plans:ErgonPlanItem[]};
+type SupplyContext=Omit<ErgonSupplyInput,'kind'|'displayName'|'additionalQuantity'>&{reservedOutputs?:{name:string;quantity:number}[]};
+type BatchInput=SupplyContext&{plans:ErgonPlanItem[]};
 export function buildErgonSupplyBatchPreview(input:BatchInput):ErgonSupplyPreview{
  return buildSupply(input,input.plans,4);
 }
-function buildSupply(input:Omit<ErgonSupplyInput,'kind'|'displayName'|'additionalQuantity'>,plans:ErgonPlanItem[],maxDepth:number):ErgonSupplyPreview{
+function buildSupply(input:SupplyContext,plans:ErgonPlanItem[],maxDepth:number):ErgonSupplyPreview{
  const result:ErgonSupplyPreview={steps:[],issues:[],referencesNeeded:[],wingMinimum:0,wingMaximum:0,automaticReady:false};
  const issue=(text:string)=>{if(!result.issues.includes(text))result.issues.push(text);};
  const validQuantity=(n:number)=>Number.isSafeInteger(n)&&n>0&&n<=1000000;
+ const reserved=new Map<string,number>();
+ if(input.reservedOutputs){
+  if(input.reservedOutputs.length>50||input.reservedOutputs.some(row=>typeof row.name!=='string'||!row.name.trim()||row.name.length>160||/[\x00-\x1f\x7f]/.test(row.name)||!validQuantity(row.quantity))){issue('완료 목표의 예약 수량을 확인해 주세요.');result.wingMaximum=null;return result;}
+  for(const row of input.reservedOutputs)reserved.set(row.name,(reserved.get(row.name)??0)+row.quantity);
+ }
  try{parseErgonPlans({schemaVersion:1,items:plans});}catch{issue('계획은 최대 50개, 목표 수량은 1~1,000,000 정수로 확인해 주세요.');result.wingMaximum=null;return result;}
  if(!plans.length)return result;
  if(!input.materials||ergonSnapshotStale(input.materials,input.now)){issue('현재 가방을 다시 조회해 주세요.');return result;}
@@ -29,7 +35,7 @@ function buildSupply(input:Omit<ErgonSupplyInput,'kind'|'displayName'|'additiona
   const matches=input.materials!.data.items.filter(row=>row.name===name),bag=matches.filter(row=>row.location==='inventory');
   let count:number|null=null;
   if(new Set(matches.map(row=>row.category)).size<=1&&bag.every(row=>row.locked===false&&row.count!==null&&Number.isSafeInteger(row.count)&&row.count>=0)){
-   const sum=bag.reduce((total,row)=>total+row.count!,0);if(Number.isSafeInteger(sum))count=sum;
+   const sum=bag.reduce((total,row)=>total+row.count!,0);if(Number.isSafeInteger(sum))count=Math.max(0,sum-(reserved.get(name)??0));
   }
   left.set(name,count);return count;
  };

@@ -21,7 +21,8 @@ export function DesktopErgonQueue({plans,goals,snapshots,now,scope,active,readRe
  const entries=cache.scope===scope?cache.entries:{},references=Object.values(entries).filter((row):row is ErgonRecipeReference=>row!==null);
  const confirmed=(item:ErgonPlanItem)=>{const goal=goals[item.id];return goal&&item.kind==='crafting'&&goal.identity.planId===item.id&&goal.identity.displayName===item.displayName&&goal.identity.targetQuantity===item.targetQuantity?goal.completedOutput:0;};
  const remainingPlans=plans.flatMap(item=>{const remaining=Math.max(0,item.targetQuantity-confirmed(item));return remaining?[{...item,targetQuantity:remaining}]:[];});
- const preview=buildErgonSupplyBatchPreview({plans:remainingPlans,now,materials:snapshots.materials,crafting:snapshots.crafting,altering:snapshots.altering,gathering:snapshots.gathering,references});
+ const reservedOutputs=plans.flatMap(item=>{const quantity=Math.min(item.targetQuantity,confirmed(item));return quantity?[{name:item.displayName,quantity}]:[];});
+ const preview=buildErgonSupplyBatchPreview({plans:remainingPlans,reservedOutputs,now,materials:snapshots.materials,crafting:snapshots.crafting,altering:snapshots.altering,gathering:snapshots.gathering,references});
  const requested=preview.referencesNeeded.filter(row=>!Object.hasOwn(entries,referenceKey(row.kind,row.displayName))),signature=JSON.stringify(requested),count=Object.keys(entries).length,queue=useRef<Promise<void>>(Promise.resolve());
  useEffect(()=>{
   let current=true;

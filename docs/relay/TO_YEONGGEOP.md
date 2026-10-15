@@ -2,6 +2,10 @@
 
 ## SW-20261015-001 — UPDATED (REA 연결·통합 대기열/큰 제작 목표 B1 / 집 실검증 인계)
 
+- 검증마감누적: 수정후fresh전체629/626PASS3기존skip0fail/독립tsc·lint0/최종격리webpack58exit0/실제Queue최종품예약+진척·공유큐GREEN. native소스변경0/기존actor·quantity·원장·bridge·창/privatecompile PASS. 5h잔여19%/주간20%로15%전, 새소비범위확대없이인계push준비. 코드+문서만명시스테이징, 개인dirty/삭제/SVG/캐시/원장보존·제외. 정확전송SHA/원격/Preview 후속참조.
+
+- 최종검토누적: 로컬기능02cde7633b037b2d9ae3146327d27fde082583ba, fresh독립리뷰 Critical0/Important1/Minor0. 완료한최종품을다른목표재료로쓰던과소계산은 reservedOutputs별도공제/초과분공유로 unit+실제Queue RED→GREEN, 부분완료포함. 수정후fullNode629/626PASS3skip0fail/타입·lint·격리build후속. 재리뷰0. 통합예약은계획용이며native개별소비에서재고예약을강제하지않음; 완전BOM/native총예산·예약B2전자동chain금지. 전송SHA/원격/Preview후속마감.
+
 - 2026-10-15 10:53KST 누적: 한설은 점검중 실제게임검증을 저녁 영겁에게 위임/바로 구현/5h잔여15% 새작업중단·인계push 승인. 아래 REA 설치 당시 기록을 삭제하지 않는다. 실제Codex MCP binary_session6.5.0/207도구 aligned 연결까지 확인, 타앱/게임 분석·원본변경0. 집은 docs/REA_SETUP.md대로 MCP+공식스킬 별도설치·정상재시작 필요.
 - HEAD498e254 ff-only 최신 위 B1 직접구현: 통합50목표/32노드4깊이/참고32직렬·공유가방예약/단위잔량/부분표false. 시설별 등록/완료·절반수령검토는 관측안내만/정원추정·자동수령재등록0. 큰목표20→단일5회 수동요청·확인된 own완료만진척/중복응답·null장비·metadata·debit5 방어. 부모 원본20유지/남은15재료·큐/품목왕복·예산보존/명시새목표, 자동소비0.
 - 중간검증 fullNode628/625PASS3skip·tsc/lint0/새·구 실제React·native actor/quantity/CLI/journal/bridge/workspace PASS. sandbox localhost EACCES는 정상권한 동일시험통과로 구분, 준비취소뒤메뉴왕복의 보낸작업중지 오안내는 기존workspace RED→GREEN 수정. 격리webpack58/private native EXEZIP compile PASS. 최종 fresh독립리뷰·정확SHA·전송/Preview는 후속 마감 참조. 현재 로컬/미전송, 아래 과거 설치시점 미푸시 기록 보존.

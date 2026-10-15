@@ -57,6 +57,8 @@ Whole-task verification: `node tests/iris-ergon-queue.browser.mjs C:/Users/sungw
 
 ## 마감
 
+2026-10-15 마감: Tasks1..5 자동시험 완료, 단일fresh review Important1(완료최종품 재할당) unit+실제Queue RED→GREEN 수정/재리뷰0. 최종629/626PASS3skip·독립타입/관련lint0·수정본격리58PASS/native기존회귀·privatecompilePASS. 실게임/전체자동chain/B2·실제unknown복구/공개운영배포는 미완료. 상세판단·검증·집순서는HANDOFF/IRIS_YEONGGEOP_HANDOFF. 신규기능확대없이사용량잔여19%부터인계push마감준비.
+
 한 번의 fresh 최종 리뷰(이번498e254 이후 범위만), 중요 지적 한 번 RED→GREEN 수정. 실제 게임·보호 복구·자동 생산chain 미완료를 숨기지 않는다. 인계 문서4개/REA_SETUP·수신ACK 포함, 공개버전·main·패키지·공지 유지. 영겁에게 정확한 HEAD/시험/남은 실검증을 전달한다.
 
 ## Task 4: 큰 추가 제작 목표의 확인된 진척·수동 다음 묶음

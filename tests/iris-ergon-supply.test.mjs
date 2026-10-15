@@ -56,3 +56,10 @@ test('queued preview enforces total node and depth bounds and rejects invalid or
  const deep=batch({...base,plans:[goal('a','품목0')],materials:frame('materials',[]),crafting:frame('crafting',recipes),altering:frame('altering',[]),references:refs});assert.ok(deep.issues.some(s=>s.includes('길어')));assert.equal(deep.steps.at(-1).state,'blocked');assert.equal(deep.automaticReady,false);
  const capped=batch({...base,plans:Array.from({length:33},(_,i)=>goal(String(i),'통나무',1,'gathering'))});assert.ok(capped.issues.some(s=>s.includes('길어')));assert.ok(capped.steps.some(s=>s.state==='blocked'));
 });
+test('confirmed final outputs remain reserved in fresh bag stock; only confirmed rounding excess may feed another goal',()=>{
+ const input={...base,plans:[goal('b','검')],materials:frame('materials',[{name:'목재',category:'Ingredient',location:'inventory',count:5,locked:false}]),crafting:frame('crafting',[recipe('검'),recipe('목재')]),altering:frame('altering',[]),references:[ref('crafting','검',1,[['목재',5]]),ref('crafting','목재',1,[['통나무',2]])],reservedOutputs:[{name:'목재',quantity:5}]};
+ const p=batch(input);assert.equal(p.steps.find(s=>s.kind==='gathering')?.additionalQuantity,10,'confirmed final A5 must not be spent on final B');
+ const extra=batch({...input,materials:frame('materials',[{name:'목재',category:'Ingredient',location:'inventory',count:7,locked:false}])});assert.equal(extra.steps.find(s=>s.kind==='gathering').additionalQuantity,6,'two confirmed excess wood are usable, five final wood are not');
+ const partial=batch({...input,plans:[goal('a','목재',3),goal('b','검')],materials:frame('materials',[{name:'목재',category:'Ingredient',location:'inventory',count:2,locked:false}]),reservedOutputs:[{name:'목재',quantity:2}]});assert.equal(partial.steps.find(s=>s.kind==='gathering').additionalQuantity,16,'two completed plus three remaining final wood stay separate from five wood needed by sword');
+ const invalid=batch({...input,reservedOutputs:[{name:'목재',quantity:-1}]});assert.equal(invalid.steps.length,0);assert.ok(invalid.issues.length);
+});
