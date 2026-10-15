@@ -31,3 +31,28 @@ test('known locked crafting appears as a blocked stage rather than an ordinary p
  const input={...base,additionalQuantity:1,materials:frame('materials',[{name:'목재',category:'Ingredient',location:'inventory',count:2,locked:false}]),crafting:{...base.crafting,data:{...base.crafting.data,unlocked:false}}};
  const result=api.buildErgonSupplyPreview(input);assert.ok(result.issues.some(row=>row.includes('해금')));assert.equal(result.steps.at(-1).state,'blocked');
 });
+
+const goal=(id,name,quantity=1,kind='crafting')=>({id,kind,displayName:name,targetQuantity:quantity});
+const batch=input=>{assert.equal(typeof api.buildErgonSupplyBatchPreview,'function');return api.buildErgonSupplyBatchPreview(input);};
+test('two queued goals reserve the same bag stock only once and keep both additional outputs',()=>{
+ const input={...base,plans:[goal('a','검'),goal('b','도끼')],materials:frame('materials',[{name:'통나무',category:'Ingredient',location:'inventory',count:5,locked:false},{name:'검',category:'Ingredient',location:'inventory',count:90,locked:false}]),crafting:frame('crafting',[recipe('검'),recipe('도끼')]),altering:frame('altering',[]),references:[ref('crafting','검',1,[['통나무',4]]),ref('crafting','도끼',1,[['통나무',4]])]};
+ const p=batch(input);assert.equal(p.steps.find(s=>s.kind==='gathering').additionalQuantity,3);assert.deepEqual(p.steps.filter(s=>s.kind==='crafting').map(s=>[s.displayName,s.expectedOutput]),[['검',1],['도끼',1]]);assert.equal(p.automaticReady,false);
+});
+test('a queued final product stays reserved, only its rounding surplus supplies another goal',()=>{
+ const p=batch({...base,plans:[goal('a','목재',1,'altering'),goal('b','검')],materials:frame('materials',[]),references:[ref('crafting','검',1,[['목재',3]]),ref('altering','목재',3,[['통나무',4]])]});
+ assert.equal(p.steps.find(s=>s.kind==='gathering').additionalQuantity,8,'one final wood + three for sword needs two runs, not one');
+ assert.deepEqual(p.steps.filter(s=>s.kind==='altering').map(s=>s.additionalQuantity),[1,1],'only two surplus wood are reserved for sword');
+ assert.equal(p.steps.filter(s=>s.kind==='collect').length,2,'registration is not collected stock');
+});
+test('direct gather goals add quantities without subtracting existing finished stock',()=>{
+ const p=batch({...base,plans:[goal('a','통나무',4,'gathering'),goal('b','통나무',3,'gathering')],materials:frame('materials',[{name:'통나무',category:'Ingredient',location:'inventory',count:100,locked:false}])});
+ assert.equal(p.steps.length,1);assert.equal(p.steps[0].additionalQuantity,7);assert.equal(p.automaticReady,false);
+});
+test('queued preview enforces total node and depth bounds and rejects invalid or oversized goals',()=>{
+ const empty=batch({...base,plans:[]});assert.deepEqual(empty.steps,[]);
+ const huge=batch({...base,plans:Array.from({length:51},(_,i)=>goal(String(i),'검'))});assert.equal(huge.steps.length,0);assert.ok(huge.issues.length);
+ const invalid=batch({...base,plans:[goal('a','검',0)]});assert.ok(invalid.issues.length);assert.equal(invalid.steps.length,0);
+ const refs=[],recipes=[];for(let i=0;i<7;i++){refs.push(ref('crafting','품목'+i,1,[['품목'+(i+1),1]]));recipes.push(recipe('품목'+i));}
+ const deep=batch({...base,plans:[goal('a','품목0')],materials:frame('materials',[]),crafting:frame('crafting',recipes),altering:frame('altering',[]),references:refs});assert.ok(deep.issues.some(s=>s.includes('길어')));assert.equal(deep.steps.at(-1).state,'blocked');assert.equal(deep.automaticReady,false);
+ const capped=batch({...base,plans:Array.from({length:33},(_,i)=>goal(String(i),'통나무',1,'gathering'))});assert.ok(capped.issues.some(s=>s.includes('길어')));assert.ok(capped.steps.some(s=>s.state==='blocked'));
+});

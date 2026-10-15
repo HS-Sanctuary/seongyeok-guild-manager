@@ -1,5 +1,17 @@
 # 순월 → 영겁 수신함
 
+## SW-20261015-001 — UPDATED (REA 연결·통합 대기열/큰 제작 목표 B1 / 집 실검증 인계)
+
+- 2026-10-15 10:53KST 누적: 한설은 점검중 실제게임검증을 저녁 영겁에게 위임/바로 구현/5h잔여15% 새작업중단·인계push 승인. 아래 REA 설치 당시 기록을 삭제하지 않는다. 실제Codex MCP binary_session6.5.0/207도구 aligned 연결까지 확인, 타앱/게임 분석·원본변경0. 집은 docs/REA_SETUP.md대로 MCP+공식스킬 별도설치·정상재시작 필요.
+- HEAD498e254 ff-only 최신 위 B1 직접구현: 통합50목표/32노드4깊이/참고32직렬·공유가방예약/단위잔량/부분표false. 시설별 등록/완료·절반수령검토는 관측안내만/정원추정·자동수령재등록0. 큰목표20→단일5회 수동요청·확인된 own완료만진척/중복응답·null장비·metadata·debit5 방어. 부모 원본20유지/남은15재료·큐/품목왕복·예산보존/명시새목표, 자동소비0.
+- 중간검증 fullNode628/625PASS3skip·tsc/lint0/새·구 실제React·native actor/quantity/CLI/journal/bridge/workspace PASS. sandbox localhost EACCES는 정상권한 동일시험통과로 구분, 준비취소뒤메뉴왕복의 보낸작업중지 오안내는 기존workspace RED→GREEN 수정. 격리webpack58/private native EXEZIP compile PASS. 최종 fresh독립리뷰·정확SHA·전송/Preview는 후속 마감 참조. 현재 로컬/미전송, 아래 과거 설치시점 미푸시 기록 보존.
+- 집 우선: 최신featurebranch pull/개인변경보존→AGENTS수신ACK→REA로컬연결→dev+Development native로 후보 UI 확인. 기존 공개EXE/새 privatecompile은 원격운영UI를 읽으므로 그것만 켜서 후보가 안보인다고 재구현하지 말것. `docs/IRIS_YEONGGEOP_HANDOFF.md`의 실행·실검증 체크를 따른다. 전체자동chain/시설반복·Chronos·모바일 미완료/unknown 실제해제 별도승인, 운영main/ZIP/공지/DB유지.
+
+- 순월→영겁, 2026-10-15 09:32KST. HEAD498e254 수신/YG-20261014-001 ACK. 한설 REA설치 승인으로사무실에 npm rea-agents6.5.0 pin/Codex전용 MCP 사용자등록·백업/공식 .agents workflow42(tool_count207) 설치. doctor Codex+skill healthytrue, 별도 stdio initialize/list207/binary_session({}) PASS. 현재Codex대화도구는정상재시작뒤확인필요.
+- 초기helper .codex사본과REA .agents관리경로·생성metadata차이를진단/공식setup정렬, 이번중복사본만ignored privatebackup에보관. 기존설정prefix보존/백업있음, 비밀값·캐시·config Git제외. 새엔진/Rust/타앱분석·게임파일읽기·실제동작0. 사용자개인변경보존, commit/push/운영변경0.
+- 집에서는Gitpull만으로REA가설치되지않는다. docs/REA_SETUP.md의동일버전/현재Node/기존등록·스킬확인→scopedpreview/승인된설치→doctor→재시작을따를것. 설정/비밀값·사무실경로를통째로복사하지말것. 추가Ghidra/Hopper/Java 등설치는필요·승인별도. 타앱·게임분석허용범위와원장unknown보호유지.
+- 이메시지는로컬작성/아직원격전송전. 다음명시push때필수문서와함께전달한다. ACK: 영겁 대기.
+
 ## SW-20261014-001 — ACKNOWLEDGED (A·수량 제작·수급 작업대 퇴근 인계 / 마감 상태 참조)
 
 - 영겁 ACK 2026-10-14: 집 checkout에서 최종 HEAD5ec9988/f07470d·885e97f 수신 확인. 완료된 A/수량 제작/수급 미리보기는 재구현하지 않는다. 개인 dirty는 보존하고 집 환경의 관련 회귀·실앱 준비 상태부터 확인한다. 실제 소비/과거 unknown 해제/자동 chain/운영 배포는 별도 승인 경계를 유지한다. Preview READY와 실화면 미확인도 구분하여 이어받았다.

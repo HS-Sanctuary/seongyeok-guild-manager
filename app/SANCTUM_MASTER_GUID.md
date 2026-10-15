@@ -1,5 +1,14 @@
 # 🏛️ SANCTUM Master Guide
 
+## 2026-10-15 — ERGON B1 통합 큐·추가 제작 진척 로컬 구조
+
+- `lib/irisErgonSupply.ts`는 기존 단일 preview(32노드/8깊이)를 유지하며 같은 예약 컨텍스트의 `buildErgonSupplyBatchPreview`(50목표/32노드/4깊이)를 제공한다. 추가 root 결과물은 예약하고 단위 잔량만 공유한다. installed-reference는 complete:false/자동실행 false 유지, 소비 API를 갖지 않는다.
+- `DesktopErgonQueue.tsx`는 보관 원본 계획과 별도 임시 제작진척을 받아 남은 목표의 부족분을 한 번에 계산한다. 펼친 경우만 선택 참고32품목을 직렬 조회/실패기억·늦은범위폐기, 계정·캐릭터·환경 key를 따른다. `ConnectedErgon`은 큐가 열린 idle에 필요한3종 catalog를 기존 세션으로 갱신하며 실행중 잠금/오류 시 중단한다. 기존 실행 인스턴스/작업계획 localStorage v1은 그대로다.
+- `lib/irisErgonFacilities.ts`는 works를 시설별로 집계하고 capacity:null을 유지한다. 현재 등록된 작업의 절반 완료는 수령 검토 안내일 뿐 실제 정원/자동수령 계약이 아니다. Workbench overview가 이를 표시한다.
+- `lib/irisErgonCraftGoal.ts`는 추가 목표·확인 산출·own receipt·최대5명령/25날개/5분 예산을 별도 순수 상태로 관리한다. native schema3의 verified completed/정확 debit5/metadata 일치만 진척, pending/unknown은 후속 차단, 장비 재고null 허용. 원장/nonce/typed native 한 요청1..5 craftCount는 변경하지 않는다.
+- Execution은 `savedCraftGoal/onCraftProgress`로 현재 계획ID/계정/캐릭터의 임시 목표상태를 부모에 전달/선택왕복 복원한다. 부모는 원본 목표를 저장한 채 남은 수량만 Workbench/Queue에 주며, 새 추가 목표·수량편집은 명시적으로 진척을 분리한다. 영속 자동재개나 과거 unknown 해제 기능은 없다.
+- 새 게임 소비·임의 CLI·native 원장 마이그레이션·운영 API/DB/RLS/공개 버전·패키지 구조 변경 없음. 관련 회귀·REA 집 설치·실게임/B2 미완료 경계는 HANDOFF/REA_SETUP/IRIS_YEONGGEOP_HANDOFF를 따른다.
+
 ## 2026-10-15 — 순월 검증용 기능 브랜치 인계
 
 - 전송 결과 문서 마감은 구조 변경 없음. 기능 코드 `24c7534`의 인계 브랜치 push·원격 일치 확인, Preview 상태는 MCP 권한403/CLI 부재로 미확인(GitHub 검사 pending 관측). main/운영 구조는 그대로 유지한다.

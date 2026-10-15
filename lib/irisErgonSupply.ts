@@ -1,5 +1,6 @@
 import {ergonSnapshotStale,type ErgonRecipe,type ErgonSnapshot} from './irisErgonRead';
 import type {ErgonRecipeReference} from './irisErgonReference';
+import {parseErgonPlans,type ErgonPlanItem} from './irisErgonPlan';
 
 type Kind='crafting'|'altering';
 export type ErgonSupplyStep={kind:Kind|'gathering'|'collect'|'manual';displayName:string;additionalQuantity:number;runs:number|null;expectedOutput:number|null;state:'preview'|'blocked';note:string};
@@ -8,13 +9,21 @@ export type ErgonSupplyInput={kind:Kind;displayName:string;additionalQuantity:nu
 
 /** Read-only supply sketch. Partial reference facts are never execution-authoritative. */
 export function buildErgonSupplyPreview(input:ErgonSupplyInput):ErgonSupplyPreview{
+ return buildSupply(input,[{id:'single',kind:input.kind,displayName:input.displayName,targetQuantity:input.additionalQuantity}],8);
+}
+type BatchInput=Omit<ErgonSupplyInput,'kind'|'displayName'|'additionalQuantity'>&{plans:ErgonPlanItem[]};
+export function buildErgonSupplyBatchPreview(input:BatchInput):ErgonSupplyPreview{
+ return buildSupply(input,input.plans,4);
+}
+function buildSupply(input:Omit<ErgonSupplyInput,'kind'|'displayName'|'additionalQuantity'>,plans:ErgonPlanItem[],maxDepth:number):ErgonSupplyPreview{
  const result:ErgonSupplyPreview={steps:[],issues:[],referencesNeeded:[],wingMinimum:0,wingMaximum:0,automaticReady:false};
  const issue=(text:string)=>{if(!result.issues.includes(text))result.issues.push(text);};
  const validQuantity=(n:number)=>Number.isSafeInteger(n)&&n>0&&n<=1000000;
- if(!validQuantity(input.additionalQuantity)){issue('목표 수량을 확인해 주세요.');return result;}
+ try{parseErgonPlans({schemaVersion:1,items:plans});}catch{issue('계획은 최대 50개, 목표 수량은 1~1,000,000 정수로 확인해 주세요.');result.wingMaximum=null;return result;}
+ if(!plans.length)return result;
  if(!input.materials||ergonSnapshotStale(input.materials,input.now)){issue('현재 가방을 다시 조회해 주세요.');return result;}
  const fresh=<K extends 'crafting'|'altering'|'gathering'>(kind:K)=>{const frame=input[kind];return frame&&!ergonSnapshotStale(frame,input.now)?frame:null;};
- const left=new Map<string,number|null>(),gathered=new Map<string,ErgonSupplyStep>();let nodes=1;
+ const left=new Map<string,number|null>(),gathered=new Map<string,ErgonSupplyStep>();let nodes=0;
  const stock=(name:string)=>{
   if(left.has(name))return left.get(name)!;
   const matches=input.materials!.data.items.filter(row=>row.name===name),bag=matches.filter(row=>row.location==='inventory');
@@ -26,7 +35,7 @@ export function buildErgonSupplyPreview(input:ErgonSupplyInput):ErgonSupplyPrevi
  };
  const blocked=(name:string,quantity:number,note:string)=>{issue(note);result.steps.push({kind:'manual',displayName:name,additionalQuantity:quantity,runs:null,expectedOutput:null,state:'blocked',note});};
  const need=(name:string,quantity:number,path:Set<string>,depth:number)=>{
-  if(++nodes>32||depth>8){blocked(name,quantity,'수급 경로가 너무 길어요. 계획을 나눠 주세요.');return;}
+  if(++nodes>32||depth>maxDepth){blocked(name,quantity,'수급 경로가 너무 길어요. 계획을 나눠 주세요.');return;}
   if(!validQuantity(quantity)){blocked(name,quantity,'필요 수량이 너무 커요. 계획을 나눠 주세요.');return;}
   if(path.has(name)){blocked(name,quantity,'재료표에 순환 경로가 있어요. 확인이 필요해요.');return;}
   const owned=stock(name);if(owned===null){blocked(name,quantity,'잠김·동명·미확인 재고를 먼저 확인해 주세요.');return;}
@@ -67,10 +76,21 @@ export function buildErgonSupplyPreview(input:ErgonSupplyInput):ErgonSupplyPrevi
   result.steps.push({kind,displayName:name,additionalQuantity:quantity,runs,expectedOutput,state,note:state==='blocked'?'선행 재료를 먼저 확인해야 해요.':kind==='altering'?'가공 등록 뒤 완료품을 수령해야 다음 재료로 사용할 수 있어요.':'목표는 이번에 추가할 결과물이에요.'});
   if(kind==='altering')result.steps.push({kind:'collect',displayName:name,additionalQuantity:expectedOutput,runs:1,expectedOutput,state,note:'시설의 완료품 전체를 수령해요. 비용과 완료 시점은 별도 확인이 필요해요.'});
   // Carry only the unit-rounding surplus, not quantities already reserved for the consuming parent.
-  if(depth>0&&state==='preview')left.set(name,(left.get(name)??0)+expectedOutput-quantity);
+  if(state==='preview'){
+   // Only the rounded excess is available to other goals; never steal a final target's deliverables.
+   const available=stock(name);if(available!==null)left.set(name,available+expectedOutput-quantity);
+  }
  };
  // Root is additional production, not a total-inventory goal: do not subtract existing finished items.
- produce(input.kind,input.displayName,input.additionalQuantity,new Set(),0);
+ for(const plan of plans){
+  if(++nodes>32){blocked(plan.displayName,plan.targetQuantity,'수급 경로가 너무 길어요. 계획을 나눠 주세요.');continue;}
+  if(plan.kind!=='gathering'){produce(plan.kind,plan.displayName,plan.targetQuantity,new Set(),0);continue;}
+  const rows=fresh('gathering')?.data.items.filter(row=>row.name===plan.displayName)??[];
+  if(rows.length!==1||rows[0].toolOk!==true){blocked(plan.displayName,plan.targetQuantity,'최신 채집 품목·도구를 먼저 확인해 주세요.');continue;}
+  const total=(gathered.get(plan.displayName)?.additionalQuantity??0)+plan.targetQuantity;
+  if(!validQuantity(total)){blocked(plan.displayName,plan.targetQuantity,'필요 채집 수량이 너무 커요. 계획을 나눠 주세요.');continue;}
+  gathered.set(plan.displayName,{kind:'gathering',displayName:plan.displayName,additionalQuantity:total,runs:Math.ceil(total/100),expectedOutput:total,state:'preview',note:'추가 채집 목표예요. 실제 수확·중지 지연으로 더 확보할 수 있어요.'});
+ }
  result.steps=[...gathered.values(),...result.steps];
  for(const step of result.steps){
   if(step.state==='blocked'||step.kind==='collect'||step.kind==='manual'){result.wingMaximum=null;continue;}

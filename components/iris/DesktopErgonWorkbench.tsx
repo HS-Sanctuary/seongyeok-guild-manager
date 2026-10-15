@@ -6,6 +6,7 @@ import type {ErgonPlanItem} from '@/lib/irisErgonPlan';
 import type {useErgonSession} from './useErgonSession';
 import type {ErgonRecipeReference} from '@/lib/irisErgonReference';
 import {DesktopErgonSupplyPanel} from './DesktopErgonSupplyPanel';
+import {summarizeErgonFacilities} from '@/lib/irisErgonFacilities';
 
 type Session=ReturnType<typeof useErgonSession>;
 export function DesktopErgonWorkbench({session,plan,characterLabel,disabled,readReference,onAddPlan,view='all'}:{session:Session;plan:ErgonPlanItem|undefined;characterLabel:string;disabled:boolean;readReference?:(kind:'altering'|'crafting',name:string)=>Promise<ErgonRecipeReference|null>;onAddPlan:(kind:ErgonPlanItem['kind'],name:string,quantity:number)=>void;view?:'all'|'overview'|'materials'}){
@@ -23,12 +24,15 @@ export function DesktopErgonWorkbench({session,plan,characterLabel,disabled,read
  const needs=recipe&&catalog&&!ergonSnapshotStale(catalog,session.now)?calculateErgonNeeds(recipe,plan!.targetQuantity,session.snapshots.materials,session.now,reference):null;
  const currency=session.currencies,wings=currency?.items.find(row=>row.name==='정령의 날개')?.amount;
  const works=session.snapshots.works;
+ const facilities=summarizeErgonFacilities(works,session.now);
  const number=(value:number|null|undefined)=>value==null?'미확인':value.toLocaleString('ko-KR');
  return <>
   {view!=='materials'&&<section aria-label="현재 캐릭터 생활 현황" className="iris-ergon-overview"><div className="iris-ergon-title"><h3>{characterLabel||'선택 캐릭터'} · 생활 현황</h3><button type="button" className="iris-desktop-button" data-ergon-role="neutral" disabled={disabled||session.loadingKinds.length>0||session.currencyBusy} onClick={()=>void session.refreshOverview()}>현황 새로고침</button></div>
    <div className="iris-ergon-metrics"><p>정령의 날개 <strong>{number(wings)}</strong></p><p>가방 무게 <strong>{number(session.snapshots.inventory?.data.weight)} / {number(session.snapshots.inventory?.data.maxWeight)}</strong></p><p>가공 완료 <strong>{number(works?.data.completedCount)}</strong></p></div>
    <p className="iris-caption">조회 당시 값 · 대기 중 10초마다 갱신</p>
    {session.currencyNotice&&<p role="alert">{session.currencyNotice}</p>}
+   {facilities.facilities.map(facility=><div className="iris-ergon-facility-status" key={facility.name}><strong>{facility.name} · 등록 {number(facility.registered)}건 · 완료 {number(facility.completed)}건</strong><p className="iris-caption">{!facilities.fresh?'조회가 오래됐어요. 다시 확인해 주세요.':facility.unknown?'완료 여부를 확인하지 못한 작업이 있어요.':facility.reviewCollection?'등록 작업의 절반 이상이 완료됐어요. 전체 수령 대상을 확인해 주세요.':facility.nextReadySeconds===null?'다음 완료 시각 미확인':`다음 완료까지 약 ${Math.ceil(facility.nextReadySeconds/60)}분`}</p></div>)}
+   {!!facilities.facilities.length&&<p className="iris-caption">등록 수는 시설 정원이 아니에요. 전체 수령에는 다른 품목도 포함될 수 있으며 자동 수령·재등록은 하지 않아요.</p>}
    {works&&<details className="iris-ergon-facilities"><summary>가공 시설 ({works.data.items.length}칸)</summary>{works.data.items.map((work,index)=><p key={index}><strong>{work.facility} · {work.name}</strong><span>{work.completed===true?'수령 가능':work.remainingSeconds===null?'남은 시간 미확인':`${Math.ceil(work.remainingSeconds/60)}분 남음`}</span></p>)}{!works.data.items.length&&<p className="iris-caption">조회된 가공 작업이 없어요.</p>}</details>}
   </section>}
   {view!=='overview'&&plan&&<section aria-label="선택 작업 재료" className="iris-ergon-needs"><h3>필요 재료 · 추가 {number(plan.targetQuantity)}개 기준</h3>{[...(needs?.rows??[])].sort((a,b)=>(b.deficit??Infinity)-(a.deficit??Infinity)).map((item,index)=>{

@@ -1,5 +1,22 @@
 # SANCTUM 작업 인계
 
+## 2026-10-15 순월 — 통합 대기열·큰 추가 제작 목표 B1 로컬 후보
+
+- 한설 최신 승인: 점검 중 실게임 검증은 저녁 영겁에게 위임, 사무실은 즉시 설계/구현·자동시험을 진행하고 5시간 잔여15%에서 새 구현 중단·인계/기능브랜치 정상 push. 공개 main/SANCTUMv2.31/IRIS0.3.0·ZIP·공지·DB/RLS 유지. 개인 dirty/루트 삭제/새SVG는 제외·보존한다.
+- 원격 ff-only 최신 HEAD498e254 위 직접 구현. 기존 관제실·A/단일수량 native·unknown 보호는 재구현하지 않았다. 새 통합 대기열은 여러 목표의 같은 가방 재고를 한 번만 예약하고 단위 잔량만 공유한다. root 결과물을 다른 목표가 빼앗지 않으며32노드/4깊이·50계획/참고32품목 직렬 한도, 부분 재료표는 자동실행 권위가 아니다.
+- 시설별 조회 등록/완료/가까운 완료시각을 표시, 조회된 등록 작업 절반 이상 완료 시 전체 수령 대상 확인을 안내한다. 등록수≠시설 정원, 자동 수령·재등록0/비용·정원 미확인. 실패/오래된 값은 실행 판단에 사용하지 않는다.
+- 추가 제작 목표20과 단일명령 최대5횟수를 분리했다. 이번 화면에서 보낸 requestId·현재 계획ID/계정/캐릭터·수량 metadata·정확 날개5 차감과 completed가 모두 맞는 경우만 진척에 반영한다. 장비 null 재고/기존 보유량·과거이력·중복응답은 성과로 세지 않는다. 5명령/날개25/새 준비5분·각요청 native동의 유지, 자동 후속 소비0/unknown 해제0.
+- 부모 관제실은 원본 추가 목표와 임시 목표진척을 구분한다. 완료5/원본20이면 큐·필요재료는 남은15, 선택 왕복에도 진척·예산 유지. 완료 목표 중복 준비 차단, ‘같은 수량으로 새 추가 목표’만 명시적 재설정. 목표 수정은 새 추가 목표, 앱 재시작은 자동 복원/재개하지 않는다.
+- 검증 중간 마감: full Node628/625PASS/3기존skip/0fail, 독립tsc·관련lint0, 실제React 새 queue/craft-goal/goal-workbench 및 기존 workbench/workspace/actions/craft/quantity/supply PASS. 처음 전체Node는 샌드박스 localhost EACCES, 같은 합성시험 일반권한 재검으로 통과. idle 준비취소 뒤 메뉴 왕복의 ‘보낸 작업중지’ 오안내는 기존workspace RED→GREEN 수정. native actor/quantity/journal/CLI/bridge/workspace tracker·strictbool PASS. 격리 webpack58 exit0/private native EXE/ZIP compile PASS. 최종 독립 리뷰·추가 수정 후 검증/전송 SHA는 후속 마감에 기록한다.
+- 비공개 compile만 수행: `.superpowers/sdd/2026-10-15-ergon-shared-queue/private-package/IRIS-beta-20261015-105157-b8a07aea`. 공개 다운로드 교체·설치·개발 앱 실행/강제 종료·게임 명령0. 이 EXE는 배포된 원격 UI를 읽으므로 집의 후보 확인은 로컬 dev+Development 모드로 한다.
+- REA6.5.0은 사무실 실제 MCP 연결/207도구 aligned까지 확인했다. 집은 별도 사용자 설치/MCP+공식스킬·재시작 필요, Gitpull은 설치가 아니다. docs/REA_SETUP.md 및 docs/IRIS_YEONGGEOP_HANDOFF.md 참조. 새 분석 엔진/Rust 설치·타앱 원본 변경/번들 복사0.
+- 남음: 실제 native 수량·비용·중지·수동복구 별도 승인·실검증, 전체 BOM/시설 실제 정원·수령대상·비용 확인 후 native 총예산 부족분 자동chain(B2), 시설 반복 재충전·Chronos 카트·모바일. 기존 S1개는 아이템만 확인/날개불명 unknown을 보존한다. 이 후보를 전체 자동생활 완성/운영배포로 안내하지 않는다.
+
+## 2026-10-15 09:32 KST 순월 — REA 사무실 로컬 연결
+
+- 사용자 REA 설치 승인. npm6.5.0 pin/Codex 전용 사용자설정+백업/공식 .agents workflow42·207tools 설치, 기존configprefix보존. fresh doctor Codex+skill healthytrue/exit0, 별도 MCP initialize/list207/targetfree session PASS. 현재대화도구는재시작후확인필요, 새엔진/Rust설치0/타앱분석·게임파일읽기·실게임동작0.
+- 소스helper사본과공식관리경로차이를확인해정식스킬로정렬, 이번에만든중복사본만ignored privatebackup에보관(삭제0). 사용자타설정·개인dirty유지. docs/REA_SETUP.md에집별도설치·버전고정·검증범위기록, Gitpull은도구/사용자설정/캐시를설치하지않음. 앱코드/DB/배포/commit/push없음. 게임점검중실검증보류/기존unknown보호와보조앱라이선스확인경계유지.
+
 ## 2026-10-15 00:43 KST 영겁 → 순월 — 검증 위임·인계 브랜치 전송
 
 - 전송 마감: 코드 `24c7534129e14811d0caa3fe7b2666e6119ea9cf` 일반 push 성공, `ls-remote`와 정확히 일치. 원격 main `1d8e3749f306456bea1c2a7b2e05da813b98e5fa` 유지. 이번 후속은 전송 결과만 기록하는 문서 마감이므로 최신 branch HEAD까지 받는다. 사용자 개인 dirty/삭제/untracked만 로컬에 보존했다.
