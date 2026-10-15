@@ -1,4 +1,8 @@
 const messages:Record<string,string>={
+ life_reconcile_unavailable:'이전 작업 종료를 확인하지 못했어요. 게임 연결과 진행 중인 작업을 확인해 주세요.',
+ life_request_replayed:'이미 보낸 수령 요청이에요. 결과를 확인 중이에요.',
+ life_collection_permission:'원클릭 수령 허용이 필요해요.',
+ life_permission_corrupt:'수령 허용 정보를 읽지 못했어요. 원본을 보존하고 실행을 멈췄어요.',
  life_unresolved:'완료 여부가 미확정인 기록이 있어 새 작업을 보호 중이에요. 이전 게임 결과와 기록부터 확인해 주세요.',
  life_not_enough_wings:'정령의 날개가 5개보다 적어요. 현재 보유량을 확인해 주세요.',
  life_game_blocked:'현재 게임이 작업 가능한 대기 상태가 아니에요. 전투·이동·대화·던전 등이 끝난 뒤 준비해 주세요.',
