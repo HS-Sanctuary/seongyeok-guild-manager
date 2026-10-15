@@ -16,6 +16,11 @@ namespace IrisDesktop {
         static readonly UTF8Encoding Utf8=new UTF8Encoding(false,true);
         static readonly string[] Fields={"requestId","accountId","characterId","action","displayName","expectedWings","startedAt","state"};
         public string FilePath {get;private set;}
+        Func<string,Dictionary<string,object>,bool> separation;
+        public void BindSeparation(Func<string,Dictionary<string,object>,bool> predicate){separation=predicate;}
+        bool Blocks(Dictionary<string,object> row){return Unresolved(row)&&!(separation!=null&&separation(environment,row));}
+        public Dictionary<string,object>[] UnresolvedEntries(){return Locked(()=>Read().Where(Unresolved).Select(row=>json.DeserializeObject(json.Serialize(row)) as Dictionary<string,object>).ToArray());}
+        public static void ValidateRecord(Dictionary<string,object> row){Validate(new List<Dictionary<string,object>>{row});}
         public DesktopLifeJournal(string root,string environment):this(root,environment,true){}
         public DesktopLifeJournal(string root,string environment,bool recoverInflight){
             if(!Path.IsPathRooted(root)||!new[]{"development","production"}.Contains(environment))throw new ArgumentException();
@@ -35,7 +40,7 @@ namespace IrisDesktop {
         static bool Text(object value,int limit){var s=value as string;return !String.IsNullOrWhiteSpace(s)&&s.Length<=limit&&!s.Any(c=>c<32||c==127);}
         static bool Integer(object value,long min,long max){if(!(value is int||value is long||value is decimal||value is double))return false;try{var n=Convert.ToDecimal(value);return n>=min&&n<=max&&Decimal.Truncate(n)==n;}catch{return false;}}
         static bool Unresolved(Dictionary<string,object> record){return Equals(record["state"],"inflight")||Equals(record["state"],"unknown");}
-        void Validate(List<Dictionary<string,object>> rows){
+        static void Validate(List<Dictionary<string,object>> rows){
             if(rows.Count>300)throw new IOException("Life journal limit");var ids=new HashSet<string>();
             foreach(var row in rows){Guid id;
                 if(row==null||!(row.Count==Fields.Length||row.Count==Fields.Length+1&&(row.ContainsKey("gathering")||row.ContainsKey("crafting")))||Fields.Any(field=>!row.ContainsKey(field))||!(row["requestId"] is string)||!Guid.TryParse((string)row["requestId"],out id)||id==Guid.Empty||!ids.Add(id.ToString("D"))||!Text(row["accountId"],100)||!Text(row["characterId"],100)||!Text(row["displayName"],160)||!new[]{"gathering","altering","crafting","collect"}.Contains(row["action"] as string)||!new[]{"inflight","unknown","registered","completed","rejected","stopped"}.Contains(row["state"] as string)||!Integer(row["startedAt"],1,8640000000000000L)||!(Equals(row["action"],"collect")?row["expectedWings"]==null:Integer(row["expectedWings"],5,5)))throw new IOException("Life journal invalid");
@@ -63,10 +68,10 @@ namespace IrisDesktop {
             try{using(var stream=new FileStream(temporary,FileMode.CreateNew,FileAccess.Write,FileShare.None)){stream.Write(encrypted,0,encrypted.Length);stream.Flush(true);}if(File.Exists(FilePath))File.Replace(temporary,FilePath,null);else File.Move(temporary,FilePath);}
             finally{if(File.Exists(temporary))File.Delete(temporary);}
         }
-        bool PeerUnresolved(){foreach(var mode in new[]{"development","production"}){if(mode==environment)continue;var file=Path.Combine(rootPath,mode,"ergon-actions-v1.dpapi");if(File.Exists(file)){var peer=new DesktopLifeJournal(rootPath,mode,false);if(peer.Locked(()=>peer.Read().Any(Unresolved)))return true;}}return false;}
-        public bool HasUnresolved(){return Locked(()=>Read().Any(Unresolved))||PeerUnresolved();}
+        bool PeerUnresolved(){foreach(var mode in new[]{"development","production"}){if(mode==environment)continue;var file=Path.Combine(rootPath,mode,"ergon-actions-v1.dpapi");if(File.Exists(file)){var peer=new DesktopLifeJournal(rootPath,mode,false);peer.BindSeparation(separation);if(peer.Locked(()=>peer.Read().Any(peer.Blocks)))return true;}}return false;}
+        public bool HasUnresolved(){return Locked(()=>Read().Any(Blocks))||PeerUnresolved();}
         public void Begin(string requestId,string accountId,string characterId,string action,string displayName,int? expectedWings){Locked(()=>{
-            var rows=Read();Guid id;if(!Guid.TryParse(requestId,out id)||id==Guid.Empty||rows.Any(row=>Equals(row["requestId"],id.ToString("D")))||rows.Any(Unresolved)||PeerUnresolved())throw new IOException("Life action blocked");
+            var rows=Read();Guid id;if(!Guid.TryParse(requestId,out id)||id==Guid.Empty||rows.Any(row=>Equals(row["requestId"],id.ToString("D")))||rows.Any(Blocks)||PeerUnresolved())throw new IOException("Life action blocked");
             long now=(long)(DateTime.UtcNow-new DateTime(1970,1,1)).TotalMilliseconds;
             rows.RemoveAll(row=>!Unresolved(row)&&now-Convert.ToInt64(row["startedAt"])>30L*86400000);
             while(rows.Count>=300){var oldest=rows.FindIndex(row=>!Unresolved(row));if(oldest<0)throw new IOException("Unresolved journal full");rows.RemoveAt(oldest);}
