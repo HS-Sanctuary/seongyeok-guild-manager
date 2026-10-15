@@ -1,5 +1,10 @@
 # 🏛️ SANCTUM Master Guide
 
+## 2026-10-15 — B1 기능브랜치 전송 결과 문서 마감
+
+- 구조 변경 없음. 기능02cde76/리뷰수정520d136 일반push·원격일치/main1d8e374유지. 아래 B1 로컬모델/큐/진척 구조만 인계하며 운영 API/DB/RLS·공개IRIS0.3.0 구조는 그대로다.
+- GitHub Vercel success는 확인, 동일scope MCP403/CLI없음으로 직접Ready·실화면미확인. 정상운영배포/전체자동생활완료 의미가 아니다. 집 수신·REA별도설치·실검증 경계는 HANDOFF와 IRIS_YEONGGEOP_HANDOFF를 따른다.
+
 ## 2026-10-15 — ERGON B1 통합 큐·추가 제작 진척 로컬 구조
 
 - 최종후보 whole629/626PASS3skip/독립타입·lint·격리58 PASS, 완료최종품 예약 회귀수정으로 한계·구조 검증. 운영 DB/API/RLS/native bridge/원장/공개버전 구조변경 없음. 기능브랜치 전송은 운영배포 완료를 뜻하지 않는다.

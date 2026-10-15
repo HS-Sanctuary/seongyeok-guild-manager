@@ -1,5 +1,11 @@
 # SANCTUM 업데이트 노트
 
+### 2026-10-15 11:05 KST — B1 인계 전송 마감 / 구조 변경 없음
+
+- 기능02cde76/검토수정520d136 정상push·원격exact일치, main1d8e374 유지. 공개 SANCTUMv2.31/IRIS0.3.0·다운로드·공지·DB/RLS 변경0. 이 후속은 문서만 변경, 구조 변경 없음.
+- 코드629/626PASS3기존skip/타입·l​​int/최종격리58 및 실제React·관련native/privatecompile PASS. 독립 중요1 최종품 예약 RED→GREEN/재리뷰0, 실제 게임 검증·unknown해제는 하지 않았다.
+- GitHub Vercel status success/동일520d136 확인. Vercel MCP403·CLI없음으로 직접 Ready·실페이지 미확인, 우회/임시공유링크/수동배포0. 집 실제검증 및 후속 B2는 HANDOFF/IRIS_YEONGGEOP_HANDOFF를 따른다. 인계 push를 공개 배포 완료로 표시하지 않는다.
+
 ### 2026-10-15 KST — ERGON 통합 대기열·큰 제작 목표 B1 후보 / 공개 버전 유지
 
 - 최종 자동검증: 중요지적 수정본 전체629/626PASS/3기존skip/0fail, 독립tsc·관련eslint0, 최종격리webpack58/58 exit0. 새 Queue 예약 회귀 및 기존 진척·큐 화면 GREEN. 실제 게임·Preview실화면·설치 검증으로 대신하지 않는다. 인계브랜치 정상push/원격확인 결과는 후속 전송기록.

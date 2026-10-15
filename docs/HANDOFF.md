@@ -1,5 +1,12 @@
 # SANCTUM 작업 인계
 
+## 2026-10-15 11:05 KST 순월 — B1 전송 완료·집 인수 검증 대기
+
+- 기능 `02cde7633b037b2d9ae3146327d27fde082583ba` + 리뷰수정 `520d136730c4f180e7fd35a34da0dd9170930328`을 `codex/iris-checkboard-classes`에 정상 push, `ls-remote` 정확 일치. 원격 main `1d8e3749f306456bea1c2a7b2e05da813b98e5fa` 유지. 이 후속은 전송 결과만 기록하는 문서 마감이며 최신 branch HEAD까지 받는다.
+- GitHub commit status Vercel **success** 확인: https://vercel.com/sanctum-sanctuary/sanctum/14UZgf1y3gnmDu32LkKFvQLMUb2X . Vercel MCP는 동일 project/team 명시 시403, CLI 미설치로 직접 Ready/보호된 실제 화면 미확인. 인증·공유링크·환경변수/세션 추출·보호 해제·수동 배포·승격0. 성공 상태와 실페이지/실게임 검증을 구분한다.
+- 최종 코드 자동검증629/626PASS3기존skip0fail·독립타입/관련lint0·최종격리webpack58exit0, 새·구 실제React/관련native/private패키지compile PASS. 단일fresh리뷰 중요1만 한 번 RED→GREEN 수정/사소0/재리뷰0. 자세한 판단과 비용·검증 경계는 IRIS_YEONGGEOP_HANDOFF의 마지막 두 절을 참조한다.
+- 공개 SANCTUMv2.31/IRIS0.3.0/main/ZIP/공지/DB/RLS 그대로. 이번 문서 마감은 구조 변경 없음. 개인dirty·삭제·SVG·옛 계획은 제외·보존, 실제 게임/unknown해제0. 영겁 첫 작업은 수신ACK/REA별도설치 확인→로컬 dev+Development앱→한설과 소규모 실제 검증이다. B2 자동chain/시설 반복/Chronos/모바일은 여전히 미완료.
+
 ## 2026-10-15 순월 — 통합 대기열·큰 추가 제작 목표 B1 로컬 후보
 
 - 검증 마감: 중요지적 수정 후 fresh 전체629/626PASS/3기존skip/0fail·독립tsc/관련lint0error0warning·수정본격리webpack58/58 exit0. 완료최종품 예약 회귀/기존진척·큐 실제React GREEN, 이전 native/private compile 증거 유지(이번 native소스변경0). 단일리뷰 지적1건 수정/재리뷰0, 실게임/원장해제/운영/공개ZIP0. 최종 사용량은5h잔여19%/주간20%로15%전, 신규소비기능은넓히지않고 인계·정상push 마감만 진행한다.
