@@ -1,5 +1,17 @@
 # REA 로컬 설치·집 PC 인계
 
+## 집 설치 — 2026-10-15 KST / 영겁 / 실제 Codex 연결 확인
+
+- **재시작 후 확인 완료:** 현재 대화의 실제 REA MCP `binary_session(expected_package_version:"6.5.0")` 호출 성공. client=`codex-mcp-client`, 서버/패키지6.5.0, catalog207도구, workflow42, alignment=aligned, open=false. 독립 smoke가 아니라 현재 Codex 연결에서 받은 응답이다. 분석 대상 열기·게임 개입·추가 엔진 설치는 하지 않았다. 아래 재시작 대기는 설치 당시 경과로 보존하며 추가 재설치/doctor는 필요하지 않다.
+
+- 한설의 동일버전·Codex 한 곳 설치 요청으로 확인했다. 집 Node24.18.0/npm11.16.0은 지원 범위, 기존 REA 전역패키지·npm 캐시·Codex 등록·공식/중복 스킬이 없었다. 프로젝트 기준 HEAD67300b1과 SW-20261015-001을 수신하고 ACK했다. 공식 저장소/설치문서와 npm `rea-agents@6.5.0`의 repository/version/integrity를 확인했다.
+- `npx --yes --ignore-scripts rea-agents@6.5.0 setup --client codex --dry-run --json`의 두 변경(Codex 등록/공식 스킬)만 검토 후 같은 명시 범위로 적용했다. 다른 클라이언트 등록·Hopper/Ghidra/IDA/JADX/Rust/Java 추가 설치 없음. 프로젝트 npm 의존성 변경 없음.
+- 쓰기 전 Codex 설정을 별도 `config.toml.rea-home-20261015-1616.backup`에 복사하고 해시 일치 확인, 공식 `config.toml.rea.backup`도 원본과 일치. 설치 후 기존 설정 바이트 prefix가 그대로임을 검증했다. 이 설정·백업은 사용자 전용이며 원문·인증정보를 Git/채팅에 옮기지 않는다.
+- Codex 등록은 `cmd.exe /d /c npx -y rea-agents@6.5.0 mcp`, startup30초. 공식 스킬은 사용자 `.agents/skills/reverse-engineer-anything` workflow42/tool_count207, `.codex/skills` 중복 사본 없음. scoped doctor exit0/healthytrue/registration·skill aligned. environment_healthyfalse는 추가 분석 엔진이 없는 상태이며 모든 분석 기능의 사용 가능을 뜻하지 않는다. 필요해지면 한설에게 별도 요청한다.
+- 별도 stdio 시험의 initialize는 REA6.5.0, tools/list207, `binary_session(expected_package_version:"6.5.0")` 성공/alignment aligned/openfalse를 확인했다. 대상 파일을 열거나 게임/보조프로그램에 접근·개입하지 않았다. 이 시험은 독립 시험 클라이언트이며 현재 Codex 대화의 연결 증거가 아니다.
+- **남은 확인:** 설치 직후 이 대화에는 REA 도구가 아직 없고 정상 Codex 재시작이 필요하다. 안전한 자기 재시작 기능은 없으므로 한설이 앱을 정상 종료·재실행한 뒤 이 대화에서 실제 REA `binary_session` 호출로 확인한다. 설치/doctor 반복 대신, 재시작 뒤에도 도구가 없으면 MCP 시작 오류부터 점검한다. 실제 연결 확인 전에는 완료로 표기하지 않는다.
+- 이번 작업은 설치 문서·수신 ACK만 로컬 갱신, 앱 코드·운영 DB·게임 파일·공개 ZIP·버전·공지 변경 없음. 새 commit/push는 요청하지 않아 실행하지 않았다.
+
 ## 사무실 설치 — 2026-10-15 09:32 KST / 순월
 
 - 한설의 `REA 설치해서 해보자` 승인으로 공식 npm `rea-agents@6.5.0` 고정 버전 설치·연결. Node24.18.0, 요구사항은22.19+/24.11+/26+ 계열. 전역 프로젝트 의존성 추가 없이 npm 패키지 캐시/버전고정 npx 실행 사용.

@@ -1,5 +1,25 @@
 # 🏛️ SANCTUM Master Guide
 
+## 2026-10-15 — ERGON 원클릭 수령 정책1 로컬 구조
+
+- `DesktopLifeAutomationStore`: 환경별 별도 DPAPI 허용/감사 이력, 원본의 정렬 JSON SHA256 결합, 첫 감사 전 암호화 원장 백업·원자 교체. `DesktopLifeJournal.BindSeparation`은 원본 state/history1..3를 보존하며 own/peer/Begin 차단만 동일하게 계산한다. 구형 미연결 경로는 기존 엄격 차단이다.
+- `DesktopCliActivity`: 고정 런처 3종의 read/action PID 등록, 미분류 CLI/조회 종료 대기, 게임 프로세스 PID·시작 시각만 확인하며 게임 메모리/파일에 접근하지 않는다. `DesktopLifeReconciliation`은 이전 세션/12분·lease·CLI·두 fresh idle·동일 문맥/epoch/hash의 순수 복합 판정이다.
+- `DesktopLifeExecutor.CollectOneClickAsync`: 정확한 클릭 요청 ID/120초→최초 native 허용→읽기 대기/전역 lease→과거 unknown 감사 분리→fresh 전체 조건/시설 고정→Begin→기존 Run 1회. 이탈 취소는 기존 nonce cancel로 커밋 전만 무효화한다. native Busy는 조정 중에도 잠그되 state의 idle/busy 계약은 보존한다. 기존 채집/제작 최종 동의·중지·수량/예산은 그대로다.
+- bridge는 `game.life.actions.collect`, `collectionPolicy`, `revokeCollection`만 추가하며 capability schema4에 원클릭/자동 정리/정책 버전을 명시한다. 페이지가 허용 boolean이나 임의 명령/경로를 쓸 수 없다. 문맥 변경은 준비를 무효화하지만 실행 중 Run에서는 거절한다. 자체 read 충돌은 최대10초 기다린다.
+- `irisErgonAutomation`의 exact policy/요청/capability 파서→`irisDesktopStore` 고정 메서드→`irisErgonCollection` 한 flight/기한/소비 재전송0. `DesktopErgonExecution` 단일 결과 관측/분리된 과거 기록·조회 오류 회복, `DesktopErgonCollectionPermission` 기존 focus dialog로 철회. 시설 카드의 표시 이름만 ‘금속 가공’처럼 줄이고 container 두 열/좁은 한 열로 배치한다. 실제 anchor/시설 문자열은 바꾸지 않는다.
+- 로컬 후보이며 실제 권한 허용/과거 원장 자동 분리/실게임 비용 검증은 사용자 정상 재시작 후 별도다. DB·서버API·RLS·공개 버전/ZIP·main·배포 변경 없음. 아래 이전 구조는 작업 경과로 보존한다.
+
+## 2026-10-15 — ERGON 시설 버튼 직접 최종 동의 연결
+
+- 앞선 미리보기 전용 해석을 한설 요청으로 정정. 시설 버튼→`requestErgonCollection`의 현재 문맥/busy/unknown·완료품 검사→기존 native prepare/응답 시설·신원 대조→기존 native confirm 1회. `complete_altering_work`가 시설 이동과 그 시설의 완료품 전체 수령을 포함한다. 새 bridge/API/DB/게임 파일 변경 없이 기존 executor·원장·시설 고정을 재사용한다.
+- ConnectedErgon의 클릭 ref 잠금/범위 sequence로 연타·늦은 응답을 막고 기존 Execution busy와 합친다. 단일 Execution은 상태·보호 기록을 계속 관측하며 수령 전용 중간 준비 버튼만 숨긴다. 작은 화면은 자동 실행 확인 영역으로 초점·스크롤을 이동한다. 자동 수령 반복/재등록/unknown 해제는 없다. 설치본 호출 추적 근거는 `docs/IRIS_COLLECTION_COMMAND_TRACE_20261015.md`.
+
+## 2026-10-15 — ERGON 시설 수령·컴팩트 현황 로컬 구조
+
+- Workbench의 시설별 짧은 수령 진입→ConnectedErgon의 계정/캐릭터 scope 수령 미리보기→같은 Execution 인스턴스의 collect 준비/취소/최종 동의. `irisErgonCollection`은 fresh 완료목록·동명시설 모호성 검사, 응답 시설·계정 일치 후에만 nonce 유지. 준비 전 비용 미확인/시설 완료품 전체를 표시하며 자동 행동/unknown 해제는 없다.
+- `DesktopLifeExecutor`의 기존 collect 준비 nonce에 내부 collectionFacility를 고정하고 동의 전후 재검한다. 외부 bridge/원장 스키마/서버 API/DB/RLS 권한 변경 없음. 과거 결과불명은 계속 차단한다.
+- `ErgonFacilityIcon`은 사용자 첨부 PNG6종/Next Image 최적화 사용, 원본은 public/IRIS/facilities에 보관. 시설행은 아이콘·이름/완료수·수령버튼 1~2줄, 공통 안내만 details. 새 native는 정상 재시작 후 적용하며 로컬 후보/공개버전·ZIP·운영main은 유지한다.
+
 ## 2026-10-15 — B1 기능브랜치 전송 결과 문서 마감
 
 - 구조 변경 없음. 기능02cde76/리뷰수정520d136 일반push·원격일치/main1d8e374유지. 아래 B1 로컬모델/큐/진척 구조만 인계하며 운영 API/DB/RLS·공개IRIS0.3.0 구조는 그대로다.

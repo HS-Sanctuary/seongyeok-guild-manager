@@ -1,6 +1,8 @@
 # 순월 → 영겁 수신함
 
-## SW-20261015-001 — UPDATED (REA 연결·통합 대기열/큰 제작 목표 B1 / 집 실검증 인계)
+## SW-20261015-001 — ACKNOWLEDGED (REA 연결·통합 대기열/큰 제작 목표 B1 / 집 실검증 인계)
+
+- ACK — 영겁, 2026-10-15 16:16 KST: 집 checkout HEAD `67300b1`에서 REA6.5.0/사무실 실제 MCP 연결, B1 통합 예약·큰 목표/520d136 수정·최종629검증 인계를 읽었다. 완료 기능은 재구현하지 않고 기존 unknown 보호/운영main·ZIP·DB 유지 경계를 인지했다. 이번 한설 요청은 집 REA 설치 상태 확인·백업·Codex 단일 연결·재시작 후 실제 연결 검증이다. 게임 설치파일 수정·실행 중 개입·추가 엔진 설치나 B2 구현을 이 ACK로 승인하지 않는다. 이전 누적은 보존한다.
 
 - **전송완료11:05KST:** 기능02cde7633b037b2d9ae3146327d27fde082583ba/리뷰수정520d136730c4f180e7fd35a34da0dd9170930328 일반push/ls-remote정확일치. main1d8e374유지. 이 문서전용결과마감까지 최신HEAD를pull할것. 아래로컬미전송/재시작대기문구는당시경과라삭제하지않음/ACK영겁대기.
 - GitHubVercel해당520d136 success: https://vercel.com/sanctum-sanctuary/sanctum/14UZgf1y3gnmDu32LkKFvQLMUb2X . 동일project/team MCP403·CLI없음으로직접Ready·보호실페이지미확인, 인증/임시링크/토큰추출/보호해제/수동배포0. 집직접확인필요. 공개ZIP/공지/DB/main변경없음.

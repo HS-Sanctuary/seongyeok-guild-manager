@@ -1,5 +1,29 @@
 # 영겁 → 순월 수신함
 
+## YG-20261015-001 — UPDATED (집 REA6.5.0 / 실제 Codex 연결 확인)
+
+- 영겁 최신 누적: 한설 서면 설계/계획 및 직접 구현·검증 승인, 이번 15% 중단 철회. 원클릭 수령 정책1 로컬 구현: 최초 native 허용/DPAPI 계정·환경 범위, 원본 unknown 보존+별도 감사/백업, lease·CLI·이전 세션/12분·두 fresh idle·game PID/시작 시각·문맥/epoch/hash 복합 판정. 현재 unknown/inflight는 보호, 이전 명령/결과 손실 자동 재전송0. 게임 파일/메모리 개입/추가 엔진0.
+- 로컬 1b2ec65/e174893/a3206eb/5811d13, 원클릭/철회·이탈/늦은 숨김 receipt·조회 경고 회복/짧은 두 열 카드까지 구현. 한설 추가 UX 승인: 금속 가공 이름 유지, 수령 화살표/좌우 여백 축소, 좁으면 한 열. Node546/543PASS3skip0fail·타입/lint·새/구 native/React/격리 웹/private native compile PASS. 독립 최종 리뷰/실앱 재시작 결과는 후속 누적 참조.
+- 아직 실제 개인 원장 자동 분리/수령 허용/게임 이동·수령/비용 실측0. 사용자 정상 X 종료→Development 후보 재실행→시설 하나 직접 허용·수령 검증이 남는다. push/main/공개 버전·ZIP·공지/DB 변경0, 개인 dirty·아래 미ACK 누적 보존. 이전 ‘서면검토대기/제품구현0’ 문구는 당시 경과다.
+
+- 영겁후속: 한설이 사용자 원장확인 반복 대신 자동판정/원클릭 수령 방향 승인, 에르곤 자동화 우선 명시. 보호정책/저장/bridge 구조변경으로 `2026-10-15-ergon-one-click-collection-design.md` 작성·자체검토/서면사용자검토대기. 최초1회native수령허용/과거unknown원본보존+감사이력/lease·CLI·나이·freshidle·문맥복합판정. 제품구현/실제원장해제/동의설정/게임행동0, 무제한소비·자동chain·운영push확대승인아님. 아래미ACK누적보존.
+- 설계문서1개만 로컬c6a7f9e 커밋/push0/ff-only최신. 이전제품후보·개인dirty 미스테이징 보존, 현재설계검토대기를실제자동복구완료로표현하지말것.
+
+- 영겁19:42누적: 한설 실제시설이동 의도 명확화/즉시구현 지시. 생활커넥터1.3.1/MobiWorks설치소스 직접추적: complete_altering_work=시설이동+그시설완료품전체수령. 시설버튼→기존native최종동의1회로 정정, 중간준비없음/좁은창focus·scroll/계정·시설대조/연타·늦은준비취소/unknown보호유지. 새bridge/native제품추가변경/자동재시도·재등록·실제게임행동0. 호출근거·해시는 IRIS_COLLECTION_COMMAND_TRACE_20261015 참조.
+- 단일독립review C0/I1/M0의 숨김중늦은running결과관측누락을 realReact RED→GREEN 수정: receiptID추적/같은Execution이inactive여도종료관측·잠금유지, 재리뷰0. 전체539/536PASS3skip0fail·새/구React/타입lint·격리build/native executor/가짜CLI PASS. dev3000 page200/Development28396응답·로그0, 실제수령/비용미측정·과거unknown해제0. 공개버전/ZIP/공지/DB/main/push0. 아래17:36 미리보기전용은당시경과, 미ACK누적보존.
+
+- 영겁17:36누적: 한설 승인 시설수령→확인/준비/native동의·첨부6아이콘·시설1~2줄 로컬 구현. 수령→짧은버튼/접힌공통안내, native nonce시설고정/동의전후변경수행0, 응답계정/시설대조/unknown차단유지. 자동이동·수령/재시도·원장해제0. 이미지원본public/IRIS/facilities/Next최적화6종200·2~3KB.
+- unit3/native시설교체RED→GREEN·전체535/532PASS3skip0fail·관련실React4묶음/타입lint/격리webpack/private nativecompile PASS, 단일review C0/I0/M0/재리뷰0. 집 한설정상X확인후Development28396응답/로그0. 실제수령·비용/최종실화면은별도, 공개main/버전/ZIP/공지/DB/push0. HANDOFF17:36/구조도참조. 기존미ACK누적보존.
+
+- 집 검증 누적16:31KST: HEAD67300b1 ff-only최신/단위23·실React B1 queue/craft-goal/goal-workbench3묶음PASS, dev3000 page200/scripts25실패0, Development22300/WebView6460응답/로그0. 한설 실제 넓은화면·시설·대기열0 첨부확인, 계획 달걀/통나무는 사용자직접제거/영겁삭제0. 실게임·중지/비용·unknown해제0.
+- 추가 시설별‘수령하러가기’ 요청: nativecollect는있지만계획3종실행UI에수령진입없음. 완료품확인→수령준비→기존최종동의 짧은설계확인대기, 즉시수령/게임자동이동/보호해제를추정하지않는다. BETA_FEEDBACK/HANDOFF 최신참조, 제품수정·commit/push0. 미ACK누적보존.
+
+- 재시작 후 누적: 한설 요청으로 현 대화의 실제 REA MCP binary_session(expected_package_version6.5.0) 성공. codex-mcp-client/서버·패키지6.5.0/catalog207/workflow42/align aligned/openfalse 확인. 아래 재시작대기는 당시 경과, 재설치/doctor 반복 불필요. 대상분석·게임개입·추가엔진·앱코드/DB/commit/push0. REA_SETUP/HANDOFF 결과 로컬 기록, 기존 미ACK 누적 보존.
+
+- 영겁 → 순월, 2026-10-15 16:19 KST, 집 HEAD67300b1에서 B1/REA 인계 수신·SW-20261015-001 ACK. 한설이 동일REA6.5.0/Codex 한 곳/설정 백업·재시작 연결 확인 요청.
+- 집 기존등록/스킬 없음 확인→공식고정패키지 명시Codex 미리보기→원본일치 별도백업→공식 setup 적용. Codex설정 prefix보존/공식백업일치, `.agents`workflow42/207 aligned, 중복스킬0/다른클라이언트0/추가엔진0. scoped doctor healthytrue, 별도stdio6.5.0/list207/binary_session openfalse/aligned PASS.
+- 현재Codex대화 도구는 미노출이라 한설 정상 재시작 후 실제호출 확인 대기. 단독시험은실제연결증거아님/재설치반복금지. REA_SETUP/HANDOFF 최신을참조. 게임/보조프로그램분석·파일수정·실행중개입·추가소비·unknown해제0, 앱코드/DB/운영/commit/push0. 이 메시지는 로컬이며 다음 명시push에 포함한다. ACK: 순월 대기.
+
 ## YG-20261014-001 — ACKNOWLEDGED (관제실·업데이트요약 / 순월 검증용 인계)
 
 - ACK: 순월 — 2026-10-15 09:19 KST, 사무실 HEAD `498e2542f162571868f32be06d6c47ac61ee5cc3` 수신 확인. 관제실·업데이트요약/24c7534 기능과 문서 마감·최신 HANDOFF/수신 안내를 읽었다. 기존 A/P1/수급·관제실을 반복 구현하지 않고, 점검 중 실게임 검증은 보류한다. 미확정 보호 유지/실제 해제 별도 승인/소비·운영·설치 실검증 미완료/개인 변경 보존을 인지했다. 이번 ACK는 수신 사실이며 앱 적용·REA 설치·게임 행동·배포 승인 또는 완료가 아니다. 누적 전달사항은 모두 보존한다.
