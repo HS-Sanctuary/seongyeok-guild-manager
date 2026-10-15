@@ -1,6 +1,10 @@
 # 🏛️ SANCTUM Master Guide
 
+- 2026-10-15 23:33 KST 인계 마감: 원클릭 수령 구조는 아래 승인 후보대로이며 이번 문서 마감 자체는 구조 변경 없음. 공개 버전/운영 API·DB·RLS 유지. 생활 현황 한 줄3칸/15초 갱신은 후속 미구현 제안이며 현재10초다. 실게임 수령 검증 전 운영 배포 완료로 표시하지 않는다.
+
 ## 2026-10-15 — ERGON 원클릭 수령 정책1 로컬 구조
+
+- 최종 검토 보완: bridge의 읽기 대기를 `BindCollectionReadWait`로 actor 안에서 수행해 클릭 ID의 취소 수명을 끊지 않는다. 새 정확한 읽기 전용 `collectionObservation(requestId/accountId/characterId)`는 checking/running/완료·unknown·취소·거절만 반환한다. 메모리 시도 기록은40개로 한정하고 최종 결과는 원본 journal과 실행 task를 확인한다. 소스/epoch/monotonic bridge ID·계정 경계는 유지하고 임의 행동은 받지 않는다. UI는 전송 전 ID를 관측자에 등록해 receipt 유실/숨김 중에도 terminal까지 관측하며 예전 flight가 새 요청을 풀지 못하게 한다.
 
 - `DesktopLifeAutomationStore`: 환경별 별도 DPAPI 허용/감사 이력, 원본의 정렬 JSON SHA256 결합, 첫 감사 전 암호화 원장 백업·원자 교체. `DesktopLifeJournal.BindSeparation`은 원본 state/history1..3를 보존하며 own/peer/Begin 차단만 동일하게 계산한다. 구형 미연결 경로는 기존 엄격 차단이다.
 - `DesktopCliActivity`: 고정 런처 3종의 read/action PID 등록, 미분류 CLI/조회 종료 대기, 게임 프로세스 PID·시작 시각만 확인하며 게임 메모리/파일에 접근하지 않는다. `DesktopLifeReconciliation`은 이전 세션/12분·lease·CLI·두 fresh idle·동일 문맥/epoch/hash의 순수 복합 판정이다.
