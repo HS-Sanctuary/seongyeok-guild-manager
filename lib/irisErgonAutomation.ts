@@ -1,7 +1,10 @@
 export type ErgonCollectionPolicy={schemaVersion:1;policyVersion:1;granted:boolean;separatedRequestIds:string[]};
 export type ErgonCollectionRequest={requestId:string;requestedAt:number;accountId:string;characterId:string;facility:string;displayName:string};
+export type ErgonCollectionIdentity=Pick<ErgonCollectionRequest,'requestId'|'accountId'|'characterId'>;
+export type ErgonCollectionObservation={schemaVersion:1;id:string;state:'checking'|'running'|'completed'|'unknown'|'cancelled'|'rejected'};
 const uuid=/^(?!00000000-0000-0000-0000-000000000000$)[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 function exact(value:unknown,keys:string[]):value is Record<string,unknown>{return !!value&&typeof value==='object'&&!Array.isArray(value)&&Object.keys(value).length===keys.length&&keys.every(key=>Object.hasOwn(value,key));}
+export function parseErgonCollectionObservation(value:unknown,id:string):ErgonCollectionObservation{if(!exact(value,['schemaVersion','id','state'])||value.schemaVersion!==1||value.id!==id||!uuid.test(id)||!['checking','running','completed','unknown','cancelled','rejected'].includes(String(value.state)))throw Error('수령 요청 상태를 확인하지 못했어요.');return value as ErgonCollectionObservation;}
 export function automationText(value:unknown,max=100):value is string{return typeof value==='string'&&!!value.trim()&&value.length<=max&&!/[\x00-\x1f\x7f]/.test(value);}
 export function parseErgonCollectionPolicy(value:unknown):ErgonCollectionPolicy{
  if(!exact(value,['schemaVersion','policyVersion','granted','separatedRequestIds'])||value.schemaVersion!==1||value.policyVersion!==1||typeof value.granted!=='boolean'||!Array.isArray(value.separatedRequestIds)||value.separatedRequestIds.length>300||value.separatedRequestIds.some(id=>typeof id!=='string'||!uuid.test(id))||new Set(value.separatedRequestIds.map(id=>(id as string).toLowerCase())).size!==value.separatedRequestIds.length)throw Error('수령 허용 상태를 확인하지 못했어요.');

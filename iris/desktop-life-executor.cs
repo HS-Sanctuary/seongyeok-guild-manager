@@ -13,6 +13,20 @@ namespace IrisDesktop {
   readonly SemaphoreSlim mutation=new SemaphoreSlim(1,1);readonly object stateGate=new object();
   Dictionary<string,object> context,prepared,current;long contextVersion;Task running;Task<string> performTask;
   readonly long sessionStartedAt;bool coordinating;string pendingCollectionId;DesktopLifeAutomationStore automation;Func<object,bool> authorizeCollection;Func<Task<Dictionary<string,object>>> collectionProbe;
+  Func<Task<bool>> collectionReadWait=()=>DesktopCliActivity.WaitForReadsAsync(10000);
+  public void BindCollectionReadWait(Func<Task<bool>> wait){if(wait==null)throw new ArgumentException();lock(stateGate){if(Busy)DesktopLifePolicy.Fail("life_busy");collectionReadWait=wait;}}
+  readonly Dictionary<string,Dictionary<string,object>> collectionAttempts=new Dictionary<string,Dictionary<string,object>>();
+  public object CollectionObservation(Dictionary<string,object> value){
+   DesktopLifePolicy.Exact(value,"requestId","accountId","characterId");Guid parsed;string id=DesktopLifePolicy.Text(value["requestId"],36);if(!Guid.TryParseExact(id,"D",out parsed)||parsed==Guid.Empty)DesktopLifePolicy.Fail("life_invalid");DesktopLifePolicy.Text(value["accountId"],100);DesktopLifePolicy.Text(value["characterId"],100);
+   lock(stateGate){Dictionary<string,object> attempt;collectionAttempts.TryGetValue(id,out attempt);bool known=attempt!=null&&Equals(attempt["accountId"],value["accountId"])&&Equals(attempt["characterId"],value["characterId"]);if(!known&&(context==null||!Equals(context["accountId"],value["accountId"])||!Equals(context["characterId"],value["characterId"])))DesktopLifePolicy.Fail("life_context_changed");
+    if(coordinating&&pendingCollectionId==id)return new {schemaVersion=1,id=id,state="checking"};
+    if(running!=null&&!running.IsCompleted&&current!=null&&Equals(current["id"],id)&&Equals(current["action"],"collect"))return new {schemaVersion=1,id=id,state="running"};
+    var row=journal.EntriesFor((string)value["accountId"]).Cast<Dictionary<string,object>>().SingleOrDefault(r=>Equals(r["requestId"],id)&&Equals(r["characterId"],value["characterId"])&&Equals(r["action"],"collect"));
+    if(row!=null)return new {schemaVersion=1,id=id,state=Equals(row["state"],"inflight")?"running":(string)row["state"]};
+    // Bridge IDs are monotonic: this later read cannot be followed by acceptance of an earlier unregistered click.
+    return new {schemaVersion=1,id=id,state=known?(string)attempt["state"]:"rejected"};
+   }
+  }
   public void BindCollectionAutomation(DesktopLifeAutomationStore store,Func<object,bool> authorize,Func<Task<Dictionary<string,object>>> probe){if(store==null||authorize==null||probe==null)throw new ArgumentException();lock(stateGate){if(Busy)DesktopLifePolicy.Fail("life_busy");automation=store;authorizeCollection=authorize;collectionProbe=probe;journal.BindSeparation((mode,row)=>new DesktopLifeAutomationStore(journal.RootPath,mode).IsSeparated(mode,row));}}
   Func<Task<string>> stop;readonly SemaphoreSlim control=new SemaphoreSlim(1,1);
   bool performInFlight,gatherUnsafe,sawGathering;int stopAttempts;long runVersion,runDocument;DateTime stopDeadline;Dictionary<string,object> gathering;
@@ -79,13 +93,13 @@ namespace IrisDesktop {
    DesktopLifePolicy.Exact(value,"requestId","requestedAt","accountId","characterId","facility","displayName");Guid parsed;string id=DesktopLifePolicy.Text(value["requestId"],36);if(!Guid.TryParseExact(id,"D",out parsed)||parsed==Guid.Empty)DesktopLifePolicy.Fail("life_invalid");
    long requested=DesktopLifePolicy.Integer(value["requestedAt"],1,8640000000000000L),now=DesktopLifePolicy.Time(clock());if(requested>now||now-requested>=120000)DesktopLifePolicy.Fail("life_nonce_expired");long deadline=requested+120000;
    DesktopLifePolicy.Text(value["facility"],160);if(automation==null)DesktopLifePolicy.Fail("life_unsupported");
-   if(!await mutation.WaitAsync(0))DesktopLifePolicy.Fail("life_busy");FileStream lease=null;
+   if(!await mutation.WaitAsync(0))DesktopLifePolicy.Fail("life_busy");FileStream lease=null;bool collectionCommitted=false,collectionCancelled=false;string attemptId=null;
    try{
-    if(Busy)DesktopLifePolicy.Fail("life_busy");var intent=Intent(new Dictionary<string,object>{{"accountId",value["accountId"]},{"characterId",value["characterId"]},{"action","collect"},{"displayName",value["displayName"]}});long version,document=epoch();lock(stateGate){version=contextVersion;coordinating=true;pendingCollectionId=id;prepared=null;}
+    if(Busy)DesktopLifePolicy.Fail("life_busy");var intent=Intent(new Dictionary<string,object>{{"accountId",value["accountId"]},{"characterId",value["characterId"]},{"action","collect"},{"displayName",value["displayName"]}});long version,document=epoch();lock(stateGate){version=contextVersion;coordinating=true;pendingCollectionId=id;prepared=null;while(collectionAttempts.Count>=40)collectionAttempts.Remove(collectionAttempts.Keys.First());collectionAttempts[id]=new Dictionary<string,object>{{"accountId",value["accountId"]},{"characterId",value["characterId"]},{"state","checking"}};attemptId=id;}
     ClickReady(version,document,deadline);if(journal.EntriesFor((string)value["accountId"]).Cast<Dictionary<string,object>>().Any(r=>Equals(r["requestId"],id)))DesktopLifePolicy.Fail("life_request_replayed");
     bool granted;try{granted=automation.CollectionAllowed((string)value["accountId"],1);}catch{DesktopLifePolicy.Fail("life_permission_corrupt");return null;}
-    if(!granted){Dictionary<string,object> labels;lock(stateGate)labels=new Dictionary<string,object>(context);if(!authorizeCollection(labels))return new {schemaVersion=1,id=id,state="cancelled"};ClickReady(version,document,deadline);try{automation.GrantCollection((string)value["accountId"],1);}catch{DesktopLifePolicy.Fail("life_permission_corrupt");}}
-    if(!await DesktopCliActivity.WaitForReadsAsync(10000))DesktopLifePolicy.Fail("life_busy");ClickReady(version,document,deadline);lease=journal.AcquireExecutionLease();
+    if(!granted){Dictionary<string,object> labels;lock(stateGate)labels=new Dictionary<string,object>(context);if(!authorizeCollection(labels)){collectionCancelled=true;return new {schemaVersion=1,id=id,state="cancelled"};}ClickReady(version,document,deadline);try{automation.GrantCollection((string)value["accountId"],1);}catch{DesktopLifePolicy.Fail("life_permission_corrupt");}}
+    if(!await collectionReadWait())DesktopLifePolicy.Fail("life_busy");ClickReady(version,document,deadline);lease=journal.AcquireExecutionLease();
     var originals=new Dictionary<string,Dictionary<string,object>[]>();foreach(var mode in new[]{"development","production"})originals[mode]=new DesktopLifeJournal(journal.RootPath,mode,false).UnresolvedEntries();
     var first=await ProbeCollection(version,document,deadline);await Task.Delay(1000);var second=await ProbeCollection(version,document,deadline);
     if(!Equals(first["gameProcessId"],second["gameProcessId"])||!Equals(first["gameStartedAt"],second["gameStartedAt"]))DesktopLifePolicy.Fail("life_reconcile_unavailable");
@@ -102,9 +116,10 @@ namespace IrisDesktop {
     intent["collectionFacility"]=value["facility"];intent["nonce"]=id;var before=await Check(intent,version,document);var final=await ProbeCollection(version,document,deadline);if(!Equals(final["gameProcessId"],first["gameProcessId"])||!Equals(final["gameStartedAt"],first["gameStartedAt"]))DesktopLifePolicy.Fail("life_game_changed");ClickReady(version,document,deadline);
     if(DesktopLifePolicy.Time(clock())>=before.validUntil)DesktopLifePolicy.Fail("life_stale");
     journal.Begin(id,(string)value["accountId"],(string)value["characterId"],"collect",(string)value["displayName"],null);
+    collectionCommitted=true;
     lock(stateGate){current=new Dictionary<string,object>{{"id",id},{"accountId",value["accountId"]},{"characterId",value["characterId"]},{"action","collect"},{"displayName",value["displayName"]},{"state","running"},{"expectedWings",null},{"beforeWings",before.wings},{"afterWings",null},{"afterOwned",null},{"message",null}};gathering=null;gatherUnsafe=false;performInFlight=false;performTask=null;runVersion=version;runDocument=document;var ownedLease=lease;lease=null;running=Task.Run(()=>Run(intent,before,version,document,ownedLease));}
     return new {schemaVersion=1,id=id,state="running"};
-   }finally{if(lease!=null)lease.Dispose();lock(stateGate){coordinating=false;pendingCollectionId=null;}mutation.Release();}
+   }finally{if(lease!=null)lease.Dispose();lock(stateGate){if(attemptId!=null)collectionAttempts[attemptId]["state"]=collectionCommitted?"running":collectionCancelled?"cancelled":"rejected";coordinating=false;pendingCollectionId=null;}mutation.Release();}
   }
   public async Task<object> PrepareAsync(Dictionary<string,object> value){
    if(!await mutation.WaitAsync(0))DesktopLifePolicy.Fail("life_busy");

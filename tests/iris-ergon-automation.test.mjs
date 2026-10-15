@@ -1,6 +1,9 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {existsSync} from 'node:fs';import {loadTS} from './load-ts.mjs';
 const automation=existsSync('lib/irisErgonAutomation.ts')?loadTS('lib/irisErgonAutomation.ts'):{};
 const id='123e4567-e89b-12d3-a456-426614174000',policy={schemaVersion:1,policyVersion:1,granted:true,separatedRequestIds:[id]};
+test('correlated observation validates exact request and native phases without turning unknown into success',()=>{
+ assert.equal(typeof automation.parseErgonCollectionObservation,'function');for(const state of ['checking','running','completed','unknown','cancelled','rejected'])assert.equal(automation.parseErgonCollectionObservation({schemaVersion:1,id,state},id).state,state);for(const value of [{schemaVersion:1,id,state:'idle'},{schemaVersion:1,id,state:'completed',extra:true},{schemaVersion:1,id:'123e4567-e89b-12d3-a456-426614174001',state:'completed'}])assert.throws(()=>automation.parseErgonCollectionObservation(value,id));
+});
 test('policy is exact and bounded; original unknown remains separate from successful production',()=>{
  assert.equal(typeof automation.parseErgonCollectionPolicy,'function');assert.deepEqual(automation.parseErgonCollectionPolicy(policy),policy);
  for(const value of [{...policy,granted:'yes'},{...policy,policyVersion:2},{...policy,extra:true},{...policy,separatedRequestIds:[id,id.toUpperCase()]},{...policy,separatedRequestIds:['bad']},{...policy,separatedRequestIds:Array(301).fill(id)}])assert.throws(()=>automation.parseErgonCollectionPolicy(value));
@@ -17,6 +20,9 @@ test('revocation cannot grant permission and never accepts a browser granted fie
  const t=trial();assert.equal(typeof t.store.collectionPolicy,'function');let p=t.store.collectionPolicy('a');assert.deepEqual(t.sent[0].payload,{accountId:'a'});t.reply(policy);assert.equal((await p).granted,true);
  p=t.store.revokeCollection('a');assert.equal(t.sent.at(-1).method,'game.life.actions.revokeCollection');assert.deepEqual(t.sent.at(-1).payload,{accountId:'a'});t.reply(policy);await assert.rejects(p);assert.equal(t.sent.length,2);
  p=t.store.revokeCollection('a');t.reply({...policy,granted:false});assert.equal((await p).granted,false);
+});
+test('collection observation is scoped read-only and rejects a different request receipt',async()=>{
+ const t=trial();assert.equal(typeof t.store.collectionObservation,'function');const value={requestId:id,accountId:'a',characterId:'c'};let p=t.store.collectionObservation(value);assert.equal(t.sent.at(-1).method,'game.life.actions.collectionObservation');assert.deepEqual(t.sent.at(-1).payload,value);t.reply({schemaVersion:1,id,state:'checking'});assert.equal((await p).state,'checking');p=t.store.collectionObservation(value);t.reply({schemaVersion:1,id:'123e4567-e89b-12d3-a456-426614174001',state:'completed'});await assert.rejects(p);await assert.rejects(t.store.collectionObservation({...value,command:'collect'}));assert.equal(t.sent.length,2);
 });
 test('capability4 explicitly advertises automation, capability3 does not',async()=>{
  const t=trial(),base={actions:['gathering','altering','crafting','collect'],gatheringNames:['통나무'],queue:false,collectCostKnown:false,quantityGathering:true,currentStop:true,quantityCrafting:true,maxCraftCount:5};let p=t.store.lifeActionCapabilities();t.reply({...base,schemaVersion:4,oneClickCollection:true,automaticReconciliation:true,collectionPolicyVersion:1});assert.equal((await p).oneClickCollection,true);

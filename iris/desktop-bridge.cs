@@ -44,6 +44,7 @@ namespace IrisDesktop {
         public void BindUpdater(Func<object> state,Func<Task<object>> check,Func<Task<object>> prepare,Func<object> apply){updateState=state;updateCheck=check;updatePrepare=prepare;updateApply=apply;}
         public void BindGameStats(Func<Task<object>> read){gameRead=read;}
         public void BindCurrencies(Func<Task<object>> read){currencyRead=read;}
+        public async Task<bool> WaitForCollectionReadsAsync(){var watch=Stopwatch.StartNew();while(gameBusy&&watch.ElapsedMilliseconds<10000)await Task.Delay(50);return !gameBusy&&await DesktopCliActivity.WaitForReadsAsync(Math.Max(0,10000-(int)watch.ElapsedMilliseconds));}
         public async Task<string> HandleAsync(Uri source,string json){
             // Validate document/epoch/id synchronously before any asynchronous CLI work.
             var receipt=Handle(source,json);var serializer=new JavaScriptSerializer();
@@ -51,7 +52,7 @@ namespace IrisDesktop {
             var marker=result!=null&&result.ContainsKey("value")?result["value"] as Dictionary<string,object>:null;
             if(marker==null||(!marker.ContainsKey("gameReadPending")&&!marker.ContainsKey("lifeReadPending")&&!marker.ContainsKey("lifeActionPending")&&!marker.ContainsKey("updatePending")&&!marker.ContainsKey("fontsPending")))return receipt;
             bool update=marker.ContainsKey("updatePending"),fonts=marker.ContainsKey("fontsPending"),action=marker.ContainsKey("lifeActionPending"),control=action&&Equals(marker["lifeActionPending"],"game.life.actions.stop"),collection=action&&Equals(marker["lifeActionPending"],"game.life.actions.collect");var epoch=Epoch;if(collection)collectionPending=true;else if(control)lifeControlBusy=true;else if(fonts)fontsBusy=true;else if(!update)gameBusy=true;
-            try{if(collection){var watch=Stopwatch.StartNew();while(gameBusy&&watch.ElapsedMilliseconds<10000){await Task.Delay(50);if(epoch!=Epoch||document==null)throw new ArgumentException();}if(gameBusy)throw new Exception("life_busy");}var value=await (action?lifeActionAsync((string)marker["lifeActionPending"],(Dictionary<string,object>)marker["payload"]):fonts?fontsRead(Equals(marker["fontsPending"],true)):update?(Equals(marker["updatePending"],"check")?updateCheck():updatePrepare()):marker.ContainsKey("lifeReadPending")?lifeRead((string)marker["lifeReadPending"]):(marker.ContainsKey("currency")?currencyRead():gameRead()));if(epoch!=Epoch||document==null)throw new ArgumentException();result["value"]=value;}
+            try{var value=await (action?lifeActionAsync((string)marker["lifeActionPending"],(Dictionary<string,object>)marker["payload"]):fonts?fontsRead(Equals(marker["fontsPending"],true)):update?(Equals(marker["updatePending"],"check")?updateCheck():updatePrepare()):marker.ContainsKey("lifeReadPending")?lifeRead((string)marker["lifeReadPending"]):(marker.ContainsKey("currency")?currencyRead():gameRead()));if(epoch!=Epoch||document==null)throw new ArgumentException();result["value"]=value;}
             catch(Exception error){result["ok"]=false;result["value"]=null;result["error"]=action?(Array.IndexOf(LifeErrors,error.Message)>=0?error.Message:"life_action_unavailable"):fonts?"fonts_unavailable":"game_stats_unavailable";}
             finally{if(collection)collectionPending=false;else if(control)lifeControlBusy=false;else if(fonts)fontsBusy=false;else if(!update)gameBusy=false;}
             return serializer.Serialize(result);
@@ -144,6 +145,7 @@ namespace IrisDesktop {
                     case "game.life.actions.history":
                     case "game.life.actions.collectionPolicy":
                     case "game.life.actions.revokeCollection":
+                    case "game.life.actions.collectionObservation":
                         if(lifeActionSync==null)throw new ArgumentException();
                         var syncMethod=(string)message["method"];
                         var syncPayload=message["payload"] as Dictionary<string,object>;
@@ -153,6 +155,7 @@ namespace IrisDesktop {
                         else if(syncMethod=="game.life.actions.cancel") {if(syncPayload.Count!=1||!syncPayload.ContainsKey("nonce"))throw new ArgumentException();}
                         else if(syncMethod=="game.life.actions.history") {if(syncPayload.Count!=1||!syncPayload.ContainsKey("accountId"))throw new ArgumentException();}
                         else if(syncMethod=="game.life.actions.collectionPolicy"||syncMethod=="game.life.actions.revokeCollection") {if(syncPayload.Count!=1||!syncPayload.ContainsKey("accountId"))throw new ArgumentException();}
+                        else if(syncMethod=="game.life.actions.collectionObservation") {if(syncPayload.Count!=3||!syncPayload.ContainsKey("requestId")||!syncPayload.ContainsKey("accountId")||!syncPayload.ContainsKey("characterId"))throw new ArgumentException();}
                         value=lifeActionSync(syncMethod,syncPayload);break;
                     case "game.life.actions.collect":
                         var collectionPayload=message["payload"] as Dictionary<string,object>;

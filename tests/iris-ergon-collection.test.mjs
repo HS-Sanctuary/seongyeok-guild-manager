@@ -21,6 +21,9 @@ test('OneClickUsesOnlyCollectEndpoint and NativeReconciliationNotPreemptedByOldB
  assert.equal(typeof api.requestErgonCollection,'function');const trial=actionTrial();const receipt=await api.requestErgonCollection(trial.api,identity,preview(),()=>true);
  assert.equal(receipt.state,'cancelled');assert.deepEqual(trial.calls.map(c=>c[0]),['context','collect']);const sent=trial.calls[1][1];assert.deepEqual(Object.keys(sent).sort(),['requestId','requestedAt','accountId','characterId','facility','displayName'].sort());assert.equal(sent.facility,'금속');assert.equal(sent.displayName,'철괴');assert.equal(sent.requestId,receipt.id);assert.ok(Number.isSafeInteger(sent.requestedAt));
 });
+test('click identity is published before the native command so a lost receipt cannot orphan observation',async()=>{
+ const trial=actionTrial();let observed=null;trial.api.collectLifeAction=async value=>{assert.deepEqual(observed,{requestId:value.requestId,accountId:'a',characterId:'c'});return {schemaVersion:1,id:value.requestId,state:'running'};};await api.requestErgonCollection(trial.api,identity,preview(),()=>true,value=>{observed=value;});assert.ok(observed);
+});
 test('unreadable preview cannot submit a collection',async()=>{
  const trial=actionTrial();await assert.rejects(()=>api.requestErgonCollection(trial.api,identity,{...preview(),ready:false},()=>true));assert.equal(trial.calls.length,0);
 });

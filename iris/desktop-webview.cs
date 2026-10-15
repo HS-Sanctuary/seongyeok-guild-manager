@@ -223,6 +223,7 @@ namespace IrisDesktop {
                     lifeActor.BindStop(DesktopLifeCli.StopAsync);
                     lifeActor.BindCraft(DesktopLifeCli.CraftAsync);
                     lifeActor.BindCollectionAutomation(new DesktopLifeAutomationStore(journalRoot,development?"development":"production"),AuthorizeCollection,()=>DesktopCliActivity.ProbeAsync(()=>DesktopLifeReader.ReadAsync("activity")));
+                    lifeActor.BindCollectionReadWait(bridge.WaitForCollectionReadsAsync);
                     bridge.BindLifeActions(lifeActor.Capabilities,(method,payload)=>{
                         switch(method){
                             case "game.life.actions.context":return lifeActor.SetContext(payload);
@@ -231,6 +232,7 @@ namespace IrisDesktop {
                             case "game.life.actions.history":return lifeActor.History(payload);
                             case "game.life.actions.collectionPolicy":return lifeActor.CollectionPolicy(payload);
                             case "game.life.actions.revokeCollection":return lifeActor.RevokeCollection(payload);
+                            case "game.life.actions.collectionObservation":return lifeActor.CollectionObservation(payload);
                             default:throw new ArgumentException();
                         }
                     },(method,payload)=>method=="game.life.actions.collect"?lifeActor.CollectOneClickAsync(payload):method=="game.life.actions.prepare"?lifeActor.PrepareAsync(payload):method=="game.life.actions.confirm"?lifeActor.ConfirmAsync(payload):method=="game.life.actions.stop"?lifeActor.StopAsync(payload):Task.FromException<object>(new ArgumentException()),()=>lifeActor.Busy);

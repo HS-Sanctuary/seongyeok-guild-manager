@@ -62,6 +62,8 @@ $taskClick=@{requestId='123e4567-e89b-12d3-a456-426614174000';requestedAt=179202
 if(!(Request 'game.life.actions.collect' $taskClick).ok){throw 'One-click collection endpoint missing'}
 if(!(Request 'game.life.actions.collectionPolicy' @{accountId='a'}).ok){throw 'Collection policy endpoint missing'}
 if(!(Request 'game.life.actions.revokeCollection' @{accountId='a'}).ok){throw 'Collection revocation endpoint missing'}
+if(!(Request 'game.life.actions.collectionObservation' @{requestId=$taskClick.requestId;accountId='a';characterId='c'}).ok){throw 'Correlated collection observation endpoint missing'}
+if((Request 'game.life.actions.collectionObservation' @{requestId=$taskClick.requestId;accountId='a';characterId='c';command='collect'}).ok){throw 'Observation accepted action fields'}
 $taskExtra=$taskClick.Clone();$taskExtra.action='crafting'
 if((Request 'game.life.actions.collect' $taskExtra).ok){throw 'Generic collection action field accepted'}
 if((Request 'game.life.actions.collectionPolicy' @{accountId='a';granted=$true}).ok){throw 'Browser supplied permission accepted'}

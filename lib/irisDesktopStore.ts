@@ -5,7 +5,7 @@ import {ergonReadKinds,validErgonReadKind,parseErgonSnapshot,type ErgonReadKind,
 import {parseErgonChallenge,parseErgonActionReceipt,parseErgonActionState,parseErgonActionHistory,type ErgonAction,type ErgonChallenge,type ErgonActionState} from './irisErgonActions';
 import {parseErgonReference} from './irisErgonReference';
 import {ergonErrorMessage} from './irisErgonErrors';
-import {automationText,parseErgonCollectionPolicy,parseErgonActionCapabilities,validateErgonCollectionRequest,type ErgonCollectionRequest} from './irisErgonAutomation';
+import {automationText,parseErgonCollectionPolicy,parseErgonActionCapabilities,validateErgonCollectionRequest,parseErgonCollectionObservation,type ErgonCollectionRequest,type ErgonCollectionIdentity} from './irisErgonAutomation';
 import {parseDesktopUpdateState,type DesktopUpdateState} from './irisDesktopUpdate';
 
 type Context = { epoch: number; environment: string };
@@ -66,7 +66,7 @@ export function createDesktopStore(options: { channel: Channel; context(): Conte
     if(epoch!==options.context()?.epoch)throw Error('앱 연결이 바뀌었어요. 다시 실행해 주세요.');supportedEpoch=epoch??null;workspaceEpoch=value.workspace===true?epoch??null:null;
     return {schemaVersion:3,barter:true};
   }
-  function request(method: 'window.workspace' | 'game.life.capabilities' | 'game.life.read' | 'game.life.reference' | 'game.life.actions.capabilities' | 'game.life.actions.context' | 'game.life.actions.collect' | 'game.life.actions.collectionPolicy' | 'game.life.actions.revokeCollection' | 'game.life.actions.prepare' | 'game.life.actions.confirm' | 'game.life.actions.stop' | 'game.life.actions.cancel' | 'game.life.actions.state' | 'game.life.actions.history' | 'store.capabilities' | 'store.load' | 'store.replace' | 'window.hide' | 'window.close' | 'window.addon.state' | 'window.addon.preferences' | 'window.drag' | 'window.minimize' | 'window.decision' | 'overlay.state' | 'overlay.input' | 'overlay.opacity' | 'game.stats.read' | 'game.currencies.read' | 'window.update.state' | 'window.update.check' | 'window.update.prepare' | 'window.update.apply' | 'window.fonts.list' | 'window.fonts.refresh' | 'window.presentation.state' | 'window.presentation.toggle' | 'window.presentation.panel' | 'window.alert.sound', payload: unknown): Promise<unknown> {
+  function request(method: 'window.workspace' | 'game.life.capabilities' | 'game.life.read' | 'game.life.reference' | 'game.life.actions.capabilities' | 'game.life.actions.context' | 'game.life.actions.collectionObservation' | 'game.life.actions.collect' | 'game.life.actions.collectionPolicy' | 'game.life.actions.revokeCollection' | 'game.life.actions.prepare' | 'game.life.actions.confirm' | 'game.life.actions.stop' | 'game.life.actions.cancel' | 'game.life.actions.state' | 'game.life.actions.history' | 'store.capabilities' | 'store.load' | 'store.replace' | 'window.hide' | 'window.close' | 'window.addon.state' | 'window.addon.preferences' | 'window.drag' | 'window.minimize' | 'window.decision' | 'overlay.state' | 'overlay.input' | 'overlay.opacity' | 'game.stats.read' | 'game.currencies.read' | 'window.update.state' | 'window.update.check' | 'window.update.prepare' | 'window.update.apply' | 'window.fonts.list' | 'window.fonts.refresh' | 'window.presentation.state' | 'window.presentation.toggle' | 'window.presentation.panel' | 'window.alert.sound', payload: unknown): Promise<unknown> {
     return new Promise((resolve, reject) => {
       const context = options.context();
       if (!context || context.environment !== options.environment || !Number.isSafeInteger(context.epoch) || context.epoch < 1 || sequence >= Number.MAX_SAFE_INTEGER) {
@@ -100,6 +100,7 @@ export function createDesktopStore(options: { channel: Channel; context(): Conte
   }
   return {
     lifeCapabilities,
+    async collectionObservation(value:ErgonCollectionIdentity){if(!exactObject(value,['requestId','accountId','characterId'])||!automationText(value.accountId)||!automationText(value.characterId)||typeof value.requestId!=='string'||!/^(?!00000000-0000-0000-0000-000000000000$)[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value.requestId))throw Error('수령 요청을 확인해 주세요.');return parseErgonCollectionObservation(await request('game.life.actions.collectionObservation',value),value.requestId);},
     async collectLifeAction(value:ErgonCollectionRequest){validateErgonCollectionRequest(value);const receipt=parseErgonActionReceipt(await request('game.life.actions.collect',value));if(receipt.id!==value.requestId)throw Error('다른 수령 요청의 응답이에요.');return receipt;},
     async collectionPolicy(accountId:string){if(!automationText(accountId))throw Error('계정을 확인해 주세요.');return parseErgonCollectionPolicy(await request('game.life.actions.collectionPolicy',{accountId}));},
     async revokeCollection(accountId:string){if(!automationText(accountId))throw Error('계정을 확인해 주세요.');const policy=parseErgonCollectionPolicy(await request('game.life.actions.revokeCollection',{accountId}));if(policy.granted)throw Error('수령 허용 해제를 확인하지 못했어요.');return policy;},
