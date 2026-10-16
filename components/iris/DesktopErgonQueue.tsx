@@ -8,15 +8,15 @@ import type {ErgonCraftGoal} from '@/lib/irisErgonCraftGoal';
 import {editErgonPlans} from '@/lib/irisErgonPlanEdit';
 import {DesktopErgonPlanRow} from './DesktopErgonPlanRow';
 
-type Props={plans:ErgonPlanItem[];goals:Record<string,ErgonCraftGoal>;snapshots:ErgonSnapshots;now:number;scope:string;active:boolean;readReference?:(kind:'altering'|'crafting',name:string)=>Promise<ErgonRecipeReference|null>;onChangePlans:(plans:ErgonPlanItem[])=>void;onSelect:(id:string)=>void;onOpenChange:(open:boolean)=>void;presentation?:'disclosure'|'workbench';selectedId?:string;onReplace?:(id:string)=>void};
+type Props={plans:ErgonPlanItem[];goals:Record<string,ErgonCraftGoal>;snapshots:ErgonSnapshots;now:number;scope:string;identity:{accountId:string;characterId:string|null};active:boolean;readReference?:(kind:'altering'|'crafting',name:string)=>Promise<ErgonRecipeReference|null>;onChangePlans:(plans:ErgonPlanItem[])=>void;onSelect:(id:string)=>void;onOpenChange:(open:boolean)=>void;presentation?:'disclosure'|'workbench';selectedId?:string;onReplace?:(id:string)=>void};
 const referenceKey=(kind:string,name:string)=>JSON.stringify([kind,name]);
 const labels={gathering:'채집',altering:'가공 등록',collect:'완료품 수령',crafting:'제작',manual:'직접 확인'};
 
 /** Planning only. This component has no consuming/native approval API. */
-export function DesktopErgonQueue({plans,goals,snapshots,now,scope,active,readReference,onChangePlans,onSelect,onOpenChange,presentation='disclosure',selectedId,onReplace}:Props){
+export function DesktopErgonQueue({plans,goals,snapshots,now,scope,identity,active,readReference,onChangePlans,onSelect,onOpenChange,presentation='disclosure',selectedId,onReplace}:Props){
  const [open,setOpen]=useState(false),[cache,setCache]=useState<{scope:string;entries:Record<string,ErgonRecipeReference|null>}>({scope:'',entries:{}});
  const entries=cache.scope===scope?cache.entries:{},references=Object.values(entries).filter((row):row is ErgonRecipeReference=>row!==null);
- const confirmed=(item:ErgonPlanItem)=>{const goal=goals[item.id];return goal&&item.kind==='crafting'&&goal.identity.planId===item.id&&goal.identity.displayName===item.displayName&&goal.identity.targetQuantity===item.targetQuantity?goal.completedOutput:0;};
+ const confirmed=(item:ErgonPlanItem)=>{const goal=goals[item.id],output=snapshots.crafting?.data.items.find(row=>row.name===item.displayName)?.producedPerUnit;return goal&&item.kind==='crafting'&&goal.identity.accountId===identity.accountId&&goal.identity.characterId===identity.characterId&&goal.identity.planId===item.id&&goal.identity.displayName===item.displayName&&goal.identity.targetQuantity===item.targetQuantity&&goal.identity.outputPerCraft===output?goal.completedOutput:0;};
  const remainingPlans=plans.flatMap(item=>{const remaining=Math.max(0,item.targetQuantity-confirmed(item));return remaining?[{...item,targetQuantity:remaining}]:[];});
  const reservedOutputs=plans.flatMap(item=>{const quantity=Math.min(item.targetQuantity,confirmed(item));return quantity?[{name:item.displayName,quantity}]:[];});
  const preview=buildErgonSupplyBatchPreview({plans:remainingPlans,reservedOutputs,now,materials:snapshots.materials,crafting:snapshots.crafting,altering:snapshots.altering,gathering:snapshots.gathering,references});

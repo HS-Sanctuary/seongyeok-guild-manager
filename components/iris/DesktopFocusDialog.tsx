@@ -39,7 +39,7 @@ export function DesktopFocusDialog({title,description,onClose,children,dismissDi
     };
   },[initialFocusRef]);
   if(typeof document==='undefined')return null;
-  return createPortal(<div className="iris-focus-backdrop" onPointerDown={event=>{if(event.target===event.currentTarget&&!dismissDisabled)onClose();}}>
+  return createPortal(<div className="iris-focus-backdrop" onPointerDown={event=>{if(event.target===event.currentTarget&&!dismissDisabled){event.preventDefault();onClose();}}}>
     <div ref={root} role="dialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={description?descriptionId:undefined} tabIndex={-1} className={`iris-focus-dialog ${className}`}>
       <header className="iris-focus-dialog-header"><h2 id={titleId}>{title}</h2><button type="button" className="iris-desktop-button iris-icon-button" aria-label="닫기" disabled={dismissDisabled} onClick={onClose}>×</button></header>
       <div className="iris-focus-dialog-body">{description&&<p id={descriptionId} className="iris-caption">{description}</p>}{children}</div>
