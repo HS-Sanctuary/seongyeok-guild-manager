@@ -1,5 +1,14 @@
 # 🏛️ SANCTUM Master Guide
 
+## 2026-10-16 영겁 — ERGON 목록형 작업대 로컬 구조
+
+- `irisErgonPlanEdit`은 기존 schema1 검증으로 수량/제거/새ID 교체를 처리하며 중복 품목은 병합하지 않는다. `irisErgonFavorites`는 환경/계정 키의 schema1·최대200개/32KiB 메타데이터만 저장하고 손상 원본 보존·쓰기 실패 시 현재 창 fallback을 제공한다.
+- `DesktopErgonPlanRow`를 `DesktopErgonQueue`의 상시 목록/기존 disclosure 양쪽에서 재사용한다. 수량 draft·Enter/blur 중복 방지·Esc 복원, 선택/교체/제거를 분리했다. 공유 재료/최종품 예약은 기존 Supply 계산이다. Queue는 명시적 현재 계정/캐릭터와 계획ID/품목/목표/현재 산출량이 일치하는 완료량만 차감한다.
+- `DesktopErgonCatalog`는 공식 현재 품목·분류/검색/즐겨찾기·담기/교체를 표시한다. `ConnectedErgon`이 기존 save/selection/Execution 상태를 조정하고 실패한 추가는 선택을 바꾸지 않는다. 새 교체는 freshID·기존 수량 유지, 중복은 기존행 선택만 한다. `useErgonSession`은 환경/계정 plan scope 일치 전 이전 계획을 숨긴다.
+- CSS는 넓은 품목/목록/상세3영역·좁은 목록 우선/품목 펼침, 기존 역할색·rem을 사용한다. Workbench는 가방·계정창고·캐릭터창고 및 조건부 원격 사용을 분리한다. Execution은 준비취소 시 일반조회 pause를 동기적으로 풀고 확인 중 수량 변경을 막는다.
+- 공용 `DesktopFocusDialog`는 닫힘이 허용된 backdrop pointer의 기본 초점 이동을 억제해 닫힌 뒤 원래 교체 버튼으로 초점을 복구한다. 내부 클릭/닫힘 금지 조건·Escape/초점 잠금은 유지한다.
+- 기존15초 직렬 일반조회/숨김·준비·실행 pause·복귀 갱신/실행2초 관측과 native 소비/DPAPI journal 계약을 보존한다. 운영 API·DB·RLS/다운로드·공개 버전 구조 변경 없음. 실제 앱 수령/원격 비용·주간창/완전BOM·무인chain은 별도 미검증·미구현이다.
+
 - 2026-10-16 인계전송: 코드d63fd03/원격일치/선행34e6aef포함. 이번결과기록은 구조변경없음. GitHubVercelpending·직접403/CLI없음·Ready/실Preview미확인, 운영main/공개버전·ZIP·DB유지. 다음큰작업대는 요구/제안문서 단계다.
 
 ## 2026-10-16 후속 — 최소프로세스조회·collect직접body·조건부창고

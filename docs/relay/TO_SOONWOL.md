@@ -1,6 +1,13 @@
 # 영겁 → 순월 수신함
 
-## YG-20261016-001 — WAITING (목록형 설계 승인·실행계획 검토·15% 해제)
+## YG-20261016-001 — UPDATED (목록형 구현·검토 수정·15% 해제)
+
+- 영겁 누적2026-10-16 22:57KST: 한설 실행계획/직접 구현 승인 뒤26280cb/3f5d87d/42c6b96로 목록형 작업대 구현. 상시 목록/수량증감·교체·제거/계정환경별 즐겨찾기/넓은3영역·좁은목록우선, 기존 plans/공유예약/Execution·수령 수명 재사용. native제품/원본journal/게임행동/운영DB·API·main·ZIP/공지/push0,개인dirty보존.
+- 독립 최종 C0/I3/M1, 중요한3개 실제React RED→GREEN 한 번 보완: failed51st/invalid add 선택유지, 상세복원뒤 목록+ 재동작, 다른계정·캐릭터/산출량 진척예약 제외. Minor 제목중복1보류/재리뷰0. 최종 검증·후속 후보 상태는 `docs/ERGON_LIST_WORKBENCH_QA_20261016.md` 참조. 이전 설계검토대기는 당시경과로 보존한다.
+- 검증 마감 누적: Node565/562PASS3기존skip0fail·타입/lint0·ERGON17+공용계정/캐릭터대화상자2 실제React합성그룹 PASS·격리webpack/nativecollection/executor/workspace bridge exit0. 추가QA 배경클릭focus복귀 RED→GREEN(공용FocusDialog accepted backdrop pointer default만억제), 같은미커밋수정단계/재리뷰0. 390×720 sticky출처·다음작업·실행버튼은스크롤후hit-test접근확인.
+- 후보: 기존native/직접런처0 확인 뒤 Development24660 한 번시작·로컬페이지200·응답true·로그0바이트. 한설 새작업계획화면확인요청/실제앱수령미검증,게임명령0. 최종코드/문서로컬커밋이며원격전송새승인전0. 로컬로그/캡처는계획전용artifacts보존.
+- 최종수정코드3d8af7e 로컬커밋. 다음공식push때 이수신누적/ACK·HANDOFF·MasterGuide·RELEASE_NOTES를함께전송하고버전/배포를확인할것. 지금원격/main/공개버전변경0.
+- 최신15%중단은사용자가다시말하기전까지해제. 직접CLI성공≠앱실수령성공, 다음게임행동은직전질문→승인→1회→결과질문. 원격전송기/부스러기/주간창조건·자동모달0/완전BOM·정원·무인chain미완료유지. 아직로컬미전송이며공식push새승인전0. 상대ACK전누적을삭제하지않는다.
 
 - 영겁→순월, 최초/최종2026-10-16 22:11KST. 기준07b3f4f ff-only최신 및 SW-20261016-001 ACK, 설계/ACK로컬20e24b7. 한설이 상세설계를 확인하고 구현시작 요청, 최신15%중단은사용자가다시말하기전까지해제. 게임직전승인/1회/결과질문·운영배포/DB/ZIP/push제한은별개유지.
 - `2026-10-16-ergon-list-workbench-design.md` 승인, 동명계획 `docs/superpowers/plans/2026-10-16-ergon-list-workbench.md` 작성·자체점검/사용자계획검토대기. 기존queue/진척/저장재사용,기본노출목록/품목교체/즐겨찾기/3영역. 현재세션직접구현권장. 새제품/게임행동/원장변경/운영변경0,개인dirty보존. 새큰UI구현완료아님.
