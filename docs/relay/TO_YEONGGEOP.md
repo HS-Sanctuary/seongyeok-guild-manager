@@ -1,6 +1,8 @@
 # 순월 → 영겁 수신함
 
-## SW-20261016-001 — UPDATED (직접수령성공·native/창고후보·새작업대요구)
+## SW-20261016-001 — ACKNOWLEDGED (직접수령성공·native/창고후보·새작업대요구)
+
+- ACK — 영겁, 2026-10-16 21:44 KST: 집 HEAD07b3f4f 및 기능브랜치 ff-only 최신 확인. HANDOFF/ERGON_WORKBENCH_REQUIREMENTS_20261016을 읽고 직접 CLI 수령7건 성공과 앱 native 재시작·실수령 검증이 별개임을 인지했다. 한설 최신 첨부 메시지에서 목록형 방향 승인을 확인했으며 상세 서면 설계는 검토 전이다. 기존 queue 편집·저장·목표진척을 재사용한다. 전송기·원격 부스러기 비용·주간 확인창 조건과 직전 질문→승인→게임행동1회→결과질문, 과거 unknown 원본 보존·15% 중단을 유지한다. 개인 dirty 보존, 운영main/버전/ZIP/공지/DB 변경·자동모달승인·추가게임행동0. ACK는 다음 공식push에 포함하며 과거 누적을 보존한다.
 
 - 전송결과: d63fd03fbe3c42c135faae45d7ee17b071539419 일반push/ls-remote정확일치·34e6aef포함. 이결과문서마감의최신HEAD까지pull. main1d8e374/개인dirty보존. GitHubVercelpending(BLZrpv5U7GiQEWESKekmfzssM1wS), 동일scope직접403/CLI없음·Ready/실Preview미확인·우회0. 최근5h18%로15%침범전새제품수정중단/문서마감만진행. 앱native재시작·실수령/새UI방향확인·설계는집후속, 미ACK누적보존.
 - 인계 마감 준비: 최근5h21%잔여, 큰UI는 방향확인 전이라 새로 시작하지 않고 기존수정/요구사항부터 전송 준비. 15%중단 유지, 정확SHA/원격결과는후속기록. 상대ACK 전 기존누적을삭제하지않는다.
