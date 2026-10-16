@@ -11,14 +11,14 @@ createRoot(document.getElementById('app')).render(React.createElement(React.Stri
 const fixture=await startIrisFixture(entry),browser=await chromium.launch({headless:true,channel:'chrome'}),page=await browser.newPage({viewport:{width:390,height:850}}),errors=[];
 page.on('pageerror',e=>errors.push(e.message));page.setDefaultTimeout(5000);
 try{
- await page.goto(fixture.origin);await page.getByRole('button',{name:'가공 목록 조회',exact:true}).click();await page.getByText('가공 2,048개',{exact:false}).waitFor();
+ await page.goto(fixture.origin);await page.getByRole('button',{name:'품목 찾기',exact:true}).click();await page.getByRole('button',{name:'가공 목록 조회',exact:true}).click();await page.getByText('상급 목재',{exact:true}).waitFor();assert.equal(await page.locator('.iris-ergon-catalog article').count(),2048);
  await page.waitForTimeout(10500);assert.equal(await page.evaluate(()=>window.trial.calls.filter(kind=>kind==='works').length),0,'planning never starts automatic works reads');
- await page.evaluate(()=>window.trial.delay=true);await page.getByRole('button',{name:'제작 목록 조회',exact:true}).click();await page.evaluate(()=>window.trial.setActive(false));await page.waitForTimeout(30);await page.evaluate(()=>window.trial.setActive(true));await page.evaluate(()=>{window.trial.delay=false;window.trial.pending.splice(0).forEach(resolve=>resolve())});await page.waitForTimeout(100);assert.equal(await page.getByText('제작 2,048개',{exact:false}).count(),0,'temporary hidden generation discards late catalog');
+ await page.evaluate(()=>window.trial.delay=true);await page.getByRole('button',{name:'제작 목록 조회',exact:true}).click();await page.evaluate(()=>window.trial.setActive(false));await page.waitForTimeout(30);await page.evaluate(()=>window.trial.setActive(true));await page.evaluate(()=>{window.trial.delay=false;window.trial.pending.splice(0).forEach(resolve=>resolve())});await page.waitForTimeout(100);assert.equal(await page.locator('.iris-ergon-catalog article').count(),0,'temporary hidden generation discards late catalog');
  await page.getByRole('button',{name:'가공 목록 조회',exact:true}).click();
  await page.getByLabel('품목 검색',{exact:true}).fill('상급 목재');await page.getByLabel('목표 수량',{exact:true}).fill('20');await page.getByRole('button',{name:'계획에 추가',exact:true}).click();
- await page.getByText('보관한 작업 계획 (1/50)',{exact:true}).click();await page.getByText('예상 7회 · 날개 35개',{exact:true}).waitFor();assert.equal(await page.getByRole('heading',{name:'내 작업 계획 (1/50)',exact:true}).count(),1);
- await page.reload();await page.getByText('보관한 작업 계획 (1/50)',{exact:true}).click();await page.getByRole('heading',{name:'내 작업 계획 (1/50)',exact:true}).waitFor();
- await page.evaluate(()=>window.trial.switch());await page.getByText('보관한 작업 계획 (0/50)',{exact:true}).click();await page.getByRole('heading',{name:'내 작업 계획 (0/50)',exact:true}).waitFor();
+ await page.getByText('예상 7회 · 날개 35개',{exact:true}).waitFor();assert.equal(await page.locator('.iris-ergon-plan-row').count(),1);
+ await page.reload();await page.getByRole('region',{name:'전체 작업 대기열',exact:true}).getByLabel('상급 목재 추가 수량',{exact:true}).waitFor();
+ await page.evaluate(()=>window.trial.switch());await page.getByText('품목을 담아 작업을 시작해 보세요.',{exact:true}).waitFor();assert.equal(await page.locator('.iris-ergon-plan-row').count(),0);
  await page.getByRole('button',{name:'재료 확보',exact:true}).click();await page.getByRole('button',{name:'재료 조회',exact:true}).click();await page.getByText('3개 · 잠금 해제',{exact:true}).waitFor();assert.equal(await page.getByText('8개 · 잠김',{exact:true}).count(),0);
  await page.getByLabel('보관 위치').selectOption('account_storage');await page.getByText('8개 · 잠김',{exact:true}).waitFor();
  await page.getByRole('button',{name:'가방 무게 조회',exact:true}).click();await page.getByText('가방 무게 12.5 / 100',{exact:true}).waitFor();

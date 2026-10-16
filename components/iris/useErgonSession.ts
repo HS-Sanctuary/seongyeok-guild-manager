@@ -13,7 +13,9 @@ export function useErgonSession(props:ErgonSessionProps){
  const currencyScope=JSON.stringify([props.environment,props.accountId,props.characterId]);
  const [currencyState,setCurrencyState]=useState<{scope:string;value:CurrencySnapshot}|null>(null),[currencyError,setCurrencyError]=useState<{scope:string;text:string}|null>(null),[currencyBusy,setCurrencyBusy]=useState(false);const currencyPending=useRef<Promise<void>|null>(null);
  const currencies=currencyState?.scope===currencyScope?currencyState.value:null,currencyNotice=currencyError?.scope===currencyScope?currencyError.text:'';
- const [plans,setPlans]=useState<ErgonPlanItem[]>([]),[persistent,setPersistent]=useState(true),[unreadable,setUnreadable]=useState(false),[ready,setReady]=useState(false);
+ const planScope=JSON.stringify([props.environment,props.accountId]);
+ const [plans,setPlans]=useState<ErgonPlanItem[]>([]),[persistent,setPersistent]=useState(true),[unreadable,setUnreadable]=useState(false),[loadedPlanScope,setLoadedPlanScope]=useState('');
+ const ready=loadedPlanScope===planScope;
  const session=useRef<ReturnType<typeof createErgonSession>|null>(null);
  useLayoutEffect(()=>{
   const allowed=()=>mounted.current&&latest.current.active&&!latest.current.locked&&document.visibilityState==='visible';
@@ -23,7 +25,7 @@ export function useErgonSession(props:ErgonSessionProps){
  useLayoutEffect(()=>{generation.current++;session.current?.invalidate();},[props.active,props.locked,props.watchWorks]);
  useLayoutEffect(()=>{generation.current++;session.current?.reset();},[props.environment,props.accountId,props.characterId]);
  useEffect(()=>{const changed=()=>{generation.current++;session.current?.invalidate();};document.addEventListener('visibilitychange',changed);return()=>document.removeEventListener('visibilitychange',changed);},[]);
- useEffect(()=>{mounted.current=true;let live=true;queueMicrotask(()=>{if(!live)return;try{const value=readErgonPlans(localStorage,props.environment,props.accountId);setPlans(value.items);setPersistent(value.persistent);setUnreadable(value.unreadable);}catch{setPersistent(false);}setReady(true);});return()=>{live=false;mounted.current=false;};},[props.environment,props.accountId]);
+ useEffect(()=>{mounted.current=true;let live=true;queueMicrotask(()=>{if(!live)return;try{const value=readErgonPlans(localStorage,props.environment,props.accountId);setPlans(value.items);setPersistent(value.persistent);setUnreadable(value.unreadable);}catch{setPlans([]);setPersistent(false);setUnreadable(false);}setLoadedPlanScope(planScope);});return()=>{live=false;mounted.current=false;};},[props.environment,props.accountId,planScope]);
  const refresh=useCallback((kind:ErgonReadKind)=>session.current?.refresh(kind)??Promise.resolve(),[]);
  const refreshCurrencies=useCallback(()=>{
   if(currencyPending.current)return currencyPending.current;
@@ -58,5 +60,5 @@ export function useErgonSession(props:ErgonSessionProps){
   let saved=false;try{saved=writeErgonPlans(localStorage,props.environment,props.accountId,next,reset);}catch{/* Preserve session edits when local storage is unavailable. */}
   setPersistent(saved);if(saved&&reset)setUnreadable(false);
  };
- return {...snapshotState,now,refresh,inspect,refreshCurrencies,refreshOverview,currencies,currencyBusy,currencyNotice,plans,persistent,unreadable,ready,changePlans};
+ return {...snapshotState,now,refresh,inspect,refreshCurrencies,refreshOverview,currencies,currencyBusy,currencyNotice,plans:ready?plans:[],persistent:ready?persistent:true,unreadable:ready&&unreadable,ready,changePlans};
 }

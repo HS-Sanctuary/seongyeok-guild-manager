@@ -402,19 +402,40 @@ body:has([role="dialog"][aria-modal="true"]:not([hidden],[hidden] *)) .iris-save
 .iris-update-notes h3{font-size:.8rem;font-weight:800;color:var(--text-main)}
 .iris-update-notes h4{font-size:.75rem;font-weight:700;color:var(--accent);margin-top:.45rem}
 .iris-update-notes ul{list-style:disc;padding-inline-start:1rem;font-size:.75rem;display:grid;gap:.3rem}
+.iris-ergon-workspace>.iris-ergon-list-panel{grid-row:2;min-width:0;border:1px solid var(--panel-border);border-radius:.6rem;padding:.55rem;background:var(--inner-box)}
+.iris-ergon-workspace .iris-ergon-plan-picker{grid-row:4}
+.iris-ergon-catalog-body[data-open=false]{display:none}
+.iris-ergon .iris-ergon-plan-row{min-width:0;display:grid;gap:.35rem;margin:0;padding:.45rem;border:1px solid var(--panel-border);border-radius:.45rem;background:var(--panel)}
+.iris-ergon .iris-ergon-plan-row[data-selected=true]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,var(--panel))}
+.iris-ergon-plan-select{min-width:0;display:grid;text-align:start;gap:.1rem;background:transparent;border:0;color:var(--text-main);cursor:pointer;overflow-wrap:anywhere;word-break:keep-all;font-size:.75rem}
+.iris-ergon-plan-select span{font-size:.667rem;color:var(--text-sub)}
+.iris-ergon-row-actions{display:flex;flex-wrap:wrap;gap:.25rem;align-items:end;min-width:0}
+.iris-ergon-row-actions>label{min-width:0;flex:1 1 8rem;display:grid}
+.iris-ergon-stepper{display:flex;gap:.2rem;min-width:0}
+.iris-ergon .iris-ergon-stepper input{min-width:0;width:100%;text-align:center;padding:.2rem;flex:1;font-variant-numeric:tabular-nums}
+.iris-ergon .iris-ergon-stepper button{flex:none;padding:.2rem .4rem}
+.iris-ergon button[data-ergon-role=danger]{color:var(--ergon-danger);border-color:color-mix(in srgb,var(--ergon-danger) 40%,var(--panel-border))}
+.iris-ergon-filters{display:flex;gap:.25rem;flex-wrap:wrap;margin:.3rem 0}
+.iris-ergon-filters [aria-pressed=true],.iris-ergon-star[aria-pressed=true]{color:var(--accent);border-color:var(--accent)}
+.iris-ergon-item-name{display:flex;gap:.3rem;align-items:center;min-width:0}
+.iris-ergon-item-name strong{min-width:0;overflow-wrap:anywhere}
+.iris-ergon .iris-ergon-star{flex:none;padding:.15rem .3rem}
+.iris-ergon-task-list h3{display:flex;justify-content:space-between;gap:.4rem;font-size:.8rem}
+.iris-ergon-task-list>details{margin-top:.45rem}
+.iris-focus-dialog .iris-ergon-catalog{max-height:45vh}
 @container iris (min-width:34rem){
- .iris-ergon-workspace[data-area=plan]{grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr)}
- .iris-ergon-workspace[data-area=plan]>.iris-ergon-overview{grid-column:1/-1}
- .iris-ergon-workspace[data-area=plan]>.iris-ergon-plan-picker{grid-column:1;grid-row:2}
- .iris-ergon-workspace[data-area=plan]>.iris-ergon-focus{grid-column:2;grid-row:2}
- .iris-ergon-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}
- .iris-ergon-metrics p:last-child{grid-column:auto}
+ .iris-ergon-workspace[data-area=plan]{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+ .iris-ergon-workspace[data-area=plan]>.iris-ergon-overview{grid-column:1/-1;grid-row:1}
+ .iris-ergon-workspace[data-area=plan]>.iris-ergon-list-panel{grid-column:1;grid-row:2}
+ .iris-ergon-workspace[data-area=plan]>.iris-ergon-focus{grid-column:2;grid-row:2/4}
+ .iris-ergon-workspace[data-area=plan]>.iris-ergon-plan-picker{grid-column:1;grid-row:3}
+ .iris-ergon-catalog-body[data-open=false]{display:block}
+ .iris-ergon-catalog-toggle{display:none}
 }
 @container iris (min-width:58rem){
- .iris-ergon-workspace[data-area=plan]{grid-template-columns:minmax(0,.75fr) minmax(0,1.05fr) minmax(0,1.2fr)}
- .iris-ergon-workspace[data-area=plan]>.iris-ergon-overview{grid-column:1;grid-row:1}
- .iris-ergon-workspace[data-area=plan]>.iris-ergon-plan-picker{grid-column:2;grid-row:1}
- .iris-ergon-workspace[data-area=plan]>.iris-ergon-focus{grid-column:3;grid-row:1}
- .iris-ergon-workspace[data-area=plan] .iris-ergon-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .iris-ergon-workspace[data-area=plan]{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.25fr)}
+ .iris-ergon-workspace[data-area=plan]>.iris-ergon-plan-picker{grid-column:1;grid-row:2}
+ .iris-ergon-workspace[data-area=plan]>.iris-ergon-list-panel{grid-column:2;grid-row:2}
+ .iris-ergon-workspace[data-area=plan]>.iris-ergon-focus{grid-column:3;grid-row:2}
  .iris-ergon-catalog{max-height:25rem}
 }

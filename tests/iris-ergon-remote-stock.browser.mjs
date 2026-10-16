@@ -12,7 +12,7 @@ try{
  await page.goto(fixture.origin);const region=page.getByRole('region',{name:'선택 작업 재료'});
  await region.getByText('! 원격 사용 확인',{exact:true}).waitFor();
  await region.getByText('필요 4개 · 가방 0개 · 원격 사용 시 부족 0개',{exact:true}).waitFor();
- await region.getByText('창고 40개 · 재료 전송기 설치·연금술 부스러기 비용 확인 필요',{exact:true}).waitFor();
+ await region.getByText('계정 창고 40개 · 캐릭터 창고 0개',{exact:true}).waitFor();await region.getByText('전송기·부스러기·게임 확인 필요',{exact:true}).waitFor();
  assert.equal(await region.getByText('✓ 보유 충분',{exact:true}).count(),0,'remote material is conditional, not free or confirmed');
  assert.equal(await region.getByRole('button',{name:/계획 추가/}).count(),0,'do not ask to gather already stored material');
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);assert.deepEqual(errors,[]);

@@ -2,7 +2,7 @@
 import {useEffect,useRef,useState} from 'react';
 import {buildErgonSupplyBatchPreview} from '@/lib/irisErgonSupply';
 import {parseErgonReference,type ErgonRecipeReference} from '@/lib/irisErgonReference';
-import type {ErgonPlanItem} from '@/lib/irisErgonPlan';
+import {calculateErgonPlan,type ErgonPlanItem} from '@/lib/irisErgonPlan';
 import type {ErgonSnapshots} from '@/lib/irisErgonSession';
 import type {ErgonCraftGoal} from '@/lib/irisErgonCraftGoal';
 import {editErgonPlans} from '@/lib/irisErgonPlanEdit';
@@ -35,7 +35,8 @@ export function DesktopErgonQueue({plans,goals,snapshots,now,scope,active,readRe
   return()=>{current=false;};
  },[open,active,readReference,scope,signature,count]);
  useEffect(()=>()=>onOpenChange(false),[onOpenChange]);
- const rows=<div className="iris-ergon-queue-goals">{!plans.length&&<p className="iris-caption">품목을 담아 작업을 시작해 보세요.</p>}{plans.map(item=><DesktopErgonPlanRow key={item.id} item={item} selected={selectedId===item.id} disabled={!active} confirmed={confirmed(item)} onSelect={()=>{if(active)onSelect(item.id);}} onQuantity={quantity=>{if(active)onChangePlans(editErgonPlans(plans,{type:'quantity',id:item.id,quantity}).items);}} onReplace={onReplace?()=>{if(active)onReplace(item.id);}:undefined} onRemove={()=>{if(!active)return;const result=editErgonPlans(plans,{type:'remove',id:item.id});onChangePlans(result.items);if(item.id===selectedId&&result.selectedId)onSelect(result.selectedId);}}/>)}</div>;
+ const rowSummary=(item:ErgonPlanItem)=>{const cost=calculateErgonPlan(item,snapshots[item.kind],now);if(cost.requiredRuns===null)return undefined;return `${item.kind==='gathering'?'최소 예상':'예상'} ${cost.requiredRuns}회 · 날개 ${cost.wingMinimum}${cost.wingMaximum===null?'개 이상 (상한 미확인)':cost.wingMinimum!==cost.wingMaximum?`~${cost.wingMaximum}개`:'개'}`;};
+ const rows=<div className="iris-ergon-queue-goals">{!plans.length&&<p className="iris-caption">품목을 담아 작업을 시작해 보세요.</p>}{plans.map(item=><DesktopErgonPlanRow key={item.id} item={item} selected={selectedId===item.id} disabled={!active} confirmed={confirmed(item)} summary={rowSummary(item)} onSelect={()=>{if(active)onSelect(item.id);}} onQuantity={quantity=>{if(active)onChangePlans(editErgonPlans(plans,{type:'quantity',id:item.id,quantity}).items);}} onReplace={onReplace?()=>{if(active)onReplace(item.id);}:undefined} onRemove={()=>{if(!active)return;const result=editErgonPlans(plans,{type:'remove',id:item.id});onChangePlans(result.items);if(item.id===selectedId&&result.selectedId)onSelect(result.selectedId);}}/>)}</div>;
  const previewContent=<>
   <p className="iris-caption">가방 기준 · 예상 산출은 수령 전 재료로 쓰지 않아요.</p>
   <ol>{preview.steps.map((step,index)=><li key={index} data-state={step.state}><strong>{labels[step.kind]} · {step.displayName} · 추가 {step.additionalQuantity.toLocaleString('ko-KR')}개</strong>{step.runs!==null&&<span>{step.runs.toLocaleString('ko-KR')}회 · 예상 {step.expectedOutput?.toLocaleString('ko-KR')}개</span>}<p className="iris-caption">{step.note}</p></li>)}</ol>
