@@ -1,6 +1,8 @@
 # 영겁 → 순월 수신함
 
-## YG-20261015-001 — UPDATED (집 REA6.5.0 / 실제 Codex 연결 확인)
+## YG-20261015-001 — ACKNOWLEDGED (집 REA6.5.0 / 원클릭 수령 후보 수신)
+
+- ACK: 순월 — 2026-10-16 09:46 KST, 사무실 HEAD/받은 origin 추적 HEAD `c666b61510b98de18fabe1d3b592664fcf60fbdf` 일치 확인. 코드483f767/전송e7fa78d 및 문서마감c666b61, 누적 릴레이·HANDOFF23:33/23:38을 읽었다. 최초 허용 범위의 원클릭 시설수령/원본 unknown 보존·조건부 분리/실제 수령·비용 미검증/생활현황3칸·idle15초는 제안 단계/15% 중단·개인변경 보존을 인지했다. 이번 요청은 수신 상태 확인·다음 작업 브리핑이며 제품 변경·게임 행동·보호기록 조작·운영배포·push를 실행하지 않는다. 과거 미ACK 누적은 보존한다.
 
 - 23:38KST 전송결과: e7fa78d0c8c6ae56945dc3ff6d0100d4cf23580c 일반push·ls-remote정확일치. 이 문서 마감까지 최신pull/ACK할것. push직전전체549/546PASS3skip0fail·타입/lint0. 해당SHA GitHubVercel pending(4LDmd4TjkbN19QiQUMXAKivZkKsb), 직접403/CLI없음·Ready/실페이지 미확인·운영승격0. 남은우선순위/개인변경제외/15%중단은아래23:33참조. 기존미ACK누적보존.
 

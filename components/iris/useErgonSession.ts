@@ -10,7 +10,9 @@ export function useErgonSession(props:ErgonSessionProps){
  const mounted=useRef(false),generation=useRef(0);
  const [snapshotState,setSnapshotState]=useState<ReturnType<ReturnType<typeof createErgonSession>['state']>>({snapshots:{},notice:'',errors:{},loadingKinds:[]});
  const [now,setNow]=useState(0);
- const [currencies,setCurrencies]=useState<CurrencySnapshot|null>(null),[currencyNotice,setCurrencyNotice]=useState(''),[currencyBusy,setCurrencyBusy]=useState(false);const currencyPending=useRef<Promise<void>|null>(null);
+ const currencyScope=JSON.stringify([props.environment,props.accountId,props.characterId]);
+ const [currencyState,setCurrencyState]=useState<{scope:string;value:CurrencySnapshot}|null>(null),[currencyError,setCurrencyError]=useState<{scope:string;text:string}|null>(null),[currencyBusy,setCurrencyBusy]=useState(false);const currencyPending=useRef<Promise<void>|null>(null);
+ const currencies=currencyState?.scope===currencyScope?currencyState.value:null,currencyNotice=currencyError?.scope===currencyScope?currencyError.text:'';
  const [plans,setPlans]=useState<ErgonPlanItem[]>([]),[persistent,setPersistent]=useState(true),[unreadable,setUnreadable]=useState(false),[ready,setReady]=useState(false);
  const session=useRef<ReturnType<typeof createErgonSession>|null>(null);
  useLayoutEffect(()=>{
@@ -26,11 +28,12 @@ export function useErgonSession(props:ErgonSessionProps){
  const refreshCurrencies=useCallback(()=>{
   if(currencyPending.current)return currencyPending.current;
   const started=generation.current,context=latest.current.getContextVersion();
+  const scope=JSON.stringify([latest.current.environment,latest.current.accountId,latest.current.characterId]);
   const allowed=()=>mounted.current&&started===generation.current&&context===latest.current.getContextVersion()&&latest.current.active&&!latest.current.locked&&document.visibilityState==='visible';
   if(!allowed())return Promise.resolve();
-  const read=latest.current.readCurrencies;if(!read){setCurrencyNotice('최신 아이리스 앱의 재화 연결을 확인해 주세요.');return Promise.resolve();}
+  const read=latest.current.readCurrencies;if(!read){setCurrencyError({scope,text:'최신 아이리스 앱의 재화 연결을 확인해 주세요.'});return Promise.resolve();}
   setCurrencyBusy(true);
-  const operation=read(allowed).then(value=>{if(allowed()){setCurrencies(value);setCurrencyNotice('');}}).catch(error=>{if(allowed())setCurrencyNotice(error instanceof Error?error.message:'재화 조회를 확인해 주세요.');}).finally(()=>{if(currencyPending.current===operation)currencyPending.current=null;if(mounted.current)setCurrencyBusy(false);});currencyPending.current=operation;return operation;
+  const operation=read(allowed).then(value=>{if(allowed()){setCurrencyState({scope,value});setCurrencyError(null);}}).catch(error=>{if(allowed())setCurrencyError({scope,text:error instanceof Error?error.message:'재화 조회를 확인해 주세요.'});}).finally(()=>{if(currencyPending.current===operation)currencyPending.current=null;if(mounted.current)setCurrencyBusy(false);});currencyPending.current=operation;return operation;
  },[]);
  const inspect=useCallback(async(kind:'gathering'|'altering'|'crafting')=>{
   const started=generation.current,context=latest.current.getContextVersion();
@@ -48,7 +51,7 @@ export function useErgonSession(props:ErgonSessionProps){
  },[refreshCurrencies]);
  useEffect(()=>{const timer=setInterval(()=>setNow(Date.now()),1000);return()=>clearInterval(timer);},[]);
  const canPoll=props.active&&!props.locked&&props.watchWorks&&!!snapshotState.snapshots.works&&!Object.keys(snapshotState.errors).length;
- useEffect(()=>{if(!canPoll)return;const timer=setInterval(()=>{if(document.visibilityState==='visible')void refresh('works');},10000);return()=>clearInterval(timer);},[canPoll,refresh]);
+ useEffect(()=>{if(!canPoll)return;const timer=setInterval(()=>{if(document.visibilityState==='visible')void refresh('works');},15000);return()=>clearInterval(timer);},[canPoll,refresh]);
  const changePlans=(next:ErgonPlanItem[],reset=false)=>{
   if(!ready||(unreadable&&!reset))return;
   parseErgonPlans({schemaVersion:1,items:next});setPlans(next);

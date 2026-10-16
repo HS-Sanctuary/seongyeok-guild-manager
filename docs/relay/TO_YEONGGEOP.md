@@ -1,5 +1,14 @@
 # 순월 → 영겁 수신함
 
+## SW-20261016-001 — WAITING (현황·선행작업 동선 / 실수령 확인 중)
+
+- 순월→영겁, 2026-10-16 KST. 기준c666b61510b98de18fabe1d3b592664fcf60fbdf ff-only최신/YG-20261015-001 ACK. 한설 직접구현 승인, 최신5h잔여15% 중단·인계/기능브랜치push복원(최근58%/주간48%). 과거철회/아래미전송은각시점경과다. 개인dirty·삭제·새SVG/옛계획 보존·제외.
+- 로컬 현황3칸/짧은갱신/15초직렬·준비확인실행숨김pause·복귀종료즉시조회,2초실행관측/15초신선도유지. scoped재화/오류로 이전캐릭터날개잔존 회귀수정. 다음작업→임시선행계획→본인terminal만루트복귀/실재고재계산, 원래목표·진척·저장계획보존. 가공등록품대기/시설전체수령 우선, partialBOM/native동의/무인미구현 유지.
+- Node553PASS3skip0fail·tsc/lint0·새/구실React/workspace/수량/수급/collection·격리webpack/private nativecompilePASS. 독립frontend C0/I0/M0. 사무실dev15444/Development26452응답·로그0/페이지200, 한설 좁은/넓은사진확인.
+- 실제최초수령 허용후게임반응0: 공식readonly상태DungeonInProgress/자동행동·이동true/Stop이라정상precommit차단. 차단을이전원장오류로덮던native안내를추가TDD3case RED→GREEN수정(원본바이트/감사·소비0),기존native회귀PASS. 해당수정은앞선frontend리뷰이후별도자체검증이며정상재시작전현재앱에는미적용.
+- 한설이던전밖대기전환→readonly NotInDungeon/Compass/자동행동·이동·전투false확인. 현재수령1회재검증요청중/실성공·비용미확인. 전체BOM·정원·native무인chain/반복재등록·Chronos카트·모바일미완료. 운영main/v2.31/IRIS0.3.0/공개ZIP·공지·DB유지. 전송SHA/실수령/다음작업은후속누적,이항목은아직로컬이며다음공식push에포함.
+- ACK: 영겁 대기. 이전 ACK완료누적은 아직이문서에보존하며새결과로덮지않는다.
+
 ## SW-20261015-001 — ACKNOWLEDGED (REA 연결·통합 대기열/큰 제작 목표 B1 / 집 실검증 인계)
 
 - ACK — 영겁, 2026-10-15 16:16 KST: 집 checkout HEAD `67300b1`에서 REA6.5.0/사무실 실제 MCP 연결, B1 통합 예약·큰 목표/520d136 수정·최종629검증 인계를 읽었다. 완료 기능은 재구현하지 않고 기존 unknown 보호/운영main·ZIP·DB 유지 경계를 인지했다. 이번 한설 요청은 집 REA 설치 상태 확인·백업·Codex 단일 연결·재시작 후 실제 연결 검증이다. 게임 설치파일 수정·실행 중 개입·추가 엔진 설치나 B2 구현을 이 ACK로 승인하지 않는다. 이전 누적은 보존한다.

@@ -343,10 +343,10 @@ body:has([role="dialog"][aria-modal="true"]:not([hidden],[hidden] *)) .iris-save
 .iris-ergon-workspace .iris-ergon-focus{grid-row:3}
 .iris-ergon-title h2{font-size:.85rem}
 .iris-ergon-title>.iris-desktop-button{flex:none}
-.iris-ergon-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.35rem;margin:.35rem 0}
+.iris-ergon-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.35rem;margin:.35rem 0}
 .iris-ergon-metrics p{padding:.3rem;border:0;border-inline-start:.12rem solid var(--panel-border);border-radius:0;font-size:.667rem;gap:.1rem}
-.iris-ergon-metrics p:last-child{grid-column:1/-1}
-.iris-ergon-metrics strong{color:var(--text-main);font-variant-numeric:tabular-nums;font-size:.85rem}
+.iris-ergon-metrics p:last-child{grid-column:auto}
+.iris-ergon-metrics strong{color:var(--text-main);font-variant-numeric:tabular-nums;font-size:.85rem;overflow-wrap:anywhere}
 .iris-ergon-overview>p{font-size:.667rem}
 .iris-ergon .iris-ergon-controls{margin:.2rem 0;gap:.25rem}
 .iris-ergon-controls button{flex:1 1 4rem}
@@ -415,6 +415,6 @@ body:has([role="dialog"][aria-modal="true"]:not([hidden],[hidden] *)) .iris-save
  .iris-ergon-workspace[data-area=plan]>.iris-ergon-overview{grid-column:1;grid-row:1}
  .iris-ergon-workspace[data-area=plan]>.iris-ergon-plan-picker{grid-column:2;grid-row:1}
  .iris-ergon-workspace[data-area=plan]>.iris-ergon-focus{grid-column:3;grid-row:1}
- .iris-ergon-workspace[data-area=plan] .iris-ergon-metrics{grid-template-columns:minmax(0,1fr)}
+ .iris-ergon-workspace[data-area=plan] .iris-ergon-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}
  .iris-ergon-catalog{max-height:25rem}
 }

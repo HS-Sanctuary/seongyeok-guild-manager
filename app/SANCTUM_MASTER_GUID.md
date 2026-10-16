@@ -1,5 +1,13 @@
 # 🏛️ SANCTUM Master Guide
 
+## 2026-10-16 — ERGON 현황 직렬조회·다음작업 로컬 구조
+
+- `useErgonPolling`이 보이는 대기화면의 카탈로그/overview를15초 단일직렬흐름으로 갱신한다. `DesktopErgonExecution.onReadPauseChange`는 준비·최종확인·실행의 일반조회 정지를 실행버튼 잠금과 분리한다. busy종료·표시복귀 때 즉시 재조회, 기존 실행관측2초/native신선도15초 유지. `useErgonSession` 재화·오류는 환경/계정/캐릭터 scope로 표시한다.
+- `irisErgonNextStep.selectErgonNextStep`은 기존 partial공급미리보기+fresh공식스냅샷에서 명시적 다음단계를 권유한다. 등록품은 보유재고로 더하지 않고 대기/안전한시설수령을 먼저 선택한다. 지원통나무100상한/가공1회/실제가능한제작, 불명·오래됨·다중경로는 차단한다.
+- `DesktopErgonSupplyPanel` 다음작업→`ConnectedErgon`의 scope별 임시선행계획→같은Execution의 기존준비/native동의. 루트계획/확인진척·localStorage는 보존하고 자신의terminal응답만 루트복귀에 사용한다. `onActionSettled`는 본인 requestID·계정·캐릭터 일치 뒤 보고, unknown은성공으로 바꾸지 않는다.
+- 현재 게임행동 오류인 `life_game_blocked`를 `ProbeCollection`에서 그대로 전파해 던전·자동행동을 과거원장오류로 잘못 안내하지 않는다. 안전조건/다른실패코드/수령정책1/DPAPI원장스키마·bridge권한은 유지한다.
+- 한설 좁은/넓은 실화면 확인, 실제수령은 검증 중. 운영API/DB/RLS·공개버전/배포 구조 변경 없음, 전체BOM/native무인chain/정원·총비용 계약은 미완료.
+
 - 2026-10-15 23:38 KST 전송 마감: 기능 인계 e7fa78d 원격 일치 확인. 이번 후속은 구조 변경 없음, Vercel pending/직접403·실화면 미확인, 운영 승격 없음.
 
 - 2026-10-15 23:33 KST 인계 마감: 원클릭 수령 구조는 아래 승인 후보대로이며 이번 문서 마감 자체는 구조 변경 없음. 공개 버전/운영 API·DB·RLS 유지. 생활 현황 한 줄3칸/15초 갱신은 후속 미구현 제안이며 현재10초다. 실게임 수령 검증 전 운영 배포 완료로 표시하지 않는다.

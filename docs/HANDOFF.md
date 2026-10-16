@@ -1,5 +1,17 @@
 # SANCTUM 작업 인계
 
+## 2026-10-16 순월 — 생활 현황·선행 작업 동선 로컬 적용 / 실제 수령 확인 중
+
+- 기준 HEAD c666b61510b98de18fabe1d3b592664fcf60fbdf/기능브랜치 ff-only 최신 확인, 영겁 수신 ACK. 한설 직접 구현 승인. 시작 때15% 중단을 철회했지만 최신 지시로 **이번5시간 잔여15%에서 새 구현 중단·검증/인계·기능브랜치 정상push**를 복원했다. 최근 잔여58%, 주간48%. 개인 dirty/삭제/추가SVG·옛 계획 보존.
+- 생활 현황3칸 한 줄·짧은 새로고침, idle일반조회15초 직렬화·중복주기 통합. 준비/최종확인/실행/숨김은 일반조회를 중단하고 복귀·작업종료 즉시 갱신. 실행 관측2초와 native신선도15초는 유지. 재화값/오류는 환경·계정·캐릭터 scope로 분리해 전환 중 이전 날개가 표시되지 않는다.
+- 원래 최종목표를 유지한 ‘다음 작업’ 안내: 부족 통나무→가공1회준비→등록품 대기/시설전체수령→실재고 재계산→원래 제작. 선행 작업은 메모리의 임시계획이며 보관 계획을 늘리거나 원래목표·제작진척을 덮어쓰지 않는다. 자신의 completed/registered/stopped 응답만 원래목표 복귀에 사용, unknown 성공 추정/재전송0. 참고 complete:false/무인 연속소비 미구현.
+- 검증: Node556/553PASS3기존skip0fail, 타입/관련lint0, 새 polling/guided실React 및 기존workbench/supply/craft-goal/quantity/workspace/collection/queue/goal-workbench PASS. 격리webpack exit0(샌드박스EPERM/환경URL누락을 구분하고 정상권한·검증용환경값으로 성공; 운영키/환경파일 복사0), private native EXE/ZIP compile0/공개교체0. 단일frontend fresh리뷰 C0/I0/M0.
+- 실제 dev15444/Development26452 정상시작·응답true·자체로그0, /iris/desktop200. 한설이 좁은/넓은 새 화면을 사진으로 확인했다(마치·완료15). 사용자 첫수령 허용 뒤 게임 반응0: readonly공식상태는 자동행동/자동이동true·DungeonInProgress·Stop이라 **정상 precommit 차단**. 다만 현재행동 차단을 과거원장 확인실패로 숨기는 native안내오류를 발견했다.
+- 후속 bounded수정: ProbeCollection이 life_game_blocked만 정확히 전파하고 그 외 오류는 기존 fail-closed 유지. combat/dungeon/auto native시험3 RED→GREEN/원본바이트·분리이력·소비0 확인, 기존collection/executor/automation/journal/quantity 회귀PASS. 이 수정은 이전frontend리뷰 이후의 별도 자체TDD보완이며 현재 실행앱에는 정상재시작 후 적용된다.
+- 최신 한설이 던전 밖 대기라고 답했고 readonly상태는 자동행동/이동/전투false·NotInDungeon·Compass 확인. 기존앱에서 시설수령 한 번 재확인 요청, 실제 성공/비용은 아직 미확인. 추가 소비·게임입력·직접CLI행동·강제앱종료·수동보호해제0. 실제수령 결과와 다음 안전한 한 품목 검증을 이어갈 것.
+- 공식 CLI선택읽기: 라이트크로스보우S Craftabletrue/ProducedPerCraft1, 상급목재 Alterablefalse/ProducedPerWork3/queue_full. 가능 응답에는 Ingredients/MissingIngredients 자체가 없어 전체BOM으로 승격할 수 없다. 시설의 등록수≠정원 원칙 유지.
+- 운영main/SANCTUMv2.31/IRIS0.3.0/공개ZIP·공지·DB/RLS 그대로. 현재 로컬 후보이며 commit/push/운영배포는 후속마감 결과를 확인한다. 새 설계/계획은2026-10-16-ergon-guided-flow, ignored동명workspace의 검증로그/private패키지는 보존.
+
 - 2026-10-15 23:38KST 전송 확인: e7fa78d 기능브랜치 push/원격 정확 일치, 이 후속 문서 마감까지 최신 pull 필요. GitHub 해당 SHA Vercel pending/직접403/CLI 없음·Ready/실페이지 미확인. push직전 Node549/546PASS3skip0fail·타입/lint0. 순월은 아래23:33 우선순위대로 실수령 검증→생활현황 압축 설계를 이어받고 기존 unknown·개인 dirty·15% 약속을 보존한다.
 
 ## 2026-10-15 23:33 KST — 순월 인계 push 승인 / 새 구현 중단
