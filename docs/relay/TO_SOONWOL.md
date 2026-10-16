@@ -2,6 +2,10 @@
 
 ## YG-20261016-001 — UPDATED (목록형 구현·검토 수정·15% 해제)
 
+- 영겁 누적2026-10-17: 재부팅 뒤 한설 계속진행 요청/HEAD0ac7ade·개인dirty·수신ACK보존. 실제동명4종 key충돌은분류/이름/동명등장순으로수정·원본행보존/검색잔존DOM RED→GREEN. 한설 기본두줄카드 승인/반복라벨·입력폭압축·기존편집/진척/접근성보존. 높이fixture의실제스타일래퍼누락을고친뒤 기존production행도동일기준RED 확인, 새390/18 짧은행약74px. 관련회귀·빌드/후보최종상태는후속마감/HANDOFF참조. 15%해제유지·게임행동/원장수동변경/운영API·DB·main·ZIP/공지/push0,과거미ACK누적보존.
+- 재부팅후dev서버정상시작/로컬페이지200·Development19644응답true·로그0바이트. 화면/실제게임행동확인과구분하며과거PID24660은현재앱이아니다. 다음사용자확인은새작업계획과캐릭터선택, 실제소비는직전별도승인이다.
+- 최종검증 Node565/562PASS3기존skip0fail·관련actual React10그룹/tsc/lint/격리webpack PASS, 12폭글자조합넘침0·밝고어두운캡처확인. 새카드/실앱중복경고소멸의사용자확인·앱실수령은아직별도. 이번후속은로컬커밋만/원격push0/개인dirty미포함이다.
+
 - 영겁 누적2026-10-16 22:57KST: 한설 실행계획/직접 구현 승인 뒤26280cb/3f5d87d/42c6b96로 목록형 작업대 구현. 상시 목록/수량증감·교체·제거/계정환경별 즐겨찾기/넓은3영역·좁은목록우선, 기존 plans/공유예약/Execution·수령 수명 재사용. native제품/원본journal/게임행동/운영DB·API·main·ZIP/공지/push0,개인dirty보존.
 - 독립 최종 C0/I3/M1, 중요한3개 실제React RED→GREEN 한 번 보완: failed51st/invalid add 선택유지, 상세복원뒤 목록+ 재동작, 다른계정·캐릭터/산출량 진척예약 제외. Minor 제목중복1보류/재리뷰0. 최종 검증·후속 후보 상태는 `docs/ERGON_LIST_WORKBENCH_QA_20261016.md` 참조. 이전 설계검토대기는 당시경과로 보존한다.
 - 검증 마감 누적: Node565/562PASS3기존skip0fail·타입/lint0·ERGON17+공용계정/캐릭터대화상자2 실제React합성그룹 PASS·격리webpack/nativecollection/executor/workspace bridge exit0. 추가QA 배경클릭focus복귀 RED→GREEN(공용FocusDialog accepted backdrop pointer default만억제), 같은미커밋수정단계/재리뷰0. 390×720 sticky출처·다음작업·실행버튼은스크롤후hit-test접근확인.

@@ -1,5 +1,11 @@
 # 🏛️ SANCTUM Master Guide
 
+## 2026-10-17 — ERGON 카탈로그 동명 식별·행 밀도
+
+- `DesktopErgonCatalog`는 같은 이름의 공식 행을 유지하며 분류/이름/동명 등장순으로 필터 이전의 rowKey를 만든다. 검색·즐겨찾기/목록 갱신 시 React 중복 key와 DOM 잔존을 방지한다. 원본 레시피나 행동 이름을 변경하지 않는다.
+- `DesktopErgonPlanRow`는 header(품목/분류·교체/제거)/footer(수량·예상비용)의 기본 두 줄이다. 기존 quantity draft/Enter-blur/Escape/중복방어 콜백과 confirmed progress는 동일하다. scoped rem CSS만 압축하고 새 저장/예약/native 경로는 없다.
+- 운영 API/DB/RLS·게임/native 소비·원장·공개 버전/ZIP 구조 변경 없음. 합성 확인과 실제 앱 수령·원격 비용/주간창은 별개다.
+
 ## 2026-10-16 영겁 — ERGON 목록형 작업대 로컬 구조
 
 - `irisErgonPlanEdit`은 기존 schema1 검증으로 수량/제거/새ID 교체를 처리하며 중복 품목은 병합하지 않는다. `irisErgonFavorites`는 환경/계정 키의 schema1·최대200개/32KiB 메타데이터만 저장하고 손상 원본 보존·쓰기 실패 시 현재 창 fallback을 제공한다.

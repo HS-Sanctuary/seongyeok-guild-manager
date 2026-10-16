@@ -405,15 +405,21 @@ body:has([role="dialog"][aria-modal="true"]:not([hidden],[hidden] *)) .iris-save
 .iris-ergon-workspace>.iris-ergon-list-panel{grid-row:2;min-width:0;border:1px solid var(--panel-border);border-radius:.6rem;padding:.55rem;background:var(--inner-box)}
 .iris-ergon-workspace .iris-ergon-plan-picker{grid-row:4}
 .iris-ergon-catalog-body[data-open=false]{display:none}
-.iris-ergon .iris-ergon-plan-row{min-width:0;display:grid;gap:.35rem;margin:0;padding:.45rem;border:1px solid var(--panel-border);border-radius:.45rem;background:var(--panel)}
+.iris-ergon .iris-ergon-plan-row{min-width:0;display:grid;gap:.2rem;margin:0;padding:.3rem .4rem;border:1px solid var(--panel-border);border-radius:.45rem;background:var(--panel)}
 .iris-ergon .iris-ergon-plan-row[data-selected=true]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,var(--panel))}
-.iris-ergon-plan-select{min-width:0;display:grid;text-align:start;gap:.1rem;background:transparent;border:0;color:var(--text-main);cursor:pointer;overflow-wrap:anywhere;word-break:keep-all;font-size:.75rem}
+.iris-ergon-row-header,.iris-ergon-row-footer{display:flex;align-items:center;justify-content:space-between;gap:.3rem;min-width:0}
+.iris-ergon-row-footer{flex-wrap:wrap}
+.iris-ergon-plan-select{min-width:0;display:flex;flex-wrap:wrap;align-items:center;text-align:start;gap:.1rem .3rem;background:transparent;border:0;color:var(--text-main);cursor:pointer;overflow-wrap:anywhere;word-break:keep-all;font-size:.75rem}
+.iris-ergon .iris-ergon-plan-select strong{flex-basis:auto}
 .iris-ergon-plan-select span{font-size:.667rem;color:var(--text-sub)}
-.iris-ergon-row-actions{display:flex;flex-wrap:wrap;gap:.25rem;align-items:end;min-width:0}
-.iris-ergon-row-actions>label{min-width:0;flex:1 1 8rem;display:grid}
+.iris-ergon-row-actions{display:flex;flex:none;gap:.2rem;align-items:center}
+.iris-ergon .iris-ergon-row-actions>.iris-desktop-button{min-height:1.6rem;padding:.15rem .3rem;font-size:.667rem}
+.iris-ergon .iris-ergon-row-quantity{flex:none;display:block;min-width:0;margin:0}
+.iris-ergon .iris-ergon-row-footer>.iris-caption{flex:0 1 auto;margin:0;font-size:.667rem;line-height:1.35}
 .iris-ergon-stepper{display:flex;gap:.2rem;min-width:0}
-.iris-ergon .iris-ergon-stepper input{min-width:0;width:100%;text-align:center;padding:.2rem;flex:1;font-variant-numeric:tabular-nums}
-.iris-ergon .iris-ergon-stepper button{flex:none;padding:.2rem .4rem}
+.iris-ergon .iris-ergon-stepper input{min-width:0;width:3.6rem;text-align:center;padding:.15rem .2rem;flex:none;font-size:.7rem;font-variant-numeric:tabular-nums;appearance:textfield}
+.iris-ergon-stepper input::-webkit-inner-spin-button,.iris-ergon-stepper input::-webkit-outer-spin-button{appearance:none;margin:0}
+.iris-ergon .iris-ergon-stepper button{flex:none;min-height:1.6rem;padding:.15rem .35rem}
 .iris-ergon button[data-ergon-role=danger]{color:var(--ergon-danger);border-color:color-mix(in srgb,var(--ergon-danger) 40%,var(--panel-border))}
 .iris-ergon-filters{display:flex;gap:.25rem;flex-wrap:wrap;margin:.3rem 0}
 .iris-ergon-filters [aria-pressed=true],.iris-ergon-star[aria-pressed=true]{color:var(--accent);border-color:var(--accent)}
