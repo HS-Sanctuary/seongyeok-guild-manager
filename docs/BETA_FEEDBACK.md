@@ -1,7 +1,15 @@
 # SANCTUM 베타 피드백 보드
 
+## 2026-10-16 ERGON 후속 — 수령근본오류·창고조건 / 작업대불편
+
+- 직전승인CLI수령1회/사용자이동·7건수령확인/완료15→8·목재7→0·날개동일. native동일readonly접근거부5→최소메타데이터조회→ready. 실제직접body계약도 collect엄격판정추가. 앱정상재시작/실수령확인은남음·과거unknown수동변경0.
+- 가방0/계정창고나무진액40·공식가공true. 사용자사진설명으로 전송기/부스러기/주간창조건확인, 조건부별도창고표시·수급수정 RED→GREEN/실ReactPASS. 무료합산/자동확인0.
+- 사용자드롭다운/숨은편집·삭제/즐겨찾기부재/왕복불편. 기존queue안수량수정·제거있지만찾기어려움. 요구·추천기본노출목록/품목교체·즐겨찾기/한화면진행은 ERGON_WORKBENCH_REQUIREMENTS_20261016에기록, 큰재설계는승인/구현전.
+
 ## 2026-10-16 P1 ERGON — 현황 압축·선행작업 동선 / 실제 수령 무반응
 
+- 정상 재시작 후속: 한설 정상 종료 확인, 기존 native/CLI 인스턴스 없음 확인 후 Development6428을 한 번 실행(로컬 페이지200). collection native 합성 회귀 PASS. 재실행 전 readonly activity는 자동행동/이동/전투false·NotInDungeon·Compass지만 Battlefield.IsInBattleField=true로 현재 정책의 안전 조건을 만족하지 않는다. 이 값을 실제 지역과 대조하기 전 우회하지 않는다. 이전 일반 안내 전파 수정이 적용된 native를 실행했으며 실제 수령은 여전히 미검증이다.
+- 재시도 후속: 한설은 계속 차단된다고 답했고 첨부에도 같은 안내가 남았다(날개71,327/무게736·930/완료15). 후속 공식 readonly `get_activity` exit0에서 NotInDungeon이지만 IsAutoPlaying=true/AutoPlayTarget=recommended_activity/MainButtonState=Stop, 나머지 검사 플래그는 false였다. 직전 순간의 대기 조회와 상태가 달라졌으며 이 관측을 클릭 당시 상태로 소급 단정하지 않는다. 현재 자동 진행은 안전 조건을 만족하지 않는다. 앱은 안내 수정 전 native가 실행 중이므로 정상 종료·재실행 적용도 남는다. 추가 수령 명령·자동 진행 강제 중지·원장 수정은 하지 않았다.
 - 한설 요청: 현황 한 줄3칸·15초갱신, 제작목표를 유지하며 부족한 재료 준비를 이어갈 수 있게 개선. 로컬 구현/합성회귀 및 좁은·넓은 실제 화면 확인 완료. 무인생산/가공재등록 완료로 닫지 않는다.
 - 재현: 새앱에서 목재가공 수령 최초허용 후 게임 반응없음, 화면에 ‘이전 작업 종료를 확인하지 못했어요’ 표시. 실제 공식 get_activity는 자동행동/자동이동true·DungeonInProgress·MainButtonStop이었다. 안전차단 자체는 정상이며 아직 수령명령을 보낸 증거가 없다.
 - 원인/수정: `ProbeCollection`이 현재행동의 `life_game_blocked`까지 모든오류를 `life_reconcile_unavailable`로 덮었다. 해당 알려진코드만 전파하도록 수정, combat/dungeon/auto RED→GREEN/원본바이트·분리·소비0 및 native회귀PASS. 실행중앱은 정상 재시작 뒤 새 native 안내 적용.

@@ -5,9 +5,11 @@ const base={kind:'crafting',displayName:'검',additionalQuantity:3,now:stamp,mat
 test('supply preview subtracts bag stock once, expands processing and orders gathering→processing→receipt→craft',()=>{
  assert.equal(typeof api.buildErgonSupplyPreview,'function');const preview=api.buildErgonSupplyPreview(base);assert.deepEqual(preview.steps.map(row=>row.kind),['gathering','altering','collect','crafting']);assert.equal(preview.steps[0].additionalQuantity,7);assert.equal(preview.steps[1].additionalQuantity,5);assert.equal(preview.steps[1].runs,2);assert.equal(preview.steps[1].expectedOutput,6);assert.equal(preview.wingMinimum,20);assert.equal(preview.wingMaximum,null);assert.equal(preview.automaticReady,false);assert.ok(preview.issues.some(row=>row.includes('참고')));
 });
-test('shared materials are reserved across dependencies without counting warehouses',()=>{
+test('warehouse material advice is conditional on remote transfer and reserves storage only once',()=>{
  const p={...base,additionalQuantity:1,materials:frame('materials',[{name:'통나무',category:'Ingredient',location:'inventory',count:5,locked:false},{name:'통나무',category:'Ingredient',location:'account_storage',count:100,locked:false}]),altering:frame('altering',[recipe('목재'),recipe('손잡이')]),references:[ref('crafting','검',1,[['목재',1],['손잡이',1]]),ref('altering','목재',1,[['통나무',4]]),ref('altering','손잡이',1,[['통나무',4]])]};
- const preview=api.buildErgonSupplyPreview(p);assert.equal(preview.steps.filter(row=>row.kind==='gathering').reduce((sum,row)=>sum+row.additionalQuantity,0),3);
+ const preview=api.buildErgonSupplyPreview(p);assert.equal(preview.steps.filter(row=>row.kind==='gathering').reduce((sum,row)=>sum+row.additionalQuantity,0),0);
+ assert.ok(preview.steps.some(row=>row.kind==='manual'&&row.note.includes('전송기')),'stored stock is not unconditional free material');assert.equal(preview.automaticReady,false);
+ const limited=api.buildErgonSupplyPreview({...p,materials:frame('materials',[{name:'통나무',category:'Ingredient',location:'inventory',count:1,locked:false},{name:'통나무',category:'Ingredient',location:'account_storage',count:2,locked:false},{name:'통나무',category:'Ingredient',location:'character_storage',count:2,locked:false}])});assert.equal(limited.steps.find(row=>row.kind==='gathering').additionalQuantity,3,'warehouse stock must not be reused for both dependencies');
 });
 test('missing references request only needed provider facts; stocked ingredients never cause cache reads',()=>{
  const without=api.buildErgonSupplyPreview({...base,references:[base.references[0]]});assert.deepEqual(without.referencesNeeded,[{kind:'altering',displayName:'목재'}]);

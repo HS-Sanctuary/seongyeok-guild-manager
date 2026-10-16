@@ -29,7 +29,7 @@ function buildSupply(input:SupplyContext,plans:ErgonPlanItem[],maxDepth:number):
  if(!plans.length)return result;
  if(!input.materials||ergonSnapshotStale(input.materials,input.now)){issue('현재 가방을 다시 조회해 주세요.');return result;}
  const fresh=<K extends 'crafting'|'altering'|'gathering'>(kind:K)=>{const frame=input[kind];return frame&&!ergonSnapshotStale(frame,input.now)?frame:null;};
- const left=new Map<string,number|null>(),gathered=new Map<string,ErgonSupplyStep>();let nodes=0;
+ const left=new Map<string,number|null>(),storedLeft=new Map<string,number>(),gathered=new Map<string,ErgonSupplyStep>();let nodes=0;
  const stock=(name:string)=>{
   if(left.has(name))return left.get(name)!;
   const matches=input.materials!.data.items.filter(row=>row.name===name),bag=matches.filter(row=>row.location==='inventory');
@@ -39,13 +39,22 @@ function buildSupply(input:SupplyContext,plans:ErgonPlanItem[],maxDepth:number):
   }
   left.set(name,count);return count;
  };
+ const storage=(name:string)=>{
+  if(storedLeft.has(name))return storedLeft.get(name)!;
+  const matches=input.materials!.data.items.filter(row=>row.name===name),rows=matches.filter(row=>row.location!=='inventory');
+  let count=0;if(new Set(matches.map(row=>row.category)).size<=1&&rows.every(row=>row.locked===false&&row.count!==null&&Number.isSafeInteger(row.count)&&row.count>=0)){const sum=rows.reduce((total,row)=>total+row.count!,0);if(Number.isSafeInteger(sum))count=sum;}
+  storedLeft.set(name,count);return count;
+ };
  const blocked=(name:string,quantity:number,note:string)=>{issue(note);result.steps.push({kind:'manual',displayName:name,additionalQuantity:quantity,runs:null,expectedOutput:null,state:'blocked',note});};
  const need=(name:string,quantity:number,path:Set<string>,depth:number)=>{
   if(++nodes>32||depth>maxDepth){blocked(name,quantity,'수급 경로가 너무 길어요. 계획을 나눠 주세요.');return;}
   if(!validQuantity(quantity)){blocked(name,quantity,'필요 수량이 너무 커요. 계획을 나눠 주세요.');return;}
   if(path.has(name)){blocked(name,quantity,'재료표에 순환 경로가 있어요. 확인이 필요해요.');return;}
   const owned=stock(name);if(owned===null){blocked(name,quantity,'잠김·동명·미확인 재고를 먼저 확인해 주세요.');return;}
-  const used=Math.min(owned,quantity),missing=quantity-used;left.set(name,owned-used);if(!missing)return;
+  const used=Math.min(owned,quantity);let missing=quantity-used;left.set(name,owned-used);if(!missing)return;
+  const stored=storage(name),remote=Math.min(stored,missing);
+  if(remote){storedLeft.set(name,stored-remote);blocked(name,remote,'창고 재료 원격 사용: 마이홈 재료 전송기 설치·연금술 부스러기 비용·게임 확인창을 확인해 주세요.');missing-=remote;}
+  if(!missing)return;
   const providers: {kind:Kind;row:ErgonRecipe}[]=[];
   for(const kind of ['altering','crafting'] as const)for(const row of fresh(kind)?.data.items??[])if(row.name===name)providers.push({kind,row});
   const raw=fresh('gathering')?.data.items.filter(row=>row.name===name)??[];

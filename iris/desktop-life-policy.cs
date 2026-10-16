@@ -61,8 +61,22 @@ namespace IrisDesktop {
    if(mode!="Compass"&&mode!="Hide")Fail("life_game_changed");return false;
   }
   public static string StopResult(string raw){try{var root=Object(new JavaScriptSerializer().DeserializeObject(raw));var body=Get(root,"body") as Dictionary<string,object>;if(body==null)return "unknown";if(Equals(Get(body,"error"),"invalid_state"))return "invalid_state";return Equals(Get(root,"status"),"accepted")&&!body.ContainsKey("error")?"requested":"unknown";}catch{return "unknown";}}
+  static string FlatCollectionOutcome(Dictionary<string,object> body,Dictionary<string,object> afterWorks,LifePreflight before){
+   try{
+    if(body.ContainsKey("error")||body.ContainsKey("pipe"))return "unknown";
+    long collected=Integer(Get(body,"collected"),1,2048);int expected=before.completedNames.Values.Sum();
+    if(collected!=expected||Items(afterWorks).Select(Object).Any(row=>Equals(Get(row,"facility"),before.facility)&&Equals(Get(row,"completed"),true)))return "unknown";
+    var rewards=Get(body,"rewards") as object[];var critical=Get(body,"criticalRewards") as object[];
+    if(rewards==null||rewards.Length==0||critical==null||rewards.Length>2048||critical.Length>2048)return "unknown";
+    foreach(var value in rewards.Concat(critical)){var row=Object(value);if(!before.completedNames.ContainsKey(Text(Get(row,"Name")))||Integer(Get(row,"Amount"),1)<1)return "unknown";}
+    return "completed";
+   }catch{return "unknown";}
+  }
   public static string Outcome(string action,string name,string raw,Dictionary<string,object> afterWorks,LifePreflight before){
    Dictionary<string,object> root;try{root=Object(new JavaScriptSerializer {MaxJsonLength=1048576,RecursionLimit=16}.DeserializeObject(raw));}catch{return "unknown";}
+   // The installed official CLI emits a direct collection body. Do not infer an
+   // accepted envelope for other actions or override an explicit error/status.
+   if(!root.ContainsKey("status")&&!root.ContainsKey("body"))return action=="collect"?FlatCollectionOutcome(root,afterWorks,before):"unknown";
    var body=Get(root,"body") as Dictionary<string,object>;if(body==null)return "unknown";
    if(Equals(Get(root,"status"),"rejected")||Equals(Get(root,"status"),"invalid_body"))return "rejected";
    if(!Equals(Get(root,"status"),"accepted")||body.ContainsKey("error"))return "unknown";

@@ -1,7 +1,15 @@
 # 순월 → 영겁 수신함
 
-## SW-20261016-001 — WAITING (현황·선행작업 동선 / 실수령 확인 중)
+## SW-20261016-001 — UPDATED (직접수령성공·native/창고후보·새작업대요구)
 
+- 인계 마감 준비: 최근5h21%잔여, 큰UI는 방향확인 전이라 새로 시작하지 않고 기존수정/요구사항부터 전송 준비. 15%중단 유지, 정확SHA/원격결과는후속기록. 상대ACK 전 기존누적을삭제하지않는다.
+- 최우선 `docs/ERGON_WORKBENCH_REQUIREMENTS_20261016.md`: 전체사용자요구·기본노출편집목록/수량·품목·삭제/즐겨찾기/원격전송기·부스러기·주간창/추천3영역/집순서 기록. 큰새UI는제안/승인전, 기존접힌queue편집·제거중복구현금지. 최신5h28%·주간43%잔여/15%인계push유지.
+- 실제직전승인CLI상급목재수령1회 성공·사용자이동수령확인/7건/완료15→8·목재7→0/날개96,790동일. 다음게임행동마다 다시직전질문→승인→1회→결과질문. 앱성공/과거craftunknown해제·성공주입아님.
+- native동일readonly Win32접근거부5(FrameworkHasExited/StartTime)→QUERY_LIMITED_INFORMATION/GetProcessTimes 최소메타데이터→실ready. PID/생성시각·idle·CLI/lease/원본방어유지·메모리/파일/디버그권한/상승0. 실제collectdirectbody만 전량/시설완료0/보상검증, 타행동추정0.
+- 창고진액40/공식가공true·원격조건확인후 별도수량/조건부수급·1회예약·수동확인단계구현. 무료합산/자동모달/추가가공0. Node554PASS3skip0fail/타입lint/새실React/nativecollection+executor/privatecompilePASS/좁은reviewC0/I0/M0. 현재6428은후속native전/정상재시작+앱실수령남음. 공개/DB유지·정확SHA/전송은후속마감.
+
+- 정상 종료 확인→native/CLI0→로컬200→Development6428 한 번 재실행, 안내 전파 수정 적용 후보. collection native 합성 PASS. 재실행 전 activity는 자동/이동/전투false·NotInDungeon·Compass이나 InBattleField=true, 안전 차단은 유지한다. 실제 지역 대조/일반 마을에서 수령 확인 대기, 직접 게임 행동/원장 조작0. 최신5h41%·주간45% 잔여,15% 약속 유지.
+- 재시도 후속: 사용자 계속 차단/사진 동일 안내. 후속 readonly activity는 NotInDungeon이나 AutoPlaying=true(추천)/MainButtonStop, 다른 안전 플래그false. 앞선 idle 관측과 달라 현재 자동 진행 중이며 클릭 당시 상태로 소급 확정하지 않음. 구 native 실행 중이라 알려진 오류 전파 수정의 정상 재시작 적용도 남음. 직접 게임 행동/원장 변경0. 최신5h44%·주간46% 잔여,15% 약속 유지.
 - 순월→영겁, 2026-10-16 KST. 기준c666b61510b98de18fabe1d3b592664fcf60fbdf ff-only최신/YG-20261015-001 ACK. 한설 직접구현 승인, 최신5h잔여15% 중단·인계/기능브랜치push복원(최근58%/주간48%). 과거철회/아래미전송은각시점경과다. 개인dirty·삭제·새SVG/옛계획 보존·제외.
 - 로컬 현황3칸/짧은갱신/15초직렬·준비확인실행숨김pause·복귀종료즉시조회,2초실행관측/15초신선도유지. scoped재화/오류로 이전캐릭터날개잔존 회귀수정. 다음작업→임시선행계획→본인terminal만루트복귀/실재고재계산, 원래목표·진척·저장계획보존. 가공등록품대기/시설전체수령 우선, partialBOM/native동의/무인미구현 유지.
 - Node553PASS3skip0fail·tsc/lint0·새/구실React/workspace/수량/수급/collection·격리webpack/private nativecompilePASS. 독립frontend C0/I0/M0. 사무실dev15444/Development26452응답·로그0/페이지200, 한설 좁은/넓은사진확인.

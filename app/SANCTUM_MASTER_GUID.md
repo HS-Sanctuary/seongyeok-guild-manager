@@ -1,5 +1,13 @@
 # 🏛️ SANCTUM Master Guide
 
+## 2026-10-16 후속 — 최소프로세스조회·collect직접body·조건부창고
+
+- 인계 마감은 위 개발 후보/요구 문서 전달이며 추가 구조변경 없음. 공개버전/운영main/다운로드/DB는 유지한다.
+- `DesktopCliActivity.ProbeAsync`: QUERY_LIMITED_INFORMATION만 요청해 OpenProcess/GetProcessTimes 생성·종료메타데이터 확인. PID/생성시각전후·CLI없음·idle 유지, 메모리/디버그/상승/제어없음. API근거 https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getprocesstimes
+- `DesktopLifePolicy.Outcome`: collect direct-body만 사전완료건수일치·후시설완료0·알려진보상대조. 명시status/body·error/pipe/타행동을 성공추정하지 않음. DPAPI/기존unknown보존/재전송금지 유지.
+- Needs의stored=fresh·동명/잠김방어 후 계정/캐릭터창고합계, owned=가방과분리. Workbench는 원격조건·전송기/부스러기를표시. Supply.storedLeft는 조건부1회예약+막힌수동원격확인 단계라 자동사용아님. 설치/비용/주간창자동API 미확인.
+- 새편집목록/즐겨찾기·작업대는 ERGON_WORKBENCH_REQUIREMENTS_20261016의 요구/제안이며 구현구조아님. 운영API/DB/RLS/공개배포변경없음.
+
 ## 2026-10-16 — ERGON 현황 직렬조회·다음작업 로컬 구조
 
 - `useErgonPolling`이 보이는 대기화면의 카탈로그/overview를15초 단일직렬흐름으로 갱신한다. `DesktopErgonExecution.onReadPauseChange`는 준비·최종확인·실행의 일반조회 정지를 실행버튼 잠금과 분리한다. busy종료·표시복귀 때 즉시 재조회, 기존 실행관측2초/native신선도15초 유지. `useErgonSession` 재화·오류는 환경/계정/캐릭터 scope로 표시한다.
