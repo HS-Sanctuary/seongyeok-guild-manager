@@ -12,7 +12,7 @@ try{
  await page.goto(fixture.origin);await page.getByRole('region',{name:'현재 캐릭터 생활 현황'}).waitFor();
  await page.getByText('전체 대기열 (2개)',{exact:true}).click();const queue=page.getByRole('region',{name:'전체 작업 대기열',exact:true});await queue.getByText('채집 · 통나무 · 추가 3개',{exact:true}).waitFor();
  await page.locator('.iris-ergon-facility-status').filter({has:page.getByText('목재',{exact:true})}).getByText('완료 4/7',{exact:true}).waitFor();assert.equal(await page.getByText('등록 작업의 절반 이상이 완료됐어요. 전체 수령 대상을 확인해 주세요.',{exact:true}).count(),0);
- await queue.getByLabel('검 추가 수량',{exact:true}).fill('2');await queue.getByText('채집 · 통나무 · 추가 7개',{exact:true}).waitFor();
+ await queue.getByLabel('검 추가 수량',{exact:true}).fill('2');await queue.getByLabel('검 추가 수량',{exact:true}).blur();await queue.getByText('채집 · 통나무 · 추가 7개',{exact:true}).waitFor();
  await queue.getByRole('button',{name:'도끼 선택',exact:true}).click();assert.equal(await page.getByRole('region',{name:'선택 작업',exact:true}).getByRole('combobox').inputValue(),'a');
  await queue.getByRole('button',{name:'도끼 제거',exact:true}).click();await queue.getByText('채집 · 통나무 · 추가 3개',{exact:true}).waitFor();assert.equal(await queue.getByLabel('도끼 추가 수량',{exact:true}).count(),0);
  await page.evaluate(()=>window.trial.setLocked(true));await page.waitForFunction(()=>document.querySelector('.iris-ergon-queue input').disabled);const lockedReads=await page.evaluate(()=>window.trial.references.length+window.trial.reads.length);await page.waitForTimeout(11000);assert.equal(await page.evaluate(()=>window.trial.references.length+window.trial.reads.length),lockedReads,'no new read while locked');await page.evaluate(()=>window.trial.setLocked(false));
