@@ -1,5 +1,7 @@
 # IRIS Floating Hub Implementation Plan
 
+**2026-10-17 실행 상태: 사용자 요청으로 중단·인계, 미완료.** 중요2/Minor1 미수정과 native실검증은 `docs/IRIS_FLOATING_SOONWOL_HANDOFF_20261017.md`를 따른다. 체크포인트4c31b54를 완료/출시로 해석하지 않는다.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 기존 네모 compact 센터를 위치가 보존되는 IRIS 플로팅 로고·Alt+백틱 호출·작은 안내/10초 알림으로 교체한다.

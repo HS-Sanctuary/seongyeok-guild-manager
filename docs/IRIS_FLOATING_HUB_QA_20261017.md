@@ -1,5 +1,9 @@
 # IRIS Floating Hub — 로컬 후보 QA (2026-10-17)
 
+## 최종 인계 판정 — 미완료
+
+한설이 사용량 사유로 새구현 중단/인계push 요청. 독립리뷰 C0/I2/M1은 미수정: 숨김중 새알림 수명소진, savedcompact 초기resizePanel, nativeRegion 밖 menu label. 자세한 경로/수정순서는 `docs/IRIS_FLOATING_SOONWOL_HANDOFF_20261017.md`. 새 native실행0, 실제전체화면·키·DPI 미검증. 아래 push없음/재검증대기는 당시 경과다. 최신 최종build 로그 산출물완료는 확인했으나 종료코드 재조회불가이므로 최신회차exit0 재확인으로 표현하지 않는다.
+
 영겁. 운영 배포·push·공개ZIP·버전 변경·게임 명령·운영 DB 변경 없음. 사용자 개인 dirty 보존.
 
 ## 구현

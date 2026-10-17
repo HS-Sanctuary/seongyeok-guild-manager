@@ -1,5 +1,13 @@
 # SANCTUM 업데이트 노트
 
+### 2026-10-17 15:15 KST — 플로팅 미완료 개발 인계 / 공개버전 유지
+
+- 사용자 요청으로 추가구현 중단·`codex/iris-checkboard-classes`만 push. SANCTUMv2.31/IRIS0.3.0·운영main1d8e374 유지. 직전정상배포 dpl_F6ymNLT5U6aJJLNofK4wtEi8sWXR, 운영승격0.
+- 후보: 원형로고/방향적응4메뉴·Alt+백틱 `(Alt + ~)`·크기/투명도/키설정·좌표분리저장·정보10초/캐릭터무만료·심층제보상세목록. 구조는 native floating coordinator/store/표시bridge 및 frontend hub/notification queue 추가. 기존 게임실행/DB/RLS 구조 변경 없음.
+- **출시 미완료 C0/I2/M1:** 숨김알림수명/compact초기Panel/labelRegion 미수정. 실제 앱 정상시작·전체화면/키/DPI 검증도 남음.
+- Node574/571PASS3기존skip0fail 및 관련native/React·타입/scopedlint·격리build/privatecompile 기록. legacy캐릭터browser 실패/구UIlocator/기존Synaxislint2오류1경고 구분. 상세 `docs/IRIS_FLOATING_SOONWOL_HANDOFF_20261017.md`.
+- 개인dirty/원본unknown/비밀설정 보존, 공개ZIP·공지·운영DB 변경0. Git전송·Vercel·실Preview는 전송후 별도확인하며 운영완료로 쓰지 않는다.
+
 ### 2026-10-16 KST — 개발 인계 코드 전송 확인 / 구조 변경 없음
 
 - d63fd03 일반push/원격정확일치, 선행34e6aef 포함. 결과문서마감 최신HEAD까지 pull한다. 운영main1d8e374/공개버전·다운로드·공지·DB변경없음.

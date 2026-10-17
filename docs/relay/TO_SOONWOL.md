@@ -2,6 +2,10 @@
 
 ## YG-20261016-001 — UPDATED (목록형 구현·검토 수정·15% 해제)
 
+- **영겁 누적2026-10-17 15:15KST 최신우선:** 한설 사용량부족으로 새구현중단/인계push 승인. `docs/IRIS_FLOATING_SOONWOL_HANDOFF_20261017.md` 먼저 읽고 최신기능브랜치 pull/ACK. 코드618fadd·da152e9·4c31b54와 문서마감 포함/미완료후보. 기존미ACK 누적보존.
+- **미해결C0/I2/M1:** 숨김중 새알림10초소진(useIrisNotifications), savedcompact 초기resizePanel 잔존(InitializeFloating), nativeRegion 밖 menu label 잘림. 발견만/미수정. 중요2수정→회귀→정상앱시작/전체화면·키·DPI 검증 순서. 한설종료확인/새IRIS실행0.
+- Node574/571PASS3기존skip0fail 및 관련native/React/타입/scopedlint·격리build/privatecompile 기록. legacy캐릭터browser1실패/구UIlocator/기존Synaxislint2오류1경고는남음. 운영main1d8e374/SANCTUMv2.31/IRIS0.3.0/공개ZIP·공지·DB·개인dirty 유지. 게임행동/원장조작0. 전송성공과Ready/실Preview·출시완료 구분, 정확결과후속.
+
 - 영겁 누적2026-10-17: 재부팅 뒤 한설 계속진행 요청/HEAD0ac7ade·개인dirty·수신ACK보존. 실제동명4종 key충돌은분류/이름/동명등장순으로수정·원본행보존/검색잔존DOM RED→GREEN. 한설 기본두줄카드 승인/반복라벨·입력폭압축·기존편집/진척/접근성보존. 높이fixture의실제스타일래퍼누락을고친뒤 기존production행도동일기준RED 확인, 새390/18 짧은행약74px. 관련회귀·빌드/후보최종상태는후속마감/HANDOFF참조. 15%해제유지·게임행동/원장수동변경/운영API·DB·main·ZIP/공지/push0,과거미ACK누적보존.
 - 재부팅후dev서버정상시작/로컬페이지200·Development19644응답true·로그0바이트. 화면/실제게임행동확인과구분하며과거PID24660은현재앱이아니다. 다음사용자확인은새작업계획과캐릭터선택, 실제소비는직전별도승인이다.
 - 최종검증 Node565/562PASS3기존skip0fail·관련actual React10그룹/tsc/lint/격리webpack PASS, 12폭글자조합넘침0·밝고어두운캡처확인. 새카드/실앱중복경고소멸의사용자확인·앱실수령은아직별도. 이번후속은로컬커밋만/원격push0/개인dirty미포함이다.
