@@ -4,22 +4,22 @@ import {freshStats,score,statKeys,statsFingerprint,type GameStats,type StatsChar
 import {createStatsTransport} from '@/lib/irisStatsTransport';
 import {DesktopStatsConfirmation} from './DesktopStatsConfirmation';
 const labels={combat_power:'전투력',life_energy:'생활력',magic_resistance:'마도저항',charm:'매력'};
-export function DesktopStats({accountId,characterId,locked,readGame,onSelectCharacter,onBusyChange,onCharactersRead,onChooseOther,active=true}:{accountId:string;characterId:string|null;locked:boolean;readGame():Promise<GameStats>;onSelectCharacter(id:string):void;onBusyChange(busy:boolean):void;onCharactersRead?(rows:StatsCharacter[]):void;onChooseOther?():void;active?:boolean}){
+export function DesktopStats({accountId,characterId,locked,readGame,onSelectCharacter,onBusyChange,onCharactersRead,onChooseOther,active=true,readPaused=false}:{accountId:string;characterId:string|null;locked:boolean;readGame():Promise<GameStats>;onSelectCharacter(id:string):void;onBusyChange(busy:boolean):void;onCharactersRead?(rows:StatsCharacter[]):void;onChooseOther?():void;active?:boolean;readPaused?:boolean}){
   const [characters,setCharacters]=useState<StatsCharacter[]>([]),[game,setGame]=useState<GameStats|null>(null),[confirming,setConfirming]=useState(false),[busy,setBusy]=useState(false),[notice,setNotice]=useState(''),[now,setNow]=useState(0);
   const transport=useRef<ReturnType<typeof createStatsTransport>|null>(null),generation=useRef(0),inflight=useRef(false),alive=useRef(false);
   const target=characters.find(c=>c.id===characterId);
   const cancelConfirmation=useCallback(()=>{if(!inflight.current)setConfirming(false);},[]);
   const change=!!game&&!!target&&statKeys.some(k=>game.stats[k]!==null&&score(target.stats[k])!==game.stats[k]);
   const load=async()=>{
-    if(inflight.current)return;const epoch=++generation.current;inflight.current=true;setBusy(true);setConfirming(false);setGame(null);setNotice('');
+    if(readPaused||inflight.current)return;const epoch=++generation.current;inflight.current=true;setBusy(true);setConfirming(false);setGame(null);setNotice('');
     try{const [rows,snapshot]=await Promise.all([transport.current!.characters(accountId),readGame()]);if(alive.current&&epoch===generation.current){setCharacters(rows);onCharactersRead?.(rows);setGame(snapshot);setNow(Date.now());}}
     catch(error){if(alive.current&&epoch===generation.current)setNotice(error instanceof Error&&error.message==='로그인이 만료됐어요. 다시 로그인해 주세요.'?error.message:'게임 스탯을 읽지 못했어요. 게임 실행과 AI 커넥터 활성화를 확인한 뒤 다시 읽어 주세요. 생텀 값은 유지돼요.');}
     finally{if(alive.current&&epoch===generation.current){inflight.current=false;setBusy(false);}}
   };
-  useEffect(()=>{if(!active)return;const generationAtSetup=generation.current;alive.current=true;transport.current=createStatsTransport(window.fetch.bind(window));queueMicrotask(()=>{if(alive.current)void load();});const timer=setInterval(()=>setNow(Date.now()),1000);return()=>{alive.current=false;generation.current=generationAtSetup+1;inflight.current=false;clearInterval(timer);onBusyChange(false);};
+  useEffect(()=>{if(!active||readPaused)return;const generationAtSetup=generation.current;alive.current=true;transport.current=createStatsTransport(window.fetch.bind(window));queueMicrotask(()=>{if(alive.current)void load();});const timer=setInterval(()=>setNow(Date.now()),1000);return()=>{alive.current=false;generation.current=generationAtSetup+1;inflight.current=false;clearInterval(timer);onBusyChange(false);};
   // Remounted by account + selected character; no snapshot/confirmation persistence.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[active]);
+  },[active,readPaused]);
   const save=async()=>{
     if(inflight.current||locked||!target||!game||!confirming||!freshStats(game)||!change)return;
     const epoch=generation.current,expected=statsFingerprint(game),base={...target.stats};inflight.current=true;setBusy(true);onBusyChange(true);setNotice('');

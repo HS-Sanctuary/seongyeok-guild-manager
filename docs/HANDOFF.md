@@ -1,5 +1,16 @@
 # SANCTUM 작업 인계
 
+## 2026-10-17 영겁 — 이동 중 내부 메뉴/계획 편집 잠금 분리
+
+- **실검증 후속:** 한설이 탄월에서 **한떨(빙결술사)**로 바꿔 직접 가죽4건 수령. 이동·게임 보상·IRIS 수령완료/최근작업 완료확인·가공완료8→4를 첨부로 확인했다. 이어 목재4건도 전부 수령했다고 사용자 확인했다(마지막 사진은 목재 이동중이라 앱 최종판정/완료0 미확인). 날개 표시는77,427 동일이나 정확 비용0 실측으로 확정하지 않는다. 에이전트 새게임요청0/과거unknown 성공주입0. 아래 실수령 대기는 당시 경과이며, 남은 실제확인은 이동 중 메뉴전환/편집과 금속unknown 원인이다.
+
+- HEAD7ec1d74 위 로컬 후속. 사용자 신고: 수령 이동 중 IRIS 메뉴가 막힘, 가죽 수령은 이전 종료 미확인. 실제 페이지/보호 bridge 합성으로 전체잠금 RED 재현 후 일반 탐색·설정·계획 편집과 계정/캐릭터·추가 게임 요청 잠금을 분리했다. 이미 보낸 대상/수량은 고정하고 내부 편집·화면 숨김에도 종료 관측을 보존한다.
+- 독립리뷰 I2(스탯 자동 native조회, 확인 접수와 늦은 idle 경합) 각각 actual React RED→GREEN 보완, 재검토 C0/I0/M0. `DesktopStats.readPaused`, `DesktopCurrencies.readPaused`, Center.identityLocked/ContextActions.accountDisabled, Ergon.gameBusy/pinnedTarget, Execution.sentRequestId가 추가됐다. 자동 다음 소비/미전송 준비 취소·중지/원장 보호는 그대로다.
+- 한설이 금속은 실제 수령 완료·완료 수 감소를 확인. 가죽 차단은 앞선 금속 unknown 보호와 일치한다. 실제 CLI 원본/실패 단계가 남아 있지 않아 false unknown의 실제 원인은 미확정. 작업명 철괴(광석)와 보상명 철괴가 다르면 기존 판정이 unknown인 합성 사례는 확인했으나 실제 응답이라고 단정하지 않는다. native·원장·정책 완화/직접게임소비0.
+- 기존 자동 분리는 이전 세션 unknown·12분 경과·같은 게임프로세스/문서/문맥/원본해시·CLI/실행부재·두 번의 안전 activity 증거를 요구한다. 새 앱 시작만으로 수령 성공/분리 완료로 쓰지 말 것. 한설 정상 X 종료 뒤 Development8388/응답true/자체로그0·페이지200. 실제 새 화면·가죽1회 검증 대기, 금속 재전송 금지.
+- 검증: Node565/562PASS/3기존skip, 타입/수정 파일 ESLint exit0(경고0). 관련 actual React 수령/workspace/list/catalog/수량/제작목표/actions/readplanning 및 새 실제페이지/편집중실행 회귀 PASS. 루트 `npm run lint`는 .superpowers 과거 생성빌드/기존 scripts·tests까지 검사해 실패(기존산출물 포함82983문제); 전체lint성공으로 표현하지 않는다. 상세 최종 마감은 `docs/ERGON_BUSY_NAVIGATION_QA_20261017.md`.
+- 개인dirty/삭제/새파일 보존·제외, 공식push/main/버전/ZIP/공지/운영DB 변경0. 15% 중단 해제는 최신 사용자 지시대로 유지한다.
+
 ## 2026-10-17 영겁 — 재부팅 후 중복 경고·두 줄 카드 후속
 
 - 한설이 어제 작업 계속 진행을 요청했다. HEAD0ac7ade/수신 ACK·개인 dirty 유지, 어제 중단한 local Catalog/PlanRow/CSS/회귀 변경을 이어받았다. 15% 중단 해제는 최신 지시대로 유지하며 push·운영배포 승인으로 확대하지 않는다.

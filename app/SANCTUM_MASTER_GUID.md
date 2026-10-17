@@ -1,5 +1,12 @@
 # 🏛️ SANCTUM Master Guide
 
+## 2026-10-17 — ERGON 게임 작업/내부 편집 잠금 분리
+
+- desktop page의 `locked`는 내부 편집, `gameLocked`는 계정·캐릭터와 게임 조회/요청용이다. `DesktopCenter.identityLocked`, `DesktopContextActions.accountDisabled`를 분리해 일반 메뉴와 설정 탐색을 유지한다. `DesktopStats`/`DesktopCurrencies.readPaused`로 해당 탭을 열어도 실행 중 native 조회를 시작하지 않는다.
+- `DesktopErgon.gameBusy`와 `pinnedTarget`은 계획 편집과 이미 요청한 실행 대상을 분리한다. 캐시 품목으로 다음 계획을 편집할 수 있지만 추가 실행/시설 수령·갱신은 차단한다. 선택/교체로 전송한 collection 요청ID를 제거하지 않는다.
+- `DesktopErgonExecution.sentRequestId`는 접수 뒤 늦은 idle 응답에 의해 잠금/관측이 풀리지 않게 한다. 숨긴 화면에서도 동일ID 종료를 관측하며 실제 완료량은 기존 목표 identity 일치 때만 반영한다. 미전송 준비 숨김 취소는 유지한다.
+- native/정책/원장 형식·운영 API/DB/RLS·공개 버전/ZIP 구조 변경 없음. 과거 금속 unknown의 실제 원인은 미확정이며 성공 주입/재전송하지 않는다.
+
 ## 2026-10-17 — ERGON 카탈로그 동명 식별·행 밀도
 
 - `DesktopErgonCatalog`는 같은 이름의 공식 행을 유지하며 분류/이름/동명 등장순으로 필터 이전의 rowKey를 만든다. 검색·즐겨찾기/목록 갱신 시 React 중복 key와 DOM 잔존을 방지한다. 원본 레시피나 행동 이름을 변경하지 않는다.
