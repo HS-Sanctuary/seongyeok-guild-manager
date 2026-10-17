@@ -2,6 +2,8 @@
 
 ## YG-20261016-001 — UPDATED (목록형 구현·검토 수정·15% 해제)
 
+- **전송결과15:20KST:** 27e8252874ad8d3affc846daf0004a17a777ffe3 일반push·ls-remote정확일치. 이결과문서마감 최신HEAD까지 pull/ACK. 동일Vercel403/CLI없음·Ready/실Preview미확인/우회·운영승격0. 구조변경없는 문서마감/새제품수정0, 미해결I2/M1 및 기존누적보존.
+
 - **영겁 누적2026-10-17 15:15KST 최신우선:** 한설 사용량부족으로 새구현중단/인계push 승인. `docs/IRIS_FLOATING_SOONWOL_HANDOFF_20261017.md` 먼저 읽고 최신기능브랜치 pull/ACK. 코드618fadd·da152e9·4c31b54와 문서마감 포함/미완료후보. 기존미ACK 누적보존.
 - **미해결C0/I2/M1:** 숨김중 새알림10초소진(useIrisNotifications), savedcompact 초기resizePanel 잔존(InitializeFloating), nativeRegion 밖 menu label 잘림. 발견만/미수정. 중요2수정→회귀→정상앱시작/전체화면·키·DPI 검증 순서. 한설종료확인/새IRIS실행0.
 - Node574/571PASS3기존skip0fail 및 관련native/React/타입/scopedlint·격리build/privatecompile 기록. legacy캐릭터browser1실패/구UIlocator/기존Synaxislint2오류1경고는남음. 운영main1d8e374/SANCTUMv2.31/IRIS0.3.0/공개ZIP·공지·DB·개인dirty 유지. 게임행동/원장조작0. 전송성공과Ready/실Preview·출시완료 구분, 정확결과후속.

@@ -2,6 +2,8 @@
 
 ### 2026-10-17 15:15 KST — 플로팅 미완료 개발 인계 / 공개버전 유지
 
+- 전송결과15:20KST: 27e8252874ad8d3affc846daf0004a17a777ffe3 push/ls-remote 정확일치. 결과 문서마감 최신HEAD까지 받는다. Vercel403/CLI없음으로 Ready·실Preview 미확인. 이번 결과마감은 구조변경없음/버전·운영유지.
+
 - 사용자 요청으로 추가구현 중단·`codex/iris-checkboard-classes`만 push. SANCTUMv2.31/IRIS0.3.0·운영main1d8e374 유지. 직전정상배포 dpl_F6ymNLT5U6aJJLNofK4wtEi8sWXR, 운영승격0.
 - 후보: 원형로고/방향적응4메뉴·Alt+백틱 `(Alt + ~)`·크기/투명도/키설정·좌표분리저장·정보10초/캐릭터무만료·심층제보상세목록. 구조는 native floating coordinator/store/표시bridge 및 frontend hub/notification queue 추가. 기존 게임실행/DB/RLS 구조 변경 없음.
 - **출시 미완료 C0/I2/M1:** 숨김알림수명/compact초기Panel/labelRegion 미수정. 실제 앱 정상시작·전체화면/키/DPI 검증도 남음.

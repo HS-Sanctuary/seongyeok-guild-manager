@@ -2,6 +2,8 @@
 
 ## 2026-10-17 — 플로팅 개발 인계 경계
 
+- 전송결과15:20KST: 코드/인계27e8252 원격정확일치, 결과마감 최신HEAD까지 pull. Vercel403/CLI없음·Ready/실Preview 미확인. 결과기록 자체는 구조변경없음/운영미승격.
+
 사용자 사용량 사유로 새 구현·앱 시작 중단/기능브랜치 인계만 한다. 최우선 문서는 `docs/IRIS_FLOATING_SOONWOL_HANDOFF_20261017.md`. `useIrisNotifications` 숨김가시성/첫표시수명, native InitializeFloating compact accessory 초기화, CSS label과 nativeRegion 불일치가 C0/I2/M1 미해결이다. 아래 구조는 로컬 후보/운영미배포이며 출시완료가 아니다. 기존 게임실행/unknown원장·API/DB/RLS 구조 변경 없음.
 
 ## 2026-10-17 — IRIS 플로팅 허브 로컬 구조 (운영 미배포)

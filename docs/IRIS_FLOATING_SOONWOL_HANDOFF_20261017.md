@@ -1,5 +1,9 @@
 # 순월 인계 — IRIS 플로팅 미완료 후보 / 2026-10-17 KST
 
+## 전송 확인 — 15:20 KST
+
+코드/인계 커밋 `27e8252874ad8d3affc846daf0004a17a777ffe3` 일반push 및 ls-remote 정확일치 확인. 이 결과 문서 마감의 최신 HEAD까지 pull한다. Vercel 동일project/team 조회403·CLI없음으로 Ready/실Preview 미확인, 우회/설치/운영승격0. 신규 floating/integration/notification/character/deep browser 테스트5파일 ESLint는 마감 중 재실행 exit0 확인. 새 제품 수정은 하지 않았다.
+
 ## 현재 상태와 우선순위
 
 한설이 사용량 부족으로 추가 구현을 멈추고 현 상태를 push·인계하도록 요청했다. **release-ready가 아니다.** `codex/iris-checkboard-classes` 최신 문서 마감까지 pull하고 수신함 ACK 후 이어간다. 코드 체크포인트: 618fadd(이동 중 내부 편집), da152e9(정책), 4c31b54(허브·설정·알림).

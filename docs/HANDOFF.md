@@ -2,6 +2,8 @@
 
 ## 2026-10-17 15:15 KST — 사용자 요청 중단·순월 인계 push
 
+- **전송결과15:20KST:** 27e8252874ad8d3affc846daf0004a17a777ffe3 일반push/원격정확일치. 이 결과 문서의 최신HEAD까지 pull. Vercel403/CLI없음·Ready/실Preview 미확인·운영승격0. 구조변경없는 결과마감이며 새제품수정0.
+
 - **최우선: `docs/IRIS_FLOATING_SOONWOL_HANDOFF_20261017.md`.** 사용량 사유로 추가 구현·새 IRIS 실행 중단. 코드618fadd/da152e9/4c31b54와 최신 문서 마감까지 기능브랜치만 전송한다. 미완료 후보/운영 배포 아님.
 - 독립리뷰 **C0/I2/M1 미해결**: 숨김중 새알림10초 소진, savedcompact 초기resizePanel 잔존, nativeRegion 밖 menu label 잘림. 순월 우선 수정 후 실앱 검증 필요.
 - Node574/571PASS3기존skip0fail 및 관련검증 기록/기존browser·lint 실패는 전용 인계/QA 참조. 실제 전체화면·키·DPI 미검증. 한설 종료확인/새후보 실행0.
