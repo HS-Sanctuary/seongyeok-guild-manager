@@ -39,6 +39,8 @@ namespace IrisDesktop {
         Func<object> presentationState,presentationToggle;Func<bool,object> presentationPanel;
         public void BindPresentation(Func<object> state,Func<object> toggle,Func<bool,object> panel){presentationState=state;presentationToggle=toggle;presentationPanel=panel;}
         Func<bool,object> workspace;
+        Func<object> floatingState;Func<string,object> floatingCommand,floatingNotice;Func<Dictionary<string,object>,object> floatingPreferences;
+        public void BindFloating(Func<object> state,Func<string,object> command,Func<string,object> notice,Func<Dictionary<string,object>,object> preferences){floatingState=state;floatingCommand=command;floatingNotice=notice;floatingPreferences=preferences;}
         public void BindWorkspace(Func<bool,object> apply){workspace=apply;}
         Func<object> updateState,updateApply;Func<Task<object>> updateCheck,updatePrepare;
         public void BindUpdater(Func<object> state,Func<Task<object>> check,Func<Task<object>> prepare,Func<object> apply){updateState=state;updateCheck=check;updatePrepare=prepare;updateApply=apply;}
@@ -83,6 +85,17 @@ namespace IrisDesktop {
                 lastId = sequence;
                 object value = null;
                 switch (message["method"] as string) {
+                    case "window.floating.state":
+                        if(message["payload"]!=null||floatingState==null)throw new ArgumentException();value=floatingState();break;
+                    case "window.floating.command":
+                    case "window.floating.notice":
+                        var fp=message["payload"] as Dictionary<string,object>;bool notice=Equals(message["method"],"window.floating.notice");string field=notice?"kind":"command";
+                        if(fp==null||fp.Count!=1||!fp.ContainsKey(field)||!(fp[field] is string)||floatingCommand==null||floatingNotice==null)throw new ArgumentException();string fc=(string)fp[field];
+                        if(notice?Array.IndexOf(new[]{"none","information","character"},fc)<0:Array.IndexOf(new[]{"menu","close","normal","floating","kronos","synaxis","ergon","settings"},fc)<0)throw new ArgumentException();value=notice?floatingNotice(fc):floatingCommand(fc);break;
+                    case "window.floating.preferences":
+                        var fpr=message["payload"] as Dictionary<string,object>;if(floatingPreferences==null||fpr==null||fpr.Count!=4)throw new ArgumentException();foreach(var k in new[]{"iconSize","opacity","modifiers","key"})if(!fpr.ContainsKey(k)||!(fpr[k] is int))throw new ArgumentException();
+                        int fs=(int)fpr["iconSize"],fo=(int)fpr["opacity"],fm=(int)fpr["modifiers"],fk=(int)fpr["key"];
+                        if(fs<36||fs>80||fo<35||fo>100||fm<1||fm>7||(fm&3)==0||!(fk==192||fk>=48&&fk<=57||fk>=65&&fk<=90||fk>=112&&fk<=123)||fm==3&&(fk==73||fk==79))throw new ArgumentException();value=floatingPreferences(fpr);break;
                     case "window.workspace":
                         var workspacePayload=message["payload"] as Dictionary<string,object>;
                         if(workspace==null||workspacePayload==null||workspacePayload.Count!=1||!workspacePayload.ContainsKey("expanded")||!(workspacePayload["expanded"] is bool))throw new ArgumentException();

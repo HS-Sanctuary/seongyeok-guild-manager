@@ -1,12 +1,13 @@
 'use client';
-import {useCallback,useEffect,useRef,useState} from 'react';
+import {useCallback,useEffect,useRef,useState,type ReactNode} from 'react';
+import type {CharacterNotice} from './DesktopNotificationHost';
 import {freshStats,type GameStats,type StatsCharacter} from '@/lib/irisStats';
 import {createCharacterSwitchTracker} from '@/lib/irisCharacterSwitch';
 import {createStatsTransport} from '@/lib/irisStatsTransport';
 import {DesktopFocusDialog} from './DesktopFocusDialog';
 import './character-focus.css';
 
-type Props={accountId:string;characterId:string;characters:StatsCharacter[];locked:boolean;readGame():Promise<GameStats>;getContextVersion():number;getPreviousGame():GameStats|null;onGameRead(game:GameStats):void;onCharactersRead(rows:StatsCharacter[]):void;onSelectCharacter(id:string):void|Promise<boolean|void>;onChooseOther():void};
+type Props={accountId:string;characterId:string;characters:StatsCharacter[];locked:boolean;readGame():Promise<GameStats>;getContextVersion():number;getPreviousGame():GameStats|null;onGameRead(game:GameStats):void;onCharactersRead(rows:StatsCharacter[]):void;onSelectCharacter(id:string):void|Promise<boolean|void>;onChooseOther():void;renderPrompt?(notice:CharacterNotice):ReactNode};
 type Runtime={active:boolean;confirming:boolean;generation:number;tracker:ReturnType<typeof createCharacterSwitchTracker>;observation:GameStats|null;catalog:StatsCharacter[];poll?():Promise<void>;pause?():void};
 
 // Best effort: autoplay restrictions or missing audio never delay the visual offer.
@@ -32,7 +33,7 @@ function playSwitchCue():()=>void {
 }
 
 // Mounted per selected character: delayed reads cannot change another account/selection.
-export function DesktopCharacterWatch({accountId,characterId,characters,locked,readGame,getContextVersion,getPreviousGame,onGameRead,onCharactersRead,onSelectCharacter,onChooseOther}:Props){
+export function DesktopCharacterWatch({accountId,characterId,characters,locked,readGame,getContextVersion,getPreviousGame,onGameRead,onCharactersRead,onSelectCharacter,onChooseOther,renderPrompt}:Props){
   const [candidate,setCandidate]=useState<StatsCharacter|null>(null),[busy,setBusy]=useState(false),[notice,setNotice]=useState('');
   const latest=useRef({characters,locked,onSelectCharacter,onChooseOther,onCharactersRead}),runtime=useRef<Runtime|null>(null);
   useEffect(()=>{latest.current={characters,locked,onSelectCharacter,onChooseOther,onCharactersRead};},[characters,locked,onSelectCharacter,onChooseOther,onCharactersRead]);
@@ -107,8 +108,10 @@ export function DesktopCharacterWatch({accountId,characterId,characters,locked,r
   };
   if(locked||(!candidate&&!notice))return null;
   if(!candidate)return <p className="iris-switch-notice" role="status">{notice}</p>;
-  return <DesktopFocusDialog title="캐릭터 변경 추천" description="직업·스탯이 가까운 후보예요. 게임 화면과 비교해 주세요." onClose={dismiss} dismissDisabled={busy} className="iris-character-focus">
+  const content=<>
     <span className="iris-switch-eyebrow">캐릭터 변경 감지 · {candidate.job}</span><h3 className="iris-switch-question"><strong>{candidate.nickname}</strong><span>캐릭터로 변경하셨나요?</span></h3><p className="iris-switch-help">네를 누르면 게임 정보를 다시 확인한 뒤 생텀 선택 캐릭터를 바꿔요.</p>
     <div className="iris-switch-actions"><button type="button" className="iris-desktop-button" data-primary disabled={busy} onClick={()=>void confirm()}>{busy?'확인 중…':'네'}</button><button type="button" className="iris-desktop-button" disabled={busy} onClick={dismiss}>아니요</button><button type="button" className="iris-desktop-button" disabled={busy} onClick={()=>{dismiss();latest.current.onChooseOther();}}>다른 캐릭터</button></div>
-  </DesktopFocusDialog>;
+  </>;
+  if(renderPrompt)return renderPrompt({key:accountId+':'+characterId+':'+candidate.id,scope:accountId,nickname:candidate.nickname,job:candidate.job,content});
+  return <DesktopFocusDialog title="캐릭터 변경 추천" description="직업·스탯이 가까운 후보예요. 게임 화면과 비교해 주세요." onClose={dismiss} dismissDisabled={busy} className="iris-character-focus">{content}</DesktopFocusDialog>;
 }

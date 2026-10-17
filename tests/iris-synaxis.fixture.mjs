@@ -19,6 +19,7 @@ function visit(file,provided){
   for(const m of code.matchAll(/\brequire\(['"]([^'"]+)['"]\)/g)){
     const name=m[1];if(name in deps)continue;
     if(name==='next/navigation'){deps[name]=visit(resolve('tests/__navigation.js'),`exports.useSearchParams=()=>new URLSearchParams();`);continue;}
+    if(name==='next/image'){deps[name]=visit(resolve('tests/__next_image.js'),`module.exports=props=>require('react').createElement('img',props);`);continue;}
     if(name==='@/lib/supabase'){deps[name]=visit(resolve('lib/supabase.ts'),io);continue;}
     if(name.endsWith('.css')){
       const path=resolve(dirname(file),name),rawCss=readFileSync(path,'utf8'),prefix='fixture_'+cssParts.length+'_';

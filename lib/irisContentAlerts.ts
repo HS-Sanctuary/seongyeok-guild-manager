@@ -1,7 +1,7 @@
 export const alertTypes=['fieldBoss','barrier','abyss','deep'] as const;
 export type IrisAlertType=typeof alertTypes[number];
 export type IrisAlertSettings=Record<IrisAlertType,{enabled:boolean;sound:boolean}>;
-export type ContentAlert={key:string;type:IrisAlertType;at:number;phase:'imminent'|'active'|'report';confirmed:boolean;message?:string};
+export type ContentAlert={key:string;type:IrisAlertType;at:number;phase:'imminent'|'active'|'report';confirmed:boolean;message?:string;reporter?:string;expiresAt?:number};
 export function defaultAlertSettings():IrisAlertSettings{return {fieldBoss:{enabled:true,sound:true},barrier:{enabled:true,sound:true},abyss:{enabled:true,sound:true},deep:{enabled:true,sound:true}};}
 export function parseAlertSettings(raw:unknown):IrisAlertSettings{
   if(!raw||typeof raw!=='object'||Array.isArray(raw)||Object.keys(raw).length!==4)throw Error('알림 설정을 확인해 주세요.');const value=raw as IrisAlertSettings;
@@ -12,7 +12,7 @@ export function writeAlertSettings(storage:Pick<Storage,'setItem'>,environment:s
 export function createContentAlertTracker(startedAt:number){
   const seen=new Map<string,number>();
   return {take(event:ContentAlert,now:number,settings:IrisAlertSettings):ContentAlert|null{
-    if(!event||!alertTypes.includes(event.type)||!Number.isFinite(event.at)||!Number.isFinite(now)||!event.key||event.key.length>200||!['imminent','active','report'].includes(event.phase))return null;
+    if(!event||!alertTypes.includes(event.type)||!Number.isFinite(event.at)||!Number.isFinite(now)||!event.key||event.key.length>400||!['imminent','active','report'].includes(event.phase))return null;
     if(event.at>now)return null;
     if(seen.has(event.key))return null;seen.set(event.key,event.at);
     for(const [key,at] of seen)if(now-at>2*86400000)seen.delete(key);

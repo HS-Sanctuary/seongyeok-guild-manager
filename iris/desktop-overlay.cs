@@ -12,6 +12,7 @@ namespace IrisDesktop {
         public bool ClickThrough {get{return clickThrough;}}
         public bool ShortcutsAvailable {get{return recovery!=null&&recovery.Available;}}
         public int OpacityPercent {get{return opacity;}}
+        public Func<int,int> VisualOpacity;
         public event EventHandler StateChanged;
         [DllImport("user32.dll",EntryPoint="GetWindowLongW")] static extern int Get32(IntPtr h,int i);
         [DllImport("user32.dll",EntryPoint="GetWindowLongPtrW")] static extern IntPtr Get64(IntPtr h,int i);
@@ -31,6 +32,7 @@ namespace IrisDesktop {
         void Destroyed(object sender,EventArgs e){if(recovery!=null)recovery.Dispose();recovery=null;clickThrough=false;ReleaseHandle();Changed();}
         bool Apply(bool input,int percent){
             if(!window.IsHandleCreated)return false;
+            if(VisualOpacity!=null)percent=VisualOpacity(percent);
             long style=IntPtr.Size==8?Get64(window.Handle,-20).ToInt64():Get32(window.Handle,-20);
             long updated=(style|0x80000L)&~0x20L;if(input)updated|=0x20L;
             SetLastError(0);long previous=IntPtr.Size==8?Set64(window.Handle,-20,new IntPtr(updated)).ToInt64():Set32(window.Handle,-20,(int)updated);
@@ -43,7 +45,10 @@ namespace IrisDesktop {
             clickThrough=enabled;Changed();return true;
         }
         public bool SetOpacityPercent(int percent){if(disposed||percent<30||percent>100)return false;if(!Apply(clickThrough,percent))return false;opacity=percent;Changed();return true;}
+        public bool RefreshOpacity(){return !disposed&&Apply(clickThrough,opacity);}
+        public Func<bool> IndependentBounds;
         public Rectangle ClampBounds(Rectangle requested,Rectangle workingArea){
+            if(IndependentBounds!=null&&IndependentBounds())return requested;
             int width=Math.Min(Math.Max(requested.Width,addonMode?360:320),Math.Min(addonMode?720:480,workingArea.Width));
             int height=Math.Min(Math.Max(requested.Height,120),workingArea.Height);
             return new Rectangle(Math.Max(workingArea.Left,Math.Min(requested.X,workingArea.Right-width)),Math.Max(workingArea.Top,Math.Min(requested.Y,workingArea.Bottom-height)),width,height);

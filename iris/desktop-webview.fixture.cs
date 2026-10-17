@@ -107,13 +107,13 @@ namespace IrisDesktop {
                 await app.InitializeAsync(loader); Intercept(app, false);
                 await Navigate(app, "/iris/desktop");
                 Check(app.Browser.CoreWebView2.Settings.IsWebMessageEnabled, "Desktop bridge disabled on authorized page");
-                int nativeChrome=0;foreach(Control control in app.Controls)if(control.Dock==DockStyle.Top||control.Dock==DockStyle.Bottom)nativeChrome+=control.Height;
                 int expandedHeight=app.Height;
                 await Task.Delay(700);Check(app.Height==expandedHeight,"Expanded window changed with menu content");
                 app.Presentation.Toggle();
-                await Task.Delay(700);Check(app.Height==340+nativeChrome,"Compact overlay did not fit trusted content height");
+                await Task.Delay(700);Check(app.Height<200&&app.Width<200,"Floating window did not discard old compact rectangle");
+                var floatingBounds=app.Bounds;
                 await app.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('main').style.height='120px'");
-                await Task.Delay(700);Check(app.Height==120+nativeChrome,"Folded content did not shrink native window");
+                await Task.Delay(700);Check(app.Bounds==floatingBounds,"Old document content measurement moved floating anchor");
                 string ready = await app.Browser.CoreWebView2.ExecuteScriptAsync("window.__irisDesktopBridge.epoch");
                 Check(ready != "null" && ready != "undefined", "Bridge epoch not available to page");
                 await app.Browser.CoreWebView2.ExecuteScriptAsync("window.queueCapabilities=null;window.bridgeReply=null;chrome.webview.addEventListener('message',e=>{if(e.data.id==='1'&&e.data.ok)window.queueCapabilities=e.data.value;if(e.data.id==='2')window.bridgeReply=e.data.ok});chrome.webview.postMessage({version:1,id:'1',epoch:window.__irisDesktopBridge.epoch,method:'store.capabilities',payload:null})");

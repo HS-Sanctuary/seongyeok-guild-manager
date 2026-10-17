@@ -7,10 +7,12 @@ import {createPartyActivity,scopedPartyRequest,type PartyActivityCounts} from '@
 import {readSynaxisReceipt,writeSynaxisReceipt} from '@/lib/irisSynaxisTransport';
 import {supabase} from '@/lib/supabase';
 import {useIrisPartyDialogs} from './useIrisPartyDialogs';
+import {useIrisNotifications} from './useIrisNotifications';
 import './desktop-synaxis-surface.css';
 
 type Props={account:DesktopAccount;active:boolean;locked:boolean;onBusyChange?(busy:boolean):void;onActivityChange?(counts:PartyActivityCounts):void};
 export function DesktopSynaxisSurface({account,active,locked,onBusyChange,onActivityChange}:Props){
+  const notifications=useIrisNotifications(),noticeSequence=useRef(0);
   const current=useRef({accountId:account.id,active,locked});current.current={accountId:account.id,active,locked};
   const callbacks=useRef({onBusyChange,onActivityChange});callbacks.current={onBusyChange,onActivityChange};
   const alive=useRef(true),root=useRef<HTMLDivElement>(null);
@@ -26,7 +28,8 @@ export function DesktopSynaxisSurface({account,active,locked,onBusyChange,onActi
     if(!alive.current||!current.current.active||current.current.locked||confirmResolver.current)return Promise.resolve(false);
     setNotice('');return new Promise<boolean>(resolve=>{confirmResolver.current=resolve;setConfirmation(options);});
   },[]);
-  const notify=useCallback((message:string)=>{if(alive.current&&current.current.active&&!current.current.locked)setNotice(message);},[]);
+  const notify=useCallback((message:string)=>{if(!alive.current||!current.current.active||current.current.locked)return;if(notifications)notifications.push({key:`synaxis:${account.id}:${Date.now()}:${++noticeSequence.current}`,scope:account.id,title:'시낙시스',message,createdAt:Date.now(),expiresAt:Date.now()+30000,sound:false});else setNotice(message);},[account.id,notifications]);
+  useEffect(()=>{if(!notice)return;const timer=setTimeout(()=>setNotice(''),10000);return()=>clearTimeout(timer);},[notice]);
   useEffect(()=>{
     if(!active||locked)closeConfirmation();
     return()=>{const resolve=confirmResolver.current;confirmResolver.current=null;resolve?.(false);};

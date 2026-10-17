@@ -1,0 +1,9 @@
+'use client';
+import {useEffect,type ReactNode} from 'react';import type {VisibleIrisNotice} from '@/lib/irisNotificationQueue';import {notificationRemaining} from '@/lib/irisNotificationQueue';import './notification-bubble.css';
+export type CharacterNotice={key:string;scope:string;nickname:string;job:string;content:ReactNode};
+export function DesktopNotificationHost({information,character,now,onDismiss,onCharacterCollapse,pending=0}:{information:VisibleIrisNotice|null;character:CharacterNotice|null;now:number;onDismiss(key:string):void;onCharacterCollapse():void;pending?:number}){
+ useEffect(()=>{if(!character&&!information)return;const key=(e:KeyboardEvent)=>{if(e.key==='Escape'){e.preventDefault();if(character)onCharacterCollapse();else if(information)onDismiss(information.notice.key);}};document.addEventListener('keydown',key);return()=>document.removeEventListener('keydown',key);},[character,information,onCharacterCollapse,onDismiss]);
+ if(character)return <section className="iris-notification-bubble iris-character-bubble" role="group" aria-label="캐릭터 변경 추천"><header><strong>{character.nickname}</strong><button type="button" className="iris-desktop-button" onClick={onCharacterCollapse} aria-label="캐릭터 안내 접기">접기</button></header><p className="iris-caption">{character.job}</p>{character.content}{pending>0&&<small>알림 {pending}개 대기</small>}</section>;
+ if(!information)return null;const {notice,shownAt}=information,remaining=notificationRemaining(shownAt,now);
+ return <section className="iris-notification-bubble" role="status" aria-label={notice.title}><header><strong>{notice.title}</strong><button type="button" className="iris-desktop-button" aria-label="알림 닫기" onClick={()=>onDismiss(notice.key)}>×</button></header><p>{notice.message}</p>{notice.reporter&&<p className="iris-caption">제보자 {notice.reporter}</p>}{pending>0&&<small>알림 {pending}개 대기</small>}<progress aria-label="알림 남은 시간" max={10000} value={remaining.milliseconds}/></section>;
+}

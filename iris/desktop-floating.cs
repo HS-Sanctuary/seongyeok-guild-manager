@@ -36,15 +36,15 @@ namespace IrisDesktop {
  }
  public static class FloatingLayout {
   public static FloatingLayoutResult Calculate(Point anchor,Rectangle work,Size panel,bool menu,bool bubble,bool panelOpen,int dpi){return Calculate(anchor,work,panel,menu,bubble,panelOpen,dpi,52);}
-  public static FloatingLayoutResult Calculate(Point anchor,Rectangle work,Size panel,bool menu,bool bubble,bool panelOpen,int dpi,int iconSize){
+  public static FloatingLayoutResult Calculate(Point anchor,Rectangle work,Size panel,bool menu,bool bubble,bool panelOpen,int dpi,int iconSize,int badgeDip=72){
    if(dpi<48||dpi>768||work.Width<32||work.Height<32||iconSize<36||iconSize>80)throw new ArgumentException();
-   double scale=dpi/96d;Func<int,int> px=v=>(int)Math.Ceiling(v*scale);int margin=Math.Min(px(8),Math.Min(work.Width,work.Height)/8),gap=px(4),size=Math.Min(px(iconSize),Math.Min(work.Width-margin*2,work.Height-margin*2-gap-px(20))),badgeWidth=Math.Min(px(132),work.Width-margin*2),badgeHeight=px(20);
+   double scale=dpi/96d;Func<int,int> px=v=>(int)Math.Ceiling(v*scale);int margin=Math.Min(px(8),Math.Min(work.Width,work.Height)/8),gap=px(4),size=Math.Min(px(iconSize),Math.Min(work.Width-margin*2,work.Height-margin*2-gap-px(20))),badgeWidth=Math.Min(px(Math.Max(72,Math.Min(180,badgeDip))),work.Width-margin*2),badgeHeight=px(20);
    var inner=new Rectangle(work.Left+margin,work.Top+margin,work.Width-margin*2,work.Height-margin*2);
    int x=Math.Max(inner.Left+(badgeWidth-size)/2,Math.Min(anchor.X,inner.Right-size-(badgeWidth-size)/2));int y=Math.Max(inner.Top,Math.Min(anchor.Y,inner.Bottom-size-gap-badgeHeight));
    var logo=new Rectangle(x,y,size,size);var badge=new Rectangle(x+(size-badgeWidth)/2,y+size+gap,badgeWidth,badgeHeight);
    bool left=x+size/2>work.Left+work.Width/2,up=y+size/2>work.Top+work.Height/2;
    var elements=new List<Rectangle>{logo,badge};var buttons=new List<Rectangle>();
-   if(menu){int button=Math.Min(px(36),Math.Min(inner.Width,inner.Height)/5),radius=px(iconSize/2+40);for(int i=0;i<4;i++){double angle=(-67.5+i*45)*Math.PI/180;int cx=x+size/2+(int)Math.Round(Math.Cos(angle)*radius)*(left?-1:1),cy=y+size/2+(int)Math.Round(Math.Sin(angle)*radius);var r=Fit(new Rectangle(cx-button/2,cy-button/2,button,button),inner);buttons.Add(r);elements.Add(r);}}
+   if(menu){int button=Math.Min(px(36),Math.Min(inner.Width,inner.Height)/5),step=button+Math.Min(px(8),button/4),height=step*3+button,top=Math.Max(inner.Top,Math.Min(y+size/2-height/2,inner.Bottom-height));for(int i=0;i<4;i++){int distance=size/2+px(i==0||i==3?28:48);int cx=x+size/2+distance*(left?-1:1);var r=Fit(new Rectangle(cx-button/2,top+i*step,button,button),inner);buttons.Add(r);elements.Add(r);}}
    Rectangle? notice=null,surface=null;
    if(bubble){notice=Place(new Size(px(300),px(180)),logo,inner,left,up,px(12));elements.Add(notice.Value);}
    if(panelOpen){surface=Place(new Size(px(panel.Width),px(panel.Height)),logo,inner,left,up,px(12));elements.Add(surface.Value);}

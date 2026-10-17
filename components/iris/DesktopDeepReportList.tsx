@@ -1,0 +1,3 @@
+import type {DeepReport} from '@/lib/irisDeepReports';
+const time=new Intl.DateTimeFormat('ko-KR',{timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit',hour12:false});
+export function DesktopDeepReportList({reports,error}:{reports:DeepReport[];error?:string}){return <section className="iris-deep-report-list" aria-label="현재 심층 구멍 제보">{reports.length?reports.map(report=><article key={report.id}><div><strong>{report.zoneLabel}</strong><span>{report.count===0?'구멍 없음':`${report.count}개`}</span></div><p className="iris-caption">제보자 {report.reporter} · <time dateTime={new Date(report.reportedAt).toISOString()}>{time.format(report.reportedAt)}</time></p></article>):<p className="iris-caption">{error?'제보를 확인하지 못했어요. 재조회해 주세요.':'현재 주기 제보 없음'}</p>}</section>;}

@@ -7,6 +7,7 @@ import {parseErgonReference} from './irisErgonReference';
 import {ergonErrorMessage} from './irisErgonErrors';
 import {automationText,parseErgonCollectionPolicy,parseErgonActionCapabilities,validateErgonCollectionRequest,parseErgonCollectionObservation,type ErgonCollectionRequest,type ErgonCollectionIdentity} from './irisErgonAutomation';
 import {parseDesktopUpdateState,type DesktopUpdateState} from './irisDesktopUpdate';
+import {parseFloatingState,parseFloatingPreferences,type FloatingState,type FloatingCommand,type FloatingPreferences} from './irisFloating';
 
 type Context = { epoch: number; environment: string };
 export type DesktopPresentation={compact:boolean;automatic:boolean;panelOpen:boolean};
@@ -23,12 +24,13 @@ export function parseDesktopAddonState(value:unknown):DesktopAddonState {
   if(!exactObject(value,['dockSide','sameLayer','tracked','actualSide','status','persistent'])||!['right','left','off'].includes(String(value.dockSide))||!['right','left','off'].includes(String(value.actualSide))||!['searching','attached','independent','no-space','unavailable'].includes(String(value.status))||typeof value.sameLayer!=='boolean'||typeof value.tracked!=='boolean'||typeof value.persistent!=='boolean'||(value.status==='attached'&&(!value.tracked||value.actualSide==='off'||value.dockSide==='off')))throw Error('창 연결 상태를 확인해 주세요.');
   return {...value} as DesktopAddonState;
 }
-export function parseDesktopWindowEvent(value:unknown,context:Context|null):{kind:'window.close.request';reason:'manual'|'game-exit'}|{kind:'window.addon.changed';state:DesktopAddonState}|{kind:'window.update.changed';state:DesktopUpdateState}|{kind:'window.presentation.changed';state:DesktopPresentation}|null {
-  if(!context||!Number.isSafeInteger(context.epoch)||context.epoch<1||!['development','production'].includes(context.environment)||!exactObject(value,['version','kind','epoch','environment',['window.addon.changed','window.update.changed','window.presentation.changed'].includes(String((value as {kind?:unknown})?.kind))?'state':'reason'])||value.version!==1||value.epoch!==context.epoch||value.environment!==context.environment)return null;
+export function parseDesktopWindowEvent(value:unknown,context:Context|null):{kind:'window.close.request';reason:'manual'|'game-exit'}|{kind:'window.addon.changed';state:DesktopAddonState}|{kind:'window.update.changed';state:DesktopUpdateState}|{kind:'window.presentation.changed';state:DesktopPresentation}|{kind:'window.floating.changed';state:FloatingState}|null {
+  if(!context||!Number.isSafeInteger(context.epoch)||context.epoch<1||!['development','production'].includes(context.environment)||!exactObject(value,['version','kind','epoch','environment',['window.addon.changed','window.update.changed','window.presentation.changed','window.floating.changed'].includes(String((value as {kind?:unknown})?.kind))?'state':'reason'])||value.version!==1||value.epoch!==context.epoch||value.environment!==context.environment)return null;
   if(value.kind==='window.close.request'&&(value.reason==='manual'||value.reason==='game-exit'))return {kind:value.kind,reason:value.reason};
   if(value.kind==='window.addon.changed')try{return {kind:value.kind,state:parseDesktopAddonState(value.state)};}catch{return null;}
   if(value.kind==='window.update.changed')try{return {kind:value.kind,state:parseDesktopUpdateState(value.state)};}catch{return null;}
   if(value.kind==='window.presentation.changed')try{return {kind:value.kind,state:parseDesktopPresentation(value.state)};}catch{return null;}
+  if(value.kind==='window.floating.changed')try{return {kind:value.kind,state:parseFloatingState(value.state)};}catch{return null;}
   return null;
 }
 export type DesktopOverlayState={clickThrough:boolean;shortcutsAvailable:boolean;opacityPercent:number};
@@ -66,7 +68,7 @@ export function createDesktopStore(options: { channel: Channel; context(): Conte
     if(epoch!==options.context()?.epoch)throw Error('앱 연결이 바뀌었어요. 다시 실행해 주세요.');supportedEpoch=epoch??null;workspaceEpoch=value.workspace===true?epoch??null:null;
     return {schemaVersion:3,barter:true};
   }
-  function request(method: 'window.workspace' | 'game.life.capabilities' | 'game.life.read' | 'game.life.reference' | 'game.life.actions.capabilities' | 'game.life.actions.context' | 'game.life.actions.collectionObservation' | 'game.life.actions.collect' | 'game.life.actions.collectionPolicy' | 'game.life.actions.revokeCollection' | 'game.life.actions.prepare' | 'game.life.actions.confirm' | 'game.life.actions.stop' | 'game.life.actions.cancel' | 'game.life.actions.state' | 'game.life.actions.history' | 'store.capabilities' | 'store.load' | 'store.replace' | 'window.hide' | 'window.close' | 'window.addon.state' | 'window.addon.preferences' | 'window.drag' | 'window.minimize' | 'window.decision' | 'overlay.state' | 'overlay.input' | 'overlay.opacity' | 'game.stats.read' | 'game.currencies.read' | 'window.update.state' | 'window.update.check' | 'window.update.prepare' | 'window.update.apply' | 'window.fonts.list' | 'window.fonts.refresh' | 'window.presentation.state' | 'window.presentation.toggle' | 'window.presentation.panel' | 'window.alert.sound', payload: unknown): Promise<unknown> {
+  function request(method: 'window.floating.state' | 'window.floating.command' | 'window.floating.notice' | 'window.floating.preferences' | 'window.workspace' | 'game.life.capabilities' | 'game.life.read' | 'game.life.reference' | 'game.life.actions.capabilities' | 'game.life.actions.context' | 'game.life.actions.collectionObservation' | 'game.life.actions.collect' | 'game.life.actions.collectionPolicy' | 'game.life.actions.revokeCollection' | 'game.life.actions.prepare' | 'game.life.actions.confirm' | 'game.life.actions.stop' | 'game.life.actions.cancel' | 'game.life.actions.state' | 'game.life.actions.history' | 'store.capabilities' | 'store.load' | 'store.replace' | 'window.hide' | 'window.close' | 'window.addon.state' | 'window.addon.preferences' | 'window.drag' | 'window.minimize' | 'window.decision' | 'overlay.state' | 'overlay.input' | 'overlay.opacity' | 'game.stats.read' | 'game.currencies.read' | 'window.update.state' | 'window.update.check' | 'window.update.prepare' | 'window.update.apply' | 'window.fonts.list' | 'window.fonts.refresh' | 'window.presentation.state' | 'window.presentation.toggle' | 'window.presentation.panel' | 'window.alert.sound', payload: unknown): Promise<unknown> {
     return new Promise((resolve, reject) => {
       const context = options.context();
       if (!context || context.environment !== options.environment || !Number.isSafeInteger(context.epoch) || context.epoch < 1 || sequence >= Number.MAX_SAFE_INTEGER) {
@@ -99,6 +101,10 @@ export function createDesktopStore(options: { channel: Channel; context(): Conte
     });
   }
   return {
+    async floatingState():Promise<FloatingState>{return parseFloatingState(await request('window.floating.state',null));},
+    async floatingCommand(command:FloatingCommand):Promise<FloatingState>{if(!['menu','close','normal','floating','kronos','synaxis','ergon','settings'].includes(command))throw Error('표시할 메뉴를 확인해 주세요.');return parseFloatingState(await request('window.floating.command',{command}));},
+    async setFloatingNotice(kind:'none'|'information'|'character'):Promise<FloatingState>{if(!['none','information','character'].includes(kind))throw Error('안내 종류를 확인해 주세요.');return parseFloatingState(await request('window.floating.notice',{kind}));},
+    async setFloatingPreferences(value:FloatingPreferences):Promise<FloatingState>{return parseFloatingState(await request('window.floating.preferences',parseFloatingPreferences(value)));},
     lifeCapabilities,
     async collectionObservation(value:ErgonCollectionIdentity){if(!exactObject(value,['requestId','accountId','characterId'])||!automationText(value.accountId)||!automationText(value.characterId)||typeof value.requestId!=='string'||!/^(?!00000000-0000-0000-0000-000000000000$)[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value.requestId))throw Error('수령 요청을 확인해 주세요.');return parseErgonCollectionObservation(await request('game.life.actions.collectionObservation',value),value.requestId);},
     async collectLifeAction(value:ErgonCollectionRequest){validateErgonCollectionRequest(value);const receipt=parseErgonActionReceipt(await request('game.life.actions.collect',value));if(receipt.id!==value.requestId)throw Error('다른 수령 요청의 응답이에요.');return receipt;},

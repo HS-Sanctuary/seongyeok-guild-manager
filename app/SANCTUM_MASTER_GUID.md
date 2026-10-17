@@ -1,5 +1,13 @@
 # 🏛️ SANCTUM Master Guide
 
+## 2026-10-17 — IRIS 플로팅 허브 로컬 구조 (운영 미배포)
+
+- native `desktop-floating.cs`는 DIP/화면 경계→단일 CSS 좌표 adapter·표시 Region·교체 가능한 앱 소유 단축키를 담당한다. `desktop-floating-store.cs`는 환경별 일반 bounds/앵커/크기/불투명도/키를 별도 `window-floating-v1.json` 원자 저장하며 손상 원본을 보존한다.
+- `desktop-floating-host.cs` partial WebView coordinator가 기존 Addon/Overlay/Presentation을 조정한다. normal과 floating 좌표/투명도는 별도이며 메뉴/알림에 필요 없는 투명 영역은 Region에서 빠진다. 기존 게임 실행 bridge/원장 계약은 그대로다.
+- 새 `window.floating.state/command/notice/preferences`, `window.floating.changed` 계약은 `irisFloating.ts` parser 및 store/hook에서 버전/epoch/environment/revision을 검증한다. 기존 native 미지원 시 기존 복구 경로를 유지한다. 로고와 settings는 `DesktopFloatingHub/Settings`, 기존 Center 모듈은 한 번만 유지한다.
+- `irisNotificationQueue.ts`/`useIrisNotifications`/`DesktopNotificationHost`는10초 정보와 무만료 캐릭터 slot을 분리한다. Watch/StatsSession은 renderPrompt로 기존 확인·신선도·명시 선택 핸들러를 그대로 쓴다. 정보 만료는 실행/저장/unknown 상태를 바꾸지 않는다.
+- `irisDeepReports.ts`는 기존 `deep_holes` 읽기를 검증/투영한다. 기존 hook의 SELECT/Realtime을 재사용해 목록·최초/재접속 baseline·변경/삭제를 처리한다. 새 API/DB/RLS/publication 변경 없음. 설정·CSS/브라우저/native 회귀와 남은 실제 확인은 날짜별 QA 문서를 따른다.
+
 ## 2026-10-17 — ERGON 게임 작업/내부 편집 잠금 분리
 
 - desktop page의 `locked`는 내부 편집, `gameLocked`는 계정·캐릭터와 게임 조회/요청용이다. `DesktopCenter.identityLocked`, `DesktopContextActions.accountDisabled`를 분리해 일반 메뉴와 설정 탐색을 유지한다. `DesktopStats`/`DesktopCurrencies.readPaused`로 해당 탭을 열어도 실행 중 native 조회를 시작하지 않는다.
