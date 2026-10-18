@@ -1,5 +1,19 @@
 # IRIS Floating Hub — 로컬 후보 QA (2026-10-17)
 
+## 2026-10-18 재개 결과 — Important2 수정 / 실제 사용자 확인 별도
+
+- 한설의 계속 구현/추가확인 불필요 지시로4234e54부터 재개. 새 push·운영배포 승인으로 확대하지 않았다.
+- I1: 실제 provider 시험에서 숨김 도착의 소리 선재생 RED. document.visibilityState와 새 native windowVisible을 모두 확인한 뒤 첫 표시/소리/10초 시작. 이미 표시된 알림은 숨김 중에도 기존 deadline 보존. 숨김15초→복귀 최초10초/숨김 중 만료/native만 숨김 회귀 GREEN.
+- I2: 저장 compact=true의 실제 Form 생성→Show에서 resize edge 잔존 RED. 초기화/전환에 같은 accessory visibility 함수를 적용. Browser.Bounds==ClientRectangle, 일반복귀 edge 복원·실제 표시/숨김 revision까지 native chrome33PASS. 사용자 프로필/브라우저세션은 쓰지 않는 전용 fixture다.
+- 표시 DTO의 optional windowVisible은 bool만 허용, 누락된 옛 floating host는 document 가시성으로 호환. native VisibleChanged/Resize에서 같은 versioned event/revision에 반영한다. 게임 bridge 변경 없음.
+- 전체 Node575/572PASS3기존skip0fail, 타입·수정 scoped lint exit0. 정책/presentation/workspace/startup-close/WebView/bridge PASS. 새 visibility 및 기존 bubble/character-floating/floating/integration/ERGON-edit 실제 React 회귀 PASS. 격리webpack 및 private nativecompile exit0를 이번 회차 직접 확인했다.
+- 초기 sandbox의 loopback network denial·temp 저장·junction EPERM은 같은 명령을 정상 권한으로 재실행해 통과했다. 제품 오류와 구분한다. ERGON 시험 최초 argv 누락도 기존 런타임 경로 지정 후 PASS.
+- 기존 legacy manual-intent-cancels-pending-yes는 격리 전체페이지에서 재실행해 동일 backdrop pointer 차단 실패. 구 iris-desktop-ui outside-title locator/기존 Synaxis lint2오류1경고는 미수정. 일반 전체browser/lint 성공으로 표현하지 않는다.
+- **남음:** Minor1 한글 menu label의 native Region 밖 잘림은 보류. 실제 게임 전체화면/키충돌·DPI·모니터이동·바깥게임클릭은 미검증. 원본unknown·실게임 비용/이동중 사용자편집 미확인 보존.
+- 새 개발 서버6132/로컬페이지200 확인→기존 IRIS0 재확인→Development3156 한 번 시작. 정상 권한 메타데이터에서Responding=true/자체stdout·stderr0바이트 확인. 눈으로 본 native 성공/게임수령 검증을 뜻하지 않는다. 게임 행동0. 로컬 주소 http://localhost:3000/iris/desktop.
+
+아래 C0/I2/M1 미해결/사용자중단은2026-10-17 시점의 경과다. 최신은 중요2수정·Minor1보류이며 전체 출시완료는 아니다.
+
 ## 최종 인계 판정 — 미완료
 
 한설이 사용량 사유로 새구현 중단/인계push 요청. 독립리뷰 C0/I2/M1은 미수정: 숨김중 새알림 수명소진, savedcompact 초기resizePanel, nativeRegion 밖 menu label. 자세한 경로/수정순서는 `docs/IRIS_FLOATING_SOONWOL_HANDOFF_20261017.md`. 새 native실행0, 실제전체화면·키·DPI 미검증. 아래 push없음/재검증대기는 당시 경과다. 최신 최종build 로그 산출물완료는 확인했으나 종료코드 재조회불가이므로 최신회차exit0 재확인으로 표현하지 않는다.

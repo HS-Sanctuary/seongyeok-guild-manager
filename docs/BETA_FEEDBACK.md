@@ -1,5 +1,10 @@
 # SANCTUM 베타 피드백 보드
 
+## 2026-10-18 플로팅 재개 후속 — Important2 수정 / 전체 출시 아님
+
+- 한설 계속구현 지시로 숨김 도착 알림의 최초표시 전 소리/시간소진과 savedcompact 재시작 edge잔존을 각각 실제provider/WinForms RED→GREEN 수정했다. Node572PASS3skip/타입·scopedlint·관련native/React·격리build/privatecompile 확인. native 실제숨김을 optional windowVisible로 전달한다.
+- 상태: 개발 후보 정상시작/실제사용자 눈확인 전. Minor labelRegion 잘림·기존legacy캐릭터browser backdrop 실패/구UIlocator·Synaxislint 남음. 새push/운영배포/게임행동·DB변경0. 날짜별 QA 최신절 참조.
+
 ## 2026-10-17 P2 명시 구현 — IRIS 전체화면 위치 이동·플로팅/알림 개선
 
 - 제보자 한설: 전체화면 왕복 시 작은 창 위치가 바뀜. 기존 네모 대신 이동 가능한 반투명 IRIS 마크/4기능 메뉴·작은 말풍선 요청. 기본Alt+백틱 표시는 `(Alt + ~)` 아래 키캡. 후속으로 크기/불투명도/단축키 설정 요청.

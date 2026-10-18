@@ -1,5 +1,12 @@
 # SANCTUM 작업 인계
 
+## 2026-10-18 영겁 — 플로팅 중요2건 수정·개발 후보 재개
+
+- 한설 계속구현/일반진행 확인불필요 지시,4234e54 ff-only최신·개인dirty보존. 새알림 숨김수명 및 savedcompact resize edge 잔존을 각각 재현 후 수정했다. native windowVisible optionalbool/엄격parser/구host호환 추가. 게임행동·unknown원장·운영DB 변경0.
+- Node575/572PASS3기존skip0fail·타입/scopedlint0·nativechrome33/정책·bridge·WebView·presentation/workspace/startup PASS, visibility/bubble/character-floating/floating/integration/ERGONedit 실제React PASS, 이번 격리webpack/privatecompile exit0 확인.
+- 기존 legacy manual-intent-cancels-pending-yes backdrop 실패 재현, 구UIlocator/Synaxislint 미수정. Minor menu label nativeRegion 잘림/사용자 실제전체화면·키·DPI·이동중편집 검증 남음. 전체출시완료 아님.
+- 기존IRIS0→개발서버6132·페이지200→Development3156 한 번 정상시작/응답true·자체로그0. 실제 눈검증/게임수령과 구분. QA `docs/IRIS_FLOATING_HUB_QA_20261017.md` 최신절 참조. 이번 새push/운영승격·버전/ZIP/공지 변경0.
+
 ## 2026-10-17 15:15 KST — 사용자 요청 중단·순월 인계 push
 
 - **전송결과15:20KST:** 27e8252874ad8d3affc846daf0004a17a777ffe3 일반push/원격정확일치. 이 결과 문서의 최신HEAD까지 pull. Vercel403/CLI없음·Ready/실Preview 미확인·운영승격0. 구조변경없는 결과마감이며 새제품수정0.

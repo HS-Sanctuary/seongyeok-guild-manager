@@ -3,7 +3,7 @@ export type FloatingCommand='menu'|'close'|'normal'|'floating'|FloatingModule;
 export type FloatingPreferences={iconSize:number;opacity:number;modifiers:number;key:number};
 export type FloatingRect={x:number;y:number;width:number;height:number};
 export type FloatingGeometry={width:number;height:number;anchor:{x:number;y:number;size:number};badge:FloatingRect;side:'left'|'right';vertical:'up'|'down';menu:FloatingRect[];bubble:FloatingRect|null;panel:FloatingRect|null};
-export type FloatingState={schemaVersion:1;mode:'normal'|'floating';menuOpen:boolean;surface:'none'|FloatingModule;revision:number;layout:FloatingGeometry;hotkeyAvailable:boolean;hotkeyLabel:string;preferences:FloatingPreferences;persistent:boolean};
+export type FloatingState={schemaVersion:1;mode:'normal'|'floating';menuOpen:boolean;surface:'none'|FloatingModule;revision:number;layout:FloatingGeometry;hotkeyAvailable:boolean;hotkeyLabel:string;preferences:FloatingPreferences;persistent:boolean;windowVisible?:boolean};
 export const defaultFloatingPreferences:FloatingPreferences={iconSize:52,opacity:80,modifiers:1,key:192};
 function exact(v:unknown,keys:string[]):v is Record<string,unknown>{return !!v&&typeof v==='object'&&!Array.isArray(v)&&Object.keys(v).length===keys.length&&keys.every(k=>Object.hasOwn(v,k));}
 const fail=()=>Error('플로팅 설정을 확인하지 못했어요.');
@@ -19,7 +19,10 @@ export function shortcutFromKeyboard(e:Pick<KeyboardEvent,'code'|'altKey'|'ctrlK
  try{parseFloatingPreferences({...defaultFloatingPreferences,modifiers,key});return {modifiers,key};}catch{return null;}
 }
 export function parseFloatingState(v:unknown):FloatingState{
- if(!exact(v,['schemaVersion','mode','menuOpen','surface','revision','layout','hotkeyAvailable','hotkeyLabel','preferences','persistent'])||v.schemaVersion!==1||!['normal','floating'].includes(String(v.mode))||typeof v.menuOpen!=='boolean'||!['none','kronos','synaxis','ergon','settings'].includes(String(v.surface))||!Number.isSafeInteger(v.revision)||Number(v.revision)<0||typeof v.hotkeyAvailable!=='boolean'||typeof v.persistent!=='boolean')throw fail();
+ const keys=['schemaVersion','mode','menuOpen','surface','revision','layout','hotkeyAvailable','hotkeyLabel','preferences','persistent'];
+ const hasVisibility=!!v&&typeof v==='object'&&Object.hasOwn(v,'windowVisible');
+ if(hasVisibility)keys.push('windowVisible');
+ if(!exact(v,keys)||hasVisibility&&typeof v.windowVisible!=='boolean'||v.schemaVersion!==1||!['normal','floating'].includes(String(v.mode))||typeof v.menuOpen!=='boolean'||!['none','kronos','synaxis','ergon','settings'].includes(String(v.surface))||!Number.isSafeInteger(v.revision)||Number(v.revision)<0||typeof v.hotkeyAvailable!=='boolean'||typeof v.persistent!=='boolean')throw fail();
  const preferences=parseFloatingPreferences(v.preferences);if(v.hotkeyLabel!==floatingShortcutLabel(preferences))throw fail();
  const l=v.layout;if(!exact(l,['width','height','anchor','badge','side','vertical','menu','bubble','panel'])||!['left','right'].includes(String(l.side))||!['up','down'].includes(String(l.vertical))||!['width','height'].every(k=>typeof l[k]==='number'&&Number.isFinite(l[k])&&Number(l[k])>0&&Number(l[k])<=20000)||!exact(l.anchor,['x','y','size']))throw fail();
  const rect=(r:unknown):r is FloatingRect=>exact(r,['x','y','width','height'])&&Object.values(r).every(x=>typeof x==='number'&&Number.isFinite(x))&&Number(r.x)>=0&&Number(r.y)>=0&&Number(r.width)>0&&Number(r.height)>0&&Number(r.x)+Number(r.width)<=Number(l.width)+.01&&Number(r.y)+Number(r.height)<=Number(l.height)+.01;

@@ -48,6 +48,24 @@ namespace IrisDesktop {
     placement(new Rectangle(0,0,1280,720),work,false);Check(window.Width==600,"Windowed return loses stored width");
    }
    using(var restored=new DesktopWebView(true,widthProfile)){restored.Addon.Dispose();restored.Overlay.Dispose();Check(restored.Width==600,"Preferred width must restore on native restart");Check(restored.Browser.CoreWebView2==null,"Width restore must not open a user browser session");}
+   string compactProfile=System.IO.Path.Combine(profile+"-compact","profile");
+   new DesktopPresentationState(System.IO.Path.GetDirectoryName(compactProfile)).Toggle();
+   using(var restored=new DesktopWebView(true,compactProfile)){
+    restored.Addon.Dispose();restored.Overlay.Dispose();restored.Show();restored.PerformLayout();
+    Check(restored.Presentation.Compact,"Compact startup fixture did not restore compact state");
+    foreach(Control child in restored.Controls)if(child!=restored.Browser)Check(!child.Visible,"Saved compact startup leaves a resize edge visible");
+    Check(restored.Browser.Bounds==restored.ClientRectangle,"Saved compact startup shifts browser coordinates away from native geometry");
+    Check(restored.Browser.CoreWebView2==null,"Compact startup fixture opened browser session");
+    var stateMethod=typeof(DesktopWebView).GetMethod("FloatingState",BindingFlags.Instance|BindingFlags.NonPublic);
+    var serializer=new System.Web.Script.Serialization.JavaScriptSerializer();
+    var shown=serializer.Deserialize<System.Collections.Generic.Dictionary<string,object>>(serializer.Serialize(stateMethod.Invoke(restored,null)));
+    Check(shown.ContainsKey("windowVisible")&&Equals(shown["windowVisible"],true),"Native visible state is not published to notice clock");
+    restored.Hide();
+    var hidden=serializer.Deserialize<System.Collections.Generic.Dictionary<string,object>>(serializer.Serialize(stateMethod.Invoke(restored,null)));
+    Check(hidden.ContainsKey("windowVisible")&&Equals(hidden["windowVisible"],false)&&Convert.ToInt64(hidden["revision"])>Convert.ToInt64(shown["revision"]),"Hiding native window leaves stale visible state/revision");
+    restored.Presentation.Toggle();restored.Show();restored.PerformLayout();
+    foreach(Control child in restored.Controls)if(child!=restored.Browser)Check(child.Visible,"Returning normal fails to restore resize edge");
+   }
    return passed;
   }
  }

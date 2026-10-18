@@ -1,5 +1,11 @@
 # 순월 인계 — IRIS 플로팅 미완료 후보 / 2026-10-17 KST
 
+## 2026-10-18 후속 — 로컬 구현 재개 (아래 전송 후의 변경)
+
+한설이 확인질문 없이 계속구현을 요청하여 중요2건을 RED→GREEN 수정했다. 숨김정보는 document/native 모두 가시일 때 첫10초 시작, 이미 표시된 deadline은 유지한다. savedcompact 초기 resize edge도 공통 visibility 적용으로 수정했다. optional bool windowVisible은 옛host 누락호환/엄격parser·실native revision으로 검증했다.
+
+Node575/572PASS3skip0fail·타입/scopedlint·nativechrome33/관련native·새visibility/기존React·격리webpack/privatecompile exit0. 기존 legacy캐릭터 pendingYes backdrop 실패는 재실행 동일, 구UIlocator·기존Synaxislint 남음. Minor1 menu labelRegion 잘림/실제전체화면·키·DPI 미검증. Development3156정상시작/응답true·자체로그0, 눈검증/게임수령 성공 아님. 최신QA 참조. 이 후속은 로컬 체크포인트이며 **새push 없음**, 아래4234e54 이전인계의 미수정중요2는 당시기록이다.
+
 ## 전송 확인 — 15:20 KST
 
 코드/인계 커밋 `27e8252874ad8d3affc846daf0004a17a777ffe3` 일반push 및 ls-remote 정확일치 확인. 이 결과 문서 마감의 최신 HEAD까지 pull한다. Vercel 동일project/team 조회403·CLI없음으로 Ready/실Preview 미확인, 우회/설치/운영승격0. 신규 floating/integration/notification/character/deep browser 테스트5파일 ESLint는 마감 중 재실행 exit0 확인. 새 제품 수정은 하지 않았다.

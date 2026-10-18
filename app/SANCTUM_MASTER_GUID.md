@@ -1,5 +1,10 @@
 # 🏛️ SANCTUM Master Guide
 
+## 2026-10-18 — 플로팅 가시성/초기화 수정 (로컬)
+
+- 표시전용 schema1 FloatingState에 optional bool windowVisible 추가. 엄격키/타입 검증은 유지하고 기존 host 누락은 document.visibilityState로 호환한다. native VisibleChanged/Resize가 표시 revision에 포함되어 새정보의 최초표시10초·소리만 가시 상태에서 시작한다. 이미 표시한 정보 deadline/캐릭터 무만료/unknown상태는 별개다.
+- InitializeFloating과 SetFloatingMode가 같은 ApplyFloatingAccessories로 resize edge 표시를 동기화한다. savedcompact 시작의 Browser/Region 좌표 불일치를 실제Form 회귀로 검증했다. 게임실행/저장원장·운영API/DB/RLS 구조 변경 없음. Minor labelRegion/실사용전체화면 검증은 여전히 남았다. 아래 중요2미수정은10월17일 인계 시점이다.
+
 ## 2026-10-17 — 플로팅 개발 인계 경계
 
 - 전송결과15:20KST: 코드/인계27e8252 원격정확일치, 결과마감 최신HEAD까지 pull. Vercel403/CLI없음·Ready/실Preview 미확인. 결과기록 자체는 구조변경없음/운영미승격.

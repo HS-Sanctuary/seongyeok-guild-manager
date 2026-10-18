@@ -11,8 +11,9 @@ export function IrisNotificationsProvider({scope,floating,onNoticeKind,children}
  const kind=visibleCharacter?'character':queue.state().visible||queue.state().pending.length?'information':'none';
  useEffect(()=>{if(!visibleCharacter)return;const outside=(event:PointerEvent)=>{if(!(event.target as Element).closest?.('.iris-notification-bubble,.iris-floating-logo'))setCollapsed(visibleCharacter.key);};document.addEventListener('pointerdown',outside);return()=>document.removeEventListener('pointerdown',outside);},[visibleCharacter]);
  useEffect(()=>{void onNoticeKind(kind);},[kind,onNoticeKind]);
- const canShow=!visibleCharacter&&(floating?.mode!=='floating'||!!floating.layout.bubble||floating.surface!=='none');
- useEffect(()=>{let live=true;const tick=()=>{if(!live)return;const at=Date.now();queue.tick(at);if(canShow)queue.show(at);setNow(at);setRevision(r=>r+1);};queueMicrotask(tick);const timer=setInterval(tick,100);document.addEventListener('visibilitychange',tick);return()=>{live=false;clearInterval(timer);document.removeEventListener('visibilitychange',tick);};},[queue,canShow]);
+ const documentVisible=typeof document==='undefined'||document.visibilityState==='visible';
+ const canShow=documentVisible&&floating?.windowVisible!==false&&!visibleCharacter&&(floating?.mode!=='floating'||!!floating.layout.bubble||floating.surface!=='none');
+ useEffect(()=>{let live=true;const tick=()=>{if(!live)return;const at=Date.now();queue.tick(at);if(canShow&&document.visibilityState==='visible')queue.show(at);setNow(at);setRevision(r=>r+1);};queueMicrotask(tick);const timer=setInterval(tick,100);document.addEventListener('visibilitychange',tick);return()=>{live=false;clearInterval(timer);document.removeEventListener('visibilitychange',tick);};},[queue,canShow]);
  const previousMenu=useRef(false);
  const candidateKey=validCharacter?.key??null;
  useEffect(()=>{const wasOpen=previousMenu.current;previousMenu.current=!!floating?.menuOpen;if(floating?.menuOpen&&candidateKey)queueMicrotask(()=>setCollapsed(candidateKey));else if(wasOpen)queueMicrotask(()=>setCollapsed(null));},[floating?.menuOpen,candidateKey]);

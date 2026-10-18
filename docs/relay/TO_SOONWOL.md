@@ -2,6 +2,9 @@
 
 ## YG-20261016-001 — UPDATED (목록형 구현·검토 수정·15% 해제)
 
+- **영겁 누적2026-10-18 / 로컬후속·새push전:** 한설 계속구현/일반진행확인불필요 지시.4234e54 ff-only최신/개인dirty보존. 기존I2(숨김알림첫10초·소리, savedcompact초기edge) RED→GREEN수정. native optional windowVisible 엄격bool/누락호환·표시revision 추가. 아래I2미수정은이전시점.
+- 전체Node575/572PASS3skip0fail·타입/scopedlint0·nativechrome33/관련native·visibility+기존실React·격리webpack/privatecompile exit0. legacypendingYes는같은backdrop실패재현, 구UIlocator/Synaxislint 및Minor labelRegion 남음. Development3156응답true·로그0/페이지200, 눈검증·게임수령 아님. 운영main/버전/ZIP·공지·DB·원장보존/게임행동0. 최신QA참조/실제전체화면·키·DPI미검증.
+
 - **전송결과15:20KST:** 27e8252874ad8d3affc846daf0004a17a777ffe3 일반push·ls-remote정확일치. 이결과문서마감 최신HEAD까지 pull/ACK. 동일Vercel403/CLI없음·Ready/실Preview미확인/우회·운영승격0. 구조변경없는 문서마감/새제품수정0, 미해결I2/M1 및 기존누적보존.
 
 - **영겁 누적2026-10-17 15:15KST 최신우선:** 한설 사용량부족으로 새구현중단/인계push 승인. `docs/IRIS_FLOATING_SOONWOL_HANDOFF_20261017.md` 먼저 읽고 최신기능브랜치 pull/ACK. 코드618fadd·da152e9·4c31b54와 문서마감 포함/미완료후보. 기존미ACK 누적보존.

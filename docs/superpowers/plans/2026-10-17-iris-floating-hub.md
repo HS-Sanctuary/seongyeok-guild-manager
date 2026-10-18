@@ -1,5 +1,7 @@
 # IRIS Floating Hub Implementation Plan
 
+**2026-10-18 재개:** 한설 계속구현 지시. 중요2건 RED→GREEN 수정/전체회귀·빌드 통과, 개발 후보 정상 시작. Minor1·실제전체화면/키/DPI 및 기존 legacybrowser 실패는 남았다. 최신 QA 절을 따르며 전체완료로 표기하지 않는다.
+
 **2026-10-17 실행 상태: 사용자 요청으로 중단·인계, 미완료.** 중요2/Minor1 미수정과 native실검증은 `docs/IRIS_FLOATING_SOONWOL_HANDOFF_20261017.md`를 따른다. 체크포인트4c31b54를 완료/출시로 해석하지 않는다.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.

@@ -6,8 +6,10 @@ namespace IrisDesktop {
   void InitializeFloating(){
    floatingStore=new DesktopFloatingBoundsStore(System.IO.Path.GetDirectoryName(profile));floatingSnapshot=floatingStore.Load(Bounds,new Point(Left,Top));
    Bounds=DesktopWorkspaceLayout.Restore(floatingSnapshot.NormalBounds,Screen.FromRectangle(floatingSnapshot.NormalBounds).WorkingArea);Overlay.IndependentBounds=()=>floatingMode;Overlay.VisualOpacity=percent=>floatingMode&&floatingSurface=="none"&&!closeDecision?floatingSnapshot.Preferences.Opacity:percent;
-   floatingMode=Presentation.Compact;Browser.DefaultBackgroundColor=Color.Transparent;
+   floatingMode=Presentation.Compact;ApplyFloatingAccessories();Browser.DefaultBackgroundColor=Color.Transparent;
    RegisterFloatingHotkey();ApplyFloatingLayout(true);
+   VisibleChanged+=(s,e)=>ApplyFloatingLayout(true);
+   Resize+=(s,e)=>ApplyFloatingLayout(true);
    Deactivate+=(s,e)=>{if(floatingMode&&(floatingMenu||floatingSurface!="none")&&!closeDecision)FloatingCommand("close");};
    ResizeEnd+=(s,e)=>SaveFloatingNormal();
   }
@@ -16,14 +18,16 @@ namespace IrisDesktop {
   void SaveFloating(){if(floatingSnapshot==null)return;floatingSnapshot.Persistent=floatingStore.Save(floatingSnapshot);}
   void SaveFloatingNormal(){if(floatingSnapshot==null||floatingMode||applyingFloating||WindowState!=FormWindowState.Normal)return;floatingSnapshot.NormalBounds=Bounds;SaveFloating();}
   int FloatingDpi(){using(var g=CreateGraphics())return (int)Math.Round(g.DpiX);}
+  void ApplyFloatingAccessories(){foreach(Control control in Controls)if(control!=Browser)control.Visible=!floatingMode;}
   void SetFloatingMode(bool value){
    if(floatingSnapshot==null||value==floatingMode)return;
    if(value){if(workspaceExpanded)SetWorkspace(false);SaveFloatingNormal();floatingMode=true;}
    else{floatingMode=false;floatingMenu=false;floatingSurface="none";MinimumSize=new Size(360,120);MaximumSize=new Size(720,Screen.FromRectangle(floatingSnapshot.NormalBounds).WorkingArea.Height);Bounds=DesktopWorkspaceLayout.Restore(floatingSnapshot.NormalBounds,Screen.FromRectangle(floatingSnapshot.NormalBounds).WorkingArea);}
-   foreach(Control control in Controls)if(control!=Browser)control.Visible=!floatingMode;
+   ApplyFloatingAccessories();
    ApplyFloatingLayout(true);
   }
-  object FloatingState(){if(floatingSnapshot==null)throw new ArgumentException();if(floatingLayout==null)ApplyFloatingLayout(false);return new{schemaVersion=1,mode=floatingMode?"floating":"normal",menuOpen=floatingMode&&floatingMenu,surface=floatingMode?floatingSurface:"none",revision=floatingRevision,layout=floatingLayout.Geometry(),hotkeyAvailable=floatingHotkey!=null&&floatingHotkey.Available,hotkeyLabel=floatingSnapshot.Preferences.Label,preferences=floatingSnapshot.Preferences.State(),persistent=floatingSnapshot.Persistent};}
+  bool FloatingWindowVisible(){return Visible&&WindowState!=FormWindowState.Minimized;}
+  object FloatingState(){if(floatingSnapshot==null)throw new ArgumentException();if(floatingLayout==null)ApplyFloatingLayout(false);return new{schemaVersion=1,mode=floatingMode?"floating":"normal",menuOpen=floatingMode&&floatingMenu,surface=floatingMode?floatingSurface:"none",revision=floatingRevision,layout=floatingLayout.Geometry(),hotkeyAvailable=floatingHotkey!=null&&floatingHotkey.Available,hotkeyLabel=floatingSnapshot.Preferences.Label,preferences=floatingSnapshot.Preferences.State(),persistent=floatingSnapshot.Persistent,windowVisible=FloatingWindowVisible()};}
   object FloatingCommand(string command){
    if(closeDecision)throw new ArgumentException();
    if(command=="normal"||command=="floating") {bool next=command=="floating";if(Presentation.Compact!=next)Presentation.Toggle();else SetFloatingMode(next);}
@@ -50,7 +54,7 @@ namespace IrisDesktop {
     else OnSizeChanged(EventArgs.Empty);
     Overlay.RefreshOpacity();
     // Change events are content-addressed; the 250ms game observer does not flood the bridge.
-    string serialized=new JavaScriptSerializer().Serialize(new{mode=floatingMode,menu=floatingMenu,surface=floatingSurface,layout=floatingLayout.Geometry(),prefs=p.State(),available=floatingHotkey!=null&&floatingHotkey.Available,persistent=floatingSnapshot.Persistent});
+    string serialized=new JavaScriptSerializer().Serialize(new{mode=floatingMode,menu=floatingMenu,surface=floatingSurface,layout=floatingLayout.Geometry(),prefs=p.State(),available=floatingHotkey!=null&&floatingHotkey.Available,persistent=floatingSnapshot.Persistent,windowVisible=FloatingWindowVisible()});
     if(serialized!=floatingPublished){floatingPublished=serialized;floatingRevision++;if(publish&&documentReady&&bridge!=null&&Browser.CoreWebView2!=null)Browser.CoreWebView2.PostWebMessageAsJson(new JavaScriptSerializer().Serialize(new{version=1,kind="window.floating.changed",epoch=bridge.Epoch,environment=development?"development":"production",state=FloatingState()}));}
    }finally{applyingFloating=false;}
   }
