@@ -1,5 +1,9 @@
 # 🏛️ SANCTUM Master Guide
 
+## 2026-10-18 키캡 비율 후속 (로컬)
+
+FloatingLayout의 badge는28DIP높이/문구길이 기반폭(기본97DIP)으로 실제창 Region/경계에 포함한다. 아이콘 크기 설정은 변경하지 않는다. CSS는 큰둥근굵은글자·밝은2px테두리이며 native배치와 함께 적용하려면 정상재시작해야 한다. 게임bridge/운영API/DB 구조 변경 없음.
+
 ## 2026-10-18 — 플로팅 가시성/초기화 수정 (로컬)
 
 - 표시전용 schema1 FloatingState에 optional bool windowVisible 추가. 엄격키/타입 검증은 유지하고 기존 host 누락은 document.visibilityState로 호환한다. native VisibleChanged/Resize가 표시 revision에 포함되어 새정보의 최초표시10초·소리만 가시 상태에서 시작한다. 이미 표시한 정보 deadline/캐릭터 무만료/unknown상태는 별개다.

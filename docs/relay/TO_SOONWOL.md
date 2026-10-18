@@ -2,6 +2,8 @@
 
 ## YG-20261016-001 — UPDATED (목록형 구현·검토 수정·15% 해제)
 
+- 영겁누적2026-10-18 키캡비율재조정/로컬: 한설 거의동일요청. CSS-only20높이제한을 native28DIP/기본97폭으로확대+큰둥근굵은글자/밝은2px테두리. 로고크기/실제키유지. native/DOM RED→GREEN·chrome33/Node572PASS3skip/lint/privatecompilePASS. 기존실행앱 정상재실행후전체반영 필요/강제종료0·실제사용자확인전. 새push/운영/게임행동0. 아래재시작불필요는앞선CSS-only시점.
+
 - 영겁누적2026-10-18 키캡후속/로컬: 한설이 현재플로팅크기만족·첨부Ctrl+Z와같은키표시요청. floating-hub.css 키캡의차콜바탕/둥근밝은테두리/굵은흰글자만변경, 아이콘/기하/native/실제키유지. 실제DOM RED→GREEN/18·20·22글자폭·52로고/기존floating/Node572PASS3skip, 캡처눈검증. native재시작불필요/새push0. 기존미ACK·중요수정/미해결기록보존.
 
 - **영겁 누적2026-10-18 / 로컬후속·새push전:** 한설 계속구현/일반진행확인불필요 지시.4234e54 ff-only최신/개인dirty보존. 기존I2(숨김알림첫10초·소리, savedcompact초기edge) RED→GREEN수정. native optional windowVisible 엄격bool/누락호환·표시revision 추가. 아래I2미수정은이전시점.

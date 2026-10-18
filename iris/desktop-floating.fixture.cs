@@ -15,10 +15,12 @@ namespace IrisDesktop {
    foreach(int dpi in new[]{96,144,192})foreach(int size in new[]{36,52,80})foreach(var work in new[]{new Rectangle(-1920,0,1920,1080),new Rectangle(0,0,1280,720),new Rectangle(0,0,320,480)})foreach(var anchor in new[]{new Point(work.Left,work.Top),new Point(work.Right,work.Top),new Point(work.Left,work.Bottom),new Point(work.Right,work.Bottom),new Point(-4000,9000)}){
     var l=FloatingLayout.Calculate(anchor,work,new Size(380,600),true,true,true,dpi,size);
     Check(work.Contains(l.Bounds),"FloatingBoundsSurviveDpiAndMonitorRemoval");
+    Check(l.Badge.Height>=Math.Ceiling(28*dpi/96d),"Reference-sized keycap frame clips large shortcut text");
     for(int a=0;a<l.Menu.Length;a++)for(int b=a+1;b<l.Menu.Length;b++)Check(!l.Menu[a].IntersectsWith(l.Menu[b]),"Corner menu buttons overlap");
     using(var region=l.CreateRegion()) {Check(region.IsVisible(l.Anchor.X+l.Anchor.Width/2,l.Anchor.Y+l.Anchor.Height/2),"logo region absent");Check(region.IsVisible(l.Badge.X+l.Badge.Width/2,l.Badge.Y+l.Badge.Height/2),"badge clipped");}
    }
    var closed=FloatingLayout.Calculate(new Point(100,100),new Rectangle(0,0,1280,720),new Size(380,600),false,false,false,96);
+   Check(closed.Badge.Width>=92,"Reference shortcut text lacks horizontal breathing room");
    using(var r=closed.CreateRegion())Check(!r.IsVisible(closed.Anchor.Left,closed.Anchor.Top),"invisible logo corners capture input");
    File.WriteAllText(Path.Combine(root,"window-floating-v1.json"),"corrupt original");var broken=new DesktopFloatingBoundsStore(root);var bad=broken.Load(normal,Point.Empty);Check(bad.Unreadable&&!broken.Save(bad)&&File.ReadAllText(Path.Combine(root,"window-floating-v1.json"))=="corrupt original","CorruptBoundsNeverOverwriteOriginal");
    var registry=new FloatingFakeRegistry();int toggles=0;var hotkey=new DesktopFloatingHotkey(registry,()=>toggles++);Check(hotkey.Available&&registry.Mod==0x4001&&registry.Key==0xc0,"default shortcut registration");

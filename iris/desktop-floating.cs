@@ -36,9 +36,9 @@ namespace IrisDesktop {
  }
  public static class FloatingLayout {
   public static FloatingLayoutResult Calculate(Point anchor,Rectangle work,Size panel,bool menu,bool bubble,bool panelOpen,int dpi){return Calculate(anchor,work,panel,menu,bubble,panelOpen,dpi,52);}
-  public static FloatingLayoutResult Calculate(Point anchor,Rectangle work,Size panel,bool menu,bool bubble,bool panelOpen,int dpi,int iconSize,int badgeDip=72){
+  public static FloatingLayoutResult Calculate(Point anchor,Rectangle work,Size panel,bool menu,bool bubble,bool panelOpen,int dpi,int iconSize,int badgeDip=92){
    if(dpi<48||dpi>768||work.Width<32||work.Height<32||iconSize<36||iconSize>80)throw new ArgumentException();
-   double scale=dpi/96d;Func<int,int> px=v=>(int)Math.Ceiling(v*scale);int margin=Math.Min(px(8),Math.Min(work.Width,work.Height)/8),gap=px(4),size=Math.Min(px(iconSize),Math.Min(work.Width-margin*2,work.Height-margin*2-gap-px(20))),badgeWidth=Math.Min(px(Math.Max(72,Math.Min(180,badgeDip))),work.Width-margin*2),badgeHeight=px(20);
+   double scale=dpi/96d;Func<int,int> px=v=>(int)Math.Ceiling(v*scale);int margin=Math.Min(px(8),Math.Min(work.Width,work.Height)/8),gap=px(4),size=Math.Min(px(iconSize),Math.Min(work.Width-margin*2,work.Height-margin*2-gap-px(28))),badgeWidth=Math.Min(px(Math.Max(92,Math.Min(320,badgeDip))),work.Width-margin*2),badgeHeight=px(28);
    var inner=new Rectangle(work.Left+margin,work.Top+margin,work.Width-margin*2,work.Height-margin*2);
    int x=Math.Max(inner.Left+(badgeWidth-size)/2,Math.Min(anchor.X,inner.Right-size-(badgeWidth-size)/2));int y=Math.Max(inner.Top,Math.Min(anchor.Y,inner.Bottom-size-gap-badgeHeight));
    var logo=new Rectangle(x,y,size,size);var badge=new Rectangle(x+(size-badgeWidth)/2,y+size+gap,badgeWidth,badgeHeight);

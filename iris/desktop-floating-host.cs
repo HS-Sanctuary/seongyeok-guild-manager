@@ -49,7 +49,7 @@ namespace IrisDesktop {
    if(floatingSnapshot==null||applyingFloating||IsDisposed)return;applyingFloating=true;
    try{
     var screen=Screen.FromPoint(floatingSnapshot.FloatingAnchor);int dpi=FloatingDpi();var p=floatingSnapshot.Preferences;
-    floatingLayout=FloatingLayout.Calculate(floatingSnapshot.FloatingAnchor,screen.WorkingArea,new Size(420,680),floatingMode&&floatingMenu,floatingMode&&floatingNotice!="none"&&floatingSurface=="none",floatingMode&&floatingSurface!="none",dpi,p.IconSize,Math.Max(72,p.Label.Length*7+12));
+    floatingLayout=FloatingLayout.Calculate(floatingSnapshot.FloatingAnchor,screen.WorkingArea,new Size(420,680),floatingMode&&floatingMenu,floatingMode&&floatingNotice!="none"&&floatingSurface=="none",floatingMode&&floatingSurface!="none",dpi,p.IconSize,Math.Max(92,p.Label.Length*9+16));
     if(floatingMode){MinimumSize=new Size(1,1);MaximumSize=new Size(screen.WorkingArea.Width,screen.WorkingArea.Height);Bounds=floatingLayout.Bounds;floatingSnapshot.FloatingAnchor=new Point(Left+floatingLayout.Anchor.Left,Top+floatingLayout.Anchor.Top);floatingSnapshot.Dpi=dpi;floatingSnapshot.MonitorId=screen.DeviceName;ReplaceRegion(floatingLayout.CreateRegion());}
     else OnSizeChanged(EventArgs.Empty);
     Overlay.RefreshOpacity();
