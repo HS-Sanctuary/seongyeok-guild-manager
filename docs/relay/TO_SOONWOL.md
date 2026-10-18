@@ -2,6 +2,8 @@
 
 ## YG-20261016-001 — UPDATED (목록형 구현·검토 수정·15% 해제)
 
+- 영겁누적2026-10-18 키캡후속/로컬: 한설이 현재플로팅크기만족·첨부Ctrl+Z와같은키표시요청. floating-hub.css 키캡의차콜바탕/둥근밝은테두리/굵은흰글자만변경, 아이콘/기하/native/실제키유지. 실제DOM RED→GREEN/18·20·22글자폭·52로고/기존floating/Node572PASS3skip, 캡처눈검증. native재시작불필요/새push0. 기존미ACK·중요수정/미해결기록보존.
+
 - **영겁 누적2026-10-18 / 로컬후속·새push전:** 한설 계속구현/일반진행확인불필요 지시.4234e54 ff-only최신/개인dirty보존. 기존I2(숨김알림첫10초·소리, savedcompact초기edge) RED→GREEN수정. native optional windowVisible 엄격bool/누락호환·표시revision 추가. 아래I2미수정은이전시점.
 - 전체Node575/572PASS3skip0fail·타입/scopedlint0·nativechrome33/관련native·visibility+기존실React·격리webpack/privatecompile exit0. legacypendingYes는같은backdrop실패재현, 구UIlocator/Synaxislint 및Minor labelRegion 남음. Development3156응답true·로그0/페이지200, 눈검증·게임수령 아님. 운영main/버전/ZIP·공지·DB·원장보존/게임행동0. 최신QA참조/실제전체화면·키·DPI미검증.
 
