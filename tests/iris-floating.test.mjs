@@ -1,7 +1,14 @@
 import {test} from 'node:test';import assert from 'node:assert/strict';import {loadTS} from './load-ts.mjs';
-const {parseFloatingState,parseFloatingPreferences,shortcutFromKeyboard,acceptFloatingRevision}=loadTS('lib/irisFloating.ts');
+const {parseFloatingState,parseFloatingPreferences,shortcutFromKeyboard,acceptFloatingRevision,floatingShortcutCaption}=loadTS('lib/irisFloating.ts');
 const rect={x:0,y:0,width:72,height:20};
 const state={schemaVersion:1,mode:'floating',menuOpen:false,surface:'none',revision:4,layout:{width:132,height:76,anchor:{x:40,y:0,size:52},badge:{...rect,y:56,width:132},side:'right',vertical:'down',menu:[],bubble:null,panel:null},hotkeyAvailable:true,hotkeyLabel:'(Alt + ~)',preferences:{iconSize:52,opacity:80,modifiers:1,key:192},persistent:true};
+
+test('visible shortcut omits wrapper parentheses without changing the native shortcut contract',()=>{
+ assert.equal(floatingShortcutCaption(state.hotkeyLabel),'Alt + ~');
+ assert.equal(floatingShortcutCaption('(Ctrl + Shift + F12)'),'Ctrl + Shift + F12');
+ assert.equal(floatingShortcutCaption('Ctrl + Z'),'Ctrl + Z');
+ assert.equal(parseFloatingState(state).hotkeyLabel,'(Alt + ~)');
+});
 test('strict floating geometry rejects invisible or malformed hit areas',()=>{assert.equal(parseFloatingState(state).layout.anchor.size,52);for(const change of [{schemaVersion:2},{extra:true},{layout:{...state.layout,width:NaN}},{layout:{...state.layout,anchor:{x:-1,y:0,size:52}}},{menuOpen:true},{surface:'ergon'},{preferences:{...state.preferences,opacity:0}}])assert.throws(()=>parseFloatingState({...state,...change}));});
 test('late replies cannot reopen closed surfaces',()=>{assert.equal(acceptFloatingRevision({...state,revision:5},state).revision,5);assert.equal(acceptFloatingRevision(null,state).revision,4);});
 

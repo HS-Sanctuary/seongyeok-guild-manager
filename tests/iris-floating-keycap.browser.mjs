@@ -2,10 +2,12 @@ import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 import {startIrisFixture} from './iris-ui.fixture.mjs';
 const {chromium}=createRequire('C:/Users/Moon/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/package.json')('playwright');
-const entry=`const React=require('react'),{createRoot}=require('react-dom/client'),{DesktopFloatingHub}=require('@/components/iris/DesktopFloatingHub');const state={mode:'floating',menuOpen:false,surface:'none',hotkeyAvailable:true,hotkeyLabel:'(Alt + ~)',layout:{anchor:{x:42.5,y:20,size:52},badge:{x:20,y:76,width:97,height:28},side:'right',vertical:'down',menu:[],panel:null,bubble:null}};createRoot(document.getElementById('app')).render(React.createElement('main',{className:'iris-desktop'},React.createElement(DesktopFloatingHub,{state,onCommand:()=>{},onDrag:()=>{}})));`;
+const entry=`const React=require('react'),{createRoot}=require('react-dom/client'),{DesktopFloatingHub}=require('@/components/iris/DesktopFloatingHub');const state={mode:'floating',menuOpen:false,surface:'none',hotkeyAvailable:true,hotkeyLabel:'(Alt + ~)',layout:{anchor:{x:33.5,y:20,size:52},badge:{x:20,y:76,width:79,height:28},side:'right',vertical:'down',menu:[],panel:null,bubble:null}};createRoot(document.getElementById('app')).render(React.createElement('main',{className:'iris-desktop'},React.createElement(DesktopFloatingHub,{state,onCommand:()=>{},onDrag:()=>{}})));`;
 const fixture=await startIrisFixture(entry),browser=await chromium.launch({channel:'chrome',headless:true});
 try{
- const page=await browser.newPage();await page.goto(fixture.origin);const badge=page.getByText('(Alt + ~)',{exact:true}),logo=page.getByRole('button',{name:'IRIS 메뉴',exact:true});
+ const page=await browser.newPage();await page.goto(fixture.origin);await page.locator('.iris-floating-keycap').waitFor();
+ assert.equal(await page.locator('.iris-floating-keycap').textContent(),'Alt + ~');
+ const badge=page.getByText('Alt + ~',{exact:true}),logo=page.getByRole('button',{name:'IRIS 메뉴',exact:true});
  await page.evaluate(()=>document.documentElement.style.setProperty('background','#1b222a','important'));
  for(const size of [18,20,22]){
   await page.evaluate(size=>document.documentElement.style.fontSize=size+'px',size);

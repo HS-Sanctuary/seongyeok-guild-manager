@@ -20,7 +20,7 @@ namespace IrisDesktop {
     using(var region=l.CreateRegion()) {Check(region.IsVisible(l.Anchor.X+l.Anchor.Width/2,l.Anchor.Y+l.Anchor.Height/2),"logo region absent");Check(region.IsVisible(l.Badge.X+l.Badge.Width/2,l.Badge.Y+l.Badge.Height/2),"badge clipped");}
    }
    var closed=FloatingLayout.Calculate(new Point(100,100),new Rectangle(0,0,1280,720),new Size(380,600),false,false,false,96);
-   Check(closed.Badge.Width>=92,"Reference shortcut text lacks horizontal breathing room");
+   Check(closed.Badge.Width>=79&&closed.Badge.Width<=80,"Removing parentheses must remove their horizontal space, not keep a wide empty frame");
    using(var r=closed.CreateRegion())Check(!r.IsVisible(closed.Anchor.Left,closed.Anchor.Top),"invisible logo corners capture input");
    File.WriteAllText(Path.Combine(root,"window-floating-v1.json"),"corrupt original");var broken=new DesktopFloatingBoundsStore(root);var bad=broken.Load(normal,Point.Empty);Check(bad.Unreadable&&!broken.Save(bad)&&File.ReadAllText(Path.Combine(root,"window-floating-v1.json"))=="corrupt original","CorruptBoundsNeverOverwriteOriginal");
    var registry=new FloatingFakeRegistry();int toggles=0;var hotkey=new DesktopFloatingHotkey(registry,()=>toggles++);Check(hotkey.Available&&registry.Mod==0x4001&&registry.Key==0xc0,"default shortcut registration");

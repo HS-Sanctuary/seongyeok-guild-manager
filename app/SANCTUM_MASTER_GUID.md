@@ -1,5 +1,9 @@
 # 🏛️ SANCTUM Master Guide
 
+## 2026-10-18 키캡 최종 표시 후속 (로컬)
+
+`floatingShortcutCaption`이 bridge의 괄호표기를 표시부에서만 제거해 Hub/Settings에 동일 적용한다. 실제키/DTO검증은 변경없음. native문구폭도괄호2글자를제외해 기본79DIP, 높이28/로고크기설정은유지한다. 아래97DIP은이전디자인경과이며 새폭은정상재시작후반영.
+
 ## 2026-10-18 키캡 비율 후속 (로컬)
 
 FloatingLayout의 badge는28DIP높이/문구길이 기반폭(기본97DIP)으로 실제창 Region/경계에 포함한다. 아이콘 크기 설정은 변경하지 않는다. CSS는 큰둥근굵은글자·밝은2px테두리이며 native배치와 함께 적용하려면 정상재시작해야 한다. 게임bridge/운영API/DB 구조 변경 없음.

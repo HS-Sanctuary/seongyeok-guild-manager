@@ -1,5 +1,9 @@
 # SANCTUM 작업 인계
 
+## 2026-10-18 키캡 확정 후속 — 괄호 제거
+
+표시는 `Alt + ~`, native기본폭79/높이28DIP로 축소. 로고크기/실제키/bridge구호환 보존, 설정안내도같은caption함수 사용. Node573PASS3skip/타입·l​​int/nativechrome33/실제DOM·기존floatingPASS. 최신QA참조. 폭전체적용은정상재실행필요, 새push·운영/게임행동0. 아래97폭은이전시점.
+
 ## 2026-10-18 키캡 후속 — 참고 Ctrl+Z 비율 / 정상재실행 적용 대기
 
 한설 거의동일요청으로 키캡 높이28DIP·기본문구폭97DIP/큰굵은둥근글자/2px밝은테두리 조정. 로고크기유지. CSS+native배치/Region 수정이라 기존개발앱 정상재실행 필요(강제종료0). native/DOM RED→GREEN·chrome33/Node572PASS3skip/lint/privatecompilePASS. 최신QA 참조. 이번재조정 새push0, 운영/게임행동/원장/DB변경0. 기존 Minor/실사용미확인과 구browser실패 보존.

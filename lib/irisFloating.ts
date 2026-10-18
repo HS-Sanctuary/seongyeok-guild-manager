@@ -5,6 +5,7 @@ export type FloatingRect={x:number;y:number;width:number;height:number};
 export type FloatingGeometry={width:number;height:number;anchor:{x:number;y:number;size:number};badge:FloatingRect;side:'left'|'right';vertical:'up'|'down';menu:FloatingRect[];bubble:FloatingRect|null;panel:FloatingRect|null};
 export type FloatingState={schemaVersion:1;mode:'normal'|'floating';menuOpen:boolean;surface:'none'|FloatingModule;revision:number;layout:FloatingGeometry;hotkeyAvailable:boolean;hotkeyLabel:string;preferences:FloatingPreferences;persistent:boolean;windowVisible?:boolean};
 export const defaultFloatingPreferences:FloatingPreferences={iconSize:52,opacity:80,modifiers:1,key:192};
+export function floatingShortcutCaption(label:string){return label.startsWith('(')&&label.endsWith(')')?label.slice(1,-1):label;}
 function exact(v:unknown,keys:string[]):v is Record<string,unknown>{return !!v&&typeof v==='object'&&!Array.isArray(v)&&Object.keys(v).length===keys.length&&keys.every(k=>Object.hasOwn(v,k));}
 const fail=()=>Error('플로팅 설정을 확인하지 못했어요.');
 export function parseFloatingPreferences(v:unknown):FloatingPreferences{
