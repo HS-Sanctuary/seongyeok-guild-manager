@@ -11,7 +11,7 @@ return React.createElement('main',{className:'iris-desktop'},React.createElement
 createRoot(document.getElementById('app')).render(React.createElement(React.StrictMode,null,React.createElement(App)));`;
 const fixture=await startIrisFixture(entry),browser=await chromium.launch({headless:true,channel:'chrome'}),page=await browser.newPage({viewport:{width:390,height:850}}),errors=[];page.on('pageerror',error=>errors.push(error.message));page.setDefaultTimeout(5000);
 try{
- await page.goto(fixture.origin);await page.getByRole('button',{name:'가공 목록 조회',exact:true}).click();await page.getByRole('button',{name:'계획에 추가',exact:true}).click();await page.getByRole('button',{name:'자동 실행',exact:true}).click();await page.getByRole('button',{name:'시작 전 점검',exact:true}).click();
+ await page.goto(fixture.origin);await page.getByRole('button',{name:'가공 목록 조회',exact:true}).click();await page.getByRole('button',{name:'작업 선택',exact:true}).click();await page.getByRole('button',{name:'자동 실행',exact:true}).click();await page.getByRole('button',{name:'시작 전 점검',exact:true}).click();
  await page.getByText('정령의 날개 보유 30개',{exact:false}).waitFor();assert.deepEqual(await page.evaluate(()=>window.trial.calls),['altering','activity','inventory','altering','currencies']);
  assert.ok(await page.getByText('이 점검은 게임 행동을 시작하지 않아요.',{exact:false}).isVisible());assert.equal(await page.getByRole('button',{name:'작업 시작',exact:true}).count(),0);
  await page.evaluate(()=>window.trial.blocked=true);await page.getByRole('button',{name:'시작 전 점검',exact:true}).click();await page.getByText('게임 상태가 작업 가능 상태인지 확인하지 못했어요.',{exact:false}).waitFor();

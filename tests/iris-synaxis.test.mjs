@@ -13,6 +13,16 @@ test('IRIS Synaxis reads only owned characters and DB-backed active 4/8 content'
   assert.deepEqual(data.options.map(o=>[o.id,o.difficulties[0].capacity]),[['raid_cabrak',8],['raid_eirel',4]]);
   assert.equal(data.characters[0].completed.includes('raid_cabrak'),true);
 });
+
+test('IRIS integrated abyss carries both new DB difficulties through read and create validation',async()=>{
+ const store=db(),names=['허상의 정박지','광기의 동굴','흩어진 물길'];
+ store.tables.nexus_contents.push(...names.map((name,i)=>({id:4+i,type:'abyss',name,is_active:true})));
+ store.tables.content_power_reqs.push(...names.flatMap((name,i)=>['지옥4','매우 어려움2'].map((difficulty,j)=>({id:31+i*2+j,content_type:'abyss',content_name:name,difficulty,max_members:4,min_cp:82500}))));
+ const {readIrisSynaxis,prepareIrisSynaxisCreate}=load(),data=await readIrisSynaxis(store,account);
+ assert.deepEqual(data.options.find(o=>o.id==='abyss_all').difficulties.map(d=>d.name),['매우 어려움2','지옥4']);
+ for(const difficulty of ['매우 어려움2','지옥4']){const payload=await prepareIrisSynaxisCreate(store,account,input({contentId:'abyss_all',difficulty}),now);assert.equal(payload.difficulty,difficulty);assert.equal(payload.max_members,4);assert.deepEqual(payload.selected_sub_contents,['abyss_1','abyss_2','abyss_3']);}
+ assert.equal(store.writes.length,0,'Preparation must not create parties');
+});
 test('IRIS Synaxis builds authoritative bus/party payload, notice and own member data',async()=>{
   const {prepareIrisSynaxisCreate:prepare}=load();
   const bus=await prepare(db(),account,input(),now);

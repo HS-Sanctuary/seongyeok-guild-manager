@@ -1,5 +1,14 @@
 # 🏛️ SANCTUM Master Guide
 
+### 2026-10-20 — IRIS 야간 후속 UI·난이도 기준 / 인계 후보
+
+검증: Node608/605PASS3skip0fail·관련browser16 PASS·scopedlint/독립tsc/격리Next60 exit0. 실게임 소비/공개ERGON해제/추가운영배포0. 아래 구조 보완을 feature branch로 인계하며 정상 운영 구조를 대체 배포하지 않는다.
+
+- `DesktopSaveStatus.inline`를 floating mode에 한정해 DesktopCenter sticky header에 배치. 일반 overlay portal·position/preview 유지, 저장 controller/API/15초 변경0.
+- 기존 ERGON session/plan/goal을 그대로 사용하며 빈 작업대 catalog 자동 노출, 선택목록·재료·실행 연결/행 과잉 산출/가공 reason 표시만 보완. `DesktopContextHelp`는 in-flow 문맥 안내와 outside/Escape 해제를 담당하며 native dialog를 추가하지 않는다. 실제 새 consuming API/자동 묶음 가공/공개 gate 해제0.
+- DesktopFontPicker+font-picker.css에서 native 설치 가족 목록을 직접 탐색/선택적 검색/미리보기/초기화. native 열거·검증·bridge method는 변경하지 않는다.
+- partyContentCatalog에 DB 값 기반 난이도 순서 공통화(매우어려움2 포함), partySurfacePolicy도 재사용. 어비스 누락5개 기준 자료만 승인 후 추가(DDL/RLS 없음), 세부 원장/복구는 SUPABASE_SCHEMA와 전용 야간 인계. 운영 main/IRIS ZIP은 유지한다.
+
 ### 2026-10-19 21:25 KST — 0.4.1 운영 반영 확인 / 구조 변경 없음
 
 제품4480646은운영배포dpl_3Z2KVcSMJnMxuZmp8ye3HZ5E75ds Ready/Production/현재도메인·SHA확인, 실제0.4.1metadata/ZIP·요약‘버그픽스’만제공됨을검증했다. 신규공지게시없음. 아래저장portal핫픽스구조의운영반영결과이며 본마감은문서만추가, queue/controller/API/DB권한변경0.

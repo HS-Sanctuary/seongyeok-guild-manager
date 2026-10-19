@@ -1,0 +1,8 @@
+.iris-font-picker .iris-font-picker-controls {flex-wrap:wrap;align-items:stretch}
+.iris-font-picker .iris-font-picker-controls>button:first-child {flex-basis:8rem;white-space:normal;word-break:keep-all}
+.iris-font-picker .iris-font-options {position:static;inset:auto;margin-top:.35rem;box-sizing:border-box;min-width:0;box-shadow:none}
+.iris-font-picker .iris-font-options [role=listbox] {max-height:min(16rem,42dvh);overflow-y:auto;overflow-x:hidden;scrollbar-gutter:stable}
+.iris-font-picker .iris-font-option {white-space:normal;word-break:keep-all;overflow-wrap:anywhere;font-size:.75rem;line-height:1.5;min-height:2rem;cursor:pointer}
+.iris-font-picker .iris-font-preview {margin:.4rem 0;padding:.5rem;border:1px solid var(--panel-border);border-radius:.4rem;background:var(--inner-box);font-size:.8rem;line-height:1.6;overflow-wrap:anywhere}
+.iris-font-picker .iris-font-options .iris-desktop-input {width:100%;min-width:0;box-sizing:border-box}
+.iris-font-picker .iris-caption {white-space:normal;overflow-wrap:anywhere;font-size:.7rem}

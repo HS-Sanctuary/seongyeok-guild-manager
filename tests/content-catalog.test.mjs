@@ -35,7 +35,7 @@ function render(id, options = {}) {
 }
 function difficulties(html) {
   return [...html.matchAll(/<button\b[^>]*>([^<]+)<\/button>/g)].map(m=>m[1].trim())
-    .filter(text => /^(입문|어려움|매우 어려움|지옥\s*\d+)$/.test(text));
+    .filter(text => /^(입문|어려움|매우 어려움(?:\s*\d+)?|지옥\s*\d+)$/.test(text));
 }
 for (const [id, expected] of [
   ['raid_cabrak',['입문','어려움']],
@@ -50,6 +50,16 @@ test('individual abyss includes DB hell 3; multi selection uses their intersecti
   assert.deepEqual(difficulties(render('abyss_1')), ['입문','어려움','매우 어려움','지옥1','지옥2','지옥3']);
   assert.deepEqual(difficulties(render('abyss_all')), ['입문','어려움','매우 어려움','지옥1','지옥2']);
   assert.deepEqual(difficulties(render('abyss_all',{tempSubContents:['abyss_1','abyss_3']})), ['입문','어려움','매우 어려움','지옥1','지옥2','지옥3']);
+});
+
+test('new abyss difficulties propagate to individual and integrated selectors in gameplay order', () => {
+  const updated=[...powerReqs,row('abyss','광기의 동굴','지옥3'),...['허상의 정박지','광기의 동굴','흩어진 물길'].flatMap(name=>[row('abyss',name,'지옥4'),row('abyss',name,'매우 어려움2')])];
+  const expected=['입문','어려움','매우 어려움','매우 어려움2','지옥1','지옥2','지옥3','지옥4'];
+  for(const id of ['abyss_all','abyss_1','abyss_2','abyss_3']){
+    assert.deepEqual(difficulties(render(id,{catalog:{...catalog,powerReqs:updated}})),expected);
+    for(const diff of ['매우 어려움2','지옥4'])assert.equal(isSupportedPartyContent(CONTENT_DB.find(c=>c.id===id),diff,updated),true);
+  }
+  assert.equal(isSupportedPartyContent(CONTENT_DB[0],'지옥4',powerReqs),false,'Never invent a missing DB standard');
 });
 test('another category with the same name cannot supply raid difficulties', () => {
   assert.deepEqual(difficulties(render('raid_cabrak',{catalog:{...catalog,powerReqs:[...powerReqs,row('abyss','카브락','지옥3')]}})), ['입문','어려움']);

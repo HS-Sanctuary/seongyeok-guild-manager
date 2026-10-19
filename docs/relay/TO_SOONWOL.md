@@ -2,6 +2,16 @@
 
 ## YG-20261016-001 — UPDATED (목록형 구현·검토 수정·15% 해제)
 
+- **2026-10-20 최종검증/전송준비:** Node608/605PASS3skip0fail·관련browser16합집합PASS·scopedlint/격리60build/독립tsc0·nativefontfixture PASS. 원본개인6/문서7115/순월40보존오류0. workbench옛fixture의running→idle만으로release기대를같은요청terminal로정정, 제품보호코드무변경. headerfirstbutton대신windowaria-pressed/초과산출표시 기대갱신. 공개main/ZIP/공지유지·어비스승인5행만운영반영. 정확SHA/원격/Preview결과는전송후누적, 아래미ACK모두보존.
+
+- **2026-10-20 야간후속/최신:** 한설수면중자율UX개선/검증·주간3%마감push승인, 최신지시는이기준. `docs/IRIS_OVERNIGHT_HANDOFF_20261020.md`부터읽고새전송SHA까지pull/ACK. 브랜치동일/v2.322후보, main·운영webv2.321/IRIS0.4.1/ZIP유지. 어비스운영자료5행은명시승인받아01:04KST추가33~37·31→36/원본hash동일, DDLRLS권한0. 저장줄상단pending-only/ERGON빈화면직접품목수량·(?)·가공상태·산출초과/폰트전체가족탐색미리보기·Escape/HomeEnd 보완. 공개ERGON잠금/소비·수령0/unknown·개인·이하미ACK누적보존. 검증·정확전송·Preview결과는마감후속.
+
+- **2026-10-19 어비스난이도 우선/승인대기:** 한설신규요청→운영readonly확인: 허상만매우어려움2/id31·지옥4/id32, 광기/물길신규없음·광기지옥3없음. 교집합catalog가정상제외한자료누락, union/고정버튼우회금지. 웹파티/버스생성수정·IRISSynaxis같은자료사용/관리자자유입력. 허상기준복사총5행운영추가 승인요청전/아직쓰기0·배포0, 상세최신BETA_FEEDBACK/HANDOFF. 신규매우어려움2순위/배지후속미완료. 저장줄로컬후보·ERGONreadonly결과·개인/양쪽미ACK전부보존.
+
+- **동일후속 연결정정/가공규격:** 제한환경 game_off는사용자사진과충돌, 일반권한readonly status connected로정정. 게임재시작/소비0. 현행공식execute_altering은1요청1작업등록+UI자동닫기/날개5, 수량인자없음. 가죽+산출3/queue_full, 가죽시설완료7건(가죽+4/가죽3)/전체23건은현재점유이지최대정원확정아님. 추가100은34건102개/등록170날개계산(재고무시시), 초과량·시설회전/수령·비용보호설계필요. 조회만3개실행·수령0. 새저장줄좁은review C0I0M1→타캐릭터unknown에현재pending저장막힘 mixed시험RED→스코프별가능판정GREEN/title범위안내. 공개잠금/원본보존유지.
+
+- **2026-10-19 저장줄/ERGON 후속 로컬:** 한설이 이번 잔여15% 자동중단 해제, 기존 기록 삭제금지. 승인한 플로팅 저장줄을 생텀선택 위 sticky 한줄로 로컬 구현/완료시숨김·복구보존, normal네모서리 보존. header순서RED→GREEN·320/390/520×글자3단계/카운트다운/save/discard/unknown/menu PASS, 기존overlay PASS·601PASS3skip/lint/독립타입/격리60build PASS. 공개0.4.1/ZIP·배포·DB그대로, 최종검토는후속. ERGON가공target수량이UI→native→execute_altering 경로에전송되지않는점확인, 등록1회와생산100개는별개. 현재CLIgame_off·캐시schema없음/실게임행동0·사용자접속질문. 공개잠금·실소비직전별도승인·과거unknown보존유지, 임의반복100회금지. 상세최신HANDOFF참조, 미ACK이하누적전부보존.
+
 - **핫픽스공개2026-10-19 21:25KST:** 제품4480646f0b6238dbaff71a7ddb6fbf995c47f631 main+통합원격exact/Vercel dpl_3Z2KVcSMJnMxuZmp8ye3HZ5E75ds 정상UI Ready·Production·Current운영도메인·mainSHA. 실운영download4폭/metadata0.4.1·ZIP595192/SHA07b5c1db6c046ab4dbf9d4d406c0fd09c35ff7bd83a00c4d03bb19642ba4dacd/핵심6GET200·guest2API401/pageerror0·notes‘버그픽스’만PASS. 신규공개공지0/기존0.4id19유지·사용자저장/Alt~ 실게임최종확인대기. 문서마감까지최신HEAD받을것·개인/보호큐/양쪽미ACK보존·DB구조권한0·문서전용구조변경없음. 이전미배포는각시점경과다.
 
 - **긴급후속2026-10-19 21:21KST:** 한설0.4실사용‘지금저장’/저장팝업+Alt~→로고메뉴겹침·먹통/15초회복 P1. bodyportaloutsideclose RED→안정workspaceportal·호스트준비전표시보류·nativepanel4위치제한 GREEN. pending/15초timer/queuecontroller·nativeproduction·서버저장무변경. 새save회귀(4위치/scroll/menuhidden/reopen/normal/pending보존)·focusdialogupdater/601PASS3skip/최종독립타입lintNext60/좁은reviewC0I0M0·관련31PASS. 0.4원본helper→0.4.1실EXE/fresh offlineWebView·아이콘·보호지문PASS. ZIP595192/SHA07b5c1db6c046ab4dbf9d4d406c0fd09c35ff7bd83a00c4d03bb19642ba4dacd. 정확push/운영결과후속·개인/미ACK누적보존.

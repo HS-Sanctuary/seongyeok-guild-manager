@@ -1,10 +1,8 @@
 import type {ContentItem} from '@/components/party/types';
-import {normalizeDifficulty} from '@/lib/partyContentCatalog';
+import {normalizeDifficulty,comparePartyDifficulties} from '@/lib/partyContentCatalog';
 import {readSynaxisReceipt,writeSynaxisReceipt} from '@/lib/irisSynaxisTransport';
 import {isGuildBusParty} from '@/lib/guildBusPolicy';
 
-const difficultyOrder=['입문','쉬움','보통','어려움','매우어려움','지옥1','지옥2'];
-const difficultyRank=(value:string)=>{const normalized=normalizeDifficulty(value),hell=normalized.match(/^지옥(\d+)$/);return hell?4+Number(hell[1]):difficultyOrder.indexOf(normalized);};
 export type PartyActivityCounts={party:number;bus:number};
 export function createPartyActivity(){
   const seen=new Set<string>(),unread=new Map<string,'party'|'bus'>();
@@ -24,7 +22,7 @@ export function partyDefaultDifficulty(item:ContentItem):string {
     const veryHard=item.diffs.find(diff=>normalizeDifficulty(diff)==='매우어려움');
     if(veryHard)return veryHard;
   }
-  return [...item.diffs].sort((a,b)=>difficultyRank(b)-difficultyRank(a))[0]||'';
+  return [...item.diffs].sort((a,b)=>comparePartyDifficulties(b,a))[0]||'';
 }
 
 /** One IRIS account owns this writer; a lost/partial response is never auto-replayed. */

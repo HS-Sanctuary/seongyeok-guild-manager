@@ -1,5 +1,26 @@
 # SANCTUM 작업 인계
 
+## 2026-10-20 집 — 야간 후속 후보 / 먼저 전용 인계 확인
+
+- 마감검증: Node608/605PASS3skip0fail·16개browser PASS·lint/정확소스격리60build/독립tsc0·nativefontfixture PASS·개인6/문서7115/순월40보존0. 결과를 실게임 성공으로 확대하지 않는다. 최신 전송 SHA는 다음 누적.
+
+다음 순월은 **`docs/IRIS_OVERNIGHT_HANDOFF_20261020.md`부터 읽는다.** 한설이 수면 중 자율 ERGON UX/설치글꼴 개선·검증·주간3% 전송 마감을 요청. 브랜치 `codex/home-gnosis-iris-integration-20261019`, v2.322후속후보/운영v2.321·IRIS0.4.1 유지. 승인 어비스5행은01:04KST 운영적용·새33~37/원래31행hash동일, 이전 승인대기 표기는 당시 경과다. 저장줄/ERGON 직접품목선택·(?)·산출초과/폰트목록·미리보기·키보드 로컬 개선, 공개ERGON잠금/게임소비0·개인dirty보존. 최종검증·전송SHA/Preview결과는후속누적.
+
+## 2026-10-19 집 — 어비스 난이도 누락 우선 전환 / 운영 추가 승인 대기
+
+한설이 매우어려움2·지옥4 통합3종 누락을 지금 우선 수정하라고 요청했다. readonly Supabase 확인 결과 허상만 두 행 존재, 광기·물길에 없고 광기지옥3도 누락. 기존 getPartyContentOptions의 교집합이 자료대로 제외한 것으로, union/고정버튼으로 우회하지 않는다. 일반파티/버스생성·수정/clientguard/serverGuildBusSettings/IRISSynaxis 공통 카탈로그 경로 확인, 관리자 난이도명 자유입력. 총5행(두 난이도×광기/물길+광기지옥3)을 기존 허상 기준으로 복사할지 한설에게 운영 자료 추가 승인 요청. 승인 전 운영쓰기/스키마/RLS/배포0. 상세 수치와 상태는 최신 BETA_FEEDBACK. 신규 매우어려움2 순위·배지 표기 후속 코드 점검 대상이며 수정 미완료. 기존 저장줄 로컬 후보와 ERGON read-only 조사/개인dirty는 보존한다.
+
+## 2026-10-19 집 — 상단 저장 안내 로컬 개선 / ERGON 수량 후속
+
+- 한설 승인: 플로팅 하단 저장 상자를 없애고 `생텀 선택` 위 sticky header에 `저장 대기 N개 · N초 / 지금 저장 / 버리기` 한 줄로 배치. 완료 직후 행 제거, unknown/conflict/expired는 접힌 복구 안내를 남기며 미확인 결과를 재전송하지 않는다. 일반 사이드 바의 기존 네 모서리 위치 설정·미리보기·완료 안내는 보존한다. 저장 controller/15초/서버/native/원장 변경 없음. 로컬 소스만 수정, 공개 IRIS0.4.1·ZIP·배포는 아직 그대로다.
+- 실제 React 새 시험: header 순서 RED→GREEN, 320/390/520 폭×18/20/22 글자에서 한 줄·버튼 잘림0, 카운트다운/수동 저장/버리기/완료 후 숨김/unknown 복구/메뉴 접기·재열기 PASS. 기존 floating save overlay browser PASS, 전체 Node601PASS3기존skip0fail·scoped lint·격리 독립tsc/Next60 build PASS. 마지막 작은 글자/여백 보완은 CSS뿐이며 다음 공개 전에 최종 상태 재검증한다. 사용자 설치본 실게임 검증은 별개다.
+- 한설이 이번 작업의 잔여15% 자동중단 기준을 명시 해제했다. 과거 누적/이전 지시는 당시 기록으로 남긴다. 공개 ERGON 잠금·운영 DB 승인·실제 게임 재료 사용 직전 승인 규칙은 유지한다.
+- ERGON 후속 원인: `DesktopErgonExecution.prepare`는 가공 목표 수량을 native intent에 포함하지 않는다. native `DesktopLifeExecutor.Intent`도 수량 채집/제작만 허용, `DesktopLifeCli.PerformAsync(altering)`는 `execute_altering`에 displayName만 전송한다. 가공 결과는 작업 등록 증가를 registered로 확인하며 생산 완료가 아니다. 따라서 목표100개를 한 등록으로 처리하는 현 구조를 수량 완료로 안내하면 안 된다. 묶음 가공은 시설 여유·단위 산출·등록/수령·비용 확인 후 별도 계약이 필요하며 임의100회 반복 금지.
+- 현재 CLI status는 disconnected/game_off(실제 exit1)이고 표준 로컬 CAPABILITIES 캐시가 없다. 게임 자동 실행/재료 소비0, 사용자에게 게임 접속 또는 코드 분석만 계속할지 질문했다. 게임 접속 뒤 readonly capabilities부터 확인하고 현 스키마를 근거로 수량 계약을 정할 것. 기존 queue·목표진척·즐겨찾기를 중복 구현하거나 public gate/과거 unknown을 해제하지 않는다.
+- **연결 판정 정정:** 한설이 게임 실행 상태/사진을 확인했다. 제한 환경 status의 game_off는 실제 종료로 확정하면 안 된다. 일반 권한 readonly 재조회는 connected/exit0. 최초 판정을 근거로 게임 재실행을 요구하지 않는다. readonly capabilities/get_alterable_items(가죽)/get_altering_works만 조회, 재료 소비·이동·수령0.
+- **현행 공식 가공 계약:** execute_altering은 displayName만 받고 성공 1회당 작업1건 등록 뒤 시설 UI 자동 종료. N건은 각 started 결과 뒤 다시 호출하며 회당 날개5(성공 cost 확인). 가죽+ ProducedPerWork=3/Alterable=false/queue_full 관측. 현재 가죽 시설 완료 작업7건(가죽+4/가죽3), 전체 완료23건. 이는 현재 점유 관측이지 시설 최대 정원7의 확정 근거가 아니다. 순수 추가100개 목표라면 재고 무시 시34건/102개·등록비170날개가 계산되며, 초과2개 동의·실재료·시설 회전/수령·비용/unknown 보호를 별도 설계해야 한다. 기존1건등록을100개완료로 고치거나 임의100회 실행 금지.
+- 좁은 읽기 전용 검토 C0/I0/M1: 다른 캐릭터 unknown이 현재 pending의 즉시저장을 막는 새 inline gate 발견→새 mixed-character 시험 RED 확인→선택 캐릭터+계정공용 pending에 한정해 버튼 가능 여부 계산 GREEN. 저장/버리기 적용 범위 title 추가. 다른 캐릭터 unknown은 명시 복구만 가능하며 자동 재시도0.
+
 ## 2026-10-19 21:25 KST — 0.4.1 운영 마감
 
 제품4480646f0b6238dbaff71a7ddb6fbf995c47f631 main+통합원격exact, Vercel dpl_3Z2KVcSMJnMxuZmp8ye3HZ5E75ds 정상UI Ready/Production/현재운영도메인/정확SHA. 실운영download4폭/0.4.1metadata·ZIP595192/SHA07b5c1db6c046ab4dbf9d4d406c0fd09c35ff7bd83a00c4d03bb19642ba4dacd·핵심6GET/guest2API401/pageerror0 PASS. notesJSON은‘버그픽스’만, 한설지시대로신규공개공지0/기존0.4id19유지. 이제0.4.1업데이트가능. 실제게임저장/Alt~ 체감은한설재확인대기. 이문서마감까지최신HEAD받을것·문서전용/구조변경없음·개인dirty/보호큐/양쪽미ACK보존·DB구조권한0.

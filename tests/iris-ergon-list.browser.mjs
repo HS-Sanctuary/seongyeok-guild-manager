@@ -18,6 +18,6 @@ try{
  await region.getByRole('button',{name:'검 교체',exact:true}).click();assert.deepEqual(await page.evaluate(()=>window.trial.replacements),['a']);
  await page.evaluate(()=>window.trial.setLocked(true));await page.waitForFunction(()=>document.querySelector('input[aria-label="검 추가 수량"]').disabled);assert.equal(await quantity.isDisabled(),true);assert.equal(await region.getByRole('button',{name:'검 제거',exact:true}).isDisabled(),true);
  await page.evaluate(()=>window.trial.setLocked(false));await region.getByRole('button',{name:'검 제거',exact:true}).click();assert.equal(await region.getByLabel('검 추가 수량',{exact:true}).count(),0);
- await region.getByRole('button',{name:'아주 긴 상급 목재 이름 전체 표시 제거',exact:true}).click();await region.getByText('품목을 담아 작업을 시작해 보세요.',{exact:true}).waitFor();
+ await region.getByRole('button',{name:'아주 긴 상급 목재 이름 전체 표시 제거',exact:true}).click();await region.getByText('품목을 선택하고 수량을 정해 주세요.',{exact:true}).waitFor();
  assert.equal(await page.evaluate(()=>window.trial.commands.length),0);assert.deepEqual(errors,[]);console.log('PASS visible queue draft/Enter-blur once/Escape/range/replace/locked/remove/empty; no game commands');
 }finally{await browser.close();await new Promise(resolve=>fixture.server.close(resolve));}

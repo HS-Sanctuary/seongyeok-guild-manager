@@ -9,14 +9,25 @@ import {summarizeDesktopEdits} from '@/lib/irisDesktopPresentation';
 import type {DesktopSaveConfirmation} from '@/lib/irisDesktopController';
 const phaseNames = {pending:'저장 대기',inflight:'저장 중',unknown:'결과 확인 필요',conflict:'다른 변경과 충돌',expired:'초기화 시간이 지남'};
 const confirmationTimeFormat=new Intl.DateTimeFormat('ko-KR',{timeZone:'Asia/Seoul',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
-export function DesktopSaveStatus({entries,characters=[],selected=null,lastSaveConfirmation=null,now,locked,hasInvalidClassDraft=false,position='bottom-right',preview=false,suspended=false,onSave,onDiscard,onRecover}:{entries:PendingEdit[];characters?:DesktopCharacter[];selected?:DesktopDetails|null;lastSaveConfirmation?:DesktopSaveConfirmation|null;now:number;locked:boolean;hasInvalidClassDraft?:boolean;position?:IrisSavePosition;preview?:boolean;suspended?:boolean;onSave():void;onDiscard():void;onRecover(id:string,action:'retry'|'discard'):void}) {
+export function DesktopSaveStatus({entries,characters=[],selected=null,lastSaveConfirmation=null,now,locked,hasInvalidClassDraft=false,position='bottom-right',preview=false,suspended=false,inline=false,onSave,onDiscard,onRecover}:{entries:PendingEdit[];characters?:DesktopCharacter[];selected?:DesktopDetails|null;lastSaveConfirmation?:DesktopSaveConfirmation|null;now:number;locked:boolean;hasInvalidClassDraft?:boolean;position?:IrisSavePosition;preview?:boolean;suspended?:boolean;inline?:boolean;onSave():void;onDiscard():void;onRecover(id:string,action:'retry'|'discard'):void}) {
   const [portalTarget,setPortalTarget]=useState<HTMLElement|null>(null);
   useEffect(()=>{let active=true;queueMicrotask(()=>{if(active)setPortalTarget(document.querySelector<HTMLElement>('.iris-floating-workspace')??document.body);});return()=>{active=false;};},[]);
   const summary=summarizeDesktopEdits(entries,characters,selected,now);
   const paused=summary.items.filter(e=>['unknown','conflict','expired'].includes(e.phase));
   const saved=!!lastSaveConfirmation&&now>=lastSaveConfirmation.confirmedAt&&now-lastSaveConfirmation.confirmedAt<3000;
-  if(suspended||(!summary.total&&!hasInvalidClassDraft&&!saved&&!preview))return null;
+  if(suspended||(!summary.total&&!hasInvalidClassDraft&&(!saved||inline)&&!preview))return null;
   const sample=preview&&!summary.total&&!hasInvalidClassDraft;
+  if(inline){
+    const deadlines=summary.groups.flatMap(group=>group.remainingSeconds===null?[]:[group.remainingSeconds]);
+    const saving=summary.items.some(item=>item.phase==='inflight');
+    const canSave=entries.some(item=>item.phase==='pending'&&(!selected||item.characterId===selected.characterId||(item.kind==='barter'||item.kind==='workspace')&&item.scope==='account'));
+    const label=hasInvalidClassDraft?'입력 확인':paused.length?'저장 확인 필요':saving?'저장 중':'저장 대기';
+    return <section className="iris-save-status iris-save-inline" aria-label={sample?'저장 안내 미리보기':'저장 상태'}>
+      <div className="iris-save-actions"><span role="status">{sample?'변경 후 15초 자동 저장':`${label} ${summary.total}개${!paused.length&&!saving&&!hasInvalidClassDraft&&deadlines.length?` · ${Math.min(...deadlines)}초`:''}`}</span>{!sample&&<><button type="button" className="iris-desktop-button" title="선택 캐릭터와 계정 공용 변경을 저장해요." disabled={locked||hasInvalidClassDraft||!canSave} onClick={onSave}>지금 저장</button><button type="button" className="iris-desktop-button" title="선택 캐릭터와 계정 공용 변경을 버려요. 다른 캐릭터의 변경은 유지해요." disabled={locked} onClick={onDiscard}>버리기</button></>}</div>
+      {hasInvalidClassDraft&&<p role="alert">클래스 입력을 고치거나 되돌려 주세요. 자동 저장은 잠시 멈췄어요.</p>}
+      {paused.length>0&&<details className="iris-save-recovery"><summary>확인 필요 {paused.length}개</summary><div role="alert">{paused.map(item=><div key={item.requestId}><p>{characters.find(character=>character.id===item.characterId)?.nickname??'캐릭터 확인 필요'} · {item.taskName} · {phaseNames[item.phase]}</p><div className="iris-save-actions">{item.phase==='unknown'&&<button type="button" className="iris-desktop-button" disabled={locked} onClick={()=>onRecover(item.requestId,'retry')}>확인하고 재시도</button>}<button type="button" className="iris-desktop-button" disabled={locked} onClick={()=>onRecover(item.requestId,'discard')}>이 변경 버리기</button></div></div>)}</div></details>}
+    </section>;
+  }
   const node=<section className="iris-save-status iris-save-overlay" data-iris-save-overlay="" data-position={position} data-preview={sample||undefined} aria-label={sample?'저장 안내 미리보기':'저장 상태'}>
     {sample?<div role="status"><strong>저장 안내 미리보기</strong><p>변경 후 15초에 자동 저장해요.</p><small>미리보기예요. 실제 저장은 하지 않아요.</small></div>:<>
     {preview&&<p>위치 미리보기 · 아래에는 실제 변경 상태를 표시해요.</p>}

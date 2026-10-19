@@ -111,7 +111,16 @@ export const DIFFICULTY_COLORS: Record<string, string> = {
   "어려움": "text-amber-400 bg-[var(--panel)] border-[var(--panel-border)]",
   "매우 어려움": "text-rose-400 bg-[var(--panel)] border-[var(--panel-border)]",
   "지옥 1": "text-red-500 bg-[var(--panel)] border-[var(--panel-border)]",
-  "지옥 2": "text-rose-300 bg-[var(--panel)] border-[var(--panel-border)]"
+  "지옥 2": "text-rose-300 bg-[var(--panel)] border-[var(--panel-border)]",
+  "매우 어려움2": "text-rose-400 bg-[var(--panel)] border-[var(--panel-border)]",
+  "매우 어려움 2": "text-rose-400 bg-[var(--panel)] border-[var(--panel-border)]",
+  "매우어려움2": "text-rose-400 bg-[var(--panel)] border-[var(--panel-border)]",
+  "지옥1": "text-red-500 bg-[var(--panel)] border-[var(--panel-border)]",
+  "지옥2": "text-rose-300 bg-[var(--panel)] border-[var(--panel-border)]",
+  "지옥 3": "text-rose-300 bg-[var(--panel)] border-[var(--panel-border)]",
+  "지옥3": "text-rose-300 bg-[var(--panel)] border-[var(--panel-border)]",
+  "지옥 4": "text-rose-300 bg-[var(--panel)] border-[var(--panel-border)]",
+  "지옥4": "text-rose-300 bg-[var(--panel)] border-[var(--panel-border)]"
 };
 
 // 🎯 순수 어비스 던전명 리스트

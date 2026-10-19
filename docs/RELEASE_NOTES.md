@@ -1,5 +1,14 @@
 # SANCTUM 업데이트 노트
 
+## 2026-10-20 KST — v2.322 후속 후보 / 순월 인계 브랜치
+
+- 최종 로컬 검증: Node608/605PASS3기존skip0fail·16개 관련 browser PASS·scopedlint/격리60build/독립타입 exit0·native font cache/bridge fixture PASS. 기존 개인6상태/문서7,115줄/순월40제품 보존 오류0. 새 실제게임 소비·사용자 설치본 적용·운영 로그인 UI 검증은 미실시.
+
+- 공개 운영 버전 웹v2.321/IRIS0.4.1·ZIP·새 공지는 유지. 이번은 기능 브랜치 인계이며 main 승격/수동 운영 배포를 하지 않는다. 직전 정상 운영 제품4480646·Vercel dpl_3Z2KVcSMJnMxuZmp8ye3HZ5E75ds를 기준선으로 유지한다.
+- 플로팅 저장 알림을 캐릭터 줄 위 pending-only 한 줄로 변경, 일반 사이드 바 설정과 복구 보호 유지. ERGON 빈 화면 품목·수량 바로 선택/작업 목록 연결/(?) 문맥 안내/가공 불가 이유·단위 산출·초과 수량 표시. 설치 글꼴 목록 스크롤/키보드 선택·미리보기·초기화·선택적 검색, Escape/Home/End 보완.
+- 한설 승인 어비스 누락5기준 운영 추가: 새ID33~37·31→36행, 원래31행 hash보존. UI/저장·server IRIS 통합 난이도 검증 시험과 정렬·배지 보완. DDL/RLS/권한 변경0. 상세/복구/주의사항은 `IRIS_OVERNIGHT_HANDOFF_20261020.md`.
+- ERGON 공개 잠금·실제 소비0·기존 unknown/계획/개인파일 보존. 묶음 가공 자동실행/시설 회전/전체 BOM은 미완료. 실제 게임/설치본 UI와 로그인 운영 UI 시험은 별도다. 최종 검증/전송 결과는 아래 마감에 누적한다.
+
 ## 2026-10-19 21:25 KST — 내부 마감 / IRIS0.4.1 운영 확인
 
 - 제품 `4480646f0b6238dbaff71a7ddb6fbf995c47f631` main+통합브랜치 일반push/원격exact. [운영 배포](https://vercel.com/sanctum-sanctuary/sanctum/3Z2KVcSMJnMxuZmp8ye3HZ5E75ds) 정상 대시보드 Ready/Production/Current 운영도메인/main4480646 확인.

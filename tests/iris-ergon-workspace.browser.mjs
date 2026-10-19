@@ -15,7 +15,7 @@ try{
  await page.goto(fixture.origin);
  await page.getByRole('region',{name:'현재 캐릭터 생활 현황'}).getByText('71,041',{exact:true}).waitFor();
  await page.getByRole('button',{name:'제작 목록 조회',exact:true}).click();
- await page.getByLabel('목표 수량',{exact:true}).fill('3');await page.getByRole('button',{name:'계획에 추가',exact:true}).click();
+ await page.getByLabel('목표 수량',{exact:true}).fill('3');await page.getByRole('button',{name:'작업 선택',exact:true}).click();
  const focus=page.getByRole('region',{name:'선택 작업'});await focus.getByText('필요 9개 · 가방 3개 · 부족 6개',{exact:true}).waitFor();
  assert.ok(await focus.getByRole('button',{name:'제작 실행 준비',exact:true}).isVisible());
  assert.ok(await page.getByRole('region',{name:'작업 계획',exact:true}).getByLabel('품목 검색').isVisible(),'selection must not hide the catalog in the workbench');
@@ -37,7 +37,7 @@ try{
  await page.waitForTimeout(800);await page.screenshot({path:'.superpowers/sdd/2026-10-14-ergon-command-workspace/workspace.png',fullPage:true});
  await page.getByRole('button',{name:'넓은 작업화면',exact:true}).click();await page.evaluate(()=>window.trial.setActive(false));await page.waitForFunction(()=>window.trial.windows.at(-1)===false);
  await page.evaluate(()=>{window.trial.setActive(true);window.trial.deferWindow=true;});await page.getByRole('button',{name:'넓은 작업화면',exact:true}).click();await page.waitForFunction(()=>typeof window.trial.resolveWindow==='function');
- await page.evaluate(()=>window.trial.setActive(false));await page.waitForFunction(()=>document.querySelector('.iris-ergon header button').disabled);await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));await page.evaluate(()=>window.trial.resolveWindow());await page.waitForFunction(()=>window.trial.windows.at(-1)===false,null,{timeout:5000});
+  await page.evaluate(()=>window.trial.setActive(false));await page.waitForFunction(()=>document.querySelector('.iris-ergon header button[aria-pressed]').disabled);await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));await page.evaluate(()=>window.trial.resolveWindow());await page.waitForFunction(()=>window.trial.windows.at(-1)===false,null,{timeout:5000});
  assert.equal(await page.evaluate(()=>window.trial.commands.length),1,'only the explicit prepare, no automatic consume');assert.deepEqual(errors,[]);
  console.log('PASS workspace: co-located catalog/quantity/needs/prepare, semantic actions, history guard, scoped expand/restore, 6 themes/320–1240; synthetic IO only');
 }catch(error){console.error('Browser errors:',errors);console.error((await page.locator('body').innerText()).slice(0,2400));throw error;}finally{await browser.close();await new Promise(resolve=>fixture.server.close(resolve));}
