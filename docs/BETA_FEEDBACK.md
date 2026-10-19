@@ -1,5 +1,61 @@
 # SANCTUM 베타 피드백 보드
 
+## 2026-10-18 22:55 KST P1 — WASD 복귀 뒤 기능창 즉시 접힘
+
+- 22:57 KST 적용: 정상 종료 확인 후 Development3964 한 번 시작/응답true·로그0·page200·capable=true. 크로노스가 열린 상태 유지와 게임 재클릭 없는 WASD 동시 실사용 확인 대기.
+
+- 실제 원인 추적: 로컬 개발 전용 boolean 진단에서 구 native 상태의 `gameFocus` 누락(capable=false)을 확인했다. 실제 `FloatingState()` 직렬화 회귀를 RED→GREEN으로 보강하고 `gameFocus=true`를 발행했다. 22:44 KST Development29996 적용 뒤 한설이 움직임 복귀를 확인했으나 크로노스/시낙시스/설정 등이 즉시 사라지는 새 증상을 보고했다.
+- 해당 실사용 기록은 handoff 성공→모듈 표시→none 전환이며, 프런트의 close 요청은 없었다. native Deactivate의 지연 닫기가 의도적인 게임 초점 복귀도 바깥 이동으로 취급하는 경합을 소유 Form에서 재현했다. 성공한 handoff는 다음 IRIS 활성화까지 구분하고, 이전 비활성화 callback은 이후 활성화/모듈 명령을 접지 못하게 interaction 세대를 검사한다. 중복 handoff 실패가 앞선 성공 표시를 지우지 않는다.
+- native 회귀 RED→GREEN, chrome92·addon83·bridge/presentation PASS. 전체 Node/타입/수정 lint/실 React focus·Hub 통합/private native build PASS. 브라우저 sandbox localhost 접근 거부는 동일 합성 시험의 정상 권한 실행으로 구분했다. 실제 게임 입력·키 합성·DB/원장 변경0.
+- 상태: 한설 정상 종료 확인, 새 native 재실행 후 **기능창 유지+WASD 동시 실사용 확인 대기**. 아래 과거 “native 수정 없음/재실행 불필요/성공 미확인”은 해당 시점 기록이며 이 후속으로 갱신한다. 에르곤 준비중 잠금은 권장안만 설명했고 구현/공식 출시·push는 아직 하지 않았다.
+
+## 2026-10-18 P1 — 열린 플로팅 창에서 WASD 미복귀 추가 보고
+
+- 앞선 포인터 버튼/체크 후 반환만으로 해결되지 않았다는 사용자 실화면 보고. hook에서 초기/후속 native module-open 응답, 읽기 영역 클릭, 휠 완료에는 반환 요청이 없던 경로를 재현했다. 휠 직후 W가 모든 키를 UI 탐색으로 분류해 예약된 반환을 취소하는 경합도 RED→GREEN.
+- `useDesktopFloatingFocus`만 수정: 모드/메뉴/모듈 응답 뒤 예약, 일반 포인터 release와 휠 안정화 뒤 반환. 드래그 중/글자 입력/모달/선택 텍스트는 보호하고 Tab·방향키·Enter·Space 등의 명시적인 UI 탐색만 keyboard mode로 분류한다. native 대상/foreground/보호 검사 유지, 키 합성·전달·후킹0. 다른 앱 활성화를 감시해 강제로 게임에 돌려보내는 로직도 넣지 않았다.
+- 합성 창 열기·빈 공간·휠+W/입력/모달/Space/후속 모듈 응답 및 기존 설정·헤더·모달 회귀 확인. 현재 Development28704 화면 코드 HMR 대상이며 native 재실행 불필요. 실제 게임에서 해결됐다는 사용자 확인은 아직 없다. DB/원장/버전/공개배포·push 변경 없음.
+
+## 2026-10-18 P1/P2 — 플로팅 설정 먹통·키보드 복귀·상단 겹침 후속
+
+- 재현: 슬라이더 저장을 기다리면 플로팅 fieldset 전체가 잠김. 다른 설정을 연속 변경하면 이전 전체 preferences를 재전송해 값이 덮어써질 위험도 확인. 항목별 partial edit를 직렬 실행 시점의 확정 설정에 합치고 전체 잠금을 제거했다. 체크/슬라이더 초안 유지·실패 복원, 단축키/기본값 버튼 개별 중복 방어. 실제 hook+settings 합성 시험 RED→GREEN. 설정 분류와 불투명도 명칭은 사용자 요청대로 ‘사이드 바’로 변경.
+- 재현: 플로팅 조작 후 IRIS가 키보드 초점을 계속 보유. 포인터의 일반 버튼/체크/슬라이더 완료 뒤에만 tracked game으로 반환한다. 입력창/선택 중/모달/키보드 메뉴 조작은 유지한다. native는 현재 IRIS foreground와 PID/생존/제목/가시성/최소화·종료 보호를 확인하며 다른 앱으로 전환한 뒤 늦게 온 요청은 거절. 키 전달/합성/전역 키 후킹 없음. 게임으로 초점이 돌아가도 현재 모듈 유지, 게임 foreground의 메뉴 단축키는 초점을 가져오지 않음. 실제 Windows 소유 fixture 88검증에 성공 경로/다른 앱/닫기 보호 포함.
+- 사용자 사진: 플로팅 캐릭터 선택창 위아래 음영. backdrop은 투명하게 하고 native는 문서의 자연 높이 getter를 500ms 주기로 읽어 80..680 DIP 안에서 모달 region을 맞춘다. 클립된 내부 scrollHeight를 포함, 짧은 창 다음 큰 창/중첩·normal 복귀 보호. 이전 모듈은 숨기되 유지. 단순 CSS만으로 투명한 큰 입력 차단 영역을 남기지 않음.
+- 사용자 요청: 중복 ‘전체 작업창 / 닫기’ 행과 로고의 평상시 노란 테두리 제거. 로고 문양·크기·드래그·키보드 선택 표시는 보존. 접기는 기존 로고/Escape 이용.
+- 추가 사용자 사진: 캐릭터 바와 모듈 탭이 겹침. 제목줄이 없는 floating에 normal의 sticky top 2.25rem이 남은 것이 실제 Center 합성에서 재현됨. floating 범위만 top:0, 글자 18/20/22px RED→GREEN 및 PNG 시각 확인. normal 위치 변경 없음.
+- 적용: 한설 정상 종료 확인 뒤 Development28704를 21:51 KST 한 번 시작, Responding=true·로그0·로컬 페이지200. 마지막 헤더 보정은 화면 코드이므로 추가 재시작 불필요. 실제 게임에서 키보드 반환/창 높이/연속 설정 실사용 확인은 남는다. DB/원장/게임 명령/공개 배포·push 없음.
+
+## 2026-10-18 P1/P2 — 플로팅 확인창 전환·드래그·가려짐/설정/가공 수량
+
+- 확인 요청: 스탯 업데이트·직접 캐릭터 선택 시 normal 전환, floating의 넓은 작업창 차단, 드래그 좌측 복귀. 공통 modal/native wide/live anchor 수정·합성PASS, 최신17184 재실행. 실사용확인 남음.
+- 확인 요청: 게임 클릭시 로고가 사라짐. 실제로 visible=true인데 topmost=false, auto-hide 작업표시줄과 비겹침에도 yield=true 관측. overlap-only 수정 RED→GREEN/addon83, native 재실행 포함. 다른 앱/실제 작업표시줄 겹침 우선권 보존.
+- 확인 요청: 추천 아래공간·왼쪽 직접선택·큰닉네임·검은 모서리와 불투명도 분리/설정 분류. measured native bubble/rounded region, compact 순서/글자와 settings4분류로 수정·합성/시각PASS. 게임 행동/DB 변경0.
+- **재현·미완료(P1): 가죽+ 100개 목표가 1회 등록 후 가공창 닫힘.** 사용자 실게임 보고. 소스에서 altering 준비/CLI가 이름만 보내고 목표수량 연결 없음 확인. 정확 산출·비용과 실원장 대조 전, 자동 반복/재실행 없이 보존. bounded 수량가공 후속 필요. 이번 플로팅 수정 완료와 혼동 금지.
+- 자세한 테스트/리뷰 제한/미완료: `docs/IRIS_FLOATING_DIALOG_QA_20261018.md`. 공식배포 없음.
+
+## 2026-10-18 P1/P2 — 플로팅 확인창 전환·드래그·가려짐/설정/가공 수량
+
+- 확인 요청: 스탯 업데이트·직접 캐릭터 선택 시 normal 전환, floating의 넓은 작업창 차단, 드래그 좌측 복귀. 공통 modal/native wide/live anchor 수정·합성PASS, 최신17184 재실행. 실사용확인 남음.
+- 확인 요청: 게임 클릭시 로고가 사라짐. 실제로 visible=true인데 topmost=false, auto-hide 작업표시줄과 비겹침에도 yield=true 관측. overlap-only 수정 RED→GREEN/addon83, native 재실행 포함. 다른 앱/실제 작업표시줄 겹침 우선권 보존.
+- 확인 요청: 추천 아래공간·왼쪽 직접선택·큰닉네임·검은 모서리와 불투명도 분리/설정 분류. measured native bubble/rounded region, compact 순서/글자와 settings4분류로 수정·합성/시각PASS. 게임 행동/DB 변경0.
+- **재현·미완료(P1): 가죽+ 100개 목표가 1회 등록 후 가공창 닫힘.** 사용자 실게임 보고. 소스에서 altering 준비/CLI가 이름만 보내고 목표수량 연결 없음 확인. 정확 산출·비용과 실원장 대조 전, 자동 반복/재실행 없이 보존. bounded 수량가공 후속 필요. 이번 플로팅 수정 완료와 혼동 금지.
+- 자세한 테스트/리뷰 제한/미완료: `docs/IRIS_FLOATING_DIALOG_QA_20261018.md`. 공식배포 없음.
+
+## 2026-10-18 P1/P2 IRIS compact·추천 잘림·자율 UX 점검
+
+한설사진:로고/키캡큼·좌우끝badge기준막힘·추천버튼하단잘림/스크롤·normal모달누락.36/57×20·로고경계/키캡안쪽보정, floating내용압축/normalmodal복구. 추가읽기audit의메뉴알림덮음/사각메뉴hit/잘린label·slider잠김/중복manualfont/낡은안내도수정. 관련RED→GREEN/실React·Node575PASS3skip/타입lint/native정책·chrome56/compilePASS. addon포커스시험은기준HEAD도동일실패로미해결기록/전체nativePASS아님. 새native재시작·실사용미검증, 게임/DB·push0. 상세날짜별usabilityQA.
+
+## 2026-10-18 P1 UI — 추천이 맨 아래·키캡 뾰족한 모서리
+
+새앱사용사진: 일반창캐릭터추천이긴창하단, Alt+~둥근테두리밖사각모서리. normalnotice bottomfixed와nativeBadge rectUnion각재현→normalstatusinline/floatingbubble분리·9DIP roundednative+9pxCSS로수정. 실제합성React/선택보호/알림10초·캐릭터유지/native정책·chrome56/타입lint/privatecompile확인. 최신native정상재실행·실화면대기, 게임/DB변경0. `docs/IRIS_NOTICE_KEYCAP_QA_20261018.md`.
+
+## 2026-10-18 P2 명시 구현 — 플로팅 종료·창모드 설정
+
+한설 정상재실행후 설정다음종료/창모드자동플로팅선택요청. 기존종료보호전원아이콘/5native영역, 기본off·로컬저장/재실행/수동전체작업창유지. 합성React/native/Node·타입lint/privatecompile/독립검토C0I0M0확인, 새native재실행·실사용확인전. 운영/게임·DB변경없음. 상세날짜별QA참조.
+
+## 2026-10-18 P2 명시 구현 — 플로팅 게임 내부 제한·최소화 전환
+
+한설 요청으로 게임client 안에플로팅 요소를제한/이동·크기변경·드래그보정, 최소화는로고전환. native RED→GREEN/chrome48/addon82·Node573PASS3skip/privatecompile 확인. 실제사용자재실행확인전/운영배포아님. game최초미탐지·작은영역의monitor복구예외와mixedDPI미확인은 날짜별QA참조. 게임·원장·DB변경0.
+
 ## 2026-10-18 플로팅 재개 후속 — Important2 수정 / 전체 출시 아님
 
 - 한설 계속구현 지시로 숨김 도착 알림의 최초표시 전 소리/시간소진과 savedcompact 재시작 edge잔존을 각각 실제provider/WinForms RED→GREEN 수정했다. Node572PASS3skip/타입·scopedlint·관련native/React·격리build/privatecompile 확인. native 실제숨김을 optional windowVisible로 전달한다.

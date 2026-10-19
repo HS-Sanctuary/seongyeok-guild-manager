@@ -22,6 +22,7 @@ import {DesktopAccountPanel} from '@/components/iris/DesktopAccountPanel';
 import {DesktopFocusDialog} from '@/components/iris/DesktopFocusDialog';
 import {DesktopCenter} from '@/components/iris/DesktopCenter';
 import {DesktopErgon} from '@/components/iris/DesktopErgon';
+import {IRIS_ERGON_AVAILABLE} from '@/lib/irisFeatureAvailability';
 import type {ErgonReadKind,ErgonSnapshot} from '@/lib/irisErgonRead';
 import {DesktopStats} from '@/components/iris/DesktopStats';
 import {DesktopStatsSession} from '@/components/iris/DesktopStatsSession';
@@ -42,6 +43,7 @@ export default function DesktopPage() {
   const controller=useRef<Controller|null>(null),starting=useRef(false);
   const protectedStore=useRef<ReturnType<typeof createDesktopStore>|null>(null);
   const [uiStore,setUiStore]=useState<ReturnType<typeof createDesktopStore>|null>(null);
+  const [updateInlineTarget,setUpdateInlineTarget]=useState<HTMLDivElement|null>(null);
   const [compactPanelOpen,setCompactPanelOpen]=useState(false);
   const [savePreviewUntil,setSavePreviewUntil]=useState(0);
   const [characterDialogOpen,setCharacterDialogOpen]=useState(false),[reportBusy,setReportBusy]=useState(false),[catalogVersion,setCatalogVersion]=useState(0);
@@ -161,7 +163,7 @@ export default function DesktopPage() {
   const contextActions=<DesktopContextActions accountOpen={accountOpen} settingsOpen={settingsOpen} disabled={closing||busy||synaxisBusy} accountDisabled={closing||busy||synaxisBusy||lifeActionBusy} onAccount={openAccount} onSettings={()=>{if(closing||busy||synaxisBusy)return;invalidateWatch();setAccountOpen(false);setSettingsOpen(value=>!value);}}/>;
   const settingsPanel=<DesktopAddonSettings floating={floating} appearance={appearance} fonts={fonts} addonState={addon} busy={addonBusy||closing} error={addonError} onSavePreview={()=>setSavePreviewUntil(Date.now()+4000)} onPreferencesChange={value=>void preferencesChange(value)} onBack={()=>{setSettingsOpen(false);if(isFloating)void floating.command('close');}} accountPanel={<><p className="iris-caption">{account?`${account.nickname} · 계정`:'생텀 계정으로 로그인해 주세요.'}</p><button type="button" className="iris-desktop-button" disabled={closing||busy} onClick={openAccount}>계정 관리 열기</button></>}/>;
   return <IrisNotificationsProvider scope={account?.id??''} floating={floating.state} onNoticeKind={floating.setNotice}><main className="iris-desktop" style={{fontFamily:appearance.fontFamilyCss}}>
-    <DesktopFloatingHub state={floating.state} onCommand={floating.command} onDrag={()=>windowAction('drag')} notice={<DesktopNotificationLayer/>}>
+    <DesktopFloatingHub state={floating.state} onCommand={floating.command} onDrag={()=>windowAction('drag')} onNoticeHeight={typeof floating.state?.dialogOpen==='boolean'?floating.resizeNotice:undefined} onExit={()=>requestClose()} exitDisabled={closing||updateBusy||lifeActionBusy} notice={<DesktopNotificationLayer/>}>
     <DesktopPendingCharacterButton/>
     <DesktopContentAlertModal blocked={closing||accountOpen||settingsOpen} alerts={contentAlerts} playSound={uiStore?()=>uiStore.playAlertSound():undefined}/>
     <div hidden={isFloating}><DesktopTitlebar compact={compact} onToggleCompact={floating.supported?()=>void floating.command('floating'):presentation.state?()=>void presentation.toggle():undefined} compactBusy={presentation.busy||closing} onDrag={()=>windowAction('drag')} onMinimize={()=>windowAction('minimize')} onClose={()=>requestClose()} updateControl={<DesktopUpdater store={uiStore} disabled={closing||busy||statsBusy||synaxisBusy||lifeActionBusy||accountOpen||settingsOpen||!!state?.durabilityError||!!state?.hasInvalidClassDraft} onBusyChange={value=>{updateActive.current=value;setUpdateBusy(value);if(value)invalidateWatch();}} onBeforeApply={async()=>{if(statsBusy||synaxisBusy||lifeActionBusy||closingRef.current||!controller.current)return false;return !!await run(c=>c.shutdown('keep'),true);}}/>}/></div>

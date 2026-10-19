@@ -108,10 +108,11 @@ export function DesktopCharacterWatch({accountId,characterId,characters,locked,r
   };
   if(locked||(!candidate&&!notice))return null;
   if(!candidate)return <p className="iris-switch-notice" role="status">{notice}</p>;
+  const actions=<div className="iris-switch-actions"><button type="button" className="iris-desktop-button" data-primary disabled={busy} onClick={()=>void confirm()}>{busy?'확인 중…':'네'}</button><button type="button" className="iris-desktop-button" disabled={busy} onClick={dismiss}>아니요</button><button type="button" className="iris-desktop-button" disabled={busy} onClick={()=>{dismiss();latest.current.onChooseOther();}}>다른 캐릭터</button></div>;
   const content=<>
     <span className="iris-switch-eyebrow">캐릭터 변경 감지 · {candidate.job}</span><h3 className="iris-switch-question"><strong>{candidate.nickname}</strong><span>캐릭터로 변경하셨나요?</span></h3><p className="iris-switch-help">네를 누르면 게임 정보를 다시 확인한 뒤 생텀 선택 캐릭터를 바꿔요.</p>
-    <div className="iris-switch-actions"><button type="button" className="iris-desktop-button" data-primary disabled={busy} onClick={()=>void confirm()}>{busy?'확인 중…':'네'}</button><button type="button" className="iris-desktop-button" disabled={busy} onClick={dismiss}>아니요</button><button type="button" className="iris-desktop-button" disabled={busy} onClick={()=>{dismiss();latest.current.onChooseOther();}}>다른 캐릭터</button></div>
+    {actions}
   </>;
-  if(renderPrompt)return renderPrompt({key:accountId+':'+characterId+':'+candidate.id,scope:accountId,nickname:candidate.nickname,job:candidate.job,content});
+  if(renderPrompt)return renderPrompt({key:accountId+':'+characterId+':'+candidate.id,scope:accountId,nickname:candidate.nickname,job:candidate.job,content,compactContent:<><p>이 캐릭터로 변경할까요?</p>{actions}</>,dismissDisabled:busy});
   return <DesktopFocusDialog title="캐릭터 변경 추천" description="직업·스탯이 가까운 후보예요. 게임 화면과 비교해 주세요." onClose={dismiss} dismissDisabled={busy} className="iris-character-focus">{content}</DesktopFocusDialog>;
 }

@@ -2,6 +2,34 @@
 
 ## YG-20261016-001 — UPDATED (목록형 구현·검토 수정·15% 해제)
 
+- 적용누적22:57KST: 한설정상종료/기존IRIS부재/page200뒤 Development3964(22:57:01)단일시작/정상권한readonly Respondingtrue·stdout0stderr0/livecaptrue. 기능창유지+게임재클릭없는WASD동시확인요청·실성공대기. sandbox프로세스미탐지는동일PID정상권한조회로해결/중복실행·게임입력0.
+
+- 영겁누적2026-10-18 22:55KST: 실제trace capfalse→native FloatingState의gameFocus발행누락확인/실DTO RED→GREEN·true추가. 22:44Development29996 뒤 한설움직임확인하나 module즉시접힘보고. JSclose0/성공handoff→surface→none과소유Form재현으로 native지연Deactivate가의도복귀를접는경합확인. handoff성공을Activated까지구분/중복실패로취소금지·interaction세대로옛blur가새activation/modulecommand접기금지. fresh외부앱접기/초점비탈취유지. chrome92/addon83/bridge·presentation/Nodeexit0·타입lint/실Reactfocus+Hub/privatecompilePASS. 한설정상종료완료, 새native재실행+창유지/WASD동시실사용확인후속. 이전native변경0·재시작불필요는과거경과다. 임시localhostdev진단(enum/boolean만·fixedignored64KiB/production404·키/계정/HWND0)공개전정리여부확인. 에르곤자물쇠/준비중출시권장만설명·미구현/공식push0,100개반복미완료·원본원장/공개0.3.0/ZIP/DB/개인dirty보존. 상대ACK전기존누적삭제금지.
+
+- WASD후속2026-10-18: 최신28704에서도 열린kronos창 이동불가 사용자보고, 실게임해결확정아님. frontend 버튼후반환만있어 초기/후속 module-open·빈영역/휠 누락과 wheel직후W를 UIkeyboard로오인한취소 RED→GREEN. mode/menu/surface응답·일반release·80mswheel 후 handoff/입력·모달·pointerheld·선택텍스트·명시탐색보호. native/키전송경로수정0·추가재시작불필요/HMR대상, 실제WASD/scrollbar드래그 사용자확인남음. 게임29460 FrameworkStartTime조회가능 메타데이터만확인·게임입력/DB/원장/push0. 최신focus+기존설정/dialog/header/controls 회귀·Node/타입lint 재확인, 아래nativefixturePASS를실게임성공으로해석금지.
+
+- 영겁후속2026-10-18 21:51KST이후: 플로팅 settings 전체busy잠금/연속fullprefs덮어쓰기 RED→partial 직렬 latest merge·항목초안/실패복원·개별submit중복방어. 작업창명칭 ‘사이드 바’, Hub 중복 전체작업창/닫기행·로고상시노란테두리 제거. 캐릭터bar가 module탭위로겹침은 normalsticky2.25rem 잔존→floating scoped top0 실제Center18/20/22 RED→GREEN. 모달위아래 shade는 transparent overlay+자연높이 getter/native500ms bounded80..680 실제region조정/내부scroll포함·원modulegeometry복원. 새 `useDesktopFloatingFocus`/optionalgameFocus/strictnull window.game.focus로 pointer일반조작뒤 trackedgame초점복귀; 입력/모달/키보드탐색/다른appforeground는유지, 키합성·전달0. game복귀모듈유지·메뉴hotkeygame초점유지. Node578PASS3skip/nativechrome88·addon83/bridge·presentation·React회귀/privatecompilePASS; 독립review추가없음. 한설정상종료뒤Development28704(21:51:15)정상시작·응답true/logs0/page200, 마지막헤더는HMR. 실제게임초점/모달높이·재실행설정 사용자확인남음. QA후속참조, 가공100개반복미완료·공개0.3.0/ZIP/DB/원장/공지/push0 유지. 상대ACK전기존누적삭제금지.
+
+- 영겁누적2026-10-18 21:24KST: 공통dialog→normal 제거/optionalmodalregion·교체inert, floatingwide420/980/liveanchor드래그, measured80..360bubble/roundedregion·초기manual왼쪽·큰닉네임, settings4분류/normal-vs-floating전체opacity/키label. 게임클릭로고가려짐은실read autoHidebar와비겹침yield=true가원인→overlap-only RED→GREEN. Node576PASS3skip/독립tsc·수정lint/실React/chrome73·addon83/bridge/policy/privatecompilePASS. 리뷰는usage limit중단으로최종판정없음. 한설정상종료2회뒤latestDevelopment17184응답·logs0/page200, 실제게임클릭유지·드래그/직접선택사용자확인남음. QA `docs/IRIS_FLOATING_DIALOG_QA_20261018.md`.
+- 새P1 **가죽+100개→등록1회** 사용자보고: altering목표수량→소비실행미연결(name-only)확인, bounded수량가공미완료. 임의반복·quantity인자·원장변경0. 번호단축키는가능성조사만/게임가방지원미확인. 오늘에르곤제외플로팅중심출시가능성문의중/공식push·배포승인아님. 공개0.3.0·ZIP/운영DB·공지/개인dirty보존, 아래누적삭제금지.
+
+- 적용누적2026-10-18 16:40KST:한설닫았어확인→기존IRIS부재/page200→최신Development29208한번정상시작·Respondingtrue/stdout0stderr0. compact/edge/region/설정이전까지후보포함·실화면/소리/게임위조작확인대기. 아래native미적용기록은이전경과, 강제종료/게임원장·DB/push0.
+
+- usability최종reviewC0I0M1:긴사용자단축키키캡/메뉴겹침→menuopen때만badgeDOM/nativeRegion숨김·닫으면복원·DTO유지, RED→GREEN/policy/browser/chrome56/privatecompilePASS·재리뷰0. addon실패는기준HEAD도동일확인·원인미확정/전체nativePASS아님. 정상종료답변대기/최신native아직미적용.
+
+- 영겁누적2026-10-18 compact·자율UX:한설36로고/키캡57×20gap2·logo좌우끝/badge안쪽보정·추천선택무스크롤/normal중앙modal복구·hover확장거부/추가불편자율개선승인. prefsv3쓰기·oldv1/2의52만36·기타설정/v3명시52보존. audit2명확인메뉴알림겹침/recthit/잘린label·slider잠김/중복font/오류안내최소수정. RED→GREEN/실React·Node575PASS3skip/타입lint/policy/chrome56/compilePASS. addonYield포커스시험반복실패/기준HEAD도동일·Bounds동일FG변화/원인미확정, 전체native녹색아님. 상세 `docs/IRIS_USABILITY_POLISH_QA_20261018.md`·plan/ledger; 최종review후속.28168옛native/정상재시작필요·강제종료/게임원장·DB·운영ZIP/commitpush0·개인dirty보존。
+
+- 적용누적2026-10-18 15:39KST: 한설정상종료답변→기존IRIS부재/개발page200→최신Development28168한번시작·응답true/stdout0stderr0. 둥근Badge native후보까지적용, 실제화면·창모드/종료·추천사용자확인대기. 아래재시작대기는과거경과, 강제종료/게임원장·DB/push0.
+
+- 최종마감2026-10-18: 추천/키캡후속reviewC0I0M0·모서리96..384DPI합성/diffcheckPASS. 첫전체에서기존bus-live-notifications신규readiness episode 시험expected2/actual1한번실패→단독25PASS/전체재시도575PASS3skip, 원인해결로표시하지않음. 정상종료답변대기/키캡native재시작미적용. 앞선기록·개인dirty/게임원장보존.
+
+- 영겁누적2026-10-18 후속사진: 정상종료확인→13:59Development14952한번실행/Respondingtrue·stderr0/page200(종료·창모드코드). 추천하단이동=normalnotice bottomfixed, 키캡squarecorner=nativeBadge rectUnion각RED재현→normal추천statusinline/floatingbubble·9DIP roundedBadge/CSS9px수정. 기존선택·알림보호/nativepolicy/chrome56/privatecompile/타입lintPASS, 최종Node·review는 `docs/IRIS_NOTICE_KEYCAP_QA_20261018.md` 후속. latestnativeclip14952미적용/정상재시작필요·강제종료/게임원장·DB·운영push0.
+
+- 영겁누적2026-10-18 종료·창모드설정로컬: 한설직전정상재실행보고후새요청. 설정뒤전원→requestClose보호/5nativehit영역, WindowedFloating기본off·즉시/재시작기억·전체작업창override. 설정v1읽기/v2쓰기·구host4필드/4메뉴호환/재시작안내. RED→GREEN·새/기존실React/정책/bridge/chrome56/addon82/workspace·Node575PASS3skip/타입lint/privatecompilePASS·reviewC0I0M0(실게임·설치앱재시작/DPI보류). 상세 `docs/IRIS_FLOATING_EXIT_WINDOWED_QA_20261018.md`. 새push/운영ZIP/게임원장·DB変更/강제앱재시작0·개인dirty보존.
+
+- 영겁누적2026-10-18 게임내부/최소화후속·로컬: client readonly PID/HWND검증/IRIS DPI context, 요소게임안clamp/게임이동offset·크기축소·WM_MOVING·마지막경계, Windows/bridge최소화→로고통일. 게임주도최소화·normal위치보존. chrome48/addon82·관련native/Node573PASS3skip/privatecompilePASS. 최초game미탐지/96×128미만monitor복구예외 안내·실제재실행/mixedDPI전. 상세 `docs/IRIS_GAME_BOUND_FLOATING_QA_20261018.md`, 독립검토후속. 새push/운영/게임/원장/DB변경0·개인dirty보존.
+- 추가검토결과: C0/I0/M1(고DPI 작은가시영역의음수logo)을RED→GREEN으로보완했다. 위96×128기준은최종96×128DIP이며현재/마지막경계와layout이같은guard를사용한다. 정책시험은샌드박스임시저장실패후전용fixture권한재시도PASS, 최종chrome48/addon82/Node573PASS3skip/privatecompilePASS. 실제mixedDPI성공/사용자앱적용을뜻하지않는다.
+
 - 영겁누적2026-10-18 괄호제거확정/로컬: 한설요청대로표시·설정안내 `Alt + ~`, bridge기존라벨/실제키보존하는순수caption함수. native폭97→79/높이28·로고유지. RED→GREEN/Node573PASS3skip/타입·l​​int/nativechrome33/DOM·기존floatingPASS. 정상재시작후새폭전체반영/강제종료0. 새push/게임·운영DB변경0. 아래97폭은이전경과.
 
 - 영겁누적2026-10-18 키캡비율재조정/로컬: 한설 거의동일요청. CSS-only20높이제한을 native28DIP/기본97폭으로확대+큰둥근굵은글자/밝은2px테두리. 로고크기/실제키유지. native/DOM RED→GREEN·chrome33/Node572PASS3skip/lint/privatecompilePASS. 기존실행앱 정상재실행후전체반영 필요/강제종료0·실제사용자확인전. 새push/운영/게임행동0. 아래재시작불필요는앞선CSS-only시점.

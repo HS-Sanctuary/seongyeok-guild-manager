@@ -1,5 +1,6 @@
 'use client';
-import {KronosIcon,SynaxisIcon,ErgonIcon} from './DesktopIcons';
+import {IRIS_ERGON_AVAILABLE} from '@/lib/irisFeatureAvailability';
+import {KronosIcon,SynaxisIcon,ErgonIcon,LockIcon} from './DesktopIcons';
 export type DesktopSection='kronos'|'synaxis'|'ergon';
 const items=[
   {id:'kronos',name:'크로노스',subtitle:'캐릭터 관리',english:'CHRONOS',Icon:KronosIcon},
@@ -7,9 +8,9 @@ const items=[
   {id:'ergon',name:'에르곤',subtitle:'생활 매니저',english:'ERGON',Icon:ErgonIcon},
 ] as const;
 export function DesktopMainTabs({section,locked,unread=false,onChoose}:{section:DesktopSection;locked:boolean;unread?:boolean;onChoose(section:DesktopSection):void}){
-  return <nav className="iris-hud-tabs iris-main-tabs" aria-label="상위 메뉴">{items.map(({id,name,subtitle,english,Icon})=><button type="button" key={id} className="iris-desktop-button" aria-label={name} title={`${name} · ${subtitle}`} disabled={locked} aria-pressed={section===id} aria-controls={`iris-pane-${id}`} onClick={()=>onChoose(id)}>
-    <span className="iris-main-tab-icon" aria-hidden="true"><Icon/></span>
-    <span className="iris-main-tab-label" aria-hidden="true"><span className="iris-main-label-ko" data-module={id}><strong>{name}</strong><small>{subtitle}</small></span><span className="iris-main-label-en">{english}</span></span>
+  return <nav className="iris-hud-tabs iris-main-tabs" aria-label="상위 메뉴">{items.map(({id,name,subtitle,english,Icon})=>{const unavailable=id==='ergon'&&!IRIS_ERGON_AVAILABLE,disabled=locked||unavailable;return <button type="button" key={id} className="iris-desktop-button" aria-label={unavailable?`${name} · 준비중`:name} title={`${name} · ${unavailable?'준비중':subtitle}`} disabled={disabled} aria-pressed={!unavailable&&section===id} aria-controls={`iris-pane-${id}`} onClick={()=>{if(!disabled)onChoose(id);}}>
+    <span className="iris-main-tab-icon" aria-hidden="true">{unavailable?<LockIcon/>:<Icon/>}</span>
+    <span className="iris-main-tab-label" aria-hidden="true"><span className="iris-main-label-ko" data-module={id}><strong>{name}</strong><small>{unavailable?'준비중':subtitle}</small></span><span className="iris-main-label-en">{english}</span></span>
     {id==='synaxis'&&unread&&<span className="iris-party-red-dot" role="status" aria-label="새 파티 또는 길드버스"/>}
-  </button>)}</nav>;
+  </button>;})}</nav>;
 }

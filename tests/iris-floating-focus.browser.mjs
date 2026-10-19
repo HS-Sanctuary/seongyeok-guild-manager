@@ -1,0 +1,34 @@
+import assert from 'node:assert/strict';
+import {createRequire} from 'node:module';
+import {startIrisFixture} from './iris-ui.fixture.mjs';
+const {chromium}=createRequire('C:/Users/Moon/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/package.json')('playwright');
+const entry=`const React=require('react'),{createRoot}=require('react-dom/client'),{useDesktopFloating}=require('@/components/iris/useDesktopFloating'),{DesktopFloatingHub}=require('@/components/iris/DesktopFloatingHub');
+const state={schemaVersion:1,mode:'floating',menuOpen:false,surface:'settings',revision:1,layout:{width:470,height:700,anchor:{x:0,y:0,size:36},badge:{x:0,y:38,width:57,height:20},side:'right',vertical:'down',menu:[],bubble:null,panel:{x:50,y:0,width:420,height:680}},hotkeyAvailable:true,hotkeyLabel:'(Alt + ~)',preferences:{iconSize:36,opacity:80,modifiers:1,key:192},persistent:true,dialogOpen:false,gameFocus:true};
+window.focusRequests=0;let release,native=state;const store={floatingState:async()=>native,floatingCommand:async c=>{native={...native,revision:native.revision+1,...(['kronos','ergon'].includes(c)?{surface:c}:{})};return native;},setFloatingNotice:async()=>state,setFloatingPreferences:async()=>state,returnGameFocus:async()=>{window.focusRequests++;if(window.hold)return new Promise(r=>release=r);return true;}};window.release=()=>release?.(true);
+function App(){const f=useDesktopFloating(store);window.openPanel=c=>f.command(c);const [modal,setModal]=React.useState(false);return React.createElement('div',{style:{minHeight:700}},React.createElement('label',null,'체크',React.createElement('input',{type:'checkbox'})),React.createElement('input',{'aria-label':'텍스트'}),React.createElement('input',{type:'range','aria-label':'크기'}),React.createElement('button',{onClick:()=>setModal(true)},'확인창'),modal&&React.createElement('div',{role:'dialog'},React.createElement('button',{onClick:()=>setModal(false)},'취소')),React.createElement('button',null,'일반 버튼'));}createRoot(document.getElementById('app')).render(React.createElement(App));`;
+const fixture=await startIrisFixture(entry),browser=await chromium.launch({channel:'chrome',headless:true});
+try{
+ const page=await browser.newPage({viewport:{width:600,height:800}});await page.goto(fixture.origin);await page.waitForTimeout(120);
+ assert.equal(await page.evaluate(()=>window.focusRequests),1,'An opened floating panel must return keyboard focus without requiring a checkbox click');
+ await page.getByRole('checkbox').click();await page.waitForTimeout(120);
+ assert.equal(await page.evaluate(()=>window.focusRequests),2,'Pointer checkbox must return keyboard focus to the game');
+ await page.getByLabel('텍스트',{exact:true}).fill('WASD');await page.getByLabel('텍스트',{exact:true}).press('a');
+ assert.equal(await page.evaluate(()=>window.focusRequests),2,'Text editing must never hand typing to the game');
+ await page.getByRole('button',{name:'확인창',exact:true}).click();await page.waitForTimeout(120);
+ assert.equal(await page.evaluate(()=>window.focusRequests),2,'Opening a modal must keep IRIS keyboard focus');
+ await page.getByRole('button',{name:'취소',exact:true}).click();await page.waitForTimeout(120);
+ assert.equal(await page.evaluate(()=>window.focusRequests),2,'A modal-origin pointer action must not leak into game focus');
+ await page.getByRole('button',{name:'일반 버튼',exact:true}).focus();await page.keyboard.press('Space');await page.waitForTimeout(120);
+ assert.equal(await page.evaluate(()=>window.focusRequests),2,'Keyboard navigation must remain inside IRIS');
+ await page.getByRole('button',{name:'일반 버튼',exact:true}).click();await page.waitForTimeout(120);
+ assert.equal(await page.evaluate(()=>window.focusRequests),3,'Ordinary pointer action must return game focus');
+ await page.locator('body').click({position:{x:550,y:400}});await page.waitForTimeout(120);
+ assert.equal(await page.evaluate(()=>window.focusRequests),4,'Clicking passive floating content must not keep keyboard ownership');
+ await page.mouse.wheel(0,150);await page.keyboard.down('w');await page.waitForTimeout(160);await page.keyboard.up('w');
+ assert.equal(await page.evaluate(()=>window.focusRequests),5,'Reading by mouse wheel must not retain keyboard ownership');
+ await page.evaluate(()=>window.openPanel('kronos'));await page.waitForTimeout(120);
+ assert.equal(await page.evaluate(()=>window.focusRequests),6,'A later native module-open reply must also return keyboard ownership');
+ await page.getByRole('button',{name:'일반 버튼',exact:true}).focus();await page.keyboard.press('Space');await page.evaluate(()=>window.openPanel('ergon'));await page.waitForTimeout(120);
+ assert.equal(await page.evaluate(()=>window.focusRequests),6,'Explicit keyboard module navigation must keep IRIS focus');
+ console.log('PASS floating pointer focus handoff; text, modal, keyboard exceptions');
+}finally{await browser.close();await new Promise(resolve=>fixture.server.close(resolve));}

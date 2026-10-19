@@ -1,0 +1,9 @@
+.iris-update-inline{margin:.5rem;padding:.5rem .6rem;min-width:0;border:1px solid var(--accent);border-radius:.55rem;background:var(--inner-box);color:var(--text-main);font-size:max(.68rem,12px);line-height:1.5;overflow-wrap:anywhere}
+.iris-update-inline-heading{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.35rem .5rem;min-width:0}
+.iris-update-inline-heading h3{margin:0;min-width:0;font-size:inherit;font-weight:700}
+.iris-update-inline-heading h3 span{display:inline-block;margin-left:.25rem;font-weight:400;color:var(--text-sub,var(--text-main))}
+.iris-update-inline-heading button{flex-shrink:0;font-size:inherit;padding:.25rem .4rem}
+.iris-update-inline-preview{max-height:7rem;overflow:auto;overscroll-behavior:contain;min-width:0}
+.iris-update-inline-preview p{margin:.3rem 0 0}
+.iris-update-inline-preview ul{margin:.3rem 0 0;padding-left:1rem}
+.iris-update-inline-preview li+li{margin-top:.15rem}

@@ -19,7 +19,7 @@ namespace IrisDesktop {
  }
  public sealed class DesktopPresentationState {
   readonly string path;
-  bool manual,fullscreen,moved;
+  bool manual,fullscreen,moved,windowedFloating;
   public bool Compact {get;private set;}
   public bool Automatic {get;private set;}
   public bool IsFullscreen {get{return fullscreen;}}
@@ -42,7 +42,12 @@ namespace IrisDesktop {
   public void ObserveFullscreen(bool? active){
    if(!active.HasValue||active.Value==fullscreen)return;fullscreen=active.Value;
    if(fullscreen){moved=false;if(!manual){Compact=true;Automatic=true;}}
-   else{if(Automatic){Compact=manual;Automatic=false;}}
+   else{if(Automatic){Compact=manual||windowedFloating;Automatic=!manual&&windowedFloating;}}
+   Notify();
+  }
+  public void SetWindowedFloating(bool enabled){
+   if(windowedFloating==enabled)return;windowedFloating=enabled;
+   if(!fullscreen&&!manual){Compact=enabled;Automatic=enabled;}
    Notify();
   }
   public void SetPanelOpen(bool open){if(PanelOpen==open)return;PanelOpen=open;Notify();}

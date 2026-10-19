@@ -1,5 +1,73 @@
 # SANCTUM 작업 인계
 
+## 2026-10-18 22:55 KST — WASD 실제 capability 누락과 복귀 시 자동 접힘
+
+- 적용 후속 22:57 KST: 한설 정상 종료 확인→기존 IRIS 부재/개발 page200→Development3964 단일 시작(22:57:01)/Responding=true·stdout/stderr0. live state capable=true 확인. 모듈 유지+게임 재클릭 없이 WASD 동시 확인을 한설에게 요청하며, 실제 성공 판정은 아직 대기다. 제한 환경의 Get-Process 미탐지는 정상 권한 읽기 조회로 존재/응답을 확인했으며 중복 실행하지 않았다.
+
+- 최신 root: native `FloatingState()`가 optional `gameFocus`를 실제로 발행하지 않아 앞선 hook 전부 비활성이었다. 로컬 live trace capable=false로 확인, 실제 DTO 회귀 RED→GREEN/`gameFocus=true` 추가. Development29996(22:44:25 KST) 적용 뒤 한설은 움직임 복귀 확인, 대신 메뉴 버튼의 기능창이 즉시 사라진다고 보고했다. 이동 성공과 창 유지 성공을 혼동하지 않는다.
+- live trace의 frontend close0/성공한 handoff 뒤 surface→none 및 소유 Form 재현: 지연 native Deactivate callback이 의도한 게임 복귀와 최신 명령을 접는다. `gameFocusHandoff`는 성공 복귀를 다음 Activated까지 구분하며 실패한 중복 요청으로 지우지 않는다. `floatingInteraction` 세대는 오래된 blur가 새 activation/command를 닫지 못하게 한다. 새로운 외부 앱 전환은 기존 접기 유지. 외부 앱 초점 훔치기/키 합성·후킹 없음.
+- 검증: chrome92(직렬화 capability/복귀관측상실/중복요청/새모듈/신규 외부앱 포함), addon83, bridge/presentation, 전체 Node exit0, tsc/eslint, React focus·Hub 통합, 비공개 `private-handoff-lifecycle-build` PASS. 사용자 정상 종료 완료, 최신 native 단일 재실행 및 기능창+WASD 동시 실사용 확인이 다음 행동. 강제 종료/게임 행동/원장 변경0.
+- 임시 진단 `lib/irisFocusTrace.ts`와 `/api/iris/focus-debug`: development+localhost+동일 Origin 한정, 정확한 enum/boolean 필드만, ignored 고정 경로64KiB 상한. 키·본문·계정/닉네임/HWND 저장0, production404. 공개 출시 전 유지 필요 여부 재검토. 독립 리뷰는 이전 사용량 제한 이후 추가 성공 판정 없음.
+- 에르곤은 플로팅 자물쇠/앱 준비중으로 잠가 플로팅 중심 출시를 권장했으나 **아직 미구현·출시/push 미실행**. 가죽+100개→1회등록 미완료와 원본 보호원장은 보존. 공개0.3.0/ZIP·운영DB·버전·공지 그대로.
+
+## 2026-10-18 WASD 추가 보고 — 창 열기/읽기 영역 후 초점 누락
+
+- 사용자가 최신28704의 열린 크로노스 화면에서 여전히 WASD 불가 보고. 앞선 수정 성공으로 종결하지 않는다. frontend는 button/checkbox/range release만 처리해 초기/후속 module-open·일반 읽기 영역·휠에서 요청이 누락됐다. 휠 직후 W도 UI keyboard mode로 오인해 반환을 막는 재현 확인.
+- `useDesktopFloatingFocus`에 mode/menu/surface 응답 후 반환, 일반 pointer release·debounced wheel 경로와 pointer-held 방어를 추가. UI keyboard mode는 Tab/방향키/Enter/Space/Home/End/PageUpDown으로 한정하며 입력창·모달·선택 텍스트는 보호. 전역 창 활성화 감시나 게임 키 전달은 추가하지 않음. native strict target/foreground/생존 보호 그대로, 새 native 코드/재실행 없음. 28704+게임29460의 메타데이터만 읽기 확인(Framework StartTime 조회 가능), 게임 입력/원장/DB0.
+- 최신 `iris-floating-focus.browser.mjs`가 초기 열기·후속 모듈 응답, 빈 영역·wheel+W 경합, 입력/모달/Space·키보드 모듈 탐색을 검증한다. 실제 게임 성공은 사용자 확인 전이다. 설정/공통 dialog/헤더/단축키 실제 React 회귀·Node/타입/lint를 재확인. 공개0.3.0/ZIP/버전/공식배포·push 없음.
+
+## 2026-10-18 21:51 KST 이후 — 플로팅 설정·게임 초점·캐릭터 헤더 후속
+
+- 한설 추가 사진/요청: 캐릭터 선택 모달 위아래 음영, 플로팅 설정 먹통, ‘작업창’→‘사이드 바’, 체크 후 게임 클릭 필요, 중복 상단 행/로고 노란 테두리 제거, 캐릭터 헤더와 메인 메뉴 겹침. 최신 후보에서 모두 관련 재현/수정했다. 이전 미커밋과 개인 dirty를 그대로 보존하며 새로운 가공 목표 구현은 시작하지 않았다.
+- `useDesktopFloatingFocus` + optional `FloatingState.gameFocus` + strict `window.game.focus` null payload. 포인터 조작 뒤 알려진 게임에만 native 초점 반환, 입력/모달/키보드 탐색 제외. 현재 foreground=IRIS·tracked PID/생존/제목/가시성/최소화 확인, 다른 앱으로 Alt+Tab 뒤 늦은 요청은 부작용 없음. 게임으로 넘어가도 플로팅 모듈 유지. 게임 foreground에서 단축키 메뉴 열기는 비활성화하지 않음. 키 합성/전달·게임 CLI 호출 없음.
+- floating 설정은 Partial preferences를 직렬 실행 시점의 확정값에 합친다. 전체 fieldset의 네트워크 busy 잠금 제거, 슬라이더/체크 초안과 실패 복원·버튼별 중복 방어. 사이드 바 불투명도와 독립. Hub 상단 tools행/로고 border 제거; normal titlebar offset이 floating header에 남던 겹침은 scoped top:0으로 수정.
+- modal native height는 문서의 `__irisFloatingDialogHeight()`를 기존 500ms timer에서 읽어 80..680 DIP로 제한한다. source/revision/가시성/modal 재확인, 내부 scrollHeight 포함. 배경 shade/transition 제거, underlying module 숨김/보존, modal 닫을 때 기존 module 폭·높이/일반 좌표 복원. 보호 종료는 DOM sync로 해제하지 않는다.
+- 한설 정상 종료 답변 뒤 기존 앱 없음 확인, 21:51:15 KST Development28704 한 번 실행. Responding=true·stdout/stderr0·개발 페이지200. 이후 화면 코드의 header top:0은 HMR 적용 대상으로 추가 native 재실행 필요 없음. 실제 모비노기에서 첫 키/WASD·긴 목록 modal·저장값 재실행 유지는 사용자 확인 대상이다.
+- 검증 상세는 `docs/IRIS_FLOATING_DIALOG_QA_20261018.md` 후속. 전체 Node581/578PASS3기존skip0fail, nativechrome88/addon83·bridge/presentation PASS, 실제 React 설정/초점/헤더·모달·메뉴/알림 회귀 및 비공개 앱 compile PASS. 독립 reviewer는 앞선 사용량 제한 이후 재요청하지 않았고 이번 후속은 자체 점검·합성 검증이다. 공개0.3.0/ZIP·운영 DB/권한/공지/commit/push 없음. 가죽+100개 반복 미완료는 여전히 별도 P1.
+
+## 2026-10-18 21:24 KST — 플로팅 공통 창·자유 이동·설정·로고 가려짐 후속
+
+- 최신 로컬 후보: 확인창/직접선택이 floating 유지, native modal 입력영역 분리, wide420↔980, live drag anchor, 내용 높이 bubble/둥근 region·초기직접선택왼쪽/큰닉네임, 설정4분류·일반/플로팅opacity독립·키표시연동. 게임 클릭 로고 가려짐은 자동숨김 작업표시줄의 비겹침 양보 버그, actualread/RED→GREEN으로 overlap-only 수정.
+- Node576PASS3skip0fail/독립tsc·수정lint/실React/nativechrome73·addon83/bridge·정책/비공개compilePASS. 독립리뷰는 사용량 제한 중단으로 최종판정없음. 자세한 근거와 한계 `docs/IRIS_FLOATING_DIALOG_QA_20261018.md`.
+- 한설 정상종료 두 차례 확인 후 최신 Development17184 정상 시작(21:24KST), 응답true·stdout/stderr0·개발page200. 실제 로고유지/자유드래그/직접선택 실사용확인 남음. 아래29208/4660은 이전 실행. 강제종료·게임행동·DB/공개ZIP/commitpush0.
+- P1 새 보고 **가죽+100개→1회등록**: 목표수량이 altering 실행에 연결되지 않은 소스 경로 확인. 수량가공 자동반복 미완료, 임의100인자·재전송/원장변경0. 총비용/시설정원/등록대기수령/중단보호를 포함해 후속 구현할 것. 오늘 플로팅만 업데이트할 수 있는지 문의 중이며 출시/에르곤 숨김 결정은 아직 아님. 기존 공개0.3.0 유지.
+
+## 2026-10-18 21:24 KST — 플로팅 공통 창·자유 이동·설정·로고 가려짐 후속
+
+- 최신 로컬 후보: 확인창/직접선택이 floating 유지, native modal 입력영역 분리, wide420↔980, live drag anchor, 내용 높이 bubble/둥근 region·초기직접선택왼쪽/큰닉네임, 설정4분류·일반/플로팅opacity독립·키표시연동. 게임 클릭 로고 가려짐은 자동숨김 작업표시줄의 비겹침 양보 버그, actualread/RED→GREEN으로 overlap-only 수정.
+- Node576PASS3skip0fail/독립tsc·수정lint/실React/nativechrome73·addon83/bridge·정책/비공개compilePASS. 독립리뷰는 사용량 제한 중단으로 최종판정없음. 자세한 근거와 한계 `docs/IRIS_FLOATING_DIALOG_QA_20261018.md`.
+- 한설 정상종료 두 차례 확인 후 최신 Development17184 정상 시작(21:24KST), 응답true·stdout/stderr0·개발page200. 실제 로고유지/자유드래그/직접선택 실사용확인 남음. 아래29208/4660은 이전 실행. 강제종료·게임행동·DB/공개ZIP/commitpush0.
+- P1 새 보고 **가죽+100개→1회등록**: 목표수량이 altering 실행에 연결되지 않은 소스 경로 확인. 수량가공 자동반복 미완료, 임의100인자·재전송/원장변경0. 총비용/시설정원/등록대기수령/중단보호를 포함해 후속 구현할 것. 오늘 플로팅만 업데이트할 수 있는지 문의 중이며 출시/에르곤 숨김 결정은 아직 아님. 기존 공개0.3.0 유지.
+
+## 2026-10-18 compact·추천 모달 복구·자율 사용성 점검
+
+- 적용후속16:40KST:한설정상종료확인후기존IRIS부재/page200→최신Development29208한번시작·응답true/stdout0stderr0. 이번compact/경계·메뉴입력영역포함후보, 실화면·소리·실조작사용자확인대기. 아래28168미적용/답변대기는이전시점. 강제종료/게임·DB/push0.
+
+- 최종reviewC0/I0/M1의긴키캡/메뉴겹침도사용자polish요청범위RED→GREEN수정:menuopen동안badgeDOM/nativeRegion숨김·닫으면복원, geometryDTO유지. 정책/browser/chrome56/privatecompile확인·재리뷰0. 전체/타입lint마감은usabilityQA/ledger후속. 정상종료질문발송/답변대기.
+
+- 한설추가요구/자율개선승인:36로고/57×20키캡gap2·logo기준좌우끝/독립badge, v1·v2old52만36이전·v3저장(기타설정보존). normal중앙FocusDialog복구/floating추천간결·선택3버튼180px무스크롤. hover확장없음.
+- audit2명확인추가수정:메뉴·기능창알림겹침제거/새알림최초표시대기·기존10초deadline유지, 메뉴ellipse와잘리는label제거(title/aria유지), slider최종값만전송/실패복원, 중복manualfont·긴안내접기/낡은에르곤문구수정.
+- RED→GREEN/관련실React·정책·Node575PASS3skip/타입lint/chrome56/privatecompilePASS. addon포커스보존시험은반복실패/HEAD동일실패·좌표동일/FG변화확인·원인미확정. 전체native녹색아님. 상세 `docs/IRIS_USABILITY_POLISH_QA_20261018.md`, plan/ledger참조·최종검토후속.
+- Development28168은15:39native/최신compact정상재시작필요. 강제종료/게임원장·DB·운영ZIP/commit·push0. 개인dirty·이전미커밋모두보존. 아래inline추천기록은현재normalmodal복구로대체된과거경과.
+
+- 2026-10-18 15:39 KST 적용 후속: 한설 정상종료 확인→IRIS부재/page200→최신 Development28168 한 번 정상시작, 응답true/stdout·stderr0. 새 native 키캡잘림까지 적용후보, 실제모양/추천·창모드·종료 실조작은사용자확인대기. 아래14952미적용/종료답변대기는이전시점. 강제종료·게임원장/DB·push0.
+
+## 2026-10-18 추천 위치·키캡 모서리 피드백
+
+한설종료확인뒤13:59Development14952정상실행/응답true·stderr0/page200, 종료·창모드후보적용. 후속사진의normal추천bottom fixed/BadgeRegion사각형원인을각RED→GREEN수정: normal추천은원래statusinline, floating은bubble/캐릭터상태보존; native9DIP roundedBadge와CSS9px일치. 위치/선택보호/알림실React·policy/chrome56/privatecompile·타입lintPASS. 최종Node575PASS3skip/reviewC0I0M0/diffcheckPASS, 첫bus-live-notifications1회실패→단독25/전체재시도PASS는QA보류기록. 상세 `docs/IRIS_NOTICE_KEYCAP_QA_20261018.md`. 새native잘림은14952미적용/다음정상재시작필요·사용자종료답변대기·강제종료0, 게임원장/DB/운영push0.
+
+## 2026-10-18 플로팅 종료·창모드 설정 — 로컬 후속
+
+- 한설 직전 정상재실행 보고 뒤 새 요청 구현. 설정 다음 전원/종료→기존 requestClose 보호, native5번째영역; 창모드 자동플로팅 기본off/즉시적용·재시작복원·전체작업창수동override 유지.
+- prefs파일v1읽기/v2쓰기·구4필드/4메뉴host호환, 구host새기능재시작안내. 게임/원장·DB/운영변경0, 강제재시작0. 새native 정상재실행필요.
+- RED→GREEN·새/기존실React/정책/bridge/chrome56/addon82/workspace·Node575PASS3skip/타입/변경lint/privatecompilePASS. 독립검토C0/I0/M0(실게임/설치앱재실행/DPI판단보류), 상세 `docs/IRIS_FLOATING_EXIT_WINDOWED_QA_20261018.md`. 개인dirty·이전미커밋경계수정보존, 새push없음.
+
+## 2026-10-18 게임 내부 플로팅·최소화 로컬 후속
+
+- 한설 요청으로 유효한 game client 안에 로고/키캡/메뉴/임시창을 제한하고 게임이동·크기축소/live WM_MOVING 보정·마지막 경계 보존을 추가. IRIS Windows최소화/bridge최소화를 로고전환으로 통일, 게임주도최소화·일반창좌표 보존.
+- 상세/복구가정·검증은 `docs/IRIS_GAME_BOUND_FLOATING_QA_20261018.md`. chrome48/addon82·관련native·Node573PASS3skip/privatecompilePASS, 실제사용자재실행·mixedDPI확인전. 게임최초미탐지/너무작은영역은기존monitor복구예외를 유지한다고 안내했다.
+- 새push/운영버전/ZIP/공지·DB/게임행동0, 개인dirty와원장보존. native정상재실행필요, 강제종료/추가게임검증0. 독립검토C0/I0/M1의고DPI작은영역음수geometry를RED→GREEN으로보완, 최소96×128DIP공유guard. 최종정책시험은임시쓰기권한재시도PASS, chrome48/addon82/Node573PASS3skip/privatecompile재확인. 실제mixedDPI는미검증.
+
 ## 2026-10-18 키캡 확정 후속 — 괄호 제거
 
 표시는 `Alt + ~`, native기본폭79/높이28DIP로 축소. 로고크기/실제키/bridge구호환 보존, 설정안내도같은caption함수 사용. Node573PASS3skip/타입·l​​int/nativechrome33/실제DOM·기존floatingPASS. 최신QA참조. 폭전체적용은정상재실행필요, 새push·운영/게임행동0. 아래97폭은이전시점.

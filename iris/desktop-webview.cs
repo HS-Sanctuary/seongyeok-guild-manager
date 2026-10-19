@@ -65,7 +65,8 @@ namespace IrisDesktop {
         Rectangle expandedBounds;bool lastCompact,lastPanel;int contentHeight=240,layoutRevision;
         Rectangle workspaceBounds;bool workspaceExpanded;
         object SetWorkspace(bool expanded){
-            if(expanded&&(!LifeActionAllowed()||Presentation.Compact||lifeActor!=null&&lifeActor.Busy))throw new ArgumentException();
+            if(expanded&&(!LifeActionAllowed()||FloatingModalOpen||Presentation.Compact&&!floatingMode||lifeActor!=null&&lifeActor.Busy))throw new ArgumentException();
+            if(floatingMode){workspaceExpanded=expanded;ApplyFloatingLayout(true);return new {expanded=workspaceExpanded};}
             if(expanded!=workspaceExpanded){
                 var work=Screen.FromRectangle(Bounds).WorkingArea;
                 if(expanded){workspaceBounds=Bounds;workspaceExpanded=true;MaximumSize=new Size(1240,work.Height);Bounds=DesktopWorkspaceLayout.Expand(Bounds,work);}
@@ -75,6 +76,7 @@ namespace IrisDesktop {
         }
         [DllImport("user32.dll")] static extern bool ReleaseCapture();
         [DllImport("user32.dll")] static extern IntPtr SendMessage(IntPtr h,int message,IntPtr w,IntPtr l);
+        [StructLayout(LayoutKind.Sequential)]struct MovingRectangle {public int Left,Top,Right,Bottom;}
         protected override bool ShowWithoutActivation {get{return true;}}
         public event EventHandler NavigationBlocked;
 
@@ -103,7 +105,7 @@ namespace IrisDesktop {
             Overlay.ManualVisibility+=Addon.RecordManualVisibility;
             Addon.StateChanged+=(s,e)=>{if(documentReady&&bridge!=null)Browser.CoreWebView2.PostWebMessageAsJson(new JavaScriptSerializer().Serialize(new {version=1,kind="window.addon.changed",epoch=bridge.Epoch,environment=development?"development":"production",state=Addon.State()}));};
             Addon.GameExited+=(s,e)=>RequestClose("game-exit");
-            fitTimer.Tick+=async(s,e)=>{if(pendingCloseReason!=null&&!documentReady&&DateTime.UtcNow>=pendingCloseDeadline){FallbackClose();return;}if(floatingSnapshot!=null)return;if(fitting||resizing||Addon.IsAttached||closeDecision||!Presentation.Compact||Presentation.PanelOpen||!documentReady||!Visible||Browser.CoreWebView2==null)return;fitting=true;try{
+            fitTimer.Tick+=async(s,e)=>{if(pendingCloseReason!=null&&!documentReady&&DateTime.UtcNow>=pendingCloseDeadline){FallbackClose();return;}if(floatingSnapshot!=null){await MeasureFloatingDialogAsync();return;}if(fitting||resizing||Addon.IsAttached||closeDecision||!Presentation.Compact||Presentation.PanelOpen||!documentReady||!Visible||Browser.CoreWebView2==null)return;fitting=true;try{
                 var source=Browser.CoreWebView2.Source;int revision=layoutRevision;var result=await Browser.CoreWebView2.ExecuteScriptAsync("Math.ceil(document.querySelector('.iris-desktop')?.getBoundingClientRect().height||0)");int height;
                 if(documentReady&&revision==layoutRevision&&Browser.CoreWebView2.Source==source&&Int32.TryParse(result,NumberStyles.Integer,CultureInfo.InvariantCulture,out height)&&height>=60&&height<=20000)FitContentHeight(height);
             }catch{/* No queue/auth changes when layout measurement fails. */}finally{fitting=false;}};fitTimer.Start();
@@ -140,7 +142,19 @@ namespace IrisDesktop {
         protected override void OnSizeChanged(EventArgs e){base.OnSizeChanged(e);if(floatingMode){if(floatingLayout!=null)ReplaceRegion(floatingLayout.CreateRegion());return;}if(Width>1&&Height>1){float dpi=96;if(IsHandleCreated)using(var graphics=CreateGraphics())dpi=graphics.DpiX;ReplaceRegion(DesktopRoundedWindow.RegionFor(Size,dpi));}}
         protected override void OnHandleCreated(EventArgs e){base.OnHandleCreated(e);OnSizeChanged(EventArgs.Empty);RegisterFloatingHotkey();}
         protected override void OnHandleDestroyed(EventArgs e){if(floatingHotkey!=null)floatingHotkey.Dispose();floatingHotkey=null;base.OnHandleDestroyed(e);}
-        protected override void WndProc(ref Message message){if(message.Msg==0x0312&&floatingHotkey!=null){floatingHotkey.Dispatch(message.WParam.ToInt32());return;}base.WndProc(ref message);if(message.Msg==0x02e0&&floatingSnapshot!=null)ApplyFloatingLayout(true);}
+        protected override void WndProc(ref Message message){
+            if(message.Msg==0x0112&&(message.WParam.ToInt64()&0xfff0)==0xf020&&floatingSnapshot!=null){MinimizeToFloating();return;}
+            if(message.Msg==0x0216&&message.LParam!=IntPtr.Zero&&floatingMode){
+                var rect=(MovingRectangle)Marshal.PtrToStructure(message.LParam,typeof(MovingRectangle));
+                var moved=ConstrainFloatingDrag(Rectangle.FromLTRB(rect.Left,rect.Top,rect.Right,rect.Bottom));var bounded=moved.Bounds;
+                // Publish the live drag anchor before resize/state callbacks can reapply the old one.
+                floatingSnapshot.FloatingAnchor=new Point(bounded.Left+moved.Anchor.Left,bounded.Top+moved.Anchor.Top);floatingLayout=moved;
+                rect.Left=bounded.Left;rect.Top=bounded.Top;rect.Right=bounded.Right;rect.Bottom=bounded.Bottom;
+                Marshal.StructureToPtr(rect,message.LParam,false);message.Result=new IntPtr(1);return;
+            }
+            if(message.Msg==0x0312&&floatingHotkey!=null){floatingHotkey.Dispatch(message.WParam.ToInt32());return;}
+            base.WndProc(ref message);if(message.Msg==0x02e0&&floatingSnapshot!=null)ApplyFloatingLayout(true);
+        }
         void AddResizeEdge(bool left){
             var edge=new Panel {Dock=left?DockStyle.Left:DockStyle.Right,Width=5,Cursor=Cursors.SizeWE,BackColor=Color.FromArgb(48,48,48),AccessibleName=left?"왼쪽 창 폭 조절":"오른쪽 창 폭 조절"};
             edge.MouseDown+=(s,e)=>{if(floatingMode||e.Button!=MouseButtons.Left||closeDecision)return;resizing=true;resizeStart=Bounds;resizePointer=Cursor.Position.X;resizeLeft=left;Addon.SetDragging(true);edge.Capture=true;};
@@ -150,12 +164,13 @@ namespace IrisDesktop {
             edge.Visible=!floatingMode;Controls.Add(edge);
         }
         void DragWindow() {
-            if(IsDisposed||closeDecision||!documentReady)return;
+            if(IsDisposed||FloatingModalOpen||!documentReady)return;
+            if(floatingMode){floatingMenu=false;floatingSurface="none";ApplyFloatingLayout(true);}
             Rectangle before=Bounds;Addon.SetDragging(true);
             try {ReleaseCapture();SendMessage(Handle,0xa1,new IntPtr(2),IntPtr.Zero);}
-            finally {Addon.SetDragging(false);if(Bounds.Location!=before.Location){if(floatingMode&&floatingLayout!=null){floatingSnapshot.FloatingAnchor=new Point(Left+floatingLayout.Anchor.Left,Top+floatingLayout.Anchor.Top);SaveFloating();ApplyFloatingLayout(true);}else{SaveFloatingNormal();Presentation.RecordManualMove();if(!Presentation.IsFullscreen)Addon.DetachAfterDrag();}}}
+            finally {Addon.SetDragging(false);if(Bounds.Location!=before.Location){if(floatingMode&&floatingLayout!=null){floatingSnapshot.FloatingAnchor=new Point(Left+floatingLayout.Anchor.Left,Top+floatingLayout.Anchor.Top);ApplyFloatingLayout(true);SaveFloating();}else{SaveFloatingNormal();Presentation.RecordManualMove();if(!Presentation.IsFullscreen)Addon.DetachAfterDrag();}}}
         }
-        void Decision(bool open) {if(open&&floatingMode)FloatingCommand("normal");closeDecision=open;Addon.SetDecisionOpen(open);ApplyPresentation();if(!open)pendingCloseReason=null;}
+        void Decision(bool open) {closeDecision=open;Addon.SetDecisionOpen(open);ApplyPresentation();if(!open)pendingCloseReason=null;}
         void PostCloseRequest() {
             if(!documentReady||bridge==null||pendingCloseReason==null)return;
             Browser.CoreWebView2.PostWebMessageAsJson(new JavaScriptSerializer().Serialize(new {version=1,kind="window.close.request",epoch=bridge.Epoch,environment=development?"development":"production",reason=pendingCloseReason}));
@@ -216,6 +231,7 @@ namespace IrisDesktop {
                 var alertSound=new DesktopAlertSound();bridge.BindAlertSound(alertSound.Play);
                 bridge.BindPresentation(Presentation.State,()=>{Presentation.Toggle();return Presentation.State();},open=>{Presentation.SetPanelOpen(open);return Presentation.State();});
                 bridge.BindFloating(FloatingState,FloatingCommand,FloatingNotice,FloatingPreferencesChange);
+                bridge.BindGameFocus(ReturnGameFocus);
                 bridge.BindWorkspace(SetWorkspace);
                 bridge.BindCurrencies(DesktopGameStatsReader.ReadCurrenciesAsync);
                 bridge.BindLifeRead(async kind=>{if(!Visible||WindowState==FormWindowState.Minimized||closeDecision)throw new ArgumentException();return await DesktopLifeReader.ReadAsync(kind);});
@@ -245,7 +261,7 @@ namespace IrisDesktop {
                 bridge.BindOverlay(Overlay.State,Overlay.SetClickThrough,Overlay.SetOpacityPercent);
                 bridge.BindAddon(Addon.State,(side,layer)=>Addon.SetPreferences(new AddonWindowPreferences {DockSide=side,SameLayer=layer}),Decision);
                 bridge.DragRequested+=(sender,e)=>{dragPending=true;};
-                bridge.MinimizeRequested+=(sender,e)=>{if(!closeDecision)FloatingCommand("floating");};
+                bridge.MinimizeRequested+=(sender,e)=>MinimizeToFloating();
                 Overlay.StateChanged+=(sender,e)=>{if(documentReady)core.PostWebMessageAsJson(new JavaScriptSerializer().Serialize(new {version=1,kind="overlay.changed",epoch=bridge.Epoch,state=Overlay.State()}));};
                 bridge.HideRequested += (sender, e) => {Addon.RecordManualVisibility(true);Hide();};
                 bridge.CloseRequested += (sender,e) => { if(lifeActor!=null&&lifeActor.Busy){RequestClose("manual");return;}allowClose = true; BeginInvoke(new Action(Close)); };

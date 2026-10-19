@@ -22,7 +22,7 @@ namespace IrisDesktop {
             // Auto-hidden taskbars retain a visible two-physical-pixel strip.
             bool revealed=(edge==0||edge==2?visible.Width:visible.Height)>2;
             bool hover=monitor.Contains(cursor)&&(edge==0?cursor.X<monitor.Left+4:edge==1?cursor.Y<monitor.Top+4:edge==2?cursor.X>=monitor.Right-4:cursor.Y>=monitor.Bottom-4);
-            return revealed||hover;
+            return visible.IntersectsWith(addon)&&(revealed||hover);
         }
         public static bool ShouldKeepAbove(bool enabled, IntPtr foreground, IntPtr own, IntPtr game) {
             return enabled && own != IntPtr.Zero && game != IntPtr.Zero && (foreground == game || foreground == own);

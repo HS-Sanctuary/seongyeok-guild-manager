@@ -69,6 +69,15 @@ namespace IrisDesktop {
         public int PreferredWidth {get;private set;}
         public string PreferredDockSide {get{return preferences.DockSide;}}
         public bool IsAttached { get { return status=="attached"; } }
+        bool FocusTargetValid {get{return !disposed&&tracked!=null&&tracked.Alive==true&&!tracked.Minimized&&Matches(tracked.Handle,tracked.ProcessId)&&IsWindowVisible(tracked.Handle)&&!IsIconic(tracked.Handle);}}
+        public bool IsGameForeground {get{return FocusTargetValid&&GetForegroundWindow()==tracked.Handle;}}
+        // A user mouse action may return focus only from this addon to its tracked game.
+        // Never synthesize keys, activate an unrelated app, or undo a later Alt+Tab.
+        public bool ReturnKeyboardToGame(){
+            if(!FocusTargetValid||window.IsDisposed||!window.IsHandleCreated||!window.Visible||window.WindowState==FormWindowState.Minimized||GetAncestor(GetForegroundWindow(),2)!=window.Handle||Alive(tracked)!=true)return false;
+            return SetForegroundWindow(tracked.Handle);
+        }
+        public Rectangle? ClientBounds {get{return tracked!=null&&tracked.Alive==true&&!tracked.Minimized&&Matches(tracked.Handle,tracked.ProcessId)?ClientFrame(tracked.Handle):null;}}
         Func<Rectangle,Rectangle,bool?,bool> presentationPlacement;
         Func<bool> independentPlacement;
         public void BindPresentation(Func<Rectangle,Rectangle,bool?,bool> placement,Func<bool> independent=null){presentationPlacement=placement;independentPlacement=independent;}
@@ -244,6 +253,18 @@ namespace IrisDesktop {
         }
         static bool Matches(IntPtr handle,int pid) {uint actual;return handle!=IntPtr.Zero&&IsWindow(handle)&&GetWindowThreadProcessId(handle,out actual)!=0&&actual==pid&&Title(handle)=="마비노기 모바일";}
         static string Title(IntPtr handle) {var text=new StringBuilder(160);GetWindowText(handle,text,text.Capacity);return text.ToString();}
+        Rectangle? ClientFrame(IntPtr handle) {
+            if(handle==IntPtr.Zero)return null;NativePoint top,bottom;
+            // Ask Windows for the same coordinate space used by the addon Form, avoiding double scaling.
+            var awareness=GetWindowDpiAwarenessContext(window.Handle);
+            var previous=awareness!=IntPtr.Zero?SetThreadDpiAwarenessContext(awareness):IntPtr.Zero;
+            try{
+                NativeRect rect;if(!GetClientRect(handle,out rect)||rect.Right<=rect.Left||rect.Bottom<=rect.Top)return null;
+                top=new NativePoint{X=rect.Left,Y=rect.Top};bottom=new NativePoint{X=rect.Right,Y=rect.Bottom};
+                if(!ClientToScreen(handle,ref top)||!ClientToScreen(handle,ref bottom))return null;
+            }finally{if(previous!=IntPtr.Zero)SetThreadDpiAwarenessContext(previous);}
+            return Rectangle.FromLTRB(top.X,top.Y,bottom.X,bottom.Y);
+        }
         Rectangle? Frame(IntPtr handle) {
             if(handle==IntPtr.Zero)return null;NativeRect rect;
             try {if(DwmGetWindowAttribute(handle,9,out rect,Marshal.SizeOf(typeof(NativeRect)))==0) {
@@ -263,6 +284,7 @@ namespace IrisDesktop {
         [DllImport("user32.dll")]static extern IntPtr MonitorFromWindow(IntPtr handle,uint flags);
         [DllImport("user32.dll")]static extern bool GetMonitorInfo(IntPtr handle,ref NativeMonitor info);
         [DllImport("user32.dll")]static extern IntPtr SetThreadDpiAwarenessContext(IntPtr context);
+        [DllImport("user32.dll")]static extern IntPtr GetWindowDpiAwarenessContext(IntPtr handle);
         [DllImport("shell32.dll")]static extern UIntPtr SHAppBarMessage(uint message,ref NativeAppBar data);
         [DllImport("user32.dll")]static extern bool EnumWindows(EnumWindow callback,IntPtr parameter);
         [DllImport("user32.dll")]static extern bool IsWindow(IntPtr handle);
@@ -270,12 +292,15 @@ namespace IrisDesktop {
         [DllImport("user32.dll")]static extern bool IsIconic(IntPtr handle);
         [DllImport("user32.dll")]static extern bool IsZoomed(IntPtr handle);
         [DllImport("user32.dll")]static extern IntPtr GetForegroundWindow();
+        [DllImport("user32.dll")]static extern bool SetForegroundWindow(IntPtr handle);
         [DllImport("user32.dll")]static extern IntPtr GetShellWindow();
         [DllImport("user32.dll")]static extern IntPtr GetAncestor(IntPtr handle,uint flags);
         [DllImport("user32.dll")]static extern IntPtr GetWindow(IntPtr handle,uint command);
         [DllImport("user32.dll")]static extern uint GetWindowThreadProcessId(IntPtr handle,out uint pid);
         [DllImport("user32.dll",CharSet=CharSet.Unicode)]static extern int GetWindowText(IntPtr handle,StringBuilder text,int count);
         [DllImport("user32.dll")]static extern bool GetWindowRect(IntPtr handle,out NativeRect rect);
+        [DllImport("user32.dll")]static extern bool GetClientRect(IntPtr handle,out NativeRect rect);
+        [DllImport("user32.dll")]static extern bool ClientToScreen(IntPtr handle,ref NativePoint point);
         [DllImport("dwmapi.dll")]static extern int DwmGetWindowAttribute(IntPtr handle,uint attribute,out NativeRect rect,int size);
         [DllImport("user32.dll")]static extern bool PhysicalToLogicalPointForPerMonitorDPI(IntPtr handle,ref NativePoint point);
         [DllImport("user32.dll")]static extern bool SetWindowPos(IntPtr handle,IntPtr after,int x,int y,int width,int height,uint flags);

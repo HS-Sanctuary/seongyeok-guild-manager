@@ -2,7 +2,7 @@ $ErrorActionPreference='Stop'
 Add-Type -Path @((Join-Path $PSScriptRoot 'desktop-host.cs'),(Join-Path $PSScriptRoot 'desktop-store.cs'),(Join-Path $PSScriptRoot 'desktop-bridge.cs'),(Join-Path $PSScriptRoot 'desktop-cli-activity.cs')) -ReferencedAssemblies @('System.Security','System.Web.Extensions','System.Core')
 $taskRoot=Join-Path (Split-Path $PSScriptRoot) ('.superpowers/life-bridge-'+[guid]::NewGuid().ToString('N'))
 $taskStore=New-Object IrisDesktop.DesktopStore($taskRoot,'development')
-$taskBridge=New-Object IrisDesktop.DesktopBridge($taskStore,$true)
+$taskBridge=New-Object IrisDesktop.DesktopBridge($taskStore,$true,$true) # Explicit synthetic fixture opt-in; application construction stays locked.
 $taskUrl=[Uri]'http://localhost:3000/iris/desktop'
 if(!$taskBridge.Activate($taskUrl)){throw 'Action bridge document rejected'}
 Add-Type -TypeDefinition @'

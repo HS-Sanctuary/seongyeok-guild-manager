@@ -6,6 +6,12 @@ namespace IrisDesktop { using System;using System.Drawing;
 public static class PresentationFixture {
  static void Check(bool ok,string msg){if(!ok)throw new Exception(msg);}
  public static void Run(){
+  var method=typeof(DesktopPresentationState).GetMethod("SetWindowedFloating");Check(method!=null,"Windowed auto-floating preference is missing");
+  var w=new DesktopPresentationState();method.Invoke(w,new object[]{true});Check(w.Compact&&w.Automatic,"Enabling windowed floating must apply immediately");
+  w.ObserveFullscreen(true);w.ObserveFullscreen(false);Check(w.Compact&&w.Automatic,"Windowed floating is lost after leaving fullscreen");
+  w.Toggle();w.ObserveFullscreen(false);Check(!w.Compact,"Repeated observation overrides full-workspace request");
+  method.Invoke(w,new object[]{false});Check(!w.Compact,"Disabling windowed floating must restore the workspace");
+  w.ObserveFullscreen(true);Check(w.Compact,"Windowed preference disabled fullscreen floating");w.ObserveFullscreen(false);Check(!w.Compact,"Fullscreen return no longer restores workspace");
   var s=new DesktopPresentationState();s.ObserveFullscreen(true);Check(s.Compact&&s.Automatic,"Fullscreen did not compact");
   s.ObserveFullscreen(null);Check(s.Compact,"Unknown frame expanded");s.Toggle();Check(!s.Compact&&!s.Automatic,"Explicit override failed");s.ObserveFullscreen(true);Check(!s.Compact,"Repeated observation overwrote override");s.ObserveFullscreen(false);Check(!s.Compact,"Windowed return failed");
   s.Toggle();s.ObserveFullscreen(true);s.ObserveFullscreen(false);Check(s.Compact,"Manual compact was lost on exit");s.SetPanelOpen(true);Check(s.PanelOpen&&s.Compact,"Panel lost compact choice");s.SetPanelOpen(false);Check(!s.PanelOpen&&s.Compact,"Panel close expanded permanently");

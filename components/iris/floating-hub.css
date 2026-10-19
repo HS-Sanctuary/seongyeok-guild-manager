@@ -1,19 +1,19 @@
 .iris-floating-root[data-floating=true]{position:relative;isolation:isolate;pointer-events:none;width:100%;height:100%}
 .iris-floating-root[data-floating=true]>.iris-floating-workspace,.iris-floating-root[data-floating=true]>.iris-floating-notice{position:absolute;pointer-events:auto;overflow:auto;overscroll-behavior:contain;background:var(--panel,#101010);border:1px solid var(--panel-border,#39332a);border-radius:.7rem}
 .iris-floating-workspace[hidden]{display:none}
+.iris-floating-root[data-floating=true] .iris-context-header{top:0}
+html:has([data-iris-floating-dialog]) .iris-floating-root[data-dialog-open=true]>.iris-floating-workspace{visibility:hidden}
 .iris-floating-notice:empty{display:none!important}
 .iris-floating-logo,.iris-floating-feature{position:absolute;pointer-events:auto;display:grid;place-items:center;border:1px solid var(--accent,#e6c888);border-radius:50%;background:color-mix(in srgb,var(--panel,#101010) 88%,transparent);color:var(--text-main,#fff);cursor:pointer;padding:0}
-.iris-floating-logo{touch-action:none;user-select:none;box-shadow:0 2px 10px #0005;overflow:hidden}
+.iris-floating-logo{border:0;touch-action:none;user-select:none;box-shadow:0 2px 10px #0005;overflow:hidden}
 .iris-floating-logo img{width:82%;height:82%;object-fit:contain;pointer-events:none}
 .iris-floating-logo:hover,.iris-floating-logo:focus-visible{box-shadow:0 0 0 2px var(--accent,#e6c888)}
-.iris-floating-keycap{position:absolute;display:grid;place-items:center;pointer-events:none;white-space:nowrap;font:800 max(.98rem,12px)/1 "Arial Rounded MT Bold","Trebuchet MS",Arial,sans-serif;letter-spacing:-.03em;color:#fff;border:2px solid #c5c9d3ed;border-radius:.5rem;background:#252a35e8;box-sizing:border-box;text-shadow:0 1px 1px #0004}
+.iris-floating-keycap{position:absolute;display:grid;place-items:center;pointer-events:none;white-space:nowrap;font:800 max(.72rem,12px)/1 "Arial Rounded MT Bold","Trebuchet MS",Arial,sans-serif;letter-spacing:-.03em;color:#fff;border:2px solid #c5c9d3ed;border-radius:9px;background:#252a35e8;box-sizing:border-box;text-shadow:0 1px 1px #0004}
 .iris-floating-keycap[data-unavailable=true]{border-color:#f6ad55;color:#ffd7a8}
 .iris-floating-feature{animation:iris-floating-unfold 200ms ease-out both;animation-delay:calc(var(--iris-menu-step)*20ms)}
+.iris-floating-feature:disabled{opacity:.45;cursor:not-allowed}
 .iris-floating-feature svg{width:65%;height:65%}
 .iris-floating-feature .iris-main-tab-mark{width:65%;height:65%}
-.iris-floating-feature>span:last-child{position:absolute;top:100%;padding:.12rem .3rem;white-space:nowrap;background:var(--panel,#101010);border-radius:.2rem;font-size:max(.6rem,12px);visibility:hidden;z-index:2}
-.iris-floating-feature:hover>span:last-child,.iris-floating-feature:focus-visible>span:last-child{visibility:visible}
-.iris-floating-panel-tools{display:flex;justify-content:space-between;gap:.4rem;padding:.4rem;border-bottom:1px solid var(--panel-border,#39332a);position:sticky;top:0;background:var(--panel,#101010);z-index:4}
 .iris-floating-settings fieldset{border:0;padding:0;display:grid;gap:.65rem;min-width:0}
 .iris-floating-settings label{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;font-size:max(.65rem,12px)}
 .iris-floating-settings input[type=range]{flex:1;min-width:5rem;accent-color:var(--accent,#e6c888)}
@@ -22,3 +22,4 @@ html:has(.iris-floating-root[data-floating=true]),body:has(.iris-floating-root[d
 .iris-desktop:has(>.iris-floating-root[data-floating=true]){padding:0!important;margin:0!important;border:0!important;border-radius:0!important;background:transparent!important;width:100vw;height:100vh;min-height:0}
 @keyframes iris-floating-unfold{from{opacity:0;transform:translate(var(--iris-start-x,0),var(--iris-start-y,0)) scale(.45)}to{opacity:1;transform:translate(0,0) scale(1)}}
 @media(prefers-reduced-motion:reduce){.iris-floating-feature{animation:none}}
+.iris-floating-root[data-floating=true]>.iris-floating-notice{background:transparent;border:0;border-radius:0}

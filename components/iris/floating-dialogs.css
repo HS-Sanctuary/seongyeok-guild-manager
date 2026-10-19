@@ -1,0 +1,6 @@
+/* DOM dialogs remain within the exact native floating panel, including body portals. */
+html[data-iris-floating-dialogs=true] [data-iris-floating-dialog]{position:fixed!important;inset:auto!important;left:var(--iris-dialog-x)!important;top:var(--iris-dialog-y)!important;width:var(--iris-dialog-width)!important;height:var(--iris-dialog-height)!important;max-width:none!important;max-height:none!important;box-sizing:border-box;padding:.6rem;overflow:hidden;border-radius:.7rem;background:transparent!important;backdrop-filter:none!important;box-shadow:none!important;transition:none!important}
+html[data-iris-floating-dialogs=true][data-iris-floating-dialog-ready=false] [data-iris-floating-dialog]{visibility:hidden}
+html[data-iris-floating-dialogs=true][data-iris-floating-dialog-ready=true] [data-iris-floating-dialog]{visibility:visible}
+html[data-iris-floating-dialogs=true] [data-iris-floating-dialog]>:is([role=dialog],div,section){min-width:0;max-width:100%!important;max-height:calc(var(--iris-dialog-height) - 1.2rem)!important}
+html[data-iris-floating-dialogs=true] [data-iris-floating-dialog]>[role=dialog]:not(.iris-focus-dialog){overflow-y:auto;overscroll-behavior:contain}

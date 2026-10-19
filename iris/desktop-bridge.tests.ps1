@@ -117,3 +117,40 @@ Assert (!(Send 10 'window.drag' @{handle=42} $url $bridge.Epoch).ok) 'Drag accep
 Assert ((Send 11 'window.drag' $null $url $bridge.Epoch).ok) 'Native drag unavailable'
 Assert ((Send 12 'window.minimize' $null $url $bridge.Epoch).ok) 'Native minimize unavailable'
 Write-Output 'Addon bridge: fixed methods, exact preferences/types and no HWND input PASS'
+Add-Type -TypeDefinition @'
+public static class FloatingBridgeFixture {
+ public static int Calls;
+ public static int Commands;
+ public static object State(){return new System.Collections.Generic.Dictionary<string,object>{{"ok",true}};}
+ public static object Command(string command){Commands++;return State();}
+ public static object Preferences(System.Collections.Generic.Dictionary<string,object> p){Calls++;return p;}
+}
+'@ -ReferencedAssemblies @('System.Core')
+$floatingState=[Delegate]::CreateDelegate([Func[object]],[FloatingBridgeFixture].GetMethod('State'))
+$floatingCommand=[Delegate]::CreateDelegate([Func[string,object]],[FloatingBridgeFixture].GetMethod('Command'))
+$floatingPrefs=[Delegate]::CreateDelegate([Func[Collections.Generic.Dictionary[string,object],object]],[FloatingBridgeFixture].GetMethod('Preferences'))
+$bridge.BindFloating($floatingState,$floatingCommand,$floatingCommand,$floatingPrefs)
+Assert ((Send 13 'window.floating.preferences' @{iconSize=52;opacity=80;modifiers=1;key=192;windowedFloating=$true} $url $bridge.Epoch).value.windowedFloating) 'Windowed floating preference did not reach its owner'
+Assert ((Send 14 'window.floating.preferences' @{iconSize=52;opacity=80;modifiers=1;key=192} $url $bridge.Epoch).ok) 'Legacy preference message rejected'
+foreach($bad in @(@{iconSize=52;opacity=80;modifiers=1;key=192;windowedFloating='true'},@{iconSize=52;opacity=80;modifiers=1;key=192;handle=12},@{iconSize=52;opacity=80;modifiers=1;key=192;windowedFloating=$true;extra=1})){
+ Assert (!(Send ([guid]::NewGuid().ToString()) 'window.floating.preferences' $bad $url $bridge.Epoch).ok) 'Malformed floating preference reached owner'
+}
+Assert ([FloatingBridgeFixture]::Calls -eq 2) 'Rejected preferences had a native side effect'
+Assert ((Send 15 'window.floating.command' @{command='dialog-open'} $url $bridge.Epoch).ok) 'Bounded modal-open command rejected'
+Assert ((Send 16 'window.floating.notice' @{kind='character';height=112} $url $bridge.Epoch).ok) 'Measured notice height rejected'
+Assert (!(Send 17 'window.floating.notice' @{kind='character';height=0} $url $bridge.Epoch).ok) 'Zero notice height accepted'
+Assert (!(Send 18 'window.floating.notice' @{kind='character';height=361} $url $bridge.Epoch).ok) 'Unbounded notice height accepted'
+Assert (!(Send 19 'window.floating.notice' @{kind='character';height='112'} $url $bridge.Epoch).ok) 'String notice height accepted'
+Assert (!(Send 20 'window.floating.command' @{command='dialog-open';height=112} $url $bridge.Epoch).ok) 'Modal command accepted arbitrary geometry'
+Assert (!(Send 21 'window.floating.notice' @{kind='character';height=112;handle=42} $url $bridge.Epoch).ok) 'Notice accepted native window handle'
+Assert ([FloatingBridgeFixture]::Commands -eq 2) 'Rejected modal/notice messages had a side effect'
+Write-Output 'Floating bridge: optional boolean, legacy message, strict field count and no rejected side effects PASS'
+$focusMethod=$bridge.GetType().GetMethod('BindGameFocus')
+Assert ($null -ne $focusMethod) 'Missing bounded game focus binding'
+$script:focusCalls=0
+$bridge.BindGameFocus([Func[bool]]{$script:focusCalls++;return $true})
+Assert (!(Send 22 'window.game.focus' @{handle=42} $url $bridge.Epoch).ok) 'Focus method accepted arbitrary target'
+Assert (!(Send 23 'window.game.focus' $null ([Uri]'https://evil.test/iris/desktop') $bridge.Epoch).ok) 'Foreign origin requested game focus'
+Assert ((Send 24 'window.game.focus' $null $url $bridge.Epoch).value.focused) 'Valid focus request rejected'
+Assert ($script:focusCalls -eq 1) 'Rejected focus request caused native side effects'
+Write-Output 'Game focus: source/epoch validated, no target or key payload PASS'

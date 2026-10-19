@@ -5,3 +5,7 @@
 .iris-normal-notification{position:fixed;right:.6rem;bottom:.6rem;width:min(18rem,calc(100vw - 1.2rem));z-index:120}
 .iris-deep-report-list article{border-top:1px solid var(--panel-border,#39332a);padding:.35rem 0}.iris-deep-report-list article>div{display:flex;flex-wrap:wrap;justify-content:space-between;gap:.3rem}.iris-deep-report-list article p{margin:.15rem 0;overflow-wrap:anywhere;word-break:normal}
 .iris-character-bubble .iris-switch-question{font-size:.8rem;line-height:1.4}.iris-character-bubble .iris-switch-help{font-size:max(.65rem,12px)}.iris-character-bubble .iris-switch-actions{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.4rem}
+.iris-character-notice-identity{display:flex;align-items:baseline;flex-wrap:wrap;gap:.3rem;min-width:0}.iris-character-notice-identity small{font-size:max(.65rem,12px);color:var(--text-sub)}
+.iris-character-bubble .iris-desktop-button{min-height:1.5rem;padding:.15rem .35rem;font-size:max(.65rem,12px)}
+.iris-character-notice-identity strong{font-size:.9rem;line-height:1.3}
+.iris-character-bubble header>button{flex:none;white-space:nowrap}

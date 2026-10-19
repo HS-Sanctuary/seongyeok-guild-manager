@@ -9,13 +9,14 @@ import {DesktopCheckboard} from './DesktopCheckboard';
 import {DesktopClasses} from './DesktopClasses';
 import {DesktopMainTabs,type DesktopSection} from './DesktopMainTabs';
 import {DesktopErgon} from './DesktopErgon';
+import {IRIS_ERGON_AVAILABLE} from '@/lib/irisFeatureAvailability';
 import {DesktopFeaturePicker,kronosTabs} from './DesktopFeaturePicker';
 export type DesktopTab=keyof typeof kronosTabs|'synaxis'|'ergon'|'settings';
 export function DesktopCenter({account,characters,selected,pending,locked,identityLocked=locked,saveStatus,contextActions,suspendDialogs=false,onCharacterDialogOpenChange,compact=false,onPanelOpenChange,contextPanelOpen=false,settingsOpen=false,settingsPanel,statsPanel,currenciesPanel,barterPanel,shopPanel,missionsPanel,alertsPanel,synaxisPanel,ergonPanel,synaxisUnread=false,onTabChange,characterStatus,characterPickerRequest=0,classDrafts,onClassDraft,onRevertClassDraft,onReadMetadata,onManageCharacter,onSelectCharacter,onEdit,externalSection=null,panelVisible=true}:{account:DesktopAccount;characters:DesktopCharacter[];selected:DesktopDetails|null;pending:PendingEdit[];locked:boolean;identityLocked?:boolean;saveStatus:ReactNode;contextActions?:ReactNode;suspendDialogs?:boolean;onCharacterDialogOpenChange?(open:boolean):void;compact?:boolean;onPanelOpenChange?(open:boolean):void;contextPanelOpen?:boolean;settingsOpen?:boolean;settingsPanel?:ReactNode;statsPanel?:ReactNode|((active:boolean)=>ReactNode);currenciesPanel?:(active:boolean)=>ReactNode;barterPanel?:ReactNode;shopPanel?:ReactNode;missionsPanel?:ReactNode;alertsPanel?:ReactNode;synaxisPanel?:(active:boolean)=>ReactNode;ergonPanel?:(active:boolean)=>ReactNode;synaxisUnread?:boolean;onTabChange?(tab:DesktopTab):void;characterStatus?:ReactNode;characterPickerRequest?:number;classDrafts?:Record<string,DesktopClassDraft>;onClassDraft?(id:string,text:string):void;onRevertClassDraft?(id:string):void;onReadMetadata?():Promise<CharacterMetaDirectory>;onManageCharacter?(intent:CharacterMetaIntent):Promise<void>;onSelectCharacter(id:string):void;onEdit(key:TaskKey,base:number,desired:number):void;externalSection?:DesktopSection|null;panelVisible?:boolean}){
   const [section,setSection]=useState<DesktopSection>('kronos'),[kronosTab,setKronosTab]=useState<keyof typeof kronosTabs>('homework'),[picker,setPicker]=useState(false),[remaining,setRemaining]=useState(false);
-  useEffect(()=>{if(externalSection)queueMicrotask(()=>setSection(externalSection));},[externalSection]);
+  useEffect(()=>{if(externalSection&&(externalSection!=='ergon'||IRIS_ERGON_AVAILABLE))queueMicrotask(()=>setSection(externalSection));},[externalSection]);
   const tab:DesktopTab=settingsOpen?'settings':section==='kronos'?kronosTab:section;
-  const choose=(next:Exclude<DesktopTab,'settings'>)=>{if(tab!==next){if(next==='synaxis'||next==='ergon')setSection(next);else{setSection('kronos');setKronosTab(next);}onTabChange?.(next);}setPicker(false);if(compact)setTemporaryOpen(true);};
+  const choose=(next:Exclude<DesktopTab,'settings'>)=>{if(next==='ergon'&&!IRIS_ERGON_AVAILABLE)return;if(tab!==next){if(next==='synaxis'||next==='ergon')setSection(next);else{setSection('kronos');setKronosTab(next);}onTabChange?.(next);}setPicker(false);if(compact)setTemporaryOpen(true);};
   useEffect(()=>{onCharacterDialogOpenChange?.(picker);},[picker,onCharacterDialogOpenChange]);
   const pickerButton=useRef<HTMLButtonElement>(null);
   const [temporaryOpen,setTemporaryOpen]=useState(false);const surface=useRef<HTMLElement>(null);
@@ -45,7 +46,7 @@ export function DesktopCenter({account,characters,selected,pending,locked,identi
       <section id="iris-pane-alerts" aria-label="알림" hidden={tab!=='alerts'||(compact&&!temporaryOpen)} className="iris-hud-body">{alertsPanel}</section>
       </div>
       <section id="iris-pane-synaxis" aria-label="시낙시스" hidden={tab!=='synaxis'||(compact&&!temporaryOpen)} className="iris-hud-body">{synaxisPanel?.(tab==='synaxis'&&panelVisible&&(!compact||temporaryOpen))??<p>파티 생성 연결을 확인해주세요.</p>}</section>
-      <section id="iris-pane-ergon" aria-label="에르곤" hidden={tab!=='ergon'||(compact&&!temporaryOpen)} className="iris-hud-body">{ergonPanel?.(tab==='ergon'&&panelVisible&&(!compact||temporaryOpen))??<DesktopErgon/>}</section>
+      {IRIS_ERGON_AVAILABLE&&<section id="iris-pane-ergon" aria-label="에르곤" hidden={tab!=='ergon'||(compact&&!temporaryOpen)} className="iris-hud-body">{ergonPanel?.(tab==='ergon'&&panelVisible&&(!compact||temporaryOpen))??<DesktopErgon/>}</section>}
     </div>
     {settingsOpen&&settingsPanel}
   </section>;

@@ -1,0 +1,5 @@
+.iris-settings-categories{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.35rem;padding:.4rem 0}
+.iris-settings-categories button{min-width:0;white-space:normal;font-size:.75rem}
+.iris-settings-categories button[aria-pressed=true]{border-color:var(--accent);background:var(--accent);color:var(--accent-fg)}
+.iris-addon-settings>[hidden]{display:none!important}
+.iris-addon-settings>div:not([hidden]){display:grid;gap:.6rem;min-width:0}

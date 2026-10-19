@@ -1,5 +1,37 @@
 # 🏛️ SANCTUM Master Guide
 
+## 2026-10-18 22:55 KST — native 초점 복귀·지연 접기 경합 (로컬)
+
+`FloatingState()`가 실제 `gameFocus=true` capability를 발행하도록 누락을 고쳤고 실제 DTO 직렬화 회귀로 보호한다. `ReturnGameFocus`의 성공한 의도적 초점 복귀는 native `gameFocusHandoff`로 Activated까지 구분한다. Deactivate callback은 해당 handoff와 `floatingInteraction` 세대를 검사해 게임 복귀/새 command·activation을 바깥 클릭으로 접지 않는다. 중복 실패 요청도 앞선 성공을 무효화하지 않는다. 타 앱 선택·모달·텍스트 편집 보호와 strict null-payload bridge/기존 tracked game 검증 유지, 키 합성·전달/후킹 없음. 개발 한정 임시 `/api/iris/focus-debug`와 `irisFocusTrace`는 정확한 enum/boolean 메타데이터만 ignored 고정64KiB 로그로 제한하고 production404이다. 운영 API/DB/RLS/원장 구조·공개 ZIP 변경 없음. 한설 WASD 복귀 확인 후 기능창 즉시 접힘 후속은 재실행·동시 실사용 확인 전이다.
+
+## 2026-10-18 WASD 후속 경로 (로컬)
+
+`useDesktopFloatingFocus`는 mode/menu/surface 응답으로 창이 열리는 경우, 일반 pointer release·80ms wheel 안정화에도 기존 bounded game-focus 요청을 보낸다. pointer-held·입력/모달/선택 텍스트·명시적 UI 탐색은 유지하며 WASD를 UI 탐색으로 오인하지 않는다. 전역 활성화 감시/게임 키 전달/새 native API·DB 변경 없음. 실제 게임 성공은 사용자 검증 전이다.
+
+## 2026-10-18 플로팅 설정·초점/헤더 후속 (로컬)
+
+`useDesktopFloatingFocus`가 마우스의 일반 조작 완료 뒤 strict `window.game.focus`(null payload/boolean focused 응답)를 호출한다. optional `FloatingState.gameFocus`는 구 host 파싱/기능 차단을 보존한다. native tracker는 현재 IRIS foreground와 기존 tracked game의 PID/lifetime/제목/가시성/최소화를 검증하며 arbitrary HWND/키 전송은 없다. 게임 복귀는 모듈을 접지 않고 메뉴 단축키도 게임 초점을 빼앗지 않는다. `useDesktopFloating`의 partial preference edits는 직렬 실행 시점 latest 확정값에 병합한다. 설정 UI는 전체 busy 잠금 대신 개별 submit 중복 방어·초안/실패 복원, 표시 명칭 ‘사이드 바’. Hub 중복 tools 행/로고 외곽선 제거, floating `.iris-context-header`의 sticky top:0 범위 보정. shared modal 자연 높이 getter를 native 기존 timer가 읽어 80..680 DIP 모달 region에 반영하고 원 모듈 geometry는 별도 복원한다. 운영 API/DB/RLS/게임 명령·원장 변경 없음.
+
+## 2026-10-18 플로팅 공통 modal/geometry·settings 후속 (로컬)
+
+`useDesktopFloatingDialogs`/`floating-dialogs.css`가 role=dialog fixed backdrop을 native panel에 맞춘다. `FloatingState.dialogOpen?`와 내부 dialog-open/close, 종료결정 독립 region으로 normal강제전환을 제거한다. FocusDialog는 ref-count inert/최상위 focus trap·교체순서보호 및 SSRmarkup; stats/currency/close가 공유. native SetWorkspace floating420/980·WM_MOVING liveanchor. optionalnoticeheight80..360과 Hub ResizeObserver·둥근nativebubble, 초기추천manual왼쪽/큰닉네임. Settings4분류·floating전체와normalopacity분리. taskbar양보는 실제overlap로제한. 운영API/DB/RLS/원장스키마·게임명령변경0. QA `docs/IRIS_FLOATING_DIALOG_QA_20261018.md`; 수량가공100개 반복연결은미완료/출시범위결정별도.
+
+## 2026-10-18 IRIS compact·사용성 후속 (로컬)
+
+FloatingLayout:default36/badge57×20/gap2·logo기준xclamp/badge별도clamp, 메뉴ellipse/메뉴·panelopen알림geometry억제. prefs같은파일v3쓰기/v1·v2old52만36이전/v3명시52유지. Host폭산식7+8. normalCharacterPrompt는FocusDialog, floatingcompactContent와dismissDisabled·기존cue/선택검증유지. Hub알림panel fallback제거/provider표시대기·기존10초deadline유지, 잘리는customlabel은title/aria로대체. Settingsrange draft→blur최종저장/수동font·사용안내접기. DB/API·게임명령·원장변경0. QA `docs/IRIS_USABILITY_POLISH_QA_20261018.md`; native재시작·실사용별도.
+
+## 2026-10-18 추천 표시 위치·키캡 잘림 후속
+
+Notifications View의floating여부로CharacterPrompt normal상태는기존characterStatus자리inlineHost, floating은globalLayerbubble로분리한다. info10초·character유지/선택계약보존. nativeBadgeRegion은9DIP roundedGraphicsPath, CSS반경9px로동기화(폰트/폭높이유지). DB/API·게임명령/원장변경0. 실사용native잘림재시작은별도, QA `docs/IRIS_NOTICE_KEYCAP_QA_20261018.md`.
+
+## 2026-10-18 플로팅 종료·창모드 설정 (로컬)
+
+Hub 다섯째 전원 아이콘은 기존 requestClose/Decision에 연결한다. FloatingLayout5영역과 boolean WindowedFloating·Presentation정책 추가, settings체크박스가 기존prefs bridge재사용. 로컬설정은같은window-floating-v1.json의내부v2쓰기/v1읽기, browser는구4/new5영역·optionalboolean허용/구host신기능숨김·비활성. 기본off·창모드즉시적용/재실행기억/명시전체작업창override유지. DB/API·원장/게임명령·공개ZIP변경없음. 상세 `docs/IRIS_FLOATING_EXIT_WINDOWED_QA_20261018.md`.
+
+## 2026-10-18 게임 client 내부 플로팅 (로컬)
+
+기존 tracker에 readonly ClientBounds를 추가했다. PID/HWND/제목확인·IRIS DPI context에서client를읽고 coordinator가 게임이동offset/가시영역clamp/임시상실마지막경계를 담당한다. WndProc의WM_MOVING은 실제드래그RECT를보정한다. WindowsSC_MINIMIZE와기존bridge최소화는같은 MinimizeToFloating으로통일한다. 게임주도WindowState최소화/일반창좌표·원장/DB계약은그대로다. game최초미탐지·가시영역96×128DIP미만은monitor복구예외 유지. `FloatingLayout.FitsContainer`가 DPI별 공간검사를 공유한다. 새browser HWND입력·게임명령없음. 상세QA `docs/IRIS_GAME_BOUND_FLOATING_QA_20261018.md`.
+
 ## 2026-10-18 키캡 최종 표시 후속 (로컬)
 
 `floatingShortcutCaption`이 bridge의 괄호표기를 표시부에서만 제거해 Hub/Settings에 동일 적용한다. 실제키/DTO검증은 변경없음. native문구폭도괄호2글자를제외해 기본79DIP, 높이28/로고크기설정은유지한다. 아래97DIP은이전디자인경과이며 새폭은정상재시작후반영.

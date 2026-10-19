@@ -13,6 +13,9 @@ namespace IrisDesktop {
     public sealed class DesktopBridge {
         readonly DesktopStore store;
         readonly bool development;
+        readonly bool ergonAvailable;
+        // Release gate shared with the native floating host. Development alone never enables it.
+        public static bool ErgonAvailable { get { return false; } }
         Uri document;
         long lastId;
         public long Epoch { get; private set; }
@@ -39,9 +42,12 @@ namespace IrisDesktop {
         Func<object> presentationState,presentationToggle;Func<bool,object> presentationPanel;
         public void BindPresentation(Func<object> state,Func<object> toggle,Func<bool,object> panel){presentationState=state;presentationToggle=toggle;presentationPanel=panel;}
         Func<bool,object> workspace;
-        Func<object> floatingState;Func<string,object> floatingCommand,floatingNotice;Func<Dictionary<string,object>,object> floatingPreferences;
-        public void BindFloating(Func<object> state,Func<string,object> command,Func<string,object> notice,Func<Dictionary<string,object>,object> preferences){floatingState=state;floatingCommand=command;floatingNotice=notice;floatingPreferences=preferences;}
+        Func<object> floatingState;Func<string,object> floatingCommand;Func<string,int?,object> floatingNotice;Func<Dictionary<string,object>,object> floatingPreferences;
+        public void BindFloating(Func<object> state,Func<string,object> command,Func<string,object> notice,Func<Dictionary<string,object>,object> preferences){BindFloating(state,command,(kind,height)=>notice(kind),preferences);}
+        public void BindFloating(Func<object> state,Func<string,object> command,Func<string,int?,object> notice,Func<Dictionary<string,object>,object> preferences){floatingState=state;floatingCommand=command;floatingNotice=notice;floatingPreferences=preferences;}
         public void BindWorkspace(Func<bool,object> apply){workspace=apply;}
+        Func<bool> gameFocus;
+        public void BindGameFocus(Func<bool> focus){gameFocus=focus;}
         Func<object> updateState,updateApply;Func<Task<object>> updateCheck,updatePrepare;
         public void BindUpdater(Func<object> state,Func<Task<object>> check,Func<Task<object>> prepare,Func<object> apply){updateState=state;updateCheck=check;updatePrepare=prepare;updateApply=apply;}
         public void BindGameStats(Func<Task<object>> read){gameRead=read;}
@@ -60,8 +66,10 @@ namespace IrisDesktop {
             return serializer.Serialize(result);
         }
         public void BindOverlay(Func<object> state,Func<bool,bool> input,Func<int,bool> opacity){overlayState=state;overlayInput=input;overlayOpacity=opacity;}
-        public DesktopBridge(DesktopStore store, bool development) {
-            this.store = store; this.development = development; Epoch = 1;
+        public DesktopBridge(DesktopStore store, bool development) : this(store,development,false) {}
+        // Synthetic fixtures may deliberately exercise dormant execution paths. No browser method or preference enables this.
+        public DesktopBridge(DesktopStore store, bool development, bool enableErgonForLocalTesting) {
+            this.store = store; this.development = development; this.ergonAvailable=ErgonAvailable||(development&&enableErgonForLocalTesting); Epoch = 1;
         }
         public void Revoke() { document = null; lastId = 0; Epoch++; }
         public bool Activate(Uri source) {
@@ -85,15 +93,19 @@ namespace IrisDesktop {
                 lastId = sequence;
                 object value = null;
                 switch (message["method"] as string) {
+                    case "window.game.focus":
+                        if(message["payload"]!=null||gameFocus==null)throw new ArgumentException();value=new{focused=gameFocus()};break;
                     case "window.floating.state":
                         if(message["payload"]!=null||floatingState==null)throw new ArgumentException();value=floatingState();break;
                     case "window.floating.command":
                     case "window.floating.notice":
                         var fp=message["payload"] as Dictionary<string,object>;bool notice=Equals(message["method"],"window.floating.notice");string field=notice?"kind":"command";
-                        if(fp==null||fp.Count!=1||!fp.ContainsKey(field)||!(fp[field] is string)||floatingCommand==null||floatingNotice==null)throw new ArgumentException();string fc=(string)fp[field];
-                        if(notice?Array.IndexOf(new[]{"none","information","character"},fc)<0:Array.IndexOf(new[]{"menu","close","normal","floating","kronos","synaxis","ergon","settings"},fc)<0)throw new ArgumentException();value=notice?floatingNotice(fc):floatingCommand(fc);break;
+                        bool sized=notice&&fp!=null&&fp.ContainsKey("height");
+                        if(fp==null||fp.Count!=(sized?2:1)||!fp.ContainsKey(field)||!(fp[field] is string)||floatingCommand==null||floatingNotice==null||sized&&(!(fp["height"] is int)||(int)fp["height"]<80||(int)fp["height"]>360))throw new ArgumentException();string fc=(string)fp[field];
+                        if(!notice&&fc=="ergon"&&!ergonAvailable)throw new ArgumentException();
+                        if(notice?Array.IndexOf(new[]{"none","information","character"},fc)<0:Array.IndexOf(new[]{"menu","close","normal","floating","kronos","synaxis","ergon","settings","dialog-open","dialog-close"},fc)<0)throw new ArgumentException();value=notice?floatingNotice(fc,sized?(int?)fp["height"]:null):floatingCommand(fc);break;
                     case "window.floating.preferences":
-                        var fpr=message["payload"] as Dictionary<string,object>;if(floatingPreferences==null||fpr==null||fpr.Count!=4)throw new ArgumentException();foreach(var k in new[]{"iconSize","opacity","modifiers","key"})if(!fpr.ContainsKey(k)||!(fpr[k] is int))throw new ArgumentException();
+                        var fpr=message["payload"] as Dictionary<string,object>;if(floatingPreferences==null||fpr==null||!(fpr.Count==4||fpr.Count==5&&fpr.ContainsKey("windowedFloating")&&fpr["windowedFloating"] is bool))throw new ArgumentException();foreach(var k in new[]{"iconSize","opacity","modifiers","key"})if(!fpr.ContainsKey(k)||!(fpr[k] is int))throw new ArgumentException();
                         int fs=(int)fpr["iconSize"],fo=(int)fpr["opacity"],fm=(int)fpr["modifiers"],fk=(int)fpr["key"];
                         if(fs<36||fs>80||fo<35||fo>100||fm<1||fm>7||(fm&3)==0||!(fk==192||fk>=48&&fk<=57||fk>=65&&fk<=90||fk>=112&&fk<=123)||fm==3&&(fk==73||fk==79))throw new ArgumentException();value=floatingPreferences(fpr);break;
                     case "window.workspace":
@@ -171,11 +183,13 @@ namespace IrisDesktop {
                         else if(syncMethod=="game.life.actions.collectionObservation") {if(syncPayload.Count!=3||!syncPayload.ContainsKey("requestId")||!syncPayload.ContainsKey("accountId")||!syncPayload.ContainsKey("characterId"))throw new ArgumentException();}
                         value=lifeActionSync(syncMethod,syncPayload);break;
                     case "game.life.actions.collect":
+                        if(!ergonAvailable)throw new ArgumentException();
                         var collectionPayload=message["payload"] as Dictionary<string,object>;
                         if(lifeActionAsync==null||collectionPending||lifeControlBusy||(lifeActionBusy!=null&&lifeActionBusy())||collectionPayload==null||collectionPayload.Count!=6||!collectionPayload.ContainsKey("requestId")||!collectionPayload.ContainsKey("requestedAt")||!collectionPayload.ContainsKey("accountId")||!collectionPayload.ContainsKey("characterId")||!collectionPayload.ContainsKey("facility")||!collectionPayload.ContainsKey("displayName"))throw new ArgumentException();
                         value=new Dictionary<string,object>{{"lifeActionPending","game.life.actions.collect"},{"payload",collectionPayload}};break;
                     case "game.life.actions.prepare":
                     case "game.life.actions.confirm":
+                        if(!ergonAvailable)throw new ArgumentException();
                         var actionMethod=(string)message["method"];
                         var actionPayload=message["payload"] as Dictionary<string,object>;
                         if(lifeActionAsync==null||gameBusy||collectionPending||(lifeActionBusy!=null&&lifeActionBusy())||actionPayload==null)throw new ArgumentException();

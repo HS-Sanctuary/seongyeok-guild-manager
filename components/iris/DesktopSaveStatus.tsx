@@ -1,5 +1,6 @@
 'use client';
-import {useEffect,useRef} from 'react';
+import {useRef} from 'react';
+import {DesktopFocusDialog} from './DesktopFocusDialog';
 import {createPortal} from 'react-dom';
 import type {IrisSavePosition} from '@/lib/irisAppearance';
 import type {PendingEdit} from '@/lib/irisDesktopQueue';
@@ -28,23 +29,11 @@ export function DesktopSaveStatus({entries,characters=[],selected=null,lastSaveC
   return typeof document==='undefined'?node:createPortal(node,document.body);
 }
 export function DesktopCloseDialog({busy,onChoose,onCancel,storageFailed=false,onUnsafeClose,reason='manual',hasPending=true}:{busy:boolean;onChoose(action:'save'|'keep'|'discard'):void;onCancel():void;storageFailed?:boolean;onUnsafeClose?():void;reason?:'manual'|'game-exit';hasPending?:boolean}) {
-  const root=useRef<HTMLDivElement>(null);
+  const cancel=useRef<HTMLButtonElement>(null);
   const needsChoice=hasPending||storageFailed;
-  useEffect(()=>{
-    const previous=document.activeElement as HTMLElement|null,overflow=document.body.style.overflow;
-    document.body.style.overflow='hidden';root.current?.querySelector<HTMLButtonElement>('button')?.focus();
-    const keyboard=(e:KeyboardEvent)=>{if(e.key==='Escape'&&!busy)onCancel();if(e.key==='Tab'){
-      const buttons=Array.from(root.current?.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')??[]);if(!buttons.length){e.preventDefault();return;}
-      const first=buttons[0],last=buttons.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last?.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
-    }};
-    document.addEventListener('keydown',keyboard);return()=>{document.removeEventListener('keydown',keyboard);document.body.style.overflow=overflow;previous?.focus();};
-  },[busy,onCancel]);
-  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={e=>{if(e.target===e.currentTarget&&!busy)onCancel();}}>
-    <div ref={root} role="dialog" aria-modal="true" aria-labelledby="iris-close-heading" className="max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl border border-[var(--panel-border)] bg-[var(--panel)] p-5 max-w-xl space-y-4">
-      <h2 id="iris-close-heading" className="font-bold">{reason==='game-exit'?'게임이 종료됐어요. IRIS도 종료할까요?':'IRIS를 종료할까요?'}</h2>
+  return <DesktopFocusDialog title={reason==='game-exit'?'게임이 종료됐어요. IRIS도 종료할까요?':'IRIS를 종료할까요?'} onClose={onCancel} dismissDisabled={busy} initialFocusRef={cancel}>
       {needsChoice?<dl className="iris-caption space-y-2"><div><dt className="font-semibold">생텀에 저장 후 종료</dt><dd>미저장 변경을 생텀 DB에 저장해요. 실패하거나 결과가 불확실하면 종료하지 않아요.</dd></div><div><dt className="font-semibold">이 PC에 보관 후 종료</dt><dd>아직 보내지 않은 변경을 이 PC에만 보관해요. 다음 실행에서 본인 확인 후 다시 저장할 수 있어요. 다른 PC에는 전달되지 않아요.</dd></div></dl>:<p className="iris-caption">미저장 변경이 없어요.</p>}
       {storageFailed&&<div role="alert"><p>보관 또는 종료 연결에 실패했어요. 기존 보호 대기함은 유지돼요. 연결을 확인한 뒤 다시 시도해 주세요.</p>{reason==='manual'&&<><p>최근 변경을 잃을 수 있어요. 기존 보호 대기함을 덮어쓰지 않아요.</p><button type="button" className="iris-desktop-button" disabled={busy} onClick={onUnsafeClose}>손실 가능성을 확인하고 종료</button></>}</div>}
-      <div className="flex flex-wrap gap-3">{needsChoice?(reason==='game-exit'?['save','keep'] as const:['save','keep','discard'] as const).map(action=><button type="button" key={action} className="iris-desktop-button" disabled={busy} onClick={()=>onChoose(action)}>{{save:'생텀에 저장 후 종료',keep:'이 PC에 보관 후 종료',discard:'버리고 종료'}[action]}</button>):<button type="button" className="iris-desktop-button" disabled={busy} onClick={()=>onChoose('save')}>종료</button>}<button type="button" className="iris-desktop-button" disabled={busy} onClick={onCancel}>{reason==='game-exit'?'취소':'돌아가기'}</button></div>
-    </div>
-  </div>;
+      <div className="flex flex-wrap gap-3">{needsChoice?(reason==='game-exit'?['save','keep'] as const:['save','keep','discard'] as const).map(action=><button type="button" key={action} className="iris-desktop-button" disabled={busy} onClick={()=>onChoose(action)}>{{save:'생텀에 저장 후 종료',keep:'이 PC에 보관 후 종료',discard:'버리고 종료'}[action]}</button>):<button type="button" className="iris-desktop-button" disabled={busy} onClick={()=>onChoose('save')}>종료</button>}<button type="button" ref={cancel} className="iris-desktop-button" disabled={busy} onClick={onCancel}>{reason==='game-exit'?'취소':'돌아가기'}</button></div>
+  </DesktopFocusDialog>;
 }

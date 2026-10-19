@@ -1,0 +1,24 @@
+import assert from 'node:assert/strict';import {createRequire} from 'node:module';import {startIrisFixture} from './iris-ui.fixture.mjs';
+const {chromium}=createRequire('C:/Users/Moon/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/package.json')('playwright');
+const entry=`const React=require('react'),{createRoot}=require('react-dom/client'),{useDesktopFloating}=require('@/components/iris/useDesktopFloating'),{DesktopAddonSettings}=require('@/components/iris/DesktopAddonSettings'),{DesktopFloatingHub}=require('@/components/iris/DesktopFloatingHub'),{floatingShortcutLabel}=require('@/lib/irisFloating');
+let state={schemaVersion:1,mode:'floating',menuOpen:false,surface:'settings',revision:1,layout:{width:470,height:700,anchor:{x:0,y:0,size:36},badge:{x:0,y:38,width:57,height:20},side:'right',vertical:'down',menu:[],bubble:null,panel:{x:50,y:0,width:420,height:680}},hotkeyAvailable:true,hotkeyLabel:'(Alt + ~)',preferences:{iconSize:36,opacity:80,modifiers:1,key:192,windowedFloating:false},persistent:true,dialogOpen:false};
+window.requests=[];let settle;window.accept=()=>settle();const store={floatingState:async()=>state,floatingCommand:async()=>state,setFloatingNotice:async()=>state,setFloatingPreferences:p=>{window.requests.push(p);return new Promise(resolve=>{settle=()=>{state={...state,revision:state.revision+1,preferences:p,hotkeyLabel:floatingShortcutLabel(p)};resolve(state);};});}};
+function App(){const f=useDesktopFloating(store);return React.createElement('main',{className:'iris-desktop'},React.createElement(DesktopFloatingHub,{state:f.state,onCommand:f.command,onDrag:()=>{}},React.createElement(DesktopAddonSettings,{floating:f,appearance:{theme:'aureum',setTheme:()=>{},persistent:true},addonState:null,accountPanel:null,onPreferencesChange:()=>{},onBack:()=>{}})));}createRoot(document.getElementById('app')).render(React.createElement(App));`;
+const fixture=await startIrisFixture(entry),browser=await chromium.launch({channel:'chrome',headless:true});
+try{const page=await browser.newPage({viewport:{width:600,height:800}});await page.goto(fixture.origin);
+ const size=page.getByLabel('플로팅 아이콘 크기');await size.waitFor();await size.fill('50');await size.blur();await page.waitForFunction(()=>window.requests.length===1);
+ const checkbox=page.getByRole('checkbox',{name:'게임 창모드에서도 자동 플로팅'});
+ assert.equal(await checkbox.isEnabled(),true,'A pending slider save must not disable every other floating setting');
+ await checkbox.check();await page.evaluate(()=>window.accept());await page.waitForFunction(()=>window.requests.length===2);await page.evaluate(()=>window.accept());await page.waitForTimeout(120);
+ assert.equal(await size.inputValue(),'50','Later checkbox update must not overwrite the saved icon size');assert.equal(await checkbox.isChecked(),true);
+ await page.getByLabel('단축키 조합',{exact:true}).selectOption('2');await page.getByLabel('단축키 키',{exact:true}).selectOption('75');
+ const apply=page.getByRole('button',{name:'단축키 적용',exact:true});await apply.click();await page.waitForFunction(()=>window.requests.length===3);
+ assert.equal(await apply.isDisabled(),true,'Only the pending shortcut submit must guard duplicate requests');assert.equal(await size.isEnabled(),true);
+ await size.fill('60');await size.blur();await page.evaluate(()=>window.accept());await page.waitForFunction(()=>window.requests.length===4);await page.evaluate(()=>window.accept());await page.waitForTimeout(120);
+ assert.equal(await size.inputValue(),'60');assert.equal(await page.getByLabel('단축키 조합',{exact:true}).inputValue(),'2');assert.equal(await page.locator('.iris-floating-keycap').textContent(),'Ctrl + K');
+ assert.equal(await page.locator('.iris-floating-panel-tools').count(),0,'Floating workspace must not contain the redundant top tools row');
+ assert.equal(await page.getByRole('button',{name:'IRIS 메뉴',exact:true}).evaluate(node=>getComputedStyle(node).borderTopWidth),'0px','Floating logo must not have a yellow outline');
+ await page.screenshot({path:'.superpowers/sdd/2026-10-18-iris-floating-dialogs/settings-clean.png'});
+ await page.getByRole('navigation',{name:'설정 분류'}).getByRole('button',{name:'사이드 바',exact:true}).click();await page.getByLabel('사이드 바 설정',{exact:true}).waitFor();
+ console.log('PASS pending settings remain editable, serialized partial updates preserve both values, no duplicate tools row');
+}finally{await browser.close();await new Promise(resolve=>fixture.server.close(resolve));}

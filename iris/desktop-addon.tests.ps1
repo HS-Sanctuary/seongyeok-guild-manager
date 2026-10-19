@@ -75,10 +75,11 @@ namespace IrisDesktop {
    Check(yield(new Rectangle(0,752,1000,48),new Point(500,400),3,true),"Revealed bar continues yielding after pointer leaves");
    Check(yield(new Rectangle(-46,0,48,800),new Point(1,300),0,true),"Left auto-hide edge yields");
    Check(yield(new Rectangle(0,-46,1000,48),new Point(500,1),1,true),"Top auto-hide edge yields");
-   Check(yield(new Rectangle(998,0,48,800),new Point(999,300),2,true),"Right auto-hide edge yields");
+   Check((bool)method.Invoke(null,new object[]{monitor,new Rectangle(998,0,48,800),new Point(999,300),(uint)2,true,new Rectangle(680,0,320,800)}),"Right auto-hide edge yields when addon occupies that edge");
    Check(!yield(new Rectangle(0,798,1000,48),new Point(500,800),3,true),"Pointer on another monitor is not this edge hover");
    Check(yield(new Rectangle(0,752,1000,48),new Point(500,400),3,false),"Fixed overlapping taskbar has priority");
    Check(!(bool)method.Invoke(null,new object[]{monitor,new Rectangle(0,752,1000,48),new Point(500,400),(uint)3,false,new Rectangle(0,0,320,740)}),"Fixed taskbar outside addon does not disable normal layer");
+   Check(!(bool)method.Invoke(null,new object[]{new Rectangle(0,0,2560,1440),new Rectangle(0,1392,2560,48),new Point(1282,821),(uint)3,true,new Rectangle(193,1290,57,58)}),"Visible auto-hide taskbar must not bury a non-overlapping floating logo when game is clicked");
    Check((bool)method.Invoke(null,new object[]{new Rectangle(-1000,-800,1000,800),new Rectangle(-1000,-2,1000,48),new Point(-400,-1),(uint)3,true,new Rectangle(-1000,-800,320,800)}),"Negative monitor edge coordinates remain valid");
    Check(!(bool)method.Invoke(null,new object[]{monitor,new Rectangle(0,752,1000,48),new Point(500,799),(uint)3,true,new Rectangle(1000,0,320,800)}),"Non-overlapping monitor does not suppress addon");
   }

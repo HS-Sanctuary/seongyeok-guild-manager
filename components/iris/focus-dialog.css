@@ -14,3 +14,4 @@
 .iris-account-direct #iris-account-login { border-top:1px solid var(--panel-border); padding-top:.6rem; }
 .iris-account-direct #iris-account-login h2 { font-size:.9rem; }
 .iris-account-direct #iris-account-login label,.iris-account-direct #iris-account-login p { font-size:.75rem; }
+.iris-currency-editor.iris-currency-editor-content{max-height:none;max-width:none;overflow:visible;padding:0;border:0;border-radius:0}
