@@ -1,5 +1,23 @@
 # SANCTUM 업데이트 노트
 
+## 2026-10-19 20:00 KST — 집·사무실 통합 기능 브랜치 인계 / 운영 버전 유지
+
+- 버전: 이번은 검증한 개발 통합본 전송이다. 운영 SANCTUMv2.31·IRIS0.3.0 유지, 소스 IRIS0.4.0은 출시 후보다. main/운영 DB/RLS·배포/공개ZIP·공지 변경 없음. 직전 정상 운영 기준1d8e374 / dpl_F6ymNLT5U6aJJLNofK4wtEi8sWXR 유지.
+- 순월06c4097의 GNOSIS 메인·작성·댓글·사진/팔레트 저장/공유를 집 주말82e2325 위에 병합했다. 실제3D·다중사용자 서버 공유·운영 분류 저장은 미완료다. 개인파일은 push에서 제외·보존했다.
+- IRIS: 자물쇠/disabled와 native 진입·소비 차단의 에르곤 준비중, 기존 보호 경로 유지. 플로팅 기능창의 업데이트 요약/공유 updater dialog 연결과 version0.4.0 표시용 요약, 임시 개발진단 제거. 앞선 원형플로팅/설정/알림/좌표·초점 수정도 포함한다.
+- 구조: GNOSIS 로컬 UI/모델 및 IRIS featureAvailability·page portal/updater cache/native gate. 운영 DB/API 권한·보호원장 스키마 변경 없음. 소스에서 제거한 진단 endpoint는 production에서도404 확인. 상세 `docs/HOME_INTEGRATION_20261019.md`.
+- 검증 Node604/601PASS3skip0fail, 격리 독립tsc/Next60 build/scopedlint·nativechrome93/defaultreleasegate/bridge/privatecompile·lock/updater/focus React PASS. 실제 격리GNOSIS4폭·저장reload·dialog·writer 시각/HTTP·독립좁은reviewC0I0. 이전 관리자lint부채와 루트staleNext생성type 오류를 전역 lint/type 완료로 감추지 않는다.
+- 공통7문서 양쪽7,115줄 누락0·통합직후83집파일/40사무실제품파일 보존 확인. 양쪽 ACK범위·주말미확인누적 보존. 최종 패키지 실제교체/새앱실사용·공개 배포는 다음 승인 단계이며 완료로 기록하지 않는다.
+
+## 2026-10-19 17:05 KST — GNOSIS 인계 후보 / 운영 버전 v2.31 유지
+
+- 버전 제안: 이번은 독립 기능 브랜치의 미완료 후보 인계이므로 운영 v2.31/IRIS0.3.0 표기 유지. 실제 3D/다중 사용자 저장 완성 및 집 코드 통합 검증 뒤 기능 버전을 결정한다. 공식 출시·공지 게시가 아니다.
+- 사용자 변화: GNOSIS 컴팩트 게시판/분류 SVG·전투/나이트메어 드릴, 케리그마 도구 재사용 rich editor·링크/표/투표·이미지200KB이하압축·댓글/대댓글. 일반 글쓰기 코디 입력은 시뮬레이터로 이동, 개인저장·PNG클립보드·패션글 작성 연결.
+- 구조 변경: app/gnosis, components/gnosis, lib/gnosis*, useGnosisNavigation, 관리자 분류편집 진입과 개발전용 미리보기. API/DB스키마/RLS·IRIS·공개ZIP/공지 변경없음.
+- 제한: 모두 브라우저 localStorage 시제품. 실제3D착용/의상색 렌더링·계정클라우드저장/다중사용자게시/운영분류관리 미완료. 기존4관리자lint오류는HEAD동일. 사용량15%는 새작업중단선이며 소진목표가 아니다.
+- 검증: Node477중474PASS3기존skip0fail, 독립tsc/GNOSISlint/Next60페이지build PASS; 실제PNG복사·패션왕복·로컬게시 확인,320/390/768/1280넘침0. 리뷰보완후최종회귀와push원격일치는후속기록.
+- 운영 배포0. 되돌리기 기준은 기존 운영 main1d8e374 / v2.31, 원격집인계의 정상배포기준 dpl_F6ymNLT5U6aJJLNofK4wtEi8sWXR 참조. 이번브랜치를운영승격하지않았다.
+
 ### 2026-10-17 15:15 KST — 플로팅 미완료 개발 인계 / 공개버전 유지
 
 - 전송결과15:20KST: 27e8252874ad8d3affc846daf0004a17a777ffe3 push/ls-remote 정확일치. 결과 문서마감 최신HEAD까지 받는다. Vercel403/CLI없음으로 Ready·실Preview 미확인. 이번 결과마감은 구조변경없음/버전·운영유지.
@@ -701,3 +719,11 @@
 ### 알려진 사항
 - ...
 ```
+
+### 2026-10-19 17:06 KST 최종 검증
+검토 보완 후 독립 tsc·GNOSIS scoped ESLint exit0, Next60/60 build exit0. 전체 Node477/474PASS3기존skip0fail, git diff --cached --check PASS. 실제 IAB에서 미저장 이동확인/계속편집 입력유지/개인저장 후 새로고침 복원을 확인했다. 관리자 기존4lint오류는 별도보류. 이 상태를 codex/gnosis-dressroom에 정상 push하며 main/운영DB/수동배포/공지/ZIP는 유지한다. 제품3D는미완료이며로컬사진/팔레트공유만구현됐다.
+### 2026-10-19 17:07 KST 전송 결과
+- 제품83b437af50c4ca98e0847c17cae8e8c32fac3b69를 origin/codex/gnosis-dressroom에 정상 push, ls-remote 정확 일치. 최초 원격 기능브랜치라 upstream 생성, push 전 fetch/해당원격없음 확인. 이번 후속 문서 마감까지 최신 HEAD를 받을 것.
+- Git 자동 Preview dpl_33y9Lt9E7XyUhUnBuJZrdyXnXqdL READY/정확제품SHA/target null/aliasError null 확인. 수동배포·Production승격0, origin/main1d8e374 유지. 실제 Preview URL은 Vercel 로그인 보호 화면으로 이동하므로 제품 화면 확인 미완료/로컬 검증과 구분한다. 인증우회/공유링크생성/로그인설정변경0.
+- https://vercel.com/sanctum-sanctuary/sanctum/33y9Lt9E7XyUhUnBuJZrdyXnXqdL . 로컬 http://127.0.0.1:3100/gnosis/dressroom 은 화면 검증 후 열어두었다.
+- 마감은 구조 변경 없는 문서만 추가, 제품 버전 유지. 주간31%·5시간37% 잔여 시점이며15%까지소진하지않고3D자산부재/집통합전안전인계를우선했다. 집에서는 GNOSIS_HOME_MERGE_20261019.md 순서대로 주말작업·개인파일을 보존하며 통합 후 통합 branch/SHA를 TO_SOONWOL에 남길 것.

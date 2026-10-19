@@ -12,17 +12,16 @@ type Store=ReturnType<typeof createDesktopStore>;
 export function DesktopUpdater({store,disabled,onBeforeApply,onBusyChange,inlineTarget=null}:{store:Store|null;disabled:boolean;onBeforeApply():Promise<boolean>;onBusyChange(busy:boolean):void;inlineTarget?:HTMLElement|null}){
  const [state,setState]=useState<DesktopUpdateState|null>(null),[unsupported,setUnsupported]=useState(false),[open,setOpen]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState('');
  const working=useRef(false),mounted=useRef(false),callbacks=useRef({onBeforeApply,onBusyChange});
- const [notes,setNotes]=useState<{version:string;value:IrisUpdateNotes|null}|null>(null);
- const notesCache=useRef(new Map<string,IrisUpdateNotes|null>());
+ const [notesCache,setNotesCache]=useState<Record<string,IrisUpdateNotes|null>>({});
  const notesVersion=state?.availableVersion;
  const notesVisible=open||!!inlineTarget;
  useEffect(()=>{
-  if(!notesVisible||!notesVersion||notesCache.current.has(notesVersion))return;
+  if(!notesVisible||!notesVersion||Object.hasOwn(notesCache,notesVersion))return;
   let alive=true;const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),8000);
-  const accept=(value:IrisUpdateNotes|null)=>{if(alive){notesCache.current.set(notesVersion,value);setNotes({version:notesVersion,value});}};
+  const accept=(value:IrisUpdateNotes|null)=>{if(alive)setNotesCache(cache=>({...cache,[notesVersion]:value}));};
   void readIrisUpdateNotes(notesVersion,controller.signal).then(accept).catch(()=>accept(null)).finally(()=>clearTimeout(timer));
   return()=>{alive=false;clearTimeout(timer);controller.abort();};
- },[notesVisible,notesVersion]);
+ },[notesVisible,notesVersion,notesCache]);
  useEffect(()=>{callbacks.current={onBeforeApply,onBusyChange};},[onBeforeApply,onBusyChange]);
  useEffect(()=>{
   mounted.current=true;let alive=true,checking=false;
@@ -44,7 +43,7 @@ export function DesktopUpdater({store,disabled,onBeforeApply,onBusyChange,inline
   finally{if(!restarting){if(protectedClose)try{await store.setCloseDecision(false);}catch{/* Keep native protection if its connection changed. */}working.current=false;if(mounted.current){setBusy(false);callbacks.current.onBusyChange(false);}}}
  };
  const available=!!state?.availableVersion;
- const currentNotes=notes&&notes.version===notesVersion?notes.value:notesVersion?notesCache.current.get(notesVersion):undefined;
+ const currentNotes=notesVersion?notesCache[notesVersion]:undefined;
  const preview=currentNotes?.sections.flatMap(section=>section.items).slice(0,2);
  const showDialog=()=>{setError('');setOpen(true);};
  const message=error==='preserve_failed'?'미저장 변경을 보관하지 못했어요. 입력과 저장 상태를 확인한 뒤 다시 시도해 주세요.':error?'업데이트를 완료하지 못했어요. 보호 기록은 지우지 않았어요. 앱이 잠긴 상태라면 정상 종료 후 다시 실행해 주세요.':state?.error==='prepare_failed'?'파일을 준비하지 못했어요. 연결과 폴더 쓰기 권한을 확인한 뒤 다시 시도해 주세요.':'';

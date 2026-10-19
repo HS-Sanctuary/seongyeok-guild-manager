@@ -1,335 +1,64 @@
 "use client";
-
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-
-const EMOJI_LIST = [
-  "😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣", "😊", "😇",
-  "🙂", "🙃", "😉", "😌", "😍", "🥰", "😘", "😗", "😙", "😚",
-  "😋", "😛", "😜", "🤪", "😝", "🤑", "🤗", "🤭", "🤫", "🤔",
-  "👍", "👎", "👏", "🙌", "👐", "🤲", "🤝", "🙏", "✍️", "💪",
-  "❤️", "🧡", "💛", "💚", "💙", "💜", "🖤", "🤍", "🤎", "💔",
-  "🔥", "✨", "🌟", "⭐", "🎉", "🎊", "🎈", "🎁", "🏆", "💯"
-];
-
-// 대댓글 컴포넌트
-function CommentItem({ comment, guide, onReplySubmit, onLike }: any) {
-  const [showReplyInput, setShowReplyInput] = useState(false);
-  const [replyText, setReplyText] = useState("");
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-
-  const handleEmojiSelect = (emoji: string) => {
-    setReplyText(prev => prev + emoji);
-    setShowEmojiPicker(false);
-  };
-
-  return (
-    <div className="space-y-3 relative">
-      <div className="flex justify-between items-start">
-        <div className="flex items-center gap-2">
-          <span className="text-[9px] font-black text-[#e6c788]">{comment.title_name}</span>
-          <span className="text-xs font-bold text-white">{comment.author}</span>
-          <span className="text-[10px] text-zinc-500">{comment.timestamp}</span>
-        </div>
-      </div>
-      <p className="text-sm text-zinc-300 pl-1 whitespace-pre-wrap">{comment.content}</p>
-      <div className="flex gap-4 text-xs font-bold text-zinc-500">
-        <button onClick={() => onLike(comment.id)} className="hover:text-pink-400">❤️ {comment.likes || 0}</button>
-        <button onClick={() => setShowReplyInput(!showReplyInput)} className="hover:text-white">답글달기</button>
-      </div>
-
-      {/* 대댓글 입력창 */}
-      {showReplyInput && (
-        <div className="flex flex-col gap-2 ml-6 mt-2 bg-[#121212] p-3 rounded-xl border border-zinc-700 relative">
-          <textarea 
-            value={replyText} 
-            onChange={e => setReplyText(e.target.value)}
-            placeholder="데이터베이스 관리 목적상 텍스트와 이모지만 가능합니다."
-            className="w-full bg-transparent border-none text-xs text-white outline-none resize-none h-16"
-          />
-
-          {/* 자체 이모지 팔레트 팝업 (닫기 버튼 추가) */}
-          {showEmojiPicker && (
-            <div className="absolute bottom-14 right-3 bg-[#1c1c1e] border border-zinc-700 p-3 rounded-xl shadow-2xl z-50 w-72">
-              <div className="flex justify-between items-center mb-2 pb-2 border-b border-zinc-800">
-                <span className="text-[11px] font-bold text-zinc-400">이모지 선택</span>
-                <button 
-                  type="button"
-                  onClick={() => setShowEmojiPicker(false)}
-                  className="text-zinc-400 hover:text-white text-xs font-black px-1.5 py-0.5 rounded hover:bg-zinc-800 transition"
-                >
-                  ✕
-                </button>
-              </div>
-              <div className="grid grid-cols-10 gap-1.5">
-                {EMOJI_LIST.map((emoji, idx) => (
-                  <button 
-                    key={idx} 
-                    type="button"
-                    onClick={() => handleEmojiSelect(emoji)}
-                    className="w-6 h-6 flex items-center justify-center hover:bg-zinc-700 rounded text-sm transition"
-                  >
-                    {emoji}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="flex justify-end gap-2 pt-2 border-t border-zinc-800">
-            <button 
-              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-              className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-3 py-1.5 rounded-lg text-xs font-bold transition"
-            >
-              😀 이모지
-            </button>
-            <button 
-              onClick={() => {
-                if (!replyText.trim()) return;
-                onReplySubmit(comment.id, replyText);
-                setReplyText("");
-                setShowReplyInput(false);
-                setShowEmojiPicker(false);
-              }} 
-              className="bg-[#e6c788] hover:bg-yellow-500 text-[#121212] px-4 py-1.5 rounded-lg text-xs font-black transition shadow-lg"
-            >
-              등록
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* 대대대...댓글 무한 렌더링 */}
-      {comment.replies && comment.replies.length > 0 && (
-        <div className="ml-6 space-y-3 pl-4 border-l-2 border-zinc-800">
-          {comment.replies.map((reply: any) => (
-            <CommentItem 
-              key={reply.id} 
-              comment={reply} 
-              guide={guide} 
-              onReplySubmit={onReplySubmit} 
-              onLike={onLike} 
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
+import Link from "next/link";
+import GnosisPoll from "@/components/gnosis/GnosisPoll";
+import { applyLocalVote } from "@/lib/gnosisPoll";
+import type { PollData } from "@/types/kerygma";
+import GnosisContent from "@/components/gnosis/GnosisContent";
+import GnosisComments from "@/components/gnosis/GnosisComments";
+import GnosisMark from "@/components/gnosis/GnosisMark";
+import { changeComment, readGuides, storeGuide, type LocalGuide, type GnosisComment } from "@/lib/gnosisLocal";
+import { useGnosisNavigation } from "@/hooks/useGnosisNavigation";
+import { gnosisDisplayLabel } from "@/lib/gnosisNavigation";
+import "../gnosis.css";
+import "../gnosis-editor.css";
 export default function GnosisDetailPage() {
   const params = useParams();
-  const [mounted, setMounted] = useState(false);
-  const [guide, setGuide] = useState<any>(null);
-  const [commentText, setCommentText] = useState("");
-  const [showMainEmojiPicker, setShowMainEmojiPicker] = useState(false);
-
+  const id = String(params.id ?? "");
+  const {items} = useGnosisNavigation();
+  const [guide,setGuide] = useState<LocalGuide | null>(null);
+  const [loaded,setLoaded] = useState(false);
+  const [error,setError] = useState("");
+  const [revealed,setRevealed] = useState(false);
   useEffect(() => {
-    setMounted(true);
-    loadData();
-  }, [params.id]);
-
-  const loadData = () => {
-    const localData = localStorage.getItem('gnosis_mock_db');
-    if (localData) {
-      const parsedData = JSON.parse(localData);
-      const foundGuide = parsedData.find((g: any) => g.id.toString() === params.id?.toString());
-      if (foundGuide) {
-        if (!foundGuide.comments) foundGuide.comments = [];
-        setGuide(foundGuide);
-      }
-    }
-  };
-
-  const saveToLocalStorage = (updatedGuide: any) => {
-    const localData = localStorage.getItem('gnosis_mock_db');
-    const parsedData = JSON.parse(localData || '[]');
-    const newData = parsedData.map((g: any) => g.id === updatedGuide.id ? updatedGuide : g);
-    localStorage.setItem('gnosis_mock_db', JSON.stringify(newData));
-    setGuide(updatedGuide);
-  };
-
-  const countTotalComments = (comments: any[]): number => {
-    if (!comments) return 0;
-    let count = comments.length;
-    for (const c of comments) {
-      if (c.replies && c.replies.length > 0) {
-        count += countTotalComments(c.replies);
-      }
-    }
-    return count;
-  };
-
-  const handleCommentSubmit = () => {
-    if (!commentText.trim()) return;
-    const newComment = {
-      id: Date.now(),
-      author: "한설",
-      title_name: "성역 길드마스터",
-      content: commentText,
-      timestamp: new Date().toLocaleString(),
-      likes: 0,
-      replies: []
-    };
-    saveToLocalStorage({ ...guide, comments: [...(guide.comments || []), newComment] });
-    setCommentText("");
-    setShowMainEmojiPicker(false);
-  };
-
-  const addReplyRecursively = (commentList: any[], targetId: number, newReply: any): any[] => {
-    return commentList.map(c => {
-      if (c.id === targetId) {
-        return { ...c, replies: [...(c.replies || []), newReply] };
-      }
-      if (c.replies && c.replies.length > 0) {
-        return { ...c, replies: addReplyRecursively(c.replies, targetId, newReply) };
-      }
-      return c;
+    let active = true;
+    function load() { try { const found=readGuides(localStorage).find(row=>String(row.id)===id)??null; if(active){setGuide(found);setError("");setLoaded(true);} } catch { if(active){setError("저장된 글을 읽을 수 없어요. 기존 기록은 그대로 남겨뒀어요.");setLoaded(true);} } }
+    void Promise.resolve().then(load);
+    const storage = (event: StorageEvent) => { if(event.key==="gnosis_mock_db") load(); };
+    window.addEventListener("storage",storage);
+    return () => {active=false;window.removeEventListener("storage",storage);};
+  },[id]);
+  function mutate(update:(current:LocalGuide)=>LocalGuide):boolean {
+    try {
+      const current=readGuides(localStorage).find(row=>String(row.id)===id);
+      if(!current) throw new Error("글을 찾을 수 없어요.");
+      const next=update(current);storeGuide(localStorage,next);setGuide(next);setError("");return true;
+    } catch {setError("변경을 저장하지 못했어요. 기존 글과 입력 내용은 보존했어요.");return false;}
+  }
+  function addComment(text:string,parent?:GnosisComment["id"]) {
+    return mutate(current=>{
+      const comment:GnosisComment={id:crypto.randomUUID(),author:"한설",title_name:"성역 길드마스터",content:text,timestamp:new Date().toLocaleString("ko-KR"),likes:0,replies:[]};
+      return {...current,comments:parent===undefined?[...(current.comments??[]),comment]:changeComment(current.comments??[],parent,row=>({...row,replies:[...(row.replies??[]),comment]}))};
     });
-  };
-
-  const handleReplySubmit = (targetCommentId: number, text: string) => {
-    const newReply = {
-      id: Date.now(),
-      author: "한설",
-      title_name: "성역 길드마스터",
-      content: text,
-      timestamp: new Date().toLocaleString(),
-      likes: 0,
-      replies: []
-    };
-    const updatedComments = addReplyRecursively(guide.comments, targetCommentId, newReply);
-    saveToLocalStorage({ ...guide, comments: updatedComments });
-  };
-
-  const handleLikeRecursively = (commentList: any[], targetId: number): any[] => {
-    return commentList.map(c => {
-      if (c.id === targetId) {
-        return { ...c, likes: (c.likes || 0) + 1 };
-      }
-      if (c.replies && c.replies.length > 0) {
-        return { ...c, replies: handleLikeRecursively(c.replies, targetId) };
-      }
-      return c;
-    });
-  };
-
-  const handleCommentLike = (commentId: number) => {
-    const updatedComments = handleLikeRecursively(guide.comments, commentId);
-    saveToLocalStorage({ ...guide, comments: updatedComments });
-  };
-
-  const handleMainEmojiSelect = (emoji: string) => {
-    setCommentText(prev => prev + emoji);
-    setShowMainEmojiPicker(false);
-  };
-
-  if (!mounted || !guide) return null;
-
-  return (
-    <main className="min-h-screen bg-[#121212] text-[#d4d4d8] font-sans pt-8 pb-20">
-      <div className="max-w-[900px] mx-auto p-4 md:p-8 space-y-6">
-        
-        <button onClick={() => window.close()} className="text-sm font-bold text-zinc-400 hover:text-white flex items-center gap-2">
-          <span>←</span> 현재 창 닫기
-        </button>
-
-        <div className="bg-[#1c1c1e] border border-zinc-800 rounded-2xl overflow-hidden shadow-2xl">
-          <div className="p-6 md:p-8 border-b border-zinc-800 bg-[#1a1a1c]">
-            <h1 className="text-2xl md:text-3xl font-black text-white leading-snug mb-6">{guide.title}</h1>
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center text-sm border border-zinc-600">👤</div>
-                <div className="flex flex-col">
-                  <span className="text-[10px] font-black text-[#e6c788]">{guide.title_name}</span>
-                  <span className="text-sm font-bold text-white">{guide.author}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="p-6 md:p-10 min-h-[300px] text-zinc-300 leading-relaxed text-[15px] whitespace-pre-wrap">
-            {guide.youtube_id && (
-              <div className="w-full aspect-video bg-black rounded-lg overflow-hidden mb-8 shadow-lg border border-zinc-700">
-                <iframe src={`https://www.youtube.com/embed/${guide.youtube_id}?mute=1`} className="w-full h-full" allowFullScreen></iframe>
-              </div>
-            )}
-            <p className={`${guide.is_spoiler ? 'blur-md hover:blur-none transition-all' : ''}`}>{guide.content}</p>
-          </div>
-
-          {/* 댓글 영역 */}
-          <div className="p-6 md:p-8 bg-[#1a1a1c] border-t border-zinc-800">
-            <h3 className="text-sm font-black text-white mb-4">댓글 {countTotalComments(guide.comments)}</h3>
-            
-            {/* 메인 댓글 입력창 */}
-            <div className="flex gap-2 mb-8 bg-[#121212] border border-zinc-700 rounded-xl p-3 relative">
-              <textarea 
-                value={commentText} onChange={e => setCommentText(e.target.value)}
-                placeholder="데이터베이스 관리 목적상 텍스트와 이모지만 가능합니다."
-                className="flex-1 bg-transparent border-none text-sm text-white focus:outline-none resize-none h-20"
-              />
-
-              {/* 자체 이모지 팔레트 팝업 (메인 - 닫기 버튼 추가) */}
-              {showMainEmojiPicker && (
-                <div className="absolute bottom-16 right-3 bg-[#1c1c1e] border border-zinc-700 p-3 rounded-xl shadow-2xl z-50 w-72">
-                  <div className="flex justify-between items-center mb-2 pb-2 border-b border-zinc-800">
-                    <span className="text-[11px] font-bold text-zinc-400">이모지 선택</span>
-                    <button 
-                      type="button"
-                      onClick={() => setShowMainEmojiPicker(false)}
-                      className="text-zinc-400 hover:text-white text-xs font-black px-1.5 py-0.5 rounded hover:bg-zinc-800 transition"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                  <div className="grid grid-cols-10 gap-1.5">
-                    {EMOJI_LIST.map((emoji, idx) => (
-                      <button 
-                        key={idx} 
-                        type="button"
-                        onClick={() => handleMainEmojiSelect(emoji)}
-                        className="w-6 h-6 flex items-center justify-center hover:bg-zinc-700 rounded text-sm transition"
-                      >
-                        {emoji}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="flex flex-col gap-2 justify-between">
-                <button 
-                  type="button"
-                  onClick={() => setShowMainEmojiPicker(!showMainEmojiPicker)}
-                  className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap"
-                >
-                  😀 이모지
-                </button>
-                <button 
-                  type="button"
-                  onClick={handleCommentSubmit} 
-                  className="bg-[#e6c788] text-[#121212] font-black px-5 py-2 rounded-lg hover:bg-yellow-500 shadow-lg transition"
-                >
-                  등록
-                </button>
-              </div>
-            </div>
-
-            {/* 댓글 목록 */}
-            <div className="space-y-6">
-              {(guide.comments || []).map((c: any) => (
-                <CommentItem 
-                  key={c.id} 
-                  comment={c} 
-                  guide={guide} 
-                  onReplySubmit={handleReplySubmit} 
-                  onLike={handleCommentLike} 
-                />
-              ))}
-            </div>
-          </div>
+  }
+  const date=guide?new Date(guide.created_at):null;
+  const canRead=guide && (!guide.is_spoiler || revealed);
+  const fashion=guide?.item_data;
+  return <main className="gnosis-board gnosis-detail-page"><div className="gnosis-shell">
+    <div className="gnosis-reader-back"><Link href="/gnosis">← 그노시스 게시판</Link><Link href="/gnosis/write">＋ 공략 글쓰기</Link></div>
+    {error&&<p role="alert" className="gnosis-editor-alert">{error}</p>}
+    {!loaded?<div className="gnosis-empty">글을 불러오고 있어요.</div>:!guide?<div className="gnosis-empty"><h1>글을 찾을 수 없어요</h1><p>게시판에서 다른 글을 확인해주세요.</p></div>:<article className="gnosis-reader">
+      <header className="gnosis-reader-heading"><div className="gnosis-guide-badges"><span className="gnosis-category-badge">{gnosisDisplayLabel(guide.sub_category,items)}</span>{guide.is_spoiler&&<span className="gnosis-spoiler-badge">스포일러 주의</span>}</div><h1>{guide.title}</h1><div className="gnosis-guide-meta"><strong>{guide.author}</strong><span>{guide.title_name}</span><time>{date&&!Number.isNaN(date.getTime())?date.toLocaleDateString("ko-KR"):"날짜 미상"}</time><span>♡ {guide.likes||0}</span></div></header>
+      {!canRead?<div className="gnosis-spoiler-gate"><p>스포일러가 포함된 글이에요.</p><button type="button" onClick={()=>setRevealed(true)}>내용 펼치기</button></div>:<>
+        <div className="gnosis-reader-body">
+          {guide.youtube_id&&/^[\w-]{11}$/.test(guide.youtube_id)&&!guide.hide_media&&<div className="gnosis-video"><iframe title={guide.title+" 첨부 영상"} src={"https://www.youtube.com/embed/"+guide.youtube_id} allowFullScreen/></div>}
+          <GnosisContent content={guide.content} formatted={guide.content_format==="markdown"} richDoc={guide.rich_content}/>
+          {Boolean(guide.poll) && <GnosisPoll poll={guide.poll as PollData} onVote={ids=>mutate(current=>{ return {...current,poll:applyLocalVote(current.poll as PollData,ids,Date.now())}; })}/> }
+          {fashion&&typeof fashion==="object"&&typeof fashion.itemName==="string"&&<aside className="gnosis-outfit-card"><h2><GnosisMark name="패션"/>{fashion.itemName||"코디·염색 정보"}</h2><p>{typeof fashion.rarity === "string" ? fashion.rarity : ""}</p><div className="gnosis-dye-swatches">{Array.isArray(fashion.dyeParts)&&fashion.dyeParts.filter(color=>typeof color==="string"&&/^#[0-9a-f]{6}$/i.test(color)).map((color,index)=><span key={index}><i style={{background:color}}/>{color.toUpperCase()}</span>)}</div></aside>}
         </div>
-      </div>
-    </main>
-  );
+        <GnosisComments comments={guide.comments??[]} onAdd={addComment} onLike={commentId=>{mutate(current=>({...current,comments:changeComment(current.comments??[],commentId,row=>({...row,likes:(row.likes||0)+1}))}));}}/>
+      </>}
+    </article>}
+  </div></main>;
 }

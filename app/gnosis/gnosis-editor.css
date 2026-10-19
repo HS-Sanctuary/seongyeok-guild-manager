@@ -1,0 +1,128 @@
+.gnosis-editor-page .gnosis-shell { max-width: 1300px; }
+.gnosis-detail-page .gnosis-shell { max-width: 1000px; }
+.gnosis-compose-heading { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:.6rem; padding:.3rem 0 .75rem; border-bottom:1px solid var(--panel-border); margin-bottom:.75rem; }
+.gnosis-compose-heading a, .gnosis-reader-back a { font-size:.7rem; color:var(--text-sub); text-decoration:none; }
+.gnosis-compose-heading h1 { font-size:1rem; font-weight:800; margin-top:.25rem; }
+.gnosis-compose-actions { display:flex; flex-wrap:wrap; gap:.35rem; align-items:center; }
+.gnosis-editor-page button, .gnosis-detail-page button { font-size:.7rem; font-weight:700; cursor:pointer; border:1px solid var(--panel-border); border-radius:.35rem; padding:.35rem .55rem; background:var(--inner-box); color:var(--text-main); line-height:1.5; }
+.gnosis-editor-page button:hover, .gnosis-detail-page button:hover { border-color:var(--accent); }
+.gnosis-editor-page button:disabled, .gnosis-detail-page button:disabled { opacity:.45; cursor:default; }
+.gnosis-editor-page button.is-primary, .gnosis-detail-page button.is-primary { color:var(--accent-fg); background:var(--accent); border-color:var(--accent); }
+.gnosis-compose-grid { display:grid; grid-template-columns:minmax(0,1fr); gap:.75rem; align-items:start; }
+.gnosis-compose-main, .gnosis-option-panel, .gnosis-reader { min-width:0; border:1px solid var(--panel-border); border-radius:.65rem; background:var(--panel); }
+.gnosis-compose-main { overflow:visible; }
+.gnosis-category-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.5rem; padding:.7rem .8rem; background:var(--inner-box); border-bottom:1px solid var(--panel-border); }
+.gnosis-category-fields label { min-width:0; display:flex; flex-direction:column; gap:.3rem; }
+.gnosis-category-fields label > span { display:flex; align-items:center; gap:.3rem; color:var(--text-sub); font-size:.65rem; font-weight:700; }
+.gnosis-editor-page :is(input:not([type=checkbox]):not([type=color]):not([type=file]), select) { width:100%; min-width:0; border:1px solid var(--panel-border); border-radius:.35rem; padding:.4rem .5rem; color:var(--text-main); background:var(--panel); font-size:.75rem; }
+.gnosis-title-field { display:block; padding:.75rem .8rem; border-bottom:1px solid var(--panel-border); }
+.gnosis-title-field > span { display:block; font-size:.65rem; font-weight:700; color:var(--text-sub); margin-bottom:.3rem; }
+.gnosis-editor-page .gnosis-title-field input { border:0; border-radius:0; padding:.2rem 0; font-size:1rem; font-weight:800; }
+.gnosis-editor-mode { display:flex; gap:.25rem; align-items:center; padding:.45rem .6rem; border-bottom:1px solid var(--panel-border); }
+.gnosis-editor-mode button { border-color:transparent; background:transparent; }
+.gnosis-editor-mode button[aria-pressed=true] { color:var(--accent); background:var(--accent-soft); border-color:var(--panel-border); }
+.gnosis-editor-mode > span { margin-left:auto; color:var(--text-sub); font-size:.65rem; }
+.gnosis-format-toolbar { display:flex; flex-wrap:wrap; gap:.2rem; padding:.4rem .6rem; background:var(--inner-box); border-bottom:1px solid var(--panel-border); }
+.gnosis-format-toolbar button { min-width:1.6rem; padding:.2rem .4rem; }
+.gnosis-body-field { display:block; }
+.gnosis-body-field textarea { display:block; width:100%; min-height:20rem; padding:.9rem; resize:vertical; background:var(--panel); color:var(--text-main); font-size:.8rem; line-height:1.85; border:0; }
+.gnosis-body-field textarea::placeholder { color:var(--text-sub); opacity:.8; }
+.gnosis-editor-preview { min-height:20rem; padding:.9rem; }
+.gnosis-editor-footnote { border-top:1px solid var(--panel-border); padding:.45rem .8rem; color:var(--text-sub); font-size:.65rem; }
+.gnosis-compose-options { display:grid; gap:.65rem; min-width:0; }
+.gnosis-option-panel { padding:.75rem; }
+.gnosis-option-panel h2 { font-size:.8rem; font-weight:800; margin-bottom:.6rem; }
+.gnosis-option-panel p, .gnosis-storage-note { font-size:.65rem; line-height:1.7; color:var(--text-sub); }
+.gnosis-check { display:flex; align-items:center; gap:.35rem; font-size:.7rem; font-weight:600; margin:.55rem 0; }
+.gnosis-check input { accent-color:var(--accent); flex-shrink:0; }
+.gnosis-option-input { display:flex; flex-direction:column; gap:.25rem; font-size:.65rem; color:var(--text-sub); margin:.5rem 0; }
+.gnosis-fashion-input { border-top:1px solid var(--panel-border); padding-top:.5rem; }
+.gnosis-fashion-input > button { margin:.4rem 0; }
+.gnosis-dye-inputs { display:grid; gap:.3rem; margin:.5rem 0; }
+.gnosis-dye-inputs label { display:flex; align-items:center; flex-wrap:wrap; gap:.3rem; font-size:.65rem; }
+.gnosis-dye-inputs input { width:1.5rem; height:1.3rem; padding:0; background:transparent; }
+.gnosis-draft-notice, .gnosis-editor-alert, .gnosis-editor-status { display:flex; align-items:center; flex-wrap:wrap; gap:.5rem; padding:.6rem .75rem; border:1px solid var(--panel-border); border-radius:.45rem; margin:.6rem 0; font-size:.7rem; background:var(--inner-box); color:var(--text-main); }
+.gnosis-editor-alert { border-color:var(--accent); }
+.gnosis-editor-status { color:var(--accent); }
+.gnosis-prose { font-size:.8rem; line-height:1.85; overflow-wrap:anywhere; word-break:normal; }
+.gnosis-plain { white-space:pre-wrap; }
+.gnosis-prose p { min-height:1em; margin:.2rem 0; }
+.gnosis-prose h2 { font-size:1rem; font-weight:800; margin:1rem 0 .45rem; }
+.gnosis-prose blockquote { border-left:.15rem solid var(--accent); padding:.3rem .7rem; color:var(--text-sub); background:var(--inner-box); }
+.gnosis-prose a { color:var(--accent); text-decoration:underline; }
+.gnosis-reader-back { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:.5rem; margin-bottom:.7rem; }
+.gnosis-reader-heading { padding:1rem; border-bottom:1px solid var(--panel-border); }
+.gnosis-reader-heading h1 { font-size:1.25rem; font-weight:800; line-height:1.6; }
+.gnosis-reader-body { padding:1rem; min-height:12rem; }
+.gnosis-outfit-card { border:1px solid var(--panel-border); border-radius:.5rem; background:var(--inner-box); padding:.75rem; margin-top:1rem; }
+.gnosis-outfit-card h2 { display:flex; align-items:center; gap:.4rem; font-size:.85rem; font-weight:700; }
+.gnosis-outfit-card p { font-size:.7rem; color:var(--text-sub); margin:.3rem 0; }
+.gnosis-dye-swatches { display:flex; flex-wrap:wrap; gap:.6rem; }
+.gnosis-dye-swatches span { display:flex; align-items:center; gap:.3rem; font-size:.65rem; }
+.gnosis-dye-swatches i { display:block; width:1rem; height:1rem; border:1px solid var(--text-sub); border-radius:.25rem; }
+.gnosis-spoiler-gate { padding:2rem 1rem; text-align:center; font-size:.8rem; }
+.gnosis-spoiler-gate button { margin-top:.6rem; }
+.gnosis-comments { border-top:1px solid var(--panel-border); padding:1rem; }
+.gnosis-comment-heading { display:flex; flex-wrap:wrap; align-items:baseline; gap:.4rem .8rem; margin-bottom:.7rem; }
+.gnosis-comment-heading h2 { font-size:.9rem; font-weight:800; }
+.gnosis-comment-heading h2 span { color:var(--accent); }
+.gnosis-comment-heading > span { font-size:.65rem; color:var(--text-sub); }
+.gnosis-comment-form { border:1px solid var(--panel-border); border-radius:.45rem; background:var(--inner-box); padding:.6rem; margin:.6rem 0; }
+.gnosis-comment-form textarea { display:block; width:100%; min-height:4.5rem; resize:vertical; border:0; background:transparent; color:var(--text-main); font-size:.75rem; line-height:1.75; }
+.gnosis-comment-actions { display:flex; flex-wrap:wrap; gap:.35rem; align-items:center; padding-top:.4rem; border-top:1px solid var(--panel-border); }
+.gnosis-comment-actions > span { margin-left:auto; color:var(--text-sub); font-size:.65rem; }
+.gnosis-reply-target { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:.35rem; margin-bottom:.35rem; color:var(--accent); font-size:.7rem; }
+.gnosis-comment { padding:.75rem 0; border-top:1px solid var(--panel-border); min-width:0; }
+.gnosis-comment header { display:flex; flex-wrap:wrap; align-items:baseline; gap:.25rem .5rem; }
+.gnosis-comment header strong { font-size:.75rem; }
+.gnosis-comment header span, .gnosis-comment-parent { font-size:.65rem; color:var(--text-sub); }
+.gnosis-comment header .gnosis-comment-title { color:var(--accent); }
+.gnosis-comment > p { font-size:.8rem; line-height:1.8; white-space:pre-wrap; margin:.35rem 0; overflow-wrap:anywhere; }
+.gnosis-comment-tools { display:flex; gap:.4rem; }
+.gnosis-comment-tools button { background:transparent; border-color:transparent; color:var(--text-sub); padding:.15rem .3rem; }
+.gnosis-emoji-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(1.6rem,1fr)); gap:.2rem; margin:.4rem 0; }
+.gnosis-emoji-grid button { padding:.2rem; }
+.gnosis-comment-empty { padding:1rem; color:var(--text-sub); text-align:center; font-size:.7rem; }
+.gnosis-editor-page :is(button,input,select,textarea):focus-visible, .gnosis-detail-page :is(button,textarea,a):focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+@media (min-width:1024px) { .gnosis-compose-grid { grid-template-columns:minmax(0,1fr) minmax(12rem,15rem); } }
+@media (max-width:639px) { .gnosis-compose-heading { align-items:flex-end; } .gnosis-reader-heading, .gnosis-reader-body, .gnosis-comments { padding:.75rem; } }
+.gnosis-rich-toolbar { position:relative; border-bottom:1px solid var(--panel-border); }
+.gnosis-rich-toolbar [class*="absolute"][class*="top-full"] { position:fixed; top:var(--gnosis-pop-top,10rem); left:var(--gnosis-pop-left,1rem); margin-top:0; max-width:calc(100vw - 1.2rem); max-height:min(16rem,60vh); overflow:auto; z-index:1500; }
+.gnosis-rich-extra, .gnosis-table-tools { display:flex; flex-wrap:wrap; align-items:center; gap:.25rem; padding:.4rem .6rem; background:var(--inner-box); }
+.gnosis-rich-extra button, .gnosis-table-tools button { padding:.2rem .4rem; font-size:.65rem; }
+.gnosis-rich-extra label, .gnosis-table-tools label { display:inline-flex; align-items:center; gap:.2rem; font-size:.65rem; }
+.gnosis-rich-extra input[type=color], .gnosis-table-tools input[type=color] { width:1.2rem; height:1.2rem; background:transparent; padding:0; }
+.gnosis-rich-body { min-height:20rem; padding:.9rem; outline:none; overflow-x:auto; }
+.gnosis-rich-body:empty:before { content:attr(data-placeholder); color:var(--text-sub); pointer-events:none; }
+.gnosis-rich-prose { font-size:.8rem; line-height:1.8; overflow-wrap:anywhere; word-break:normal; }
+.gnosis-rich-prose img { max-width:100%; height:auto; border-radius:.4rem; margin:.5rem 0; }
+.gnosis-rich-prose table { border-collapse:collapse; width:100%; margin:.7rem 0; table-layout:auto; }
+.gnosis-rich-prose td, .gnosis-rich-prose th { border:1px solid var(--panel-border); min-width:2rem; height:1.8rem; padding:.3rem .5rem; vertical-align:top; }
+.gnosis-rich-prose :is(h2,h3,h4) { font-weight:800; margin:.8rem 0 .4rem; line-height:1.6; }
+.gnosis-rich-prose h2 { font-size:1rem; border-bottom:2px solid var(--accent); padding-bottom:.2rem; }
+.gnosis-rich-prose h3 { font-size:.85rem; color:var(--accent); }
+.gnosis-rich-prose h4 { font-size:.75rem; }
+.gnosis-rich-prose ul { list-style:disc; padding-left:1.5rem; }
+.gnosis-rich-prose ol { list-style:decimal; padding-left:1.5rem; }
+.gnosis-rich-prose blockquote { margin:.5rem 0; border-left:.15rem solid var(--accent); padding-left:.7rem; }
+.gnosis-rich-prose a { color:var(--accent); text-decoration:underline; }
+.gnosis-editor-preview, .gnosis-reader-body { overflow-x:auto; }
+.gnosis-poll-dialog { margin:auto; padding:1rem; width:min(22rem,calc(100vw - 1.2rem)); max-height:85vh; overflow:auto; border:1px solid var(--panel-border); border-radius:.6rem; background:var(--panel); color:var(--text-main); }
+.gnosis-poll-dialog::backdrop { background:#0009; }
+.gnosis-poll-dialog form { display:grid; gap:.55rem; font-size:.75rem; }
+.gnosis-poll-dialog label { display:flex; flex-wrap:wrap; align-items:center; gap:.3rem; }
+.gnosis-poll-dialog input:not([type=checkbox]) { width:100%; }
+.gnosis-poll-dialog h2 { font-size:.9rem; font-weight:800; }
+.gnosis-poll, .gnosis-poll-attachment { margin:.7rem; padding:.7rem; border:1px solid var(--panel-border); border-radius:.5rem; background:var(--inner-box); }
+.gnosis-poll h3 { font-size:.85rem; font-weight:800; }
+.gnosis-poll p { font-size:.65rem; color:var(--text-sub); margin:.3rem 0; }
+.gnosis-poll label { display:flex; align-items:center; gap:.4rem; padding:.4rem; margin:.25rem 0; border:1px solid var(--panel-border); border-radius:.35rem; font-size:.75rem; }
+.gnosis-poll label span { min-width:0; flex:1; }
+.gnosis-poll small { font-size:.65rem; color:var(--text-sub); }
+.gnosis-rich-toolbar > div > div { max-width:100%; flex-wrap:wrap; }
+.gnosis-rich-toolbar [class*="absolute"][class*="top-full"] { max-height:min(16rem,calc(100vh - var(--gnosis-pop-top,10rem) - .6rem)); }
+.gnosis-rich-toolbar button { white-space:nowrap; }
+.gnosis-rich-toolbar button[title="양쪽 정렬"] { width:auto; min-width:2.2rem; }
+.gnosis-extra-disclosure { border-top:1px solid var(--panel-border); }
+.gnosis-extra-disclosure summary { padding:.35rem .6rem; color:var(--text-sub); font-size:.65rem; cursor:pointer; }
+.gnosis-extra-disclosure[open] summary { color:var(--accent); }

@@ -1,5 +1,18 @@
 # 🏛️ SANCTUM Master Guide
 
+## 2026-10-19 집 통합·IRIS 출시 준비 후속 (기능 브랜치, 운영 미적용)
+
+GNOSIS 구조는 아래 순월 인계의 로컬 시제품 모델 그대로 통합했다. `lib/irisFeatureAvailability.ts`는 ERGON 기본false(환경으로해제0), Center는 callback/session 미마운트·stale section 거절, MainTabs/Hub는 disabled LockIcon·준비중. 실제 native host/bridge도 ergon진입/prepare·confirm·collect를 차단하고 stop/cancel/history/reconciliation은 보존한다. `DesktopUpdater.inlineTarget`이 한 updater에서 floating workspace slot으로만 요약 portal을 보낸다. 버전별 notes는 React state cache/중단되는 bounded fetch, 기존 보호설치 dialog 경로는 그대로다. `IRIS_BETA_VERSION`과 표시용 notes0.4.0은 후보이며 공개 package metadata0.3.0 유지. 임시 focus-debug route/trace코드 제거(ignored 원본보존), native 초점복귀 안전검사는 유지. 운영DB/API권한/RLS·보호원장 스키마 변경0. 소스/문서 비교·검증·다음순서는 `docs/HOME_INTEGRATION_20261019.md`; 운영main/배포는 한설 별도 승인 전 실행하지 않는다.
+
+## 2026-10-19 — GNOSIS 기능 브랜치 구조 (운영 미적용)
+
+- app/gnosis/page: compact브랜드·시뮬레이터링크·별도글쓰기·전체/클래스/전투/생활/패션/악보/기타. GnosisMark와gnosisCategories/ClassGroups/Navigation·useGnosisNavigation으로 SVG/하위분류/브라우저표시설정 공유.
+- app/gnosis/write → GnosisRichEditor → 기존 KerygmaEditorToolbar 재사용. gnosisRichText의 허용AST/스타일/URL/이미지 제한, GnosisContent/RichContent React 렌더. gnosisPoll 검증·로컬투표, gnosisImage 클라이언트압축. 링크·투표·취소는dialog, 추가도구는접기.
+- app/gnosis/[id] → GnosisComments·GnosisPoll·GnosisContent. gnosisLocal에서 기존gnosis_mock_db/작성초안/댓글트리 보존·손상기록덮어쓰기 방지. 실제서버게시/계정권한은미연결.
+- app/gnosis/dressroom → gnosisFashion(개인저장10개/WORK/전달값검증·글합치기) → gnosisFashionCapture(canvas PNG/Clipboard). 원본스크린샷200KB이하WebP·염색팔레트, 패션작성은기존본문/투표보존+이미지AST추가. 실제3D모델/의상렌더러 없음.
+- GnosisNavigationEditor는기존admin탭과개발전용gnosis/admin-preview에연결. 설정은로컬브라우저미리보기이며운영설정API/DB신설없음. 프로덕션admin-preview는notFound. admin기존인증유지.
+- API/DB/RLS/환경변수/패키지의존성/IRIS코드/케리그마공용컴포넌트 변경없음. docs/GNOSIS_HOME_MERGE_20261019.md 순서로 집 코드와 통합할 것.
+
 ## 2026-10-18 22:55 KST — native 초점 복귀·지연 접기 경합 (로컬)
 
 `FloatingState()`가 실제 `gameFocus=true` capability를 발행하도록 누락을 고쳤고 실제 DTO 직렬화 회귀로 보호한다. `ReturnGameFocus`의 성공한 의도적 초점 복귀는 native `gameFocusHandoff`로 Activated까지 구분한다. Deactivate callback은 해당 handoff와 `floatingInteraction` 세대를 검사해 게임 복귀/새 command·activation을 바깥 클릭으로 접지 않는다. 중복 실패 요청도 앞선 성공을 무효화하지 않는다. 타 앱 선택·모달·텍스트 편집 보호와 strict null-payload bridge/기존 tracked game 검증 유지, 키 합성·전달/후킹 없음. 개발 한정 임시 `/api/iris/focus-debug`와 `irisFocusTrace`는 정확한 enum/boolean 메타데이터만 ignored 고정64KiB 로그로 제한하고 production404이다. 운영 API/DB/RLS/원장 구조·공개 ZIP 변경 없음. 한설 WASD 복귀 확인 후 기능창 즉시 접힘 후속은 재실행·동시 실사용 확인 전이다.
@@ -1148,3 +1161,5 @@ RLS가 켜진 테이블은 `accounts`, `activity_logs`, `characters`, `inquiries
 6. 범용 알림 데이터 구조와 사용자별 설정 설계 후, KRONOS·SYNAXIS·운영진 이벤트부터 내부 알림함에 단계적으로 연결
 7. Service Worker/PWA/Web Push를 추가해 종료 후 모바일·브라우저 알림 지원
 8. 베타 안정화 후 GNOSIS와 EMPORION 고도화
+
+- 2026-10-19 17:07 KST 문서마감: 제품83b437a/자동Preview dpl_33y9Lt9E7XyUhUnBuJZrdyXnXqdL READY(실화면은Vercel로그인보호로미확인). 구조변경없음/운영미적용. 집통합은전용병합안내참조.

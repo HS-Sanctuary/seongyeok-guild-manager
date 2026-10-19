@@ -6,11 +6,13 @@ import {loadTS} from './load-ts.mjs';
 const render=(path,name,props)=>renderToStaticMarkup(React.createElement(loadTS(path)[name],props));
 const center={account:{id:'a',nickname:'한설',role:'길드원'},characters:[],selected:null,pending:[],locked:false,saveStatus:null,onSelectCharacter(){},onEdit(){}};
 const save={entries:[],now:0,locked:false,onSave(){},onDiscard(){},onRecover(){}};
-test('main navigation exposes ERGON beside existing modules with bilingual visual labels',()=>{
+test('release navigation preserves existing modules while ERGON is visibly locked and never mounted',()=>{
   const html=render('components/iris/DesktopCenter.tsx','DesktopCenter',center);
-  for(const name of ['크로노스','시낙시스','에르곤'])assert.match(html,new RegExp('aria-label="'+name+'"'));
-  for(const name of ['CHRONOS','SYNAXIS','ERGON','캐릭터 관리','파티 매칭','생활 매니저'])assert.ok(html.includes(name),name);
-  assert.match(html,/id="iris-pane-ergon"[^>]*hidden=""/);
+  for(const name of ['크로노스','시낙시스'])assert.match(html,new RegExp('aria-label="'+name+'"'));
+  for(const name of ['CHRONOS','SYNAXIS','ERGON','캐릭터 관리','파티 매칭','준비중'])assert.ok(html.includes(name),name);
+  assert.match(html,/<button[^>]*aria-label="에르곤 · 준비중"[^>]*disabled=""/);
+  assert.match(html,/data-iris-icon="lock"/);
+  assert.doesNotMatch(html,/id="iris-pane-ergon"/);
 });
 test('idle save state renders nothing, without reserving an inline toolbar',()=>assert.equal(render('components/iris/DesktopSaveStatus.tsx','DesktopSaveStatus',save),''));
 

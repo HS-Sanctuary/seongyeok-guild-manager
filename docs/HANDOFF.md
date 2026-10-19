@@ -1,5 +1,21 @@
 # SANCTUM 작업 인계
 
+## 2026-10-19 20:00 KST 영겁 — 집 주말 작업 + GNOSIS 통합 / 운영 배포 보류
+
+- 다음 작업자는 **`docs/HOME_INTEGRATION_20261019.md`부터 읽는다.** 통합 브랜치 `codex/home-gnosis-iris-integration-20261019`, 주말 보존82e2325/기존95e38a4와 순월06c4097(제품83b437a)을 통합했다. main/운영 DB·운영 배포/공개 ZIP·공지 변경0. 한설의 최신 지시는 운영 DB·배포 전 별도 확인이다.
+- 충돌은 공통 문서6개뿐. 양쪽 최신 내용을 누적해 공통7문서의 비어 있지 않은7,115줄 누락0, 통합 직후 집83파일 바이트/삭제 상태 동일·순월40제품파일 동일 확인. 88변경 ignored별도백업과 복구 커밋 보존. 개인문서/루트기존삭제/개인테스트/실행명령어는 제외하고 그대로 남겼다.
+- IRIS 어제 중단 작업 후속: 한설이 기능창 유지+WASD 잘 됨을 확인. ERGON은 앱/플로팅 자물쇠·준비중·disabled/hidden mount0, native 새 prepare/confirm/collect와 ergon진입 차단·stop/history/원본기록 보존. 단일 updater의 portal 요약상자를 실제 floating workspace에 연결·2줄요약/버전캐시/기존보호설치창, ref-render 오류는 state cache로 수정했다. 임시 focus-debug endpoint와 진단 코드만 제거, ignored 원본 기록 보존.
+- IRIS 소스/요약은0.4.0 후보이며 공개 ZIP/download.json 및 운영은0.3.0 그대로. 비공개 compile만 수행, 최종 ZIP 교체·old→new helper/WebView/보호해시 시험과 운영 승인·배포확인·공지게시 남음. 따뜻한 중제목/문장별 문단 초안 `docs/UPDATE_POST_IRIS_0.4.0.md`는 게시전이다. 통합 전체를 main에 올려 GNOSIS 로컬 시제품까지 함께 공개하지 않는다.
+- fresh검증 Node604/601PASS3기존skip0fail·격리소스 독립tsc/Next60build·GNOSIS/수정IRIS lint PASS. nativechrome93/bridge/defaultlock/privatecompile·실React lock/updater/focus PASS. 실제 격리production GNOSIS4폭·개인저장reload·공유Escape·writer시각확인, 3GET200/admin-preview404/debug404. 독립 좁은review C0/I0·문서누락0. 루트 tsc의 오래된 `.next/dev/types` 참조 오류는 캐시삭제 없이 격리사본 독립검증으로 구분했다.
+- GNOSIS3D/서버공유·관리자운영설정/ERGON수량100개반복 미완료, 사용자설치본 업데이트 성공 아님. 순월은 원본dirty보존→통합브랜치fetch/pull→최신문서/릴레이ACK. 정확pushSHA/원격결과는후속마감 기록을 따른다.
+
+## 2026-10-19 17:05 KST 순월 — GNOSIS 기능 브랜치 인계 후보
+
+- 이번은 운영 출시가 아니다. 운영 v2.31/IRIS0.3.0과 main1d8e374 유지. 별도 codex/gnosis-dressroom에 GNOSIS 메인/에디터/댓글/분류/패션 저장·공유만 구현했다. 운영 DB/RLS·IRIS 제품·개인 파일 변경0, main병합·수동배포0.
+- 집 통합은 docs/GNOSIS_HOME_MERGE_20261019.md를 먼저 따른다. 집의 최신 주말 작업은 origin/codex/iris-checkboard-classes4234e54에 있으며 이 브랜치에는 제품을 섞지 않았다. IRIS 플로팅 미해결I2/M1은 원격 문서로 읽고 ACK했을 뿐 해결하지 않았다.
+- 완료/남음/검증 상세는 docs/DRESSROOM_HANDOFF.md 및 전용 병합 안내. 개인저장10개/PNG클립보드/패션 글쓰기는 브라우저 시제품이며 실제3D착용·의상염색/계정저장·여러길드원서버공유는 미완료다. 코드만 Git 인계되며 로컬 코디·테스트 글은 집으로 옮겨지지 않는다.
+- 현재 검증 Node477/474PASS3skip0fail, 독립tsc/Next60페이지/GNOSISlint PASS. 기존관리자lint4오류는HEAD동일. 검토 중요2보완 뒤 최종회귀·전송결과는 후속 기록. 이전 공식배포 내용은 아래 그대로 보존한다.
+
 ## 2026-10-18 22:55 KST — WASD 실제 capability 누락과 복귀 시 자동 접힘
 
 - 적용 후속 22:57 KST: 한설 정상 종료 확인→기존 IRIS 부재/개발 page200→Development3964 단일 시작(22:57:01)/Responding=true·stdout/stderr0. live state capable=true 확인. 모듈 유지+게임 재클릭 없이 WASD 동시 확인을 한설에게 요청하며, 실제 성공 판정은 아직 대기다. 제한 환경의 Get-Process 미탐지는 정상 권한 읽기 조회로 존재/응답을 확인했으며 중복 실행하지 않았다.
@@ -1708,3 +1724,11 @@
 - 검증: RED→GREEN API/relay/state/native/위젯 및 nested palette 회귀, 최신 `node --test`139/139(Windows 포함, skip0, 실제 공유 갱신 배선 회귀 포함), `npx tsc --noEmit` exit0, `npm run build` exit0. 실제 게임이 아닌 합성 GUI/루프백 대역만 사용. 계획의 별도 agent 리뷰는 미승인이라 실행하지 않았으며 자기 점검과 구분한다.
 - 한설 확인: 기존 IRIS 정상 종료 확인 후 재실행→새 읽기 연결/생텀 승인→현재 캐릭터 확인→숙제. 웹 `/character`와 항목·클래스 저장값 대조,필터·아코디언·스크롤·×→복구·DPI 확인 대기. 실제 로그인/게임 조작을 대신하지 않는다.
 - AI(아님)커넥터 목표는 `docs/IRIS_AUTOMATION_PARITY.md`의 전체 목록 유지. 다음 안전한 후보는 시설별 수령의 명시 실행/중지/실패 재조회 설계. 현재 자동화 구현 완료로 보고하지 말 것. 기존 미확인 인계/수신함 메시지 보존.
+
+### 2026-10-19 17:06 KST 최종 검증
+검토 보완 후 독립 tsc·GNOSIS scoped ESLint exit0, Next60/60 build exit0. 전체 Node477/474PASS3기존skip0fail, git diff --cached --check PASS. 실제 IAB에서 미저장 이동확인/계속편집 입력유지/개인저장 후 새로고침 복원을 확인했다. 관리자 기존4lint오류는 별도보류. 이 상태를 codex/gnosis-dressroom에 정상 push하며 main/운영DB/수동배포/공지/ZIP는 유지한다. 제품3D는미완료이며로컬사진/팔레트공유만구현됐다.
+### 2026-10-19 17:07 KST 전송 결과
+- 제품83b437af50c4ca98e0847c17cae8e8c32fac3b69를 origin/codex/gnosis-dressroom에 정상 push, ls-remote 정확 일치. 최초 원격 기능브랜치라 upstream 생성, push 전 fetch/해당원격없음 확인. 이번 후속 문서 마감까지 최신 HEAD를 받을 것.
+- Git 자동 Preview dpl_33y9Lt9E7XyUhUnBuJZrdyXnXqdL READY/정확제품SHA/target null/aliasError null 확인. 수동배포·Production승격0, origin/main1d8e374 유지. 실제 Preview URL은 Vercel 로그인 보호 화면으로 이동하므로 제품 화면 확인 미완료/로컬 검증과 구분한다. 인증우회/공유링크생성/로그인설정변경0.
+- https://vercel.com/sanctum-sanctuary/sanctum/33y9Lt9E7XyUhUnBuJZrdyXnXqdL . 로컬 http://127.0.0.1:3100/gnosis/dressroom 은 화면 검증 후 열어두었다.
+- 마감은 구조 변경 없는 문서만 추가, 제품 버전 유지. 주간31%·5시간37% 잔여 시점이며15%까지소진하지않고3D자산부재/집통합전안전인계를우선했다. 집에서는 GNOSIS_HOME_MERGE_20261019.md 순서대로 주말작업·개인파일을 보존하며 통합 후 통합 branch/SHA를 TO_SOONWOL에 남길 것.

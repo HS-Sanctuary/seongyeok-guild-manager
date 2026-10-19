@@ -6,7 +6,7 @@ import {loadTS} from './load-ts.mjs';
 
 function renderWithState(file, name, states, props) {
  let index=0;
- const C=loadTS(file,{react:{...React,useState:()=>[states[index++],()=>{}]}})[name];
+ const C=loadTS(file,{react:{...React,useState:initial=>[index<states.length?states[index++]:typeof initial==='function'?initial():initial,()=>{}]}})[name];
  return renderToStaticMarkup(React.createElement(C,props));
 }
 const updaterProps={store:null,disabled:false,onBeforeApply:async()=>true,onBusyChange(){}};

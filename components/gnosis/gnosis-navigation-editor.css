@@ -1,0 +1,16 @@
+.gnosis-navigation-editor { padding: .85rem; border: 1px solid var(--panel-border); border-radius: .6rem; background: var(--panel); color: var(--text-main); min-width: 0; }
+.gnosis-navigation-editor h2 { color: var(--accent); font-size: .9rem; font-weight: 800; }
+.gnosis-navigation-editor p { font-size: .7rem; color: var(--text-sub); line-height: 1.6; margin: .4rem 0; overflow-wrap: anywhere; }
+.gnosis-editor-rows { display: grid; gap: .5rem; margin-top: .8rem; }
+.gnosis-editor-row { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: .45rem; padding: .6rem; background: var(--inner-box); border: 1px solid var(--panel-border); border-radius: .4rem; min-width: 0; }
+.gnosis-editor-key { display: flex; align-items: center; gap: .4rem; grid-column: 1 / -1; font-size: .75rem; font-weight: 700; }
+.gnosis-editor-row label { display: flex; flex-direction: column; gap: .2rem; min-width: 0; font-size: .7rem; }
+.gnosis-editor-row label:first-of-type { grid-column: 1 / -1; }
+.gnosis-editor-row input, .gnosis-editor-row select { width: 100%; min-width: 0; border: 1px solid var(--panel-border); border-radius: .3rem; padding: .3rem .4rem; background: var(--panel); color: var(--text-main); font-size: .75rem; }
+.gnosis-editor-order { display: flex; align-items: end; gap: .25rem; }
+.gnosis-navigation-editor button { border: 1px solid var(--panel-border); border-radius: .35rem; padding: .35rem .6rem; background: var(--inner-box); color: var(--text-main); font-size: .7rem; cursor: pointer; }
+.gnosis-navigation-editor button:disabled { opacity: .35; cursor: default; }
+.gnosis-editor-actions { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .8rem; }
+.gnosis-editor-actions button:first-child { background: var(--accent); color: var(--accent-fg); font-weight: 800; }
+.gnosis-navigation-editor :is(button,input,select):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (min-width: 768px) { .gnosis-editor-row { grid-template-columns: minmax(4rem,.6fr) minmax(0,1.5fr) minmax(0,1fr) auto; align-items: center; } .gnosis-editor-key, .gnosis-editor-row label:first-of-type { grid-column: auto; } }

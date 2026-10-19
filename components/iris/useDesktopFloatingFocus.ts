@@ -1,7 +1,6 @@
 'use client';
 import {useEffect,useRef} from 'react';
 import type {FloatingState} from '@/lib/irisFloating';
-import {traceIrisFocus,type IrisFocusTrace} from '@/lib/irisFocusTrace';
 
 /** Return keyboard ownership after pointer-only actions, never forward game keys. */
 export function useDesktopFloatingFocus(state:FloatingState|null,returnFocus:(()=>Promise<boolean>)|undefined){
@@ -12,11 +11,10 @@ export function useDesktopFloatingFocus(state:FloatingState|null,returnFocus:(()
   let frame=0,nextFrame=0,wheelTimer:ReturnType<typeof setTimeout>|undefined;
   const modal=()=>Array.from(document.querySelectorAll<HTMLElement>('[role="dialog"]')).some(node=>node.getClientRects().length>0);
   const editing=()=>document.activeElement instanceof Element&&document.activeElement.matches('textarea,select,[contenteditable]:not([contenteditable="false"]),input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="button"]):not([type="submit"])');
-  const report=(phase:IrisFocusTrace['phase'],returned:boolean|null=null)=>traceIrisFocus({phase,surface:surface??'none',menu:!!menuOpen,capable:!!enabled,documentFocus:document.hasFocus(),keyboard:keyboardMode.current,pointer:pointerHeld.current,modal:modal(),editing:editing(),selection:!!window.getSelection()?.toString(),returned});
-  if(!enabled||!returnFocus){report('inactive');return;}
+  if(!enabled||!returnFocus)return;
   const schedule=()=>{
    cancelAnimationFrame(frame);cancelAnimationFrame(nextFrame);
-   frame=requestAnimationFrame(()=>{nextFrame=requestAnimationFrame(()=>{if(!keyboardMode.current&&!pointerHeld.current&&document.hasFocus()&&!modal()&&!editing()&&!window.getSelection()?.toString()){report('request');void returnFocus().then(focused=>report('reply',focused)).catch(()=>report('error'));}else report('skip');});});
+   frame=requestAnimationFrame(()=>{nextFrame=requestAnimationFrame(()=>{if(!keyboardMode.current&&!pointerHeld.current&&document.hasFocus()&&!modal()&&!editing()&&!window.getSelection()?.toString())void returnFocus().catch(()=>{/* A failed handoff never sends keys or retries against another app. */});});});
   };
   const click=(event:MouseEvent)=>{
    if(!event.isTrusted||event.detail===0||modal()||!(event.target instanceof Element))return;

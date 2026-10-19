@@ -2,6 +2,15 @@
 
 ## YG-20261016-001 — UPDATED (목록형 구현·검토 수정·15% 해제)
 
+- **영겁누적2026-10-19 20:00KST 최우선:** 내일 `codex/home-gnosis-iris-integration-20261019` 최신HEAD를받는다. `docs/HOME_INTEGRATION_20261019.md`→공통HANDOFF→양쪽릴레이순서. 집주말82e2325/원래95e38a4 + 순월06c4097(제품83b437a) 통합. 개인dirty/루트기존삭제/개인테스트·실행문서보존·제외. 공통문서6conflict비교누적/7문서양쪽7115줄누락0, 통합직후집83파일바이트/순월40제품동일. 아래4234e54ACK보다후속분이많으므로 UPDATED유지·상대새ACK전과거누적삭제금지.
+- IRIS한설기능창+WASD정상확인, 에르곤양쪽lockdisabled·sessionmount0/nativeprepareconfirmcollect·ergon진입차단/stopcancelhistory·원장보존. 단일Updater를floating slot portal로연결/요약2줄·versionstatecache·기존설치보호, dev진단코드만제거/ignored원본보존. 0.4.0소스·표시노트/따뜻한공지초안작성, 공개ZIP/download0.3.0/운영v2.31유지·실제공개출시전. 가죽+100개1회등록미완료, 보호unknown자동해제금지.
+- 통합검증Node604/601PASS3skip0fail·격리독립tsc/Next60build·GNOSIS/수정IRISlint·chrome93/bridge/defaultlock/privatecompile·실ReactlockupdaterfocusPASS. 격리productionGNOSIS4폭·개인저장reload/공유Escape/writer시각확인·3GET200/adminpreview/debug404. 최초locator중복/React렌더대기수정구분, 루트staleNexttype참조는캐시강제삭제없이격리tsc로검증. 좁은read-onlyreviewC0I0·doc누락0. GNOSIS전체재리뷰/실게임·새사용자설치본교체·공개ZIP시험성공아님.
+- **최신승인경계:** 한설이운영DB변경·배포전별도확인요청. main병합/운영배포/DB·공지/공개ZIP0. 통합GNOSIS는localStorage사진팔레트시제품,3D·서버공유·운영관리자설정미완료. IRIS출시는필요시originmain기준IRIS전용출시브랜치로분리하고최종ZIP0.3→0.4helper/WebView·보호해시검증/정상앱종료후실사용/Ready·운영다운로드대조뒤공지게시. 이번통합기능push정확SHA·원격은후속기록, 실패시forcepush/reset금지.
+
+- ACK: 순월 — 2026-10-19 17:00 KST, 원격 codex/iris-checkboard-classes 4234e54의 수신함 및 IRIS_FLOATING_SOONWOL_HANDOFF_20261017.md를 읽었다. IRIS 플로팅 후보의 미해결 Important2/Minor1(숨김 알림10초 소진, savedcompact resizePanel, native menu label 잘림), 기존 574/571PASS3skip 및 운영 미승격을 인지했다. 이번에는 한설 승인으로 별도 codex/gnosis-dressroom에서만 GNOSIS 저장·공유를 작업한다. IRIS 제품 코드/개인 파일/운영 DB/main을 병합·수정하지 않았다. 이 ACK는 원격 안내를 읽었다는 뜻이며 IRIS 전체 코드를 현 작업 폴더에 병합했다는 뜻이 아니다. 영겁은 집의 기존 작업에 패션 브랜치를 안전하게 병합하고 두 문서의 최신 누적을 모두 보존할 것.
+
+- 통합 주의: 위 ACK는 원격4234e54까지의 수신 확인이다. 그 뒤 집 주말 작업과 이번 통합 인계는 아직 재확인 전이므로 UPDATED 상태와 기존 누적을 보존한다.
+
 - 적용누적22:57KST: 한설정상종료/기존IRIS부재/page200뒤 Development3964(22:57:01)단일시작/정상권한readonly Respondingtrue·stdout0stderr0/livecaptrue. 기능창유지+게임재클릭없는WASD동시확인요청·실성공대기. sandbox프로세스미탐지는동일PID정상권한조회로해결/중복실행·게임입력0.
 
 - 영겁누적2026-10-18 22:55KST: 실제trace capfalse→native FloatingState의gameFocus발행누락확인/실DTO RED→GREEN·true추가. 22:44Development29996 뒤 한설움직임확인하나 module즉시접힘보고. JSclose0/성공handoff→surface→none과소유Form재현으로 native지연Deactivate가의도복귀를접는경합확인. handoff성공을Activated까지구분/중복실패로취소금지·interaction세대로옛blur가새activation/modulecommand접기금지. fresh외부앱접기/초점비탈취유지. chrome92/addon83/bridge·presentation/Nodeexit0·타입lint/실Reactfocus+Hub/privatecompilePASS. 한설정상종료완료, 새native재실행+창유지/WASD동시실사용확인후속. 이전native변경0·재시작불필요는과거경과다. 임시localhostdev진단(enum/boolean만·fixedignored64KiB/production404·키/계정/HWND0)공개전정리여부확인. 에르곤자물쇠/준비중출시권장만설명·미구현/공식push0,100개반복미완료·원본원장/공개0.3.0/ZIP/DB/개인dirty보존. 상대ACK전기존누적삭제금지.
