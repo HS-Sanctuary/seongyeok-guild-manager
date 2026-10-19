@@ -2,6 +2,8 @@
 
 ## 2026-10-20 집 — 야간 후속 후보 / 먼저 전용 인계 확인
 
+- **전송/화면확인완료01:31KST:** 제품2549718 기능브랜치push/원격exact·main06e1eca유지, Vercel dpl_Cj6zrxhT62oXjENHhxEH5M11WcUv 정상UI Ready/Preview·같은SHA/GHsuccess. 실제Preview `/party`에서 통합매어2·지옥3·지옥4 순서·목표3던전 표시/취소확인·파티쓰기0. native설치본/실게임·운영생성수정은다음단계. 이번결과문서마감까지최신HEAD받을것.
+
 - 마감검증: Node608/605PASS3skip0fail·16개browser PASS·lint/정확소스격리60build/독립tsc0·nativefontfixture PASS·개인6/문서7115/순월40보존0. 결과를 실게임 성공으로 확대하지 않는다. 최신 전송 SHA는 다음 누적.
 
 다음 순월은 **`docs/IRIS_OVERNIGHT_HANDOFF_20261020.md`부터 읽는다.** 한설이 수면 중 자율 ERGON UX/설치글꼴 개선·검증·주간3% 전송 마감을 요청. 브랜치 `codex/home-gnosis-iris-integration-20261019`, v2.322후속후보/운영v2.321·IRIS0.4.1 유지. 승인 어비스5행은01:04KST 운영적용·새33~37/원래31행hash동일, 이전 승인대기 표기는 당시 경과다. 저장줄/ERGON 직접품목선택·(?)·산출초과/폰트목록·미리보기·키보드 로컬 개선, 공개ERGON잠금/게임소비0·개인dirty보존. 최종검증·전송SHA/Preview결과는후속누적.

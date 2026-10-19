@@ -2,6 +2,8 @@
 
 ## YG-20261016-001 — UPDATED (목록형 구현·검토 수정·15% 해제)
 
+- **최신전송결과2026-10-20 01:31KST:** 제품`2549718a313fd26c908b644adb41e76bfd1677d0` 정상push/기능원격exact, main`06e1eca`유지. Vercel`dpl_Cj6zrxhT62oXjENHhxEH5M11WcUv` 정상브라우저 Ready/Preview/정확branch·SHA/GHsuccess. 실제Preview `/party` 통합매어2·지옥3·지옥4 표시/순서·세목표던전/취소확인·실파티쓰기0. 설치본/실게임검증은별도. `IRIS_OVERNIGHT_HANDOFF_20261020.md` 먼저읽고이결과마감까지최신HEAD받아ACK. 최신잔여4%시점새기능중단/문서전송만진행·개인6/문서7115/순월40보존0. 이마감문서전용/구조변경없음, 이하미ACK전부보존.
+
 - **2026-10-20 최종검증/전송준비:** Node608/605PASS3skip0fail·관련browser16합집합PASS·scopedlint/격리60build/독립tsc0·nativefontfixture PASS. 원본개인6/문서7115/순월40보존오류0. workbench옛fixture의running→idle만으로release기대를같은요청terminal로정정, 제품보호코드무변경. headerfirstbutton대신windowaria-pressed/초과산출표시 기대갱신. 공개main/ZIP/공지유지·어비스승인5행만운영반영. 정확SHA/원격/Preview결과는전송후누적, 아래미ACK모두보존.
 
 - **2026-10-20 야간후속/최신:** 한설수면중자율UX개선/검증·주간3%마감push승인, 최신지시는이기준. `docs/IRIS_OVERNIGHT_HANDOFF_20261020.md`부터읽고새전송SHA까지pull/ACK. 브랜치동일/v2.322후보, main·운영webv2.321/IRIS0.4.1/ZIP유지. 어비스운영자료5행은명시승인받아01:04KST추가33~37·31→36/원본hash동일, DDLRLS권한0. 저장줄상단pending-only/ERGON빈화면직접품목수량·(?)·가공상태·산출초과/폰트전체가족탐색미리보기·Escape/HomeEnd 보완. 공개ERGON잠금/소비·수령0/unknown·개인·이하미ACK누적보존. 검증·정확전송·Preview결과는마감후속.

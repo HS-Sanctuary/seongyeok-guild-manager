@@ -2,6 +2,8 @@
 
 ### 2026-10-20 — IRIS 야간 후속 UI·난이도 기준 / 인계 후보
 
+제품2549718의 기능브랜치 Preview dpl_Cj6zrxhT62oXjENHhxEH5M11WcUv Ready·정확SHA 확인. 실제Preview파티 통합난이도 화면에서 신규기준 표시·순서·취소를 확인했고 제출은 하지 않았다. 운영main/IRIS설치파일은유지. 이결과마감은문서만추가/추가구조변경없음.
+
 검증: Node608/605PASS3skip0fail·관련browser16 PASS·scopedlint/독립tsc/격리Next60 exit0. 실게임 소비/공개ERGON해제/추가운영배포0. 아래 구조 보완을 feature branch로 인계하며 정상 운영 구조를 대체 배포하지 않는다.
 
 - `DesktopSaveStatus.inline`를 floating mode에 한정해 DesktopCenter sticky header에 배치. 일반 overlay portal·position/preview 유지, 저장 controller/API/15초 변경0.

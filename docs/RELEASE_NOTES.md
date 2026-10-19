@@ -2,6 +2,8 @@
 
 ## 2026-10-20 KST — v2.322 후속 후보 / 순월 인계 브랜치
 
+- 전송 결과01:31KST: 제품2549718을 기능브랜치에 일반push/원격exact·main06e1eca유지. Vercel dpl_Cj6zrxhT62oXjENHhxEH5M11WcUv 정상UI Ready/Preview/정확제품SHA, GitHubsuccess. 실제Preview `/party` 통합창에 매어2·지옥3·지옥4 표시/순서 확인·취소, 실등록0. 이 후속은 결과 문서 마감/구조 변경 없음, 최신브랜치HEAD까지 받을 것.
+
 - 최종 로컬 검증: Node608/605PASS3기존skip0fail·16개 관련 browser PASS·scopedlint/격리60build/독립타입 exit0·native font cache/bridge fixture PASS. 기존 개인6상태/문서7,115줄/순월40제품 보존 오류0. 새 실제게임 소비·사용자 설치본 적용·운영 로그인 UI 검증은 미실시.
 
 - 공개 운영 버전 웹v2.321/IRIS0.4.1·ZIP·새 공지는 유지. 이번은 기능 브랜치 인계이며 main 승격/수동 운영 배포를 하지 않는다. 직전 정상 운영 제품4480646·Vercel dpl_3Z2KVcSMJnMxuZmp8ye3HZ5E75ds를 기준선으로 유지한다.
