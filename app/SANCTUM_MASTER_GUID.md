@@ -1,5 +1,15 @@
 # 🏛️ SANCTUM Master Guide
 
+## 2026-10-19 — GNOSIS 기능 브랜치 구조 (운영 미적용)
+
+- app/gnosis/page: compact브랜드·시뮬레이터링크·별도글쓰기·전체/클래스/전투/생활/패션/악보/기타. GnosisMark와gnosisCategories/ClassGroups/Navigation·useGnosisNavigation으로 SVG/하위분류/브라우저표시설정 공유.
+- app/gnosis/write → GnosisRichEditor → 기존 KerygmaEditorToolbar 재사용. gnosisRichText의 허용AST/스타일/URL/이미지 제한, GnosisContent/RichContent React 렌더. gnosisPoll 검증·로컬투표, gnosisImage 클라이언트압축. 링크·투표·취소는dialog, 추가도구는접기.
+- app/gnosis/[id] → GnosisComments·GnosisPoll·GnosisContent. gnosisLocal에서 기존gnosis_mock_db/작성초안/댓글트리 보존·손상기록덮어쓰기 방지. 실제서버게시/계정권한은미연결.
+- app/gnosis/dressroom → gnosisFashion(개인저장10개/WORK/전달값검증·글합치기) → gnosisFashionCapture(canvas PNG/Clipboard). 원본스크린샷200KB이하WebP·염색팔레트, 패션작성은기존본문/투표보존+이미지AST추가. 실제3D모델/의상렌더러 없음.
+- GnosisNavigationEditor는기존admin탭과개발전용gnosis/admin-preview에연결. 설정은로컬브라우저미리보기이며운영설정API/DB신설없음. 프로덕션admin-preview는notFound. admin기존인증유지.
+- API/DB/RLS/환경변수/패키지의존성/IRIS코드/케리그마공용컴포넌트 변경없음. docs/GNOSIS_HOME_MERGE_20261019.md 순서로 집 코드와 통합할 것.
+
+
 ## 2026-10-12 — v2.31 / IRIS0.3.0 공식 적용
 
 - 후속 문서9cfcfb2의 Git정보조회 배포 오류는 같은 커밋 정상재배포 dpl_6W4wLEF8k1CBbwjBXEku8Zv2ChUg READY/공식domain 연결 확인으로 복구했다. 코드/패키지·구조 변경 없음. 정확한 실패/복구 경과는 RELEASE_NOTES/HANDOFF에 있다.

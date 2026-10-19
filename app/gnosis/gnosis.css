@@ -1,0 +1,97 @@
+.gnosis-board { --gnosis-small: max(.65rem, 12px); min-height: 100vh; padding: .65rem 0 5rem; background: var(--background); color: var(--text-main); }
+.gnosis-shell { max-width: 1300px; margin: 0 auto; }
+.gnosis-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .65rem 1rem; padding: .8rem 1rem; border: 1px solid var(--panel-border); border-left: .2rem solid var(--accent); border-radius: .8rem; background: var(--panel); }
+.gnosis-heading-copy { min-width: 0; }
+.gnosis-brandline { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem .6rem; }
+.gnosis-brandline h1 { font-size: 1.05rem; font-weight: 900; line-height: 1.25; letter-spacing: .08em; }
+.gnosis-brandline > span { font-size: .7rem; font-weight: 700; color: var(--accent); }
+.gnosis-heading-copy > p { margin-top: .25rem; font-size: var(--gnosis-small); color: var(--text-sub); line-height: 1.5; }
+.gnosis-workspace { margin-top: .65rem; display: grid; grid-template-columns: minmax(0, 1fr); gap: .65rem; align-items: start; }
+.gnosis-categories { min-width: 0; border: 1px solid var(--panel-border); border-radius: .7rem; background: var(--panel); padding: .4rem; }
+.gnosis-category-heading { display: none; }
+.gnosis-sections { display: flex; flex-wrap: wrap; gap: .2rem; }
+.gnosis-sections button { display: flex; min-width: 0; align-items: center; gap: .35rem; padding: .4rem .5rem; border: 1px solid transparent; border-radius: .4rem; text-align: left; font-size: .7rem; font-weight: 700; color: var(--text-sub); cursor: pointer; line-height: 1.45; }
+.gnosis-sections button:hover { color: var(--text-main); background: var(--inner-box); }
+.gnosis-sections button.is-active { color: var(--accent); background: var(--accent-soft); border-color: var(--panel-border); }
+.gnosis-section-icon { display: inline-flex; width: .9rem; justify-content: center; flex-shrink: 0; }
+.gnosis-sidebar-note { display: none; font-size: var(--gnosis-small); line-height: 1.7; color: var(--text-sub); }
+.gnosis-results { min-width: 0; overflow: hidden; border: 1px solid var(--panel-border); border-radius: .7rem; background: var(--panel); }
+.gnosis-list-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem; padding: .65rem .8rem; border-bottom: 1px solid var(--panel-border); }
+.gnosis-list-heading { display: flex; min-width: 0; align-items: baseline; gap: .4rem; }
+.gnosis-list-heading h2 { font-size: .8rem; font-weight: 800; }
+.gnosis-list-heading > span { font-size: var(--gnosis-small); color: var(--text-sub); }
+.gnosis-search-tools { display: flex; min-width: 0; width: 100%; gap: .35rem; }
+.gnosis-search { display: flex; align-items: center; gap: .3rem; min-width: 0; flex: 1; padding: .35rem .5rem; border: 1px solid var(--panel-border); border-radius: .4rem; background: var(--inner-box); }
+.gnosis-search:focus-within { border-color: var(--accent); }
+.gnosis-search > span { color: var(--text-sub); }
+.gnosis-search input { min-width: 0; width: 100%; background: transparent; font-size: .7rem; outline: none; color: var(--text-main); }
+.gnosis-search input::placeholder { color: var(--text-sub); }
+.gnosis-search-tools select { max-width: 6rem; padding: .3rem .35rem; border: 1px solid var(--panel-border); border-radius: .4rem; background: var(--inner-box); color: var(--text-main); font-size: .7rem; }
+.gnosis-guide + .gnosis-guide { border-top: 1px solid var(--panel-border); }
+.gnosis-guide-line { display: flex; align-items: center; gap: .6rem; padding: .8rem; }
+.gnosis-guide:hover { background: var(--inner-box); }
+.gnosis-guide-copy { flex: 1; min-width: 0; }
+.gnosis-guide-badges { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; margin-bottom: .3rem; font-size: var(--gnosis-small); color: var(--text-sub); }
+.gnosis-category-badge { display: inline-flex; align-items: center; gap: .25rem; color: var(--accent); font-weight: 700; }
+.gnosis-spoiler-badge { border: 1px solid var(--panel-border); border-radius: .25rem; padding: 0 .25rem; }
+.gnosis-guide h3 { font-size: .85rem; font-weight: 800; line-height: 1.55; }
+.gnosis-guide h3 a { text-decoration: none; color: var(--text-main); }
+.gnosis-guide h3 a:hover { color: var(--accent); text-decoration: underline; text-underline-offset: .2em; }
+.gnosis-guide-summary { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; margin-top: .2rem; font-size: .7rem; color: var(--text-sub); line-height: 1.7; white-space: pre-wrap; }
+.gnosis-guide-meta { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .65rem; margin-top: .45rem; color: var(--text-sub); font-size: var(--gnosis-small); }
+.gnosis-author { color: var(--text-main); font-weight: 700; }
+.gnosis-likes { display: inline-flex; align-items: center; gap: .2rem; }
+.gnosis-likes > span:first-child { color: var(--accent); }
+.gnosis-video-button { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .15rem; padding: .4rem; border: 1px solid var(--panel-border); border-radius: .45rem; background: var(--inner-box); color: var(--text-sub); font-size: var(--gnosis-small); cursor: pointer; }
+.gnosis-video-button > span:first-child { font-size: 1.15rem; line-height: 1.2; color: var(--accent); }
+.gnosis-video-button:hover { border-color: var(--accent); color: var(--text-main); }
+.gnosis-video { width: min(100%, 40rem); aspect-ratio: 16 / 9; margin: 0 auto .8rem; }
+.gnosis-video iframe { width: 100%; height: 100%; border: 0; }
+.gnosis-empty { display: flex; flex-direction: column; align-items: center; gap: .4rem; padding: 3rem .8rem; text-align: center; color: var(--text-sub); }
+.gnosis-empty > span { font-size: 1.5rem; color: var(--accent); }
+.gnosis-empty h3 { font-size: .85rem; color: var(--text-main); font-weight: 700; }
+.gnosis-empty p, .gnosis-empty button { font-size: .7rem; line-height: 1.6; }
+.gnosis-empty button { margin-top: .4rem; padding: .35rem .6rem; border: 1px solid var(--panel-border); border-radius: .4rem; color: var(--accent); cursor: pointer; }
+.gnosis-board :is(button, a, select):focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.gnosis-board :is(h1,h2,h3,p,button,a,span,time) { overflow-wrap: anywhere; word-break: keep-all; }
+.gnosis-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+@media (min-width: 640px) { .gnosis-search-tools { width: auto; flex: 1; max-width: 22rem; } }
+@media (min-width: 1024px) {
+  .gnosis-workspace { grid-template-columns: 10.5rem minmax(0, 1fr); gap: .8rem; }
+  .gnosis-category-heading { display: flex; align-items: center; justify-content: space-between; padding: .45rem .5rem .65rem; color: var(--text-sub); font-size: var(--gnosis-small); }
+  .gnosis-category-heading h2 { font-weight: 700; }
+  .gnosis-sections { flex-direction: column; }
+  .gnosis-sections button { width: 100%; }
+  .gnosis-sidebar-note { display: block; border-top: 1px solid var(--panel-border); margin: .6rem .4rem 0; padding-top: .6rem; }
+}
+@media (max-width: 639px) {
+  .gnosis-heading { padding: .65rem .7rem; }
+  .gnosis-guide-line { align-items: start; }
+  .gnosis-video-button { margin-top: .2rem; }
+}
+
+.gnosis-svg-mark { display: inline-block; width: 1rem; height: 1rem; flex-shrink: 0; background: currentColor; vertical-align: middle; }
+.gnosis-write-link { display: inline-flex; align-items: center; justify-content: center; gap: .25rem; order: 2; margin-left: auto; border: 1px solid var(--accent); border-radius: .4rem; padding: .45rem .65rem; color: var(--accent-fg); font-size: .75rem; font-weight: 800; text-decoration: none; background: var(--accent); }
+.gnosis-write-link:hover { filter: brightness(1.12); }
+.gnosis-search-tools { order: 3; }
+.gnosis-class-filter { padding: .65rem .8rem; border-bottom: 1px solid var(--panel-border); }
+.gnosis-filter-label { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin-bottom: .5rem; font-size: .7rem; }
+.gnosis-filter-label h2 { color: var(--text-sub); font-weight: 700; }
+.gnosis-filter-label button { color: var(--accent); font-size: var(--gnosis-small); cursor: pointer; }
+.gnosis-life-filter { display: flex; flex-wrap: wrap; gap: .3rem; padding: .65rem .8rem; border-bottom: 1px solid var(--panel-border); }
+.gnosis-life-filter button { display: inline-flex; align-items: center; justify-content: center; min-width: 0; gap: .35rem; padding: .4rem .5rem; border: 1px solid var(--panel-border); border-radius: .4rem; background: var(--inner-box); color: var(--text-main); font-size: .7rem; font-weight: 700; line-height: 1.5; cursor: pointer; }
+.gnosis-life-filter button:hover { border-color: var(--accent); }
+.gnosis-life-filter button.is-active { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+@media (min-width: 640px) { .gnosis-search-tools { order: 2; margin-left: auto; } .gnosis-write-link { order: 3; margin-left: 0; } }
+.gnosis-family-grid { display: flex; flex-wrap: wrap; gap: .25rem; }
+.gnosis-family-grid > button { display: inline-flex; align-items: center; gap: .25rem; padding: .25rem .4rem; border: 1px solid transparent; border-radius: .35rem; color: var(--text-sub); background: transparent; font-size: .7rem; font-weight: 700; line-height: 1.5; cursor: pointer; }
+.gnosis-family-grid > button:hover, .gnosis-family-grid > button.is-active { color: var(--accent); border-color: var(--panel-border); background: var(--accent-soft); }
+.gnosis-family-chevron { font-size: .6rem; opacity: .7; }
+.gnosis-class-menu { position: fixed; z-index: 1200; display: flex; flex-direction: column; overflow-y: auto; overscroll-behavior: contain; padding: .25rem; border: 1px solid var(--panel-border); border-radius: .5rem; background: var(--panel); box-shadow: 0 .4rem 1.2rem #0004; color: var(--text-main); }
+.gnosis-class-menu button { display: flex; align-items: center; gap: .45rem; min-width: 0; padding: .4rem .5rem; border-radius: .3rem; background: transparent; color: var(--text-main); font-size: .7rem; font-weight: 700; line-height: 1.5; text-align: left; cursor: pointer; overflow-wrap: anywhere; word-break: keep-all; }
+.gnosis-class-menu button:hover, .gnosis-class-menu button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); }
+.gnosis-class-menu button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+.gnosis-fashion-link { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; flex-shrink: 0; margin-left: auto; padding: .4rem .6rem; border: 1px solid color-mix(in srgb, var(--accent) 65%, var(--panel-border)); border-radius: .45rem; background: color-mix(in srgb, var(--accent) 10%, var(--panel)); color: var(--accent); font-size: .75rem; font-weight: 800; text-decoration: none; line-height: 1.5; }
+.gnosis-fashion-link:hover { background: var(--accent-soft); border-color: var(--accent); }
+@media (max-width: 639px) { .gnosis-heading { gap: .5rem; } .gnosis-fashion-link { font-size: .7rem; padding: .3rem .5rem; } }

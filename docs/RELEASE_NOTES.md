@@ -1,5 +1,15 @@
 # SANCTUM 업데이트 노트
 
+## 2026-10-19 17:05 KST — GNOSIS 인계 후보 / 운영 버전 v2.31 유지
+
+- 버전 제안: 이번은 독립 기능 브랜치의 미완료 후보 인계이므로 운영 v2.31/IRIS0.3.0 표기 유지. 실제 3D/다중 사용자 저장 완성 및 집 코드 통합 검증 뒤 기능 버전을 결정한다. 공식 출시·공지 게시가 아니다.
+- 사용자 변화: GNOSIS 컴팩트 게시판/분류 SVG·전투/나이트메어 드릴, 케리그마 도구 재사용 rich editor·링크/표/투표·이미지200KB이하압축·댓글/대댓글. 일반 글쓰기 코디 입력은 시뮬레이터로 이동, 개인저장·PNG클립보드·패션글 작성 연결.
+- 구조 변경: app/gnosis, components/gnosis, lib/gnosis*, useGnosisNavigation, 관리자 분류편집 진입과 개발전용 미리보기. API/DB스키마/RLS·IRIS·공개ZIP/공지 변경없음.
+- 제한: 모두 브라우저 localStorage 시제품. 실제3D착용/의상색 렌더링·계정클라우드저장/다중사용자게시/운영분류관리 미완료. 기존4관리자lint오류는HEAD동일. 사용량15%는 새작업중단선이며 소진목표가 아니다.
+- 검증: Node477중474PASS3기존skip0fail, 독립tsc/GNOSISlint/Next60페이지build PASS; 실제PNG복사·패션왕복·로컬게시 확인,320/390/768/1280넘침0. 리뷰보완후최종회귀와push원격일치는후속기록.
+- 운영 배포0. 되돌리기 기준은 기존 운영 main1d8e374 / v2.31, 원격집인계의 정상배포기준 dpl_F6ymNLT5U6aJJLNofK4wtEi8sWXR 참조. 이번브랜치를운영승격하지않았다.
+
+
 ## SANCTUM v2.31 / IRIS Beta 0.3.0 — 2026-10-12 KST 공식 배포
 
 ### 운영 확인과 게시 완료 — 21:11 KST
@@ -545,3 +555,6 @@
 ### 알려진 사항
 - ...
 ```
+
+### 2026-10-19 17:15 KST 최종 검증
+검토 보완 후 독립 tsc·GNOSIS scoped ESLint exit0, Next60/60 build exit0. 전체 Node477/474PASS3기존skip0fail, git diff --cached --check PASS. 실제 IAB에서 미저장 이동확인/계속편집 입력유지/개인저장 후 새로고침 복원을 확인했다. 관리자 기존4lint오류는 별도보류. 이 상태를 codex/gnosis-dressroom에 정상 push하며 main/운영DB/수동배포/공지/ZIP는 유지한다. 제품3D는미완료이며로컬사진/팔레트공유만구현됐다.

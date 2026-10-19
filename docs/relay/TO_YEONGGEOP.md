@@ -1,5 +1,17 @@
 # 순월 → 영겁 수신함
 
+## SW-20261019-001 — WAITING (GNOSIS 패션 저장·공유 / 별도 브랜치 인계)
+
+- 발신 순월 / 수신 영겁 / 최초·최종 2026-10-19 17:05 KST. 관련 branch codex/gnosis-dressroom, 기준 origin/main1d8e374. 한설이 구현과 기능 브랜치 push 및 집 통합·재push를 명시 요청했다. 정확 전송 SHA/원격 결과는 후속 마감에 기록한다. 운영 v2.31/IRIS0.3.0 유지, main 병합·운영 DB·수동 배포·공지·ZIP 변경0.
+- **먼저 docs/GNOSIS_HOME_MERGE_20261019.md와 docs/DRESSROOM_HANDOFF.md를 읽을 것.** 집의 주말 코드와 개인 파일을 보존하고 패션 브랜치를 집 기능 작업에 병합한다. 양쪽 HANDOFF/RELEASE_NOTES/MasterGuide/결정/피드백/릴레이는 모두 보존. 패션 브랜치로 집 작업 전체를 교체하지 말 것.
+- 이번 제품: GNOSIS 메인 컴팩트화·분류 SVG/전투 하위분류/클래스 계열 드롭다운·관리자 분류 로컬 미리보기, 케리그마 공용 toolbar 기반 rich editor/안전한 링크 dialog/표/투표/이미지 압축·댓글/대댓글, 패션 스크린샷·팔레트 개인 저장10개 및 공유 PNG 클립보드/패션 글쓰기. 일반 writer 수동 코디 입력 제거, 기존 게시물·임시저장 item_data 보존.
+- **실제3D 의상 착용·메시교체/염색렌더러·클라우드 개인 저장·서버 다중사용자 게시·운영 분류 설정 저장은 미완료.** 개인 저장/테스트 게시물은 localStorage이며 Git으로 집에 전달되지 않는다. 현재공유는 사진+색상표이며 사진 속 의상색을 바꾸는 기능이 아니다. 자산없음/레퍼런스403 우회0, 3D 설계 문서 검토·자산/권리/rig 확인부터 이어갈 것.
+- 검증: Node477/474PASS3기존skip0fail, 독립tsc/Next60페이지/GNOSISlint exit0. 관리자 기존lint4오류는HEAD와동일. 실제 IAB PNG clipboard, 15KB 압축, 개인 저장, 패션 왕복 제목·본문 유지, 로컬 글 상세 사진·색상 확인, 320/390/768/1280 넘침0. 독립review 중요2(업로드 중 새편집 유실/뒤로가기 미저장 유실) 발견 후 보완·최종 회귀 결과는 후속 기록.
+- 원격4234e54의 YG-20261016-001 및 IRIS_FLOATING_SOONWOL_HANDOFF_20261017.md를 읽고 TO_SOONWOL에 ACK했다. IRIS 미해결 I2/M1을 읽었으나 제품병합/수정/앱실행/게임행동은0. 내일 받을 통합 branch/SHA와검증·남음을 TO_SOONWOL에 남길 것.
+- 원격에서 확인한 이전 SW-20261016-001 ACK: 영겁 2026-10-16 21:44 KST, HEAD07b3f4f 및 주말 인계 수신을 확인했음. 이 브랜치의 아래 오래된 SW-20261012 미확인 경과는 삭제하지 않았다. 자동 안전검토가 릴레이 전체 교체를 거절해 기존 로컬 기록을 보존하고 이번 수신 인지·신규 작업만 누적한다.
+- ACK: 영겁 대기. 기존 미확인/과거 누적은 아래 모두 보존한다.
+
+
 ## SW-20261012-001 — UPDATED (공식 배포·게시 확인)
 
 - 21:23 복구 후속: 인계문서9cfcfb2 첫배포 dpl_AbKL... git_info_fail ERROR→운영0.3.0유지확인→같은프로젝트/커밋·설정으로정상재배포 dpl_6W4wLEF8k1CBbwjBXEku8Zv2ChUg READY/Production/정확SHA9cfcfb222ee7734d7d8aae0d75e0b3a1bac2b004/공식aliasErrornull 확인. 상세로그403/CLI없음 미확인·우회0. 제품코드d70b0e5/ZIP/게시2건 유지·이번기록구조변경없음/복구뒤공지재게시0.
@@ -210,3 +222,6 @@
 - 확인 시각: 2026-09-23 19:55 KST
 - 확인 커밋: `dacef18` (`codex/v1-96-beta`)
 - 확인 범위/답신: v1.95 운영 기준선, v1.96 Preview 검증 범위, Phase A 적용·Phase B 미적용, 익명 쓰기 권한 위험, Production 미배포, 동기화 API 인증 후속 작업을 확인했다. ACK는 인계 수신 확인이며 운영 배포·권한 차단 완료를 뜻하지 않는다.
+
+### 2026-10-19 17:15 KST 최종 검증
+검토 보완 후 독립 tsc·GNOSIS scoped ESLint exit0, Next60/60 build exit0. 전체 Node477/474PASS3기존skip0fail, git diff --cached --check PASS. 실제 IAB에서 미저장 이동확인/계속편집 입력유지/개인저장 후 새로고침 복원을 확인했다. 관리자 기존4lint오류는 별도보류. 이 상태를 codex/gnosis-dressroom에 정상 push하며 main/운영DB/수동배포/공지/ZIP는 유지한다. 제품3D는미완료이며로컬사진/팔레트공유만구현됐다.

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { adminCatalogWrite } from "@/lib/adminCatalogClient";
+import GnosisNavigationEditor from "@/components/gnosis/GnosisNavigationEditor";
 
 export default function GnosisAdminTab() {
   const [guides, setGuides] = useState<any[]>([]);
@@ -36,6 +37,7 @@ export default function GnosisAdminTab() {
 
   return (
     <div className="space-y-5">
+      <GnosisNavigationEditor />
       <div className="border-b border-[var(--panel-border)] pb-3">
         <h2 className="text-lg font-black text-[var(--accent)]">📖 그노시스 공략 게시판 제어</h2>
         <p className="text-xs text-[var(--text-sub)] font-medium mt-0.5">길드원 공유 공략글 상단 고정 및 삭제 권한을 관리합니다.</p>

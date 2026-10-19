@@ -1,5 +1,13 @@
 # SANCTUM 작업 인계
 
+## 2026-10-19 17:05 KST 순월 — GNOSIS 기능 브랜치 인계 후보
+
+- 이번은 운영 출시가 아니다. 운영 v2.31/IRIS0.3.0과 main1d8e374 유지. 별도 codex/gnosis-dressroom에 GNOSIS 메인/에디터/댓글/분류/패션 저장·공유만 구현했다. 운영 DB/RLS·IRIS 제품·개인 파일 변경0, main병합·수동배포0.
+- 집 통합은 docs/GNOSIS_HOME_MERGE_20261019.md를 먼저 따른다. 집의 최신 주말 작업은 origin/codex/iris-checkboard-classes4234e54에 있으며 이 브랜치에는 제품을 섞지 않았다. IRIS 플로팅 미해결I2/M1은 원격 문서로 읽고 ACK했을 뿐 해결하지 않았다.
+- 완료/남음/검증 상세는 docs/DRESSROOM_HANDOFF.md 및 전용 병합 안내. 개인저장10개/PNG클립보드/패션 글쓰기는 브라우저 시제품이며 실제3D착용·의상염색/계정저장·여러길드원서버공유는 미완료다. 코드만 Git 인계되며 로컬 코디·테스트 글은 집으로 옮겨지지 않는다.
+- 현재 검증 Node477/474PASS3skip0fail, 독립tsc/Next60페이지/GNOSISlint PASS. 기존관리자lint4오류는HEAD동일. 검토 중요2보완 뒤 최종회귀·전송결과는 후속 기록. 이전 공식배포 내용은 아래 그대로 보존한다.
+
+
 ## 2026-10-12 순월 — 공식 push·운영 배포·공지 2건 마감
 
 - **21:23 추가 복구 확인:** 문서 후속 커밋9cfcfb2 최초 배포는 git_info_fail ERROR(dpl_AbKL...)였다. 실제 운영0.3.0 유지 확인 후 동일 커밋·기존 프로젝트 설정으로 재배포하여 dpl_6W4wLEF8k1CBbwjBXEku8Zv2ChUg READY/Production/9cfcfb222ee7734d7d8aae0d75e0b3a1bac2b004/공식domain aliasError null 확인했다. 실패를 숨기거나 코드·설정·보안 권한을 바꾸지 않았다. 상세로그는403/CLI없음으로 미확인. 제품코드d70b0e5/패키지·게시2건 그대로, 이번 복구 기록은 문서 전용이다.
@@ -1285,3 +1293,6 @@
 - 검증: RED→GREEN API/relay/state/native/위젯 및 nested palette 회귀, 최신 `node --test`139/139(Windows 포함, skip0, 실제 공유 갱신 배선 회귀 포함), `npx tsc --noEmit` exit0, `npm run build` exit0. 실제 게임이 아닌 합성 GUI/루프백 대역만 사용. 계획의 별도 agent 리뷰는 미승인이라 실행하지 않았으며 자기 점검과 구분한다.
 - 한설 확인: 기존 IRIS 정상 종료 확인 후 재실행→새 읽기 연결/생텀 승인→현재 캐릭터 확인→숙제. 웹 `/character`와 항목·클래스 저장값 대조,필터·아코디언·스크롤·×→복구·DPI 확인 대기. 실제 로그인/게임 조작을 대신하지 않는다.
 - AI(아님)커넥터 목표는 `docs/IRIS_AUTOMATION_PARITY.md`의 전체 목록 유지. 다음 안전한 후보는 시설별 수령의 명시 실행/중지/실패 재조회 설계. 현재 자동화 구현 완료로 보고하지 말 것. 기존 미확인 인계/수신함 메시지 보존.
+
+### 2026-10-19 17:15 KST 최종 검증
+검토 보완 후 독립 tsc·GNOSIS scoped ESLint exit0, Next60/60 build exit0. 전체 Node477/474PASS3기존skip0fail, git diff --cached --check PASS. 실제 IAB에서 미저장 이동확인/계속편집 입력유지/개인저장 후 새로고침 복원을 확인했다. 관리자 기존4lint오류는 별도보류. 이 상태를 codex/gnosis-dressroom에 정상 push하며 main/운영DB/수동배포/공지/ZIP는 유지한다. 제품3D는미완료이며로컬사진/팔레트공유만구현됐다.

@@ -42,7 +42,8 @@ export default function AdminPage() {
 
   useEffect(() => {
     setMounted(true);
-    if (new URLSearchParams(window.location.search).get("tab") === "approval") setActiveMainTab("approval");
+    const requestedTab = new URLSearchParams(window.location.search).get("tab");
+    if (requestedTab && MAIN_TABS.some(tab => tab.id === requestedTab)) setActiveMainTab(requestedTab);
     void fetch('/api/auth/session', { cache: 'no-store' }).then(async response => {
       if (!response.ok) throw new Error('세션 확인 실패');
       const { account } = await response.json();
