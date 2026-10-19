@@ -35,12 +35,14 @@
 ## Task 2 — 검증과 배포
 
 - [x] 전체Node, 격리build/독립tsc, lock/updater/focus 브라우저 검증 및 독립 릴리스 검토.
-- [ ] diff 확인·개인변경 제외한 명시 staging·기능 push. 원격 main 최신 확인 뒤 정상 main push.
-- [ ] Vercel 성공 상태와 운영 download4폭/ZIP해시/핵심 익명경로·권한경계를 확인한다.
+- [x] diff 확인·개인변경 제외한 명시 staging·기능 push. 원격 main 최신 확인 뒤 정상 main push.
+- [x] Vercel 성공 상태와 운영 download4폭/ZIP해시/핵심 익명경로·권한경계를 확인한다.
 - [ ] 기존 정상 공지 UI로만 승인된 IRIS 공지 게시(세션/권한 없으면 사용자 행동 요청), 중복 게시 금지.
 - [ ] 정확SHA/배포·남은 제한을 필수4문서와 릴레이에 누적·push한다.
 
 ## Execution Ledger
+
+- 21:00KST: 제품3e6f7ae main+통합push/원격exact. 배포dpl_7rwKTwyaDQNrYN49xnvTLcRhCh5V 실제로그인UI Ready/Production/Current domain/SHA일치, 운영4폭·ZIP해시/핵심익명경로·publicnotes PASS. 공지권한뉴월부마스터disabled로한설계정전환요청·未게시, 보호우회0. 문서결과마감후정확HEAD인계.
 
 - 20:52KST: Task1검증 완료. 추가 bounded 아이콘표시 설계를 한설이 승인했다. helper기존이름 유지/실행시동일바이트별칭·원본숨김, TDD/패키지hidden RED→GREEN·최종원본helper실교체PASS. 최종ZIP595194/SHAea2a4f784fde6e79b632582681525e651b9ac1debcbb61aab57d58ce4ec04fd3. fullNode601PASS3skip·웹60/독립타입·l​​int·lock/updater/focus PASS·독립release/icon각C0I0M0. 기존personal상태6개·7115문서줄·40GNOSIS제품 보존.
 

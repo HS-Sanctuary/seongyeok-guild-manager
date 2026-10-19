@@ -1,5 +1,9 @@
 # 2026-10-19 집 통합 인계 — GNOSIS + 주말 IRIS
 
+## 최종 현황 — 2026-10-19 21:00 KST
+
+추가 사용자 승인 뒤 제품3e6f7ae456576dd8bb145b91a1dddd6082d5c2da를main/통합브랜치에정상push했다. 웹v2.32/IRIS0.4.0은운영공개됐고 Vercel dpl_7rwKTwyaDQNrYN49xnvTLcRhCh5V Ready/Production/현재도메인·정확SHA/운영ZIP595194·SHAea2a4f784fde6e79b632582681525e651b9ac1debcbb61aab57d58ce4ec04fd3/4폭·핵심익명경로를확인했다. DB구조·권한변경0/ERGON잠금·GNOSIS메뉴준비중유지. 아래공개보류·0.3유지는당시경과다. 아이콘표시는사용자추가승인으로첫실행시‘아이리스 로고.ico’별칭/호환IRIS.ico숨김, oldhelper계약유지. 공지작성만뉴월부마스터권한disabled로한설계정전환대기·未게시이며공개다운로드는바로가능하다. 자세한결과는최신HANDOFF/RELEASE_NOTES/TO_SOONWOL부터읽고문서마감까지최신HEAD를받는다.
+
 ## 전송 확인 — 2026-10-19 20:07 KST
 
 - 통합 제품 커밋 `64cdd50c36619677a50900d41ac15d28d080e39d`를 `origin/codex/home-gnosis-iris-integration-20261019`에 정상 push했고 `ls-remote`가 정확히 일치했다. 이 결과를 적는 문서 마감 커밋까지 브랜치 최신 HEAD를 받는다.

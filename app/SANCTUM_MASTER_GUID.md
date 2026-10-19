@@ -1,5 +1,9 @@
 # 🏛️ SANCTUM Master Guide
 
+## 2026-10-19 21:00 KST 운영 반영 확인 (결과 기록, 구조 변경 없음)
+
+제품3e6f7ae를main에정상push, Vercel dpl_7rwKTwyaDQNrYN49xnvTLcRhCh5V Ready/Production/Current domain/정확SHA와 운영웹v2.32·IRIS0.4.0 metadata/ZIP해시·공개notes를실제로확인했다. 기존업데이트버튼과 `/iris/download`가같은0.4.0패키지를가리킨다. ERGON잠금/GNOSIS메뉴준비중은유지, DB·API권한/RLS·저장형식변경0. 아래 ‘미배포’는당시경과이며 이번은문서만추가/구조변경없음. 공지데이터는현재계정권한부족으로아직게시전, 정상권한UI로만후속게시한다.
+
 ### 2026-10-19 표시 아이콘 구분 구조 추가
 
 production ReleaseProgram이 소유권을 획득한 뒤 DesktopReleaseFiles.EnsureIconName을 호출한다. 기존 IRIS.ico payload는 원본0.3 updater allowlist/hash 호환을 위해 그대로 두고, 동일바이트 `아이리스 로고.ico`를 로컬 생성·가시화하며 원본만hidden 처리한다. 기존 다른내용 파일/링크는 거절·readonly는failsoft, 사용자저장소/원장 접근0. build-beta는 새 source를 컴파일하고 ZIP의 IRIS.ico hidden bit를명시, 패키지는기존10파일이며manifest원래이름 유지. 업데이트 원본helper실교체/보호지문/새표시파일까지 검증. 최종ZIP595194/SHAea2a4f784fde6e79b632582681525e651b9ac1debcbb61aab57d58ce4ec04fd3. 운영DB·권한구조변경없음.

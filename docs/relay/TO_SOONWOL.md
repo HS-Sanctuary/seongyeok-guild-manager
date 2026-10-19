@@ -2,6 +2,9 @@
 
 ## YG-20261016-001 — UPDATED (목록형 구현·검토 수정·15% 해제)
 
+- **운영공개결과2026-10-19 21:00KST:** 한설승인으로 제품3e6f7ae456576dd8bb145b91a1dddd6082d5c2da를main+통합브랜치정상push/ls-remote exact. Vercel dpl_7rwKTwyaDQNrYN49xnvTLcRhCh5V 정상로그인대시보드 Ready/Production/Current domain/main정확SHA확인·GHsuccess. 웹v2.32/IRIS0.4.0 실제공개·운영다운로드4폭/metadata/ZIP595194·SHAea2a4f784fde6e79b632582681525e651b9ac1debcbb61aab57d58ce4ec04fd3/핵심6GET200·guest2API401/pageerror0·공개notes0.4세구역PASS. 이결과문서마감까지최신HEAD받을것. 개인/양쪽미ACK누적보존·DB구조권한변경0.
+- **남은공지1:** 현재정상브라우저뉴월·부마스터라 생텀업데이트작성disabled. 한설계정전환요청/게시0·중복0. UPDATE_POST_IRIS_0.4.0 초안을 중제목/문장별문단·SANCTUM시스템으로 정상UI에서게시후결과기록, DB직접게시/권한우회금지. 공개업데이트자체는이미사용가능. 아래보류·미배포·옛후보해시는각시점경과라삭제금지. 본마감문서전용/구조변경없음·ERGON수량100/실사용장시간·다중DPI추가검증한계유지.
+
 - **2026-10-19 20:52KST 최종후보:** 한설아이콘구분요청/호환IRIS.ico숨김+아이리스로고표시승인. productionDesktopReleaseFiles 첫실행동일바이트copy·기존다른파일/링크비덮어쓰기·readonlyfailsoft, builderhidden명시/기존ZIP10파일·manifest이름유지. 최종ZIP595194/SHAea2a4f784fde6e79b632582681525e651b9ac1debcbb61aab57d58ce4ec04fd3(아래594801은이전후보). 원본0.3helper→이ZIP실EXE0.4/fresh offlineWebView·표시ICO/숨김/보호지문동일PASS. Node601PASS3skip/최종웹v2.32 Next60·독립tsc·l​​int/Reactlockupdaterfocus/독립release·iconreview각C0I0M0. 정확push/운영검증/공지결과후속·기존미ACK누적삭제금지.
 
 - **2026-10-19 20:45KST 공개승인후속:** 한설이 GNOSIS기존준비중메뉴를유지한통합push+IRIS플로팅공개업데이트승인. 아래 운영보류는당시경과/이번IRIS0.4.0·웹v2.32범위해제·DB권한변경별도. 공개ZIP594801/SHA256c2b306d4a0e222b46a98ce7450284c73f2beec1b3b949d72a5b81435a347ee02 생성/원본0.3백업·기존helper→실EXE0.4/fresh offlineWebView committed/보호파일지문동일 PASS. Node601PASS3skip·nativepackage/policy/process3경로/network·Reactlock/updater/focus PASS. 격리build/타입·독립리뷰·정확push/운영검증/공지결과후속, 아직완료로해석금지. MCP동일Vercel팀403/CLI없음이면Git자동배포상태·실운영검증과구분/인증우회금지. 개인dirty·기존미ACK누적보존, ERGONUI/native잠금/가죽100반복미완료·unknown원본보존/GNOSIS메뉴준비중및직접URL로컬시제품한계유지.

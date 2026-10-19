@@ -1,5 +1,12 @@
 # SANCTUM 작업 인계
 
+## 2026-10-19 21:00 KST — 운영 공개 완료 / 공지 권한 전환 대기
+
+- 최신 제품 `3e6f7ae456576dd8bb145b91a1dddd6082d5c2da`는 main과 `codex/home-gnosis-iris-integration-20261019` 양쪽에 정상push/원격exact. 결과 문서 마감까지 최신HEAD를 받는다. 웹v2.32/IRIS0.4.0 공개. Vercel dpl_7rwKTwyaDQNrYN49xnvTLcRhCh5V 정상 로그인UI에서 Ready/Production/Current domain/정확SHA 확인, GHsuccess. 이전 미배포/보류는 당시 경과다.
+- 실운영 다운로드4폭/metadata·실ZIP595194·SHAea2a4f784fde6e79b632582681525e651b9ac1debcbb61aab57d58ce4ec04fd3/6핵심GET200·guest2API401/pageerror0/공개notes0.4.0세구역 PASS. 로그인후실저장·파티생성·새사용자다중DPI는 추가검증이며 성공으로확대금지. 에르곤 UI/native 잠금·그노시스 메뉴준비중, 기존직접URL로컬시제품한계 그대로.
+- 남은1: 뉴월·부마스터 브라우저는 생텀업데이트 작성disabled. 한설계정전환 요청했고 공지未게시. 새0.4공지중복없음 확인, 열린 `/kerygma/write` 내용미입력. `UPDATE_POST_IRIS_0.4.0.md` 중제목/문장문단·SANCTUM시스템으로 기존정상UI게시 후 결과기록. 권한우회·DB직접쓰기금지. 완료된 공개업데이트 자체는 이 공지와 별개로 사용할 수 있다.
+- 운영DB구조/권한0·개인6상태/7115줄/순월40제품보존. 문서전용결과마감/구조변경없음. 임시격리서버3119는 정상중지, 게임/사용자IRIS강제종료0.
+
 ### 2026-10-19 20:52 KST 최종 후보
 
 아이콘추가요청/호환숨김+아이리스로고표시 승인 완료. DesktopReleaseFiles는 첫실행에 동일바이트 `아이리스 로고.ico`를 생성하고 IRIS.ico를 숨김. 기존다른파일/링크 비덮어쓰기·읽기전용failsoft, builderZIP hidden 명시·정확10파일. 최종공개ZIP595194/SHAea2a4f784fde6e79b632582681525e651b9ac1debcbb61aab57d58ce4ec04fd3. 원본0.3helper로 이 최종ZIP→실EXE0.4/offline freshWebView·표시파일·숨김·보호지문 PASS(Temp iris-update-live-9bb81c89daca46e4a7d2b1cd2b017f8c). 앞선594801은이전후보경과다. Node601PASS3skip·최종웹v2.32 Next60/독립타입·l​​int·React3회귀 PASS, 독립릴리스/아이콘review각C0I0M0. 개인6상태·양쪽7115줄/40제품보존. 정확전송/운영검증·공지게시 결과는후속누적한다.

@@ -1,5 +1,13 @@
 # SANCTUM 업데이트 노트
 
+## 2026-10-19 21:00 KST — v2.32 / IRIS Beta0.4.0 운영 공개 확인
+
+- 제품 커밋 `3e6f7ae456576dd8bb145b91a1dddd6082d5c2da`를 통합 브랜치와 운영 main에 정상 push·ls-remote exact 확인. [Vercel 운영 배포](https://vercel.com/sanctum-sanctuary/sanctum/7rwKTwyaDQNrYN49xnvTLcRhCh5V) UI에서 Ready/Production/Current domain/정확 main SHA 확인, GitHub Vercel success도 일치했다. MCP scope403은 로그인된 정상 대시보드의 읽기 확인으로 구분했고 인증/권한 설정 변경0.
+- 운영 익명 실제브라우저: 다운로드320/390/768/1280px·0.4.0표시/ZIP링크·가로넘침0, 공개metadata0.4.0와 실제 ZIP595194bytes/SHA256ea2a4f784fde6e79b632582681525e651b9ac1debcbb61aab57d58ce4ec04fd3 정확일치. 홈/로그인/캐릭터/케리그마/파티/관리자 GET200, 비로그인 IRIS2API401, pageerror/폼쓰기0. 공개notes0.4.0/3sections 확인. 운영 케리그마 실제 로그인 UI의 웹v2.32·그노시스 준비중도 확인했다. 로그인 후 저장/파티 생성 등 운영 쓰기 회귀는 하지 않았다.
+- 기존 지원 앱은 업데이트 버튼, 새 사용자/구형 앱은 `/iris/download`에서 ZIP으로 받을 수 있다. 실제 원본0.3 helper→최종0.4.0 offline 교체/보호지문 검증은 아래 참조. 에르곤은 준비중 잠금이며 가공100개 문제 해결 출시가 아니다.
+- **공지 게시만 대기:** 현재 브라우저 뉴월·부마스터의 ‘생텀 업데이트’ 버튼이 disabled여서 게시하지 않았다. 기존0.4.0중복 공지 없음 확인, 초안은 `docs/UPDATE_POST_IRIS_0.4.0.md`. 권한 있는 한설 계정으로 전환 요청, 코드/권한 우회·DB직접게시0. 따라서 공지가 올라갔다고 보고하지 않는다.
+- 이번 마감은 문서만 추가/구조 변경 없음. 운영 DB 구조·권한/개인파일·보호원장 변경 없음. 바로 이전 정상v2.31/IRIS0.3.0 및 복구 기준은 아래 보존한다.
+
 ### 2026-10-19 20:52 KST — v2.32 최종 패키지 검증 (배포 결과 전)
 
 아이콘 요청을 추가 반영했다. 실행은 IRIS.exe(응용 프로그램), 첫 실행 후 그림은 `아이리스 로고.ico`로 구분한다. 기존0.3.0 helper 호환용 IRIS.ico는 ZIP hidden 속성과 앱 실행 후 hidden을 적용하며 원본이름/내용은 유지한다. 새 표시 파일은 로컬에서만 생성해 ZIP10파일 계약을 지킨다. 같은 이름의 개인 파일/링크는 덮어쓰지 않으며 읽기전용 실패도 시작을 막지 않는다. 숨김 파일 표시를 켜면 호환파일도 보인다.
