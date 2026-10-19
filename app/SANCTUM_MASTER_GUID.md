@@ -934,3 +934,5 @@ RLS가 켜진 테이블은 `accounts`, `activity_logs`, `characters`, `inquiries
 6. 범용 알림 데이터 구조와 사용자별 설정 설계 후, KRONOS·SYNAXIS·운영진 이벤트부터 내부 알림함에 단계적으로 연결
 7. Service Worker/PWA/Web Push를 추가해 종료 후 모바일·브라우저 알림 지원
 8. 베타 안정화 후 GNOSIS와 EMPORION 고도화
+
+- 2026-10-19 17:07 KST 문서마감: 제품83b437a/자동Preview dpl_33y9Lt9E7XyUhUnBuJZrdyXnXqdL READY(실화면은Vercel로그인보호로미확인). 구조변경없음/운영미적용. 집통합은전용병합안내참조.

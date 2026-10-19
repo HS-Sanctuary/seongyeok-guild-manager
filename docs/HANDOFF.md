@@ -1294,5 +1294,10 @@
 - 한설 확인: 기존 IRIS 정상 종료 확인 후 재실행→새 읽기 연결/생텀 승인→현재 캐릭터 확인→숙제. 웹 `/character`와 항목·클래스 저장값 대조,필터·아코디언·스크롤·×→복구·DPI 확인 대기. 실제 로그인/게임 조작을 대신하지 않는다.
 - AI(아님)커넥터 목표는 `docs/IRIS_AUTOMATION_PARITY.md`의 전체 목록 유지. 다음 안전한 후보는 시설별 수령의 명시 실행/중지/실패 재조회 설계. 현재 자동화 구현 완료로 보고하지 말 것. 기존 미확인 인계/수신함 메시지 보존.
 
-### 2026-10-19 17:15 KST 최종 검증
+### 2026-10-19 17:06 KST 최종 검증
 검토 보완 후 독립 tsc·GNOSIS scoped ESLint exit0, Next60/60 build exit0. 전체 Node477/474PASS3기존skip0fail, git diff --cached --check PASS. 실제 IAB에서 미저장 이동확인/계속편집 입력유지/개인저장 후 새로고침 복원을 확인했다. 관리자 기존4lint오류는 별도보류. 이 상태를 codex/gnosis-dressroom에 정상 push하며 main/운영DB/수동배포/공지/ZIP는 유지한다. 제품3D는미완료이며로컬사진/팔레트공유만구현됐다.
+### 2026-10-19 17:07 KST 전송 결과
+- 제품83b437af50c4ca98e0847c17cae8e8c32fac3b69를 origin/codex/gnosis-dressroom에 정상 push, ls-remote 정확 일치. 최초 원격 기능브랜치라 upstream 생성, push 전 fetch/해당원격없음 확인. 이번 후속 문서 마감까지 최신 HEAD를 받을 것.
+- Git 자동 Preview dpl_33y9Lt9E7XyUhUnBuJZrdyXnXqdL READY/정확제품SHA/target null/aliasError null 확인. 수동배포·Production승격0, origin/main1d8e374 유지. 실제 Preview URL은 Vercel 로그인 보호 화면으로 이동하므로 제품 화면 확인 미완료/로컬 검증과 구분한다. 인증우회/공유링크생성/로그인설정변경0.
+- https://vercel.com/sanctum-sanctuary/sanctum/33y9Lt9E7XyUhUnBuJZrdyXnXqdL . 로컬 http://127.0.0.1:3100/gnosis/dressroom 은 화면 검증 후 열어두었다.
+- 마감은 구조 변경 없는 문서만 추가, 제품 버전 유지. 주간31%·5시간37% 잔여 시점이며15%까지소진하지않고3D자산부재/집통합전안전인계를우선했다. 집에서는 GNOSIS_HOME_MERGE_20261019.md 순서대로 주말작업·개인파일을 보존하며 통합 후 통합 branch/SHA를 TO_SOONWOL에 남길 것.

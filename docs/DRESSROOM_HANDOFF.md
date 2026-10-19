@@ -125,7 +125,7 @@
 - 새 안전 테스트3건 RED→GREEN, 관련10건PASS, 전체Node474중471PASS/기존3skip/0fail. 변경파일 타입/린트PASS, 로컬build 결과는 마감 후속 확인. 운영DB/main/push/배포 변경0. 테스트는 별도 확인 탭에서 수행하며 이번에는 실제 글·댓글을 저장하지 않았다.
 - 마감 검증: npm run build exit0/60페이지 생성, ignoreBuildErrors 설정과 별도로 독립 TypeScript exit0. 수정파일 ESLint exit0, diff check PASS. 실제 대상 탭 기준320/390/768/1280px 가로넘침0/추가도구 기본접힘 확인. 링크·표·투표·압축 QA 내용은 저장하지 않고 취소했다. 사용자 제공 화면의 (1) 제목/6자 배치를 작성 탭에 복원했다. 기본 도구 정리 캡처 gnosis-toolbar-simplified.jpg 보관, 임시 viewport 해제. 운영 DB·push·배포0.
 
-## 2026-10-19 17:10 KST — 저장·공유 구현과 집 통합 준비
+## 2026-10-19 17:04 KST — 저장·공유 구현과 집 통합 준비
 
 - 최신 상태는 docs/GNOSIS_HOME_MERGE_20261019.md 참조. 앞부분의 미커밋/push0·준비페이지·writer 코디옵션 유지 문구는 당시 경과다. 한설이 이번 구현·별도 브랜치 push를 명시 승인했다.
 - 일반 writer에서 코디·염색 입력/AI추출패널 제거, 기존 item_data/legacy초안 읽기는 보존. 시뮬레이터에 코디명/등급/염색파트·스크린샷 편집, localStorage개인저장10개/같은ID갱신/손상기록덮어쓰기방지. AI 분석 API 수정·호출0.
@@ -136,5 +136,10 @@
 - 원격집4234e54의인계/릴레이를읽고최신TO_SOONWOL에ACK했다. IRIS미해결I2/M1은인지한것이며제품수정/새native실행/게임행동0. 집제품코드를이브랜치에병합하지않았다.
 - 구조: lib/gnosisFashion.ts, lib/gnosisFashionCapture.ts, app/gnosis/dressroom/page.tsx 및dressroom.css, writer수정, tests/gnosis-fashion.test.mjs. 신규저장키gnosis_fashion_library_v1 / gnosis_fashion_work_v1 / gnosis_fashion_transfer_v1, 기존gnosis_writer_draft_v1은확장호환.
 - 코드검증477중474PASS3skip0fail/독립tsc·GNOSISlint·Next60페이지buildPASS. 관리자2파일기존lint4오류HEAD와동일. 리뷰보완후최종검증과push결과는다음마감에기록한다.
-### 2026-10-19 17:15 KST 최종 검증
+### 2026-10-19 17:06 KST 최종 검증
 검토 보완 후 독립 tsc·GNOSIS scoped ESLint exit0, Next60/60 build exit0. 전체 Node477/474PASS3기존skip0fail, git diff --cached --check PASS. 실제 IAB에서 미저장 이동확인/계속편집 입력유지/개인저장 후 새로고침 복원을 확인했다. 관리자 기존4lint오류는 별도보류. 이 상태를 codex/gnosis-dressroom에 정상 push하며 main/운영DB/수동배포/공지/ZIP는 유지한다. 제품3D는미완료이며로컬사진/팔레트공유만구현됐다.
+### 2026-10-19 17:07 KST 전송 결과
+- 제품83b437af50c4ca98e0847c17cae8e8c32fac3b69를 origin/codex/gnosis-dressroom에 정상 push, ls-remote 정확 일치. 최초 원격 기능브랜치라 upstream 생성, push 전 fetch/해당원격없음 확인. 이번 후속 문서 마감까지 최신 HEAD를 받을 것.
+- Git 자동 Preview dpl_33y9Lt9E7XyUhUnBuJZrdyXnXqdL READY/정확제품SHA/target null/aliasError null 확인. 수동배포·Production승격0, origin/main1d8e374 유지. 실제 Preview URL은 Vercel 로그인 보호 화면으로 이동하므로 제품 화면 확인 미완료/로컬 검증과 구분한다. 인증우회/공유링크생성/로그인설정변경0.
+- https://vercel.com/sanctum-sanctuary/sanctum/33y9Lt9E7XyUhUnBuJZrdyXnXqdL . 로컬 http://127.0.0.1:3100/gnosis/dressroom 은 화면 검증 후 열어두었다.
+- 마감은 구조 변경 없는 문서만 추가, 제품 버전 유지. 주간31%·5시간37% 잔여 시점이며15%까지소진하지않고3D자산부재/집통합전안전인계를우선했다. 집에서는 GNOSIS_HOME_MERGE_20261019.md 순서대로 주말작업·개인파일을 보존하며 통합 후 통합 branch/SHA를 TO_SOONWOL에 남길 것.
