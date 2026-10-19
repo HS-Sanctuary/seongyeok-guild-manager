@@ -53,6 +53,7 @@ $generated=Join-Path $root ('native-version-'+[guid]::NewGuid().ToString('N')+'.
 $updateSources=@('desktop-update-policy.cs','desktop-update-install.cs')|ForEach-Object{Join-Path $PSScriptRoot $_}
 $sources=@('overlay-native.cs','desktop-overlay.cs','desktop-addon-policy.cs','desktop-addon.cs','desktop-host.cs','desktop-store.cs','desktop-bridge.cs','desktop-life-read.cs','desktop-life-journal.cs','desktop-life-policy.cs','desktop-life-cli.cs','desktop-life-executor.cs','desktop-life-automation.cs','desktop-life-reconciliation.cs','desktop-cli-activity.cs','desktop-life-reference.cs','desktop-fonts.cs','desktop-presentation.cs','desktop-floating.cs','desktop-floating-store.cs','desktop-floating-host.cs','desktop-alert-sound.cs','desktop-lifecycle.cs','desktop-webview.cs','desktop-release.cs','desktop-update.cs')|ForEach-Object{Join-Path $PSScriptRoot $_}
 $sources+=$updateSources
+$sources+=(Join-Path $PSScriptRoot 'desktop-release-files.cs')
 $sources+=$generated
 $exe=Join-Path $release 'IRIS.exe'
 $refs=@($core,$forms,'System.Windows.Forms.dll','System.Drawing.dll','System.Core.dll','System.Security.dll','System.Web.Extensions.dll','System.IO.Compression.dll','System.IO.Compression.FileSystem.dll')|ForEach-Object{'/reference:'+$_}
@@ -70,7 +71,10 @@ $entries=@(Get-ChildItem -LiteralPath $release -File|Sort-Object Name|ForEach-Ob
 $manifest=@{schemaVersion=1;product='IRIS for SANCTUM';channel='beta-candidate';architecture='win-x64';createdAtUtc=[DateTime]::UtcNow.ToString('o');signature='unsigned';version=$nativeVersion;updaterVersion=1;minUpdaterVersion=1;queueSchemaVersion=3;files=$entries}
 [IO.File]::WriteAllText((Join-Path $release 'manifest.json'),($manifest|ConvertTo-Json -Depth 5),[Text.UTF8Encoding]::new($false))
 $zip=$release+'.zip'
+[IO.File]::SetAttributes($iconPath,([IO.File]::GetAttributes($iconPath) -bor [IO.FileAttributes]::Hidden))
 [IO.Compression.ZipFile]::CreateFromDirectory($release,$zip,[IO.Compression.CompressionLevel]::Optimal,$false)
+$archive=[IO.Compression.ZipFile]::Open($zip,[IO.Compression.ZipArchiveMode]::Update)
+try {$entry=$archive.GetEntry('IRIS.ico');$entry.ExternalAttributes=$entry.ExternalAttributes -bor 2} finally {$archive.Dispose()}
 $download=$manifest.Clone()
 $download.sha256=(Get-FileHash -Algorithm SHA256 -LiteralPath $zip).Hash.ToLowerInvariant()
 $download.sizeBytes=(Get-Item -LiteralPath $zip).Length

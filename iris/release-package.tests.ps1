@@ -12,6 +12,7 @@ try{
  $names=@($archive.Entries|ForEach-Object{$_.FullName})
  foreach($file in @('IRIS.exe','IRIS.Updater.exe','IRIS.ico','Microsoft.Web.WebView2.Core.dll','Microsoft.Web.WebView2.WinForms.dll','WebView2Loader.dll','README.txt','LICENSE.WebView2.txt','NOTICE.WebView2.txt','manifest.json')){if($names -notcontains $file){throw ('Missing package file: '+$file)}}
  if($names.Count -ne 10){throw 'Package allowlist violated'}
+ if(!($archive.GetEntry('IRIS.ico').ExternalAttributes -band 2)){throw 'Compatibility icon should be hidden in the archive'}
  if(@($names|Where-Object{$_ -match 'env|profile|queue|CLI|node_modules|\.ps1$|\.cs$'}).Count){throw 'Private or source/development files leaked'}
 }finally{$archive.Dispose()}
 $manifest=Get-Content (Join-Path $result.Directory 'manifest.json') -Raw|ConvertFrom-Json

@@ -1,5 +1,13 @@
 # 🏛️ SANCTUM Master Guide
 
+### 2026-10-19 표시 아이콘 구분 구조 추가
+
+production ReleaseProgram이 소유권을 획득한 뒤 DesktopReleaseFiles.EnsureIconName을 호출한다. 기존 IRIS.ico payload는 원본0.3 updater allowlist/hash 호환을 위해 그대로 두고, 동일바이트 `아이리스 로고.ico`를 로컬 생성·가시화하며 원본만hidden 처리한다. 기존 다른내용 파일/링크는 거절·readonly는failsoft, 사용자저장소/원장 접근0. build-beta는 새 source를 컴파일하고 ZIP의 IRIS.ico hidden bit를명시, 패키지는기존10파일이며manifest원래이름 유지. 업데이트 원본helper실교체/보호지문/새표시파일까지 검증. 최종ZIP595194/SHAea2a4f784fde6e79b632582681525e651b9ac1debcbb61aab57d58ce4ec04fd3. 운영DB·권한구조변경없음.
+
+## 2026-10-19 v2.32 / IRIS0.4.0 출시 후보 (공개 승인, 결과 후속)
+
+한설의 공개 업데이트 승인에 따라 public/IRIS/downloads의 ZIP+metadata를0.4.0으로 생성하고 웹표시v2.32를 사용한다. 구조 변경 없음: 기존 native updater→원본 helper→manifest/hash 교체와 단일 DesktopUpdater portal 요약 구조를 그대로 사용한다. 공개 ZIP10개 allowlist/unsigned beta, 원본0.3.0 helper의 새EXE·fresh offline WebView 교체 및 보호 파일 지문 보존 시험 PASS. ERGON defaultfalse/UI/native gate와 GNOSIS PC/모바일 comingSoon 메뉴는 유지한다. GNOSIS 직접URL 시제품은 메뉴 잠금과 별개이며 서버 접근제어를 추가하지 않았다. 운영 DB/API권한/RLS·저장 형식 변경0. 배포·운영 확인 결과는 후속 마감에 기록한다.
+
 ## 2026-10-19 20:07 KST — 통합 인계 전송 마감 (구조 변경 없음)
 
 통합 제품 `64cdd50c36619677a50900d41ac15d28d080e39d`는 `origin/codex/home-gnosis-iris-integration-20261019`에 정상 push·원격 exact 확인했다. 이 결과 문서 마감까지 최신 HEAD를 받는다. 아래 구조 설명의 운영 미적용 경계는 그대로이며 main/DB/운영 배포·ZIP·공지 변경0, 자동 Preview GitHub 상태 pending/Ready·실화면 미확인이다. 이 마감은 문서만 추가하며 구조 변경 없음. 다음 작업 순서는 `docs/HOME_INTEGRATION_20261019.md`.

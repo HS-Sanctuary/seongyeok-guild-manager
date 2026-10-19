@@ -1,6 +1,9 @@
 IRIS for SANCTUM — Windows x64 베타 후보
 
 1. ZIP 전체를 원하는 폴더에 압축 해제한 뒤 IRIS.exe를 실행합니다.
+   실행할 파일은 종류가 '응용 프로그램'인 IRIS입니다.
+   처음 실행하면 그림 파일은 '아이리스 로고.ico'로 구분됩니다.
+   기존 업데이트 호환용 IRIS.ico는 숨겨 유지하며 지우거나 이름을 바꾸지 마세요.
    관리자 권한, Node.js, 개발 서버는 필요하지 않습니다.
 2. 대부분의 PC에서는 추가 설치 없이 실행할 수 있습니다. 내장 화면은
    Microsoft Edge WebView2 Runtime을 사용하며 Windows 11에는 기본 포함되고

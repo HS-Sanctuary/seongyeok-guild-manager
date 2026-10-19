@@ -2,6 +2,10 @@
 
 ## YG-20261016-001 — UPDATED (목록형 구현·검토 수정·15% 해제)
 
+- **2026-10-19 20:52KST 최종후보:** 한설아이콘구분요청/호환IRIS.ico숨김+아이리스로고표시승인. productionDesktopReleaseFiles 첫실행동일바이트copy·기존다른파일/링크비덮어쓰기·readonlyfailsoft, builderhidden명시/기존ZIP10파일·manifest이름유지. 최종ZIP595194/SHAea2a4f784fde6e79b632582681525e651b9ac1debcbb61aab57d58ce4ec04fd3(아래594801은이전후보). 원본0.3helper→이ZIP실EXE0.4/fresh offlineWebView·표시ICO/숨김/보호지문동일PASS. Node601PASS3skip/최종웹v2.32 Next60·독립tsc·l​​int/Reactlockupdaterfocus/독립release·iconreview각C0I0M0. 정확push/운영검증/공지결과후속·기존미ACK누적삭제금지.
+
+- **2026-10-19 20:45KST 공개승인후속:** 한설이 GNOSIS기존준비중메뉴를유지한통합push+IRIS플로팅공개업데이트승인. 아래 운영보류는당시경과/이번IRIS0.4.0·웹v2.32범위해제·DB권한변경별도. 공개ZIP594801/SHA256c2b306d4a0e222b46a98ce7450284c73f2beec1b3b949d72a5b81435a347ee02 생성/원본0.3백업·기존helper→실EXE0.4/fresh offlineWebView committed/보호파일지문동일 PASS. Node601PASS3skip·nativepackage/policy/process3경로/network·Reactlock/updater/focus PASS. 격리build/타입·독립리뷰·정확push/운영검증/공지결과후속, 아직완료로해석금지. MCP동일Vercel팀403/CLI없음이면Git자동배포상태·실운영검증과구분/인증우회금지. 개인dirty·기존미ACK누적보존, ERGONUI/native잠금/가죽100반복미완료·unknown원본보존/GNOSIS메뉴준비중및직접URL로컬시제품한계유지.
+
 - **전송확인2026-10-19 20:07KST:** 제품 `64cdd50c36619677a50900d41ac15d28d080e39d`를 `origin/codex/home-gnosis-iris-integration-20261019`에 정상push/ls-remote exact 확인. 이 문서 결과 마감까지 최신HEAD를 받는다. 먼저 `docs/HOME_INTEGRATION_20261019.md`를 읽고 사무실dirty/개인파일을 보존한 뒤 이어갈 것. main1d8e374·순월06c4097 유지, 운영DB/수동배포/ZIP·공지0. 제품Vercel GitHub status pending(CTJVJ6ZKwCn5vMkP7WBQuBaKQ3pN), Ready·실화면확인 미완료. 마지막개인6상태/공통7문서7115줄/순월40제품보존 오류0. 문서전용마감/구조변경없음·상대ACK전 기존누적삭제금지.
 
 - **영겁누적2026-10-19 20:00KST 최우선:** 내일 `codex/home-gnosis-iris-integration-20261019` 최신HEAD를받는다. `docs/HOME_INTEGRATION_20261019.md`→공통HANDOFF→양쪽릴레이순서. 집주말82e2325/원래95e38a4 + 순월06c4097(제품83b437a) 통합. 개인dirty/루트기존삭제/개인테스트·실행문서보존·제외. 공통문서6conflict비교누적/7문서양쪽7115줄누락0, 통합직후집83파일바이트/순월40제품동일. 아래4234e54ACK보다후속분이많으므로 UPDATED유지·상대새ACK전과거누적삭제금지.

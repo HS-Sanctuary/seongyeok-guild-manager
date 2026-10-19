@@ -1,5 +1,19 @@
 # SANCTUM 업데이트 노트
 
+### 2026-10-19 20:52 KST — v2.32 최종 패키지 검증 (배포 결과 전)
+
+아이콘 요청을 추가 반영했다. 실행은 IRIS.exe(응용 프로그램), 첫 실행 후 그림은 `아이리스 로고.ico`로 구분한다. 기존0.3.0 helper 호환용 IRIS.ico는 ZIP hidden 속성과 앱 실행 후 hidden을 적용하며 원본이름/내용은 유지한다. 새 표시 파일은 로컬에서만 생성해 ZIP10파일 계약을 지킨다. 같은 이름의 개인 파일/링크는 덮어쓰지 않으며 읽기전용 실패도 시작을 막지 않는다. 숨김 파일 표시를 켜면 호환파일도 보인다.
+
+**최종 ZIP은595194bytes/SHA256 `ea2a4f784fde6e79b632582681525e651b9ac1debcbb61aab57d58ce4ec04fd3`**이며 아래 이전594801 패키지는 교체 전 검증 경과다. 표시이름 TDD RED→GREEN, ZIP hidden 보존 RED→명시속성 GREEN. 원본공개0.3.0 helper→이 최종0.4.0 실제교체/fresh offline WebView·표시ICO존재/동일해시·원본숨김·보호파일지문동일 PASS(Temp iris-update-live-9bb81c89daca46e4a7d2b1cd2b017f8c). Node601PASS3skip 재검·최종웹v2.32 격리Next60/독립tsc·scopedlint·lock/updater/focus 실제React PASS. 독립릴리스/아이콘검토 각각C0I0M0. 로컬다운로드4폭/해시·6핵심GET·익명401 PASS(아이콘후최종공개해시는운영후다시대조). 개인6상태·공통7문서7115줄·순월40제품보존오류0. 구조추가: DesktopReleaseFiles의 비차단 표시파일 준비와 builder hidden entry; DB/권한/보호저장형식 변경없음.
+
+## 2026-10-19 20:45 KST — v2.32 / IRIS Beta0.4.0 공개 업데이트 준비
+
+- 한설이 GNOSIS 준비중 메뉴를 유지한 통합 코드의 동반 push와 IRIS 플로팅 공개 업데이트를 승인했다. 웹 후속 버전v2.32/독립 기능 IRIS0.4.0. 운영 DB/권한 변경 없음. 실제 배포 결과는 후속 기록 전까지 미완료다.
+- 원형 플로팅·Alt+~·게임 안 자유 이동·위치 복원·최소화 전환, 크기/단축키/별도 불투명도/분류 설정, 10초 일반 알림과 캐릭터 확인 유지·심층 제보 요약, 포인터 조작 후 입력 복귀를 포함한다. ERGON은 양쪽 자물쇠/disabled와 native 신규 실행 차단. GNOSIS 전역 PC/모바일 메뉴 준비중 유지, 기존 직접URL 로컬 시제품은 서버 접근제어가 아니다.
+- 플로팅 기능창 업데이트 요약 두 줄과 기존 보호 설치 dialog를 연결했다. 공개 ZIP594801bytes/SHA256 `c2b306d4a0e222b46a98ce7450284c73f2beec1b3b949d72a5b81435a347ee02`, unsigned beta/기존10파일 allowlist. 코드 구조는 앞선 통합 설명과 동일하며 이번은 패키지/버전/문서 변경, DB 구조 변경 없음.
+- fresh Node604/601PASS3skip0fail, native package/정책/ZIP공격·해시/프로세스 성공·실패복원·복구/HTTPS PASS. 원본 공개0.3.0 helper→0.4.0 실제 EXE+fresh offline WebView committed·보호 설정/대기함 지문 동일. 최초 sandbox 권한/격리 junction 차단과 정상 권한 재검은 구분한다. 앱/게임 강제 종료나 실제 게임 행동 없음.
+- 이전 정상 운영v2.31/IRIS0.3.0/commit1d8e374, deployment dpl_F6ymNLT5U6aJJLNofK4wtEi8sWXR. 필요시 이 기준으로 코드와 ZIP을 함께 복원하며 설정/대기함을 삭제하지 않는다. Ready·운영화면/공개ZIP해시·공지 게시는 후속 확인한다.
+
 ## 2026-10-19 20:07 KST — 통합 기능 브랜치 전송 마감 / 운영 버전 유지
 
 - 제품 `64cdd50c36619677a50900d41ac15d28d080e39d`를 `codex/home-gnosis-iris-integration-20261019`에 정상 push·원격 exact 확인했다. 이 결과를 기록하는 문서 마감까지 최신 HEAD가 인계 대상이다.

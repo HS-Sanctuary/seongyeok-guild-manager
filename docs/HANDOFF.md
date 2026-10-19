@@ -1,5 +1,16 @@
 # SANCTUM 작업 인계
 
+### 2026-10-19 20:52 KST 최종 후보
+
+아이콘추가요청/호환숨김+아이리스로고표시 승인 완료. DesktopReleaseFiles는 첫실행에 동일바이트 `아이리스 로고.ico`를 생성하고 IRIS.ico를 숨김. 기존다른파일/링크 비덮어쓰기·읽기전용failsoft, builderZIP hidden 명시·정확10파일. 최종공개ZIP595194/SHAea2a4f784fde6e79b632582681525e651b9ac1debcbb61aab57d58ce4ec04fd3. 원본0.3helper로 이 최종ZIP→실EXE0.4/offline freshWebView·표시파일·숨김·보호지문 PASS(Temp iris-update-live-9bb81c89daca46e4a7d2b1cd2b017f8c). 앞선594801은이전후보경과다. Node601PASS3skip·최종웹v2.32 Next60/독립타입·l​​int·React3회귀 PASS, 독립릴리스/아이콘review각C0I0M0. 개인6상태·양쪽7115줄/40제품보존. 정확전송/운영검증·공지게시 결과는후속누적한다.
+
+## 2026-10-19 20:45 KST — 공개 업데이트 승인 후 출시 준비
+
+- 한설이 GNOSIS 기존 준비중 메뉴 유지 조건으로 통합 코드 동반 push와 IRIS 플로팅 공개 업데이트를 승인했다. 아래 운영 보류는 당시 경과이며 이번 IRIS0.4.0/웹v2.32 범위에서 해제, DB 구조/권한 변경은 여전히 승인 대상이다.
+- 공개 ZIP594801bytes/SHA256c2b306d4a0e222b46a98ce7450284c73f2beec1b3b949d72a5b81435a347ee02 생성. 원본 공개0.3.0 보존/추출 후 기존 helper로 실제0.4.0 교체와 fresh offline WebView committed·보호 파일 지문 동일 PASS. trial은 Temp/iris-update-live-ba8d9e20ea64492eb86437319b5e9ec3. 사용자 설치본 강제종료/게임행동0.
+- 전체Node601PASS3skip/패키지allowlist·manifest·unsigned·updater정책/프로세스3경로/HTTPS·실React잠금/업데이트요약/초점복귀 PASS. 최종격리build/타입·독립검토·운영push/화면검증 결과는 후속 기록. 에르곤 잠금/원장보존·가공100개미완료/GNOSIS로컬시제품 한계 유지. 최종공지 초안은 UPDATE_POST_IRIS_0.4.0, 게시전이다.
+- Vercel 직접 MCP는 동일팀scope403/권한부족이다. 다른팀/토큰추출로 우회하지 않고 기존 Git 자동 배포와 GitHub 상태·운영 읽기 검증을 사용한다. 직접 Ready 확인과 실운영 확인을 구분한다. 개인dirty/양쪽미ACK인계 보존, 계획은 docs/superpowers/plans/2026-10-19-iris-floating-release.md.
+
 ## 2026-10-19 20:07 KST — 통합 전송 확인
 
 - `origin/codex/home-gnosis-iris-integration-20261019`에 제품 `64cdd50c36619677a50900d41ac15d28d080e39d` 정상 push·원격 exact 확인. 이 결과 문서 마감까지 최신 HEAD를 받는다. 상세 순서는 `docs/HOME_INTEGRATION_20261019.md`.

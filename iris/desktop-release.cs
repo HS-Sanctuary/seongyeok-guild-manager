@@ -27,6 +27,7 @@ namespace IrisDesktop {
                     try { held = queue.WaitOne(0); } catch (AbandonedMutexException) { held = true; }
                     if (!held) { MessageBox.Show("다른 IRIS가 실행 중이에요. 기존 앱을 정상 종료한 뒤 다시 열어주세요.", "IRIS for SANCTUM"); return; }
                     try {
+                        DesktopReleaseFiles.EnsureIconName(directory);
                         var store = new DesktopStore(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Sanctum", "IRIS", "Desktop"), environment);
                         using (var window = new DesktopWebView(false, profile, store))
                         using (var icon = new Icon(Path.Combine(directory, "IRIS.ico")))
