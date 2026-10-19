@@ -1,5 +1,9 @@
 # SANCTUM 작업 인계
 
+## 2026-10-19 21:25 KST — 0.4.1 운영 마감
+
+제품4480646f0b6238dbaff71a7ddb6fbf995c47f631 main+통합원격exact, Vercel dpl_3Z2KVcSMJnMxuZmp8ye3HZ5E75ds 정상UI Ready/Production/현재운영도메인/정확SHA. 실운영download4폭/0.4.1metadata·ZIP595192/SHA07b5c1db6c046ab4dbf9d4d406c0fd09c35ff7bd83a00c4d03bb19642ba4dacd·핵심6GET/guest2API401/pageerror0 PASS. notesJSON은‘버그픽스’만, 한설지시대로신규공개공지0/기존0.4id19유지. 이제0.4.1업데이트가능. 실제게임저장/Alt~ 체감은한설재확인대기. 이문서마감까지최신HEAD받을것·문서전용/구조변경없음·개인dirty/보호큐/양쪽미ACK보존·DB구조권한0.
+
 ## 2026-10-19 21:21 KST — 0.4.1 긴급 수정 후보 / 공개 공지 추가 금지
 
 - 한설0.4.0 실사용 P1: 하단‘지금저장’/저장팝업+Alt~로 로고/메뉴클리핑·먹통,15초후회복. bodyportal 밖클릭오인close RED→workspaceportal/준비전표시보류·panel4좌표 GREEN. 원인/재현은최신BETA_FEEDBACK. queue/controller·native production/서버저장·15초timer 무변경/대기ID보존, ERGON잠금/GNOSIS준비중유지.

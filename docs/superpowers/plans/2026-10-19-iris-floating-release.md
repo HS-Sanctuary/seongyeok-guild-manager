@@ -37,10 +37,12 @@
 - [x] 전체Node, 격리build/독립tsc, lock/updater/focus 브라우저 검증 및 독립 릴리스 검토.
 - [x] diff 확인·개인변경 제외한 명시 staging·기능 push. 원격 main 최신 확인 뒤 정상 main push.
 - [x] Vercel 성공 상태와 운영 download4폭/ZIP해시/핵심 익명경로·권한경계를 확인한다.
-- [ ] 기존 정상 공지 UI로만 승인된 IRIS 공지 게시(세션/권한 없으면 사용자 행동 요청), 중복 게시 금지.
-- [ ] 정확SHA/배포·남은 제한을 필수4문서와 릴레이에 누적·push한다.
+- [x] 기존 정상 공지 UI로만 승인된 IRIS 공지 게시(세션/권한 없으면 사용자 행동 요청), 중복 게시 금지.
+- [x] 정확SHA/배포·남은 제한을 필수4문서와 릴레이에 누적·push한다.
 
 ## Execution Ledger
+
+- 21:25KST 마감: 0.4공지는한설권한전환뒤정상UI게시id19/표준제목·시스템작성자·중제목7개·note=iris최신연결확인. 이후실사용저장P1을별도핫픽스0.4.1(4480646)/웹v2.321로검증·배포Ready·실다운로드대조. 한설최신지시로0.4.1신규공개공지0·앱요약‘버그픽스’만. 상세는최신HANDOFF/릴레이. 기존대기기록은당시경과로보존.
 
 - 21:00KST: 제품3e6f7ae main+통합push/원격exact. 배포dpl_7rwKTwyaDQNrYN49xnvTLcRhCh5V 실제로그인UI Ready/Production/Current domain/SHA일치, 운영4폭·ZIP해시/핵심익명경로·publicnotes PASS. 공지권한뉴월부마스터disabled로한설계정전환요청·未게시, 보호우회0. 문서결과마감후정확HEAD인계.
 

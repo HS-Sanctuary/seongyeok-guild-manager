@@ -1,5 +1,9 @@
 # 2026-10-19 집 통합 인계 — GNOSIS + 주말 IRIS
 
+## 최신 — 2026-10-19 21:25 KST 핫픽스
+
+IRIS0.4.1/웹v2.321 제품4480646을main+통합브랜치로추가push했다. 저장안내bodyportal이플로팅외부클릭으로닫히던P1을workspaceportal/배치제한으로수정, 운영Ready·실ZIP해시·앱‘버그픽스’요약확인완료. 새공지는한설지시로게시하지않고기존0.4공지id19만있다. 정확검증/배포는최신HANDOFF/RELEASE_NOTES/TO_SOONWOL을읽고문서마감까지최신HEAD를받는다. 개인파일/양쪽기록/보호큐·DB구조권한보존, 실사용저장/Alt~ 확인은한설후속.
+
 ## 최종 현황 — 2026-10-19 21:00 KST
 
 추가 사용자 승인 뒤 제품3e6f7ae456576dd8bb145b91a1dddd6082d5c2da를main/통합브랜치에정상push했다. 웹v2.32/IRIS0.4.0은운영공개됐고 Vercel dpl_7rwKTwyaDQNrYN49xnvTLcRhCh5V Ready/Production/현재도메인·정확SHA/운영ZIP595194·SHAea2a4f784fde6e79b632582681525e651b9ac1debcbb61aab57d58ce4ec04fd3/4폭·핵심익명경로를확인했다. DB구조·권한변경0/ERGON잠금·GNOSIS메뉴준비중유지. 아래공개보류·0.3유지는당시경과다. 아이콘표시는사용자추가승인으로첫실행시‘아이리스 로고.ico’별칭/호환IRIS.ico숨김, oldhelper계약유지. 공지작성만뉴월부마스터권한disabled로한설계정전환대기·未게시이며공개다운로드는바로가능하다. 자세한결과는최신HANDOFF/RELEASE_NOTES/TO_SOONWOL부터읽고문서마감까지최신HEAD를받는다.

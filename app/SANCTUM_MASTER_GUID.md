@@ -1,5 +1,9 @@
 # 🏛️ SANCTUM Master Guide
 
+### 2026-10-19 21:25 KST — 0.4.1 운영 반영 확인 / 구조 변경 없음
+
+제품4480646은운영배포dpl_3Z2KVcSMJnMxuZmp8ye3HZ5E75ds Ready/Production/현재도메인·SHA확인, 실제0.4.1metadata/ZIP·요약‘버그픽스’만제공됨을검증했다. 신규공지게시없음. 아래저장portal핫픽스구조의운영반영결과이며 본마감은문서만추가, queue/controller/API/DB권한변경0.
+
 ## 2026-10-19 0.4.1 핫픽스 구조 (배포 결과 후속)
 
 DesktopSaveStatus의 body portal을 마운트후 안정된 .iris-floating-workspace로 옮긴다(일반 독립컴포넌트는bodyfallback). cleanupguard/microtask호스트준비전렌더보류로 첫프레임bodyescape를막고, floating-hub.css가 기존 --iris-dialog-x/y/width/height(native panel좌표)를재사용해 저장오버레이를4모서리에제한한다. Hub의outside영역안에들어가 저장클릭이close를발행하지않고, workspace hidden일때저장안내도함께숨는다. queue/controller·15초타이머/보호저장/API/DB권한/native production 변경없음. IRIS0.4.1/웹v2.321, notes0.4.1앱요약‘버그픽스’만·신규공개공지없음. 기존0.4.0시스템공지id19는정상UI게시완료.
