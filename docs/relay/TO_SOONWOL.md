@@ -2,6 +2,8 @@
 
 ## YG-20261016-001 — UPDATED (목록형 구현·검토 수정·15% 해제)
 
+- **전송확인2026-10-19 20:07KST:** 제품 `64cdd50c36619677a50900d41ac15d28d080e39d`를 `origin/codex/home-gnosis-iris-integration-20261019`에 정상push/ls-remote exact 확인. 이 문서 결과 마감까지 최신HEAD를 받는다. 먼저 `docs/HOME_INTEGRATION_20261019.md`를 읽고 사무실dirty/개인파일을 보존한 뒤 이어갈 것. main1d8e374·순월06c4097 유지, 운영DB/수동배포/ZIP·공지0. 제품Vercel GitHub status pending(CTJVJ6ZKwCn5vMkP7WBQuBaKQ3pN), Ready·실화면확인 미완료. 마지막개인6상태/공통7문서7115줄/순월40제품보존 오류0. 문서전용마감/구조변경없음·상대ACK전 기존누적삭제금지.
+
 - **영겁누적2026-10-19 20:00KST 최우선:** 내일 `codex/home-gnosis-iris-integration-20261019` 최신HEAD를받는다. `docs/HOME_INTEGRATION_20261019.md`→공통HANDOFF→양쪽릴레이순서. 집주말82e2325/원래95e38a4 + 순월06c4097(제품83b437a) 통합. 개인dirty/루트기존삭제/개인테스트·실행문서보존·제외. 공통문서6conflict비교누적/7문서양쪽7115줄누락0, 통합직후집83파일바이트/순월40제품동일. 아래4234e54ACK보다후속분이많으므로 UPDATED유지·상대새ACK전과거누적삭제금지.
 - IRIS한설기능창+WASD정상확인, 에르곤양쪽lockdisabled·sessionmount0/nativeprepareconfirmcollect·ergon진입차단/stopcancelhistory·원장보존. 단일Updater를floating slot portal로연결/요약2줄·versionstatecache·기존설치보호, dev진단코드만제거/ignored원본보존. 0.4.0소스·표시노트/따뜻한공지초안작성, 공개ZIP/download0.3.0/운영v2.31유지·실제공개출시전. 가죽+100개1회등록미완료, 보호unknown자동해제금지.
 - 통합검증Node604/601PASS3skip0fail·격리독립tsc/Next60build·GNOSIS/수정IRISlint·chrome93/bridge/defaultlock/privatecompile·실ReactlockupdaterfocusPASS. 격리productionGNOSIS4폭·개인저장reload/공유Escape/writer시각확인·3GET200/adminpreview/debug404. 최초locator중복/React렌더대기수정구분, 루트staleNexttype참조는캐시강제삭제없이격리tsc로검증. 좁은read-onlyreviewC0I0·doc누락0. GNOSIS전체재리뷰/실게임·새사용자설치본교체·공개ZIP시험성공아님.

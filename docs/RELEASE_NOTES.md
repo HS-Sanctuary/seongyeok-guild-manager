@@ -1,5 +1,11 @@
 # SANCTUM 업데이트 노트
 
+## 2026-10-19 20:07 KST — 통합 기능 브랜치 전송 마감 / 운영 버전 유지
+
+- 제품 `64cdd50c36619677a50900d41ac15d28d080e39d`를 `codex/home-gnosis-iris-integration-20261019`에 정상 push·원격 exact 확인했다. 이 결과를 기록하는 문서 마감까지 최신 HEAD가 인계 대상이다.
+- 구조 변경 없음. 제품 검증은 아래 20:00 기록과 동일하며 마지막 개인6상태·양쪽7문서7,115줄·순월40제품 보존 재검 오류0, diff check PASS.
+- 자동 Vercel Preview는 제품 SHA의 GitHub 상태 pending이며 Ready/실화면 확인 미완료다. 운영 v2.31/IRIS0.3.0·main1d8e374 및 직전 정상 배포 기준 유지. 운영 DB·수동 배포·다운로드 ZIP·공지 게시 변경 없음.
+
 ## 2026-10-19 20:00 KST — 집·사무실 통합 기능 브랜치 인계 / 운영 버전 유지
 
 - 버전: 이번은 검증한 개발 통합본 전송이다. 운영 SANCTUMv2.31·IRIS0.3.0 유지, 소스 IRIS0.4.0은 출시 후보다. main/운영 DB/RLS·배포/공개ZIP·공지 변경 없음. 직전 정상 운영 기준1d8e374 / dpl_F6ymNLT5U6aJJLNofK4wtEi8sWXR 유지.

@@ -1,5 +1,9 @@
 # 🏛️ SANCTUM Master Guide
 
+## 2026-10-19 20:07 KST — 통합 인계 전송 마감 (구조 변경 없음)
+
+통합 제품 `64cdd50c36619677a50900d41ac15d28d080e39d`는 `origin/codex/home-gnosis-iris-integration-20261019`에 정상 push·원격 exact 확인했다. 이 결과 문서 마감까지 최신 HEAD를 받는다. 아래 구조 설명의 운영 미적용 경계는 그대로이며 main/DB/운영 배포·ZIP·공지 변경0, 자동 Preview GitHub 상태 pending/Ready·실화면 미확인이다. 이 마감은 문서만 추가하며 구조 변경 없음. 다음 작업 순서는 `docs/HOME_INTEGRATION_20261019.md`.
+
 ## 2026-10-19 집 통합·IRIS 출시 준비 후속 (기능 브랜치, 운영 미적용)
 
 GNOSIS 구조는 아래 순월 인계의 로컬 시제품 모델 그대로 통합했다. `lib/irisFeatureAvailability.ts`는 ERGON 기본false(환경으로해제0), Center는 callback/session 미마운트·stale section 거절, MainTabs/Hub는 disabled LockIcon·준비중. 실제 native host/bridge도 ergon진입/prepare·confirm·collect를 차단하고 stop/cancel/history/reconciliation은 보존한다. `DesktopUpdater.inlineTarget`이 한 updater에서 floating workspace slot으로만 요약 portal을 보낸다. 버전별 notes는 React state cache/중단되는 bounded fetch, 기존 보호설치 dialog 경로는 그대로다. `IRIS_BETA_VERSION`과 표시용 notes0.4.0은 후보이며 공개 package metadata0.3.0 유지. 임시 focus-debug route/trace코드 제거(ignored 원본보존), native 초점복귀 안전검사는 유지. 운영DB/API권한/RLS·보호원장 스키마 변경0. 소스/문서 비교·검증·다음순서는 `docs/HOME_INTEGRATION_20261019.md`; 운영main/배포는 한설 별도 승인 전 실행하지 않는다.

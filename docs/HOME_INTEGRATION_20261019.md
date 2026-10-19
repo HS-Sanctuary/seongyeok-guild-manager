@@ -1,5 +1,12 @@
 # 2026-10-19 집 통합 인계 — GNOSIS + 주말 IRIS
 
+## 전송 확인 — 2026-10-19 20:07 KST
+
+- 통합 제품 커밋 `64cdd50c36619677a50900d41ac15d28d080e39d`를 `origin/codex/home-gnosis-iris-integration-20261019`에 정상 push했고 `ls-remote`가 정확히 일치했다. 이 결과를 적는 문서 마감 커밋까지 브랜치 최신 HEAD를 받는다.
+- push 직전 fetch에서 순월 브랜치 `06c4097`, 운영 main `1d8e374`가 그대로임을 확인했다. main 병합·강제 push·운영 DB·수동 배포·공지 게시·공개 ZIP 변경은 실행하지 않았다.
+- GitHub Vercel 상태는 제품 커밋 기준 pending이다. [자동 미리보기 상태](https://vercel.com/sanctum-sanctuary/sanctum/CTJVJ6ZKwCn5vMkP7WBQuBaKQ3pN). Ready나 보호된 실제 Preview 화면 확인으로 간주하지 않는다.
+- 마지막 보존 재검: 개인 파일/삭제 상태6개, 공통7문서 양쪽7,115줄, 순월 제품40파일 누락·변경 오류0. 이번 마감은 문서만 추가하며 구조 변경 없음.
+
 ## 내일 순월이 받을 기준
 
 - 통합 브랜치: `codex/home-gnosis-iris-integration-20261019`.

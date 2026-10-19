@@ -1,5 +1,11 @@
 # SANCTUM 작업 인계
 
+## 2026-10-19 20:07 KST — 통합 전송 확인
+
+- `origin/codex/home-gnosis-iris-integration-20261019`에 제품 `64cdd50c36619677a50900d41ac15d28d080e39d` 정상 push·원격 exact 확인. 이 결과 문서 마감까지 최신 HEAD를 받는다. 상세 순서는 `docs/HOME_INTEGRATION_20261019.md`.
+- 제품 자동 Vercel 미리보기는 GitHub status pending(CTJVJ6ZKwCn5vMkP7WBQuBaKQ3pN). Ready·실화면 확인 미완료. 운영 main1d8e374/DB·공개 ZIP·공지 유지, 운영 배포는 한설 별도 승인 전 금지.
+- 최종 보존6개 개인 상태/7문서7,115줄/40개 순월 제품 오류0. 문서 전용 결과 마감이며 구조 변경 없음. 아래 양쪽 기존 인계는 삭제하지 않았다.
+
 ## 2026-10-19 20:00 KST 영겁 — 집 주말 작업 + GNOSIS 통합 / 운영 배포 보류
 
 - 다음 작업자는 **`docs/HOME_INTEGRATION_20261019.md`부터 읽는다.** 통합 브랜치 `codex/home-gnosis-iris-integration-20261019`, 주말 보존82e2325/기존95e38a4와 순월06c4097(제품83b437a)을 통합했다. main/운영 DB·운영 배포/공개 ZIP·공지 변경0. 한설의 최신 지시는 운영 DB·배포 전 별도 확인이다.
