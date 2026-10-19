@@ -2,6 +2,9 @@
 
 ## YG-20261016-001 — UPDATED (목록형 구현·검토 수정·15% 해제)
 
+- **긴급후속2026-10-19 21:21KST:** 한설0.4실사용‘지금저장’/저장팝업+Alt~→로고메뉴겹침·먹통/15초회복 P1. bodyportaloutsideclose RED→안정workspaceportal·호스트준비전표시보류·nativepanel4위치제한 GREEN. pending/15초timer/queuecontroller·nativeproduction·서버저장무변경. 새save회귀(4위치/scroll/menuhidden/reopen/normal/pending보존)·focusdialogupdater/601PASS3skip/최종독립타입lintNext60/좁은reviewC0I0M0·관련31PASS. 0.4원본helper→0.4.1실EXE/fresh offlineWebView·아이콘·보호지문PASS. ZIP595192/SHA07b5c1db6c046ab4dbf9d4d406c0fd09c35ff7bd83a00c4d03bb19642ba4dacd. 정확push/운영결과후속·개인/미ACK누적보존.
+- 한설최신지시 **0.4.1새공개업데이트공지작성금지/앱요약은‘버그픽스’만**, 내부문서기록만한다. 기존0.4.0공지는권한전환뒤정상UI로1건게시id19/SANCTUM시스템·중제목7개/문장문단·標準제목검증·note=iris가열림. 아래공지권한대기는해결됨. DB직접게시/권한우회0, ERGON/GNOSIS잠금유지·실게임재확인후속.
+
 - **운영공개결과2026-10-19 21:00KST:** 한설승인으로 제품3e6f7ae456576dd8bb145b91a1dddd6082d5c2da를main+통합브랜치정상push/ls-remote exact. Vercel dpl_7rwKTwyaDQNrYN49xnvTLcRhCh5V 정상로그인대시보드 Ready/Production/Current domain/main정확SHA확인·GHsuccess. 웹v2.32/IRIS0.4.0 실제공개·운영다운로드4폭/metadata/ZIP595194·SHAea2a4f784fde6e79b632582681525e651b9ac1debcbb61aab57d58ce4ec04fd3/핵심6GET200·guest2API401/pageerror0·공개notes0.4세구역PASS. 이결과문서마감까지최신HEAD받을것. 개인/양쪽미ACK누적보존·DB구조권한변경0.
 - **남은공지1:** 현재정상브라우저뉴월·부마스터라 생텀업데이트작성disabled. 한설계정전환요청/게시0·중복0. UPDATE_POST_IRIS_0.4.0 초안을 중제목/문장별문단·SANCTUM시스템으로 정상UI에서게시후결과기록, DB직접게시/권한우회금지. 공개업데이트자체는이미사용가능. 아래보류·미배포·옛후보해시는각시점경과라삭제금지. 본마감문서전용/구조변경없음·ERGON수량100/실사용장시간·다중DPI추가검증한계유지.
 

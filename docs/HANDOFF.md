@@ -1,5 +1,12 @@
 # SANCTUM 작업 인계
 
+## 2026-10-19 21:21 KST — 0.4.1 긴급 수정 후보 / 공개 공지 추가 금지
+
+- 한설0.4.0 실사용 P1: 하단‘지금저장’/저장팝업+Alt~로 로고/메뉴클리핑·먹통,15초후회복. bodyportal 밖클릭오인close RED→workspaceportal/준비전표시보류·panel4좌표 GREEN. 원인/재현은최신BETA_FEEDBACK. queue/controller·native production/서버저장·15초timer 무변경/대기ID보존, ERGON잠금/GNOSIS준비중유지.
+- 버전0.4.1/웹v2.321, 표시JSON notes0.4.1은‘버그픽스’만. 한설최신지시로 핫픽스공개공지 새작성금지. 기존0.4.0 공지는정상UI게시완료id19/SANCTUM시스템·중제목7개/표준제목·note=iris연결확인, 이전권한대기는해결됨.
+- fresh601PASS3skip·최종독립타입/lint/Next60·새저장브라우저/기존focusdialogupdater PASS, 독립C0I0M0/관련31PASS. native0.4원본helper→0.4.1실EXE/fresh offlineWebView·아이콘·보호지문PASS. ZIP595192/SHA07b5c1db6c046ab4dbf9d4d406c0fd09c35ff7bd83a00c4d03bb19642ba4dacd. 사용자IRIS정상종료확인·강제종료/게임키입력0. 운영push/Ready/실해시는후속.
+- 최신개인dirty·미ACK릴레이/순월GNOSIS제품 보존. 운영DB/RLS/권한직접변경0. 실사용자게임창 재확인은배포뒤한설확인이필요, 모의회귀를실게임해결로확대하지않는다.
+
 ## 2026-10-19 21:00 KST — 운영 공개 완료 / 공지 권한 전환 대기
 
 - 최신 제품 `3e6f7ae456576dd8bb145b91a1dddd6082d5c2da`는 main과 `codex/home-gnosis-iris-integration-20261019` 양쪽에 정상push/원격exact. 결과 문서 마감까지 최신HEAD를 받는다. 웹v2.32/IRIS0.4.0 공개. Vercel dpl_7rwKTwyaDQNrYN49xnvTLcRhCh5V 정상 로그인UI에서 Ready/Production/Current domain/정확SHA 확인, GHsuccess. 이전 미배포/보류는 당시 경과다.

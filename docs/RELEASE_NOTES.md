@@ -1,5 +1,14 @@
 # SANCTUM 업데이트 노트
 
+## 2026-10-19 21:21 KST — 내부 기록 / v2.321·IRIS0.4.1 핫픽스 준비
+
+- 한설이 저장안내 ‘지금 저장’/Alt+~ 시 플로팅 겹침·먹통을 긴급 수정·0.4.1 공개 요청했다. **새 케리그마 업데이트 공지는 작성하지 않고 앱 내 요약은 ‘버그픽스’만 표시**한다. 이 문서는 작업자 내부기록이다.
+- body portal의 외부클릭 오인→native 영역축소·남은저장안내클리핑을 RED 재현. SaveStatus를 안정된 workspace portal에 붙이고 준비 전 표시보류, native panel좌표 안에 배치해 메뉴/접기 시 함께 숨긴다. 저장/복구/대기함·15초 timer/서버API/native운영로직 변경 없음. 에르곤/GNOSIS 잠금 유지.
+- 새브라우저 회귀 수동save/no-close·4위치·scroll·menuhidden·pending보존·reopen·normal PASS, 기존focus/dialog/updater PASS. Node604/601PASS3skip0fail·독립타입/lint·최종Next60 PASS. 독립좁은reviewC0I0M0/관련31PASS. 최초시험의native초기dialog-close 모형/absolute nav높이/루트viewport 누락 및 React commit 기다림은 fixture보완으로 구분했다.
+- 공개후보ZIP595192/SHA256 `07b5c1db6c046ab4dbf9d4d406c0fd09c35ff7bd83a00c4d03bb19642ba4dacd`, packageallowlist/hash/unsigned PASS. 사용자IRIS정상종료 확인 후 원본0.4.0 helper→최종0.4.1 EXE/fresh offlineWebView committed·친절아이콘/숨김·보호지문동일PASS(Temp iris-update-live-9989e3e8323e494189e1e6cda1d80f5e). 실게임입력0.
+- 직전 정상 운영기준0.4.0/웹v2.32 제품3e6f7ae/배포dpl_7rwKTwyaDQNrYN49xnvTLcRhCh5V, 0.4.0백업은ignored .superpowers/sdd/2026-10-19-iris-0.4.1/previous-0.4.0. 실패시코드+ZIP함께복원·보호큐삭제금지. 실제push/Ready/운영파일검증은후속기록한다.
+- 이전0.4.0 공지는 한설정상계정전환 후 정상UI로1건게시(id19), SANCTUM시스템/중제목7개·문장문단·표준제목 확인. `/kerygma?note=iris`가0.4.0을여는것도확인했다. 0.4.1새공지는0건.
+
 ## 2026-10-19 21:00 KST — v2.32 / IRIS Beta0.4.0 운영 공개 확인
 
 - 제품 커밋 `3e6f7ae456576dd8bb145b91a1dddd6082d5c2da`를 통합 브랜치와 운영 main에 정상 push·ls-remote exact 확인. [Vercel 운영 배포](https://vercel.com/sanctum-sanctuary/sanctum/7rwKTwyaDQNrYN49xnvTLcRhCh5V) UI에서 Ready/Production/Current domain/정확 main SHA 확인, GitHub Vercel success도 일치했다. MCP scope403은 로그인된 정상 대시보드의 읽기 확인으로 구분했고 인증/권한 설정 변경0.

@@ -1,5 +1,5 @@
 'use client';
-import {useRef} from 'react';
+import {useEffect,useRef,useState} from 'react';
 import {DesktopFocusDialog} from './DesktopFocusDialog';
 import {createPortal} from 'react-dom';
 import type {IrisSavePosition} from '@/lib/irisAppearance';
@@ -10,6 +10,8 @@ import type {DesktopSaveConfirmation} from '@/lib/irisDesktopController';
 const phaseNames = {pending:'저장 대기',inflight:'저장 중',unknown:'결과 확인 필요',conflict:'다른 변경과 충돌',expired:'초기화 시간이 지남'};
 const confirmationTimeFormat=new Intl.DateTimeFormat('ko-KR',{timeZone:'Asia/Seoul',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
 export function DesktopSaveStatus({entries,characters=[],selected=null,lastSaveConfirmation=null,now,locked,hasInvalidClassDraft=false,position='bottom-right',preview=false,suspended=false,onSave,onDiscard,onRecover}:{entries:PendingEdit[];characters?:DesktopCharacter[];selected?:DesktopDetails|null;lastSaveConfirmation?:DesktopSaveConfirmation|null;now:number;locked:boolean;hasInvalidClassDraft?:boolean;position?:IrisSavePosition;preview?:boolean;suspended?:boolean;onSave():void;onDiscard():void;onRecover(id:string,action:'retry'|'discard'):void}) {
+  const [portalTarget,setPortalTarget]=useState<HTMLElement|null>(null);
+  useEffect(()=>{let active=true;queueMicrotask(()=>{if(active)setPortalTarget(document.querySelector<HTMLElement>('.iris-floating-workspace')??document.body);});return()=>{active=false;};},[]);
   const summary=summarizeDesktopEdits(entries,characters,selected,now);
   const paused=summary.items.filter(e=>['unknown','conflict','expired'].includes(e.phase));
   const saved=!!lastSaveConfirmation&&now>=lastSaveConfirmation.confirmedAt&&now-lastSaveConfirmation.confirmedAt<3000;
@@ -26,7 +28,7 @@ export function DesktopSaveStatus({entries,characters=[],selected=null,lastSaveC
     <details className="text-sm iris-save-help"><summary className="cursor-pointer">저장 안내 · 자동 15초</summary><p className="text-sm" role="status">{lastSaveConfirmation?<>{lastSaveConfirmation.nickname} · 마지막 저장 확인 <time dateTime={new Date(lastSaveConfirmation.confirmedAt).toISOString()}>{confirmationTimeFormat.format(lastSaveConfirmation.confirmedAt)}</time> (한국 시간)</>:'이번 실행에서 확인한 저장 시각 없음'}</p><p>마지막 유효 수정 후 15초 자동저장해요. 캐릭터를 바꿔도 이전 캐릭터의 변경은 따로 보관돼요.</p><p>지금 저장과 변경 버리기는 선택 캐릭터와 계정당 물물교환에 적용돼요.</p></details>
     </>}</>}
   </section>;
-  return typeof document==='undefined'?node:createPortal(node,document.body);
+  return typeof document==='undefined'?node:portalTarget?createPortal(node,portalTarget):null;
 }
 export function DesktopCloseDialog({busy,onChoose,onCancel,storageFailed=false,onUnsafeClose,reason='manual',hasPending=true}:{busy:boolean;onChoose(action:'save'|'keep'|'discard'):void;onCancel():void;storageFailed?:boolean;onUnsafeClose?():void;reason?:'manual'|'game-exit';hasPending?:boolean}) {
   const cancel=useRef<HTMLButtonElement>(null);

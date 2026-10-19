@@ -1,6 +1,13 @@
 .iris-floating-root[data-floating=true]{position:relative;isolation:isolate;pointer-events:none;width:100%;height:100%}
 .iris-floating-root[data-floating=true]>.iris-floating-workspace,.iris-floating-root[data-floating=true]>.iris-floating-notice{position:absolute;pointer-events:auto;overflow:auto;overscroll-behavior:contain;background:var(--panel,#101010);border:1px solid var(--panel-border,#39332a);border-radius:.7rem}
 .iris-floating-workspace[hidden]{display:none}
+/* Save feedback belongs to the module, never to the icon/menu hit region. Its
+   fixed bounds follow the native panel even when the module body is scrolled. */
+.iris-floating-root[data-floating=true] .iris-save-overlay{inset:auto;animation:none;max-width:min(19rem,calc(var(--iris-dialog-width) - .8rem));max-height:calc(var(--iris-dialog-height) - .8rem)}
+.iris-floating-root[data-floating=true] .iris-save-overlay[data-position^=top]{top:calc(var(--iris-dialog-y) + .4rem)}
+.iris-floating-root[data-floating=true] .iris-save-overlay[data-position^=bottom]{bottom:calc(100dvh - var(--iris-dialog-y) - var(--iris-dialog-height) + .4rem)}
+.iris-floating-root[data-floating=true] .iris-save-overlay[data-position$=left]{left:calc(var(--iris-dialog-x) + .4rem)}
+.iris-floating-root[data-floating=true] .iris-save-overlay[data-position$=right]{right:calc(100vw - var(--iris-dialog-x) - var(--iris-dialog-width) + .4rem)}
 .iris-floating-root[data-floating=true] .iris-context-header{top:0}
 html:has([data-iris-floating-dialog]) .iris-floating-root[data-dialog-open=true]>.iris-floating-workspace{visibility:hidden}
 .iris-floating-notice:empty{display:none!important}

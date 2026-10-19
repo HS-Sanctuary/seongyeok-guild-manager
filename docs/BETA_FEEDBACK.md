@@ -1,5 +1,12 @@
 # SANCTUM 베타 피드백 보드
 
+## 2026-10-19 21:21 KST — P1 IRIS 플로팅 저장 안내 겹침
+
+- 재현: 0.4.0 플로팅 숙제를 수정→하단 저장 안내의 ‘지금 저장’ 클릭 또는 안내가 남은 채 Alt+~. 작업창이 접힌 뒤 저장 텍스트가 로고/기능 버튼에 잘려 겹치고 조작 곤란. 자동저장15초 뒤 안내가 사라지면 회복. 한설 첨부3장 접수.
+- 원인: SaveStatus의 body portal이 Hub outside-pointer 범위 밖이라 클릭 즉시close; 메뉴/아이콘-only 상태에서도 portal은 남아 native hit region에 잘린다. 실제 React 시험에서 저장1회와 불필요한 close 명령을 RED 재현.
+- 수정후보0.4.1: 안정된 floating workspace로 portal 이동·호스트 준비 전 표시보류·native panel좌표 내4모서리 제한. 접기/메뉴는 workspace와 함께 숨기고 미저장 항목/15초 타이머/복구·버리기/서버 저장 경로는 변경하지 않는다.
+- 검증: 새 회귀GREEN(수동저장·4위치·scroll·메뉴 숨김/재열기·대기ID보존·일반사이드바), focus/dialog/updater PASS, Node601PASS3skip·타입/lint/격리60build PASS, 좁은reviewC0I0M0. 실제0.4helper→0.4.1 EXE/offlinefreshWebView·아이콘·보호파일 지문PASS. 운영배포·사용자실확인은후속.
+
 ## 2026-10-19 집 통합 확인 — 주말 IRIS·GNOSIS 기록 보존 / 운영 미배포
 
 - 한설이 기능창 유지+WASD 동시 동작을 확인했다. 앞선 “실사용 미확인”은 해당 시점 기록으로 보존하며 다른PC/DPI 전체 확인을 뜻하지 않는다.
