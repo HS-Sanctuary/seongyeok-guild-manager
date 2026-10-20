@@ -1,5 +1,18 @@
 # SANCTUM 작업 인계
 
+## 2026-10-20 22:27 KST — 오늘 집 작업 마감 / 순월 우선 인계
+
+- 한설 최종 승인: 새 개발 중단, CHRONOS 표시4파일·관련2시험·ERGON 설계·최소 인계만 `codex/home-gnosis-iris-integration-20261019`에 commit/push. 시작/원격 기준5102571c65621d971609389110cd1bf2963f843f, ff-only pull 최신 확인. 정확 전송 커밋·결과는 [집 마감 인계](HOME_CLOSEOUT_20261020.md)와 릴레이 최상단 후속을 따른다.
+- 아래 ‘push 승인 대기’는 이전 시점 기록이다. 이번 승인은 운영main/Production/공개 IRIS/DB/실게임 행동·자동 생산 코드 구현을 포함하지 않는다.
+- 내일 순서: 수신/ACK → CHRONOS 표시와 저장/이동 회귀 → ERGON 설계/실제 코드 차이 → 첫 end-to-end 실행기 누락 계약과 검증 기준만 확정. 구현·재료 소비는 새 승인 전 시작하지 않는다.
+
+## 2026-10-20 집 — CHRONOS 표시·ERGON 통합 설계 / 로컬 승인 범위
+
+- 브랜치 `codex/home-gnosis-iris-integration-20261019`, 대조 HEAD `5102571c65621d971609389110cd1bf2963f843f`. 이번 변경은 미커밋·미전송이며 **push 승인 대기**다. 아래 야간 전송 기록과 혼동하지 않는다.
+- 표시 CHRONOS/크로노스 통일: 제품4파일의 문자열·주석만 변경. 내부 `kronos`·저장 구조·라우트·기능은 유지한다. 기존 미커밋/개인 자료와 삭제 상태를 보존한다.
+- [명칭 검증 보고](CHRONOS_NAMING_QA_20261020.md): 전체 Node611통과/3skip, 격리 빌드60·tsc, 표시/자동 저장 브라우저 통과. 기존 lint 진단·IRIS 탐색3실패는 명시적으로 남겨 둔다.
+- [ERGON 통합 설계](superpowers/specs/2026-10-20-ergon-goal-production-integration-design.md)와 뉴월 인계서를 갱신했다. 부족분→목표 생산·진척 보존/재조회·관측 기반 ETA·로컬 우선 무료 제약이며 신규 실행 구현은 아니다. 실제 게임 소비·운영 DB·main·Production·공개 IRIS 변경0.
+
 ## 2026-10-20 집 — 야간 후속 후보 / 먼저 전용 인계 확인
 
 - **전송/화면확인완료01:31KST:** 제품2549718 기능브랜치push/원격exact·main06e1eca유지, Vercel dpl_Cj6zrxhT62oXjENHhxEH5M11WcUv 정상UI Ready/Preview·같은SHA/GHsuccess. 실제Preview `/party`에서 통합매어2·지옥3·지옥4 순서·목표3던전 표시/취소확인·파티쓰기0. native설치본/실게임·운영생성수정은다음단계. 이번결과문서마감까지최신HEAD받을것.

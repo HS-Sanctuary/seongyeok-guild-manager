@@ -1,5 +1,15 @@
 # 🏛️ SANCTUM Master Guide
 
+### 2026-10-20 22:27 KST — 집 마감 인계 / 구조 변경 없음
+
+한설이 CHRONOS 표시 최소 수정·ERGON 통합 설계·관련 시험과 인계 기록의 기능 브랜치 commit/push를 승인했다. 아래 로컬 후보/미전송 설명은 작업 당시 경과이며 최신 결과는 `docs/HOME_CLOSEOUT_20261020.md`와 릴레이를 따른다. 제품 구조·API/DB/저장 키·운영 버전은 그대로다. 새 자동 생산 코드·실게임·main/Production/공개 IRIS/DB 변경은 없다. Codex에서 직접 검토하며 VS Code 조작을 요구하지 않는다.
+
+### 2026-10-20 — CHRONOS 공식 표시·ERGON 통합 설계 / 로컬 후보
+
+사용자 표시만 CHRONOS/크로노스로 통일한다. `types/layout.ts`는 PC/모바일 메뉴 공용, 홈 체크보드·버스 확인/탑승 가이드도 동일 표기. `/character`·기존 API/DB/RLS·`kronos` 파일/타입/함수/저장 키/프로토콜은 유지하며 제품 구조 변경 없음. IRIS 탭은 이미 CHRONOS, 플로팅 명령은 내부kronos 유지. 과거 릴레이/릴리스 이력은 소급 치환하지 않는다.
+
+ERGON 설계 후속은 `docs/superpowers/specs/2026-10-20-ergon-goal-production-integration-design.md` 및 `docs/ERGON_NEWOL_HANDOFF.md`. CHRONOS 부족분 진입·즉시 시작/목표 생산·진척 보존/재개 재조회·현재 가공분 시간 예측·Supabase Free/Vercel Hobby 로컬 우선 비용 검토를 담는다. 신규 자동 실행/부족분 버튼/원격/DB 구현·공개 잠금 해제·push/배포는 없음. 검증 결과는 최신 작업 인계를 따른다.
+
 ### 2026-10-20 — IRIS 야간 후속 UI·난이도 기준 / 인계 후보
 
 제품2549718의 기능브랜치 Preview dpl_Cj6zrxhT62oXjENHhxEH5M11WcUv Ready·정확SHA 확인. 실제Preview파티 통합난이도 화면에서 신규기준 표시·순서·취소를 확인했고 제출은 하지 않았다. 운영main/IRIS설치파일은유지. 이결과마감은문서만추가/추가구조변경없음.
@@ -838,7 +848,7 @@ SANCTUM은 성역 길드원이 캐릭터·숙제·파티·공지·길드 운영 
 ### 베타에 포함하는 기능
 
 - 길드원 가입 신청, 운영진 승인, 역할 표시
-- KRONOS 캐릭터·스탯·일일/주간/레이드 체크
+- CHRONOS 캐릭터·스탯·일일/주간/레이드 체크
 - KERYGMA 공지, 투표, 댓글
 - AGORA 길드원 현황 및 랭킹
 - SYNAXIS 파티 모집, 일정 조율, 길드 버스
@@ -851,7 +861,7 @@ SANCTUM은 성역 길드원이 캐릭터·숙제·파티·공지·길드 운영 
 
 **아직 미적용 — 이후 알림 종류:**
 
-1. KRONOS: 일일/주간 숙제 초기화, 주간 숙제 미완료 임박
+1. CHRONOS: 일일/주간 숙제 초기화, 주간 숙제 미완료 임박
 2. AGORA: 판테온 1·2·3위 순위 변동
 3. EMPORION: 사용자가 북마크한 아이템이 설정 가격 이하로 하락
 4. SYNAXIS: 내 파티 매칭 완료, 길드 버스 신규 생성
@@ -910,7 +920,7 @@ SANCTUM은 성역 길드원이 캐릭터·숙제·파티·공지·길드 운영 
 app/
   admin/              관리자 제어 센터와 탭 컴포넌트
   api/                분석·이벤트·거래소·동기화 Route Handlers
-  character/          KRONOS
+  character/          CHRONOS
   customize/          테마·스티커 설정
   gnosis/             GNOSIS
   kerygma/            KERYGMA
@@ -939,7 +949,7 @@ public/
 | `/` · `app/page.tsx` | SANCTUM 홈 대시보드. 숙제, 심연 제보, 파티 요약과 헤더 위젯을 조합한다. | `characters`, `nexus_tasks`, `nexus_contents`, `parties`, `deep_holes`, `abyss_reports`; `components/sanctum/*` |
 | `/login` · `app/login/page.tsx` | 닉네임·입장 코드 로그인, 가입 신청·승인대기 처리, 최초 캐릭터 생성 흐름. | `/api/auth/login`, `/api/auth/register`, HttpOnly 세션 쿠키, 브라우저 표시 설정 |
 | `/account/settings` · `app/account/settings/page.tsx` | 계정 드롭다운에서 들어가는 개인 설정. 현재 접속 코드를 확인한 뒤 새 코드로 변경하고 재로그인한다. | `/api/auth/session`, `/api/auth/change-code`, `accounts`, `sanctum_sessions` |
-| `/character` · `app/character/page.tsx` | KRONOS. 캐릭터 선택/편집, 숙제·교환·구매 체크, 대표 캐릭터와 기여도 관리. | `characters`, `nexus_classes`, `nexus_tasks`, `nexus_contents`, `nexus_trades`, `nexus_purchases`; `components/character/*` |
+| `/character` · `app/character/page.tsx` | CHRONOS. 캐릭터 선택/편집, 숙제·교환·구매 체크, 대표 캐릭터와 기여도 관리. | `characters`, `nexus_classes`, `nexus_tasks`, `nexus_contents`, `nexus_trades`, `nexus_purchases`; `components/character/*` |
 | `/character/detail` · `app/character/detail/page.tsx` | 특정 캐릭터 상세 조회 화면. | `characters` |
 | `/kerygma` · `app/kerygma/page.tsx` | 공지 목록·상세, 고정/삭제, 투표·댓글 관련 화면, 공지 Realtime 구독. | `notices`, `accounts`, `characters`; `components/kerygma/*` |
 | `/kerygma/write` · `app/kerygma/write/page.tsx` | 공지 작성·수정 에디터. | `notices`, `KerygmaEditorToolbar`, `KerygmaPollModal` |
@@ -1012,7 +1022,7 @@ app/layout.tsx
 | 구역 | 파일군 | 책임 |
 | --- | --- | --- |
 | 공통 아이콘 | `components/common/ClassIcon.tsx`, `MarkIcon.tsx` | 직업 SVG 마스크/등급 오라, UI 마크 선택과 테마 대응 |
-| KRONOS | `CharacterSelector`, `CharacterManageModal`, `CharacterStats`, `ClassLevelManager`, `ContentChecklist`, `TradeList` | 캐릭터 선택·등록·수정, 스탯, 직업/레벨, 숙제와 교환 체크 |
+| CHRONOS | `CharacterSelector`, `CharacterManageModal`, `CharacterStats`, `ClassLevelManager`, `ContentChecklist`, `TradeList` | 캐릭터 선택·등록·수정, 스탯, 직업/레벨, 숙제와 교환 체크 |
 | KERYGMA | `KerygmaHeader`, `CategoryTabs`, `TableList`, `ReaderView`, `EditorToolbar`, `PollModal`, `TableContextMenu` | 공지 탐색·읽기·작성·투표와 운영 메뉴 |
 | SYNAXIS | `PartyCard`, `PartyCreateForm`, `PartyFilterHeader`, `PartyModals`, `GuildBusCard`, `GuildBusJoinModal`, `GuildBusAccountDetailModal`, `CustomTimePicker`, `components/party/modals/*` | 파티 카드/필터/생성/참여/시간 조율, 길드 버스, 역할 조합과 세부 팝업 |
 | 홈 | `SanctumHeaderWidgets`, `KronosCheckboardSection`, `PantheonRankingSection`, `SynaxisPartySection`, `SanctumModals` | 홈의 요약 위젯, 숙제/랭킹/파티 섹션과 홈 모달 |
@@ -1028,12 +1038,12 @@ app/layout.tsx
 | 테이블 | 코드에서 확인된 사용 영역 | 주요 동작 |
 | --- | --- | --- |
 | `accounts` | 로그인, 전역 레이아웃, KERYGMA, 길드 버스, 관리자 승인 | 로그인/가입 승인/역할/계정 삭제 |
-| `characters` | 홈, KRONOS, 상세, KERYGMA, AGORA, 파티/버스, API | 조회·등록·수정·대표 지정·삭제·랭킹/숙제 데이터 |
+| `characters` | 홈, CHRONOS, 상세, KERYGMA, AGORA, 파티/버스, API | 조회·등록·수정·대표 지정·삭제·랭킹/숙제 데이터 |
 | `parties` | 홈, SYNAXIS 훅, AGORA, 길드 버스 | 생성·참여·수정·삭제·Realtime |
 | `notices` | KERYGMA 목록/작성/수정 | 공지 CRUD·Realtime |
 | `inquiries` | LOGOS, 전역 운영 알림 | 문의 작성·답변·대기 수 조회 |
-| `nexus_classes` | KRONOS, 파티, AGORA, GNOSIS, 관리자, 버스 | 직업 마스터 데이터 CRUD/조회 |
-| `nexus_tasks`, `nexus_contents`, `nexus_trades`, `nexus_purchases` | KRONOS·홈·주간 동기화·관리자 | 숙제/컨텐츠/교환/구매 기준 데이터 |
+| `nexus_classes` | CHRONOS, 파티, AGORA, GNOSIS, 관리자, 버스 | 직업 마스터 데이터 CRUD/조회 |
+| `nexus_tasks`, `nexus_contents`, `nexus_trades`, `nexus_purchases` | CHRONOS·홈·주간 동기화·관리자 | 숙제/컨텐츠/교환/구매 기준 데이터 |
 | `nexus_banners`, `nexus_missions`, `content_power_reqs`, `gnosis_guides` | 전역 배너·관리자 | 운영 데이터 CRUD |
 | `deep_holes`, `abyss_reports` | 홈 | 심연/어비스 제보 생성·목록 |
 | `server_events` | 게임 이벤트 API | 서버 이벤트 제공 |
@@ -1067,7 +1077,7 @@ app/layout.tsx
 | 영역 | 현재 구현 | 베타 판단 |
 | --- | --- | --- |
 | SANCTUM 홈 | 길드 상태 위젯, 숙제·랭킹·파티 요약 | 점검 후 유지 |
-| KRONOS | 다중 캐릭터, 직업/레벨, 전투력·마도저항, 숙제·교환 체크 | 베타 핵심 |
+| CHRONOS | 다중 캐릭터, 직업/레벨, 전투력·마도저항, 숙제·교환 체크 | 베타 핵심 |
 | KERYGMA | 공지 CRUD, 고정, 투표, 댓글/대댓글, Realtime 구독 | 베타 핵심 |
 | AGORA | ASTRA 길드원 현황, PANTHEON 랭킹 | 베타 포함 |
 | SYNAXIS | 파티 생성/참여, 역할 조합, 일정 겹침 검사, 길드 버스 | 베타 핵심 |
@@ -1190,10 +1200,10 @@ RLS가 켜진 테이블은 `accounts`, `activity_logs`, `characters`, `inquiries
 
 1. 계정 보안 1차 SQL 적용 후 로그인·가입 신청·승인 계정의 실제 흐름 테스트
 2. 관리자 승인·계정 관리의 브라우저 직접 DB 변경을 서버 권한 검증 API로 전환
-3. KRONOS, KERYGMA, SYNAXIS, 관리자 기능의 실제 흐름 테스트
+3. CHRONOS, KERYGMA, SYNAXIS, 관리자 기능의 실제 흐름 테스트
 4. 모바일 화면·빈 상태·실패 상태 점검
 5. 8명 베타 테스터 배포 및 핫픽스
-6. 범용 알림 데이터 구조와 사용자별 설정 설계 후, KRONOS·SYNAXIS·운영진 이벤트부터 내부 알림함에 단계적으로 연결
+6. 범용 알림 데이터 구조와 사용자별 설정 설계 후, CHRONOS·SYNAXIS·운영진 이벤트부터 내부 알림함에 단계적으로 연결
 7. Service Worker/PWA/Web Push를 추가해 종료 후 모바일·브라우저 알림 지원
 8. 베타 안정화 후 GNOSIS와 EMPORION 고도화
 

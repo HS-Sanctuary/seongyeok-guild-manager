@@ -42,7 +42,7 @@ export default function KronosCheckboardSection({
 }: KronosCheckboardSectionProps) {
   return (
     <section className="bg-transparent p-0.5 md:p-1">
-      {/* 1. KRONOS CHECK BOARD 1줄 컴팩트 헤더 영역 (Single Row Header) */}
+      {/* 1. CHRONOS CHECK BOARD 1줄 컴팩트 헤더 영역 (Single Row Header) */}
       <div className="flex flex-row justify-between items-center mb-2 pb-2 border-b gap-1.5 md:gap-2 border-[var(--panel-border)]">
         
         {/* 좌측: 장비 마크 + (대제목 + 뱃지 서브타이틀 텍스트 수직 칼정렬) */}
@@ -50,10 +50,10 @@ export default function KronosCheckboardSection({
           <MarkIcon src="/svgs/UI mark/장비 마크.svg" size="md" colorClass="bg-[var(--accent)]" />
           <div className="min-w-0 flex flex-col items-start justify-center">
             <h2 className="font-black text-xs md:text-sm tracking-tight whitespace-nowrap text-[var(--text-main)] leading-tight">
-              Kronos Check Board
+              CHRONOS Check Board
             </h2>
             <div className="mt-0.5 flex items-center">
-              {/* -ml-1.5 음수 마진을 통해 'K'와 'S' 글자 수직 정렬 축 100% 일치 */}
+              {/* 음수 마진으로 제목과 서브타이틀의 시작 위치 정렬 */}
               <span className="inline-block text-[0.5rem] md:text-[0.58rem] font-extrabold px-1.5 py-0.5 -ml-1 rounded bg-[var(--accent)] text-[var(--accent-fg)] shadow-xs leading-none whitespace-nowrap">
                 Sanctum : 캐릭터 관리 시스템 요약
               </span>

@@ -298,7 +298,7 @@ export default function GuildBusCard({
     if (!canManage || actionLock.current || !catalog.loaded || catalog.error) return;
     if (activeMembers.length === 0) return alert("출전 파티원이 없습니다.");
 
-    if (!confirm(`현재 출전 중인 ${activeMembers.length}명의 KRONOS 숙제를 완료 처리하고 다음 회차 파티를 구성하시겠습니까?`)) {
+    if (!confirm(`현재 출전 중인 ${activeMembers.length}명의 CHRONOS 숙제를 완료 처리하고 다음 회차 파티를 구성하시겠습니까?`)) {
       return;
     }
 

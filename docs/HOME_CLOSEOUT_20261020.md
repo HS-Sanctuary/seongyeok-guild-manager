@@ -1,0 +1,59 @@
+# 2026-10-20 집 마감 — CHRONOS·ERGON 순월 인계
+
+## 기준과 전송 범위
+
+- 작성 영겁 / 2026-10-20 22:27 KST. 이번 마감 이후 새 기능 개발을 중단한다.
+- 브랜치: `codex/home-gnosis-iris-integration-20261019`.
+- 시작 로컬·원격: `5102571c65621d971609389110cd1bf2963f843f`. ff-only pull 결과 최신, 운영 main 마지막 확인 `06e1eca3e876cc240e62806be584aa725f95c69c`.
+- 한설이 승인한 CHRONOS 표시 최소 수정·관련 테스트·ERGON 설계·필요한 인계 기록만 commit/push한다. 전송 SHA는 후속 마감 항목에 기록한다.
+- 운영main 병합·Production·공개 IRIS/ZIP/공지·운영 DB·게임 행동·신규 자동 생산 실행 구현은 하지 않는다. 실행 중 IRIS/게임/개발 환경을 종료하지 않는다.
+- 공개 웹v2.321/IRIS0.4.1 유지, 기존 v2.322 기능 후보의 후속 인계이며 공개 릴리스가 아니다.
+
+## 포함한 파일
+
+- 표시: `types/layout.ts`, `components/sanctum/KronosCheckboardSection.tsx`, `components/party/GuildBusCard.tsx`, `components/party/GuildBusJoinModal.tsx`.
+- 시험: `tests/chronos-branding.test.mjs`, `tests/chronos-branding.browser.mjs`. 실제 표시 컴포넌트/기존 경로·명령을 사용하고 IO는 합성이다. 브라우저 시험의 Playwright 위치는 인자 또는 로컬 패키지 해석을 사용하며 개인 경로를 하드코딩하지 않는다.
+- 설계/검증: [뉴월 인계](ERGON_NEWOL_HANDOFF.md), [목표 생산 통합 설계](superpowers/specs/2026-10-20-ergon-goal-production-integration-design.md), [CHRONOS QA](CHRONOS_NAMING_QA_20261020.md).
+- 최소 운영 기록: RELEASE_NOTES/HANDOFF/Master Guide/TO_SOONWOL/이 문서, BETA_FEEDBACK의 이번 CHRONOS 항목만. 기존 로고 얼룩 항목은 이번 승인 범위 밖이라 전송하지 않는다.
+- 내부 `kronos`·`/character`·URL/API·테이블/RLS·저장 키·사용자 데이터·SYNAXIS/ERGON 연결은 바꾸지 않는다.
+
+## 검증과 남은 위험
+
+- 로컬 전체 Node614건:611PASS/기존3skip. **이 수치에는 기존 미커밋 ERGON 시험2건이 포함된다. 그2건은 전송하지 않으므로 전송 트리의 시험 수와 구분한다.** 마감 후속에 전송 대상 시험의 별도 결과를 남긴다.
+- 전송 대상 기준: 기존 미커밋2시험을 뺀 나머지607건604PASS/3skip, HEAD 원본 ERGON 계획5건5PASS를 별도로 실행해 **총612건609PASS/3skip·실패0**. HEAD 시험은 메모리에서 import 경로만 연결해 실행했고 원본 로컬 파일은 수정하지 않았다.
+- CHRONOS Node4/4, 브라우저320/390/768/1280×글자18/20/22 총12조합, route/protocol/가이드 통과. 개인 경로 제거 후 브라우저 재검증도 통과했다.
+- 오늘 격리 Next60페이지 빌드·독립tsc 통과. 실제 캐릭터 페이지 자동 저장·홈 저장·플로팅 저장줄 합성 회귀 통과. 검증 이후 제품 코드 변경은 없다.
+- **기존 실패 유지:** IRIS 탐색 시험의 자산 요청/도형/버튼 개수3건, 버스2파일 lint16오류9경고. lint는 변경 전 HEAD와 동일 진단이다. 해당 실패를 없애려고 범위 밖 코드를 바꾸지 않았다.
+- 실제 계정/운영 DB/설치본/게임 소비를 검증한 결과가 아니다. 상세 근거·제한은 CHRONOS QA에 있다.
+
+## 기존 미커밋11항목 — 보존·미전송
+
+| 항목 | 처리 |
+| --- | --- |
+| `docs/BETA_FEEDBACK.md` 기존 로고 얼룩 조사 | 작업 파일 그대로 보존, 이번 CHRONOS 항목만 index 분리 |
+| `docs/IRIS_OVERNIGHT_HANDOFF_20261020.md` | 기존 미커밋 부록 보존·제외 |
+| `docs/UPDATE_POST_v2.151.md` | 개인 초안 보존·제외 |
+| `tests/iris-ergon-plan.test.mjs` | 기존 추가2시험 보존·제외 |
+| 루트 기존 삭제3항목 | 삭제 상태 그대로, 이번 커밋에 삭제를 포함하지 않음 |
+| `docs/CHATGPT_PROJECT_HANDOFF_SANCTUM_IRIS_20261020.md` | 개인/기존 미추적 인계 보존·제외 |
+| `docs/ERGON_REFERENCE_ARCHITECTURE_20261020.md` | 기존 미추적 조사 보존·제외 |
+| `tests/kronos-theme-preview.mjs` | 기존 개인 시험 보존·제외 |
+| 루트 개인 실행 안내1항목 | 미추적 그대로 보존·제외 |
+
+원래11항목의 바이트 해시 및 삭제 상태를 전송 전후 비교한다. BETA_FEEDBACK은 새 CHRONOS 구간을 제외한 원래 본문 해시를 비교한다. 원격에는 개인 파일이 없으므로 순월이의 사무실에도 이 자료가 전달됐다고 오해하지 않는다. 이번 전송에 필요한 새 설계는 위에 링크한 문서만으로 읽을 수 있게 작성했다.
+
+## 내일 순월의 첫 작업 순서
+
+1. 사무실 로컬 변경부터 보존하고 이 브랜치 최신을 ff-only로 받는다. 충돌 시 양쪽 diff를 비교하며 강제 덮어쓰기/reset/stash하지 않는다. AGENTS → CODEX_RELAY → TO_SOONWOL을 읽고 ACK한다.
+2. CHRONOS PC/모바일/홈/길드버스 표시와 `/character`·IRIS 내부kronos 연결, 기존 저장·실패/재시도·이동 보호의 비소비성 회귀를 확인한다. 기존 실패는 별도 분류한다.
+3. 뉴월 인계/통합 설계와 실제 코드를 대조한다. 이미 있는 계획 편집·부족분 미리보기·단일 실행·보호 원장을 재구현하지 않는다.
+4. 첫 end-to-end 자동 생산의 누락 계약과 테스트 기준만 확정한다. 품목별 BOM/산출·해금·시설 정원·비용·부분 수령·예약·중복·결과불명/수동 개입·재개 상태를 우선한다.
+5. 한설에게 첫 지원 품목·비용/초과 산출 허용 범위를 확인할 자료를 남긴다. **새 자동 생산 코드를 바로 구현하거나 실제 게임 재료를 소비하지 않는다.**
+
+## ERGON 합의와 승인 경계
+
+‘추가100개’와 ‘필요100·보유30→부족70’은 다른 목표다. 승인 후 가능한 작업을 즉시 시작하며 사용자 실행시간 입력을 요구하지 않는다. 부족 재료 채집→가공→대기→수령→재등록→제작→목표 확인 전체는 아직 미완성이다. 관측된 가공 잔여 시간과 전체 목표 예상 시간을 구분하고 채집/제작 시간을 꾸며내지 않는다.
+
+중단 시 확인 진척과 원장을 보존한다. 재개 시 실제 상태를 다시 확인하고 남은 목표를 계산한다. 결과불명·비용불명은 소비를 막으며 과거 unknown을 성공으로 바꾸지 않는다. 낚시는 별도 검증, 모바일 원격은 미래 항목이다. 상세 기록 로컬 우선·서버 최소 요청/결과, Supabase Free/Vercel Hobby 추가 결제 없음이며 기존 사용량·이용 적합성 미확인 시 원격을 보류한다.
+
+실게임 채집/제작/등록/수령은 매번 별도 승인, 운영 DB·main/Production·공개 IRIS는 별도 승인이다. 이 인계와 ACK는 그러한 승인을 대신하지 않는다.

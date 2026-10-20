@@ -262,7 +262,7 @@ export default function GuildBusJoinModal({
               </div>
               <div className="flex items-start gap-1.5 leading-snug">
                 <span className="text-[var(--accent)] shrink-0">•</span>
-                <span>완수 시 KRONOS 주간 숙제 체크리스트가 자동으로 동기화됩니다.</span>
+                <span>완수 시 CHRONOS 주간 숙제 체크리스트가 자동으로 동기화됩니다.</span>
               </div>
             </div>
           )}

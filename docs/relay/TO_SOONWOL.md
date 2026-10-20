@@ -2,6 +2,11 @@
 
 ## YG-20261016-001 — UPDATED (목록형 구현·검토 수정·15% 해제)
 
+- **2026-10-20 22:27KST 집 마감/최우선:** 한설이5시간15%에서 새 개발 중단·검증/인계/commit/push만 승인했다. 이번 지시가 과거15%해제·야간자율지시보다 최신이다. `codex/home-gnosis-iris-integration-20261019` 시작/원격5102571c65621d971609389110cd1bf2963f843f·ff-only pull 최신, main06e1eca 유지. `docs/HOME_CLOSEOUT_20261020.md`와 CHRONOS_NAMING_QA를 먼저 읽고 최종 전송 HEAD까지 받아 ACK할 것. 정확 커밋/전송은 아래가 아닌 최상단 후속 마감을 따른다.
+- 이번 범위: CHRONOS 표시4파일/관련2시험·뉴월 인계·목표 생산 통합 설계·필수 인계만. 내부kronos·URL/API/DB/저장 구조보존. 기존 미커밋11항목은 해시/삭제상태 보존·전송제외, BETA_FEEDBACK은 이번 명칭 부분만 index에 분리. 개인자료·주말/순월 기존 누적을 덮어쓰지 않는다.
+- 검증: 로컬614/611PASS3skip, 표시/12반응형·합성 자동 저장·격리60빌드/tsc 통과. 기존 IRIS탐색3실패·버스lint16오류9경고 남음. 실제게임 성공/공개 배포로 확대하지 않는다.
+- 순월 첫 순서: 수신ACK → CHRONOS표시·기존저장/이동 → ERGON설계와실코드차이 → 첫목표생산 실행기 누락계약/검증기준 확정. **목표자동생산 미완성; 새실행코드/실게임소비/운영DB/main/Production/공개IRIS 금지**, 필요시 한설 별도승인. 원장unknown·미저장 보호해제금지. Codex직접작업/VSCode불필요. 이 아래 모든 미ACK누적을 보존한다.
+
 - **최신전송결과2026-10-20 01:31KST:** 제품`2549718a313fd26c908b644adb41e76bfd1677d0` 정상push/기능원격exact, main`06e1eca`유지. Vercel`dpl_Cj6zrxhT62oXjENHhxEH5M11WcUv` 정상브라우저 Ready/Preview/정확branch·SHA/GHsuccess. 실제Preview `/party` 통합매어2·지옥3·지옥4 표시/순서·세목표던전/취소확인·실파티쓰기0. 설치본/실게임검증은별도. `IRIS_OVERNIGHT_HANDOFF_20261020.md` 먼저읽고이결과마감까지최신HEAD받아ACK. 최신잔여4%시점새기능중단/문서전송만진행·개인6/문서7115/순월40보존0. 이마감문서전용/구조변경없음, 이하미ACK전부보존.
 
 - **2026-10-20 최종검증/전송준비:** Node608/605PASS3skip0fail·관련browser16합집합PASS·scopedlint/격리60build/독립tsc0·nativefontfixture PASS. 원본개인6/문서7115/순월40보존오류0. workbench옛fixture의running→idle만으로release기대를같은요청terminal로정정, 제품보호코드무변경. headerfirstbutton대신windowaria-pressed/초과산출표시 기대갱신. 공개main/ZIP/공지유지·어비스승인5행만운영반영. 정확SHA/원격/Preview결과는전송후누적, 아래미ACK모두보존.
