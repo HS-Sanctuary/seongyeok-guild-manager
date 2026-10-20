@@ -2,6 +2,9 @@
 
 ## YG-20261016-001 — UPDATED (목록형 구현·검토 수정·15% 해제)
 
+- **집 최종 커밋 식별:** 제품/설계/시험 `040e03d0ddc545af5fc91b45a786cfbe0bd6fbac`(15파일), 그 다음 문서 전용 최종 마감까지 포함해 `origin/codex/home-gnosis-iris-integration-20261019` 최신을 받을 것. 최종 SHA는 `git log -1 --format=%H -- docs/HOME_CLOSEOUT_20261020.md`와 영겁의 원격HEAD일치 최종 보고를 대조한다. 이 기록은 push 직전이며 성공을 선기록하지 않는다. ACK전 과거 누적 전부 보존.
+- 전송 대상612/609PASS3skip·새브라우저12조합PASS, 기존IRIS탐색3실패/버스lint16오류9경고 미해결. 개인11항목해시/삭제보존·index제외, 혼합BETA이번부분만전송·15파일scope/민감정보/AST PASS. 새제품추가0·운영main/공개IRIS/DB/실게임0. 내일수신ACK→명칭/저장/이동→설계실코드대조→누락계약/시험기준확정만, 새자동생산/소비는추가승인전금지.
+
 - **2026-10-20 22:27KST 집 마감/최우선:** 한설이5시간15%에서 새 개발 중단·검증/인계/commit/push만 승인했다. 이번 지시가 과거15%해제·야간자율지시보다 최신이다. `codex/home-gnosis-iris-integration-20261019` 시작/원격5102571c65621d971609389110cd1bf2963f843f·ff-only pull 최신, main06e1eca 유지. `docs/HOME_CLOSEOUT_20261020.md`와 CHRONOS_NAMING_QA를 먼저 읽고 최종 전송 HEAD까지 받아 ACK할 것. 정확 커밋/전송은 아래가 아닌 최상단 후속 마감을 따른다.
 - 이번 범위: CHRONOS 표시4파일/관련2시험·뉴월 인계·목표 생산 통합 설계·필수 인계만. 내부kronos·URL/API/DB/저장 구조보존. 기존 미커밋11항목은 해시/삭제상태 보존·전송제외, BETA_FEEDBACK은 이번 명칭 부분만 index에 분리. 개인자료·주말/순월 기존 누적을 덮어쓰지 않는다.
 - 검증: 로컬614/611PASS3skip, 표시/12반응형·합성 자동 저장·격리60빌드/tsc 통과. 기존 IRIS탐색3실패·버스lint16오류9경고 남음. 실제게임 성공/공개 배포로 확대하지 않는다.

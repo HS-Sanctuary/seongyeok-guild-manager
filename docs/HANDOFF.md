@@ -1,5 +1,7 @@
 # SANCTUM 작업 인계
 
+- **2026-10-20 최종 코드 식별:** CHRONOS·ERGON 설계 커밋 `040e03d0ddc545af5fc91b45a786cfbe0bd6fbac`. 최종 문서 마감은 그 다음 커밋이며 [HOME_CLOSEOUT](HOME_CLOSEOUT_20261020.md)의 최신 변경 SHA/원격 브랜치 HEAD까지 받는다. 전송 대상612/609PASS3skip, 기존11항목 미전송·보존, 운영main/공개IRIS/DB/게임행동0. 정확 push 성공은 영겁의 원격 일치 확인 보고와 대조한다.
+
 ## 2026-10-20 22:27 KST — 오늘 집 작업 마감 / 순월 우선 인계
 
 - 한설 최종 승인: 새 개발 중단, CHRONOS 표시4파일·관련2시험·ERGON 설계·최소 인계만 `codex/home-gnosis-iris-integration-20261019`에 commit/push. 시작/원격 기준5102571c65621d971609389110cd1bf2963f843f, ff-only pull 최신 확인. 정확 전송 커밋·결과는 [집 마감 인계](HOME_CLOSEOUT_20261020.md)와 릴레이 최상단 후속을 따른다.

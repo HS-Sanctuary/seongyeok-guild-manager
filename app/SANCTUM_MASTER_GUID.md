@@ -1,5 +1,7 @@
 # 🏛️ SANCTUM Master Guide
 
+최종 집 마감 코드 `040e03d0ddc545af5fc91b45a786cfbe0bd6fbac` 뒤 인계 문서만 추가한다. 제품 구조 변경 없음. 순월은 `docs/HOME_CLOSEOUT_20261020.md`를 마지막으로 변경한 최종 문서 커밋과 원격 브랜치 최신 HEAD를 대조한다. 이번 구조도 변경은 표시 설명뿐이며 운영/DB/새 실행 구현은 아니다.
+
 ### 2026-10-20 22:27 KST — 집 마감 인계 / 구조 변경 없음
 
 한설이 CHRONOS 표시 최소 수정·ERGON 통합 설계·관련 시험과 인계 기록의 기능 브랜치 commit/push를 승인했다. 아래 로컬 후보/미전송 설명은 작업 당시 경과이며 최신 결과는 `docs/HOME_CLOSEOUT_20261020.md`와 릴레이를 따른다. 제품 구조·API/DB/저장 키·운영 버전은 그대로다. 새 자동 생산 코드·실게임·main/Production/공개 IRIS/DB 변경은 없다. Codex에서 직접 검토하며 VS Code 조작을 요구하지 않는다.
