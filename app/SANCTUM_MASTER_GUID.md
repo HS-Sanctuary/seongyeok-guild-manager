@@ -1,5 +1,9 @@
 # 🏛️ SANCTUM Master Guide
 
+### 2026-10-21 23:56 KST — ERGON 수량 정확성 인계 / 구조 변경 없음
+
+`irisErgonCraftGoal`의 confirmedOutput만 목표/예약에 반영하고 native completed/expectedOutput는 확보 증거로 사용하지 않는다. DesktopErgon/Execution/Queue/PlanRow가 수량 미확인 상태와 선행 제작 보호를 공유한다. native/bridge/API/DB·계획 저장 구조는 변경하지 않았다. 별도 암호화 진행 저장소는 승인된 설계이며 아직 소스/연결/UI가 없다. [마감 인계](../docs/ERGON_CLOSEOUT_20261021.md)와 그 문서의 Git 이력을 기준으로 순월이 수신·ACK/시작 가능 여부부터 확인한다. 공개 버전·잠금 유지, 신규 구현/실게임/운영 변경0.
+
 최종 집 마감 코드 `040e03d0ddc545af5fc91b45a786cfbe0bd6fbac` 뒤 인계 문서만 추가한다. 제품 구조 변경 없음. 순월은 `docs/HOME_CLOSEOUT_20261020.md`를 마지막으로 변경한 최종 문서 커밋과 원격 브랜치 최신 HEAD를 대조한다. 이번 구조도 변경은 표시 설명뿐이며 운영/DB/새 실행 구현은 아니다.
 
 ### 2026-10-20 22:27 KST — 집 마감 인계 / 구조 변경 없음

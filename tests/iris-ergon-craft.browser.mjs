@@ -10,7 +10,7 @@ const fixture=await startIrisFixture(entry),browser=await chromium.launch({headl
 try{
  await page.goto(fixture.origin);await page.getByRole('button',{name:'제작 실행 준비',exact:true}).click();assert.equal(await page.evaluate(()=>window.trial.requests[0].craftCount),3);
  await page.getByText('제작 3회 · 예상 결과물 3개',{exact:true}).waitFor();await page.getByText('장비 등 조회하지 못하는 품목은 가방 수량을 표시하지 않아요.',{exact:true}).waitFor();
- await page.getByRole('button',{name:'게임 화면 확인 후 3개 제작',exact:true}).click();await page.getByText('제작 완료 확인 · 예상 결과물 3개 · 날개 5개 사용',{exact:true}).waitFor();assert.equal(await page.evaluate(()=>window.trial.confirmed),1);assert.equal(await page.evaluate(()=>window.trial.requests.length),1);
+ await page.getByRole('button',{name:'게임 화면 확인 후 제작 3회',exact:true}).click();await page.getByText('제작 명령 완료 · 결과물 수량 확인 필요',{exact:true}).waitFor();assert.equal(await page.evaluate(()=>window.trial.confirmed),1);assert.equal(await page.evaluate(()=>window.trial.requests.length),1);
  await page.waitForTimeout(2200);assert.equal(await page.evaluate(()=>window.trial.confirmed),1);for(const width of [320,390,720]){await page.setViewportSize({width,height:800});await page.evaluate(()=>document.documentElement.style.fontSize='22px');assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);}
  assert.deepEqual(errors,[]);console.log('PASS real React quantity3 single craft intent/null equipment inventory/wing5/completion/no automatic repeats/responsive');
 }finally{await browser.close();await new Promise(resolve=>fixture.server.close(resolve));}

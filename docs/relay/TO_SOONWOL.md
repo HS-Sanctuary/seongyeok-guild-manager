@@ -2,6 +2,10 @@
 
 ## YG-20261016-001 — UPDATED (목록형 구현·검토 수정·15% 해제)
 
+- **2026-10-21 23:56KST 마감 누적/최우선:** 한설이 오늘 ERGON 기존 수량 정확성 수정·직접 시험·조사/설계/계획·최소 인계의 기능 브랜치 선별 commit/push만 승인했다. [ERGON_CLOSEOUT_20261021](../ERGON_CLOSEOUT_20261021.md)를 먼저 읽고 수신 ACK. `codex/home-gnosis-iris-integration-20261019` 시작/동일원격 a6bea6824fcff9c7566834c83a979d9985869b6b ff-only 확인. 최종 SHA는 해당 인계 파일의 마지막 커밋과 영겁의 원격HEAD 일치 보고를 대조한다. 아직 push 성공을 선기록하지 않으며 과거 미ACK 누적 보존.
+- 제품5/직접시험9/조사·설계5만 기존dirty에서 선택, 개인12항목 바이트/삭제상태 보존·제외. expectedOutput와 completed를 실제수량으로 더하지 않고 선행 결과 미확인·원장unknown 보호 유지. 상세진척은 아직 메모리이며 저장/확인 UI/자동생산 미구현. 기존617/614PASS3skip·native4·browser14·타입/격리빌드와 새61계획 미실행 구분, 기존잠금가정1·탐색3·버스lint 남음. 마감 fresh 전송범위 결과는 인계 후속 절 참조.
+- 다음: ACK→환경/코드/설계·기존저장/이동 회귀→Task1·2 신규5파일/34합성 시작 가능 여부 보고. **순월 신규 구현 시작 승인은 아직 아님.** 실제게임/추가CLI/보호파일 접근·unknown해제/main/DB/Production/공개ERGON·IRIS배포0, 신규서버호출0. 사용량10%도달로 새작업중단·이 승인된 마감만 진행한 뒤 종료.
+
 - **집 최종 커밋 식별:** 제품/설계/시험 `040e03d0ddc545af5fc91b45a786cfbe0bd6fbac`(15파일), 그 다음 문서 전용 최종 마감까지 포함해 `origin/codex/home-gnosis-iris-integration-20261019` 최신을 받을 것. 최종 SHA는 `git log -1 --format=%H -- docs/HOME_CLOSEOUT_20261020.md`와 영겁의 원격HEAD일치 최종 보고를 대조한다. 이 기록은 push 직전이며 성공을 선기록하지 않는다. ACK전 과거 누적 전부 보존.
 - 전송 대상612/609PASS3skip·새브라우저12조합PASS, 기존IRIS탐색3실패/버스lint16오류9경고 미해결. 개인11항목해시/삭제보존·index제외, 혼합BETA이번부분만전송·15파일scope/민감정보/AST PASS. 새제품추가0·운영main/공개IRIS/DB/실게임0. 내일수신ACK→명칭/저장/이동→설계실코드대조→누락계약/시험기준확정만, 새자동생산/소비는추가승인전금지.
 
