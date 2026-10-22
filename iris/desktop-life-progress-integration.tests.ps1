@@ -1,4 +1,4 @@
-param([ValidateSet('all','report')][string]$Mode='all',[string]$Root='',[string]$CaseID='')
+param([ValidateSet('all','report','worker')][string]$Mode='all',[string]$Root='',[string]$CaseID='',[string]$WorkerGoal='',[ValidateSet('a','b','hold')][string]$WorkerMode='a')
 $ErrorActionPreference='Stop'
 $taskBase=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../.superpowers/progress-integration-synthetic'))
 if($Root -eq '') {$Root=Join-Path $taskBase ([guid]::NewGuid().ToString('N'))}
@@ -12,4 +12,6 @@ while($taskCursor.Length -ge $taskBase.Length) {
 if(!(Test-Path (Join-Path $PSScriptRoot 'desktop-life-progress-coordinator.cs'))) {throw 'FAIL A01: pre-dispatch progress coordinator is not implemented'}
 [void][IO.Directory]::CreateDirectory($taskRoot)
 Add-Type -Path @((Join-Path $PSScriptRoot 'desktop-life-progress.cs'),(Join-Path $PSScriptRoot 'desktop-life-progress-coordinator.cs'),(Join-Path $PSScriptRoot 'desktop-life-progress-integration.fixture.cs')) -ReferencedAssemblies @('System.Core','System.Web.Extensions','System.Security')
+[IrisDesktop.ProgressIntegrationFixture]::ScriptPath=$PSCommandPath
+if($Mode -eq 'worker') {[IrisDesktop.ProgressIntegrationFixture]::Worker($taskRoot,$WorkerGoal,$WorkerMode);exit}
 [IrisDesktop.ProgressIntegrationFixture]::Run($taskRoot,$Mode,$CaseID)

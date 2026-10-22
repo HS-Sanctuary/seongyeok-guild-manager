@@ -1,5 +1,26 @@
 # SANCTUM 작업 인계
 
+## 2026-10-22 KST — ERGON B-1 합성 검증 완료·선별 인계
+
+- 선별 인계 직전 재검증(2026-10-22 KST): Node624 중621 PASS/기존3 SKIP/FAIL0(통합 A22+B20 포함), 격리 저장34 PASS/FAIL0/종료 코드0. S01 세부 보존 진단 PASS, 최초 간헐 실패 원인은 여전히 미확정. 원본 로그는 전송하지 않는다.
+
+- **이번에 완료한 것:** 기준 `37e9762244d7c02ace2294bd3c6686252a10f233`에서 B-1 승인 6파일의 공통 writer 잠금·비동기 승인 재검증·lease 인계 계약을 구현했다. 보고서 SHA256 6개와 전송 소스의 일치를 확인했다. 코드·시험 6파일과 필수 한국어 인계 문서만 기능 브랜치로 전송한다.
+- **아직 안 되는 것:** 실제 host 연결·실제 Confirm 우회 차단·native 원장 terminal 정합성은 미실행이다. 전체 2차·UI·자동 생산 완료가 아니다.
+- **다음 작업:** 별도 승인 전 B-2 제품 구현·실제 연결을 시작하지 않는다. 실제 모든 writer의 공통 잠금 참여, 실제 Confirm 우회 불가, Run terminal까지 lease 유지·모든 예외 정리, unknown/전역 미해결 보호, S01 간헐 실패 진단을 B-2 필수 게이트로 둔다. Q13/N05/N07/N08/N12·실제 host/terminal 연결 미실행.
+- 합성 결과: B01–B20 신규20 PASS, A01–A22 기존22 PASS, 저장 Q01–Q12/Q14–Q15/I01–I02/I04–I07 및 S01–S14 34 PASS. 구현 마감 Node624 중621 PASS/기존3 SKIP/FAIL0, 기존 native4종·타입·lint PASS. native4종은 검토 수정 전 결과이며 후보 2파일을 컴파일하지 않는 시험이다. 실제 게임 검증은 미실행이다.
+- 독립 High 검토 C0/I2/M0: 위조 writer admission과 Dispose 예외 후 이중 해제를 B19/B20 RED→GREEN으로 보완했다. 재검토0. S01 최종 진단은 암호문 동일/revision4/health ok/confirmed3/원본 mutation 동일이지만 최초 간헐 실패 원인은 미확정이다. 단순 재실행 통과를 원인 해결로 보지 않는다.
+- 잠금 순서 mutation10→game20→writer30→file40. 승인 대기 중 writer/file 잠금 없음, 가짜 Run은 Claim 후 terminal까지 소유한다. 동일 프로세스 점유는 보수적으로 차단하며 외부 writer 대기는 최대5초다. 실제 동작의 보장은 B-2에서 별도 입증한다.
+- 사무실 원본 개인16·별도 수신 ACK·로컬 보고서/원본 로그 보존·전송 제외. 실제 게임·기존 원장·DB·main·Production·공개 IRIS 변경 없음. 기능 push 성공 여부와 최종 SHA는 Git 이력 및 원격 일치 보고로 확인한다. 보고·검토·인계·진행 기록은 한국어 기본, 식별자/명령/원본 출력은 유지한다.
+
+### B-1 검증 소스 SHA256
+
+- `iris/desktop-life-progress.cs`: `07792792D623F5198A7CB7C5A36C09614B7539F8B10142483750501CAA8813AE`
+- `iris/desktop-life-progress-coordinator.cs`: `1D0BA4EBCB1278CEA1E629D4A8CE9E5726D8CACDA589486C63D983D2D24FA1BE`
+- `iris/desktop-life-progress.fixture.cs`: `FA104ED1856EAD982CD4AE5E0F7ECA99CA965C673826B0135C063F4ADB217995`
+- `iris/desktop-life-progress-integration.fixture.cs`: `562C9DD68DF03078A67C6FEFE7FF3727D3435CB1AA4BD6C42A96871250B7E4E6`
+- `iris/desktop-life-progress-integration.tests.ps1`: `02EB786D75B1C44DA4E22F3BE90577DFF42BFB21C141F5E26FDA9F26188BBCB6`
+- `tests/iris-ergon-progress-bridge.test.mjs`: `7C57588524686A049C84CDD69C11B3DEE17340DB7CA99996836B5F66018F9882`
+
 ## 2026-10-22 KST — ERGON 2차 A 마감 / B 연결 준비
 
 기준 `f4eda6bc997d757c00923a609bd0a42fc40559c6`에서 신규4파일과 최소 인계만 기능 브랜치에 선별 전송한다. native 후보 코디네이터의 저장 ACK·소유권·일회성 바인딩·필수 writer 제외 admission을 합성22개로 검증했다. 기존1차34 최종 PASS, Node621 PASS/기존3 SKIP/0 FAIL, 기존 native4·타입·scoped lint PASS. 최초 S01 보존 assertion 실패1회 원인은 미확정이며 단독/최종 직렬 전체는 PASS. 실제 실행기/bridge/host/원장·UI는 미연결이다. 모든 실제 writer가 공통 cross-process 제외에 참여하고 구 confirm 우회를 차단하기 전 B 활성화 금지. 원래2차13개 전체와 UI14개는 미완료이며 B 코드는 별도 승인 후 시작한다. 개인16항목/별도 ACK·개인 로그 보존·전송 제외; 게임·DB·main·배포 변경0.

@@ -6,8 +6,44 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Web.Script.Serialization;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace IrisDesktop {
+    // Logical operation ownership survives await without thread-affine locks or ambient
+    // inheritance into child tasks. Callers pass the owner explicitly; duplicate ranks
+    // and reverse acquisition fail before any OS/native resource is acquired.
+    internal sealed class ProgressLockOwner {
+        internal const int Mutation=10,Game=20,Writer=30,File=40;
+        readonly object gate=new object();readonly SortedSet<int> ranks=new SortedSet<int>();
+        internal sealed class Hold:IDisposable {
+            readonly ProgressLockOwner owner;readonly int rank;bool disposed;
+            internal Hold(ProgressLockOwner owner,int rank){this.owner=owner;this.rank=rank;}
+            internal void CheckRelease(){lock(owner.gate){if(!disposed&&owner.ranks.Max!=rank)throw new InvalidOperationException("lock-release-order");}}
+            internal void TransferOut(){lock(owner.gate){if(disposed)throw new InvalidOperationException("lock-already-released");owner.ranks.Remove(rank);disposed=true;}}
+            public void Dispose(){lock(owner.gate){if(disposed)return;CheckRelease();owner.ranks.Remove(rank);disposed=true;}}
+        }
+        internal Hold Enter(int rank){lock(gate){if(ranks.Count!=0&&rank<=ranks.Max)throw new InvalidOperationException("lock-acquisition-order");ranks.Add(rank);return new Hold(this,rank);}}
+    }
+    internal sealed class ProgressWriterAdmission:IDisposable {
+        readonly string key;readonly ProgressLockOwner owner;readonly ProgressLockOwner.Hold rank;readonly IDisposable resource;readonly Action released;readonly object gate=new object();bool busy,disposed;
+        internal ProgressWriterAdmission(string key,ProgressLockOwner owner,ProgressLockOwner.Hold rank,IDisposable resource,Action released){this.key=key;this.owner=owner;this.rank=rank;this.resource=resource;this.released=released;}
+        sealed class Use:IDisposable {readonly ProgressWriterAdmission admission;readonly ProgressLockOwner.Hold fileRank;bool disposed;internal Use(ProgressWriterAdmission a,ProgressLockOwner.Hold f){admission=a;fileRank=f;}public void Dispose(){lock(admission.gate){if(disposed)return;fileRank.Dispose();admission.busy=false;disposed=true;}}}
+        internal IDisposable EnterStore(string file){lock(gate){if(disposed||busy||!String.Equals(key,Path.GetFullPath(file)+".writers.lock",StringComparison.OrdinalIgnoreCase)||!ProgressWriterGate.Owns(key,this))throw new InvalidOperationException("writer-admission-invalid");var fileRank=owner.Enter(ProgressLockOwner.File);busy=true;return new Use(this,fileRank);}}
+        public void Dispose(){lock(gate){if(disposed)return;if(busy)throw new InvalidOperationException("writer-admission-in-use");rank.CheckRelease();try{resource.Dispose();}finally{rank.Dispose();disposed=true;released();}}}
+    }
+    internal static class ProgressWriterGate {
+        static readonly object gate=new object();static readonly Dictionary<string,ProgressWriterAdmission> local=new Dictionary<string,ProgressWriterAdmission>(StringComparer.OrdinalIgnoreCase);
+        internal static bool Owns(string key,ProgressWriterAdmission admission){lock(gate){ProgressWriterAdmission active;return local.TryGetValue(key,out active)&&Object.ReferenceEquals(active,admission);}}
+        internal static ProgressWriterAdmission Acquire(string file,ProgressLockOwner owner){
+            if(owner==null)throw new ArgumentNullException("owner");var rank=owner.Enter(ProgressLockOwner.Writer);var key=Path.GetFullPath(file)+".writers.lock";bool registered=false;IDisposable resource=null;
+            try{
+                lock(gate){if(local.ContainsKey(key))throw new IOException("writer-already-owned-in-process");local.Add(key,null);registered=true;}
+                resource=new ProgressFileIO().AcquireExclusiveLock(key);
+                var admission=new ProgressWriterAdmission(key,owner,rank,resource,()=>{lock(gate)local.Remove(key);});lock(gate)local[key]=admission;resource=null;return admission;
+            }catch{if(resource!=null)resource.Dispose();if(registered)lock(gate)local.Remove(key);rank.Dispose();throw;}
+        }
+    }
     internal interface IProgressFileIO {byte[] ReadCipher(string path,int max);void WriteNewAndFlush(string path,byte[] bytes);void ReplaceWithBackup(string temp,string current,string backup);void MoveNew(string temp,string current);IDisposable AcquireExclusiveLock(string path);}
     internal sealed class ProgressFileIO:IProgressFileIO {
         public byte[] ReadCipher(string path,int max){using(var stream=new FileStream(path,FileMode.Open,FileAccess.Read,FileShare.Read)){ProgressDomain.Require(stream.Length>0&&stream.Length<=max,"cipher-size");var bytes=new byte[(int)stream.Length];int offset=0,n;while(offset<bytes.Length&&(n=stream.Read(bytes,offset,bytes.Length-offset))>0)offset+=n;ProgressDomain.Require(offset==bytes.Length,"cipher-read");return bytes;}}
@@ -70,7 +106,21 @@ namespace IrisDesktop {
             try{using(io.AcquireExclusiveLock(FilePath+".lock"))return Snapshot(Read(),scope);}catch(Exception e){if(!Recoverable(e))throw;return Snapshot(new State{health="unavailable",error="read-failed"},scope);}
         }
         internal ProgressProjection Project(ProgressScope scope){return Load(scope).view;}
+        internal ProgressWriterAdmission AcquireWriter(ProgressLockOwner owner){return ProgressWriterGate.Acquire(FilePath,owner);}
+        internal Task<ProgressWriterAdmission> AcquireWriterAsync(ProgressLockOwner owner){return Task.Run(()=>AcquireWriter(owner));}
+        internal ProgressSnapshot Load(ProgressScope scope,ProgressWriterAdmission writer){if(writer==null)throw new InvalidOperationException("writer-admission-required");using(writer.EnterStore(FilePath))return Load(scope);}
+        // Every mutation, including recovery and terminal evidence, reaches this common
+        // exclusion. Direct callers cannot opt out. The explicit-owner overload is for
+        // callers already holding the SAME Store's writer admission, never a new lock.
         internal ProgressCommitResult Commit(ProgressMutation mutation,long revision,Guid operation){
+            try{using(var writer=AcquireWriter(new ProgressLockOwner()))return Commit(mutation,revision,operation,writer);}
+            catch(Exception e){if(!Recoverable(e))throw;return new ProgressCommitResult{status="unavailable",operationId=operation.ToString("D"),error="writer-unavailable"};}
+        }
+        internal ProgressCommitResult Commit(ProgressMutation mutation,long revision,Guid operation,ProgressWriterAdmission writer){
+            try{if(writer==null)throw new InvalidOperationException("writer-admission-required");using(writer.EnterStore(FilePath))return CommitUnderWriter(mutation,revision,operation);}
+            catch(Exception e){if(!Recoverable(e))throw;return new ProgressCommitResult{status="unavailable",operationId=operation.ToString("D"),error="writer-admission-invalid"};}
+        }
+        ProgressCommitResult CommitUnderWriter(ProgressMutation mutation,long revision,Guid operation){
             var op=operation.ToString("D");ProgressScope scope=mutation==null?null:mutation.scope;
             try{ProgressDomain.Scope(scope);ProgressDomain.Require(scope.environment==environment,"foreign-scope");}
             catch(InvalidDataException){return new ProgressCommitResult{status="rejected",operationId=op,error="invalid-scope"};}

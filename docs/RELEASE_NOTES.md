@@ -1,5 +1,14 @@
 # SANCTUM 업데이트 노트
 
+## 2026-10-22 KST — v2.322 후보 후속 / ERGON B-1 내부 안전 기반 인계
+
+- 선별 인계 직전 재검증(2026-10-22 KST): Node624 중621 PASS/기존3 SKIP/FAIL0(통합 A22+B20 포함), 격리 저장34 PASS/FAIL0/종료 코드0. S01 세부 보존 진단 PASS, 최초 간헐 실패 원인은 여전히 미확정. 원본 로그는 전송하지 않는다.
+
+- 공개 버전 상승·배포·사용자 화면 변화 없음. 진행 Store의 공통 writer 제외와 후보 coordinator의 비동기 승인/실행 lease 소유권을 보강했다. 기존 host/bridge/실제 executor/원장/UI/API/DB 연결 구조 변경 없음.
+- 합성 신규 B01–B20 20 PASS·기존 A01–A22 22 PASS·저장34 PASS. 구현 마감 Node621 PASS/기존3 SKIP/FAIL0·기존 native4종·타입/lint PASS. 원본 로그는 로컬에 보존하고 전송하지 않는다.
+- 알려진 사항: S01 최초 간헐 실패 원인 미확정. 실제 Confirm 우회 차단·전 writer 참여·실제 Run terminal까지 lease·unknown 보호는 B-2 필수 검증이며 실제 연결/게임 검증 미실행. 공개 ERGON 잠금 유지.
+- 이번은 기능 브랜치 인계만 승인됐다. 운영 웹v2.321/IRIS0.4.1과 직전 정상 운영 제품4480646·Vercel dpl_3Z2KVcSMJnMxuZmp8ye3HZ5E75ds 유지. main/DB/Production/공개 ZIP·공지·실게임 변경 없음. 자세한 범위와 해시는 HANDOFF의 B-1 항목을 따른다.
+
 ## 2026-10-21 23:56 KST — v2.322 기능 후보 후속 / ERGON 수량 정확성 인계
 
 - 공개 버전 상승·공개 배포 없음. 예상 산출과 실제 확보량을 분리하고 제작 명령 종료만으로 목표 달성/완료품 예약을 인정하지 않는다. 수량 미확인 시 추가 제작을 차단한다. 공개 ERGON 잠금·native 실행 안전·기존 저장/API/DB 보존, 구조 변경 없음.

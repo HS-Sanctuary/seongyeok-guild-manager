@@ -7,7 +7,7 @@ test('candidate native boundary requires durable goal/binding and final native c
   const output=execFileSync('powershell.exe',['-NoProfile','-ExecutionPolicy','Bypass','-File','iris/desktop-life-progress-integration.tests.ps1','-Mode','report'],{encoding:'utf8',timeout:120000,windowsHide:true});
   const report=JSON.parse(output.trim());
   assert.equal(report.failed,0,JSON.stringify(report.results));
-  assert.equal(report.results.length,22);
+  assert.equal(report.results.length,42);
   assert.ok(report.results.every(row=>row.status==='PASS'));
-  assert.deepEqual(report.results.map(row=>row.id),Array.from({length:22},(_,i)=>`A${String(i+1).padStart(2,'0')}`));
+  assert.deepEqual(report.results.map(row=>row.id),[...Array.from({length:22},(_,i)=>`A${String(i+1).padStart(2,'0')}`),...Array.from({length:20},(_,i)=>`B${String(i+1).padStart(2,'0')}`)]);
 });

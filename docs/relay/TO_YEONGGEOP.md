@@ -2,6 +2,14 @@
 
 ## SW-20261022-001 — UPDATED (ERGON 1차·2차 A 합성 인계)
 
+- 선별 인계 직전 재검증(2026-10-22 KST): Node624 중621 PASS/기존3 SKIP/FAIL0(통합 A22+B20 포함), 격리 저장34 PASS/FAIL0/종료 코드0. S01 세부 보존 진단 PASS, 최초 간헐 실패 원인은 여전히 미확정. 원본 로그는 전송하지 않는다.
+
+- **2026-10-22 B-1 마감 누적 / 발신 순월·수신 영겁:** 한설이 B-1 승인6파일과 최소 한국어 인계의 기능 브랜치 선별 commit·일반 push만 승인했다. 기준 `37e9762244d7c02ace2294bd3c6686252a10f233`. 최종 SHA는 이 누적을 포함한 기능 커밋과 원격을 대조한다. 아래 미ACK 누적은 보존하며 ACK는 영겁 대기.
+- **이번에 완료한 것:** 공통 writer·비동기 승인 재검증·lease 소유권 후보 계약. 보고서와 전송 소스 SHA256 6개 일치, 상세 해시는 HANDOFF의 B-1 항목에 보존한다. 신규 B01–B20 20 PASS, 기존 A01–A22 22 PASS, 저장34 PASS. 구현 마감 Node621 PASS/기존3 SKIP/FAIL0, 기존 native4·타입/lint PASS. 위조 admission/Dispose 예외 이중 해제는 B19/B20 RED→GREEN 보완.
+- **아직 안 되는 것:** 실제 host/Confirm 경로·원장 terminal 정합성·실게임은 미실행이다. S01 최초 간헐 실패 원인 미확정, 최종34 PASS를 원인 해결로 해석하지 않는다. Q13/N05/N07/N08/N12 및 전체2차/UI도 미완료.
+- **다음 작업:** B-2 별도 승인까지 구현·활성화 금지. 실제 Confirm 우회 차단, 모든 실제 writer의 공통 잠금 참여, Run terminal까지 lease 소유·예외 정리, unknown/전역 미해결 보호, S01 간헐 실패 진단을 필수 검증으로 유지한다.
+- 원본 개인16/기존 수신 ACK·실제 원장·로컬 보고서/원본 로그 보존·전송 제외. main/DB/Production/공개 IRIS/게임 상태 변경0. 이번은 공개 배포가 아니며 기존1차·A 누적을 지우지 않는다. 향후 보고·검토·Git 인계·진행 기록은 한국어 기본, 함수/변수/경로/시험ID/공식 명령·원본 출력 유지.
+
 - **2026-10-22 2차 A 마감 누적:** 기준/원격 `f4eda6bc997d757c00923a609bd0a42fc40559c6`에서 신규 coordinator·integration fixture/runner·Node 시험4파일과 최소 인계만 선별 commit/push 승인. 최종 SHA는 이 누적을 포함한 기능 브랜치 커밋으로 확인한다. 기존1차·미ACK 누적은 보존한다.
 - 신규22 PASS, 기존1차34 최종 PASS, Node624 중621 PASS/기존3 SKIP/실패0, 기존 native4·타입·scoped lint PASS. 최초 S01의 보존 assertion1회 실패는 원인 미확정이며 합성 파일 정상/단독 및 최종 직렬34 PASS; 실패 이력을 숨기지 않는다. High 검토의 null admission/전체 명령 지문을 보완했다.
 - 2차 원래13개 중 N01/N02/N03/N09/N10/N11의 A 후보 계약, N04/N06 일부를 확인했다. Q13/N05/N07/N08/N12 및 실제 구 Confirm 보호·terminal 연결은 미실행이다. UI14개도 미실행. 전체2차/실게임 성공이 아니다.
