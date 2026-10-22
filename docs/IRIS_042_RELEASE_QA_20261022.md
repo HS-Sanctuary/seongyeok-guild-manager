@@ -1,5 +1,15 @@
 # IRIS 0.4.2 선별 릴리스 검증 — 2026-10-22 KST
 
+## 최종 공개 확인 — 2026-10-22 21:43 KST
+
+제품 `0d2b432f2db8afd3f2f9bbc3507b393397698447`을 main에 일반 push하고 원격 일치를 확인했다. Vercel `dpl_6t5gGW1AgNRTTHVfSxyLpgWTarX3`는 Ready / Production / 정확 main SHA / 운영 도메인 alias이며 GitHub Vercel status도 success다. 정상 Vercel 프로젝트 화면에서도 Current Production·Ready·같은 SHA를 확인했다. 이 후속은 문서 마감이며 제품 구조 변경은 없다.
+
+실운영 download.json/notes는 모두 0.4.2, 다운로드 ZIP 598816 bytes와 SHA256 아래 값 일치, archive 10파일/manifest 버전/모든 payload 크기·해시 일치를 확인했다. `/`, `/login`, `/character`, `/party`, `/kerygma`, `/iris/desktop`, `/iris/download` GET200. 실제 브라우저 다운로드 화면의 Beta0.4.2·ZIP 링크/미서명 안내를 눈으로 확인했다. 일반 브라우저 desktop은 앱 연결 대기/편집 차단을 유지한다. 실제 사용자 native 앱·DB 저장·게임을 조작하지 않았다.
+
+추가 합성 updater/floating-updater UI PASS: 조건부 업데이트 버튼·노트·4폭/3글자·취소·준비/보관 실패 시 apply0·성공 apply1·플로팅에서 사이드 바로 이탈하지 않음. native updater version/strict metadata/archive와 임시 프로세스 success/crash/recover 및 패키지 allowlist/hash/미서명 상태 PASS. 이것은 실제 사용자 설치본 교체 성공과 구분한다.
+
+Vercel 팀 범위 deployment-list API는403이어서 공개 domain lookup/정상 로그인 대시보드/커밋 상태로 동일 배포를 교차 확인했다. 별도 runtime error 로그 전수 조회는 확보하지 않았으며 오류0으로 보고하지 않는다. 새 공개 공지 게시0·DB/RLS 변경0·실제 게임 명령0·강제 재시작0. 실제 사용자는 앱 업데이트 확인 후 정상 업데이트하고 저장/전환 체감을 확인할 수 있다.
+
 ## 승인과 분리 기준
 
 한설은 저장 안정성 개선의 선별 commit/push, 필요한 main 반영과 Production, IRIS 0.4.2 공개를 승인했다. 실제 게임 행동·DB/RLS 변경·공개 ERGON 해제·앱 강제 재시작은 제외한다.

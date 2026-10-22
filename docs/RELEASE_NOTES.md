@@ -1,5 +1,10 @@
 # SANCTUM 업데이트 노트
 
+## 2026-10-22 21:43 KST — IRIS 0.4.2 공개 확인 / 문서 마감
+
+- 제품0d2b432 main원격일치, Vercel dpl_6t5gGW1AgNRTTHVfSxyLpgWTarX3 Ready/Production/정확SHA/현재도메인·GitHubsuccess 확인. 실제 다운로드 화면 Beta0.4.2, metadata/notes/ZIP598816bytes·SHA9ea1c1d9f2ee8d758c702b5436c8658cdf7b2092b8d74001a10de9caef719274 및 모든 내부payload검증 PASS. 핵심7GET200/일반브라우저편집차단 유지.
+- 업데이트 버튼을 누르면 저장·전환·마지막 재화 기록 개선 설명을 확인할 수 있다. ERGON 준비중 잠금 유지. 새 공지/DB/실게임/앱강제재시작0. 이 마감은 문서만 추가하며 구조 변경 없음. 실제 설치본 교체/실사용 저장 확인·runtime 로그 전수 점검은 미실시다. [검증과 제약](IRIS_042_RELEASE_QA_20261022.md).
+
 ## 2026-10-22 KST — IRIS 0.4.2 / 저장 안정성·마지막 재화 기록 (공개 준비)
 
 - 연속 수정 시 최초 저장 기한 유지, 캐릭터·계정 전환 전 즉시 저장 확인과 실패 시 보호 보관 선택을 추가했다. 플로팅 저장줄은 캐릭터 선택 위에 표시한다.

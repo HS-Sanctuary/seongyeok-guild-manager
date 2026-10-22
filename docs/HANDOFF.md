@@ -1,5 +1,9 @@
 # SANCTUM 작업 인계
 
+## 2026-10-22 21:43 KST — IRIS 0.4.2 공개 완료
+
+제품0d2b432f2db8afd3f2f9bbc3507b393397698447 main일반push/원격일치, Vercel dpl_6t5gGW1AgNRTTHVfSxyLpgWTarX3 Ready/Production/Current·정확SHA. 실제0.4.2 metadata/notes/ZIP598816·SHA9ea1c1d9f2ee8d758c702b5436c8658cdf7b2092b8d74001a10de9caef719274/내부hash·핵심7GET200·다운로드UI·브라우저편집차단 확인. [릴리스QA](IRIS_042_RELEASE_QA_20261022.md)가 최신 사실이다. 문서 마감 후 최종 main HEAD까지 받을 것. 실제 설치본 교체/실사용 저장은 한설 확인대기, ERGON lock/B-2보류·DB/실게임금지·개인12항목/미저장/원장 보존. 기능브랜치에는 운영 반영 사실을 별도로 누적하며 옛 후보/금지 기록을 최신 승인과 혼동하지 말 것.
+
 ## 2026-10-22 KST — IRIS 0.4.2 선별 공개 준비
 
 기능 후보955332a를 기능브랜치에 정상 전송했다. 한설 공개 승인 후 main06e1eca 별도 작업공간에 이번 저장/controller/전환/재화 캐시·직접 시험만 이식했다. 미공개 ERGON/B-1/GNOSIS 전체 병합0. [최신 릴리스 QA](IRIS_042_RELEASE_QA_20261022.md)를 먼저 읽을 것. main기반618/615PASS3skip·타입/lint/격리build·React/native 통과, 운영 배포/실다운로드는 후속 확인이다. ERGON lock/B-2 보류·DB/실게임 금지·개인12항목 보존. 다음은 배포 SHA/Ready/실제 공개 페이지·업데이트 JSON/ZIP 해시 검증이며 기존 원장/대기함을 지우지 않는다.
