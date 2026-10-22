@@ -22,7 +22,7 @@ export function createDesktopController(options: { queue: DesktopQueue; transpor
   const invalid=(values:Record<string,DesktopClassDraft>)=>Object.values(values).some(d=>d.error!==null);
   const blocked=()=>new Set(account?characters.filter(c=>invalid(drafts.get(confirmationKey(account!.id,c.id))??{})).map(c=>c.id):[]);
   const requireValidDraft=()=>{if(invalid(currentDrafts()))throw Error('클래스 레벨 입력을 고치거나 되돌린 뒤 진행해 주세요.');};
-  let running: Promise<void> | null = null, disk = Promise.resolve();
+  let running: Promise<void> | null = null, disk = Promise.resolve(),localWrites=0;
   const scope = (id: string) => { if (!account) throw Error('로그인이 필요해요.'); return { environment, accountId: account.id, characterId: id }; };
   const locked = () => changing || closed || durabilityError || !account;
   const requireEdit = () => { if (locked() || !selected) throw Error('먼저 연결 상태를 확인해 주세요.'); };
@@ -97,7 +97,8 @@ export function createDesktopController(options: { queue: DesktopQueue; transpor
   }
   function persist() {
     const snapshot = queue.snapshot();
-    disk = disk.then(() => store.replace(snapshot)).catch(error => { durabilityError = true; throw error; });
+    localWrites++;
+    disk = disk.then(() => store.replace(snapshot)).catch(error => { durabilityError = true; throw error; }).finally(()=>{localWrites--;});
     return disk;
   }
   async function read(id: string) {
@@ -156,10 +157,13 @@ export function createDesktopController(options: { queue: DesktopQueue; transpor
     if (changing || closed || durabilityError) throw Error('현재 작업이 끝난 뒤 다시 시도해 주세요.');
     if(disposition!=='discard'&&blocked().size)throw Error('클래스 레벨 입력을 고치거나 되돌린 뒤 진행해 주세요.');
     changing = true; selection++;
+    const transitionOwner=account?.id??null,transitionEpoch=epoch;
     try {
       if (running) await running;
+      if(disposition==='save'&&transitionOwner!==null&&(account?.id!==transitionOwner||epoch!==transitionEpoch))throw Error('로그인이 만료됐어요. 미저장 변경은 이 PC에 보관되어 있어요.');
       if (account) {
-        try { await reconcile(); } // Inspect old-cookie results where the session is still available.
+        const owner=account.id;
+        try { if(disposition!=='keep')await reconcile(); } // Explicit local keep does not depend on network recovery.
         catch(error) {
           if (!(error instanceof DesktopTransportError) || error.status !== 401 || disposition === 'save') throw error;
           // Expired authentication cannot resolve old requests; retain them paused across reauthentication.
@@ -170,8 +174,9 @@ export function createDesktopController(options: { queue: DesktopQueue; transpor
           for (const id of scopes) queue.saveNow(scope(id));
           const saving = flush(true); running = saving;
           try { await saving; } finally { if (running === saving) running = null; }
+          if(account?.id!==owner)throw Error('로그인이 만료됐어요. 미저장 변경은 이 PC에 보관되어 있어요.');
           await reconcile();
-          if (queue.snapshot().entries.some(e => e.environment === environment && e.accountId === account!.id)) throw Error('남은 변경을 확인해 주세요.');
+          if (queue.snapshot().entries.some(e => e.environment === environment && e.accountId === owner)) throw Error('남은 변경을 확인해 주세요.');
         }
       }
       await persist();
@@ -205,9 +210,14 @@ export function createDesktopController(options: { queue: DesktopQueue; transpor
         throw error;
       } finally { changing = false; }
     },
-    async selectCharacter(id: string) {
+    async selectCharacter(id: string, disposition:'save'|'keep'='save') {
       if (locked()) throw Error('먼저 로그인해 주세요.');
       if(id!==selected?.characterId)requireValidDraft();
+      if(selected&&selected.characterId!==id){
+        if(!characters.some(c=>c.id===id))throw Error('본인 캐릭터를 선택해 주세요.');
+        await transition(async()=>{selected=await read(id);},disposition);
+        return;
+      }
       const version = ++selection, currentEpoch = epoch;
       if (selected && selected.characterId !== id) { queue.leaveCharacter(scope(selected.characterId)); await persist(); }
       if (version !== selection || currentEpoch !== epoch || changing || closed) return;
@@ -300,20 +310,20 @@ export function createDesktopController(options: { queue: DesktopQueue; transpor
       await tick();
     },
     tick,
-    async login(nickname: string, code: string, keepLoggedIn: boolean) {
+    async login(nickname: string, code: string, keepLoggedIn: boolean, disposition:'save'|'keep'='save') {
       await transition(async () => {
         account = null; selected = null; characters = []; epoch++;
         account = await transport.login(nickname,code,keepLoggedIn);
         await loadCharacters();
-      }, 'keep');
+      }, disposition);
     },
-    async switchAccount(id: string) {
+    async switchAccount(id: string, disposition:'save'|'keep'='save') {
       await transition(async () => {
         // Clear old view before cookie-changing IO. Failure cannot retain old-account write permission.
         account = null; selected = null; characters = []; epoch++;
         account = await transport.switchAccount(id);
         await loadCharacters();
-      }, 'keep');
+      }, disposition);
     },
     async logout(disposition: Disposition) {
       await transition(async () => { account = null; characters = []; selected = null; epoch++; await transport.logout(); }, disposition);
@@ -334,6 +344,6 @@ export function createDesktopController(options: { queue: DesktopQueue; transpor
       if(changing || running) throw Error('현재 작업이 끝난 뒤 다시 시도해 주세요.');
       closed=true;selected=null;epoch++; // Explicit loss-warning path; never overwrite an unreadable store.
     },
-    state() { return structuredClone({ account, characters, charactersLoaded, selected,classDrafts:currentDrafts(),hasInvalidClassDraft:invalid(currentDrafts()), lastSaveConfirmation:account&&selected?confirmations.get(confirmationKey(account.id,selected.characterId))??null:null, locked: locked(), durabilityError, epoch, queue: queue.snapshot() }); },
+    state() { return structuredClone({ account, characters, charactersLoaded, selected,classDrafts:currentDrafts(),hasInvalidClassDraft:invalid(currentDrafts()), lastSaveConfirmation:account&&selected?confirmations.get(confirmationKey(account.id,selected.characterId))??null:null, locked: locked(), durabilityError,localSaving:localWrites>0, epoch, queue: queue.snapshot() }); },
   };
 }

@@ -1,5 +1,11 @@
 # 영겁 → 순월 수신함
 
+## 2026-10-22 집 후속 — 0.4.2 공개 승인·선별 전송 준비
+
+한설이 저장 개선의 feature 선별 commit/push·필요한 main 반영·Production·IRIS0.4.2 공개를 승인했다. main06e1eca 별도 릴리스 후보로 이번 delta만 옮긴다. 아직 공개 성공으로 보고하지 않으며 후속 SHA/배포 검증을 확인할 것. 미공개 ERGON/B-1/GNOSIS 통째 병합·DB·실게임·ERGON 해제는 금지다. 아래 승인 대기는 이전 경과로 보존한다.
+
+순월 B-1/a95c0768을 관리 worktree로 수신·ACK. 한설 요청으로 B-2를 보류하고 IRIS 저장 최초 기한·전환 save/실패 keep·재화 마지막 조회 별도 DPAPI 캐시를 구현했다. [QA](../IRIS_SAVE_STABILITY_QA_20261022.md)에 전체638/635PASS3skip·High 중요2건 RED→GREEN·native/합성UI·기존 실패·공개 경계를 기록했다.0.4.2/노트/ZIP은 로컬 후보, 현재 commit/push/main/Production/DB/공개ZIP 변경0. 집 개인12항목·실행 원장·B-1 보존. 원래 미ACK 누적을 아래 그대로 유지한다. 다음은 한설의 선별 전송·운영 웹 반영 범위 확인이며 B-2/실게임/DB 변경은 시작하지 않는다.
+
 ## YG-20261016-001 — UPDATED (목록형 구현·검토 수정·15% 해제)
 
 - **2026-10-21 23:56KST 마감 누적/최우선:** 한설이 오늘 ERGON 기존 수량 정확성 수정·직접 시험·조사/설계/계획·최소 인계의 기능 브랜치 선별 commit/push만 승인했다. [ERGON_CLOSEOUT_20261021](../ERGON_CLOSEOUT_20261021.md)를 먼저 읽고 수신 ACK. `codex/home-gnosis-iris-integration-20261019` 시작/동일원격 a6bea6824fcff9c7566834c83a979d9985869b6b ff-only 확인. 최종 SHA는 해당 인계 파일의 마지막 커밋과 영겁의 원격HEAD 일치 보고를 대조한다. 아직 push 성공을 선기록하지 않으며 과거 미ACK 누적 보존.

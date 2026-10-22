@@ -19,3 +19,8 @@ test('workspace UI missing details stays read-only and a paused result stays vis
   assert.ok(html.includes('불러오지 못했어요'));assert.equal(html.includes('MAX'),false);
   const paused=renderToStaticMarkup(React.createElement(DesktopWorkspace,{selected,pending:[{...edit,phase:'unknown'}],locked:false,kind:'shop',onEdit(){}}));assert.ok(paused.includes('결과 확인 필요'));assert.ok(paused.includes('disabled'));
 });
+test('workspace distinguishes an active transmission from an unknown result',()=>{
+ const {DesktopWorkspace}=module();
+ const html=renderToStaticMarkup(React.createElement(DesktopWorkspace,{selected,pending:[{...edit,phase:'inflight'}],locked:false,kind:'shop',onEdit(){}}));
+ assert.ok(html.includes('전송 중'));assert.equal(html.includes('결과 확인 필요'),false);
+});

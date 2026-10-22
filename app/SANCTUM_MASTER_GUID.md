@@ -1,5 +1,9 @@
 # 🏛️ SANCTUM Master Guide
 
+### 2026-10-22 — IRIS 저장 안정성 로컬 후보
+
+`irisDesktopQueue`의 최초 기한/`irisDesktopController` 전환 save/keep와 owner/epoch를 보강했다. `desktop-currency-store.cs`는 queue/ERGON 원장과 별도 DPAPI 캐시이며 native 정상 관측만 보관한다. `store.currencies.load`/`game.currencies.refreshCache` 및 strict `irisCurrencyCache`를 통해 DesktopCurrencies에 마지막 시각·귀속 미확인으로 표시한다. 기존 `readCurrencies`/ERGON 비용 경로에는 캐시를 전달하지 않는다. UI·build source 목록과0.4.2 노트 후보만 변경했으며 API/DB/권한·B-1/원장은 유지한다. [최신 QA·공개 승인 경계](../docs/IRIS_SAVE_STABILITY_QA_20261022.md) 참조.
+
 ### 2026-10-22 KST — ERGON B-1 후보 안전 기반 / 실제 연결 구조 변경 없음
 
 `iris/desktop-life-progress.cs`의 모든 Commit은 공통 cross-process writer 제외 및 활성 admission 객체 신원 검증을 거친다. `desktop-life-progress-coordinator.cs`는 명시적 잠금 순위와 비동기 승인 전후 문맥 재검증, Offer/Claim 기반 실행 lease 인계를 제공한다. 합성 시험은 B20+A22/기존 저장34 PASS다. 기존 executor/bridge/webview/컴파일 목록/UI/API/DB·저장 형식·실제 원장 연결은 변경하지 않았다. 서버 신규 호출0, 공개 버전·잠금 유지. 실제 Confirm 우회 차단·모든 실제 writer 참여·Run terminal lease·unknown 보호·S01 간헐 실패 진단은 B-2 필수 게이트이며 별도 승인 전 활성화 금지다.

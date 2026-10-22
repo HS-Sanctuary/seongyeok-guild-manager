@@ -9,19 +9,19 @@ import {summarizeDesktopEdits} from '@/lib/irisDesktopPresentation';
 import type {DesktopSaveConfirmation} from '@/lib/irisDesktopController';
 const phaseNames = {pending:'저장 대기',inflight:'저장 중',unknown:'결과 확인 필요',conflict:'다른 변경과 충돌',expired:'초기화 시간이 지남'};
 const confirmationTimeFormat=new Intl.DateTimeFormat('ko-KR',{timeZone:'Asia/Seoul',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
-export function DesktopSaveStatus({entries,characters=[],selected=null,lastSaveConfirmation=null,now,locked,hasInvalidClassDraft=false,position='bottom-right',preview=false,suspended=false,inline=false,onSave,onDiscard,onRecover}:{entries:PendingEdit[];characters?:DesktopCharacter[];selected?:DesktopDetails|null;lastSaveConfirmation?:DesktopSaveConfirmation|null;now:number;locked:boolean;hasInvalidClassDraft?:boolean;position?:IrisSavePosition;preview?:boolean;suspended?:boolean;inline?:boolean;onSave():void;onDiscard():void;onRecover(id:string,action:'retry'|'discard'):void}) {
+export function DesktopSaveStatus({entries,characters=[],selected=null,lastSaveConfirmation=null,now,locked,hasInvalidClassDraft=false,localSaving=false,position='bottom-right',preview=false,suspended=false,inline=false,onSave,onDiscard,onRecover}:{entries:PendingEdit[];localSaving?:boolean;characters?:DesktopCharacter[];selected?:DesktopDetails|null;lastSaveConfirmation?:DesktopSaveConfirmation|null;now:number;locked:boolean;hasInvalidClassDraft?:boolean;position?:IrisSavePosition;preview?:boolean;suspended?:boolean;inline?:boolean;onSave():void;onDiscard():void;onRecover(id:string,action:'retry'|'discard'):void}) {
   const [portalTarget,setPortalTarget]=useState<HTMLElement|null>(null);
   useEffect(()=>{let active=true;queueMicrotask(()=>{if(active)setPortalTarget(document.querySelector<HTMLElement>('.iris-floating-workspace')??document.body);});return()=>{active=false;};},[]);
   const summary=summarizeDesktopEdits(entries,characters,selected,now);
   const paused=summary.items.filter(e=>['unknown','conflict','expired'].includes(e.phase));
   const saved=!!lastSaveConfirmation&&now>=lastSaveConfirmation.confirmedAt&&now-lastSaveConfirmation.confirmedAt<3000;
-  if(suspended||(!summary.total&&!hasInvalidClassDraft&&(!saved||inline)&&!preview))return null;
+  if(suspended||(!summary.total&&!hasInvalidClassDraft&&!localSaving&&!saved&&!preview))return null;
   const sample=preview&&!summary.total&&!hasInvalidClassDraft;
   if(inline){
     const deadlines=summary.groups.flatMap(group=>group.remainingSeconds===null?[]:[group.remainingSeconds]);
     const saving=summary.items.some(item=>item.phase==='inflight');
     const canSave=entries.some(item=>item.phase==='pending'&&(!selected||item.characterId===selected.characterId||(item.kind==='barter'||item.kind==='workspace')&&item.scope==='account'));
-    const label=hasInvalidClassDraft?'입력 확인':paused.length?'저장 확인 필요':saving?'저장 중':'저장 대기';
+    const label=localSaving?'이 PC에 보관 중':!summary.total&&saved?'저장 확인 완료':hasInvalidClassDraft?'입력 확인':paused.length?'저장 확인 필요':saving?'저장 중':'저장 대기';
     return <section className="iris-save-status iris-save-inline" aria-label={sample?'저장 안내 미리보기':'저장 상태'}>
       <div className="iris-save-actions"><span role="status">{sample?'변경 후 15초 자동 저장':`${label} ${summary.total}개${!paused.length&&!saving&&!hasInvalidClassDraft&&deadlines.length?` · ${Math.min(...deadlines)}초`:''}`}</span>{!sample&&<><button type="button" className="iris-desktop-button" title="선택 캐릭터와 계정 공용 변경을 저장해요." disabled={locked||hasInvalidClassDraft||!canSave} onClick={onSave}>지금 저장</button><button type="button" className="iris-desktop-button" title="선택 캐릭터와 계정 공용 변경을 버려요. 다른 캐릭터의 변경은 유지해요." disabled={locked} onClick={onDiscard}>버리기</button></>}</div>
       {hasInvalidClassDraft&&<p role="alert">클래스 입력을 고치거나 되돌려 주세요. 자동 저장은 잠시 멈췄어요.</p>}
