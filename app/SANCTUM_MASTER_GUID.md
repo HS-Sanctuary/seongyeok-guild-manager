@@ -1,5 +1,9 @@
 # 🏛️ SANCTUM Master Guide
 
+### 2026-10-22 KST — ERGON 2차 A 후보 / 기존 구조 연결 없음
+
+신규 `desktop-life-progress-coordinator.cs`가 기존 Store와 주입형 native actor 경계 사이에서 저장 ACK/재조회·동결 명령 지문·세션/epoch·필수 mutation/writer/lease 핸들을 검증한다. integration fixture/PowerShell/Node 시험은 합성22개로 순서를 확인한다. 기존 executor/bridge/webview/소스 목록/lib store/API/DB는 변경0. B의 실제 어댑터·전 writer 공통 제외·구 confirm 필수 바인딩·terminal 대조는 승인 전 미연결이다. 구조 변경 없음, 서버 호출0, 공개 버전 유지.
+
 ### 2026-10-22 KST — ERGON 로컬 진행 저장 기반 / 구조 연결 없음
 
 신규 `iris/desktop-life-progress.cs`는 목표별 확인·정정 이벤트와 별도 Windows DPAPI 저장소를 제공하고 `lib/irisErgonProgress.ts`는 읽기 계약을 정의한다. 신규 fixture와 두 test runner가 합성 검증을 제공한다. 기존 desktop host 컴파일 목록, 실행기, bridge, UI, 보호 원장, API/DB에 연결하지 않았다. 저장은 로컬이며 서버 호출0. 합성 소유34개 통과, 후속27개 미실행. Task 1·2 기능 브랜치 인계이며 2차 원장 연결/3차 UI는 별도 승인 대기.

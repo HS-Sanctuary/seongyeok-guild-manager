@@ -803,3 +803,9 @@
 - Task 1·2 전용 신규5파일: 목표·요청별 사용자 확인량/정정 기록, 중복·scope 보호, Windows DPAPI 로컬 저장·revision CAS·원자 교체와 복구 검토 기반을 추가했다. 기존 ERGON 실행기·UI·실제 원장과는 연결하지 않았다. 구조 변경 없음.
 - 검증: 합성 소유 시나리오34 PASS, 후속27 미실행. 전체 Node623 중620 PASS/기존3 SKIP/0 FAIL, 기존 native 회귀4·독립 타입·scoped lint PASS. 독립 검토의 극소수 숫자 변환 결함 수정 후 전체 재검증했다.
 - 알려진 제한: 실제 원장/게임 미검증, 다른 PC DPAPI 복원·실제 전원/저장장치 장애 미검증, 긴 Windows 경로에서 제한 가능. DB/서버/Production 호출 및 공개 업데이트 없음.
+
+## 2026-10-22 KST — ERGON 2차 A 합성 마감 / 공개 버전 유지
+
+- 신규4파일의 native 후보 보호 연결과 합성 시험만 추가. 목표/바인딩 저장 ACK, scope/epoch/명령 지문, 일회성 요청과 필수 writer 제외 핸들을 검증한다. 기존 제품 구조 연결 없음.
+- 신규22·기존1차34 최종 PASS, Node621 PASS/기존3 SKIP/0 FAIL, 기존 native4·타입·scoped lint PASS. 최초 S01 assertion1회 실패 원인은 미확정이며 단독/최종 직렬34는 PASS.
+- 실제 host/구 confirm/terminal 연결과 원래2차 전체·UI는 미완료. 모든 writer 공통 제외를 보장하지 못하면 B 활성화 금지. 실제 게임·원장·DB·main·배포 변경0, 로컬 로그/개인 자료 전송0.

@@ -1,6 +1,11 @@
 # 순월 → 영겁 수신함
 
-## SW-20261022-001 — WAITING (ERGON 1차 저장 기반 전송)
+## SW-20261022-001 — UPDATED (ERGON 1차·2차 A 합성 인계)
+
+- **2026-10-22 2차 A 마감 누적:** 기준/원격 `f4eda6bc997d757c00923a609bd0a42fc40559c6`에서 신규 coordinator·integration fixture/runner·Node 시험4파일과 최소 인계만 선별 commit/push 승인. 최종 SHA는 이 누적을 포함한 기능 브랜치 커밋으로 확인한다. 기존1차·미ACK 누적은 보존한다.
+- 신규22 PASS, 기존1차34 최종 PASS, Node624 중621 PASS/기존3 SKIP/실패0, 기존 native4·타입·scoped lint PASS. 최초 S01의 보존 assertion1회 실패는 원인 미확정이며 합성 파일 정상/단독 및 최종 직렬34 PASS; 실패 이력을 숨기지 않는다. High 검토의 null admission/전체 명령 지문을 보완했다.
+- 2차 원래13개 중 N01/N02/N03/N09/N10/N11의 A 후보 계약, N04/N06 일부를 확인했다. Q13/N05/N07/N08/N12 및 실제 구 Confirm 보호·terminal 연결은 미실행이다. UI14개도 미실행. 전체2차/실게임 성공이 아니다.
+- B 활성화 필수: 실제 actor 어댑터, 모든 진행 쓰기의 동일 cross-process writer 제외, 기존 nonce/lease/global unresolved 유지, 구 confirm의 바인딩 필수 gate, 원장 terminal 대조. 모든 writer 참여를 확정하지 못하면 연결을 활성화하지 않는다. B 코드/3차 UI는 새 승인 전 시작하지 않는다. 사무실 개인16/별도 ACK·로컬 로그 보존·제외. 실제 게임/원장/IRIS/서버/DB/main/배포 변경0. 공개 버전 상승 없음.
 
 - 발신 순월 / 수신 영겁 / 2026-10-22 KST. 기준 `codex/home-gnosis-iris-integration-20261019` 시작 SHA `29009670ef54a81e422a91f1c33e504eeac27da5`. Task 1·2 신규 파일 5개와 공식 인계 요약만 기능 브랜치에 선별 전송한다. 구현은 목표별 요청·확인/정정·중복 방지와 Windows DPAPI 분리 저장/복구다. 기존 실행기·UI·실제 원장 연결은 없다.
 - 합성 소유 시나리오 34 PASS/0 FAIL/0 미실행. 나머지 27개는 미실행. Node 623건 중620 PASS/기존3 SKIP/0 FAIL, 기존 native 회귀4·독립 타입·scoped lint PASS. 독립 검토에서 찾은 `1e-50`이 0으로 바뀌던 입력 검증 결함을 원본 숫자 검사로 수정했고 Q06/S12 및 전체 재검증을 통과했다.

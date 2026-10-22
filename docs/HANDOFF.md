@@ -1,5 +1,9 @@
 # SANCTUM 작업 인계
 
+## 2026-10-22 KST — ERGON 2차 A 마감 / B 연결 준비
+
+기준 `f4eda6bc997d757c00923a609bd0a42fc40559c6`에서 신규4파일과 최소 인계만 기능 브랜치에 선별 전송한다. native 후보 코디네이터의 저장 ACK·소유권·일회성 바인딩·필수 writer 제외 admission을 합성22개로 검증했다. 기존1차34 최종 PASS, Node621 PASS/기존3 SKIP/0 FAIL, 기존 native4·타입·scoped lint PASS. 최초 S01 보존 assertion 실패1회 원인은 미확정이며 단독/최종 직렬 전체는 PASS. 실제 실행기/bridge/host/원장·UI는 미연결이다. 모든 실제 writer가 공통 cross-process 제외에 참여하고 구 confirm 우회를 차단하기 전 B 활성화 금지. 원래2차13개 전체와 UI14개는 미완료이며 B 코드는 별도 승인 후 시작한다. 개인16항목/별도 ACK·개인 로그 보존·전송 제외; 게임·DB·main·배포 변경0.
+
 ## 2026-10-22 KST — ERGON 1차 저장 기반 전송
 
 기능 브랜치 `codex/home-gnosis-iris-integration-20261019`에 Task 1·2 전용 신규5파일과 최소 인계 문서를 선별 전송했다. 시작 기준 SHA `29009670ef54a81e422a91f1c33e504eeac27da5`; 최종 전송 SHA는 이 커밋을 따른다. 합성 소유 시나리오34 PASS/0 FAIL/0 미실행, 후속27개 미실행. Node623: 620 PASS/기존3 SKIP/0 FAIL; 기존 native 회귀4·독립 타입·scoped lint PASS. DPAPI 저장 기반은 기존 실행기/UI/실제 원장과 연결되지 않았다. 사무실 개인변경16항목과 로컬 전용 로그 보존·전송 제외. 복구 검토 상태, 타PC DPAPI/실제 정전, 긴 Windows 경로 제약을 후속 연결 전 검토한다. 한설·뉴월의 별도 승인이 있기 전 2차 원장 연결·3차 UI를 시작하지 않는다. 게임·운영 DB·main·Production 변경0.
