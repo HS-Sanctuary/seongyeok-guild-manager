@@ -9,7 +9,7 @@ test('workspace shared count coalesces across owned characters while bookmark an
   const {queue,at}=setup();assert.equal(typeof queue.editWorkspace,'function');
   queue.editWorkspace(A,key,2,3);at(1000);queue.editWorkspace(B,key,3,9999);queue.editWorkspace(B,{...key,field:'bookmark'},0,1);queue.editWorkspace({...A,accountId:'other'},key,0,1);
   const own=queue.snapshot().entries.filter(e=>e.accountId==='account');assert.equal(own.length,2);assert.equal(own[0].baseCompleted,2);assert.equal(own[0].desiredCompleted,9999);assert.equal(own[0].characterId,'B');
-  at(15999);assert.equal(queue.due('account').length,0);at(16000);assert.equal(queue.due('account').length,2);
+  at(14999);assert.equal(queue.due('account').length,0);at(15000);assert.equal(queue.due('account').length,2);
   assert.throws(()=>queue.editWorkspace(A,{...key,field:'bookmark'},0,2));
 });
 test('workspace durable restore pauses old intent and wrong success cannot clear it',()=>{

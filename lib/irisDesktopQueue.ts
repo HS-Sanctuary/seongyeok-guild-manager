@@ -117,7 +117,10 @@ export function createDesktopQueue(options: { now: () => number; id: () => strin
       if(candidate.kind==='barter'&&flight?.kind==='barter')candidate.baseRecords=structuredClone(flight.baseRecords);
       next.push(candidate);
     }
-    reschedule(next,candidate,clock()+WAIT_MS);commit(next);
+    // Keep the first deadline of the open batch. Later edits must not postpone
+    // already waiting work; an inflight successor starts a new pending batch.
+    const deadline=Math.min(clock()+WAIT_MS,...next.filter(e=>e.phase==='pending'&&scoped(e,candidate)).map(e=>e.deadlineAt));
+    reschedule(next,candidate,deadline);commit(next);
   }
   return {
     edit(scope: Scope, key: TaskKey, baseCompleted: number, desiredCompleted: number): void {
@@ -135,7 +138,7 @@ export function createDesktopQueue(options: { now: () => number; id: () => strin
       edit({...scope,...structuredClone(key),kind:'workspace',baseCompleted,desiredCompleted,requestId:options.id(),revision:1,deadlineAt:clock()+WAIT_MS,phase:'pending'});
     },
     leaveCharacter(scope: Scope): void {
-      checkScope(scope); const next = clone(entries); reschedule(next, scope, clock() + WAIT_MS); commit(next);
+      checkScope(scope); const next = clone(entries); reschedule(next, scope, clock()); commit(next);
     },
     saveNow(scope: Scope): void {
       checkScope(scope); const next = clone(entries); reschedule(next, scope, clock()); commit(next);

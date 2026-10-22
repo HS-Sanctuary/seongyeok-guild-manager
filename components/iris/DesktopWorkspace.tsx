@@ -7,7 +7,7 @@ import './desktop-workspace.css';
 export function desktopWorkspaceRows(selected:DesktopDetails,pending:PendingEdit[]){
   return (selected.details.workspace??[]).map(row=>{
     const edits=pending.filter((e):e is WorkspacePendingEdit=>e.kind==='workspace'&&e.accountId===selected.accountId&&e.itemKind===row.itemKind&&e.itemId===row.id&&e.scope===row.scope&&(e.scope==='account'||e.characterId===selected.characterId)&&e.periodKey===row.key.periodKey).sort((a,b)=>b.revision-a.revision);
-    return {...row,completed:edits.find(e=>e.field==='count')?.desiredCompleted??row.completed,bookmarked:edits.find(e=>e.field==='bookmark')?edits.find(e=>e.field==='bookmark')!.desiredCompleted===1:row.bookmarked,waiting:edits.length>0,paused:edits.some(e=>e.phase!=='pending')};
+    return {...row,completed:edits.find(e=>e.field==='count')?.desiredCompleted??row.completed,bookmarked:edits.find(e=>e.field==='bookmark')?edits.find(e=>e.field==='bookmark')!.desiredCompleted===1:row.bookmarked,sending:edits.some(e=>e.phase==='inflight'),uncertain:edits.some(e=>['unknown','conflict','expired'].includes(e.phase)),waiting:edits.length>0,paused:edits.some(e=>e.phase!=='pending')};
   });
 }
 export function DesktopWorkspace({selected,pending,locked,kind,onEdit}:{selected:DesktopDetails|null;pending:PendingEdit[];locked:boolean;kind:'shop'|'mission';onEdit(key:WorkspaceKey,base:number,desired:number):void}){
@@ -29,7 +29,7 @@ export function DesktopWorkspace({selected,pending,locked,kind,onEdit}:{selected
       const disabled=locked||r.paused,change=(field:'count'|'bookmark',desired:number)=>onEdit({...r.key,field},field==='count'?r.completed:Number(r.bookmarked),desired);
       return <article className="iris-workspace-card" data-workspace-id={r.itemKind+':'+r.id} data-complete={r.completed===r.total} key={r.itemKind+':'+r.id}>
         <header><button type="button" className="iris-workspace-star" aria-label={r.title+' 즐겨찾기'} aria-pressed={r.bookmarked} disabled={disabled} onClick={()=>change('bookmark',Number(!r.bookmarked))}>{r.bookmarked?'★':'☆'}</button><div><strong>{r.title}</strong><small>{r.location}{r.npc?' · '+r.npc:''}</small></div></header>
-        <div className="iris-workspace-meta"><span>{r.resetType}</span><span>{r.scope==='account'?'계정당':'캐릭당'}</span>{r.waiting&&<span>{r.paused?'결과 확인 필요':'저장 대기'}</span>}</div>
+        <div className="iris-workspace-meta"><span>{r.resetType}</span><span>{r.scope==='account'?'계정당':'캐릭당'}</span>{r.waiting&&<span>{r.uncertain?'결과 확인 필요':r.sending?'전송 중':'서버 저장 대기'}</span>}</div>
         {r.description&&<p className="iris-workspace-description">{r.description}</p>}
         <ul className="iris-workspace-rewards" aria-label="보상">{r.rewards.map((reward,i)=><li key={i}><span>{reward.name}</span><strong>× {reward.count.toLocaleString('ko-KR')}</strong></li>)}</ul>
         {r.cost!==null&&<p className="iris-workspace-cost">1회 {r.cost.toLocaleString('ko-KR')} 골드 · 총 {(r.cost*r.total).toLocaleString('ko-KR')} 골드</p>}

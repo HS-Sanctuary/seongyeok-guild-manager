@@ -13,7 +13,7 @@ test('barter coalesces shared account intent across characters and retains first
   const {queue,at}=queueSetup();assert.equal(typeof queue.editBarter,'function','Missing protected barter queue');
   queue.editBarter(A,key,3,2);at(1000);queue.editBarter(B,key,2,1);
   const entries=queue.snapshot().entries;assert.equal(queue.snapshot().schemaVersion,3);assert.equal(entries.length,1);assert.equal(entries[0].characterId,'B');assert.equal(entries[0].baseCompleted,3);assert.equal(entries[0].desiredCompleted,1);
-  assert.equal(queue.due('other').length,0);at(15999);assert.equal(queue.due('account').length,0);at(16000);assert.equal(queue.due('account').length,1);
+  assert.equal(queue.due('other').length,0);at(14999);assert.equal(queue.due('account').length,0);at(15000);assert.equal(queue.due('account').length,1);
   queue.editBarter(A,key,1,3);assert.equal(queue.snapshot().entries.length,0);
 });
 test('barter inflight successor takes acknowledged digests and unknown retry preserves original intent',()=>{

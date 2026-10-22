@@ -1,5 +1,9 @@
 # 🏛️ SANCTUM Master Guide
 
+### 2026-10-22 — IRIS 0.4.2 저장·재화 구조
+
+DesktopQueue는 최초 pending deadline을 유지하고 controller 전환은 save/ACK 또는 명시 keep을 사용한다. DesktopTransitionDialog는 재시도/보호 보관 후 전환/취소만 제공한다. DesktopSaveStatus는 플로팅의 context header 위 한 줄로 표시한다. DesktopCurrencyStore는 queue/ERGON 원장과 별도인 환경·계정 namespace DPAPI primary/backup 원자 캐시다. store.currencies.load/game.currencies.refreshCache는 native가 읽은 정상 관측만 전달하며 문서/계정 변경 시 저장 전 차단한다. DesktopCurrencies는 KST 시각과 귀속 미확인/현재 잔액 아님을 표시하고 ERGON fresh balance 경로는 유지한다. 신규 DB/API/RLS/Realtime 없음. 세부 검증은 docs/IRIS_042_RELEASE_QA_20261022.md.
+
 ### 2026-10-19 21:25 KST — 0.4.1 운영 반영 확인 / 구조 변경 없음
 
 제품4480646은운영배포dpl_3Z2KVcSMJnMxuZmp8ye3HZ5E75ds Ready/Production/현재도메인·SHA확인, 실제0.4.1metadata/ZIP·요약‘버그픽스’만제공됨을검증했다. 신규공지게시없음. 아래저장portal핫픽스구조의운영반영결과이며 본마감은문서만추가, queue/controller/API/DB권한변경0.

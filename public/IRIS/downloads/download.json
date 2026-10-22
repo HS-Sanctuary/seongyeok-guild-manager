@@ -1,20 +1,20 @@
 {
     "schemaVersion":  1,
-    "version":  "0.4.1",
+    "version":  "0.4.2",
     "signature":  "unsigned",
     "architecture":  "win-x64",
-    "createdAtUtc":  "2026-10-19T12:16:04.5081700Z",
+    "createdAtUtc":  "2026-10-22T12:31:54.1946398Z",
     "minUpdaterVersion":  1,
     "queueSchemaVersion":  3,
     "product":  "IRIS for SANCTUM",
     "updaterVersion":  1,
-    "sizeBytes":  595192,
-    "sha256":  "07b5c1db6c046ab4dbf9d4d406c0fd09c35ff7bd83a00c4d03bb19642ba4dacd",
+    "sizeBytes":  598816,
+    "sha256":  "9ea1c1d9f2ee8d758c702b5436c8658cdf7b2092b8d74001a10de9caef719274",
     "channel":  "beta-candidate",
     "files":  [
                   {
-                      "sizeBytes":  369152,
-                      "sha256":  "40d7ef64e608187dc38843716609920ddeab3524889c9dedc4e66a1a4aa5c2f7",
+                      "sizeBytes":  376832,
+                      "sha256":  "54f67ab823f6de63af169cd355649071e879b9a4f235435ba56657f869a42d22",
                       "name":  "IRIS.exe"
                   },
                   {
@@ -24,7 +24,7 @@
                   },
                   {
                       "sizeBytes":  90624,
-                      "sha256":  "1538d7f44487e3a257aca64257aa26f302302482365d6b226685d01a064f0043",
+                      "sha256":  "1672df95ce6f23562ec44fc341bb48e5df78922630359f88c2a88b2b1d2bf10d",
                       "name":  "IRIS.Updater.exe"
                   },
                   {
@@ -48,8 +48,8 @@
                       "name":  "NOTICE.WebView2.txt"
                   },
                   {
-                      "sizeBytes":  4193,
-                      "sha256":  "0ec7a8efe5d71481d63cabbca4b60cd878b9a4017642376f18fa2cc58880cf06",
+                      "sizeBytes":  4241,
+                      "sha256":  "9dab867dc5ff29ad3547d378e0d4c823d7ea7f3dba08c899cca6ff4054cc01ca",
                       "name":  "README.txt"
                   },
                   {

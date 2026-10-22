@@ -1,5 +1,9 @@
 # SANCTUM 작업 인계
 
+## 2026-10-22 KST — IRIS 0.4.2 선별 공개 준비
+
+기능 후보955332a를 기능브랜치에 정상 전송했다. 한설 공개 승인 후 main06e1eca 별도 작업공간에 이번 저장/controller/전환/재화 캐시·직접 시험만 이식했다. 미공개 ERGON/B-1/GNOSIS 전체 병합0. [최신 릴리스 QA](IRIS_042_RELEASE_QA_20261022.md)를 먼저 읽을 것. main기반618/615PASS3skip·타입/lint/격리build·React/native 통과, 운영 배포/실다운로드는 후속 확인이다. ERGON lock/B-2 보류·DB/실게임 금지·개인12항목 보존. 다음은 배포 SHA/Ready/실제 공개 페이지·업데이트 JSON/ZIP 해시 검증이며 기존 원장/대기함을 지우지 않는다.
+
 ## 2026-10-19 21:25 KST — 0.4.1 운영 마감
 
 제품4480646f0b6238dbaff71a7ddb6fbf995c47f631 main+통합원격exact, Vercel dpl_3Z2KVcSMJnMxuZmp8ye3HZ5E75ds 정상UI Ready/Production/현재운영도메인/정확SHA. 실운영download4폭/0.4.1metadata·ZIP595192/SHA07b5c1db6c046ab4dbf9d4d406c0fd09c35ff7bd83a00c4d03bb19642ba4dacd·핵심6GET/guest2API401/pageerror0 PASS. notesJSON은‘버그픽스’만, 한설지시대로신규공개공지0/기존0.4id19유지. 이제0.4.1업데이트가능. 실제게임저장/Alt~ 체감은한설재확인대기. 이문서마감까지최신HEAD받을것·문서전용/구조변경없음·개인dirty/보호큐/양쪽미ACK보존·DB구조권한0.

@@ -6,12 +6,46 @@ const moduleCache=new Map();
 const {createDesktopQueue}=loadTS('lib/irisDesktopQueue.ts',{},moduleCache);
 const create=existsSync('lib/irisDesktopController.ts')?loadTS('lib/irisDesktopController.ts',{},moduleCache).createDesktopController:undefined;
 const key={category:'weekly',taskId:'9902',periodKey:'2026-10-04T21:00:00.000Z'};
+
+test('character transition immediately sends old pending intent before reading the new character',async()=>{
+ const s=await setup();await s.controller.edit(key,0,1);await s.controller.selectCharacter('B');
+ assert.deepEqual(s.log,[['get','account','A'],['post','account','A'],['get','account','B']]);
+ assert.equal(s.queue.snapshot().entries.length,0);assert.equal(s.controller.state().selected.characterId,'B');
+});
+test('unconfirmed transition stays on old character until explicit protected keep',async()=>{
+ const s=await setup({transport:{save:async()=>({kind:'unknown'})}});await s.controller.edit(key,0,1);
+ await assert.rejects(s.controller.selectCharacter('B'),/남은 변경/);assert.equal(s.controller.state().selected.characterId,'A');
+ assert.equal(s.queue.snapshot().entries[0].phase,'unknown');await s.controller.selectCharacter('B','keep');
+ assert.equal(s.controller.state().selected.characterId,'B');assert.equal(s.queue.snapshot().entries[0].phase,'unknown');
+});
+test('account transition sends with old owner and blocks cookie switch on unconfirmed writes',async()=>{
+ const s=await setup({transport:{save:async e=>{s.log.push(['post',e.accountId]);return {kind:'unknown'};}}});await s.controller.edit(key,0,1);
+ await assert.rejects(s.controller.switchAccount('other'),/남은 변경/);assert.equal(s.controller.state().account.id,'account');
+ assert.deepEqual(s.log.filter(e=>e[0]==='post'),[['post','account']]);assert.equal(s.log.some(e=>e[0]==='switch'),false);
+ await s.controller.switchAccount('other','keep');assert.equal(s.controller.state().account.id,'other');assert.equal(s.queue.snapshot().entries[0].accountId,'account');
+});
+test('explicit keep transition preserves unknown even when reconciliation network is offline',async()=>{
+ const s=await setup({transport:{save:async()=>({kind:'unknown'})}});await s.controller.edit(key,0,1);await s.controller.saveNow();
+ s.transport.details=async()=>{throw Error('offline');};await s.controller.switchAccount('other','keep');
+ assert.equal(s.controller.state().account.id,'other');assert.equal(s.queue.snapshot().entries[0].phase,'unknown');
+});
+test('local persistence remains visible as pending until protected store ACK',async()=>{
+ const s=await setup(),wait=deferred();let pause=true;
+ const c=create({queue:s.queue,transport:s.transport,environment:'development',store:{load:async()=>null,replace:async()=>{if(pause)await wait.promise;}}});
+ await c.start();await c.selectCharacter('A');const saving=c.edit(key,0,1);assert.equal(c.state().localSaving,true);pause=false;wait.resolve();await saving;assert.equal(c.state().localSaving,false);
+});
+test('authentication lost while awaiting an inflight request cannot bypass default save transition',async()=>{
+ const wait=deferred(),s=await setup({transport:{save:async()=>wait.promise}});await s.controller.edit(key,0,1);
+ const saving=s.controller.saveNow();await new Promise(r=>setImmediate(r));const switching=s.controller.switchAccount('other');
+ wait.resolve({kind:'unauthorized'});await saving;await assert.rejects(switching,/로그인/);
+ assert.equal(s.log.some(e=>e[0]==='switch'),false);assert.equal(s.queue.snapshot().entries[0].phase,'unknown');
+});
 test('expired unknown account permits reauthentication without replaying queue',async()=>{
   const {DesktopTransportError}=loadTS('lib/irisDesktopTransport.ts',{},moduleCache);
   const s=await setup({transport:{save:async()=>({kind:'unknown'}),login:async()=>({id:'account',nickname:'뉴월',role:'길드원'})}});
   await s.controller.edit(key,0,1);await s.controller.saveNow();
   s.transport.details=async()=>{throw new DesktopTransportError(401);};
-  await s.controller.login('뉴월','synthetic',true);
+  await s.controller.login('뉴월','synthetic',true,'keep');
   assert.equal(s.controller.state().account.id,'account');assert.equal(s.queue.snapshot().entries[0].phase,'unknown');
 });
 test('offline keep-close does not inspect network and closing can be retried',async()=>{
@@ -86,7 +120,7 @@ test('invalid class draft blocks old intent and character transition until rever
   assert.equal(s.controller.state().hasInvalidClassDraft,true);
   await assert.rejects(s.controller.selectCharacter('B'));await assert.rejects(s.controller.saveNow());
   await s.controller.revertClassDraft('c');assert.equal(s.controller.state().classDrafts.c.text,'54');
-  assert.equal(s.controller.state().hasInvalidClassDraft,false);assert.equal(s.queue.snapshot().entries[0].deadlineAt,75000);
+  assert.equal(s.controller.state().hasInvalidClassDraft,false);assert.equal(s.queue.snapshot().entries[0].deadlineAt,60000);
 });
 test('class acknowledgement updates baseline and time without replacing newer text or B view',async()=>{
   const wait=deferred();const s=await classSetup({transport:{save:async()=>wait.promise}});
@@ -116,11 +150,11 @@ test('discarded class conflict clears obsolete draft and refreshes the saved bas
 test('invalid class A does not block valid B and late class ack cannot replace B',async()=>{
   const wait=deferred();const s=await classSetup({transport:{save:async()=>wait.promise}});
   await s.controller.setClassDraft('c','54');const saving=s.controller.saveNow();await new Promise(r=>setImmediate(r));
-  await s.controller.selectCharacter('B');await s.controller.setClassDraft('c','55');
-  wait.resolve({kind:'saved',level:54});await saving;
+  const switching=s.controller.selectCharacter('B');assert.equal(s.controller.state().locked,true);
+  wait.resolve({kind:'saved',level:54});await saving;await switching;await s.controller.setClassDraft('c','55');
   assert.equal(s.controller.state().selected.characterId,'B');assert.equal(s.controller.state().selected.details.classes[0].level,53);
   assert.equal(s.controller.state().lastSaveConfirmation,null);
-  await s.controller.selectCharacter('A');await s.controller.setClassDraft('c','');
+  await s.controller.selectCharacter('A','keep');await s.controller.setClassDraft('c','');
   s.transport.save=async e=>{s.log.push(['post',e.characterId]);return {kind:'saved',level:e.desiredLevel};};
   s.at(30000);await s.controller.tick();
   assert.deepEqual(s.log.filter(e=>e[0]==='post'),[['post','B']]);
@@ -130,9 +164,9 @@ test('class input invalidated during slow character load prevents hiding outgoin
   const s=await classSetup(),wait=deferred(),read=s.transport.details;
   s.transport.details=async(...args)=>{const d=await read(...args);if(args[1]==='B')await wait.promise;return d;};
   const switching=s.controller.selectCharacter('B');await new Promise(r=>setImmediate(r));
-  await s.controller.setClassDraft('c','');wait.resolve();
-  await assert.rejects(switching);assert.equal(s.controller.state().selected.characterId,'A');
-  assert.equal(s.controller.state().hasInvalidClassDraft,true);
+  await assert.rejects(s.controller.setClassDraft('c',''));wait.resolve();
+  await switching;assert.equal(s.controller.state().selected.characterId,'B');
+  assert.equal(s.controller.state().hasInvalidClassDraft,false);
 });
 
 test('class baseline reversion removes no-op draft so later server refresh remains visible',async()=>{
@@ -164,7 +198,7 @@ test('unknown response has no success time until an explicit read confirms the s
 test('late A confirmation is not displayed as B or another account save',async()=>{
   const wait=deferred();const s=await setup({transport:{save:async()=>wait.promise}});
   await s.controller.edit(key,0,1);const sending=s.controller.saveNow();await new Promise(r=>setImmediate(r));
-  await s.controller.selectCharacter('B');s.at(18000);wait.resolve({kind:'saved',completed:1});await sending;
+  const switching=s.controller.selectCharacter('B');s.at(18000);wait.resolve({kind:'saved',completed:1});await sending;await switching;
   assert.equal(s.controller.state().lastSaveConfirmation,null);
   await s.controller.selectCharacter('A');assert.equal(s.controller.state().lastSaveConfirmation.confirmedAt,18000);
   await s.controller.switchAccount('other');await s.controller.selectCharacter('A');assert.equal(s.controller.state().lastSaveConfirmation,null);
@@ -189,14 +223,14 @@ test('unknown POST reconciles original character before account switch without r
 test('unknown baseline stays paused until explicit retry, idle ticks never write it',async()=>{
   const s=await setup({transport:{save:async()=>({kind:'unknown'})}});
   await s.controller.edit(key,0,1);await s.controller.saveNow();s.at(60000);await s.controller.tick();await s.controller.tick();
-  assert.equal(s.queue.snapshot().entries[0].phase,'unknown');await s.controller.switchAccount('other');
+  assert.equal(s.queue.snapshot().entries[0].phase,'unknown');await assert.rejects(s.controller.switchAccount('other'));await s.controller.switchAccount('other','keep');
   assert.equal(s.queue.snapshot().entries[0].accountId,'account');
 });
 test('character B view cannot be overwritten by late A save, now save starts without timer tick',async()=>{
   const wait=deferred();const s=await setup({transport:{save:async e=>{s.log.push(['post',e.characterId]);return wait.promise;}}});
   await s.controller.edit(key,0,1);const sending=s.controller.saveNow();await new Promise(r=>setImmediate(r));
-  assert.equal(s.log.some(x=>x[0]==='post'),true);await s.controller.selectCharacter('B');
-  wait.resolve({kind:'saved',completed:1});await sending;
+  assert.equal(s.log.some(x=>x[0]==='post'),true);const switching=s.controller.selectCharacter('B');
+  wait.resolve({kind:'saved',completed:1});await sending;await switching;
   assert.equal(s.controller.state().selected.characterId,'B');assert.equal(s.controller.state().selected.details.tasks.weekly[0].completed,0);
 });
 test('storage failure locks further writes and never sends an undurable claim',async()=>{
@@ -226,15 +260,15 @@ test('save-and-close keeps editing locked for the entire draining request',async
 test('partial success removes only acknowledged requests and pauses conflicts',async()=>{
   const s=await setup();await s.controller.edit(key,0,1);await s.controller.selectCharacter('B');await s.controller.edit(key,0,1);
   s.transport.save=async e=>{s.log.push(['post',e.characterId]);return e.characterId==='A'?{kind:'saved',completed:1}:{kind:'conflict'};};
-  s.at(20000);await s.controller.tick();assert.deepEqual(s.log.filter(x=>x[0]==='post'),[['post','A'],['post','B']]);
+  s.at(20000);await s.controller.tick();assert.deepEqual(s.log.filter(x=>x[0]==='post').map(x=>x.at(-1)),['A','B']);
   assert.deepEqual(s.queue.snapshot().entries.map(e=>[e.characterId,e.phase]),[['B','conflict']]);
 });
-test('later character selection wins even when earlier selection waits on protected storage',async()=>{
+test('second character selection is rejected while outgoing storage transition holds the gate',async()=>{
   const wait=deferred();let pause=false;
   const s=await setup({store:{replace:async()=>{if(pause){pause=false;await wait.promise;}}}});
   await s.controller.edit(key,0,1);pause=true;const first=s.controller.selectCharacter('B');
-  await new Promise(r=>setImmediate(r));await s.controller.selectCharacter('A');wait.resolve();await first;
-  assert.equal(s.controller.state().selected.characterId,'A');
+  await new Promise(r=>setImmediate(r));await assert.rejects(s.controller.selectCharacter('A'));wait.resolve();await first;
+  assert.equal(s.controller.state().selected.characterId,'B');
 });
 
 test('restart pauses former inflight and foreign-account work without automatic POST',async()=>{
@@ -244,7 +278,7 @@ test('restart pauses former inflight and foreign-account work without automatic 
   restored.at(60000);await restored.controller.tick();
   assert.deepEqual(restored.queue.snapshot().entries.map(e=>e.phase),['unknown','unknown']);
   assert.equal(restored.log.filter(e=>e[0]==='post').length,0);
-  await restored.controller.switchAccount('other');assert.equal(restored.log.filter(e=>e[0]==='post').length,0);
+  await restored.controller.switchAccount('other','keep');assert.equal(restored.log.filter(e=>e[0]==='post').length,0);
 });
 
 test('unreadable protected queue locks recovery rather than silently starting empty',async()=>{
@@ -283,7 +317,7 @@ test('explicit recovery retries only verified baseline, discard removes related 
 test('additional login cannot change cookies until old account unknown result inspected',async()=>{
   const s=await setup({transport:{save:async()=>({kind:'unknown'}),login:async()=>{s.log.push(['login']);return {id:'other',nickname:'한설',role:'길드원'};}}});
   await s.controller.edit(key,0,1);await s.controller.saveNow();
-  assert.equal(typeof s.controller.login,'function');await s.controller.login('한설','synthetic-code',true);
-  assert.deepEqual(s.log.slice(-2),[['get','account','A'],['login']]);assert.equal(s.controller.state().account.id,'other');
+  assert.equal(typeof s.controller.login,'function');await assert.rejects(s.controller.login('한설','synthetic-code',true));await s.controller.login('한설','synthetic-code',true,'keep');
+  assert.equal(s.log.at(-1)[0],'login');assert.equal(s.controller.state().account.id,'other');assert.equal(s.queue.snapshot().entries[0].phase,'unknown');
   assert.equal(JSON.stringify(s.controller.state()).includes('synthetic-code'),false);
 });

@@ -1,6 +1,7 @@
 import type { QueueSnapshot } from './irisDesktopQueue';
 import {parseGameStats,type GameStats} from './irisStats';
 import {parseCurrencies,type CurrencySnapshot} from './irisCurrencies';
+import {parseCurrencyCache,type CurrencyCacheView} from './irisCurrencyCache';
 import {ergonReadKinds,validErgonReadKind,parseErgonSnapshot,type ErgonReadKind,type ErgonSnapshot} from './irisErgonRead';
 import {parseErgonChallenge,parseErgonActionReceipt,parseErgonActionState,parseErgonActionHistory,type ErgonAction,type ErgonChallenge,type ErgonActionState} from './irisErgonActions';
 import {parseErgonReference} from './irisErgonReference';
@@ -68,7 +69,7 @@ export function createDesktopStore(options: { channel: Channel; context(): Conte
     if(epoch!==options.context()?.epoch)throw Error('앱 연결이 바뀌었어요. 다시 실행해 주세요.');supportedEpoch=epoch??null;workspaceEpoch=value.workspace===true?epoch??null:null;
     return {schemaVersion:3,barter:true};
   }
-function request(method: 'window.game.focus' | 'window.floating.state' | 'window.floating.command' | 'window.floating.notice' | 'window.floating.preferences' | 'window.workspace' | 'game.life.capabilities' | 'game.life.read' | 'game.life.reference' | 'game.life.actions.capabilities' | 'game.life.actions.context' | 'game.life.actions.collectionObservation' | 'game.life.actions.collect' | 'game.life.actions.collectionPolicy' | 'game.life.actions.revokeCollection' | 'game.life.actions.prepare' | 'game.life.actions.confirm' | 'game.life.actions.stop' | 'game.life.actions.cancel' | 'game.life.actions.state' | 'game.life.actions.history' | 'store.capabilities' | 'store.load' | 'store.replace' | 'window.hide' | 'window.close' | 'window.addon.state' | 'window.addon.preferences' | 'window.drag' | 'window.minimize' | 'window.decision' | 'overlay.state' | 'overlay.input' | 'overlay.opacity' | 'game.stats.read' | 'game.currencies.read' | 'window.update.state' | 'window.update.check' | 'window.update.prepare' | 'window.update.apply' | 'window.fonts.list' | 'window.fonts.refresh' | 'window.presentation.state' | 'window.presentation.toggle' | 'window.presentation.panel' | 'window.alert.sound', payload: unknown): Promise<unknown> {
+function request(method: 'store.currencies.load' | 'game.currencies.refreshCache' | 'window.game.focus' | 'window.floating.state' | 'window.floating.command' | 'window.floating.notice' | 'window.floating.preferences' | 'window.workspace' | 'game.life.capabilities' | 'game.life.read' | 'game.life.reference' | 'game.life.actions.capabilities' | 'game.life.actions.context' | 'game.life.actions.collectionObservation' | 'game.life.actions.collect' | 'game.life.actions.collectionPolicy' | 'game.life.actions.revokeCollection' | 'game.life.actions.prepare' | 'game.life.actions.confirm' | 'game.life.actions.stop' | 'game.life.actions.cancel' | 'game.life.actions.state' | 'game.life.actions.history' | 'store.capabilities' | 'store.load' | 'store.replace' | 'window.hide' | 'window.close' | 'window.addon.state' | 'window.addon.preferences' | 'window.drag' | 'window.minimize' | 'window.decision' | 'overlay.state' | 'overlay.input' | 'overlay.opacity' | 'game.stats.read' | 'game.currencies.read' | 'window.update.state' | 'window.update.check' | 'window.update.prepare' | 'window.update.apply' | 'window.fonts.list' | 'window.fonts.refresh' | 'window.presentation.state' | 'window.presentation.toggle' | 'window.presentation.panel' | 'window.alert.sound', payload: unknown): Promise<unknown> {
     return new Promise((resolve, reject) => {
       const context = options.context();
       if (!context || context.environment !== options.environment || !Number.isSafeInteger(context.epoch) || context.epoch < 1 || sequence >= Number.MAX_SAFE_INTEGER) {
@@ -141,6 +142,8 @@ function request(method: 'window.game.focus' | 'window.floating.state' | 'window
     async setCloseDecision(open:boolean):Promise<void>{if(typeof open!=='boolean')throw Error('종료 상태를 확인해 주세요.');await request('window.decision',{open});},
     async gameStats():Promise<GameStats>{return parseGameStats(await request('game.stats.read',null));},
     async currencies():Promise<CurrencySnapshot>{return parseCurrencies(await request('game.currencies.read',null));},
+    async loadCurrencyCache(accountId:string):Promise<CurrencyCacheView|null>{if(!automationText(accountId))throw Error('계정을 확인해 주세요.');const raw=await request('store.currencies.load',{accountId});return raw===null?null:parseCurrencyCache(raw,{environment:options.environment,accountId});},
+    async refreshCurrencyCache(accountId:string):Promise<CurrencyCacheView>{if(!automationText(accountId))throw Error('계정을 확인해 주세요.');return parseCurrencyCache(await request('game.currencies.refreshCache',{accountId}),{environment:options.environment,accountId});},
     async load(): Promise<QueueSnapshot | null> {
       await queueCapabilities();
       const value = await request('store.load', null);

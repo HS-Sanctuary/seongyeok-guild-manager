@@ -1,5 +1,12 @@
 # SANCTUM 업데이트 노트
 
+## 2026-10-22 KST — IRIS 0.4.2 / 저장 안정성·마지막 재화 기록 (공개 준비)
+
+- 연속 수정 시 최초 저장 기한 유지, 캐릭터·계정 전환 전 즉시 저장 확인과 실패 시 보호 보관 선택을 추가했다. 플로팅 저장줄은 캐릭터 선택 위에 표시한다.
+- 게임 연결이 끊겨도 마지막 정상 재화 기록/한국 조회 시각을 보여 준다. 캐릭터 귀속 미확인·현재 잔액 아님을 표시한다. ERGON 자물쇠/클릭 차단은 유지한다.
+- 구조 변경: 별도 native DPAPI 재화 캐시·제한 bridge, 저장 상태/전환 UI. 기존 queue schema3·CAS·native 실행 원장/DB/RLS/서버 API는 유지한다. SANCTUM 웹 표시 버전은 변경하지 않는다.
+- main 기반 Node618/615PASS3skip·타입/scoped lint·격리빌드·관련 React/native 회귀 PASS. 운영 검증·미확인 사항·되돌리기 기준은 [0.4.2 검증](IRIS_042_RELEASE_QA_20261022.md)을 따른다. 직전 정상 main06e1eca / dpl_GYEnrxpprAXGwr6X2BQKRK4aKkyH. 실제 공개 성공은 후속 기록으로 구분한다.
+
 ## 2026-10-19 21:25 KST — 내부 마감 / IRIS0.4.1 운영 확인
 
 - 제품 `4480646f0b6238dbaff71a7ddb6fbf995c47f631` main+통합브랜치 일반push/원격exact. [운영 배포](https://vercel.com/sanctum-sanctuary/sanctum/3Z2KVcSMJnMxuZmp8ye3HZ5E75ds) 정상 대시보드 Ready/Production/Current 운영도메인/main4480646 확인.

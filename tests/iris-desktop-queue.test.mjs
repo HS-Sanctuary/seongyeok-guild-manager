@@ -12,7 +12,7 @@ test('task and class share debounce while blocked characters cannot dispatch',()
   const {queue,at}=setup();queue.edit(A,key,0,1);queue.edit(B,key,0,1);
   at(1000);queue.editClass(A,'1',null,53);
   assert.equal(queue.snapshot().schemaVersion,3);
-  assert.deepEqual(queue.snapshot().entries.filter(e=>e.characterId==='A').map(e=>e.deadlineAt),[16000,16000]);
+  assert.deepEqual(queue.snapshot().entries.filter(e=>e.characterId==='A').map(e=>e.deadlineAt),[15000,15000]);
   at(16000);assert.deepEqual(queue.due('account',new Set(['A'])).map(e=>e.characterId),['B']);
   const c=queue.snapshot().entries.find(e=>e.kind==='class');assert.equal(c.baseLevel,null);assert.equal('periodKey' in c,false);
   queue.saveNow(A);const task=queue.claim(queue.due('account')[0].requestId);queue.settle(task.requestId,{kind:'saved',completed:1});
@@ -48,15 +48,15 @@ test('A switch schedules A independently of B', () => {
   const { queue, at } = setup();
   queue.edit(A, key, 0, 1); at(2000); queue.leaveCharacter(A);
   at(10000); queue.edit(B, key, 0, 1);
-  at(16999); assert.equal(queue.due('account').length, 0);
+  at(16999); assert.equal(queue.due('account').length, 1);
   at(17000); assert.deepEqual(queue.due('account').map(e => e.characterId), ['A']);
   at(25000); assert.deepEqual(queue.due('account').map(e => e.characterId), ['A', 'B']);
 });
-test('every edit restarts the whole character deadline, not other characters', () => {
+test('later edits preserve first deadline and other character deadlines', () => {
   const { queue, at } = setup();
   queue.edit(A, key, 0, 1); queue.edit(B, key, 0, 1);
   at(12000); queue.edit(A, { ...key, taskId: 'other' }, 0, 1);
-  at(15000); assert.deepEqual(queue.due('account').map(e => e.characterId), ['B']);
+  at(15000); assert.deepEqual(queue.due('account').map(e => e.characterId), ['A','B','A']);
   at(27000); assert.equal(queue.due('account').filter(e => e.characterId === 'A').length, 2);
 });
 test('coalescing preserves original baseline and returning to baseline creates no write', () => {
@@ -78,7 +78,7 @@ test('A to B to A keeps independent deadlines and account queues are isolated', 
   at(1000); queue.leaveCharacter(A); queue.edit(B, key, 0, 1);
   at(2000); queue.leaveCharacter(B);
   queue.edit({ ...A, accountId: 'other' }, key, 0, 1);
-  at(16000); assert.deepEqual(queue.due('account').map(e => e.characterId), ['A']);
+  at(16000); assert.deepEqual(queue.due('account').map(e => e.characterId), ['A','B']);
   at(17000); assert.equal(queue.due('other').length, 1);
 });
 test('claim is once-only and serial across all characters', () => {

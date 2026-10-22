@@ -27,11 +27,11 @@ export function DesktopCenter({account,characters,selected,pending,locked,identi
   const current=characters.find(c=>c.id===selected?.characterId);
   return <section className="iris-hud" data-active-tab={tab} data-compact={compact} data-panel-open={temporaryOpen} ref={surface} aria-label="IRIS 센터">
     <div className="iris-context-header">
+    {saveStatus}
     <div className="iris-character-bar"><button ref={pickerButton} type="button" className="iris-desktop-button iris-character-trigger" disabled={identityLocked} aria-expanded={picker} aria-controls="iris-character-list" aria-label="캐릭터 선택" onClick={()=>{if(!identityLocked)setPicker(!picker);}}><span className="iris-selected-identity"><small>생텀 선택</small><strong>{current?.nickname??'캐릭터 선택'}</strong></span><span className="iris-selected-job">{current?.job??account.nickname} ▾</span></button><span className="iris-connection-dot" title="생텀 계정 연결됨" aria-label="생텀 계정 연결됨"/>{contextActions}</div>
     {picker&&<DesktopCharacterPicker active={!suspendDialogs} characters={characters} selectedId={selected?.characterId??null} busy={identityLocked} onSelect={onSelectCharacter} onClose={()=>{setPicker(false);pickerButton.current?.focus();}} onReadMetadata={onReadMetadata} onManage={onManageCharacter}/>}
     </div>
     {characterStatus}
-    {saveStatus}
     <div className="iris-center-content" hidden={settingsOpen}>
       <DesktopMainTabs section={section} locked={locked} unread={synaxisUnread} onChoose={id=>choose(id==='kronos'?kronosTab:id)}/>
       <div id="iris-pane-kronos" className="iris-kronos-content" hidden={section!=='kronos'}>

@@ -52,6 +52,8 @@ namespace IrisDesktop {
         public void BindUpdater(Func<object> state,Func<Task<object>> check,Func<Task<object>> prepare,Func<object> apply){updateState=state;updateCheck=check;updatePrepare=prepare;updateApply=apply;}
         public void BindGameStats(Func<Task<object>> read){gameRead=read;}
         public void BindCurrencies(Func<Task<object>> read){currencyRead=read;}
+        Func<string,object> currencyCacheLoad;Func<string,Task<object>> currencyCacheRefresh;
+        public void BindCurrencyCache(Func<string,object> load,Func<string,Task<object>> refresh){currencyCacheLoad=load;currencyCacheRefresh=refresh;}
         public async Task<bool> WaitForCollectionReadsAsync(){var watch=Stopwatch.StartNew();while(gameBusy&&watch.ElapsedMilliseconds<10000)await Task.Delay(50);return !gameBusy&&await DesktopCliActivity.WaitForReadsAsync(Math.Max(0,10000-(int)watch.ElapsedMilliseconds));}
         public async Task<string> HandleAsync(Uri source,string json){
             // Validate document/epoch/id synchronously before any asynchronous CLI work.
@@ -60,7 +62,7 @@ namespace IrisDesktop {
             var marker=result!=null&&result.ContainsKey("value")?result["value"] as Dictionary<string,object>:null;
             if(marker==null||(!marker.ContainsKey("gameReadPending")&&!marker.ContainsKey("lifeReadPending")&&!marker.ContainsKey("lifeActionPending")&&!marker.ContainsKey("updatePending")&&!marker.ContainsKey("fontsPending")))return receipt;
             bool update=marker.ContainsKey("updatePending"),fonts=marker.ContainsKey("fontsPending"),action=marker.ContainsKey("lifeActionPending"),control=action&&Equals(marker["lifeActionPending"],"game.life.actions.stop"),collection=action&&Equals(marker["lifeActionPending"],"game.life.actions.collect");var epoch=Epoch;if(collection)collectionPending=true;else if(control)lifeControlBusy=true;else if(fonts)fontsBusy=true;else if(!update)gameBusy=true;
-            try{var value=await (action?lifeActionAsync((string)marker["lifeActionPending"],(Dictionary<string,object>)marker["payload"]):fonts?fontsRead(Equals(marker["fontsPending"],true)):update?(Equals(marker["updatePending"],"check")?updateCheck():updatePrepare()):marker.ContainsKey("lifeReadPending")?lifeRead((string)marker["lifeReadPending"]):(marker.ContainsKey("currency")?currencyRead():gameRead()));if(epoch!=Epoch||document==null)throw new ArgumentException();result["value"]=value;}
+            try{var value=await (action?lifeActionAsync((string)marker["lifeActionPending"],(Dictionary<string,object>)marker["payload"]):fonts?fontsRead(Equals(marker["fontsPending"],true)):update?(Equals(marker["updatePending"],"check")?updateCheck():updatePrepare()):marker.ContainsKey("lifeReadPending")?lifeRead((string)marker["lifeReadPending"]):marker.ContainsKey("currencyAccount")?currencyCacheRefresh((string)marker["currencyAccount"]):(marker.ContainsKey("currency")?currencyRead():gameRead()));if(epoch!=Epoch||document==null)throw new ArgumentException();result["value"]=value;}
             catch(Exception error){result["ok"]=false;result["value"]=null;result["error"]=action?(Array.IndexOf(LifeErrors,error.Message)>=0?error.Message:"life_action_unavailable"):fonts?"fonts_unavailable":"game_stats_unavailable";}
             finally{if(collection)collectionPending=false;else if(control)lifeControlBusy=false;else if(fonts)fontsBusy=false;else if(!update)gameBusy=false;}
             return serializer.Serialize(result);
@@ -159,6 +161,13 @@ namespace IrisDesktop {
                         var referencePayload=message["payload"] as Dictionary<string,object>;
                         if(lifeReference==null||referencePayload==null||referencePayload.Count!=2||!referencePayload.ContainsKey("kind")||!referencePayload.ContainsKey("displayName")||Array.IndexOf(new[]{"crafting","altering"},referencePayload["kind"] as string)<0||!(referencePayload["displayName"] is string))throw new ArgumentException();
                         value=lifeReference((string)referencePayload["kind"],(string)referencePayload["displayName"]);break;
+                    case "store.currencies.load":
+                    case "game.currencies.refreshCache":
+                        var cp=message["payload"] as Dictionary<string,object>;var ca=cp!=null&&cp.ContainsKey("accountId")?cp["accountId"] as string:null;
+                        if(cp==null||cp.Count!=1||String.IsNullOrWhiteSpace(ca)||ca.Length>100||Regex.IsMatch(ca,@"[\x00-\x20\x7f]")||currencyCacheLoad==null||currencyCacheRefresh==null)throw new ArgumentException();
+                        if(Equals(message["method"],"store.currencies.load")){value=currencyCacheLoad(ca);break;}
+                        if(gameBusy||collectionPending||(lifeActionBusy!=null&&lifeActionBusy()))throw new ArgumentException();
+                        value=new {gameReadPending=true,currencyAccount=ca};break;
                     case "game.currencies.read":
                         if(message["payload"]!=null||currencyRead==null||gameBusy||collectionPending||(lifeActionBusy!=null&&lifeActionBusy()))throw new ArgumentException();
                         value=new {gameReadPending=true,currency=true};break;

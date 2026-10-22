@@ -234,6 +234,12 @@ namespace IrisDesktop {
                 bridge.BindGameFocus(ReturnGameFocus);
                 bridge.BindWorkspace(SetWorkspace);
                 bridge.BindCurrencies(DesktopGameStatsReader.ReadCurrenciesAsync);
+                var currencyCache=new DesktopCurrencyStore(Path.GetDirectoryName(Path.GetDirectoryName(store.FilePath)),development?"development":"production");
+                bridge.BindCurrencyCache(account=>{var json=currencyCache.Load(account);return json==null?null:new JavaScriptSerializer().DeserializeObject(json);},async account=>{
+                    var ownerBridge=bridge;var ownerEpoch=ownerBridge.Epoch;
+                    var json=await currencyCache.RefreshAsync(account,DesktopGameStatsReader.ReadCurrenciesAsync,()=>ReferenceEquals(bridge,ownerBridge)&&ownerEpoch==ownerBridge.Epoch&&documentReady);
+                    return new JavaScriptSerializer().DeserializeObject(json);
+                });
                 bridge.BindLifeRead(async kind=>{if(!Visible||WindowState==FormWindowState.Minimized||closeDecision)throw new ArgumentException();return await DesktopLifeReader.ReadAsync(kind);});
                 bridge.BindLifeReference((kind,name)=>{if(!LifeActionAllowed())throw new ArgumentException();return DesktopLifeReference.Read(kind,name);});
                 try {

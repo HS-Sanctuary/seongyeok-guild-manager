@@ -1,5 +1,11 @@
 # 영겁 → 순월 수신함
 
+## YG-20261022-001 — UPDATED / IRIS 0.4.2 선별 공개 준비
+
+- 영겁→순월 / 2026-10-22 KST. 기능브랜치955332a 일반push·원격일치. 한설이 이번 저장 개선의 main/Production/0.4.2 공개까지 승인했다. DB/실게임/ERGON 해제 금지는 유지한다.
+- main06e1eca에서 저장 최초 기한·전환 save/keep·별도 재화 DPAPI 캐시·직접 시험만 선별했다. 기능브랜치 ERGON/B-1/GNOSIS 통째 병합 금지. [릴리스 QA](../IRIS_042_RELEASE_QA_20261022.md)를 우선 확인하고 후속 운영SHA/Ready/공개검증까지 받을 것. 아직 배포 성공을 선기록하지 않는다.
+- Node618/615PASS3skip·타입/lint/격리build·관련native/React통과. 기존 탐색/lint·실사용 교체 미검증은 분리한다. 집 개인12·안전원장·미저장 보존, B-2 보류. 이전 미ACK 누적은 아래 그대로 보존한다. ACK 대기.
+
 ## YG-20261016-001 — UPDATED (목록형 구현·검토 수정·15% 해제)
 
 - **핫픽스공개2026-10-19 21:25KST:** 제품4480646f0b6238dbaff71a7ddb6fbf995c47f631 main+통합원격exact/Vercel dpl_3Z2KVcSMJnMxuZmp8ye3HZ5E75ds 정상UI Ready·Production·Current운영도메인·mainSHA. 실운영download4폭/metadata0.4.1·ZIP595192/SHA07b5c1db6c046ab4dbf9d4d406c0fd09c35ff7bd83a00c4d03bb19642ba4dacd/핵심6GET200·guest2API401/pageerror0·notes‘버그픽스’만PASS. 신규공개공지0/기존0.4id19유지·사용자저장/Alt~ 실게임최종확인대기. 문서마감까지최신HEAD받을것·개인/보호큐/양쪽미ACK보존·DB구조권한0·문서전용구조변경없음. 이전미배포는각시점경과다.

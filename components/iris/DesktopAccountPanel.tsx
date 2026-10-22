@@ -27,7 +27,7 @@ export function DesktopAccountPanel({account,remembered,busy,onSwitch,onLogout,o
       <button type="button" className="iris-desktop-button" disabled={locked} aria-expanded={adding} aria-controls="iris-account-login" onClick={()=>setAdding(!adding)}>다른 계정 로그인</button>
       <button type="button" className="iris-desktop-button" disabled={locked} onClick={()=>void act(onLogout)}>로그아웃</button>
     </div>
-    <p className="iris-caption">한 계정씩 전환해요. 이전 계정의 미저장 변경은 보관돼요.</p>
+    <p className="iris-caption">이전 계정의 저장을 확인한 뒤 전환해요. 실패하면 이 PC에 보관 후 전환을 선택할 수 있어요.</p>
     {error&&<p role="alert" className="iris-account-error">{error}</p>}
     {adding&&<section id="iris-account-login" aria-label="다른 계정 로그인"><DesktopLogin busy={locked} onLogin={async(...args)=>{await act(()=>onLogin(...args));}}/></section>}
   </div>;
