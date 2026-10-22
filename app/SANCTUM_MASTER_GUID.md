@@ -1,5 +1,9 @@
 # 🏛️ SANCTUM Master Guide
 
+### 2026-10-22 KST — ERGON 로컬 진행 저장 기반 / 구조 연결 없음
+
+신규 `iris/desktop-life-progress.cs`는 목표별 확인·정정 이벤트와 별도 Windows DPAPI 저장소를 제공하고 `lib/irisErgonProgress.ts`는 읽기 계약을 정의한다. 신규 fixture와 두 test runner가 합성 검증을 제공한다. 기존 desktop host 컴파일 목록, 실행기, bridge, UI, 보호 원장, API/DB에 연결하지 않았다. 저장은 로컬이며 서버 호출0. 합성 소유34개 통과, 후속27개 미실행. Task 1·2 기능 브랜치 인계이며 2차 원장 연결/3차 UI는 별도 승인 대기.
+
 ### 2026-10-21 23:56 KST — ERGON 수량 정확성 인계 / 구조 변경 없음
 
 `irisErgonCraftGoal`의 confirmedOutput만 목표/예약에 반영하고 native completed/expectedOutput는 확보 증거로 사용하지 않는다. DesktopErgon/Execution/Queue/PlanRow가 수량 미확인 상태와 선행 제작 보호를 공유한다. native/bridge/API/DB·계획 저장 구조는 변경하지 않았다. 별도 암호화 진행 저장소는 승인된 설계이며 아직 소스/연결/UI가 없다. [마감 인계](../docs/ERGON_CLOSEOUT_20261021.md)와 그 문서의 Git 이력을 기준으로 순월이 수신·ACK/시작 가능 여부부터 확인한다. 공개 버전·잠금 유지, 신규 구현/실게임/운영 변경0.

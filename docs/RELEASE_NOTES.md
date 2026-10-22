@@ -798,3 +798,8 @@
 - Git 자동 Preview dpl_33y9Lt9E7XyUhUnBuJZrdyXnXqdL READY/정확제품SHA/target null/aliasError null 확인. 수동배포·Production승격0, origin/main1d8e374 유지. 실제 Preview URL은 Vercel 로그인 보호 화면으로 이동하므로 제품 화면 확인 미완료/로컬 검증과 구분한다. 인증우회/공유링크생성/로그인설정변경0.
 - https://vercel.com/sanctum-sanctuary/sanctum/33y9Lt9E7XyUhUnBuJZrdyXnXqdL . 로컬 http://127.0.0.1:3100/gnosis/dressroom 은 화면 검증 후 열어두었다.
 - 마감은 구조 변경 없는 문서만 추가, 제품 버전 유지. 주간31%·5시간37% 잔여 시점이며15%까지소진하지않고3D자산부재/집통합전안전인계를우선했다. 집에서는 GNOSIS_HOME_MERGE_20261019.md 순서대로 주말작업·개인파일을 보존하며 통합 후 통합 branch/SHA를 TO_SOONWOL에 남길 것.
+# 2026-10-22 KST — ERGON 1차 저장 기반 / 기능 브랜치
+
+- Task 1·2 전용 신규5파일: 목표·요청별 사용자 확인량/정정 기록, 중복·scope 보호, Windows DPAPI 로컬 저장·revision CAS·원자 교체와 복구 검토 기반을 추가했다. 기존 ERGON 실행기·UI·실제 원장과는 연결하지 않았다. 구조 변경 없음.
+- 검증: 합성 소유 시나리오34 PASS, 후속27 미실행. 전체 Node623 중620 PASS/기존3 SKIP/0 FAIL, 기존 native 회귀4·독립 타입·scoped lint PASS. 독립 검토의 극소수 숫자 변환 결함 수정 후 전체 재검증했다.
+- 알려진 제한: 실제 원장/게임 미검증, 다른 PC DPAPI 복원·실제 전원/저장장치 장애 미검증, 긴 Windows 경로에서 제한 가능. DB/서버/Production 호출 및 공개 업데이트 없음.
