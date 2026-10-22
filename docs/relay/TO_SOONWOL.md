@@ -1,5 +1,11 @@
 # 영겁 → 순월 수신함
 
+## YG-20261022-001 — UPDATED / IRIS 0.4.2 공개 최종 인계
+
+- 영겁→순월 / 2026-10-22 KST / ACK대기. 기능제품955332a를 전송한 뒤 한설 승인으로 main제품0d2b432에 저장개선만 선별 공개했다. 최종main b0b63c7a5786380f4e36c67651d8596640f35db7·Production dpl_GimXVW6ejrr2xcu4n27msrbNrdb9 Ready/Current/정확SHA. 최신 HANDOFF 및 main의 IRIS_042_RELEASE_QA를 읽고 이 기능브랜치 문서마감까지 수신/ACK할 것.
+- 실0.4.2metadata/notes/ZIP598816/해시9ea1c1d9f2ee8d758c702b5436c8658cdf7b2092b8d74001a10de9caef719274·내부payload·7GET200·다운로드UI·브라우저편집차단 확인. 기능638/635PASS3skip·main618/615PASS3skip·관련native/React/updater/타입/lint/격리buildPASS. 실제설치본교체/실DB저장/runtime전수는미확인.
+- main→기능브랜치 되합치기는 안전검토 거절로 실행0/충돌0. **기능브랜치에는 아직0.4.1공개ZIP/metadata가 남아 있으므로 이 브랜치를 그대로 운영에 재배포하면 안 된다.** mainb0b63c7 운영파일과 비교하고 별도 승인 뒤 안전통합. 미공개ERGON/GNOSIS 전체를 main에 병합하지 말 것. 집개인12·원장/B-1·과거미ACK보존/B-2보류·DB/실게임/강제재시작0. 이번문서마감구조변경없음.
+
 ## 2026-10-22 집 후속 — 0.4.2 공개 승인·선별 전송 준비
 
 한설이 저장 개선의 feature 선별 commit/push·필요한 main 반영·Production·IRIS0.4.2 공개를 승인했다. main06e1eca 별도 릴리스 후보로 이번 delta만 옮긴다. 아직 공개 성공으로 보고하지 않으며 후속 SHA/배포 검증을 확인할 것. 미공개 ERGON/B-1/GNOSIS 통째 병합·DB·실게임·ERGON 해제는 금지다. 아래 승인 대기는 이전 경과로 보존한다.

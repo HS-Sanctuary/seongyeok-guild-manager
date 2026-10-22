@@ -1,5 +1,9 @@
 # 🏛️ SANCTUM Master Guide
 
+### 2026-10-22 — IRIS 0.4.2 운영 반영 확인 / 인계 구조 변경 없음
+
+저장/전환/재화 캐시만 main0d2b432에 선별했고 문서마감b0b63c7·Production dpl_GimXVW6ejrr2xcu4n27msrbNrdb9 Ready/정확SHA 확인. 기능브랜치 미공개ERGON/GNOSIS/B-1 전체 병합0·DB/실게임0. 운영은 app/DesktopCenter의 상단저장줄 위치/CSS6줄과 새ZIP/metadata를 포함하며 기능브랜치의 이전 ZIP으로 덮어쓰지 않는다. 이번 후속은 운영상태를 기록하는 문서만 추가한다.
+
 ### 2026-10-22 — IRIS 저장 안정성 로컬 후보
 
 `irisDesktopQueue`의 최초 기한/`irisDesktopController` 전환 save/keep와 owner/epoch를 보강했다. `desktop-currency-store.cs`는 queue/ERGON 원장과 별도 DPAPI 캐시이며 native 정상 관측만 보관한다. `store.currencies.load`/`game.currencies.refreshCache` 및 strict `irisCurrencyCache`를 통해 DesktopCurrencies에 마지막 시각·귀속 미확인으로 표시한다. 기존 `readCurrencies`/ERGON 비용 경로에는 캐시를 전달하지 않는다. UI·build source 목록과0.4.2 노트 후보만 변경했으며 API/DB/권한·B-1/원장은 유지한다. [최신 QA·공개 승인 경계](../docs/IRIS_SAVE_STABILITY_QA_20261022.md) 참조.

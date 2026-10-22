@@ -1,5 +1,11 @@
 # SANCTUM 작업 인계
 
+## 2026-10-22 KST — IRIS 0.4.2 운영 공개 최종 인계
+
+한설 승인 후 main에 이번 저장 개선만 선별 반영했다. 제품 `0d2b432f2db8afd3f2f9bbc3507b393397698447`, 운영 문서마감/main `b0b63c7a5786380f4e36c67651d8596640f35db7`, 현재 Production `dpl_GimXVW6ejrr2xcu4n27msrbNrdb9` Ready/정확SHA/운영도메인 확인. [운영 릴리스 검증](https://github.com/HS-Sanctuary/seongyeok-guild-manager/blob/b0b63c7a5786380f4e36c67651d8596640f35db7/docs/IRIS_042_RELEASE_QA_20261022.md)을 우선 읽을 것. 실0.4.2metadata/notes/ZIP598816·SHA9ea1c1d9f2ee8d758c702b5436c8658cdf7b2092b8d74001a10de9caef719274/내부payload·핵심7GET200·실다운로드UI·브라우저편집차단 확인. ERGON 자물쇠/disabled 유지, 새공지/DB/실게임/강제재시작0.
+
+기능브랜치 제품955332a(638/635PASS3skip), main선별후618/615PASS3skip·타입/scopedlint/격리build·관련native/React/updaterPASS. 실제설치본교체/실사용DB저장/runtime로그전수는 미확인. 집개인12항목·원장·B-1보존/B-2보류. main 전체를 기능브랜치에 되합치기는 안전검토에서 거절되어 실행0·충돌0. 이 기능브랜치의 다운로드ZIP/metadata는 아직0.4.1이므로 여기서 재배포하지 말 것. 다음은 양쪽 diff 확인 후 별도 승인받아 main 운영파일만 안전하게 통합하는 작업이다. 기존 미ACK·개인자료를 덮어쓰지 않는다.
+
 ## 2026-10-22 집 — IRIS 저장 안정성 우선 / 0.4.2 공개 승인
 
 한설이 이번 저장 개선의 선별 commit/push·필요한 main 반영·Production·IRIS0.4.2 공개를 승인했다. main06e1eca에서 별도 릴리스 후보를 만들고 이번 delta만 검증한다. 미공개 ERGON/B-1/GNOSIS 전체 병합은 제외한다. 아래 승인 대기 문구는 승인 전 경과이며 공개 성공은 후속 검증 기록으로만 판단한다. DB/실게임/ERGON 해제/강제 재시작 금지는 유지한다.

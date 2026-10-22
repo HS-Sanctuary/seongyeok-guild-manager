@@ -1,5 +1,7 @@
 # IRIS 저장 안정성·재화 마지막 조회 검증 — 2026-10-22
 
+> 최종 공개 후속: 제품955332a 기능전송 후 main0d2b432에 필요한 저장 개선만 선별했다. 최종main b0b63c7·Production dpl_GimXVW6ejrr2xcu4n27msrbNrdb9 Ready/정확SHA·실0.4.2metadata/notes/ZIP/해시/다운로드UI 확인. [운영 검증 원문](https://github.com/HS-Sanctuary/seongyeok-guild-manager/blob/b0b63c7a5786380f4e36c67651d8596640f35db7/docs/IRIS_042_RELEASE_QA_20261022.md)을 최신으로 따른다. 아래는 기능후보의 경과이며 main기반618/615PASS3skip와 기능638/635PASS3skip를 구분한다. 안전검토 거절로main되합치기0/충돌0, 기능브랜치의 옛0.4.1ZIP 재배포금지. ERGON잠금·DB/실게임금지는유지한다.
+
 영겁 / 기준 `a95c0768a490d18ff0f8ab4b1e0c62cd5c05bb33`의 별도 관리 worktree. 로컬 미커밋 후보이며 순월 B-1·집 원래 checkout 개인12항목과 삭제 상태를 보존한다. ERGON B-2는 보류한다.
 
 ## 실제 발견·수정

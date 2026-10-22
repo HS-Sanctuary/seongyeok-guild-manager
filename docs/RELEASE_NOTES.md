@@ -1,5 +1,10 @@
 # SANCTUM 업데이트 노트
 
+## 2026-10-22 KST — IRIS 0.4.2 운영 완료 / 기능브랜치 문서 인계
+
+- 승인된 저장 개선만 main제품0d2b432에 선별 공개했다. 최종운영문서b0b63c7·Vercel dpl_GimXVW6ejrr2xcu4n27msrbNrdb9 Ready/Production/현재도메인·정확SHA 확인. 실제ZIP598816/해시9ea1c1d9f2ee8d758c702b5436c8658cdf7b2092b8d74001a10de9caef719274·notes0.4.2·다운로드UI·핵심7GET200 PASS. ERGON 잠금 유지, DB/실게임0.
+- 이번 기능브랜치 후속은 문서만 추가/구조 변경 없음. 기능브랜치638/635PASS3skip와 main선별618/615PASS3skip를 구분한다. main 되합치기는 안전검토거절로 미실행이며 기능브랜치의 옛공개ZIP으로 운영을 덮어쓰지 말 것. 실제교체/실DB체감/runtime전수 미확인은 남는다. 정확 기준은 HANDOFF최상단 및 main의 IRIS_042_RELEASE_QA 문서다.
+
 ## 2026-10-22 — IRIS0.4.2 후보 / 저장 안정성·마지막 재화 조회 (공개 승인·검증 중)
 
 - 이번 저장 개선의 선별 전송·운영 반영·0.4.2 공개 승인을 받았다. 실제 배포 완료와 구분한다. 직전 정상 Production은 main06e1eca / dpl_GYEnrxpprAXGwr6X2BQKRK4aKkyH이며 기능 브랜치의 다른 미공개 개발은 제외한다.
