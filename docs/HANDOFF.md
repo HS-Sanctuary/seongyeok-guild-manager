@@ -1,5 +1,11 @@
 # SANCTUM 작업 인계
 
+## 2026-10-23 22:14 KST — IRIS 0.4.3 운영 공개 마감
+
+제품 `b32c84759292855c72e6c501fe02564cdc0c8414`, 브랜치 `codex/iris-floating-sidebar-043-20261023` 및 main 원격 일치. Production `dpl_HzZPriY1wNNNpQN4rDq3gdZ1rwg1` READY / 정확 SHA / 운영 도메인 확인. 실제 다운로드 UI·0.4.3 metadata/notes·ZIP 및 내부 9개 해시·핵심 7 GET 200 확인. [QA](IRIS_SIDEBAR_HOTFIX_20261023.md)를 따른다. 이 문서 마감까지 최신 main을 확인하되 미공개 ERGON 기능 브랜치를 통째로 병합하지 않는다.
+
+설치 교체 시험은 실행 IRIS 보호로 중단되어 미통과이며 실제 게임 위 수동 조작도 미검증이다. 정상 업데이트 후 사이드바 복귀 버튼의 사용자 확인이 남는다. ERGON 잠금 유지, N-R1/U-R1 미커밋과 기존 개인 12항목·원장·ACK는 원래 작업 공간에 보존했다. 이번 핫픽스에 이식하지 않았다. 문서 전용 마감 / 구조 변경 없음 / DB·게임 행동·강제 종료·신규 공지 없음. 다음 ERGON 작업은 기존 미커밋 상태를 먼저 확인하고 별도 승인 범위에서 재개한다.
+
 ## 2026-10-23 — IRIS0.4.3 공개 승인·준비
 
 한설 별도 최종승인으로 main반영/0.4.3공개를 진행한다. 핫픽스99c1019와0.4.3버전/노트/검증된패키지만 포함, 미공개ERGON 이식0. [QA](IRIS_SIDEBAR_HOTFIX_20261023.md) 후속참조. 패키지598836/SHA2bf026144bdf1ef7e7598137203dd25585274bcd58bcf8150b287cfa39a9111e·컴파일/allowlistPASS. updater교체회귀는실행IRIS보호로Another IRIS running 중단/미통과, 앱종료·보호우회0. 아래승인대기는이전경과이며공개완료는배포후확인한다.

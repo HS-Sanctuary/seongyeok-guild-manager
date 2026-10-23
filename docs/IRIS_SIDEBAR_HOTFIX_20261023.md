@@ -1,5 +1,15 @@
 # IRIS 플로팅→사이드바 핫픽스 후보 — 2026-10-23
 
+## 최종 운영 확인 — 2026-10-23 22:14 KST
+
+제품 `b32c84759292855c72e6c501fe02564cdc0c8414` / `codex/iris-floating-sidebar-043-20261023`와 main 원격 일치. Production `dpl_HzZPriY1wNNNpQN4rDq3gdZ1rwg1` READY, 정확 main SHA 및 `sanctum-tawny-three.vercel.app` 도메인 할당을 확인했다. 같은 SHA의 Preview 성공만으로 운영 완료를 판단하지 않았다.
+
+실제 운영 다운로드 화면 Beta 0.4.3을 시각 확인했다. 공개 download.json·notes/0.4.3.json, ZIP 598836 bytes / SHA256 `2bf026144bdf1ef7e7598137203dd25585274bcd58bcf8150b287cfa39a9111e`, 내부 9개 payload 크기·해시가 모두 일치했다. `/`, `/login`, `/character`, `/kerygma`, `/party`, `/iris/download`, `/iris/desktop` GET 200은 접속 확인이며 로그인 후 저장 성공을 뜻하지 않는다.
+
+기존 Node 618건 중 615 PASS / 3 skip, 타입·격리 빌드·관련 React/native 합성 검증 결과는 아래와 같다. 실제 설치 교체 시험은 실행 중인 IRIS 보호로 중단되어 미통과다. 앱을 종료하거나 보호를 우회하지 않았다. 실제 설치본에서 게임 위 버튼 조작·다중 모니터 수동 시험·전체 runtime 로그 검사는 미실시다. 기존 updater 코드는 변경하지 않았지만 이 한계를 설치 성공으로 확대하지 않는다.
+
+집 원본 개인 12항목 및 별도 ERGON N-R1/U-R1 미커밋은 보존했다. 본 핫픽스에는 미공개 ERGON 코드를 포함하지 않았다. ERGON 잠금·계정·큐·안전 원장·DB 유지, 실제 게임 명령·강제 종료·신규 공지 게시 없음. 이 마감은 문서만 추가 / 구조 변경 없음. 아래 미공개·승인 대기는 당시 경과로 보존하며 최신 상태는 이 절을 따른다.
+
 ## 공개 승인 후속
 
 한설이 별도 질문에서 `0.4.3 운영 반영·공개 승인`을 명시했다. 아래 배포대기는 승인 전 경과다. 버전/노트/패키지를0.4.3으로 함께 준비한다. 운영 기준은 mainb0b63c7·Production dpl_GimXVW6ejrr2xcu4n27msrbNrdb9이며 다른 미공개ERGON 작업은 포함하지 않는다. 새 ZIP598836bytes/SHA256 `2bf026144bdf1ef7e7598137203dd25585274bcd58bcf8150b287cfa39a9111e`, 패키지allowlist/manifest/unsigned 및 실제 native컴파일 PASS. 기존 unsigned베타 안내 유지.

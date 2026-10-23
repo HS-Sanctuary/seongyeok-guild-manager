@@ -1,5 +1,9 @@
 # 🏛️ SANCTUM Master Guide
 
+### 2026-10-23 22:14 KST — IRIS 0.4.3 운영 확인 / 구조 변경 없음
+
+사이드바 복귀 핫픽스 제품 `b32c847`가 Production `dpl_HzZPriY1wNNNpQN4rDq3gdZ1rwg1` READY / main SHA / 운영 도메인으로 공개됐다. 실제 다운로드 UI의 0.4.3 및 metadata/notes/ZIP·내부 payload를 확인했다. 아래 6개 메뉴 / 기존 normal 명령 재사용 범위만 반영됐으며 ERGON·저장·DB·원장 구조는 그대로다. 이 후속은 문서만 추가한다. 실제 설치 교체 및 게임 위 수동 확인의 미검증 한계는 릴리스 QA에 보존했다.
+
 ### 2026-10-23 — IRIS0.4.3 공개 승인 준비
 
 한설최종승인으로 아래사이드바핫픽스·0.4.3버전/notes/패키지만운영반영한다. 새전환엔진/ERGON/DB/원장구조변경없음. 배포결과는후속기록이며unsigned베타/실설치본검증한계를유지한다.

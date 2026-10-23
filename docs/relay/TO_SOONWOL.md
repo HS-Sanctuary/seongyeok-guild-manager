@@ -1,5 +1,8 @@
 # 영겁 → 순월 수신함
 
+- **YG-20261023-HOTFIX 최종 누적 / 22:14 KST / UPDATED:** 한설의 0.4.3 운영 반영·공개 승인에 따라 제품 `b32c84759292855c72e6c501fe02564cdc0c8414`를 `codex/iris-floating-sidebar-043-20261023`와 main에 일반 push / 원격 일치 확인. Production `dpl_HzZPriY1wNNNpQN4rDq3gdZ1rwg1` READY / 정확 main SHA / 운영 도메인 확인. 실제 다운로드 UI Beta 0.4.3, metadata/notes, ZIP 598836 bytes / SHA256 `2bf026144bdf1ef7e7598137203dd25585274bcd58bcf8150b287cfa39a9111e`, 내부 9개 해시·핵심 7 GET 200 확인. [QA](../IRIS_SIDEBAR_HOTFIX_20261023.md). 이 문서 마감까지 최신 main과 핫픽스 HEAD를 확인할 것. 기존 미ACK는 아래 누적 보존한다.
+- Node 615 PASS / 기존 3 skip, 타입·격리 빌드·관련 native/React 회귀 통과. 설치 교체 시험은 실행 IRIS 보호로 중단되어 미통과 / 종료·우회 없음. 실제 설치 교체·게임 위 수동 조작은 사용자 확인 대기다. ERGON 잠금·N-R1/U-R1 기존 미커밋·개인 12항목·원장·ACK 보존, 기능 브랜치 전체 이식 없음. DB·게임 행동·신규 공지 없음. 문서 전용 마감 / 구조 변경 없음. ERGON 재개 전 기존 작업 트리를 먼저 대조하고 임의 병합하지 말 것.
+
 - **2026-10-23 HOTFIX공개승인누적:** 한설이0.4.3운영반영·새설치본공개명시승인.99c1019기반version/notes/패키지만추가. ZIP598836/hash2bf026144bdf1ef7e7598137203dd25585274bcd58bcf8150b287cfa39a9111e·컴파일/allowlistPASS. updater시험은실행앱보호로중단/미통과·종료우회0. 실제Production/공개파일후속확인필요. ERGON미커밋/개인12·원장보존/이식0, DB/실게임0. 이전승인대기는과거경과로보존한다.
 
 ## YG-20261023-HOTFIX — UPDATED / 사이드바 복귀 후보

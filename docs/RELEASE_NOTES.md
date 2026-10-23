@@ -1,5 +1,12 @@
 # SANCTUM 업데이트 노트
 
+## 2026-10-23 22:14 KST — IRIS 0.4.3 운영 공개 확인
+
+- 제품 커밋 `b32c84759292855c72e6c501fe02564cdc0c8414`를 별도 핫픽스 브랜치와 main에 일반 push했고 원격 일치를 확인했다. Vercel `dpl_HzZPriY1wNNNpQN4rDq3gdZ1rwg1`의 정확한 main SHA / Production / READY / 운영 도메인 할당을 확인했다. Preview 성공과 구분했다.
+- 실제 다운로드 화면의 Beta 0.4.3, 공개 업데이트 요약, ZIP 598836 bytes / SHA256 `2bf026144bdf1ef7e7598137203dd25585274bcd58bcf8150b287cfa39a9111e`, 내부 9개 payload 해시와 핵심 7개 GET 200을 확인했다. 설정 아래·종료 위의 사이드바 전환 버튼을 제공한다.
+- Node 615 PASS / 기존 3 skip, 타입·격리 빌드·관련 React/native 합성 회귀 통과. 실행 중인 IRIS 보호로 설치 교체 시험은 중단되어 미통과다. 실제 앱 교체·게임 위 수동 조작은 아직 미검증이며 앱을 강제 종료하지 않았다. [검증 및 한계](IRIS_SIDEBAR_HOTFIX_20261023.md).
+- ERGON 잠금·개인 파일·기존 저장 및 원장 유지. DB 변경·게임 명령·신규 공지 게시 없음. 이 마감은 문서만 추가하며 구조 변경 없음. 직전 정상 0.4.2 / main `b0b63c7` / `dpl_GimXVW6ejrr2xcu4n27msrbNrdb9`를 되돌리기 기준으로 유지한다.
+
 ## 2026-10-23 — IRIS0.4.3 공개 승인 후 패키지 준비
 
 한설최종승인확인. 사이드바전환버튼/6개native영역·기존4/5호환만공개한다.0.4.3버전/앱요약/ZIP598836·SHA2bf026144bdf1ef7e7598137203dd25585274bcd58bcf8150b287cfa39a9111e 준비/allowlist·manifest·컴파일PASS. 기존업데이터회귀1개는실행IRIS보호로중단되어미통과, 앱을종료하지않았다. ERGON잠금/DB/계정/원장구조변경없음. 직전정상mainb0b63c7·dpl_GimXVW6ejrr2xcu4n27msrbNrdb9로복귀제안가능, 원장/큐삭제금지. 실제공개결과는후속기록.
