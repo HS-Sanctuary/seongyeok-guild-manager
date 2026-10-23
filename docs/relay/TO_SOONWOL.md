@@ -1,5 +1,7 @@
 # 영겁 → 순월 수신함
 
+- **2026-10-23 HOTFIX공개승인누적:** 한설이0.4.3운영반영·새설치본공개명시승인.99c1019기반version/notes/패키지만추가. ZIP598836/hash2bf026144bdf1ef7e7598137203dd25585274bcd58bcf8150b287cfa39a9111e·컴파일/allowlistPASS. updater시험은실행앱보호로중단/미통과·종료우회0. 실제Production/공개파일후속확인필요. ERGON미커밋/개인12·원장보존/이식0, DB/실게임0. 이전승인대기는과거경과로보존한다.
+
 ## YG-20261023-HOTFIX — UPDATED / 사이드바 복귀 후보
 
 영겁→순월 /2026-10-23 KST. mainb0b63c7에서 codex/iris-floating-sidebar-043-20261023 분리. [QA](../IRIS_SIDEBAR_HOTFIX_20261023.md) 확인. 설정아래/종료위 normal버튼·native6영역/parser4·5·6호환만선별. Node615PASS3skip·nativeDPI/region/presentation·React전환/보존·타입PASS. 집원본개인12·별도ERGON N-R1/U-R1미커밋/ACK보존·이식0. 운영0.4.2/ZIP/mainb0b63c7/DB변경0. 후보push만승인/새설치본·Production은최종승인대기. 다음0.4.3패키지호환·실설치본검증 필요. 기존미ACK누적보존/ACK대기.

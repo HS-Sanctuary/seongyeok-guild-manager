@@ -1,5 +1,9 @@
 # SANCTUM 작업 인계
 
+## 2026-10-23 — IRIS0.4.3 공개 승인·준비
+
+한설 별도 최종승인으로 main반영/0.4.3공개를 진행한다. 핫픽스99c1019와0.4.3버전/노트/검증된패키지만 포함, 미공개ERGON 이식0. [QA](IRIS_SIDEBAR_HOTFIX_20261023.md) 후속참조. 패키지598836/SHA2bf026144bdf1ef7e7598137203dd25585274bcd58bcf8150b287cfa39a9111e·컴파일/allowlistPASS. updater교체회귀는실행IRIS보호로Another IRIS running 중단/미통과, 앱종료·보호우회0. 아래승인대기는이전경과이며공개완료는배포후확인한다.
+
 ## 2026-10-23 — 사이드바 복귀 핫픽스 후보 / 운영 배포 대기
 
 mainb0b63c7에서 codex/iris-floating-sidebar-043-20261023만 분리했다. [핫픽스QA](IRIS_SIDEBAR_HOTFIX_20261023.md) 참조. normal버튼/6영역/parser4·5·6호환만 변경. Node615PASS3skip·nativeDPI/React/타입 회귀 검증. 공개버전/ZIP은0.4.2 유지, 승인후0.4.3 준비. 별도ERGON미커밋·개인12·원장/ACK 보존. 이번 승인은hotfix브랜치push뿐/main/DB/Production/설치본배포금지.

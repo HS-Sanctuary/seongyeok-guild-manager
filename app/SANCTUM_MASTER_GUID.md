@@ -1,5 +1,9 @@
 # 🏛️ SANCTUM Master Guide
 
+### 2026-10-23 — IRIS0.4.3 공개 승인 준비
+
+한설최종승인으로 아래사이드바핫픽스·0.4.3버전/notes/패키지만운영반영한다. 새전환엔진/ERGON/DB/원장구조변경없음. 배포결과는후속기록이며unsigned베타/실설치본검증한계를유지한다.
+
 ### 2026-10-23 — 플로팅 사이드바 복귀 후보
 
 DesktopFloatingHub의6번째메뉴호스트에서 설정→normal→종료 순서/SidebarIcon 추가. FloatingLayout은6개 원형영역/높이제한, parser는4·5·6호환. 기존 native FloatingCommand(normal)/mode·저장경로 그대로, DB/원장/권한 구조변경없음. 운영0.4.2/ZIP 유지, 후보브랜치만전송하며0.4.3공개는승인대기.

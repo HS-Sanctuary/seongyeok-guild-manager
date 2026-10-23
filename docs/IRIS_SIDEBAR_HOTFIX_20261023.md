@@ -1,5 +1,11 @@
 # IRIS 플로팅→사이드바 핫픽스 후보 — 2026-10-23
 
+## 공개 승인 후속
+
+한설이 별도 질문에서 `0.4.3 운영 반영·공개 승인`을 명시했다. 아래 배포대기는 승인 전 경과다. 버전/노트/패키지를0.4.3으로 함께 준비한다. 운영 기준은 mainb0b63c7·Production dpl_GimXVW6ejrr2xcu4n27msrbNrdb9이며 다른 미공개ERGON 작업은 포함하지 않는다. 새 ZIP598836bytes/SHA256 `2bf026144bdf1ef7e7598137203dd25585274bcd58bcf8150b287cfa39a9111e`, 패키지allowlist/manifest/unsigned 및 실제 native컴파일 PASS. 기존 unsigned베타 안내 유지.
+
+설치교체 policy 시험은 `Another IRIS running`으로 중단됐다. 실제 실행 앱의 공유 보호를 존중했고 종료/우회/잠금변경하지 않았다. 이 실패를 PASS로 숨기지 않으며 실제 실행 설치본 교체/게임 위 수동확인은 여전히 미검증이다. updater/queue/journal코드는 이번에 변경하지 않았다. public release metadata/모든내부payload/다운로드UI와정확Production SHA는 배포후 추가확인한다. DB·원장·게임·강제재시작 금지는 유지한다.
+
 기준 main b0b63c7 / 운영 IRIS0.4.2. 브랜치 codex/iris-floating-sidebar-043-20261023. 한설 승인 범위는 별도 hotfix 구현·검증·기능브랜치 일반push까지다. 운영main/Production/새설치본 공개는 최종승인전 금지. 배포 시 제안버전은0.4.3이며 현재 lib 버전/공개 ZIP/metadata는0.4.2를 그대로 보존한다.
 
 ## 변경

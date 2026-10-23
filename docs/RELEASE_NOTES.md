@@ -1,5 +1,9 @@
 # SANCTUM 업데이트 노트
 
+## 2026-10-23 — IRIS0.4.3 공개 승인 후 패키지 준비
+
+한설최종승인확인. 사이드바전환버튼/6개native영역·기존4/5호환만공개한다.0.4.3버전/앱요약/ZIP598836·SHA2bf026144bdf1ef7e7598137203dd25585274bcd58bcf8150b287cfa39a9111e 준비/allowlist·manifest·컴파일PASS. 기존업데이터회귀1개는실행IRIS보호로중단되어미통과, 앱을종료하지않았다. ERGON잠금/DB/계정/원장구조변경없음. 직전정상mainb0b63c7·dpl_GimXVW6ejrr2xcu4n27msrbNrdb9로복귀제안가능, 원장/큐삭제금지. 실제공개결과는후속기록.
+
 ## 2026-10-23 KST — IRIS0.4.3 핫픽스 제안 / 미공개
 
 - 플로팅 설정과 종료 사이에 사이드바 복귀 버튼 후보 추가. 기존 normal명령·원형테마 재사용. native6영역·parser4/5/6호환, 저장/원장/DB구조 변경없음. Node615PASS3skip·nativeDPI/layout/presentation·React전환·타입 검증. 현재 운영/ZIP0.4.2 유지, 최종 배포승인대기. [범위와제약](IRIS_SIDEBAR_HOTFIX_20261023.md).
