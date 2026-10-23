@@ -3,14 +3,22 @@ using System.IO;
 using System.Linq;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Diagnostics;
 namespace IrisDesktop {
+ internal sealed class ProgressQuantityPreview {
+  internal readonly string accountLabel,characterLabel,displayName,requestId,reason;internal readonly long quantity;internal readonly long? previousQuantity,expectedOutput;
+  internal ProgressQuantityPreview(Dictionary<string,object> context,ProgressAttemptRecord attempt,ProgressMutation mutation){accountLabel=(string)context["accountLabel"];characterLabel=(string)context["characterLabel"];displayName=attempt.displayName;requestId=attempt.requestId;quantity=Convert.ToInt64(mutation.quantity);previousQuantity=attempt.confirmations.Count==0?(long?)null:attempt.confirmations.Last().quantity;expectedOutput=attempt.expectedOutput;reason=mutation.reason;}
+ }
  // Native-only adapter. The bridge supplies identities and commands, never evidence or paths.
  internal sealed class DesktopLifeProgressConnection:IProgressExecutionActor {
   readonly DesktopLifeExecutor actor;readonly DesktopLifeJournal journal;readonly DesktopErgonProgressStore store;readonly Func<long> clock;readonly ProgressCoordinator coordinator;
   readonly string session=Guid.NewGuid().ToString("D");ProgressGoalView selected;Dictionary<string,object> frozen;LifePreflight before;bool consumed,declined;
   readonly Dictionary<string,string> goals=new Dictionary<string,string>(StringComparer.Ordinal);
   ProgressDocument validated,collectionDocument;
-  internal DesktopLifeProgressConnection(DesktopLifeExecutor actor,DesktopLifeJournal journal,DesktopErgonProgressStore store,Func<long> clock){if(actor==null||journal==null||store==null||clock==null)throw new ArgumentNullException();this.actor=actor;this.journal=journal;this.store=store;this.clock=clock;coordinator=new ProgressCoordinator(store,this,clock);actor.BindProgress(ConfirmAsync,ObserveTerminal,CanPrepare,CollectionGuard,CollectionBegin);}
+  readonly Func<long> monotonicMilliseconds;Func<ProgressQuantityPreview,Task<bool>> quantityApproval;
+  internal DesktopLifeProgressConnection(DesktopLifeExecutor actor,DesktopLifeJournal journal,DesktopErgonProgressStore store,Func<long> clock,Func<long> monotonicMilliseconds):this(actor,journal,store,clock){if(monotonicMilliseconds==null)throw new ArgumentNullException();this.monotonicMilliseconds=monotonicMilliseconds;}
+  internal void BindQuantityApproval(Func<ProgressQuantityPreview,Task<bool>> approve){Need(approve!=null&&!actor.Busy&&quantityApproval==null,"quantity-approval-binding");quantityApproval=approve;}
+  internal DesktopLifeProgressConnection(DesktopLifeExecutor actor,DesktopLifeJournal journal,DesktopErgonProgressStore store,Func<long> clock){if(actor==null||journal==null||store==null||clock==null)throw new ArgumentNullException();this.actor=actor;this.journal=journal;this.store=store;this.clock=clock;monotonicMilliseconds=()=>checked((long)(Stopwatch.GetTimestamp()*(1000.0/Stopwatch.Frequency)));coordinator=new ProgressCoordinator(store,this,clock);actor.BindProgress(ConfirmAsync,ObserveTerminal,CanPrepare,CollectionGuard,CollectionBegin);}
   bool CanPrepare(Dictionary<string,object> intent){if(selected==null)return false;var snapshot=store.Load(Scope());return snapshot.health=="ok"&&snapshot.view.goals.Any(g=>g.goalId==selected.goalId&&g.lifecycle=="active"&&!g.detached&&!g.quantitySatisfied&&!g.quantityUnconfirmed&&g.action==(string)intent["action"]&&g.displayName==(string)intent["displayName"]);}
   static void Need(bool ok,string why){if(!ok)throw new InvalidOperationException(why);}
   ProgressScope Scope(Dictionary<string,object> context){return new ProgressScope{environment=journal.EnvironmentName,accountId=(string)context["accountId"],characterId=(string)context["characterId"]};}
@@ -35,8 +43,37 @@ static void Match(ProgressAttemptRecord a,Dictionary<string,object> row,bool all
   IDisposable CollectionGuard(){var writer=store.AcquireWriter(new ProgressLockOwner());try{collectionDocument=store.Inspect(writer);AuditRows(collectionDocument,null,false);return writer;}catch{writer.Dispose();throw;}}
   void CollectionBegin(){AuditRows(collectionDocument,null,false);}
   void ObserveTerminal(Dictionary<string,object> intent){string id=(string)intent["nonce"],goal;Need(goals.TryGetValue(id,out goal),"terminal-binding-missing");using(var writer=store.AcquireWriter(new ProgressLockOwner())){var d=store.Inspect(writer);var a=d.attempts.SingleOrDefault(x=>x.requestId==id&&x.goalId==goal);Need(a!=null,"terminal-request-missing");var row=Row(a);Match(a,row);string digest=ProgressDomain.Hash(ProgressDomain.Canonical(row));if(a.evidence!=null){Need(a.evidence.rowDigest==digest,"terminal-evidence-conflict");return;}var v=new NativeTerminalEvidence{scope=ProgressDomain.Clone(a.scope),goalId=goal,requestId=id,action=a.action,displayName=a.displayName,craftCount=a.craftCount,outputPerCraft=a.outputPerCraft,expectedOutput=a.expectedOutput,outcome=(string)row["state"],startedAt=Convert.ToInt64(row["startedAt"]),observedAt=clock(),verifierVersion=1,rowDigest=digest};var ack=store.Commit(new ProgressMutation{kind="ObserveNativeTerminal",scope=a.scope,goalId=goal,requestId=id,evidence=v},d.revision,Guid.NewGuid(),writer);Need(ack.status=="committed","terminal-save-failed");}}
+  void QuantityContext(Dictionary<string,object> p,string payloadDigest,string contextDigest){Need(ProgressDomain.Canonical(p)==payloadDigest&&ProgressDomain.Canonical(actor.ProgressContext())==contextDigest,"quantity-context-changed");Owner(p);}
+  void QuantityDeadline(long wall,long ticks){long now=clock(),elapsed=monotonicMilliseconds();Need(now>=wall&&((decimal)now-wall)<120000&&elapsed>=ticks&&((decimal)elapsed-ticks)<120000,"quantity-approval-expired");}
+  ProgressCommitResult QuantityCommit(ProgressMutation m,long revision,Guid op,ProgressWriterAdmission writer){var ack=store.Commit(m,revision,op,writer);Need(ack.status=="committed"||ack.status=="already-applied","progress-write-failed");return ack;}
+  async Task<object> QuantityAsync(string method,Dictionary<string,object> p){
+   bool correction=method=="correctQuantity";var fields=new[]{"accountId","characterId","revision","operationId","goalId","requestId","quantity"};DesktopLifePolicy.Exact(p,correction?fields.Concat(new[]{"supersedesEventId","reason"}).ToArray():fields);
+   Owner(p);long revision=Revision(p),quantity=ProgressDomain.Number(p["quantity"],0,5000000);Guid op=Operation(p);var context=actor.ProgressContext();string contextDigest=ProgressDomain.Canonical(context),payloadDigest=ProgressDomain.Canonical(p);
+   var m=new ProgressMutation{kind=correction?"CorrectQuantity":"ConfirmQuantity",scope=Scope(context),goalId=(string)p["goalId"],requestId=(string)p["requestId"],quantity=quantity,source="user-confirmed",supersedesEventId=correction?(string)p["supersedesEventId"]:null,reason=correction?(string)p["reason"]:null};
+   var owner=new ProgressLockOwner();
+   using(owner.Enter(ProgressLockOwner.Mutation))using(await actor.ProgressMutationAsync().ConfigureAwait(false))using(var lease=await ProgressExecutionLease.AcquireAsync(owner,()=>Task.FromResult<IDisposable>(journal.AcquireExecutionLease())).ConfigureAwait(false)){
+    QuantityContext(p,payloadDigest,contextDigest);string storeId,commitDigest;ProgressQuantityPreview preview;QuantityAcknowledgement acknowledgement;
+    using(var writer=await store.AcquireWriterAsync(owner).ConfigureAwait(false)){
+     QuantityContext(p,payloadDigest,contextDigest);var d=store.Inspect(writer);Audit(d,null);var attempt=d.attempts.SingleOrDefault(x=>x.requestId==m.requestId&&x.goalId==m.goalId&&ProgressDomain.Same(x.scope,m.scope));Need(attempt!=null,"foreign-request");
+     bool explicitApproval=correction||quantity==0||quantity>attempt.expectedOutput;acknowledgement=explicitApproval?new QuantityAcknowledgement{requestId=m.requestId,quantity=quantity,revision=revision,zero=quantity==0,extra=quantity>attempt.expectedOutput,correction=correction}:null;
+     // Pure domain preflight cannot publish. Native approval is required before this candidate may be committed.
+     var candidate=ProgressDomain.Clone(m);candidate.confirmation=acknowledgement;var check=ProgressDomain.Commit(d,candidate,revision,op,clock());Need(check.status=="committed"||check.status=="already-applied","quantity-preflight-rejected");
+     if(check.status=="already-applied")return QuantityCommit(candidate,revision,op,writer);
+     if(!explicitApproval)return QuantityCommit(m,revision,op,writer);
+     Need(quantityApproval!=null,"quantity-explicit-approval-required");preview=new ProgressQuantityPreview(context,attempt,m);storeId=d.storeId;commitDigest=d.commitDigest;
+    }
+    // No writer or Store file lock survives the trusted native user prompt.
+    long wall=clock(),ticks=monotonicMilliseconds();Need(await quantityApproval(preview).ConfigureAwait(false),"quantity-approval-declined");QuantityDeadline(wall,ticks);QuantityContext(p,payloadDigest,contextDigest);
+    using(var writer=await store.AcquireWriterAsync(owner).ConfigureAwait(false)){
+     QuantityDeadline(wall,ticks);QuantityContext(p,payloadDigest,contextDigest);var d=store.Inspect(writer);Need(d.storeId==storeId&&d.revision==revision&&d.commitDigest==commitDigest,"quantity-revision-changed");Audit(d,null);
+     // Inspect/Audit perform synchronous IO after the await; recheck their full interval before committing.
+     QuantityDeadline(wall,ticks);QuantityContext(p,payloadDigest,contextDigest);m.confirmation=acknowledgement;return QuantityCommit(m,revision,op,writer);
+    }
+   }
+  }
   internal async Task<object> RequestAsync(string method,Dictionary<string,object> p){
    Need(p!=null,"payload-required");
+   if(method=="confirmQuantity"||method=="correctQuantity")return await QuantityAsync(method,p).ConfigureAwait(false);
    if(method=="createGoal"){
     DesktopLifePolicy.Exact(p,"accountId","characterId","revision","operationId","goalId","sourcePlanId","parentGoalId","action","displayName","targetQuantity");Owner(p);
     selected=new ProgressGoalView{goalId=(string)p["goalId"],sourcePlanId=(string)p["sourcePlanId"],parentGoalId=(string)p["parentGoalId"],action=(string)p["action"],displayName=(string)p["displayName"],targetQuantity=ProgressDomain.Number(p["targetQuantity"],1,1000000)};
@@ -45,21 +82,12 @@ static void Match(ProgressAttemptRecord a,Dictionary<string,object> row,bool all
    if(method=="bindPrepared"){
     DesktopLifePolicy.Exact(p,"accountId","characterId","revision","operationId","goalId","nonce");Owner(p);Need(!actor.Busy,"actor-busy");var view=store.Load(Scope());Need(view.health=="ok","store-unavailable");selected=view.view.goals.SingleOrDefault(x=>x.goalId==(string)p["goalId"]);Need(selected!=null,"goal-missing");string id=(string)p["nonce"];Need(!goals.ContainsKey(id),"duplicate-binding");consumed=false;frozen=actor.ProgressPrepared(id);Need(frozen!=null,"prepared-missing");var ack=await coordinator.BindPreparedAsync(id,Revision(p),Operation(p));if(ack.status=="bound")goals.Add(id,selected.goalId);return ack;
    }
-   if(method=="confirmQuantity"||method=="correctQuantity"||method=="setLifecycle"||method=="detachPlan"){
-    var common=new[]{"accountId","characterId","revision","operationId","goalId"};
-    var specific=method=="confirmQuantity"?new[]{"requestId","quantity"}:method=="correctQuantity"?new[]{"requestId","quantity","supersedesEventId","reason"}:method=="setLifecycle"?new[]{"lifecycle"}:new[]{"sourcePlanId"};DesktopLifePolicy.Exact(p,common.Concat(specific).ToArray());Owner(p);var initial=actor.ProgressContext();
+   if(method=="setLifecycle"||method=="detachPlan"){
+    DesktopLifePolicy.Exact(p,"accountId","characterId","revision","operationId","goalId",method=="setLifecycle"?"lifecycle":"sourcePlanId");Owner(p);var initial=actor.ProgressContext();
+    var revision=Revision(p);var op=Operation(p);var m=new ProgressMutation{scope=Scope(),goalId=(string)p["goalId"],kind=method=="setLifecycle"?"SetLifecycle":"DetachPlan",lifecycle=method=="setLifecycle"?(string)p["lifecycle"]:null,sourcePlanId=method=="detachPlan"?(string)p["sourcePlanId"]:null};
     using(await actor.ProgressMutationAsync())using(journal.AcquireExecutionLease()){
      Need(ProgressDomain.Canonical(initial)==ProgressDomain.Canonical(actor.ProgressContext()),"context-changed");
-     using(var writer=store.AcquireWriter(new ProgressLockOwner())){var d=store.Inspect(writer);Audit(d,null);Owner(p);var m=new ProgressMutation{scope=Scope(),goalId=(string)p["goalId"]};
-      if(method=="confirmQuantity"||method=="correctQuantity"){
-       m.kind=method=="confirmQuantity"?"ConfirmQuantity":"CorrectQuantity";m.requestId=(string)p["requestId"];m.quantity=ProgressDomain.Number(p["quantity"],0,5000000);m.source="user-confirmed";
-       if(method=="correctQuantity"){m.supersedesEventId=(string)p["supersedesEventId"];m.reason=(string)p["reason"];}
-       // Explicit zero/extra/correction requires the later trusted native confirmation
-       // contract. Do not accept browser-supplied acknowledgement flags as authority.
-       var a=d.attempts.SingleOrDefault(x=>x.requestId==m.requestId&&x.goalId==m.goalId&&ProgressDomain.Same(x.scope,m.scope));Need(a!=null,"foreign-request");Need(method!="correctQuantity"&&Convert.ToInt64(m.quantity)>0&&Convert.ToInt64(m.quantity)<=a.expectedOutput,"quantity-explicit-approval-required");
-      }else if(method=="setLifecycle"){m.kind="SetLifecycle";m.lifecycle=(string)p["lifecycle"];}else{m.kind="DetachPlan";m.sourcePlanId=(string)p["sourcePlanId"];}
-      var ack=store.Commit(m,Revision(p),Operation(p),writer);Need(ack.status=="committed"||ack.status=="already-applied","progress-write-failed");return ack;
-     }
+     using(var writer=store.AcquireWriter(new ProgressLockOwner())){Audit(store.Inspect(writer),null);Owner(p);return QuantityCommit(m,revision,op,writer);}
     }
    }
    DesktopLifePolicy.Exact(p,"accountId","characterId");Owner(p);

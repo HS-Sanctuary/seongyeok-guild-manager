@@ -1,5 +1,10 @@
 # 순월 → 영겁 수신함
 
+- **2026-10-23 퇴근 인계 1차 추가 / SW-20261023-001 UPDATED:** 한설 승인으로 N04 시험4파일·native 수량 확인5파일·최소 한국어 기록을 기준9ef6a661에서 선별 전송한다. 정확 수신 SHA는 이 메시지를 포함한 기능 브랜치 원격 HEAD를 따른다. 이전 미ACK 누적은 보존한다.
+- **완료:** N04 Begin 직후 소유 시험 자식 중단→새 프로세스 unknown 복구·추가 명령0·3→2 이력 보존 PASS. 수량0/초과/정정 native 승인·단조120초·문맥 재검증·user-confirmed 출처·unknown 불변 V01–V12 PASS. High C0/I1/M0의 최종 Inspect/Audit 뒤 재검사 누락을 V12 RED→GREEN 보완했다. 최종 Node644/641PASS3기존SKIP0FAIL, 저장34/A22/B20/H22/R5/native8/types/lint/전체native소스컴파일 PASS.
+- **아직 안 됨/다음:** 실제 확인창·설치본·게임·Q13 React 초안은 미검증. 이번 첫 전송 뒤 별도 승인된 Task4 첫 UI만 구현 예정이며 완료 시 두 번째 인계를 누적한다. 현재 native 기능 완료를 자동 생산/전체3차 완료로 판단하지 않는다. 상세는 ERGON_N04_INTERRUPTION_QA_20261023.md 및 ERGON_NATIVE_QUANTITY_QA_20261023.md.
+- **보존/금지:** 개인16·기존 ACK·원본 로그·사용자 원장 보존/전송 제외. ErgonAvailable=false/executionConnected=false, S01 및 최초 수령 회귀 원인 미확정 유지. main/DB/Production/공개IRIS0.4.2·기능0.4.1 ZIP/metadata/실게임/자동생산 변경0. 기능브랜치만 일반 push, 공개버전 상승 없음.
+
 ## SW-20261023-001 — WAITING / ERGON B-2 비활성 연결 후보 선별 인계
 
 - 발신 순월 / 수신 영겁 / 최초·최종 2026-10-23 13:05 +09:00 KST. 한설이 B-2 제품10·시험9 및 최소 한국어 인계의 기능 브랜치 일반 push만 승인했다. 기준 b3e243cc4b08356a9096abdb062e837dd1d1238c. 전송 대상은 codex/home-gnosis-iris-integration-20261019이며 최종 SHA는 이 메시지를 포함한 커밋과 원격 HEAD를 대조한다. 과거 누적/ACK는 아래 그대로 보존한다.

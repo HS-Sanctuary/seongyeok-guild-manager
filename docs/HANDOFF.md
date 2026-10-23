@@ -1,5 +1,11 @@
 # SANCTUM 작업 인계
 
+## 2026-10-23 KST — N04·native 수량 확인 1차 선별 인계
+
+한설 승인 범위 N04 시험4·수량확인5파일 및 최소 기록을 기능 브랜치로 전송한다. N04 새 프로세스 unknown/중복0/이력 보존, 수량 V01–V12 PASS. 최종 Node644/641PASS3기존SKIP0FAIL·저장34/A22/B20/H22/R5/native8/types/lint/소스목록컴파일 PASS. High C0/I1/M0의 I1은 V12 RED→GREEN 보완했다. 두 QA 문서를 먼저 읽는다. 로그·개인 경로·사용자 자료는 전송하지 않는다.
+
+ErgonAvailable=false/executionConnected=false 유지. 실제 native창/게임/Q13 UI 미검증, S01·최초 수령회귀 원인 미확정 유지. 운영IRIS0.4.2와 기능0.4.1 배포물 차이 보존/main병합·운영배포 금지. 다음은 이번에 별도 승인된 Task4 첫 UI이며 검증 실패 시 첫 전송만 유지한다. 개인16/ACK/보호기록 보존, 구조 변경은 native 재확인 내부 경계와 시험만이다.
+
 ## 2026-10-23 13:05 +09:00 KST — ERGON B-2 비활성 연결 후보 선별 인계
 
 - **완료:** 기준 기능 b3e243cc4b08356a9096abdb062e837dd1d1238c에서 B-2 제품10·시험9를 구현·검증했고 한설이 비활성 조건으로 인정 및 기능 브랜치 선별 commit/push를 승인했다. [B-2 QA](ERGON_B2_QA_20261023.md)와 [영겁 수신함](relay/TO_YEONGGEOP.md)의 SW-20261023-001을 우선 읽고 ACK한다. 최종 SHA는 이 인계를 포함한 커밋과 원격 HEAD를 대조한다.

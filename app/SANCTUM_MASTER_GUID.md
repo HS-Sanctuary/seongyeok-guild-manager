@@ -1,5 +1,9 @@
 # 🏛️ SANCTUM Master Guide
 
+### 2026-10-23 KST — native 수량 재확인 비활성 후보
+
+DesktopLifeProgressConnection.QuantityAsync → readonly ProgressQuantityPreview → 기존 DesktopLifeProgressApproval/작은 Windows 확인창 → native terminal·문맥·revision·단조120초 재대조 → 기존 Store.Commit ACK. 사용자 수량은 user-confirmed만 기록하고 native unknown을 해제하지 않는다. writer는 승인 대기 중 해제, mutation/game lease는 유지한다. Store/원장 형식·DB·React 구조 변경 없음. ErgonAvailable=false/executionConnected=false 유지. N04 interruption fixture는 시험 소스만이며 실제 앱 목록에 포함하지 않는다.
+
 ### 2026-10-23 KST — ERGON B-2 비활성 native 연결 후보
 
 기존 ProgressStore·ProgressCoordinator → 신규 DesktopLifeProgressConnection → 실제 DesktopLifeExecutor의 Prepare/Confirm/Run/native terminal 경계를 연결했다. 저장 ACK/revision·동결 intent·계정/캐릭터/epoch/nonce를 재검증하며 actor mutation → game lease → writer → 짧은 Store 잠금 순서다. DesktopLifeProgressApproval은 비동기 승인/owner 파괴 거절을 담당하고 Run은 admission writer 해제 후 시작하여 terminal 관측까지 lease를 보유한다. 두 수령 경로도 진행-원장 대조를 통과한다. journal 형식/정리 정책은 변경하지 않았다.

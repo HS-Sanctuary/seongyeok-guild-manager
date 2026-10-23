@@ -30,6 +30,17 @@ namespace IrisDesktop {
             var row=DesktopLifePolicy.Plain(value);
             return MessageBox.Show(this,"생텀 계정: "+row["accountLabel"]+"\n\n이 PC에서 시설 수령 버튼을 누르면, 게임에 현재 접속한 캐릭터가 해당 시설로 이동해 완료품 전체를 받도록 허용할까요?\n선택한 생텀 캐릭터와 실제 게임 캐릭터가 같은지는 직접 확인해 주세요.\n\n수령 비용은 아직 실측 전이에요. 채집·제작·재등록·자동 반복은 허용하지 않아요. 다른 자동화 프로그램과 동시에 실행하지 마세요.\n\n이 허용은 다음 실행에도 유지되며 수령 안내에서 끌 수 있어요.","IRIS · 원클릭 수령 허용",MessageBoxButtons.OKCancel,MessageBoxIcon.Question,MessageBoxDefaultButton.Button2)==DialogResult.OK;
         }
+        Task<bool> ConfirmProgressQuantityAsync(ProgressQuantityPreview preview){
+            return DesktopLifeProgressApproval.RequestAsync(this,()=>{
+                if(!LifeActionAllowed())return false;
+                var previous=preview.previousQuantity.HasValue?preview.previousQuantity.Value.ToString():"미확인";
+                var expected=preview.expectedOutput.HasValue?preview.expectedOutput.Value.ToString():"미확인";
+                var message="생텀 계정: "+preview.accountLabel+"\n캐릭터: "+preview.characterLabel+"\n품목: "+preview.displayName+"\n이번 요청: "+preview.requestId+"\n\n참고 예상 산출: "+expected+"개\n기존 확인: "+previous+" → 새 확인: "+preview.quantity+"개";
+                if(preview.reason!=null)message+="\n정정 사유: "+preview.reason;
+                message+="\n\n이번 요청으로 추가 확보한 수량이 맞나요?\n사용자 확인 기록으로 저장하며 공식 보상 검증이나 현재 가방 재고가 아니에요.\n이 확인으로 게임 행동을 시작하거나 unknown 보호를 해제하지 않아요.";
+                return MessageBox.Show(this,message,"IRIS · 제작 수량 재확인",MessageBoxButtons.OKCancel,MessageBoxIcon.Question,MessageBoxDefaultButton.Button2)==DialogResult.OK;
+            });
+        }
         Task<bool> ConfirmLifeActionAsync(object preview){
             return DesktopLifeProgressApproval.RequestAsync(this,()=>ConfirmLifeAction(preview));
         }
@@ -256,6 +267,7 @@ namespace IrisDesktop {
                     lifeActor.BindCollectionReadWait(bridge.WaitForCollectionReadsAsync);
                     lifeActor.BindProgressApproval(ConfirmLifeActionAsync);
                     var lifeProgress=new DesktopLifeProgressConnection(lifeActor,lifeJournal,new DesktopErgonProgressStore(journalRoot,development?"development":"production"),()=>DesktopLifePolicy.Time(DateTime.UtcNow));
+                    lifeProgress.BindQuantityApproval(ConfirmProgressQuantityAsync);
                     bridge.BindLifeActions(lifeActor.Capabilities,(method,payload)=>{
                         switch(method){
                             case "game.life.actions.context":return lifeActor.SetContext(payload);
