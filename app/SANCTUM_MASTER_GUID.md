@@ -1,5 +1,9 @@
 # 🏛️ SANCTUM Master Guide
 
+### 2026-10-23 — 플로팅 사이드바 복귀 후보
+
+DesktopFloatingHub의6번째메뉴호스트에서 설정→normal→종료 순서/SidebarIcon 추가. FloatingLayout은6개 원형영역/높이제한, parser는4·5·6호환. 기존 native FloatingCommand(normal)/mode·저장경로 그대로, DB/원장/권한 구조변경없음. 운영0.4.2/ZIP 유지, 후보브랜치만전송하며0.4.3공개는승인대기.
+
 ### 2026-10-22 21:43 KST — IRIS 0.4.2 운영 확인 / 구조 변경 없음
 
 제품0d2b432·Vercel dpl_6t5gGW1AgNRTTHVfSxyLpgWTarX3 Ready/Production/운영도메인·정확SHA, 실제0.4.2 metadata/notes/ZIP·다운로드UI·브라우저편집차단을 확인했다. 아래 저장/캐시 구조의 운영 반영 결과이며 이번 마감은 문서만 추가한다. ERGON잠금/DB/RLS/API·실행원장 보존, 별도 공개공지0.

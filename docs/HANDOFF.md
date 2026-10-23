@@ -1,5 +1,9 @@
 # SANCTUM 작업 인계
 
+## 2026-10-23 — 사이드바 복귀 핫픽스 후보 / 운영 배포 대기
+
+mainb0b63c7에서 codex/iris-floating-sidebar-043-20261023만 분리했다. [핫픽스QA](IRIS_SIDEBAR_HOTFIX_20261023.md) 참조. normal버튼/6영역/parser4·5·6호환만 변경. Node615PASS3skip·nativeDPI/React/타입 회귀 검증. 공개버전/ZIP은0.4.2 유지, 승인후0.4.3 준비. 별도ERGON미커밋·개인12·원장/ACK 보존. 이번 승인은hotfix브랜치push뿐/main/DB/Production/설치본배포금지.
+
 ## 2026-10-22 21:43 KST — IRIS 0.4.2 공개 완료
 
 제품0d2b432f2db8afd3f2f9bbc3507b393397698447 main일반push/원격일치, Vercel dpl_6t5gGW1AgNRTTHVfSxyLpgWTarX3 Ready/Production/Current·정확SHA. 실제0.4.2 metadata/notes/ZIP598816·SHA9ea1c1d9f2ee8d758c702b5436c8658cdf7b2092b8d74001a10de9caef719274/내부hash·핵심7GET200·다운로드UI·브라우저편집차단 확인. [릴리스QA](IRIS_042_RELEASE_QA_20261022.md)가 최신 사실이다. 문서 마감 후 최종 main HEAD까지 받을 것. 실제 설치본 교체/실사용 저장은 한설 확인대기, ERGON lock/B-2보류·DB/실게임금지·개인12항목/미저장/원장 보존. 기능브랜치에는 운영 반영 사실을 별도로 누적하며 옛 후보/금지 기록을 최신 승인과 혼동하지 말 것.

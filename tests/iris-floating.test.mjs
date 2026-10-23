@@ -13,10 +13,10 @@ test('windowed floating preference is optional for older hosts and strictly bool
  assert.deepEqual(parseFloatingPreferences(state.preferences),state.preferences);
  for(const windowedFloating of [null,1,'false'])assert.throws(()=>parseFloatingPreferences({...state.preferences,windowedFloating}));
 });
-test('new five-button menu and legacy four-button hosts both retain validated hit geometry',()=>{
- const menu=Array.from({length:5},(_,i)=>({x:i*24,y:0,width:20,height:20}));
- for(const count of [4,5])assert.equal(parseFloatingState({...state,menuOpen:true,layout:{...state.layout,menu:menu.slice(0,count)}}).layout.menu.length,count);
- for(const count of [1,3,6])assert.throws(()=>parseFloatingState({...state,menuOpen:true,layout:{...state.layout,menu:Array.from({length:count},()=>rect)}}));
+test('six-button menu and legacy four/five-button hosts retain validated hit geometry',()=>{
+ const menu=Array.from({length:6},(_,i)=>({x:i*20,y:0,width:20,height:20}));
+ for(const count of [4,5,6])assert.equal(parseFloatingState({...state,menuOpen:true,layout:{...state.layout,menu:menu.slice(0,count)}}).layout.menu.length,count);
+ for(const count of [1,3,7])assert.throws(()=>parseFloatingState({...state,menuOpen:true,layout:{...state.layout,menu:Array.from({length:count},()=>rect)}}));
 });
 
 test('visible shortcut omits wrapper parentheses without changing the native shortcut contract',()=>{

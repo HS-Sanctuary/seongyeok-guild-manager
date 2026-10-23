@@ -1,5 +1,9 @@
 # SANCTUM 업데이트 노트
 
+## 2026-10-23 KST — IRIS0.4.3 핫픽스 제안 / 미공개
+
+- 플로팅 설정과 종료 사이에 사이드바 복귀 버튼 후보 추가. 기존 normal명령·원형테마 재사용. native6영역·parser4/5/6호환, 저장/원장/DB구조 변경없음. Node615PASS3skip·nativeDPI/layout/presentation·React전환·타입 검증. 현재 운영/ZIP0.4.2 유지, 최종 배포승인대기. [범위와제약](IRIS_SIDEBAR_HOTFIX_20261023.md).
+
 ## 2026-10-22 21:43 KST — IRIS 0.4.2 공개 확인 / 문서 마감
 
 - 제품0d2b432 main원격일치, Vercel dpl_6t5gGW1AgNRTTHVfSxyLpgWTarX3 Ready/Production/정확SHA/현재도메인·GitHubsuccess 확인. 실제 다운로드 화면 Beta0.4.2, metadata/notes/ZIP598816bytes·SHA9ea1c1d9f2ee8d758c702b5436c8658cdf7b2092b8d74001a10de9caef719274 및 모든 내부payload검증 PASS. 핵심7GET200/일반브라우저편집차단 유지.

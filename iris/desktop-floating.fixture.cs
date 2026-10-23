@@ -46,9 +46,9 @@ namespace IrisDesktop {
    var currentText=File.ReadAllText(Path.Combine(root,"window-floating-v1.json"));
    File.WriteAllText(Path.Combine(root,"window-floating-v1.json"),currentText.Replace("\"version\":3","\"version\":1").Replace(",\"windowedFloating\":true",""));
    var legacy=new DesktopFloatingBoundsStore(root).Load(Rectangle.Empty,Point.Empty);Check(!legacy.Unreadable&&legacy.NormalBounds==normal&&!(bool)preference.GetValue(legacy.Preferences),"Legacy settings must retain positions and default windowed floating off");
-   foreach(int dpi in new[]{96,144,192})foreach(int size in new[]{36,52,80})foreach(var work in new[]{new Rectangle(-1920,0,1920,1080),new Rectangle(0,0,1280,720),new Rectangle(0,0,320,480)})foreach(var anchor in new[]{new Point(work.Left,work.Top),new Point(work.Right,work.Top),new Point(work.Left,work.Bottom),new Point(work.Right,work.Bottom),new Point(-4000,9000)}){
+   foreach(int dpi in new[]{96,120,144,192})foreach(int size in new[]{36,52,80})foreach(var work in new[]{new Rectangle(-1920,0,1920,1080),new Rectangle(0,0,1280,720),new Rectangle(0,0,320,480),new Rectangle(0,0,390,480)})foreach(var anchor in new[]{new Point(work.Left,work.Top),new Point(work.Right,work.Top),new Point(work.Left,work.Bottom),new Point(work.Right,work.Bottom),new Point(-4000,9000)}){
     var l=FloatingLayout.Calculate(anchor,work,new Size(380,600),true,true,true,dpi,size);
-    Check(l.Menu.Length==5,"Floating menu must reserve a fifth hit region for the exit button after settings");
+    Check(l.Menu.Length==6,"Floating menu must include sidebar before exit");
     Check(work.Contains(l.Bounds),"FloatingBoundsSurviveDpiAndMonitorRemoval");
     Check(l.Badge.Height==Math.Ceiling(20*dpi/96d),"Compact shortcut height differs from its native region");
     for(int a=0;a<l.Menu.Length;a++)for(int b=a+1;b<l.Menu.Length;b++)Check(!l.Menu[a].IntersectsWith(l.Menu[b]),"Corner menu buttons overlap");

@@ -1,5 +1,9 @@
 # 영겁 → 순월 수신함
 
+## YG-20261023-HOTFIX — UPDATED / 사이드바 복귀 후보
+
+영겁→순월 /2026-10-23 KST. mainb0b63c7에서 codex/iris-floating-sidebar-043-20261023 분리. [QA](../IRIS_SIDEBAR_HOTFIX_20261023.md) 확인. 설정아래/종료위 normal버튼·native6영역/parser4·5·6호환만선별. Node615PASS3skip·nativeDPI/region/presentation·React전환/보존·타입PASS. 집원본개인12·별도ERGON N-R1/U-R1미커밋/ACK보존·이식0. 운영0.4.2/ZIP/mainb0b63c7/DB변경0. 후보push만승인/새설치본·Production은최종승인대기. 다음0.4.3패키지호환·실설치본검증 필요. 기존미ACK누적보존/ACK대기.
+
 - **YG-20261022-001 최종 누적 21:43KST:** 제품0d2b432f2db8afd3f2f9bbc3507b393397698447 main원격일치·Vercel dpl_6t5gGW1AgNRTTHVfSxyLpgWTarX3 Ready/Production/Current/정확SHA·GHsuccess. 실0.4.2 metadata/notes·ZIP598816/hash/내부payload·핵심7GET200·다운로드UI/일반브라우저편집차단 PASS. [릴리스QA](../IRIS_042_RELEASE_QA_20261022.md)를 우선 읽고 이 문서마감까지 최신HEAD수신/ACK. 실제설치본교체/실사용저장·runtime로그전수는미확인. ERGON잠금/B-2보류·DB/실게임/강제재시작0·개인12/원장보존. 이번마감문서전용/구조변경없음, 이전미ACK전부보존.
 
 ## YG-20261022-001 — UPDATED / IRIS 0.4.2 선별 공개 준비
