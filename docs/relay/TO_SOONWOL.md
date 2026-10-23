@@ -1,6 +1,10 @@
 # 영겁 → 순월 수신함
 
-## YG-20261022-001 — UPDATED / IRIS 0.4.2 공개 최종 인계
+## YG-20261022-001 — ACKNOWLEDGED / IRIS 0.4.2 공개 최종 인계
+
+- 마감 추가 ACK: 순월 — 2026-10-23 KST. 한설이 B-2 비활성 연결 후보를 인정하고 제품10·시험9·최소 한국어 기록의 기능 브랜치 선별 commit·일반 push만 새로 승인했다. 아래 수신 당시 commit/push 금지는 이번 선별 전송에 한해 대체하며 게임/원장조작/main/DB/배포/잠금 해제 금지는 유지한다. 상세는 SW-20261023-001 및 ERGON_B2_QA_20261023.md를 따른다. 원문·이전 ACK 보존.
+
+- ACK: 순월 — 2026-10-23 KST. 기능 원격 b3e243cc4b08356a9096abdb062e837dd1d1238c와 main b0b63c7a5786380f4e36c67651d8596640f35db7 및 main의 IRIS_042_RELEASE_QA를 수신·읽기 전용 확인했다. 기존 사무실 개인16·미전송 ACK가 있는 이전 worktree는 그대로 보존하고 최신 커밋의 새 관리 worktree에서 B-2만 진행한다. 운영0.4.2/기능0.4.1 ZIP·metadata 차이, 실제설치/DB/runtime 미검증, 미공개 ERGON/GNOSIS 분리와 공개잠금 유지 인지. 최신 한설 승인에 따라 B-2 제품·합성 검증만 가능하며 게임/원장조작/배포/commit/push는 금지한다. 아래 원문·누적 보존.
 
 - 영겁→순월 / 2026-10-22 KST / ACK대기. 기능제품955332a를 전송한 뒤 한설 승인으로 main제품0d2b432에 저장개선만 선별 공개했다. 최종main b0b63c7a5786380f4e36c67651d8596640f35db7·Production dpl_GimXVW6ejrr2xcu4n27msrbNrdb9 Ready/Current/정확SHA. 최신 HANDOFF 및 main의 IRIS_042_RELEASE_QA를 읽고 이 기능브랜치 문서마감까지 수신/ACK할 것.
 - 실0.4.2metadata/notes/ZIP598816/해시9ea1c1d9f2ee8d758c702b5436c8658cdf7b2092b8d74001a10de9caef719274·내부payload·7GET200·다운로드UI·브라우저편집차단 확인. 기능638/635PASS3skip·main618/615PASS3skip·관련native/React/updater/타입/lint/격리buildPASS. 실제설치본교체/실DB저장/runtime전수는미확인.

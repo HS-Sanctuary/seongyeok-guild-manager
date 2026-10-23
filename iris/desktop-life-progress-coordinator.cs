@@ -29,16 +29,16 @@ namespace IrisDesktop {
         void Dispatch(ProgressPreparedRequest request,ProgressRunLease offer);
     }
     internal sealed class ProgressExecutionLease:IDisposable {
-        readonly object gate=new object();IDisposable resource;ProgressLockOwner.Hold rank;bool claimed,disposed,offered;
+        readonly object gate=new object();IDisposable resource;ProgressLockOwner.Hold rank;bool claimed,disposed,offered;ProgressRunOwnership transferred;
         ProgressExecutionLease(IDisposable resource,ProgressLockOwner.Hold rank){this.resource=resource;this.rank=rank;}
         internal static async Task<ProgressExecutionLease> AcquireAsync(ProgressLockOwner owner,Func<Task<IDisposable>> acquire){
             var rank=owner.Enter(ProgressLockOwner.Game);IDisposable resource=null;
-            try{resource=await acquire();if(resource==null)throw new InvalidOperationException("execution-lease-required");return new ProgressExecutionLease(resource,rank);}
+            try{resource=await acquire().ConfigureAwait(false);if(resource==null)throw new InvalidOperationException("execution-lease-required");return new ProgressExecutionLease(resource,rank);}
             catch{try{if(resource!=null)resource.Dispose();}finally{rank.Dispose();}throw;}
         }
         internal ProgressRunLease Offer(){lock(gate){if(disposed||claimed||offered)throw new InvalidOperationException("execution-lease-not-owned");offered=true;return new ProgressRunLease(this);}}
-        internal ProgressRunOwnership Claim(){lock(gate){if(disposed||claimed||!offered)throw new InvalidOperationException("run-lease-already-claimed");var owner=new ProgressLockOwner();var runRank=owner.Enter(ProgressLockOwner.Game);rank.TransferOut();claimed=true;var result=new ProgressRunOwnership(owner,resource,runRank);resource=null;return result;}}
-        public void Dispose(){lock(gate){if(disposed)return;if(!claimed){rank.CheckRelease();try{resource.Dispose();}finally{disposed=true;rank.Dispose();}}else disposed=true;}}
+        internal ProgressRunOwnership Claim(){lock(gate){if(disposed||claimed||!offered)throw new InvalidOperationException("run-lease-already-claimed");var owner=new ProgressLockOwner();var runRank=owner.Enter(ProgressLockOwner.Game);rank.TransferOut();claimed=true;transferred=new ProgressRunOwnership(owner,resource,runRank);resource=null;return transferred;}}
+        public void Dispose(){lock(gate){if(disposed)return;if(!claimed){rank.CheckRelease();try{resource.Dispose();}finally{disposed=true;rank.Dispose();}}else{disposed=true;transferred.ReleaseAdmission();}}}
     }
     internal sealed class ProgressRunLease {
         readonly ProgressExecutionLease lease;readonly object gate=new object();bool claimed;
@@ -49,6 +49,9 @@ namespace IrisDesktop {
     internal sealed class ProgressRunOwnership:IDisposable {
         readonly IDisposable resource;readonly ProgressLockOwner.Hold rank;readonly object gate=new object();bool disposed;
         internal ProgressLockOwner Owner{get;private set;}
+        readonly TaskCompletionSource<bool> admissionReleased=new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        internal Task AdmissionReleased{get{return admissionReleased.Task;}}
+        internal void ReleaseAdmission(){admissionReleased.TrySetResult(true);}
         internal ProgressRunOwnership(ProgressLockOwner owner,IDisposable resource,ProgressLockOwner.Hold rank){Owner=owner;this.resource=resource;this.rank=rank;}
         public void Dispose(){lock(gate){if(disposed)return;rank.CheckRelease();try{resource.Dispose();}finally{rank.Dispose();disposed=true;}}}
     }
@@ -80,7 +83,7 @@ namespace IrisDesktop {
         readonly Dictionary<string,Binding> bindings=new Dictionary<string,Binding>(StringComparer.Ordinal);
         internal ProgressCoordinator(DesktopErgonProgressStore store,IProgressExecutionActor actor,Func<long> clock){if(store==null||actor==null||clock==null)throw new ArgumentNullException();this.store=store;this.actor=actor;this.clock=clock;}
         static void Need(bool condition,string error){ProgressDomain.Require(condition,error);}
-        async Task<IDisposable> MutationAsync(){var held=await actor.AcquireMutationAsync();Need(held!=null,"native-mutation-not-owned");return held;}
+        async Task<IDisposable> MutationAsync(){var held=await actor.AcquireMutationAsync().ConfigureAwait(false);Need(held!=null,"native-mutation-not-owned");return held;}
         static void Context(ProgressExecutionContext c){
             Need(c!=null,"missing-native-context");ProgressDomain.Scope(c.scope);
             Need(ProgressDomain.IsId(c.goalId)&&ProgressDomain.IsId(c.sessionId)&&ProgressDomain.Text(c.sourcePlanId,100)&&(c.parentGoalId==null||ProgressDomain.IsId(c.parentGoalId)),"invalid-native-context");
@@ -111,10 +114,10 @@ namespace IrisDesktop {
         }
         internal async Task<ProgressExecutionResult> CreateGoalAsync(long expectedRevision,Guid operationId){
             var owner=new ProgressLockOwner();
-            try{var initial=Current();using(owner.Enter(ProgressLockOwner.Mutation))using(await MutationAsync()){
+            try{var initial=Current();using(owner.Enter(ProgressLockOwner.Mutation))using(await MutationAsync().ConfigureAwait(false)){
                 Need(Same(initial,Current()),"context-changed-during-mutation-wait");
                 Need(operationId!=Guid.Empty&&expectedRevision>=0&&expectedRevision<ProgressDomain.SafeInteger,"invalid-operation");var c=initial;
-                using(var writer=await store.AcquireWriterAsync(owner)){
+                using(var writer=await store.AcquireWriterAsync(owner).ConfigureAwait(false)){
                     Need(Same(c,Current()),"context-changed-during-writer-wait");var ack=store.Commit(GoalMutation(c),expectedRevision,operationId,writer);var fresh=Ack(ack,c,expectedRevision,operationId,writer);
                     Need(Same(c,Current()),"context-changed-after-save");return new ProgressExecutionResult("saved",null,fresh.revision);
                 }
@@ -122,10 +125,10 @@ namespace IrisDesktop {
         }
         internal async Task<ProgressExecutionResult> BindPreparedAsync(string requestId,long expectedRevision,Guid operationId){
             var owner=new ProgressLockOwner();
-            try{var initial=Current();using(owner.Enter(ProgressLockOwner.Mutation))using(await MutationAsync()){
+            try{var initial=Current();using(owner.Enter(ProgressLockOwner.Mutation))using(await MutationAsync().ConfigureAwait(false)){
                 Need(Same(initial,Current()),"context-changed-during-mutation-wait");
                 Need(operationId!=Guid.Empty&&expectedRevision>=0&&expectedRevision<ProgressDomain.SafeInteger&&ProgressDomain.IsId(requestId),"invalid-operation");
-                var c=Current();using(var writer=await store.AcquireWriterAsync(owner)){
+                var c=Current();using(var writer=await store.AcquireWriterAsync(owner).ConfigureAwait(false)){
                 Need(Same(c,Current()),"context-changed-during-writer-wait");var before=store.Load(c.scope,writer);var goal=Goal(before,c);
                 Need(before.revision==expectedRevision&&!goal.requests.Any(x=>x.requestId==requestId)&&bindings.Count<ProgressDomain.AttemptLimit,"binding-conflict");
                 var p=actor.CapturePrepared(requestId);Prepared(p,c,requestId);p=ProgressDomain.Clone(p);
@@ -151,20 +154,20 @@ namespace IrisDesktop {
         internal async Task<ProgressExecutionResult> ConfirmAsync(string requestId){
             bool beginEntered=false;
             var owner=new ProgressLockOwner();
-            try{var initial=Current();using(owner.Enter(ProgressLockOwner.Mutation))using(await MutationAsync()){
+            try{var initial=Current();using(owner.Enter(ProgressLockOwner.Mutation))using(await MutationAsync().ConfigureAwait(false)){
                 Need(Same(initial,Current()),"context-changed-during-mutation-wait");
                 Binding b;Need(ProgressDomain.IsId(requestId)&&bindings.TryGetValue(requestId,out b),"binding-required");
                 // Definite assignment is separate for legacy C# compilers. Remove before any
                 // native dialog/callback can reenter, even on refusal, exception, or ACK loss.
                 b=bindings[requestId];bindings.Remove(requestId);CheckBinding(b);
                 actor.ConsumeNonce(ProgressDomain.Clone(b.request));
-                using(var executionLease=await ProgressExecutionLease.AcquireAsync(owner,()=>actor.AcquireExecutionLeaseAsync(ProgressDomain.Clone(b.request)))){
+                using(var executionLease=await ProgressExecutionLease.AcquireAsync(owner,()=>actor.AcquireExecutionLeaseAsync(ProgressDomain.Clone(b.request))).ConfigureAwait(false)){
                     CheckBinding(b);
                     // User approval may await UI. Neither writer exclusion nor Store file
                     // lock is held here. The native execution lease remains solely owned.
-                    Need(await actor.ApproveAsync(ProgressDomain.Clone(b.request)),"approval-declined");CheckBinding(b);
-                    await actor.RevalidateAsync(ProgressDomain.Clone(b.request));CheckBinding(b);
-                    using(var writer=await store.AcquireWriterAsync(owner)){
+                    Need(await actor.ApproveAsync(ProgressDomain.Clone(b.request)).ConfigureAwait(false),"approval-declined");CheckBinding(b);
+                    await actor.RevalidateAsync(ProgressDomain.Clone(b.request)).ConfigureAwait(false);CheckBinding(b);
+                    using(var writer=await store.AcquireWriterAsync(owner).ConfigureAwait(false)){
                         // No await between the final saved/context/nonce check and Begin.
                         // Every direct Store.Commit now shares this exclusion as well.
                         CheckBinding(b,writer);beginEntered=true;actor.RecordBegin(ProgressDomain.Clone(b.request));

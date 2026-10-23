@@ -106,6 +106,9 @@ namespace IrisDesktop {
             try{using(io.AcquireExclusiveLock(FilePath+".lock"))return Snapshot(Read(),scope);}catch(Exception e){if(!Recoverable(e))throw;return Snapshot(new State{health="unavailable",error="read-failed"},scope);}
         }
         internal ProgressProjection Project(ProgressScope scope){return Load(scope).view;}
+        // Native reconciliation only: a short read under an already-owned writer.
+        // Never serialized by the bridge and never constructs the existing action journal.
+        internal ProgressDocument Inspect(ProgressWriterAdmission writer){using(writer.EnterStore(FilePath))using(io.AcquireExclusiveLock(FilePath+".lock")){var state=Read();ProgressDomain.Require(state.health=="ok","progress-review-required");return ProgressDomain.Clone(state.document);}}
         internal ProgressWriterAdmission AcquireWriter(ProgressLockOwner owner){return ProgressWriterGate.Acquire(FilePath,owner);}
         internal Task<ProgressWriterAdmission> AcquireWriterAsync(ProgressLockOwner owner){return Task.Run(()=>AcquireWriter(owner));}
         internal ProgressSnapshot Load(ProgressScope scope,ProgressWriterAdmission writer){if(writer==null)throw new InvalidOperationException("writer-admission-required");using(writer.EnterStore(FilePath))return Load(scope);}

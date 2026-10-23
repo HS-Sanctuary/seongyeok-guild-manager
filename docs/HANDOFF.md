@@ -1,5 +1,13 @@
 # SANCTUM 작업 인계
 
+## 2026-10-23 13:05 +09:00 KST — ERGON B-2 비활성 연결 후보 선별 인계
+
+- **완료:** 기준 기능 b3e243cc4b08356a9096abdb062e837dd1d1238c에서 B-2 제품10·시험9를 구현·검증했고 한설이 비활성 조건으로 인정 및 기능 브랜치 선별 commit/push를 승인했다. [B-2 QA](ERGON_B2_QA_20261023.md)와 [영겁 수신함](relay/TO_YEONGGEOP.md)의 SW-20261023-001을 우선 읽고 ACK한다. 최종 SHA는 이 인계를 포함한 커밋과 원격 HEAD를 대조한다.
+- **검증:** Node638 PASS/3기존 SKIP/FAIL0, 저장34·A22·B-1 20·H22·R5 PASS. 필수13 중11 PASS, N04·Q13 부분 검증. 검증 소스19파일 SHA256 일치 확인. native8·타입·scoped lint·native 소스 목록 컴파일 PASS. 원본 로그는 로컬 전용이다.
+- **아직 안 됨:** 실제 활성화/실게임/전체61/UI 검증 완료 아님. S01 간헐 실패와 최초 수령 회귀 실패 원인 미확정. ErgonAvailable=false, executionConnected=false 유지.
+- **다음 순서:** 별도 승인 후 N04 journal.Begin 직후 합성 자식 프로세스 중단·복구 → 0개/초과 산출/정정의 native 명시 확인 계약 → Q13 정정 초안·실행 상태를 3차 UI에서 검증. nonce·공통 writer·lease·unknown 보호를 유지한다.
+- 기존 사무실 개인16항목/별도 ACK는 원본 worktree에 보존하고 이번 전송에서 제외한다. main b0b63c7 운영 IRIS0.4.2 및 기능브랜치의 기존0.4.1 공개 파일 차이를 유지한다. main 병합/DB/Production/공개 IRIS/게임 행동/잠금 해제 금지. 새 제품 기능 추가 없이 선별 전송만 진행한다.
+
 ## 2026-10-22 KST — IRIS 0.4.2 운영 공개 최종 인계
 
 한설 승인 후 main에 이번 저장 개선만 선별 반영했다. 제품 `0d2b432f2db8afd3f2f9bbc3507b393397698447`, 운영 문서마감/main `b0b63c7a5786380f4e36c67651d8596640f35db7`, 현재 Production `dpl_GimXVW6ejrr2xcu4n27msrbNrdb9` Ready/정확SHA/운영도메인 확인. [운영 릴리스 검증](https://github.com/HS-Sanctuary/seongyeok-guild-manager/blob/b0b63c7a5786380f4e36c67651d8596640f35db7/docs/IRIS_042_RELEASE_QA_20261022.md)을 우선 읽을 것. 실0.4.2metadata/notes/ZIP598816·SHA9ea1c1d9f2ee8d758c702b5436c8658cdf7b2092b8d74001a10de9caef719274/내부payload·핵심7GET200·실다운로드UI·브라우저편집차단 확인. ERGON 자물쇠/disabled 유지, 새공지/DB/실게임/강제재시작0.

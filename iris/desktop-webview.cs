@@ -30,6 +30,9 @@ namespace IrisDesktop {
             var row=DesktopLifePolicy.Plain(value);
             return MessageBox.Show(this,"생텀 계정: "+row["accountLabel"]+"\n\n이 PC에서 시설 수령 버튼을 누르면, 게임에 현재 접속한 캐릭터가 해당 시설로 이동해 완료품 전체를 받도록 허용할까요?\n선택한 생텀 캐릭터와 실제 게임 캐릭터가 같은지는 직접 확인해 주세요.\n\n수령 비용은 아직 실측 전이에요. 채집·제작·재등록·자동 반복은 허용하지 않아요. 다른 자동화 프로그램과 동시에 실행하지 마세요.\n\n이 허용은 다음 실행에도 유지되며 수령 안내에서 끌 수 있어요.","IRIS · 원클릭 수령 허용",MessageBoxButtons.OKCancel,MessageBoxIcon.Question,MessageBoxDefaultButton.Button2)==DialogResult.OK;
         }
+        Task<bool> ConfirmLifeActionAsync(object preview){
+            return DesktopLifeProgressApproval.RequestAsync(this,()=>ConfirmLifeAction(preview));
+        }
         bool ConfirmLifeAction(object preview){
             if(IsDisposed||Disposing)return false;
             if(InvokeRequired)return (bool)Invoke(new Func<bool>(()=>ConfirmLifeAction(preview)));
@@ -251,6 +254,8 @@ namespace IrisDesktop {
                     lifeActor.BindCraft(DesktopLifeCli.CraftAsync);
                     lifeActor.BindCollectionAutomation(new DesktopLifeAutomationStore(journalRoot,development?"development":"production"),AuthorizeCollection,()=>DesktopCliActivity.ProbeAsync(()=>DesktopLifeReader.ReadAsync("activity")));
                     lifeActor.BindCollectionReadWait(bridge.WaitForCollectionReadsAsync);
+                    lifeActor.BindProgressApproval(ConfirmLifeActionAsync);
+                    var lifeProgress=new DesktopLifeProgressConnection(lifeActor,lifeJournal,new DesktopErgonProgressStore(journalRoot,development?"development":"production"),()=>DesktopLifePolicy.Time(DateTime.UtcNow));
                     bridge.BindLifeActions(lifeActor.Capabilities,(method,payload)=>{
                         switch(method){
                             case "game.life.actions.context":return lifeActor.SetContext(payload);
@@ -262,7 +267,7 @@ namespace IrisDesktop {
                             case "game.life.actions.collectionObservation":return lifeActor.CollectionObservation(payload);
                             default:throw new ArgumentException();
                         }
-                    },(method,payload)=>method=="game.life.actions.collect"?lifeActor.CollectOneClickAsync(payload):method=="game.life.actions.prepare"?lifeActor.PrepareAsync(payload):method=="game.life.actions.confirm"?lifeActor.ConfirmAsync(payload):method=="game.life.actions.stop"?lifeActor.StopAsync(payload):Task.FromException<object>(new ArgumentException()),()=>lifeActor.Busy);
+                    },(method,payload)=>method.StartsWith("game.life.progress.",StringComparison.Ordinal)?lifeProgress.RequestAsync(method.Substring("game.life.progress.".Length),payload):method=="game.life.actions.collect"?lifeActor.CollectOneClickAsync(payload):method=="game.life.actions.prepare"?lifeActor.PrepareAsync(payload):method=="game.life.actions.confirm"?lifeActor.ConfirmAsync(payload):method=="game.life.actions.stop"?lifeActor.StopAsync(payload):Task.FromException<object>(new ArgumentException()),()=>lifeActor.Busy);
                 } catch { lifeActor=null; /* Other IRIS features stay available; execution remains closed. */ }
                 bridge.BindOverlay(Overlay.State,Overlay.SetClickThrough,Overlay.SetOpacityPercent);
                 bridge.BindAddon(Addon.State,(side,layer)=>Addon.SetPreferences(new AddonWindowPreferences {DockSide=side,SameLayer=layer}),Decision);

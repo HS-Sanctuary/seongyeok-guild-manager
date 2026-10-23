@@ -1,5 +1,14 @@
 # 순월 → 영겁 수신함
 
+## SW-20261023-001 — WAITING / ERGON B-2 비활성 연결 후보 선별 인계
+
+- 발신 순월 / 수신 영겁 / 최초·최종 2026-10-23 13:05 +09:00 KST. 한설이 B-2 제품10·시험9 및 최소 한국어 인계의 기능 브랜치 일반 push만 승인했다. 기준 b3e243cc4b08356a9096abdb062e837dd1d1238c. 전송 대상은 codex/home-gnosis-iris-integration-20261019이며 최종 SHA는 이 메시지를 포함한 커밋과 원격 HEAD를 대조한다. 과거 누적/ACK는 아래 그대로 보존한다.
+- **이번에 완료한 것:** 실제 executor 저장 목표/동결 요청 바인딩·구 Confirm 보호·공통 writer/비동기 승인/Run terminal lease·native terminal 대조·수령 우회 차단·bridge/host/소스 목록 연결 후보. 검증 소스19 SHA256이 구현 마감 기준과 일치한다. [B-2 QA](../ERGON_B2_QA_20261023.md)를 먼저 읽는다.
+- **검증:** 전체 Node641 중638 PASS/기존3 SKIP/FAIL0, 저장34·A22·B-1 20·H22·R5 PASS. native8·타입·scoped lint·native 소스 목록 컴파일 PASS. 필수13 중11 PASS, N04·Q13 부분 검증. S01 과거 간헐 실패와 최초 수령 회귀 assertion 실패의 원인은 미확정이며 재실행 PASS로 해결했다고 해석하지 않는다. 원본 로그/개인 경로/실자료는 전송하지 않는다.
+- **아직 안 되는 것:** ErgonAvailable=false, executionConnected=false 유지. 실제 실행 활성화·전체61·실게임·설치본 검증·3차 UI·자동 생산 완료가 아니다. 0개·초과 산출·정정은 신뢰된 native 명시 승인 계약이 없어 차단한다.
+- **다음 작업(별도 승인):** N04 journal.Begin 직후 합성 자식 프로세스 중단·복구 → 0개/초과/정정 native 결과 확인 계약 → Q13 정정 초안과 실행 상태를 3차 UI에서 검증. 기존 nonce/lease/writer/unknown 보호를 유지하고 미실행을 완료로 표시하지 않는다.
+- **보존·금지:** 사무실 개인16·별도 ACK/이전 worktree·실제 원장 보존. 운영 main b0b63c7의 IRIS0.4.2와 기능브랜치 기존0.4.1 ZIP·metadata 차이를 유지한다. 이 브랜치 그대로 운영 배포 금지. main 병합/DB/Production/공개 IRIS/실게임/잠금 해제/새 제품 기능 추가0. 전송 성공은 push 후 최종 보고로 확인하며 ACK는 영겁 대기다.
+
 ## SW-20261022-001 — UPDATED (ERGON 1차·2차 A 합성 인계)
 
 - ACK — 영겁, 2026-10-22 KST, 확인 HEAD `a95c0768a490d18ff0f8ab4b1e0c62cd5c05bb33`: 1차 저장34·2차 A22·B-1 20 합성 인계와 S01 최초 간헐 실패 미확정, 실제 host/Confirm·terminal 연결 및 B-2 미완료를 확인했다. 한설 최신 요청으로 B-2는 보류하고 IRIS 자동 저장·전환 저장·재화 마지막 조회 보관을 우선한다. 집 개인12항목은 원래 checkout에 남기고 별도 관리 worktree에서 조사한다. 실제 게임/사용자 원장·DB/main/Production/공개 IRIS/commit·push는 진행하지 않는다. ACK는 수신 인지이며 신규 저장 수정 완료를 뜻하지 않는다.

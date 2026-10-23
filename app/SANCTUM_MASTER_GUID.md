@@ -1,5 +1,11 @@
 # 🏛️ SANCTUM Master Guide
 
+### 2026-10-23 KST — ERGON B-2 비활성 native 연결 후보
+
+기존 ProgressStore·ProgressCoordinator → 신규 DesktopLifeProgressConnection → 실제 DesktopLifeExecutor의 Prepare/Confirm/Run/native terminal 경계를 연결했다. 저장 ACK/revision·동결 intent·계정/캐릭터/epoch/nonce를 재검증하며 actor mutation → game lease → writer → 짧은 Store 잠금 순서다. DesktopLifeProgressApproval은 비동기 승인/owner 파괴 거절을 담당하고 Run은 admission writer 해제 후 시작하여 terminal 관측까지 lease를 보유한다. 두 수령 경로도 진행-원장 대조를 통과한다. journal 형식/정리 정책은 변경하지 않았다.
+
+desktop-bridge의 고정 game.life.progress 경로 → desktop-webview의 native adapter, desktop.ps1/build-beta.ps1의 소스 목록, irisDesktopStore의 strict scoped load를 연결했다. ErgonAvailable=false 및 executionConnected=false 유지, 실제 UI·자동 반복·실게임 활성화 아님. 운영 웹/API/DB/권한·공개 ZIP 구조 변경 없음, 서버 신규 호출0. [검증·미실행·후속 승인 경계](../docs/ERGON_B2_QA_20261023.md) 참조. 운영0.4.2와 기능브랜치 기존 공개파일 차이는 보존한다.
+
 ### 2026-10-22 — IRIS 0.4.2 운영 반영 확인 / 인계 구조 변경 없음
 
 저장/전환/재화 캐시만 main0d2b432에 선별했고 문서마감b0b63c7·Production dpl_GimXVW6ejrr2xcu4n27msrbNrdb9 Ready/정확SHA 확인. 기능브랜치 미공개ERGON/GNOSIS/B-1 전체 병합0·DB/실게임0. 운영은 app/DesktopCenter의 상단저장줄 위치/CSS6줄과 새ZIP/metadata를 포함하며 기능브랜치의 이전 ZIP으로 덮어쓰지 않는다. 이번 후속은 운영상태를 기록하는 문서만 추가한다.

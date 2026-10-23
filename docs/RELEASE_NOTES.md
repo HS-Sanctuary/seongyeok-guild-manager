@@ -1,5 +1,12 @@
 # SANCTUM 업데이트 노트
 
+## 2026-10-23 13:05 +09:00 KST — v2.322 개발 후보 후속 / ERGON B-2 비활성 연결 인계
+
+- 공개 버전 상승·사용자 화면 변화·운영 배포 없음. IRIS 운영0.4.2와 기능브랜치의 기존0.4.1 ZIP·metadata 차이를 보존한다. 이 브랜치를 그대로 운영 배포하지 않는다.
+- B-2 승인 제품10·시험9와 최소 한국어 인계만 선별 전송한다. 실제 executor의 저장 바인딩·구 Confirm 보호·승인/lease·native terminal 대조와 bridge/host 소스 연결 후보이며 ErgonAvailable=false, executionConnected=false 유지다.
+- Node638 PASS/기존3 SKIP/FAIL0, 저장34·A22·B-1 20·H22·R5 PASS. 필수13 중11 PASS, N04·Q13 부분 검증. S01 간헐 실패·최초 수령 회귀 실패 원인은 미확정이다. 상세 근거·미실행은 [B-2 QA](ERGON_B2_QA_20261023.md).
+- 운영 웹/API/DB/권한·journal 형식/정리 정책의 구조 변경 없음. 내부 native 연결 구조만 Master Guide에 기록했다. 게임/원장조작/main/Production/공개 IRIS 변경0, 서버 신규 호출0. 원본 로그·개인 자료 제외. 전송 성공/최종 SHA는 일반 push 후 원격 대조로 확인한다.
+
 ## 2026-10-22 KST — IRIS 0.4.2 운영 완료 / 기능브랜치 문서 인계
 
 - 승인된 저장 개선만 main제품0d2b432에 선별 공개했다. 최종운영문서b0b63c7·Vercel dpl_GimXVW6ejrr2xcu4n27msrbNrdb9 Ready/Production/현재도메인·정확SHA 확인. 실제ZIP598816/해시9ea1c1d9f2ee8d758c702b5436c8658cdf7b2092b8d74001a10de9caef719274·notes0.4.2·다운로드UI·핵심7GET200 PASS. ERGON 잠금 유지, DB/실게임0.

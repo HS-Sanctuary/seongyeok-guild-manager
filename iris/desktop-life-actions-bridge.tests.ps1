@@ -69,3 +69,17 @@ if((Request 'game.life.actions.collect' $taskExtra).ok){throw 'Generic collectio
 if((Request 'game.life.actions.collectionPolicy' @{accountId='a';granted=$true}).ok){throw 'Browser supplied permission accepted'}
 if((Request 'game.life.actions.collect' $taskClick ([Uri]'https://evil.test/iris/desktop')).ok){throw 'Foreign collection origin accepted'}
 Write-Output 'PASS action bridge: source, epoch, fixed methods, strict payload and async callbacks'
+$progressPayload=@{accountId='synthetic-account';characterId='synthetic-character'}
+if(!(Request 'game.life.progress.load' $progressPayload).ok){throw 'B-2 fixed progress route missing'}
+$callsBefore=[LifeBridgeFixture]::Calls
+foreach($method in @('game.life.progress.execute','game.life.progress.replace','game.life.progress.evidence','game.life.progress.recover')){if((Request $method $progressPayload).ok){throw 'Unapproved progress method accepted'}}
+if((Request 'game.life.progress.load' @{accountId='a';characterId='c';path='synthetic-path'}).ok){throw 'Progress accepts browser path'}
+if((Request 'game.life.progress.load' $progressPayload ([Uri]'https://evil.test/iris/desktop')).ok){throw 'Progress accepts foreign origin'}
+if((Request 'game.life.progress.load' $progressPayload $taskUrl ($taskBridge.Epoch-1)).ok){throw 'Progress accepts stale epoch'}
+if([LifeBridgeFixture]::Calls -ne $callsBefore){throw 'Rejected progress request reached callback'}
+$locked=New-Object IrisDesktop.DesktopBridge($taskStore,$true)
+[void]$locked.Activate($taskUrl)
+$locked.BindLifeActions($cap,$sync,$async,$busy)
+$lockedFrame=@{version=1;id='1';epoch=$locked.Epoch;method='game.life.progress.load';payload=$progressPayload}|ConvertTo-Json -Compress
+if(($locked.HandleAsync($taskUrl,$lockedFrame).GetAwaiter().GetResult()|ConvertFrom-Json).ok){throw 'Public ERGON progress lock opened'}
+Write-Output 'PASS B-2 progress fixed routes/origin/epoch/payload/public lock'
