@@ -119,19 +119,19 @@ namespace IrisDesktop {
             try{using(var writer=AcquireWriter(new ProgressLockOwner()))return Commit(mutation,revision,operation,writer);}
             catch(Exception e){if(!Recoverable(e))throw;return new ProgressCommitResult{status="unavailable",operationId=operation.ToString("D"),error="writer-unavailable"};}
         }
-        internal ProgressCommitResult Commit(ProgressMutation mutation,long revision,Guid operation,ProgressWriterAdmission writer){
-            try{if(writer==null)throw new InvalidOperationException("writer-admission-required");using(writer.EnterStore(FilePath))return CommitUnderWriter(mutation,revision,operation);}
+        internal ProgressCommitResult Commit(ProgressMutation mutation,long revision,Guid operation,ProgressWriterAdmission writer,Action validate=null){
+            try{if(writer==null)throw new InvalidOperationException("writer-admission-required");using(writer.EnterStore(FilePath))return CommitUnderWriter(mutation,revision,operation,validate);}
             catch(Exception e){if(!Recoverable(e))throw;return new ProgressCommitResult{status="unavailable",operationId=operation.ToString("D"),error="writer-admission-invalid"};}
         }
-        ProgressCommitResult CommitUnderWriter(ProgressMutation mutation,long revision,Guid operation){
+        ProgressCommitResult CommitUnderWriter(ProgressMutation mutation,long revision,Guid operation,Action validate){
             var op=operation.ToString("D");ProgressScope scope=mutation==null?null:mutation.scope;
             try{ProgressDomain.Scope(scope);ProgressDomain.Require(scope.environment==environment,"foreign-scope");}
             catch(InvalidDataException){return new ProgressCommitResult{status="rejected",operationId=op,error="invalid-scope"};}
             State state=null;
             try{using(io.AcquireExclusiveLock(FilePath+".lock")){
-                state=Read();ProgressCommitResult next;
+                state=Read();if(validate!=null)validate();ProgressCommitResult next;
                 if(state.document!=null&&state.document.auditEvents.Any(e=>e.operationId==op)){
-                    var duplicate=ProgressDomain.Commit(state.document,mutation,revision,operation,Now());duplicate.view=View(state,scope);duplicate.revision=state.revision;return duplicate;
+                    var duplicate=ProgressDomain.Commit(state.document,mutation,revision,operation,Now());duplicate.view=View(state,scope);duplicate.revision=state.revision;if(validate!=null)validate();return duplicate;
                 }
                 if(mutation.kind=="Recover"){
                     if(state.health=="ok"||revision!=state.revision)return Failure("conflict",op,state,scope,"recovery-revision");
@@ -146,21 +146,23 @@ namespace IrisDesktop {
                     next=ProgressDomain.Commit(state.document,mutation,revision,operation,Now());
                 }
                 if(next.status!="committed"){next.view=View(state,scope);next.revision=state.revision;return next;}
-                var candidateDoc=next.document;ProgressDomain.Validate(candidateDoc,environment);Publish(candidateDoc,state.document);
+                var candidateDoc=next.document;ProgressDomain.Validate(candidateDoc,environment);if(validate!=null)validate();Publish(candidateDoc,state.document,validate);
                 // Never return the uncommitted candidate on an error. Only verified current reaches ACK.
                 var committed=Read();ProgressDomain.Require(committed.document!=null&&committed.document.commitDigest==candidateDoc.commitDigest,"commit-verification");
-                return new ProgressCommitResult{status="committed",operationId=op,revision=committed.document.revision,view=View(committed,scope)};
+                var result=new ProgressCommitResult{status="committed",operationId=op,revision=committed.document.revision,view=View(committed,scope)};if(validate!=null)validate();return result;
             }}catch(Exception e){if(!Recoverable(e))throw;var error=e is InvalidDataException?"invalid:"+e.Message:"storage:"+e.GetType().Name;return state==null?new ProgressCommitResult{status="unavailable",operationId=op,error=error}:Failure("unavailable",op,state,scope,error);}
         }
         static long Now(){return (long)(DateTime.UtcNow-new DateTime(1970,1,1)).TotalMilliseconds;}
         ProgressCommitResult Failure(string status,string op,State state,ProgressScope scope,string error){return new ProgressCommitResult{status=status,operationId=op,revision=state.revision,error=error,view=View(state,scope)};}
-        void Publish(ProgressDocument d,ProgressDocument previous){
+        void Publish(ProgressDocument d,ProgressDocument previous,Action validate){
             var plain=ProgressDomain.Utf8.GetBytes(ProgressDomain.Serialize(d));byte[] cipher;
             try{ProgressDomain.Require(plain.Length<=ProgressDomain.ByteLimit,"plain-size");cipher=ProtectedData.Protect(plain,entropy,DataProtectionScope.CurrentUser);}finally{Array.Clear(plain,0,plain.Length);}
             var suffix=Guid.NewGuid().ToString("N");var temp=FilePath+"."+suffix+".tmp";var intent=FilePath+"."+suffix+".intent";var backup=FilePath+".pending."+suffix+".bak";
             io.WriteNewAndFlush(temp,cipher);var checkedTemp=Decode(temp);ProgressDomain.Require(checkedTemp.commitDigest==d.commitDigest&&checkedTemp.storeId==d.storeId,"temp-verification");
+            if(validate!=null)validate();
             // Durable encrypted intent makes a post-publish verification interruption visible after restart.
             io.WriteNewAndFlush(intent,cipher);
+            if(validate!=null)validate();
             if(File.Exists(FilePath))io.ReplaceWithBackup(temp,FilePath,backup);else io.MoveNew(temp,FilePath);
             var checkedCurrent=Decode(FilePath);ProgressDomain.Require(checkedCurrent.commitDigest==d.commitDigest&&checkedCurrent.storeId==d.storeId,"current-verification");
             if(File.Exists(backup)&&previous!=null){var b=Decode(backup);ProgressDomain.Require(b.commitDigest==previous.commitDigest&&b.storeId==previous.storeId,"backup-verification");File.Move(backup,FilePath+".verified."+suffix+".bak");}

@@ -1,5 +1,27 @@
 # SANCTUM 작업 인계
 
+## 2026-10-24 KST — 집 작업 마감 / 기능 브랜치 전송 승인
+
+한설이 오늘까지 검증한 변경과 최소 인계 기록의 선별 commit·일반 push를 승인했다. 대상은 `codex/home-gnosis-iris-integration-20261019`, 수신 기준은 `e9575ec5c6432156d6b8a033cd50217b24da7d47`다. 정확한 전송 SHA는 이 항목을 포함한 커밋의 Git 이력과 원격 HEAD를 대조한다. 아래 로컬/미승인 문구는 당시 경과로 보존한다.
+
+- 포함: N-R1/U-R1/V15, 실제 결과 패널·page 보호, 제작 목표 생성/재사용, 비소비성 요청 등록 계약, native 확인 진척 단일화, 관련 합성 시험·QA·수신 ACK. [목표 연결 QA](ERGON_GOAL_BINDING_QA_20261023.md), [작업대 QA](ERGON_PHASE3_WORKBENCH_QA_20261023.md), [보호 수정 QA](ERGON_IMPORTANT2_FIX_QA_20261023.md), [뉴월 요약](ERGON_NEWOL_HANDOFF.md)을 순서대로 확인한다.
+- 최종 검증: Node651/648 PASS/기존3 SKIP/0 FAIL, React14·타입·관련 lint·격리 빌드 PASS. High 1회 C0/I2 보완. N04/S01/최초 수령 간헐 실패 원인 미확정 유지. 실제 게임 시험·전체 자동 생산 완료가 아니다.
+- 제외/보존: 집 원본 개인12항목(기존 수정4·삭제3·미추적5), 실제 원장/캐시/게임 응답/로그, ignored 소스 사본. 원래 checkout은 변경하지 않는다. 공개 main ca697706·IRIS0.4.3 설치본/metadata 유지. 기능 브랜치의 오래된 배포물을 공개하지 말 것.
+- 순월 첫 순서: 수신·ACK → 소스/QA와 실제 코드 대조 → 기존 저장/목표4·확인3·남은1 회귀 → 목표 변경/취소 정책 및 다음 최소 합성 연결 범위를 한설과 결정. 자동 생산이나 실제 소비를 임의로 시작하지 않는다.
+- 종료: 사용량 중단 기준은 최신 요청의 남은10%다. 이번 push 확인 후 새 개발 없이 종료한다. 공개 잠금/executionConnected=false 유지, main 병합·DB·Production·공개 IRIS·실게임·사용자 보호 원장 변경은 승인하지 않았다.
+
+## 2026-10-23 ERGON 목표·바인딩·단일 진척 — 로컬 미커밋
+
+[최신 QA](ERGON_GOAL_BINDING_QA_20261023.md): 기존19파일 사본·N-R1/U-R1/V15·page/수신 ACK 보존 위에 비소비성 새 목표 연결, 기존 준비 요청 등록 어댑터, native 진척의 작업대/Queue 단일화를 추가했다. 실행 허가 false, 공개 잠금 유지. High 1회 C0/I2 보완(수령 우회·stale 진척)과 합성 회귀 확인. 취소/계획 삭제 전체·자동 재계획·실행 활성화는 미구현. 기능 e9575ec/운영 main ca697706·0.4.3 파일 유지, commit/push 미승인. 이전 UI 연결 기록은 해당 단계의 경과로 보존한다.
+
+## 2026-10-23 ERGON 3차 실제 작업대 연결 — 로컬 미커밋
+
+[최신 연결 QA](ERGON_PHASE3_WORKBENCH_QA_20261023.md)를 우선 읽을 것. 기존 N-R1/U-R1/V15와 ACK 보존 위에 결과 패널·정확 계획 매칭·page 종료/전환/로그아웃/업데이트 보호를 연결했다. High Important 1건 ACK 유실 왕복 복구 RED→GREEN 및 기존 중지 보존 합성 PASS. 공개 잠금·executionConnected=false·운영 main0.4.3/ZIP/DB 유지. 새 실행 바인딩·자동 생산·계획 삭제 전체는 미구현. commit/push 승인 없으며 이 기록도 로컬만 유지한다. 앞선 미연결 기록은 해당 시점 경과다.
+
+## 2026-10-23 집 — N-R1/U-R1 최소 수정 로컬 후보 (미전송)
+
+수신 e9575ec에서 승인된 Important2만 수정했다. [최소 수정 QA](ERGON_IMPORTANT2_FIX_QA_20261023.md)에 RED/GREEN·범위·최종검토를 기록한다. native 최종 문맥 재검사와 lifecycle ACK유실의 동일operation 재확인/보호상태만 변경, 실제 DesktopErgon/page 연결0. 전체645/642PASS3skip·관련 React/native/type/lint PASS, High독립검토1회 결과는 QA최신을 따른다. 집개인12·원장·기존ACK·공개lock/운영0.4.2/mainb0b63c7 보존. commit/push는 별도승인전금지. 과거N04/S01/수령간헐원인미확정유지.
+
 ## 2026-10-23 KST — 퇴근 인계 / 독립 3차 첫 UI 후보
 
 첫 전송 d92d8ba(N04·native수량18파일) 원격일치. 후속 독립 결과패널/hook·typed native요청/ACK 제품5·시험5 후보를 선별 전송한다. **DesktopErgon/page mount 없음**, 실제앱새화면없음/공개lock유지. ERGON_PHASE3_FIRST_UI_QA_20261023.md에 ID별 PASS/부분/미실행과 정확한 진입점을 기록했다. 최종Node645/642PASS3기존SKIP0FAIL·React3·타입/lint·격리build·기존lock/currency/saveUI 회귀 PASS. High중요3 RED→GREEN/재검토0.

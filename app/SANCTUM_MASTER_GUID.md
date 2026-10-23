@@ -1,5 +1,11 @@
 # 🏛️ SANCTUM Master Guide
 
+### 2026-10-24 KST — ERGON 비공개 작업대·목표 진척 연결
+
+DesktopPage의 requestClose/beforeunload/onBeforeApply/changeContext/로그아웃 보호 → DesktopErgon의 기존 결과 패널/useErgonProgress → 기존 native 암호화 진행 저장소를 연결했다. `irisErgonGoalBinding`은 정확한 scope/sourcePlanId/루트/행동/품목/목표 수량을 대조하고 createGoal/bindPrepared의 저장 결과를 권위 있는 최신 기록으로 재확인한다. 등록 확인은 실행 허가가 아니며 executionAllowed=false다.
+
+패널의 native 확인 수량만 작업대·Queue에 전달하며 조회 실패/범위 불일치에는 예상량이나 과거 메모리 진척으로 대체하지 않는다. 결과 전용 모드는 기존 수령 UI와 직접 callback도 차단한다. N-R1/U-R1/V15는 기존 저장 문맥·operation ACK 보호의 최소 보완이며 원장 형식/정리 정책은 그대로다. 서버/API/DB/권한 구조 변경 없음. 공개 ERGON 잠금·executionConnected=false와 운영 main IRIS0.4.3 유지, 공개 설치 파일 변경 없음. [현재 범위와 미완료](../docs/ERGON_GOAL_BINDING_QA_20261023.md).
+
 ### 2026-10-23 KST — 독립 ERGON 결과 UI 후보
 
 신규 DesktopErgonResultConfirmation/useErgonProgress는 native projection과 미저장 입력만 보유한다. typed load/capabilities/confirmQuantity/correctQuantity/setLifecycle 및 revision·goal/request·operation 이벤트 ACK 대조를 사용하고 localStorage 확정 진척 저장은 없다. ACK 유실은 같은 요청 재전달/명시적 native 상태조회로 조정한다. CSS는 iris-ergon-result 범위다. 실제 DesktopErgon/page/종료·전환/Queue/CraftGoal 연결은 미완료라 import/mount하지 않았다. 공개gatefalse/서버·DB·native원장구조변경없음.

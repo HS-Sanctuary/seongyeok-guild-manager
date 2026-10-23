@@ -1,5 +1,13 @@
 # SANCTUM 업데이트 노트
 
+## 2026-10-24 KST — v2.322 개발 후보 후속 / ERGON 집 작업 마감
+
+- 공개 버전 상승 없음. 운영 main `ca697706a874d21668091588940ceb61338d0700`·IRIS 0.4.3 설치본/metadata는 그대로 유지한다. 기능 브랜치의 미공개 코드만 인계하며 Production 배포·공지·DB·실게임 시험은 하지 않는다.
+- N-R1/U-R1/V15 보호 수정, 결과 확인 패널의 실제 작업대·종료/전환 보호 연결, 제작 목표 기록의 생성/재사용, 준비 요청의 비소비성 등록 계약, native 확인 수량의 단일 진척 표시를 포함한다. 목표4·확인3은 남은1이며 예상 산출량을 실제 확보로 계산하지 않는다.
+- 구조 변경: 기존 native 저장 API를 재사용하는 `irisErgonGoalBinding`과 결과 패널→작업대/Queue 연결. 서버/API/DB/RLS/실행 원장 형식·정리 정책의 구조 변경 없음. 신규 Supabase/Vercel 호출 없음.
+- 최종 제품 검증: Node651 중648 PASS/기존3 SKIP/0 FAIL, React14 스크립트·타입·수정 범위 lint·격리 빌드 통과. High 1회 C0/I2를 보완했다. 과거 N04/S01/최초 수령 간헐 실패의 원인은 미확정으로 보존한다. 합성 검증이며 실제 게임 성공이 아니다.
+- 공개 ERGON 잠금과 executionConnected=false 유지. 자동 생산/자동 재계획/계획 삭제 전체/실제 소비 연결은 미완료다. 상세: [목표 연결 QA](ERGON_GOAL_BINDING_QA_20261023.md), [뉴월 인계](ERGON_NEWOL_HANDOFF.md).
+
 ## 2026-10-23 KST — v2.322 개발 후보 후속 / 독립 결과 확인 UI 인계
 
 - 공개버전상승·실제앱화면·운영배포 없음. 구조: 독립 ResultConfirmation/useErgonProgress→기존 typed native progress API/strict ACK. 실제page/workbench mount는 종료·전환보호 연결 전까지 보류.

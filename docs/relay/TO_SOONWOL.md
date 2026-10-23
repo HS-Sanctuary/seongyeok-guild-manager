@@ -1,5 +1,25 @@
 # 영겁 → 순월 수신함
 
+- **2026-10-24 KST 마감 / YG-20261023-001 UPDATED:** 한설이 오늘까지 검증한 변경의 기능 브랜치 선별 commit·일반 push를 승인했다. 기준 e9575ec, 대상 `codex/home-gnosis-iris-integration-20261019`. 이 누적을 포함한 최종 커밋과 원격 HEAD가 정확한 수신 기준이다. 이전 미ACK/미전송 경과는 지우지 않는다.
+- 포함: N-R1/U-R1/V15·page 종료/계정/캐릭터/업데이트 보호·실제 작업대 결과 패널·제작 목표 기록 생성/재사용·비소비성 bindPrepared 계약·native 확인 수량의 Queue 단일화·시험/QA/기존 수신 ACK. [최신 QA](../ERGON_GOAL_BINDING_QA_20261023.md)와 [뉴월 요약](../ERGON_NEWOL_HANDOFF.md)을 먼저 읽을 것.
+- 검증: Node651 중648 PASS/기존3 SKIP/0 FAIL, React14·타입/lint/격리빌드 PASS. High 1회 C0/I2 보완. N04/S01/최초수령 과거 간헐 원인 미확정은 유지한다. 합성 시험만이며 실제 게임 성공/자동 생산 완료가 아니다.
+- 집 개인12(수정4·삭제3·미추적5)/기존 ACK·사용자 원장·ignored 소스 사본 보존, 개인 자료/원본 응답/캐시/로그는 제외. 운영 main ca697706·IRIS0.4.3/ZIP/metadata 변경0, 공개잠금/executionConnected=false. 기능 브랜치의 옛 배포물을 운영에 올리지 말 것.
+- 내일 첫 순서: 안전 수신/ACK → QA와 실제 코드 대조 → 저장/문맥/목표4·확인3·남은1 회귀 → 목표 내용 변경·취소/제거 정책 및 다음 최소 합성 단계 제안. 실제 CLI·소비·원장 해제·main/DB/Production/공개IRIS·자동생산 확대는 별도 승인 전 금지. 영겁은 전송 확인 뒤 작업 종료한다.
+
+- **2026-10-23 목표 연결 로컬 추가 / 미전송:** [ERGON_GOAL_BINDING_QA](../ERGON_GOAL_BINDING_QA_20261023.md) 우선 확인. 기존 검증본19파일 ignored 사본, native3/page/수신ACK 시작 해시 동일 보존. 새 목표 안정 ID·권위 재조회/재사용, 비소비성 bindPrepared 어댑터와 executionAllowed:false, native 확인량의 Queue/작업대 단일화. High 1회 C0/I2 보완·Node648PASS3SKIP·React14·타입/lint/격리빌드. 취소/계획 삭제 전체·변경 목표 교체·자동 재계획/새 소비/모바일 미구현. ErgonAvailable=false/executionConnected=false·원장/개인12/운영0.4.3·main/DB 유지. commit/push 미승인, 이 기록도 로컬만이며 이전 미ACK 누적 보존.
+
+- **2026-10-23 ERGON 3차 로컬 누적 / 미전송:** 기능 e9575ec의 기존 N-R1/U-R1/V15와 ACK를 보존한 상태에서 실제 DesktopErgon 결과 패널·sourcePlanId/action/name/target 매칭·page 종료/전환/업데이트/로그아웃 보호 연결. [최신 QA](../ERGON_PHASE3_WORKBENCH_QA_20261023.md). High Important 1건(ACK 유실 뒤 왕복 시 복구 버튼 소실) RED→GREEN, 초안 뒤 늦은 running에서도 기존 중지 합성 PASS. Node642PASS3SKIP·타입/lint·React11·격리빌드. 새 실행 바인딩/자동 생산/계획 삭제 전체 미완료, 공개 잠금·executionConnected=false·운영0.4.3/원장/DB/개인12 유지. commit/push 미승인·로컬만이며 아래 과거 미ACK를 삭제하지 않는다.
+
+- **2026-10-23 집 후속/로컬미전송:** 한설이 N-R1/U-R1 최소코드/합성시험만 승인했다. [Important2 QA](../ERGON_IMPORTANT2_FIX_QA_20261023.md)를 최신으로 따른다. RED→native최종문맥 재검사·동일operation lifecycle확인/guard→GREEN. 전체645/642PASS3skip·React/native/type/lint, High최종1회결과는QA참조. 실제page연결/새기능/commit/push/실게임/원장/DB/main/배포0. 원본개인12·기존ACK·아래미ACK누적보존. 과거수신검토의미수정판정은당시경과다.
+
+## YG-20261023-001 — UPDATED / 집 수신 ACK·검토 (로컬 미전송)
+
+- 영겁→순월 / 2026-10-23 KST. 기능원격 e9575ec5c6432156d6b8a033cd50217b24da7d47를 기존 worktree에 ff-only 수신, SW-20261023-001 ACK. 집 원본 개인12/삭제상태와 이전미ACK 누적은 보존했다. 제품수정/commit/push/실게임/기존원장/DB/main/배포0.
+- [집 검토](../ERGON_HOME_RECEIVE_REVIEW_20261023.md)를 우선 확인. 집 새 전체645/642PASS3기존skip0fail·집 집중7/React3·lock/type/scopedlintPASS. 순월 N04 normal/S01/최초수령 원인미확정은 유지. 검증해시 차이는 LF/CRLF 변환이며5소스 정규화 일치.
+- 원격에는 B-2→N04/native수량→독립첫UI까지 실제 포함되어 있다. DesktopErgon/page mount는 없고 사무실에 추가미전송UI가 있는지는 집에서 확인할수없음. native V12/기존UI를 중복구현하지 말것.
+- 다음 승인 전 주의 Important2: N-R1 일반양수 Inspect후 character/epoch 변경에도 committed=3 합성재현(High C0/I1/M0 및 자체 재현), U-R1 보류성공/ACK유실/정상재조회 후 pending잔존으로 그만하기잠김 React재현. 제품수정0. 최소후속은 두경계 회귀보완→기존page종료/전환보호→native목표바인딩/복원/CraftGoal·Queue연결이며 계획삭제는 별도작은단위로 검증한다.
+- 공개lock/executionConnected=false/운영IRIS0.4.2·mainb0b63c7 유지. 기능0.4.1ZIP 재배포금지. 이기록과ACK는 다음 명시승인된 공식push에만 포함한다.
+
 ## YG-20261022-001 — ACKNOWLEDGED / IRIS 0.4.2 공개 최종 인계
 
 - 후속 ACK: 순월 — 2026-10-23 KST. 기존 인계/운영0.4.2 보존 조건을 유지하고 한설이 N04·native 수량 및 검증된 Task4 첫 UI의 기능브랜치 선별 전송만 새로 승인했다. 기존 ACK·누적 보존, 게임/main/DB/공개배포 금지는 유지한다.

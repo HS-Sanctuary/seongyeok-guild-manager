@@ -52,6 +52,10 @@ export default function DesktopPage() {
   const [workspaceReady,setWorkspaceReady]=useState(false);
   const [synaxisBusy,setSynaxisBusy]=useState(false);
   const [lifeActionBusy,setLifeActionBusy]=useState(false);
+  const ergonProgressDirty=useRef(false);
+  const [progressNotice,setProgressNotice]=useState('');
+  const progressDirtyChanged=useCallback((dirty:boolean)=>{ergonProgressDirty.current=dirty;if(!dirty)setProgressNotice('');},[]);
+  const blockProgressTransition=useCallback(()=>{if(!ergonProgressDirty.current)return false;setProgressNotice('에르곤 결과 입력이나 저장 확인이 남아 있어요. 결과 확인 화면에서 저장 상태를 확인하거나 입력 초안만 버린 뒤 다시 시도해 주세요.');return true;},[]);
   const [synaxisActivity,setSynaxisActivity]=useState({party:0,bus:0});
   const [closing,setClosing]=useState(false);
   const [updateBusy,setUpdateBusy]=useState(false);const updateActive=useRef(false);
@@ -66,7 +70,7 @@ export default function DesktopPage() {
   const watchContext=useRef(0),[watchVersion,setWatchVersion]=useState(0);
   const invalidateWatch=useCallback(()=>{watchContext.current++;setWatchVersion(watchContext.current);},[]);
   const getWatchContext=useCallback(()=>watchContext.current,[]);
-  const requestClose=useCallback((reason:'manual'|'game-exit'='manual')=>{if(closingRef.current||updateActive.current||lifeActionBusy)return;closingRef.current=true;invalidateWatch();setAccountOpen(false);setSettingsOpen(false);setCloseReason(reason);setClosing(true);if(addonReady.current)void protectedStore.current?.setCloseDecision(true).catch(()=>setAddonError('종료 연결을 확인해 주세요.'));},[invalidateWatch,lifeActionBusy]);
+  const requestClose=useCallback((reason:'manual'|'game-exit'='manual')=>{if(blockProgressTransition()||closingRef.current||updateActive.current||lifeActionBusy)return;closingRef.current=true;invalidateWatch();setAccountOpen(false);setSettingsOpen(false);setCloseReason(reason);setClosing(true);if(addonReady.current)void protectedStore.current?.setCloseDecision(true).catch(()=>setAddonError('종료 연결을 확인해 주세요.'));},[invalidateWatch,lifeActionBusy,blockProgressTransition]);
   const [statsBusy,setStatsBusy]=useState(false);
   const statsBusyChanged=useCallback((value:boolean)=>{if(value)invalidateWatch();setStatsBusy(value);},[invalidateWatch]);
   const gameReadInFlight=useRef<Promise<GameStats>|null>(null);
@@ -90,22 +94,24 @@ export default function DesktopPage() {
   const [state,setState]=useState<ReturnType<Controller['state']>|null>(null),[error,setError]=useState(''),[busy,setBusy]=useState(false),[now,setNow]=useState(0),[remembered,setRemembered]=useState<DesktopAccount[]>([]);
   const publish=useCallback(()=>{if(controller.current)setState(controller.current.state());},[]);
   const run=useCallback(async(action:(c:Controller)=>Promise<void>,block=false)=>{
+    if(block&&blockProgressTransition())return false;
     const c=controller.current;if(!c)return;
     setError('');setNow(Date.now());if(block){invalidateWatch();setCharacterPickerRequest(0);setBusy(true);}
     try {const operation=action(c);publish();await operation;return true;}
     catch(e){setError(e instanceof Error?e.message:'연결을 확인해 주세요.');return false;}
     finally{publish();if(block)setBusy(false);}
-  },[publish,invalidateWatch]);
+  },[publish,invalidateWatch,blockProgressTransition]);
   const [contextRetry,setContextRetry]=useState<{owner:string|null;action:(c:Controller,mode:'save'|'keep')=>Promise<void>}|null>(null);
   const contextFlight=useRef(false);
   const changeContext=useCallback(async(action:(c:Controller,mode:'save'|'keep')=>Promise<void>,mode:'save'|'keep'='save',expectedOwner?:string|null)=>{
+    if(blockProgressTransition())return false;
     if(contextFlight.current||closingRef.current||updateActive.current)return false;
     const owner=controller.current?.state().account?.id??null;
     if(expectedOwner!==undefined&&expectedOwner!==owner){setContextRetry(null);setError('계정이 바뀌었어요. 다시 선택해 주세요.');return false;}
     contextFlight.current=true;
     try{const ok=await run(c=>action(c,mode),true);if(ok)setContextRetry(null);else if(owner===(controller.current?.state().account?.id??null)){setAccountOpen(false);setContextRetry({owner,action});}return !!ok;}
     finally{contextFlight.current=false;}
-  },[run]);
+  },[run,blockProgressTransition]);
   const selectCharacter=useCallback((id:string)=>{if(lifeActionBusy)return;invalidateWatch();setCharacterPickerRequest(0);return changeContext((c,mode)=>c.selectCharacter(id,mode));},[invalidateWatch,changeContext,lifeActionBusy]);
   const readCharacterMetadata=useCallback(async()=>{const c=controller.current;if(!c)throw Error('앱에 연결해 주세요.');try{const before=JSON.stringify(c.state().characters.map(row=>[row.id,row.nickname,row.job])),result=await c.characterMetadata();if(before!==JSON.stringify(c.state().characters.map(row=>[row.id,row.nickname,row.job])))setCatalogVersion(v=>v+1);return result;}finally{publish();}},[publish]);
   const manageCharacter=useCallback(async(intent:CharacterMetaIntent)=>{const c=controller.current;if(!c)throw Error('앱에 연결해 주세요.');invalidateWatch();setBusy(true);setError('');try{const operation=c.manageCharacter(intent);publish();await operation;setCatalogVersion(v=>v+1);}catch(e){setError(e instanceof Error?e.message:'캐릭터 정보를 확인해 주세요.');throw e;}finally{publish();setBusy(false);}},[invalidateWatch,publish]);
@@ -137,7 +143,7 @@ export default function DesktopPage() {
     const visible=()=>{if(document.visibilityState==='visible')refresh();};
     window.addEventListener('focus',refresh);document.addEventListener('visibilitychange',visible);
     const interval=setInterval(()=>{if(!alive)return;setNow(Date.now());if(gameDay()!==day){day=gameDay();lastRefresh=0;refresh();}const c=controller.current;if(c&&!updateActive.current){void c.tick().then(publish).catch(e=>{setError(e instanceof Error?e.message:'저장 상태를 확인해 주세요.');publish();});publish();}},1000);
-    const warn=(e:BeforeUnloadEvent)=>{if(controller.current?.state().queue.entries.length){e.preventDefault();e.returnValue='';}};
+    const warn=(e:BeforeUnloadEvent)=>{if(ergonProgressDirty.current||controller.current?.state().queue.entries.length){e.preventDefault();e.returnValue='';}};
     window.addEventListener('beforeunload',warn);
     const close=(event:Event)=>{const native=window as NativeWindow;const message=parseDesktopWindowEvent((event as CustomEvent).detail,native.__irisDesktopBridge??null);if(message?.kind==='window.close.request'){native.__irisDesktopPendingClose=null;requestClose(message.reason);}};window.addEventListener('iris-desktop-close',close);
     const addonChanged=(event:Event)=>{const native=window as NativeWindow;const message=parseDesktopWindowEvent((event as CustomEvent).detail,native.__irisDesktopBridge??null);if(message?.kind==='window.addon.changed')setAddon(message.state);};
@@ -177,6 +183,7 @@ export default function DesktopPage() {
   const contextActions=<DesktopContextActions accountOpen={accountOpen} settingsOpen={settingsOpen} disabled={closing||busy||synaxisBusy} accountDisabled={closing||busy||synaxisBusy||lifeActionBusy} onAccount={openAccount} onSettings={()=>{if(closing||busy||synaxisBusy)return;invalidateWatch();setAccountOpen(false);setSettingsOpen(value=>!value);}}/>;
   const settingsPanel=<DesktopAddonSettings floating={floating} appearance={appearance} fonts={fonts} addonState={addon} busy={addonBusy||closing} error={addonError} onSavePreview={()=>setSavePreviewUntil(Date.now()+4000)} onPreferencesChange={value=>void preferencesChange(value)} onBack={()=>{setSettingsOpen(false);if(isFloating)void floating.command('close');}} accountPanel={<><p className="iris-caption">{account?`${account.nickname} · 계정`:'생텀 계정으로 로그인해 주세요.'}</p><button type="button" className="iris-desktop-button" disabled={closing||busy} onClick={openAccount}>계정 관리 열기</button></>}/>;
   return <IrisNotificationsProvider scope={account?.id??''} floating={floating.state} onNoticeKind={floating.setNotice}><main className="iris-desktop" style={{fontFamily:appearance.fontFamilyCss}}>
+    {progressNotice&&<p role="alert" className="iris-caption">{progressNotice}</p>}
     <DesktopFloatingHub state={floating.state} onCommand={floating.command} onDrag={()=>windowAction('drag')} onNoticeHeight={typeof floating.state?.dialogOpen==='boolean'?floating.resizeNotice:undefined} onExit={()=>requestClose()} exitDisabled={closing||updateBusy||lifeActionBusy} notice={<DesktopNotificationLayer/>}>
     <DesktopPendingCharacterButton/>
     <div ref={setUpdateInlineTarget} hidden={!isFloating}/>
@@ -194,7 +201,7 @@ export default function DesktopPage() {
         contextActions={contextActions} onTabChange={tab=>{if((tab==='homework'||tab==='classes'||tab==='barter'||tab==='shop'||tab==='missions')&&!tabRefresh.current){const pending=run(c=>c.refresh()).then(()=>{}).finally(()=>{if(tabRefresh.current===pending)tabRefresh.current=null;});tabRefresh.current=pending;}}}
         statsPanel={active=>selected?<DesktopStats onChooseOther={()=>{invalidateWatch();setCharacterDialogOpen(true);setCharacterPickerRequest(value=>value+1);}} key={account.id+':'+selected.characterId} accountId={account.id} characterId={selected.characterId} locked={baseLocked||lifeActionBusy} readPaused={lifeActionBusy} active={active} readGame={readGameStats} onSelectCharacter={id=>void selectCharacter(id)} onBusyChange={statsBusyChanged} onCharactersRead={onCharactersRead}/>:<p>캐릭터를 선택해 주세요.</p>}
         currenciesPanel={active=><DesktopCurrencies key={environment+':'+account.id} active={active} readPaused={lifeActionBusy} readCurrencies={readCurrencies} loadCache={loadCachedCurrencies} refreshCache={refreshCachedCurrencies} accountId={account.id} environment={environment}/>}
-        ergonPanel={active=>IRIS_ERGON_AVAILABLE&&<DesktopErgon key={environment+':'+account.id+':'+(selected?.characterId??'none')} environment={environment} accountId={account.id} characterId={selected?.characterId??null} accountLabel={account.nickname} characterLabel={state.characters.find(row=>row.id===selected?.characterId)?.nickname??''} actions={protectedStore.current??undefined} onActionBusyChange={setLifeActionBusy} gameBusy={lifeActionBusy} active={active&&!closing&&!accountOpen&&!settingsOpen&&!characterDialogOpen} locked={locked} read={readLife} readCurrencies={readCurrencies} getContextVersion={getWatchContext}/>}
+        ergonPanel={active=>IRIS_ERGON_AVAILABLE&&<DesktopErgon key={environment+':'+account.id+':'+(selected?.characterId??'none')} environment={environment} accountId={account.id} characterId={selected?.characterId??null} accountLabel={account.nickname} characterLabel={state.characters.find(row=>row.id===selected?.characterId)?.nickname??''} actions={protectedStore.current??undefined} onProgressDirtyChange={progressDirtyChanged} onActionBusyChange={setLifeActionBusy} gameBusy={lifeActionBusy} active={active&&!closing&&!accountOpen&&!settingsOpen&&!characterDialogOpen} locked={locked} read={readLife} readCurrencies={readCurrencies} getContextVersion={getWatchContext}/>}
         alertsPanel={<DesktopContentAlerts suspendDialogs={closing||accountOpen} onReportBusy={setReportBusy} alerts={contentAlerts} locked={locked||closing}/>}
         barterPanel={<DesktopBarter selected={selected} pending={entries} locked={locked} onEdit={(key,base,desired)=>void run(c=>c.editBarter(key,base,desired))}/>}
         shopPanel={<>{!workspaceReady&&<p role="status" className="iris-caption">저장을 사용하려면 IRIS를 정상 종료하고 최신 앱으로 다시 실행해 주세요.</p>}<DesktopWorkspace key={account.id+':shop'} selected={selected} pending={entries} locked={locked||!workspaceReady} kind="shop" onEdit={(key,base,desired)=>void run(c=>c.editWorkspace(key,base,desired))}/></>}

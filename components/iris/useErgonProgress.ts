@@ -1,9 +1,11 @@
 'use client';
 import {useCallback,useEffect,useLayoutEffect,useRef,useState} from 'react';
 import type {createDesktopStore} from '@/lib/irisDesktopStore';
+import {createErgonGoalBinding} from '@/lib/irisErgonGoalBinding';
+import type {ErgonPlanItem} from '@/lib/irisErgonPlan';
 import {parseErgonProgressView,parseErgonProgressAck,type ProgressScope,type ProgressView,type ErgonQuantityWrite,type ErgonLifecycleWrite} from '@/lib/irisErgonProgress';
 
-export type ErgonProgressApi=Pick<ReturnType<typeof createDesktopStore>,'ergonProgressCapabilities'|'loadErgonProgress'|'saveErgonQuantity'|'setErgonGoalLifecycle'>;
+export type ErgonProgressApi=Pick<ReturnType<typeof createDesktopStore>,'ergonProgressCapabilities'|'loadErgonProgress'|'saveErgonQuantity'|'setErgonGoalLifecycle'>&Partial<Pick<ReturnType<typeof createDesktopStore>,'createErgonGoal'>>;
 export function useErgonProgress({api,scope,active,locked}:{api?:ErgonProgressApi;scope:ProgressScope;active:boolean;locked:boolean}){
  const key=JSON.stringify([scope.environment,scope.accountId,scope.characterId]);
  const [state,setState]=useState<{key:string;view:ProgressView|null;error:string;loading:boolean;supported:boolean}>({key,view:null,error:'',loading:!!api,supported:!!api});
@@ -38,5 +40,12 @@ export function useErgonProgress({api,scope,active,locked}:{api?:ErgonProgressAp
   }catch{if(current())setState(previous=>({...previous,error:'저장 응답을 확인하지 못했어요. 입력을 유지했어요. 같은 요청으로 다시 확인해 주세요.'}));return 'unknown';}
   finally{flight.current=false;setBusy(false);}
  };
- return {view:state.key===key?state.view:null,error:state.key===key?state.error:'',loading:state.key!==key||state.loading,supported:state.key===key&&state.supported,busy,reload,write};
+ const connectGoal=async(plan:ErgonPlanItem)=>{
+  if(!api?.createErgonGoal||flight.current||!live.current.active||live.current.locked||state.key!==key||state.loading||!state.supported||state.view?.health!=='ok')return 'unknown' as const;
+  flight.current=true;setBusy(true);const ticket=generation.current;
+  try{const driver=createErgonGoalBinding({loadErgonProgress:api.loadErgonProgress,createErgonGoal:api.createErgonGoal},()=>generation.current);const result=await driver.ensure({environment,accountId,characterId},plan);if(ticket!==generation.current||live.current.key!==key||!live.current.active)return 'unknown' as const;setState({key,view:result.view,error:'',loading:false,supported:true});return 'saved' as const;}
+  catch{if(ticket===generation.current)setState(previous=>({...previous,error:'목표 저장을 확인하지 못했어요. 같은 목표의 저장 상태를 다시 확인해 주세요.'}));return 'unknown' as const;}
+  finally{flight.current=false;setBusy(false);}
+ };
+ return {view:state.key===key?state.view:null,error:state.key===key?state.error:'',loading:state.key!==key||state.loading,supported:state.key===key&&state.supported,busy,reload,write,connectGoal,canConnect:!!api?.createErgonGoal};
 }
