@@ -1,5 +1,9 @@
 # 🏛️ SANCTUM Master Guide
 
+### 2026-10-23 KST — 독립 ERGON 결과 UI 후보
+
+신규 DesktopErgonResultConfirmation/useErgonProgress는 native projection과 미저장 입력만 보유한다. typed load/capabilities/confirmQuantity/correctQuantity/setLifecycle 및 revision·goal/request·operation 이벤트 ACK 대조를 사용하고 localStorage 확정 진척 저장은 없다. ACK 유실은 같은 요청 재전달/명시적 native 상태조회로 조정한다. CSS는 iris-ergon-result 범위다. 실제 DesktopErgon/page/종료·전환/Queue/CraftGoal 연결은 미완료라 import/mount하지 않았다. 공개gatefalse/서버·DB·native원장구조변경없음.
+
 ### 2026-10-23 KST — native 수량 재확인 비활성 후보
 
 DesktopLifeProgressConnection.QuantityAsync → readonly ProgressQuantityPreview → 기존 DesktopLifeProgressApproval/작은 Windows 확인창 → native terminal·문맥·revision·단조120초 재대조 → 기존 Store.Commit ACK. 사용자 수량은 user-confirmed만 기록하고 native unknown을 해제하지 않는다. writer는 승인 대기 중 해제, mutation/game lease는 유지한다. Store/원장 형식·DB·React 구조 변경 없음. ErgonAvailable=false/executionConnected=false 유지. N04 interruption fixture는 시험 소스만이며 실제 앱 목록에 포함하지 않는다.

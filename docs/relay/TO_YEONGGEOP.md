@@ -1,11 +1,17 @@
 # 순월 → 영겁 수신함
 
+- **2026-10-23 퇴근 인계 2차 추가 / SW-20261023-001 UPDATED:** 첫 제품 전송 d92d8ba259dbb1dfc69079b3be45c99dfcc21041 원격일치 확인. 두 번째는 **실제 작업대 미mount인 독립 첫 결과 UI 후보** 제품5·시험5와 최소 기록만 선별한다. 최종 수신 SHA는 이 누적을 포함한 기능브랜치 원격 HEAD다. [3차 첫 UI QA](../ERGON_PHASE3_FIRST_UI_QA_20261023.md)를 우선 읽는다. 이전 미ACK 누적 보존/ACK 영겁 대기.
+- 완료: native 단일권위 typed ACK·독립 hook/패널, 빈칸/0·3→2 정정·실패초안·ACK유실 동일operation·보류remount·캐릭터늦은ACK방어. High C0/I3/M0 중요3(취소뒤입력잠김/연결소실초안소실/ACK요청증거부족) RED→GREEN 보완. 최종 Node645/642PASS3기존SKIP0FAIL, React3·타입/lint·최종격리build 및 기존lock/currency/save3UI 회귀 PASS. 12폭·글자 넘침0.
+- **새 실패 이력:** 보완 전 전체에서 N04 normal 자식이 marker 전 native-result-review-required로 종료하여 1FAIL. native/N04소스첫commit과동일, 분리1회2PASS/최종전체0FAIL이나 원인 미확정. 첫전송의기존PASS를무효로숨기거나재실행PASS로원인해결처리하지말것. 기존S01/수령회귀 원인 미확정도 유지.
+- **정확한 다음 작업:** ResultConfirmation props/api/scope/active/locked/onDirtyChange→기존 page requestClose/beforeunload/onBeforeApply/계정캐릭터메뉴 보호 검토→DesktopErgon/Execution의native목표·바인딩복원/Queue·CraftGoal·계획삭제연결. I03/L10/L11/L12 격리범위PASS, I08/L06–09/Q13부분, L01–05미실행. 실제앱새화면없음/전체Task4·자동생산완료아님. 계속하기버튼·새소비0. 실제코드를붙이기전위QA표와기존Task4를대조한다.
+- 보존/금지: 개인16·수신ACK·원장·로그 보존. ErgonAvailable=false/executionConnected=false, 실제게임/DB/서버/main/Production/공개IRIS/ZIPmetadata 변경0. 기능브랜치만일반push/공개버전상승0. 후속실게임/활성화/배포는별도승인.
+
 - **2026-10-23 퇴근 인계 1차 추가 / SW-20261023-001 UPDATED:** 한설 승인으로 N04 시험4파일·native 수량 확인5파일·최소 한국어 기록을 기준9ef6a661에서 선별 전송한다. 정확 수신 SHA는 이 메시지를 포함한 기능 브랜치 원격 HEAD를 따른다. 이전 미ACK 누적은 보존한다.
 - **완료:** N04 Begin 직후 소유 시험 자식 중단→새 프로세스 unknown 복구·추가 명령0·3→2 이력 보존 PASS. 수량0/초과/정정 native 승인·단조120초·문맥 재검증·user-confirmed 출처·unknown 불변 V01–V12 PASS. High C0/I1/M0의 최종 Inspect/Audit 뒤 재검사 누락을 V12 RED→GREEN 보완했다. 최종 Node644/641PASS3기존SKIP0FAIL, 저장34/A22/B20/H22/R5/native8/types/lint/전체native소스컴파일 PASS.
 - **아직 안 됨/다음:** 실제 확인창·설치본·게임·Q13 React 초안은 미검증. 이번 첫 전송 뒤 별도 승인된 Task4 첫 UI만 구현 예정이며 완료 시 두 번째 인계를 누적한다. 현재 native 기능 완료를 자동 생산/전체3차 완료로 판단하지 않는다. 상세는 ERGON_N04_INTERRUPTION_QA_20261023.md 및 ERGON_NATIVE_QUANTITY_QA_20261023.md.
 - **보존/금지:** 개인16·기존 ACK·원본 로그·사용자 원장 보존/전송 제외. ErgonAvailable=false/executionConnected=false, S01 및 최초 수령 회귀 원인 미확정 유지. main/DB/Production/공개IRIS0.4.2·기능0.4.1 ZIP/metadata/실게임/자동생산 변경0. 기능브랜치만 일반 push, 공개버전 상승 없음.
 
-## SW-20261023-001 — WAITING / ERGON B-2 비활성 연결 후보 선별 인계
+## SW-20261023-001 — UPDATED / ERGON B-2·N04·native 수량·독립 첫 UI 후보 누적 인계
 
 - 발신 순월 / 수신 영겁 / 최초·최종 2026-10-23 13:05 +09:00 KST. 한설이 B-2 제품10·시험9 및 최소 한국어 인계의 기능 브랜치 일반 push만 승인했다. 기준 b3e243cc4b08356a9096abdb062e837dd1d1238c. 전송 대상은 codex/home-gnosis-iris-integration-20261019이며 최종 SHA는 이 메시지를 포함한 커밋과 원격 HEAD를 대조한다. 과거 누적/ACK는 아래 그대로 보존한다.
 - **이번에 완료한 것:** 실제 executor 저장 목표/동결 요청 바인딩·구 Confirm 보호·공통 writer/비동기 승인/Run terminal lease·native terminal 대조·수령 우회 차단·bridge/host/소스 목록 연결 후보. 검증 소스19 SHA256이 구현 마감 기준과 일치한다. [B-2 QA](../ERGON_B2_QA_20261023.md)를 먼저 읽는다.

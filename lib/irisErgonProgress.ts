@@ -4,6 +4,25 @@ export type QuantityConfirmation = {eventId:string;revision:number;quantity:numb
 export type ProgressRequestView = {requestId:string;action:'crafting'|'altering'|'gathering';displayName:string;craftCount:number|null;outputPerCraft:number|null;expectedOutput:number|null;processingRound:number|null;preparedAt:number;expiresAt:number;terminalOutcome:'completed'|'registered'|'rejected'|'stopped'|null;quantity:number|null;confirmations:QuantityConfirmation[]};
 export type GoalView = {goalId:string;sourcePlanId:string;parentGoalId:string|null;rootGoalId:string;action:ProgressRequestView['action'];displayName:string;targetQuantity:number;lifecycle:'active'|'paused'|'cancelled'|'archived';detached:boolean;confirmedQuantity:number;remainingQuantity:number;excessQuantity:number;quantityUnconfirmed:boolean;quantitySatisfied:boolean;registeredCount:number;requests:ProgressRequestView[]};
 export type ProgressView = {schemaVersion:1;revision:number;health:'ok'|'review-required'|'unavailable';scope:ProgressScope;capacityWarning:boolean;recoveryCandidates:{commitDigest:string;revision:number}[];goals:GoalView[]};
+export type ErgonQuantityWrite={revision:number;operationId:string;goalId:string;requestId:string;quantity:number;supersedesEventId?:string;reason?:string};
+export type ErgonLifecycleWrite={revision:number;operationId:string;goalId:string;lifecycle:'paused'|'cancelled'};
+export type ErgonProgressAck={status:'committed'|'already-applied'|'conflict'|'rejected'|'unavailable';operationId:string;revision:number;view:ProgressView|null;error:string|null};
+export function parseErgonProgressAck(value:unknown,scope:ProgressScope,operationId:string,submitted?:ErgonQuantityWrite|ErgonLifecycleWrite):ErgonProgressAck{
+ const r=record(value,['status','operationId','revision','view','error']),status=choice(r.status,['committed','already-applied','conflict','rejected','unavailable']),revision=integer(r.revision);
+ if(uuid(r.operationId)!==uuid(operationId))return fail();
+ const view=r.view===null?null:parseErgonProgressView(r.view,scope);
+ if(view&&view.revision!==revision||(status==='committed'||status==='already-applied')&&(!view||view.health!=='ok'||r.error!==null))return fail();
+ if(submitted&&(status==='committed'||status==='already-applied')){
+  if(revision<=submitted.revision)return fail();
+  const goal=view!.goals.find(g=>g.goalId===submitted.goalId);if(!goal)return fail();
+  if('requestId' in submitted){
+   const request=goal.requests.find(r=>r.requestId===submitted.requestId),event=request?.confirmations.find(c=>c.eventId===operationId);
+   if(!event||event.quantity!==submitted.quantity||event.revision!==submitted.revision+1||event.supersedesEventId!==(submitted.supersedesEventId??null)||event.reason!==(submitted.reason??null))return fail();
+   if(status==='committed'&&(event.revision!==revision||request!.confirmations.at(-1)?.eventId!==operationId))return fail();
+  }else if(status==='committed'&&(goal.lifecycle!==submitted.lifecycle||revision!==submitted.revision+1))return fail();
+ }
+ return {status,operationId,revision,view,error:r.error===null?null:text(r.error,1000)};
+}
 const fail = ():never => {throw new Error('Invalid ERGON progress projection');};
 function record(value:unknown, keys:string[]):Record<string,unknown> {
   if(!value||typeof value!=='object'||Array.isArray(value)) return fail();

@@ -460,3 +460,12 @@ body:has([role="dialog"][aria-modal="true"]:not([hidden],[hidden] *)) .iris-save
  .iris-ergon-workspace[data-area=plan]>.iris-ergon-focus{grid-column:3;grid-row:2}
  .iris-ergon-catalog{max-height:25rem}
 }
+/* Isolated ERGON result candidate; no public entry or host activation. */
+.iris-ergon-result { min-width:0; padding:.7rem; color:var(--text-main); background:var(--panel); }
+.iris-ergon-result article { min-width:0; margin-block:.7rem; padding:.7rem; border:1px solid var(--accent); border-radius:.5rem; }
+.iris-ergon-result h2,.iris-ergon-result h3,.iris-ergon-result p,.iris-ergon-result li { white-space:normal; overflow-wrap:anywhere; }
+.iris-ergon-result label { display:block; margin-top:.5rem; }
+.iris-ergon-result input { display:block; box-sizing:border-box; max-width:100%; width:100%; font-size:1rem; color:var(--text-main); background:var(--inner-box); }
+.iris-ergon-result .iris-ergon-controls { display:flex; flex-wrap:wrap; gap:.4rem; margin-block:.6rem; }
+.iris-ergon-result button { max-width:100%; white-space:normal; overflow-wrap:anywhere; }
+.iris-ergon-result-request { padding-block:.5rem; border-bottom:1px solid var(--accent); }

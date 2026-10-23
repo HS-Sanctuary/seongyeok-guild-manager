@@ -1,0 +1,20 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {loadTS} from './load-ts.mjs';
+test('progress writes allow only scoped user quantity and strict durable ACK',async()=>{
+ const {createDesktopStore}=loadTS('lib/irisDesktopStore.ts');let listener;const calls=[];
+ const scope={environment:'development',accountId:'a',characterId:'c'},op='10000000-0000-4000-8000-000000000001';
+ const view={schemaVersion:1,revision:1,health:'ok',scope,capacityWarning:false,recoveryCandidates:[],goals:[{goalId:op,sourcePlanId:'p',parentGoalId:null,rootGoalId:op,action:'crafting',displayName:'검',targetQuantity:4,lifecycle:'active',detached:false,confirmedQuantity:0,remainingQuantity:4,excessQuantity:0,quantityUnconfirmed:false,quantitySatisfied:false,registeredCount:0,requests:[{requestId:op,action:'crafting',displayName:'검',craftCount:1,outputPerCraft:1,expectedOutput:1,processingRound:null,preparedAt:1,expiresAt:2,terminalOutcome:'completed',quantity:0,confirmations:[{eventId:op,revision:1,quantity:0,source:'user-confirmed',confirmedAt:3,supersedesEventId:null,reason:null}]}]}]};
+ let response={status:'committed',operationId:op,revision:1,view,error:null};
+ const store=createDesktopStore({environment:'development',context:()=>({environment:'development',epoch:1}),channel:{addEventListener:(_,l)=>listener=l,removeEventListener:()=>{},postMessage:m=>{calls.push(m);queueMicrotask(()=>listener({data:{version:1,id:m.id,epoch:1,ok:true,value:response}}));}}});
+ assert.equal(typeof store.saveErgonQuantity,'function');
+ const input={revision:0,operationId:op,goalId:op,requestId:op,quantity:0};
+ assert.equal((await store.saveErgonQuantity(scope,input)).view.revision,1);
+ assert.equal(calls[0].method,'game.life.progress.confirmQuantity');assert.equal(calls[0].payload.quantity,0);
+ const n=calls.length;for(const extra of [{...input,quantity:null},{...input,quantity:1e-50},{...input,source:'official-verified'},{...input,confirmation:true},{...input,path:'x'}])await assert.rejects(()=>store.saveErgonQuantity(scope,extra));assert.equal(calls.length,n);
+ response={...response,operationId:'20000000-0000-4000-8000-000000000001'};await assert.rejects(()=>store.saveErgonQuantity(scope,input));
+ response={...response,operationId:op,revision:2};await assert.rejects(()=>store.saveErgonQuantity(scope,input));
+ response={status:'committed',operationId:op,revision:1,view:{...view,goals:[]},error:null};await assert.rejects(()=>store.saveErgonQuantity(scope,input),'success without request proof');
+ response={status:'committed',operationId:op,revision:1,view,error:null};await assert.rejects(()=>store.saveErgonQuantity(scope,{...input,revision:1}),'committed ACK cannot reuse submitted revision');
+ response={status:'conflict',operationId:op,revision:1,view,error:'revision'};assert.equal((await store.saveErgonQuantity(scope,input)).status,'conflict');
+});

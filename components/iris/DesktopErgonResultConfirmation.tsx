@@ -1,0 +1,64 @@
+'use client';
+import {useEffect,useId,useRef,useState} from 'react';
+import {useErgonProgress,type ErgonProgressApi} from './useErgonProgress';
+import {parseErgonQuantityInput,type ProgressScope,type GoalView,type ProgressRequestView,type ErgonQuantityWrite,type ErgonLifecycleWrite} from '@/lib/irisErgonProgress';
+type Props={api?:ErgonProgressApi;scope:ProgressScope;active:boolean;locked:boolean;onDirtyChange?:(dirty:boolean)=>void};
+// Isolated candidate. Mount in the real workbench only after page close/context guards are wired.
+export function DesktopErgonResultConfirmation(props:Props){return <ResultPanel key={JSON.stringify([props.scope.environment,props.scope.accountId,props.scope.characterId])} {...props}/>;}
+function ResultPanel(props:Props){
+ const progress=useErgonProgress(props),[drafts,setDrafts]=useState<Record<string,boolean>>({});
+ const dirty=Object.values(drafts).some(Boolean),notify=useRef(props.onDirtyChange);
+ useEffect(()=>{notify.current=props.onDirtyChange;notify.current?.(dirty||progress.busy);},[props.onDirtyChange,dirty,progress.busy]);
+ useEffect(()=>()=>notify.current?.(false),[]);
+ useEffect(()=>{const warn=(e:BeforeUnloadEvent)=>{if(dirty||progress.busy){e.preventDefault();e.returnValue='';}};window.addEventListener('beforeunload',warn);return()=>window.removeEventListener('beforeunload',warn);},[dirty,progress.busy]);
+ const recordDirty=(id:string,value:boolean)=>setDrafts(previous=>previous[id]===value?previous:{...previous,[id]:value});
+ const blocked=props.locked||!props.active||progress.busy||progress.loading||!progress.supported||progress.view?.health!=='ok';
+ return <section className="iris-ergon-result" aria-label="ERGON · 제작 결과 확인"><h2>ERGON · 제작 결과 확인</h2>
+  <p className="iris-caption">제작 명령 종료와 결과물 확보는 달라요. 이번 제작으로 추가 확보한 수량을 확인해 주세요. 가방 총재고가 아니에요.</p>
+  <p className="iris-caption">개발 후보 · 실제 작업대 연결 전</p>
+  {props.api&&progress.error&&<p role="alert">{progress.error}</p>}{!props.api&&<p>이 앱은 진행 기록 확인 기능을 지원하지 않아요.</p>}
+  <button type="button" className="iris-desktop-button" disabled={!props.active||progress.busy||progress.loading||dirty} onClick={()=>void progress.reload()}>진행 기록 새로고침</button>
+  {progress.loading?<p role="status">진행 기록 확인 중</p>:progress.view?.goals.length===0?<p>저장된 제작 목표가 없어요.</p>:null}
+  {progress.view&&progress.view.health!=='ok'&&<p role="alert">기록과 원장 확인이 필요해요. 추가 저장과 실행을 막았어요.</p>}
+  {progress.view?.goals.filter(g=>g.action==='crafting').map(goal=><article key={goal.goalId}>
+   <h3>{goal.displayName}</h3><p>{goal.lifecycle==='paused'?'보류 중':goal.lifecycle==='cancelled'?'취소됨 · 이력 보존':goal.lifecycle==='archived'?'보관된 목표':'진행 중'}</p>
+   <p>{goal.quantityUnconfirmed?`현재 확인 ${goal.confirmedQuantity}개 · 목표 ${goal.targetQuantity}개 · 남은 수량 확인 필요`:`현재 ${goal.confirmedQuantity}개 확보 · 목표 ${goal.targetQuantity}개 · ${goal.remainingQuantity}개 부족`}</p>
+   {goal.excessQuantity>0&&<p>목표보다 {goal.excessQuantity}개 더 확인했어요.</p>}
+   {goal.requests.map(request=><RequestResult key={request.requestId} goal={goal} request={request} revision={progress.view!.revision} blocked={blocked||goal.detached||goal.lifecycle==='cancelled'||goal.lifecycle==='archived'} write={progress.write} reload={progress.reload} onDirty={recordDirty}/>)}
+   <GoalLifecycle goal={goal} revision={progress.view!.revision} blocked={blocked||dirty||goal.lifecycle==='cancelled'||goal.lifecycle==='archived'} write={progress.write}/>
+  </article>)}
+  {dirty&&<p role="status">저장하지 않은 결과 입력이 있어요. 화면을 닫기 전에 저장하거나 초안만 버려 주세요.</p>}
+ </section>;
+}
+type Write=ReturnType<typeof useErgonProgress>['write'];
+function RequestResult({goal,request:r,revision,blocked,write,reload,onDirty}:{goal:GoalView;request:ProgressRequestView;revision:number;blocked:boolean;write:Write;reload:ReturnType<typeof useErgonProgress>['reload'];onDirty:(id:string,dirty:boolean)=>void}){
+ const id=useId(),[amount,setAmount]=useState(''),[reason,setReason]=useState(''),[correct,setCorrect]=useState(false),[attempt,setAttempt]=useState<ErgonQuantityWrite|null>(null);
+ const notify=useRef(onDirty);useEffect(()=>{notify.current=onDirty;},[onDirty]);
+ const dirty=!!amount||!!reason||correct||!!attempt;
+ useEffect(()=>{notify.current(r.requestId,dirty);return()=>notify.current(r.requestId,false);},[r.requestId,dirty]);
+ const parsed=parseErgonQuantityInput(amount),latest=r.confirmations.at(-1),canWrite=r.terminalOutcome==='completed'&&(r.quantity===null||correct);
+ const save=async()=>{
+  if(blocked||!canWrite||parsed.kind!=='valid'||correct&&!reason.trim())return;
+  const value=attempt??{revision,operationId:crypto.randomUUID(),goalId:goal.goalId,requestId:r.requestId,quantity:parsed.quantity,...(correct?{supersedesEventId:latest!.eventId,reason:reason.trim()}:{})};
+  setAttempt(value);const result=await write('quantity',value);
+  if(result==='saved'){setAttempt(null);setAmount('');setReason('');setCorrect(false);}else if(result==='rejected')setAttempt(null);
+ };
+ return <div className="iris-ergon-result-request"><p>이번 제작 {r.craftCount??'?'}회 · 기본 예상 산출 {r.expectedOutput??'?'}개</p>
+  <p>{r.quantity===null?'실제 확보 수량 미확인':`사용자 확인 ${r.quantity}개`}</p>
+  {r.terminalOutcome!=='completed'&&<p>제작 종료 근거를 확인하기 전에는 수량을 저장할 수 없어요.</p>}
+  {r.quantity!==null&&!correct&&<button type="button" className="iris-desktop-button" disabled={blocked} onClick={()=>setCorrect(true)}>확인량 정정</button>}
+  {canWrite&&<><label htmlFor={id}>실제로 확인한 추가 확보 수량</label><input id={id} inputMode="numeric" value={amount} disabled={blocked||!!attempt} onChange={e=>setAmount(e.target.value)}/>
+   {correct&&<><label htmlFor={id+'-reason'}>정정 사유</label><input id={id+'-reason'} maxLength={400} value={reason} disabled={blocked||!!attempt} onChange={e=>setReason(e.target.value)}/></>}
+   <p className="iris-caption">0개·예상 초과·정정은 Windows 확인창에서 다시 확인해요. 사용자 확인 기록이며 공식 보상 검증은 아니에요.</p>
+   <div className="iris-ergon-controls"><button type="button" className="iris-desktop-button" disabled={blocked||parsed.kind!=='valid'||correct&&!reason.trim()} onClick={()=>void save()}>확인 수량 저장</button>
+   <button type="button" className="iris-desktop-button" disabled={blocked||!!attempt} onClick={()=>{setAmount('');setReason('');setCorrect(false);}}>초안만 버리기</button>
+   {attempt&&<button type="button" className="iris-desktop-button" disabled={blocked} onClick={()=>void (async()=>{const loaded=await reload();if(!loaded||loaded.health!=='ok')return;const found=loaded.goals.find(g=>g.goalId===goal.goalId)?.requests.find(q=>q.requestId===r.requestId);if(!found)return;if(found.confirmations.some(c=>c.eventId===attempt.operationId)){setAmount('');setReason('');setCorrect(false);}setAttempt(null);})()}>저장 상태 확인</button>}</div>
+  </>}
+  {r.confirmations.length>0&&<details><summary>확인·정정 이력 ({r.confirmations.length})</summary><ul>{r.confirmations.map(c=><li key={c.eventId}>사용자 확인 {c.quantity}개{c.reason?` · ${c.reason}`:''}</li>)}</ul></details>}
+ </div>;
+}
+function GoalLifecycle({goal,revision,blocked,write}:{goal:GoalView;revision:number;blocked:boolean;write:Write}){
+ const [pending,setPending]=useState<ErgonLifecycleWrite|null>(null);
+ const change=async(lifecycle:'paused'|'cancelled')=>{if(blocked)return;const value=pending??{revision,operationId:crypto.randomUUID(),goalId:goal.goalId,lifecycle};setPending(value);const status=await write('lifecycle',value);if(status==='saved'||status==='rejected')setPending(null);};
+ return <div className="iris-ergon-controls"><button type="button" className="iris-desktop-button" disabled={blocked||goal.lifecycle==='paused'||!!pending&&pending.lifecycle!=='paused'} onClick={()=>void change('paused')}>{goal.quantityUnconfirmed?'나중에 확인 · 보류하기':'보류하기'}</button><button type="button" className="iris-desktop-button" disabled={blocked||!!pending&&pending.lifecycle!=='cancelled'} onClick={()=>{if(pending||window.confirm('목표만 취소하고 기존 확인 이력과 원장은 보존할까요?'))void change('cancelled');}}>그만하기</button></div>;
+}
