@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Drawing;
@@ -259,7 +260,16 @@ namespace IrisDesktop {
                 try {
                     var journalRoot=Path.GetDirectoryName(Path.GetDirectoryName(store.FilePath));
                     var lifeJournal=new DesktopLifeJournal(journalRoot,development?"development":"production");
-                    lifeActor=new DesktopLifeExecutor(lifeJournal,DesktopLifeReader.ReadAsync,DesktopGameStatsReader.ReadCurrenciesAsync,DesktopLifeCli.ReadNamedItemsAsync,DesktopLifeCli.PerformAsync,ConfirmLifeAction,
+                    DesktopLifeEvidenceProvider lifeEvidence=null;
+                    Func<string,string,Task<string>> observedPerform=async(action,name)=>{
+                        Dictionary<string,object> origin=null;
+                        if(action=="collect")try{origin=lifeActor.ProgressContext();}catch{}
+                        var response=await DesktopLifeCli.PerformAsync(action,name);
+                        // Reporting is non-authoritative and cannot change execution/terminal handling.
+                        if(action=="collect"&&origin!=null&&lifeEvidence!=null)try{lifeEvidence.ReportCollection(origin,response);}catch{}
+                        return response;
+                    };
+                    lifeActor=new DesktopLifeExecutor(lifeJournal,DesktopLifeReader.ReadAsync,DesktopGameStatsReader.ReadCurrenciesAsync,DesktopLifeCli.ReadNamedItemsAsync,observedPerform,ConfirmLifeAction,
                         ()=>!IsDisposed&&!Disposing&&((!InvokeRequired)?LifeActionAllowed():(bool)Invoke(new Func<bool>(LifeActionAllowed))),()=>bridge.Epoch,()=>DateTime.UtcNow);
                     lifeActor.BindStop(DesktopLifeCli.StopAsync);
                     lifeActor.BindCraft(DesktopLifeCli.CraftAsync);
@@ -268,6 +278,8 @@ namespace IrisDesktop {
                     lifeActor.BindProgressApproval(ConfirmLifeActionAsync);
                     var lifeProgress=new DesktopLifeProgressConnection(lifeActor,lifeJournal,new DesktopErgonProgressStore(journalRoot,development?"development":"production"),()=>DesktopLifePolicy.Time(DateTime.UtcNow));
                     lifeProgress.BindQuantityApproval(ConfirmProgressQuantityAsync);
+                    lifeEvidence=new DesktopLifeEvidenceProvider(development?"development":"production",lifeActor.ProgressContext,lifeActor.State,DesktopLifeReader.ReadAsync,()=>!IsDisposed&&!Disposing&&Visible&&WindowState!=FormWindowState.Minimized&&!closeDecision,()=>DesktopLifePolicy.Time(DateTime.UtcNow));
+                    bridge.BindLifeEvidence(lifeEvidence.ReadAsync);
                     bridge.BindLifeActions(lifeActor.Capabilities,(method,payload)=>{
                         switch(method){
                             case "game.life.actions.context":return lifeActor.SetContext(payload);

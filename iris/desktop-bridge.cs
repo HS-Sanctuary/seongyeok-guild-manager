@@ -27,6 +27,8 @@ namespace IrisDesktop {
         Func<object> overlayState;Func<bool,bool> overlayInput;Func<int,bool> overlayOpacity;
         Func<Task<object>> gameRead,currencyRead; bool gameBusy,lifeControlBusy,collectionPending;
         Func<string,Task<object>> lifeRead;
+        Func<Dictionary<string,object>,Task<object>> lifeEvidence;
+        public void BindLifeEvidence(Func<Dictionary<string,object>,Task<object>> read){lifeEvidence=read;}
         Func<object> lifeActionCapabilities;Func<string,Dictionary<string,object>,object> lifeActionSync;
         static readonly string[] LifeErrors={"life_reconcile_unavailable","life_request_replayed","life_collection_permission","life_permission_corrupt","life_unresolved","life_not_enough_wings","life_game_blocked","life_game_changed","life_not_available","life_overweight","life_weight_unknown","life_currency_unknown","life_tool_missing","life_gathering_unverified","life_ambiguous","life_ambiguous_output","life_output_locked","life_stock_changed","life_recipe_changed","life_not_completed","life_stale","life_busy","life_hidden","life_context_changed","life_nonce_expired","life_nonce_invalid","life_stop_unavailable","life_quantity_required","life_preview_limit","life_unsupported","life_invalid"};
         Func<string,Dictionary<string,object>,Task<object>> lifeActionAsync;Func<bool> lifeActionBusy;
@@ -60,9 +62,9 @@ namespace IrisDesktop {
             var receipt=Handle(source,json);var serializer=new JavaScriptSerializer();
             var result=serializer.DeserializeObject(receipt) as Dictionary<string,object>;
             var marker=result!=null&&result.ContainsKey("value")?result["value"] as Dictionary<string,object>:null;
-            if(marker==null||(!marker.ContainsKey("gameReadPending")&&!marker.ContainsKey("lifeReadPending")&&!marker.ContainsKey("lifeActionPending")&&!marker.ContainsKey("updatePending")&&!marker.ContainsKey("fontsPending")))return receipt;
+            if(marker==null||(!marker.ContainsKey("gameReadPending")&&!marker.ContainsKey("lifeReadPending")&&!marker.ContainsKey("lifeActionPending")&&!marker.ContainsKey("updatePending")&&!marker.ContainsKey("fontsPending")&&!marker.ContainsKey("evidencePending")))return receipt;
             bool update=marker.ContainsKey("updatePending"),fonts=marker.ContainsKey("fontsPending"),action=marker.ContainsKey("lifeActionPending"),control=action&&Equals(marker["lifeActionPending"],"game.life.actions.stop"),collection=action&&Equals(marker["lifeActionPending"],"game.life.actions.collect");var epoch=Epoch;if(collection)collectionPending=true;else if(control)lifeControlBusy=true;else if(fonts)fontsBusy=true;else if(!update)gameBusy=true;
-            try{var value=await (action?lifeActionAsync((string)marker["lifeActionPending"],(Dictionary<string,object>)marker["payload"]):fonts?fontsRead(Equals(marker["fontsPending"],true)):update?(Equals(marker["updatePending"],"check")?updateCheck():updatePrepare()):marker.ContainsKey("lifeReadPending")?lifeRead((string)marker["lifeReadPending"]):marker.ContainsKey("currencyAccount")?currencyCacheRefresh((string)marker["currencyAccount"]):(marker.ContainsKey("currency")?currencyRead():gameRead()));if(epoch!=Epoch||document==null)throw new ArgumentException();result["value"]=value;}
+            try{var value=await (action?lifeActionAsync((string)marker["lifeActionPending"],(Dictionary<string,object>)marker["payload"]):fonts?fontsRead(Equals(marker["fontsPending"],true)):update?(Equals(marker["updatePending"],"check")?updateCheck():updatePrepare()):marker.ContainsKey("evidencePending")?lifeEvidence((Dictionary<string,object>)marker["payload"]):marker.ContainsKey("lifeReadPending")?lifeRead((string)marker["lifeReadPending"]):marker.ContainsKey("currencyAccount")?currencyCacheRefresh((string)marker["currencyAccount"]):(marker.ContainsKey("currency")?currencyRead():gameRead()));if(epoch!=Epoch||document==null)throw new ArgumentException();result["value"]=value;}
             catch(Exception error){result["ok"]=false;result["value"]=null;result["error"]=action?(Array.IndexOf(LifeErrors,error.Message)>=0?error.Message:"life_action_unavailable"):fonts?"fonts_unavailable":"game_stats_unavailable";}
             finally{if(collection)collectionPending=false;else if(control)lifeControlBusy=false;else if(fonts)fontsBusy=false;else if(!update)gameBusy=false;}
             return serializer.Serialize(result);
@@ -157,6 +159,11 @@ namespace IrisDesktop {
                         var lifePayload=message["payload"] as Dictionary<string,object>;
                         if(lifeRead==null||gameBusy||collectionPending||(lifeActionBusy!=null&&lifeActionBusy())||lifePayload==null||lifePayload.Count!=1||!lifePayload.ContainsKey("kind"))throw new ArgumentException();
                         var lifeKind=lifePayload["kind"] as string;if(lifeKind==null||Array.IndexOf(lifeKinds,lifeKind)<0)throw new ArgumentException();value=new {lifeReadPending=lifeKind};break;
+                    case "game.life.evidence.read":
+                        var evidencePayload=message["payload"] as Dictionary<string,object>;
+                        if(lifeEvidence==null||gameBusy||collectionPending||(lifeActionBusy!=null&&lifeActionBusy())||evidencePayload==null||evidencePayload.Count!=3||!evidencePayload.ContainsKey("accountId")||!evidencePayload.ContainsKey("characterId")||!evidencePayload.ContainsKey("targetName"))throw new ArgumentException();
+                        foreach(var key in new[]{"accountId","characterId","targetName"}){var label=evidencePayload[key] as string;if(String.IsNullOrWhiteSpace(label)||label.Length>(key=="targetName"?160:100)||Regex.IsMatch(label,@"[\x00-\x1f\x7f]"))throw new ArgumentException();}
+                        value=new {evidencePending=true,payload=evidencePayload};break;
                     case "game.life.reference":
                         var referencePayload=message["payload"] as Dictionary<string,object>;
                         if(lifeReference==null||referencePayload==null||referencePayload.Count!=2||!referencePayload.ContainsKey("kind")||!referencePayload.ContainsKey("displayName")||Array.IndexOf(new[]{"crafting","altering"},referencePayload["kind"] as string)<0||!(referencePayload["displayName"] is string))throw new ArgumentException();

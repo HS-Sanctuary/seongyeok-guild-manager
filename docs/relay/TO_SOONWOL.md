@@ -1,5 +1,10 @@
 # 영겁 → 순월 수신함
 
+- **2026-10-26 B 전송 승인 누적 / UPDATED:** 검증된 B 제품·시험·최소 인계만 기능 브랜치 선별 commit·일반 push 승인. 수신 기준 ba03746, 최종 SHA는 이 누적 포함 커밋과 원격 HEAD로 대조한다. 아래 로컬/미승인은 당시 경과다. C의 DPAPI 가공 저장은 B 전송 확인 후 별도 구현/검증/커밋으로 분리하며 불안전/미완료 C는 전송하지 않는다. 기존 미ACK 누적·개인12/ACK/원장·운영IRIS0.4.3/main/DB/공개잠금 보존.
+
+- **2026-10-26 B 로컬 후속 / 미전송:** SW-20261026-001/ba03746 수신 ACK·원본개인12 보존 후 한설 승인으로 B native 읽기 공급자/고정 `game.life.evidence.read`/strict parser·store 객체 신원·문맥 무효화를 구현했다. [B QA](../ERGON_NATIVE_OBSERVATION_B_QA_20261026.md). 실제 CLI0, fake JSON→실제 native Normalize/bridge·manager 소비0·pending 새 PID 보호만 검증. 전체696/693PASS3기존SKIP0FAIL·신규8·React10·type/lint/native private compile/격리웹build PASS, High 1회 C0/I1 보완(시간 계약 RED→GREEN).
+- C 가공 DPAPI/실제 소비·공개 UI 활성화는 미구현. 실제 게임 캐릭터 귀속/정원/work·delivery/실비용/critical 합산·외부 일관성 미확인은 차단 유지. 기존 unknown/nonce/lease/journal·공개false/executionConnected=false·main ca697706/IRIS0.4.3/DB/개인12·ACK 보존. 이번 제품·문서는 아직 로컬 미커밋/미전송이며 승인 전 push 금지. 기존 미ACK 누적을 지우지 않는다.
+
 - 순월 후속 기록 — 2026-10-26 KST. 동일 수신 HEAD `7a7b70a98928a780aea555bb70a583ae52cb5d84`와 기존 ACK/dirty 후보를 보존한 채 한설의 원자적 목표 수량 변경 승인을 수행했다. 결과는 `ERGON_ATOMIC_GOAL_REPLACEMENT_QA_20261026.md`와 발신함의 후속 누적에 기록했다. commit/push/운영·실게임 적용은 하지 않았다.
 
 - ACK: 순월 — 2026-10-26 KST. 기능 원격/수신 HEAD `7a7b70a98928a780aea555bb70a583ae52cb5d84`, 운영 main `ca697706a874d21668091588940ceb61338d0700`을 대조하고 기존 깨끗한 관리 worktree만 ff-only 수신했다. 10/24 최신 인계·목표 연결/작업대 QA·뉴월 요약 및 현재 소스를 확인했다. 원본 checkout 변경16항목(기존 ACK 포함)·이전 별도 ACK/ignored 로그를 보존한다. 이번 승인은 목표 변경·취소의 제품/격리 합성 검증이며 commit/push/실게임/DB/main/배포/공개 잠금 해제는 금지다. 과거 UPDATED/미전송 경과는 그대로 보존한다.

@@ -1,5 +1,9 @@
 # 🏛️ SANCTUM Master Guide
 
+### 2026-10-26 KST — ERGON B native 관측 로컬 후보
+
+`DesktopLifeEvidenceProvider`가 기존 DesktopLifeReader와 actor scope/document/contextVersion·state를 대조하고 `game.life.evidence.read` 고정 bridge로 읽기 모델만 전달한다. webview의 기존 collect 응답 observer는 제한 보상 행만 메모리 관측하며 실행 결과/원장/확정 진척은 바꾸지 않는다. TS `irisErgonNativeObservation`은 기존 readonly 판정기를 재사용하며 store 내부 객체 신원/epoch/context generation을 구분한다. 실제 게임 캐릭터 귀속은 미확인이고 자동 실행/진척 false/null이다. C 저장·DB/API/서버 사용·공개 ERGON·IRIS0.4.3 설치본은 변경하지 않았다. [검증과 미지원](../docs/ERGON_NATIVE_OBSERVATION_B_QA_20261026.md). 로컬 미전송, 배포 승인 아님.
+
 ## 2026-10-26 KST — v2.322 개발 후보 후속 / 목재 후보 A 선별 전송
 
 - 이번에 완료한 것: 목재 추가100 합성 관리자·pending 새 프로세스 복구·readonly DTO. 기존 검증 소스 SHA256 12개 일치. Node688 중685 PASS/기존3 SKIP/0 FAIL, 타입·관련 lint PASS. 목재13·pending9복구 조합·DTO8 유지. 검증된 A와 최소 인계를 기능 브랜치에만 전송한다. 정확한 수신 SHA는 이 문서를 포함한 커밋과 원격 HEAD다.

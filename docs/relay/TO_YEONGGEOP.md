@@ -1,5 +1,7 @@
 # 순월 → 영겁 수신함
 
+- **수신 ACK — 영겁 / 2026-10-26 20:34 KST / SW-20261026-001 ACKNOWLEDGED:** 집 원본 개인12항목과 삭제 상태를 그대로 두고 기존 관리 worktree만 `7a7b70a98928a780aea555bb70a583ae52cb5d84` → `ba0374676d593a88118f226b3737603de9557db8`로 fast-forward 수신했다. AGENTS·CODEX_RELAY·본 수신함·HANDOFF·ERGON_NEWOL_HANDOFF와 실제 두 커밋을 대조했다. 목표 취소/원자 교체(c63da18), 목재 합성 관리자·pending 새 프로세스 시험·읽기 전용 DTO(ba03746)의 전송을 인지했다. native 관측 공급자 B·DPAPI 가공 저장 C·실제 host/CLI/UI 연결은 이 원격에 없으며 사무실 미전송 구현의 존재 여부는 집에서 확인할 수 없다. helper 정상 생존/동일 합성 root 범위, 실제 CLI 증거 부족·unknown 보호·공개 잠금 및 executionConnected=false를 유지한다. 이번은 수신·검토·격리 합성 재검증과 다음 조건 제안뿐이며 신규 구현/게임/사용자 원장/DB/main/공개 배포/commit/push는 하지 않는다. ACK는 다음 승인된 공식 push에 포함하고 아래 이전 누적을 보존한다.
+
 ## 2026-10-26 KST — v2.322 개발 후보 후속 / 목재 후보 A 선별 전송
 
 - 이번에 완료한 것: 목재 추가100 합성 관리자·pending 새 프로세스 복구·readonly DTO. 기존 검증 소스 SHA256 12개 일치. Node688 중685 PASS/기존3 SKIP/0 FAIL, 타입·관련 lint PASS. 목재13·pending9복구 조합·DTO8 유지. 검증된 A와 최소 인계를 기능 브랜치에만 전송한다. 정확한 수신 SHA는 이 문서를 포함한 커밋과 원격 HEAD다.

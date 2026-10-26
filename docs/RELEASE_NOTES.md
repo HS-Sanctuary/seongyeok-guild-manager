@@ -1,5 +1,11 @@
 # SANCTUM 업데이트 노트
 
+## 2026-10-26 KST — v2.322 개발 후보 후속 / ERGON B native 관측 선별 전송
+
+- 한설이 검증된 B 제품·시험·최소 인계의 기능 브랜치 일반 push를 승인했다. 공개 버전 상승·운영 배포 없음, main ca697706/IRIS0.4.3/공개 잠금 유지. C 구현은 별도 변경으로 분리한다.
+- 구조: 기존 native reader→읽기 공급자→고정 bridge→strict TS/store 관측 연결. 임의 source/clone·다른 문맥 비승격, 실제 게임 귀속/정원/비용/수령 귀속 미확인에 자동 실행 false. DB/API/서버 구조 변경 없음·신규 서버 호출0.
+- Node696/693 PASS/기존3 SKIP/0 FAIL·신규8·React10·타입/lint·private native/격리 웹 빌드 통과. High 1회 C0/I1(M0)의 시간 계약은 RED→GREEN 보완. 실제 CLI/사용자 원장/실게임·C 저장 성공 아님. [B QA](ERGON_NATIVE_OBSERVATION_B_QA_20261026.md).
+
 ## 2026-10-26 KST — v2.322 개발 후보 후속 / 목재 후보 A 선별 전송
 
 - 이번에 완료한 것: 목재 추가100 합성 관리자·pending 새 프로세스 복구·readonly DTO. 기존 검증 소스 SHA256 12개 일치. Node688 중685 PASS/기존3 SKIP/0 FAIL, 타입·관련 lint PASS. 목재13·pending9복구 조합·DTO8 유지. 검증된 A와 최소 인계를 기능 브랜치에만 전송한다. 정확한 수신 SHA는 이 문서를 포함한 커밋과 원격 HEAD다.

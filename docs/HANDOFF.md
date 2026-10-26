@@ -1,5 +1,13 @@
 # SANCTUM 작업 인계
 
+- **2026-10-26 B 전송 승인:** 한설이 아래 검증된 B 변경의 기능 브랜치 commit·일반 push를 승인했다. 기준 ba0374676d593a88118f226b3737603de9557db8, 정확 전송 SHA는 본 기록 포함 커밋/원격 HEAD 대조 기준이다. 아래 미승인·로컬 문구는 당시 경과다. C 구현은 이 전송 뒤 별도 delta/커밋으로 진행하며 검증되지 않은 C를 B에 섞지 않는다. 개인12/ACK·실사용 원장/운영0.4.3/main/DB/공개 잠금 유지.
+
+## 2026-10-26 KST — 집 B native 관측 구현 / 로컬 미전송
+
+한설의 상세 B 구현 승인으로 기존 reader→native 공급자→고정 bridge→strict TS/store 읽기 모델을 연결했다. [B QA/자동화 판정](ERGON_NATIVE_OBSERVATION_B_QA_20261026.md)이 최신이다. 실제 CLI는 fake JSON 주입만 사용했고 C 가공 저장·소비 엔진·공개 화면 활성화는 없다. 선택 문맥과 게임 캐릭터 귀속을 구분하고 gameIdentityVerified=false/자동 진척 null/실행 false를 유지한다.
+
+최종 Node696/693 PASS/기존3 SKIP/0 FAIL, 신규8·React10·타입/lint·native private compile·격리 웹 빌드 PASS. High 1회 C0/I1/M0의 다중 조회 시간 계약을 RED→GREEN 보완했다. 실제 정원/work·delivery 귀속/비용·보상 합산/외부 일관성 및 C 저장이 없으면 완전자동은 차단된다. 실게임·실사용 원장·DB/main/IRIS0.4.3/공개 잠금 변경0, 집 개인12·기존 ACK 보존. commit/push는 별도 승인 전 금지. 아래 A 전송 기록은 그 시점의 경과다.
+
 ## 2026-10-26 KST — v2.322 개발 후보 후속 / 목재 후보 A 선별 전송
 
 - 이번에 완료한 것: 목재 추가100 합성 관리자·pending 새 프로세스 복구·readonly DTO. 기존 검증 소스 SHA256 12개 일치. Node688 중685 PASS/기존3 SKIP/0 FAIL, 타입·관련 lint PASS. 목재13·pending9복구 조합·DTO8 유지. 검증된 A와 최소 인계를 기능 브랜치에만 전송한다. 정확한 수신 SHA는 이 문서를 포함한 커밋과 원격 HEAD다.

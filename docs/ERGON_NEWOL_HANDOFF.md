@@ -1,5 +1,11 @@
 # ERGON — 뉴월 기획·개발 인계서
 
+## 2026-10-26 KST — 영겁 B native 관측 연결 / 로컬 미전송
+
+기능 ba03746 위에서 기존 native reader를 고정 bridge와 strict 읽기 모델에 실제 제품 코드로 연결했다. 가방/작업/레시피·기존 수령 보고의 관측은 가능하지만, 실제 게임 캐릭터 귀속·work/수령 귀속·정원·실비용·보상 합산 근거는 여전히 미확인이다. 따라서 완전자동 생산은 아직 차단된다. 사용자 확인은 목표/예산/수동 추가량의 보조일 뿐 공식 증거나 unknown 해제가 아니다.
+
+fake JSON/native·bridge 합성으로 신규8, 전체693 PASS/기존3 SKIP·React10·타입/lint·private native/격리 웹 빌드 통과. High 중요1(다중 조회 timeout) RED→GREEN 보완. C의 DPAPI 가공 저장/실제 소비/공개 활성화/실제 CLI 조회는 하지 않았다. [A/B/C/D 판정과 첫 실제 관측 제안](ERGON_NATIVE_OBSERVATION_B_QA_20261026.md)을 검토한 뒤 다음 구현을 결정한다. commit/push는 별도 승인 전이며 아래 A 전송·과거 기록은 그대로 보존한다.
+
 ## 2026-10-26 KST — v2.322 개발 후보 후속 / 목재 후보 A 선별 전송
 
 - 이번에 완료한 것: 목재 추가100 합성 관리자·pending 새 프로세스 복구·readonly DTO. 기존 검증 소스 SHA256 12개 일치. Node688 중685 PASS/기존3 SKIP/0 FAIL, 타입·관련 lint PASS. 목재13·pending9복구 조합·DTO8 유지. 검증된 A와 최소 인계를 기능 브랜치에만 전송한다. 정확한 수신 SHA는 이 문서를 포함한 커밋과 원격 HEAD다.
