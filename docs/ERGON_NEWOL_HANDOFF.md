@@ -1,5 +1,14 @@
 # ERGON — 뉴월 기획·개발 인계서
 
+## 2026-10-26 KST — v2.322 개발 후보 후속 / 목재 후보 A 선별 전송
+
+- 이번에 완료한 것: 목재 추가100 합성 관리자·pending 새 프로세스 복구·readonly DTO. 기존 검증 소스 SHA256 12개 일치. Node688 중685 PASS/기존3 SKIP/0 FAIL, 타입·관련 lint PASS. 목재13·pending9복구 조합·DTO8 유지. 검증된 A와 최소 인계를 기능 브랜치에만 전송한다. 정확한 수신 SHA는 이 문서를 포함한 커밋과 원격 HEAD다.
+- 아직 안 되는 것: 실제 자동 생산·native 가공 저장·호스트 연결. 기존 pending 배타는 정상 helper를 사용하는 동일 합성 root의 협력 프로세스에 한정된다. helper 자체 사망은 다음 필수 검증으로 남기며 production 안전 보장이 아니다. 현재 DTO는 순수 계약으로 native 출처를 인증하지 않는다.
+- 다음 작업: 기존 reader 기반 native 관측 B와 별도 버전 DPAPI 가공 저장 C. workId·정원·실수령 귀속·실비용·외부 배제 근거는 unsupported로 유지한다. B/C는 독립 검증 후 별도 전송한다.
+- 구조 변경: 공통 순수 회차 계산과 합성 전용 TS/시험 추가. 서버/API/DB/공개 UI 구조 변경 없음. 실제 CLI·게임·공개 잠금·executionConnected=false·운영 main/IRIS0.4.3 ZIP/metadata·Production 변경0. 신규 서버 호출0.
+- 보존/위험: 개인16항목·기존 ACK·사용자 원장·ignored 원본 로그는 보존/전송 제외. 과거 S01/N04 normal/최초 수령 간헐 원인 미확정과 새 목표 교체 이벤트 구 native 역방향 호환 미검증 유지. 아래 미승인·미전송 문구는 당시 경과이며 이번 승인으로 검증된 A/B/C의 선별 commit·일반 push가 허용되었다.
+- 근거: docs/ERGON_WOOD_PRODUCTION_SYNTHETIC_QA_20261026.md, docs/ERGON_WOOD_PROCESS_RECOVERY_QA_20261026.md, docs/ERGON_READONLY_EVIDENCE_QA_20261026.md.
+
 ## 2026-10-24 KST — 뉴월에게 전달할 최신 마감 요약
 
 이 절이 아래 2026-10-20 기준보다 최신이다. 기준 수신 코드는 기능 브랜치 `codex/home-gnosis-iris-integration-20261019`의 `e9575ec5c6432156d6b8a033cd50217b24da7d47`이며 오늘 변경의 정확한 전송 SHA는 이 절을 포함한 Git 커밋 이력/원격 HEAD로 확인한다. 운영은 main `ca697706a874d21668091588940ceb61338d0700`·IRIS0.4.3 그대로다. 기능 브랜치 코드가 공개 앱에서 사용 가능하다는 뜻은 아니다.

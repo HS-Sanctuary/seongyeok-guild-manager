@@ -1,5 +1,9 @@
 import {ergonSnapshotStale,type ErgonSnapshot} from './irisErgonRead';
 export type ErgonPlanItem={id:string;kind:'gathering'|'altering'|'crafting';displayName:string;targetQuantity:number};
+export function requiredErgonRuns(quantity:number,verifiedOutput:number):number{
+ if(!Number.isSafeInteger(quantity)||quantity<1||quantity>1000000||!Number.isSafeInteger(verifiedOutput)||verifiedOutput<1||verifiedOutput>1000000)throw Error('목표와 확인된 1회 산출량이 필요해요.');
+ return Math.ceil(quantity/verifiedOutput);
+}
 type Storage=Pick<globalThis.Storage,'getItem'|'setItem'>;
 const key=(environment:string,accountId:string)=>`iris_ergon_plans:v1:${encodeURIComponent(environment)}:${encodeURIComponent(accountId)}`;
 const fits=(text:string)=>new TextEncoder().encode(text).length<=32768;
@@ -38,7 +42,7 @@ export function calculateErgonPlan(item:ErgonPlanItem,catalog:ErgonSnapshot|null
  result.missingScope=Array.isArray(recipe.missing)?'one-unit-only':'unavailable';
  result.reasons.push('전체 재료표가 없어 목표 전체의 부족 재료·연쇄 제작은 아직 계산하지 않아요.');
  if(typeof output!=='number'||!Number.isSafeInteger(output)||output<=0){result.reasons.push('1회 산출량을 확인하지 못했어요.');return result;}
- result.outputPerRun=output;result.requiredRuns=Math.ceil(item.targetQuantity/output);result.wingMaximum=result.requiredRuns*5;result.wingMinimum=item.kind==='crafting'?5:result.wingMaximum;
+ result.outputPerRun=output;result.requiredRuns=requiredErgonRuns(item.targetQuantity,output);result.wingMaximum=result.requiredRuns*5;result.wingMinimum=item.kind==='crafting'?5:result.wingMaximum;
  if(item.kind==='crafting')result.reasons.push('제작은 여러 횟수를 한 명령으로 묶을 수 있어요. 시설별 한도와 묶음 방식에 따라 날개 소모가 달라져요.');
  return result;
 }

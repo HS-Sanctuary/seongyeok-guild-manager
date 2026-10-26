@@ -1,6 +1,29 @@
 # 순월 → 영겁 수신함
 
+## 2026-10-26 KST — v2.322 개발 후보 후속 / 목재 후보 A 선별 전송
+
+- 이번에 완료한 것: 목재 추가100 합성 관리자·pending 새 프로세스 복구·readonly DTO. 기존 검증 소스 SHA256 12개 일치. Node688 중685 PASS/기존3 SKIP/0 FAIL, 타입·관련 lint PASS. 목재13·pending9복구 조합·DTO8 유지. 검증된 A와 최소 인계를 기능 브랜치에만 전송한다. 정확한 수신 SHA는 이 문서를 포함한 커밋과 원격 HEAD다.
+- 아직 안 되는 것: 실제 자동 생산·native 가공 저장·호스트 연결. 기존 pending 배타는 정상 helper를 사용하는 동일 합성 root의 협력 프로세스에 한정된다. helper 자체 사망은 다음 필수 검증으로 남기며 production 안전 보장이 아니다. 현재 DTO는 순수 계약으로 native 출처를 인증하지 않는다.
+- 다음 작업: 기존 reader 기반 native 관측 B와 별도 버전 DPAPI 가공 저장 C. workId·정원·실수령 귀속·실비용·외부 배제 근거는 unsupported로 유지한다. B/C는 독립 검증 후 별도 전송한다.
+- 구조 변경: 공통 순수 회차 계산과 합성 전용 TS/시험 추가. 서버/API/DB/공개 UI 구조 변경 없음. 실제 CLI·게임·공개 잠금·executionConnected=false·운영 main/IRIS0.4.3 ZIP/metadata·Production 변경0. 신규 서버 호출0.
+- 보존/위험: 개인16항목·기존 ACK·사용자 원장·ignored 원본 로그는 보존/전송 제외. 과거 S01/N04 normal/최초 수령 간헐 원인 미확정과 새 목표 교체 이벤트 구 native 역방향 호환 미검증 유지. 아래 미승인·미전송 문구는 당시 경과이며 이번 승인으로 검증된 A/B/C의 선별 commit·일반 push가 허용되었다.
+- 근거: docs/ERGON_WOOD_PRODUCTION_SYNTHETIC_QA_20261026.md, docs/ERGON_WOOD_PROCESS_RECOVERY_QA_20261026.md, docs/ERGON_READONLY_EVIDENCE_QA_20261026.md.
+
 ## SW-20261026-001 — UPDATED / 목표 관리 로컬 후보·미전송
+
+- **최신 로컬 후속 / 읽기 전용 증거:** `irisErgonReadOnlyEvidence`와 신규8시험으로 works/actionState/제한 flat collection exact DTO·capability를 구현했다. 자동은 관측/형식만, 사용자 확인은 예산/범위/수동 추가량 분류만, workId/현정원/기간/실수령 귀속/비용/외부배제/native저장은 unsupported/null이다. automaticReady=false/executionAllowed=false/confirmedProgress=null 고정. [최종 결론/QA](../ERGON_READONLY_EVIDENCE_QA_20261026.md).
+- **검증:** 신규8·전체Node688/685PASS3기존SKIP0FAIL, 기존목재13/pending9 유지, 타입/lint0오류0경고. Sol Medium 검토1회 C0/I0/M0. 실제목재관리자에 오연결해도quote/execute0. native/bridge/DPAPI/기존목재제품 수정0. 최신CLI조회/실게임/공개/DB/배포/commit/push0.
+- **실제 차단/다음:** 저장/공급자 연결은 별도 승인 후 구현 가능하지만 작업·수령 귀속/정원/비용 근거가 확인되지 않으면 완전자동을 열 수 없다. 공식 근거 또는 검증된 시설 배치 계약이 필요하다. 확보 불가 시 반자동으로 목표·예산·매 회차 시설전체 영향/직접 확인 추가량을 받아 user-confirmed로 분리해야 하며 현재 그 저장/UI도 미구현이다. 사용자 확인으로 unknown/증거 누락을 덮지 않는다. 다음 최소는 실행 기능 없는 native 읽기 공급자/capability parity 시험. 앞선 로컬 후보/개인16/ACK/원장 보존, 모든 목재 후속은 **미커밋/미전송**이다.
+
+- **최신 로컬 후속 / pending 새 프로세스:** [복구 QA](../ERGON_WOOD_PROCESS_RECOVERY_QA_20261026.md), [native 누락 계약](../ERGON_WOOD_NATIVE_CONTRACT_GAPS_20261026.md). before-execute/response-loss/terminal-failure × gather/register/collect9조합에서 소유 Node 종료→새 PID/재복구 PASS, events/world 불변·재전송/등록/수령/예약중복0·기존확인3 보존. 기존 M1은 이 합성 범위에서 검증됐다.
+- **범위:** test-only ProcessRepo/helper가 기존 native game lease를 UUID 합성 root에서 빌린다. 동일 root 협력 프로세스 직렬화 PASS. helper 자체 crash·다른 root/비협력 외부 앱·실제 native host/DPAPI round 복구는 미검증/제품 활성화 차단. helper는 host/bridge/소스 목록에 포함하지 않는다.
+- **마감:** 신규3/기존목재13 PASS, 전체 Node680/677PASS3기존SKIP0FAIL·타입/lint·native journal 회귀 PASS. High1회 C0/I0/M0. 기존 목재5소스 검증 해시 불변. cache 부재로 공식 CLI 새조회/갱신0, source·10/21 공식 조사·설치 skill 정적대조만 수행. 사용자는 목표/예산/수동확인 출처를 제공할 수 있으나 workId/현재정원/비용/외부개입 근거·unknown 해제를 대체하지 못한다.
+- **다음 최소:** 실행 기능 없는 native 관측/수령 DTO·capability에서 누락은 null/unsupported 차단으로 유지→별도 승인된 DPAPI round/collection 귀속 계약 합성. 실제 실행/공개 gate/main/IRIS0.4.3/DB/Production 변경0. 앞선 목재 후보와 이번 변경 모두 **로컬 미커밋/미전송**, 별도 승인 전 commit/push 금지.
+
+- **최신 결과 / 전송 분리:** 목표 관리35파일은 `c63da183679bb219bbd21f7626a4b869d34ba524`로 일반 push·로컬/원격 일치 확인. 아래 전송대기는 과거 경과다. 이후 **목재 추가100 합성 후보는 미커밋/미전송**이며 별도 승인 전 push 금지다.
+- **목재 후보:** 재고→부족 통나무→가짜 채집→가공→대기→부분/초과 수령→재계산→추가100. pending 저장/예산/직렬화·불명 재전송 차단. [최신 합성 QA](../ERGON_WOOD_PRODUCTION_SYNTHETIC_QA_20261026.md). plan/회차/native projection은 재사용, 실제 executor/DPAPI 가공 수령 writer/bridge/UI는 미연결이다.
+- **검증:** 목재13 PASS, 전체 Node677/674PASS3기존SKIP0FAIL·타입/lint/격리 build·기존 React2 PASS. High1회 중요2(조회 중 만료/소단위 기록 한도) RED→GREEN. **M1 pending 새 프로세스 시험 미실행**, waiting/pause 새 프로세스만 PASS다. 임시 파일/동일 root 직렬화를 production DPAPI/cross-process actor 보장으로 해석하지 않는다.
+- **필수 후속:** workId·정원·실제 등록시간/기간·완전한 recipe·quote·delivery 실제량·일관성/외부개입 근거·native Begin/terminal·공통 actor/writer·가공 진척 저장 계약. 현재 crafting 확인량/부분 reference를 가공 확정량으로 위장하지 말 것. public/실게임/main/IRIS0.4.3/DB/Production/새 서버 사용 변경0. 과거 간헐 원인 미확정·새 교체 이벤트 역방향 호환 미검증 유지.
 
 - **목표 관리 전송 승인 누적:** 한설이 위 목표 취소·원자 수량 교체 제품/시험/최소 한국어 기록의 기능 브랜치 선별 commit·일반 push를 승인했다. 기준 `7a7b70a98928a780aea555bb70a583ae52cb5d84`, 최종 수신 SHA는 이 누적을 포함한 원격 HEAD다. 아래 미승인/미전송 문구는 당시 경과로 보존한다. 개인16·ACK·원장·원본 로그 제외/보존, 구 native 역방향 호환 미검증 위험 유지.
 - **다음 착수 승인:** 목재 추가100의 가짜 CLI/격리 저장 최소 목표형 관리자. 실제 게임·공개 gate·운영/서버 사용 변경 금지. 새 자동 생산 후보는 결과 검토 전 commit/push 금지이며 이번 목표 관리 커밋에 포함하지 않는다. native의 현재 가공 수량 확인 한계를 확인하고 별도 합성 경계를 명시할 것.

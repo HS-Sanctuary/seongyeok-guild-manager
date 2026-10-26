@@ -1,5 +1,14 @@
 # SANCTUM 업데이트 노트
 
+## 2026-10-26 KST — v2.322 개발 후보 후속 / 목재 후보 A 선별 전송
+
+- 이번에 완료한 것: 목재 추가100 합성 관리자·pending 새 프로세스 복구·readonly DTO. 기존 검증 소스 SHA256 12개 일치. Node688 중685 PASS/기존3 SKIP/0 FAIL, 타입·관련 lint PASS. 목재13·pending9복구 조합·DTO8 유지. 검증된 A와 최소 인계를 기능 브랜치에만 전송한다. 정확한 수신 SHA는 이 문서를 포함한 커밋과 원격 HEAD다.
+- 아직 안 되는 것: 실제 자동 생산·native 가공 저장·호스트 연결. 기존 pending 배타는 정상 helper를 사용하는 동일 합성 root의 협력 프로세스에 한정된다. helper 자체 사망은 다음 필수 검증으로 남기며 production 안전 보장이 아니다. 현재 DTO는 순수 계약으로 native 출처를 인증하지 않는다.
+- 다음 작업: 기존 reader 기반 native 관측 B와 별도 버전 DPAPI 가공 저장 C. workId·정원·실수령 귀속·실비용·외부 배제 근거는 unsupported로 유지한다. B/C는 독립 검증 후 별도 전송한다.
+- 구조 변경: 공통 순수 회차 계산과 합성 전용 TS/시험 추가. 서버/API/DB/공개 UI 구조 변경 없음. 실제 CLI·게임·공개 잠금·executionConnected=false·운영 main/IRIS0.4.3 ZIP/metadata·Production 변경0. 신규 서버 호출0.
+- 보존/위험: 개인16항목·기존 ACK·사용자 원장·ignored 원본 로그는 보존/전송 제외. 과거 S01/N04 normal/최초 수령 간헐 원인 미확정과 새 목표 교체 이벤트 구 native 역방향 호환 미검증 유지. 아래 미승인·미전송 문구는 당시 경과이며 이번 승인으로 검증된 A/B/C의 선별 commit·일반 push가 허용되었다.
+- 근거: docs/ERGON_WOOD_PRODUCTION_SYNTHETIC_QA_20261026.md, docs/ERGON_WOOD_PROCESS_RECOVERY_QA_20261026.md, docs/ERGON_READONLY_EVIDENCE_QA_20261026.md.
+
 ## 2026-10-26 KST — v2.322 개발 후보 후속 / ERGON 목표 관리 인계
 
 - 비공개 제작 목표의 빈 목표 취소·계획 제거와 원자적 수량 교체를 기능 브랜치에 선별 인계한다. native 저장 확인 뒤 로컬 계획을 반영하고 ACK 유실·재시작·미저장 초안을 보호한다. 공개 버전·운영 IRIS0.4.3/배포물 변경 없음.
