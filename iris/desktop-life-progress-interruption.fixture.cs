@@ -49,7 +49,7 @@ namespace IrisDesktop {
    var t=new ProgressHostFixture.Trial(root,true);t.store=new DesktopErgonProgressStore(root,"development");var c=ProgressHostFixture.Attach(t);await SeedHistory(t,c);
    // The seed used its nonce. Start a fresh actor/session before the decorated admission.
    t=new ProgressHostFixture.Trial(root,true);t.store=new DesktopErgonProgressStore(root,"development");c=ProgressHostFixture.Attach(t);
-   var goal=await ProgressHostFixture.Goal(t,c);var p=await t.Prepare();string id=(string)p["nonce"];
+   var goal=await ProgressHostFixture.Goal(t,c,"synthetic-next-plan");var p=await t.Prepare();string id=(string)p["nonce"];
    t.onPerform=()=>File.AppendAllText(Path.Combine(root,"dispatches.log"),"fake-command\n");
    if(mode=="after-begin"){
     var paused=new PausedBegin((IProgressExecutionActor)c,()=>{Marker(t,mode,id);Thread.Sleep(Timeout.Infinite);});

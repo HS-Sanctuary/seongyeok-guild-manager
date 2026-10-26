@@ -9,7 +9,7 @@ namespace IrisDesktop {
   internal async Task<object> Prepare(Dictionary<string,object> intent,bool bind=true){
    if(Equals(intent["action"],"collect"))return await actor.PrepareAsync(intent);
    var native=actor.ProgressContext();var scope=new ProgressScope{environment="development",accountId=(string)native["accountId"],characterId=(string)native["characterId"]};var snapshot=store.Load(scope);string goal=Guid.NewGuid().ToString("D");
-   var create=new Dictionary<string,object>{{"accountId",scope.accountId},{"characterId",scope.characterId},{"goalId",goal},{"sourcePlanId","synthetic-regression"},{"parentGoalId",null},{"action",intent["action"]},{"displayName",intent["displayName"]},{"targetQuantity",100},{"revision",snapshot.revision},{"operationId",Guid.NewGuid().ToString("D")}};
+   var create=new Dictionary<string,object>{{"accountId",scope.accountId},{"characterId",scope.characterId},{"goalId",goal},{"sourcePlanId","synthetic-regression-"+goal},{"parentGoalId",null},{"action",intent["action"]},{"displayName",intent["displayName"]},{"targetQuantity",100},{"revision",snapshot.revision},{"operationId",Guid.NewGuid().ToString("D")}};
    var saved=(ProgressExecutionResult)await connection.RequestAsync("createGoal",create);if(saved.status!="saved")throw new Exception("synthetic goal ACK: "+saved.error);
    var preview=await actor.PrepareAsync(intent);var nonce=(string)DesktopLifePolicy.Plain(preview)["nonce"];
    if(!bind)return preview;

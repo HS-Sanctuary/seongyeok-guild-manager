@@ -1,5 +1,11 @@
 # 🏛️ SANCTUM Master Guide
 
+### 2026-10-26 KST — ERGON 비공개 목표 관리
+
+기존 작업대 결과 패널/useErgonProgress/useErgonSession → `irisErgonGoalManagement` → 고정 typed `replaceEmptyGoal`/native connection → 기존 Store 단일 `ReplaceEmptyGoal` mutation을 연결했다. 빈 제작 루트만 이전 기록 보존·비활성/분리·신규 루트 단일 생성하며 common writer/CAS/operationId를 재사용한다. native ACK·재조회 뒤에만 기존 로컬 계획을 변경하고 불일치 계획의 대기열 예약을 보류한다. 기존 취소·미저장 초안·CHRONOS 보호 유지.
+
+신규 mutation의 nullable 필드는 이전 canonical digest와 호환되며 구 문서 판독 PASS다. 새 이벤트의 구 native 역방향 호환은 미검증/미보장이다. 서버/API/DB/권한·기존 실행 원장 구조 변경 없음, 운영 IRIS0.4.3/ZIP/metadata·공개 gate/executionConnected=false 유지. 실제 게임·자동 생산 연결은 활성화하지 않는다. [목표 관리 QA](../docs/ERGON_ATOMIC_GOAL_REPLACEMENT_QA_20261026.md).
+
 ### 2026-10-24 KST — ERGON 비공개 작업대·목표 진척 연결
 
 DesktopPage의 requestClose/beforeunload/onBeforeApply/changeContext/로그아웃 보호 → DesktopErgon의 기존 결과 패널/useErgonProgress → 기존 native 암호화 진행 저장소를 연결했다. `irisErgonGoalBinding`은 정확한 scope/sourcePlanId/루트/행동/품목/목표 수량을 대조하고 createGoal/bindPrepared의 저장 결과를 권위 있는 최신 기록으로 재확인한다. 등록 확인은 실행 허가가 아니며 executionAllowed=false다.

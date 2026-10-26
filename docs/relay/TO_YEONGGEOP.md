@@ -1,5 +1,22 @@
 # 순월 → 영겁 수신함
 
+## SW-20261026-001 — UPDATED / 목표 관리 로컬 후보·미전송
+
+- **목표 관리 전송 승인 누적:** 한설이 위 목표 취소·원자 수량 교체 제품/시험/최소 한국어 기록의 기능 브랜치 선별 commit·일반 push를 승인했다. 기준 `7a7b70a98928a780aea555bb70a583ae52cb5d84`, 최종 수신 SHA는 이 누적을 포함한 원격 HEAD다. 아래 미승인/미전송 문구는 당시 경과로 보존한다. 개인16·ACK·원장·원본 로그 제외/보존, 구 native 역방향 호환 미검증 위험 유지.
+- **다음 착수 승인:** 목재 추가100의 가짜 CLI/격리 저장 최소 목표형 관리자. 실제 게임·공개 gate·운영/서버 사용 변경 금지. 새 자동 생산 후보는 결과 검토 전 commit/push 금지이며 이번 목표 관리 커밋에 포함하지 않는다. native의 현재 가공 수량 확인 한계를 확인하고 별도 합성 경계를 명시할 것.
+
+- **후속 승인 마감 / 원자 수량 교체:** 아래 앞선 A 미구현 경계 이후, 한설이 최소 native 원자 계약을 승인했다. `ReplaceEmptyGoal` 한 mutation으로 empty crafting100→70, 옛 root cancelled/detached 보존·신규 활성1·안정 operationId replay·native ACK/재조회 후 로컬 저장을 구현했다. [최신 원자 교체 QA](../ERGON_ATOMIC_GOAL_REPLACEMENT_QA_20261026.md)가 현재 상태다. 기존 누적은 삭제하지 않는다.
+- **후속 검증:** Node664 중661 PASS/기존3 SKIP/FAIL0, R01–R10·J01/J02·React16·기존 native7종·전체 native compile·타입/lint·격리 build PASS. High1회 C0/I1/M0의 옛 root child 생성/바인딩 우회를 RED→GREEN 보완했다. 과거 S01/N04 normal/수령 간헐 원인 미확정 유지. 새 uniqueness와 충돌한 합성 fixture3곳의 독립 계획 ID만 구분했으며 보호 기대값은 유지했다.
+- **후속 한계/다음:** 진행·확인·unknown/자식 목표 교체는 거절한다. 실제 게임/설치본 검증 아님. 구 v1 문서를 새 reader로 여는 호환은 PASS이나 새 이벤트를 구 reader로 읽는 역방향 호환은 보장하지 않으므로 향후 배포/다운그레이드 전에 검토할 것. 공용 계획 다중 캐릭터·외부 창 동시 편집의 전체 정책은 후속 범위다. 자동 생산/공개 활성화는 별도 승인.
+- **후속 전송 상태:** 기준 HEAD는 여전히 `7a7b70a98928a780aea555bb70a583ae52cb5d84`. 원자 교체까지 포함하여 **로컬 미커밋/미전송**이며 commit/push/배포 승인 없음. 사무실 원본16(ACK 포함)·별도 ACK·원장·로그·IRIS0.4.3/ZIP/metadata·공개 잠금을 보존했다. 아래 과거 미구현 기록은 당시 경계 설명이다.
+
+- **이번에 완료한 것:** 기준/수신 HEAD `7a7b70a98928a780aea555bb70a583ae52cb5d84`에서 빈 제작 목표 `그만하기` → native 취소 재조회 → 계획 제거 후보를 구현했다. native/local 실패·ACK 유실·중복·캐릭터 늦은 ACK를 방어하고, 연결 목표의 직접 편집을 막았다. [목표 관리 QA](../ERGON_GOAL_MANAGEMENT_QA_20261026.md)를 먼저 읽을 것.
+- **아직 안 되는 것:** A 수량 교체는 기존 별도 CAS API만으로 동일 sourcePlanId의 복수 대체 목표를 막지 못하여 미구현이다(G04 경계 재현). 이력/진행/unknown 목표 취소 및 동일 품목 재등록 전체 흐름도 미완료. L01–L03은 빈 목표 한정 PASS, L04 부분/L05 미실행이다.
+- **검증:** Node656 중653 PASS/기존3 SKIP/FAIL0, G01–G04·신규/기존 React·CHRONOS 저장3종·재화·공개 잠금·타입/lint/격리 build PASS. High1회 C0/I1/M0: 다른 계획 미저장 초안 유실 위험을 실제 React RED→GREEN 보완했다. 과거 N04 normal/S01/최초 수령 간헐 실패 원인 미확정은 유지한다.
+- **다음 작업:** 원자적 native 목표 교체 계약(기존 기록 보존·비활성/분리·신규 연결·단일 승자·durable operationId)을 먼저 승인/검증한다. 기존 goal 덮어쓰기나 client-only 우회는 금지. 3차 전체/자동 생산 완료로 판단하지 않는다.
+- **전송 상태:** 이 메시지와 제품·시험은 **로컬 미커밋/미전송**이다. 사용자는 결과 검토 전 commit·push를 승인하지 않았다. 위 SHA는 이번 후보의 전송 SHA가 아닌 수신 기준이다. 향후 공식 push 때 기존 릴레이/공식 문서 규칙을 적용할 것.
+- **보존:** 사무실 원본16항목(기존 ACK 포함)·별도 ACK·원본 로그·사용자 원장 보존. main `ca697706a874d21668091588940ceb61338d0700`/운영 IRIS0.4.3 및 기존 기능 ZIP/metadata 변경0. 공개 gate·executionConnected=false 유지, 실게임/DB/서버/main/배포/새 소비 없음. 이전 누적과 ACK는 아래 그대로 보존한다.
+
 - **2026-10-23 퇴근 인계 2차 추가 / SW-20261023-001 UPDATED:** 첫 제품 전송 d92d8ba259dbb1dfc69079b3be45c99dfcc21041 원격일치 확인. 두 번째는 **실제 작업대 미mount인 독립 첫 결과 UI 후보** 제품5·시험5와 최소 기록만 선별한다. 최종 수신 SHA는 이 누적을 포함한 기능브랜치 원격 HEAD다. [3차 첫 UI QA](../ERGON_PHASE3_FIRST_UI_QA_20261023.md)를 우선 읽는다. 이전 미ACK 누적 보존/ACK 영겁 대기.
 - 완료: native 단일권위 typed ACK·독립 hook/패널, 빈칸/0·3→2 정정·실패초안·ACK유실 동일operation·보류remount·캐릭터늦은ACK방어. High C0/I3/M0 중요3(취소뒤입력잠김/연결소실초안소실/ACK요청증거부족) RED→GREEN 보완. 최종 Node645/642PASS3기존SKIP0FAIL, React3·타입/lint·최종격리build 및 기존lock/currency/save3UI 회귀 PASS. 12폭·글자 넘침0.
 - **새 실패 이력:** 보완 전 전체에서 N04 normal 자식이 marker 전 native-result-review-required로 종료하여 1FAIL. native/N04소스첫commit과동일, 분리1회2PASS/최종전체0FAIL이나 원인 미확정. 첫전송의기존PASS를무효로숨기거나재실행PASS로원인해결처리하지말것. 기존S01/수령회귀 원인 미확정도 유지.

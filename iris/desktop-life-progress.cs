@@ -188,7 +188,9 @@ namespace IrisDesktop {
         public object craftCount{get;set;} public object outputPerCraft{get;set;} public object expectedOutput{get;set;} public string outcome{get;set;}
         public long startedAt{get;set;} public long observedAt{get;set;} public int verifierVersion{get;set;} public string rowDigest{get;set;}
     }
+    internal sealed class ProgressGoalReplacement {public string goalId{get;set;} public object targetQuantity{get;set;}}
     internal sealed class ProgressMutation {
+        public ProgressGoalReplacement replacement{get;set;}
         public string kind{get;set;} public ProgressScope scope{get;set;} public string goalId{get;set;} public string requestId{get;set;}
         public string sourcePlanId{get;set;} public string parentGoalId{get;set;} public string action{get;set;} public string displayName{get;set;} public object targetQuantity{get;set;}
         public object craftCount{get;set;} public object outputPerCraft{get;set;} public object expectedOutput{get;set;} public object preparedAt{get;set;} public object expiresAt{get;set;}
@@ -264,6 +266,7 @@ namespace IrisDesktop {
             Require(!quoted&&!escaped,"invalid-json-string");
         }
         static void OriginalNumbers(ProgressMutation m){
+            if(m.replacement!=null)Number(m.replacement.targetQuantity,1,1000000);
             if(m.quantity!=null)Number(m.quantity,0,5000000);if(m.targetQuantity!=null)Number(m.targetQuantity,1,1000000);
             if(m.craftCount!=null)Number(m.craftCount,1,5);if(m.outputPerCraft!=null)Number(m.outputPerCraft,1,1000000);if(m.expectedOutput!=null)Number(m.expectedOutput,1,5000000);
             if(m.preparedAt!=null)Number(m.preparedAt,1,TimeLimit);if(m.expiresAt!=null)Number(m.expiresAt,1,TimeLimit);if(m.candidateRevision!=null)Number(m.candidateRevision,0,SafeInteger);
@@ -274,7 +277,9 @@ namespace IrisDesktop {
         internal static bool Same(ProgressScope a,ProgressScope b){return a!=null&&b!=null&&a.environment==b.environment&&a.accountId==b.accountId&&a.characterId==b.characterId;}
         internal static string Hash(string value){using(var sha=SHA256.Create())return BitConverter.ToString(sha.ComputeHash(Utf8.GetBytes(value))).Replace("-","").ToLowerInvariant();}
         static string CanonicalValue(object v){
-            var d=v as Dictionary<string,object>;if(d!=null)return "{"+String.Join(",",d.Keys.OrderBy(x=>x,StringComparer.Ordinal).Select(k=>Serialize(k)+":"+CanonicalValue(d[k])))+"}";
+            // v1 mutations lacked this optional member. Null adds no meaning and must
+            // not change their historical event/document digests.
+            var d=v as Dictionary<string,object>;if(d!=null)return "{"+String.Join(",",d.Keys.Where(k=>!(k=="replacement"&&d[k]==null&&d.ContainsKey("kind")&&d.ContainsKey("scope")&&d.ContainsKey("goalId"))).OrderBy(x=>x,StringComparer.Ordinal).Select(k=>Serialize(k)+":"+CanonicalValue(d[k])))+"}";
             var a=v as object[];if(a!=null)return "["+String.Join(",",a.Select(CanonicalValue))+"]";return Serialize(v);
         }
         internal static string Canonical(object value){return CanonicalValue(Serializer().DeserializeObject(Serialize(value)));}
@@ -292,7 +297,7 @@ namespace IrisDesktop {
                 if(recoveryFloor.HasValue?mutation.kind!="Recover"||expectedRevision!=recoveryFloor||expectedRevision<current.revision:expectedRevision!=current.revision)return Result("conflict",op,current,mutation.scope,"revision");
                 Require(!current.reviewRequired||mutation.kind=="Recover","review-required");Require(current.revision<SafeInteger&&now>=1&&now<=TimeLimit,"invalid-revision-time");
                 var d=Clone(current);var m=Clone(mutation);var e=new ProgressAuditEvent{eventId=op,operationId=op,meaningDigest=meaning,revision=(recoveryFloor??d.revision)+1,recordedAt=now,previousDigest=d.commitDigest,mutation=m};
-                Apply(d,e);e.digest=Hash(Canonical(new {e.eventId,e.operationId,e.meaningDigest,e.revision,e.recordedAt,e.previousDigest,e.mutation}));d.auditEvents.Add(e);d.revision=e.revision;d.previousCommitDigest=e.previousDigest;d.commitDigest=e.digest;Capacity(d);
+                Apply(d,e,true);e.digest=Hash(Canonical(new {e.eventId,e.operationId,e.meaningDigest,e.revision,e.recordedAt,e.previousDigest,e.mutation}));d.auditEvents.Add(e);d.revision=e.revision;d.previousCommitDigest=e.previousDigest;d.commitDigest=e.digest;Capacity(d);
                 var result=Result("committed",op,d,m.scope,null);result.document=d;return result;
             }catch(Exception e){if(!(e is InvalidDataException||e is ArgumentException||e is InvalidOperationException||e is OverflowException))throw;return Result("rejected",op,current,mutation==null?null:mutation.scope,e is InvalidDataException?e.Message:"invalid-mutation");}
         }
@@ -307,22 +312,40 @@ namespace IrisDesktop {
         static ProgressGoalRecord Goal(ProgressDocument d,ProgressMutation m){var g=d.goals.SingleOrDefault(x=>x.goalId==m.goalId);Require(g!=null&&Same(g.scope,m.scope),"foreign-goal");return g;}
         static ProgressAttemptRecord Attempt(ProgressDocument d,ProgressMutation m){var a=d.attempts.SingleOrDefault(x=>x.requestId==m.requestId);Require(a!=null&&a.goalId==m.goalId&&Same(a.scope,m.scope),"foreign-request");return a;}
         static bool Action(string action){return action=="crafting"||action=="altering"||action=="gathering";}
-        static void Apply(ProgressDocument d,ProgressAuditEvent e){
+        static bool AttachedRoot(ProgressGoalRecord g){return g.parentGoalId==null&&!g.detached&&(g.lifecycle=="active"||g.lifecycle=="paused");}
+        static void UniqueRoot(ProgressDocument d,ProgressScope scope,string plan,string except){Require(!d.goals.Any(x=>x.goalId!=except&&Same(x.scope,scope)&&x.sourcePlanId==plan&&AttachedRoot(x)),"duplicate-plan-root");}
+        static void ActiveLineage(ProgressDocument d,ProgressGoalRecord goal){
+            var seen=new HashSet<string>();var current=goal;
+            while(true){Require(current!=null&&Same(current.scope,goal.scope)&&seen.Add(current.goalId)&&current.lifecycle=="active"&&!current.detached,"inactive-goal-lineage");if(current.parentGoalId==null){Require(current.goalId==goal.rootGoalId,"foreign-goal-root");return;}current=d.goals.SingleOrDefault(x=>x.goalId==current.parentGoalId);}
+        }
+        static void Apply(ProgressDocument d,ProgressAuditEvent e,bool live=false){
             var m=e.mutation;Scope(m.scope);Require(m.scope.environment==d.environment&&IsId(m.goalId),"foreign-scope");
             if(m.kind=="CreateGoal"){
                 Shape(m,new[]{"sourcePlanId","parentGoalId","action","displayName","targetQuantity"});Require(!d.goals.Any(x=>x.goalId==m.goalId)&&Text(m.sourcePlanId,100)&&Action(m.action)&&Text(m.displayName,160),"invalid-goal");
                 var parent=m.parentGoalId==null?null:d.goals.SingleOrDefault(x=>x.goalId==m.parentGoalId&&Same(x.scope,m.scope));Require(m.parentGoalId==null||parent!=null,"invalid-parent");
+                if(live&&parent==null)UniqueRoot(d,m.scope,m.sourcePlanId,null);
+                if(live&&parent!=null)ActiveLineage(d,parent);
                 d.goals.Add(new ProgressGoalRecord{scope=Clone(m.scope),goalId=m.goalId,sourcePlanId=m.sourcePlanId,parentGoalId=m.parentGoalId,rootGoalId=parent==null?m.goalId:parent.rootGoalId,action=m.action,displayName=m.displayName,targetQuantity=Number(m.targetQuantity,1,1000000),lifecycle="active"});return;
             }
             if(m.kind=="Recover"){
                 Shape(m,new[]{"candidateDigest","candidateRevision"});Require(m.candidateDigest==d.commitDigest&&Number(m.candidateRevision,0,SafeInteger)==d.revision,"invalid-recovery");d.reviewRequired=true;return;
             }
             var g=Goal(d,m);
-            if(m.kind=="SetLifecycle"){Shape(m,new[]{"lifecycle"});Require(new[]{"active","paused","cancelled","archived"}.Contains(m.lifecycle),"invalid-lifecycle");Require(!(g.lifecycle=="cancelled"||g.lifecycle=="archived")||m.lifecycle==g.lifecycle||m.lifecycle=="archived","terminal-goal");g.lifecycle=m.lifecycle;return;}
+            if(m.kind=="ReplaceEmptyGoal"){
+                Shape(m,new[]{"sourcePlanId","action","displayName","targetQuantity","replacement"});var replacement=m.replacement;
+                Require(replacement!=null&&IsId(replacement.goalId)&&!d.goals.Any(x=>x.goalId==replacement.goalId),"invalid-replacement");
+                Require(g.parentGoalId==null&&g.rootGoalId==g.goalId&&g.lifecycle=="active"&&!g.detached&&g.action=="crafting"&&m.action==g.action&&m.sourcePlanId==g.sourcePlanId&&m.displayName==g.displayName&&Number(m.targetQuantity,1,1000000)==g.targetQuantity,"replacement-old-goal-mismatch");
+                Require(!d.attempts.Any(attempt=>attempt.goalId==g.goalId)&&!d.goals.Any(x=>x.goalId!=g.goalId&&x.rootGoalId==g.goalId)&&!d.attempts.Any(attempt=>attempt.evidence==null||attempt.action=="crafting"&&attempt.evidence.outcome=="completed"&&attempt.confirmations.Count==0),"replacement-history-or-unresolved");
+                UniqueRoot(d,m.scope,m.sourcePlanId,g.goalId);long target=Number(replacement.targetQuantity,1,1000000);Require(target!=g.targetQuantity,"replacement-quantity-unchanged");
+                g.lifecycle="cancelled";g.detached=true;
+                d.goals.Add(new ProgressGoalRecord{scope=Clone(g.scope),goalId=replacement.goalId,sourcePlanId=g.sourcePlanId,parentGoalId=null,rootGoalId=replacement.goalId,action=g.action,displayName=g.displayName,targetQuantity=target,lifecycle="active"});return;
+            }
+            if(m.kind=="SetLifecycle"){Shape(m,new[]{"lifecycle"});Require(new[]{"active","paused","cancelled","archived"}.Contains(m.lifecycle),"invalid-lifecycle");Require(!(g.lifecycle=="cancelled"||g.lifecycle=="archived")||m.lifecycle==g.lifecycle||m.lifecycle=="archived","terminal-goal");if(live&&g.parentGoalId==null&&(m.lifecycle=="active"||m.lifecycle=="paused")){Require(!g.detached,"detached-goal");UniqueRoot(d,g.scope,g.sourcePlanId,g.goalId);}g.lifecycle=m.lifecycle;return;}
             if(m.kind=="DetachPlan"){Shape(m,new[]{"sourcePlanId"});Require(m.sourcePlanId==g.sourcePlanId&&(g.lifecycle=="cancelled"||g.lifecycle=="archived"),"deactivate-before-detach");g.detached=true;return;}
             if(m.kind=="BindPreparedRequest"){
                 Shape(m,new[]{"requestId","action","displayName","craftCount","outputPerCraft","expectedOutput","preparedAt","expiresAt"});Require(g.lifecycle=="active"&&!g.detached&&IsId(m.requestId)&&!d.attempts.Any(x=>x.requestId==m.requestId)&&m.action==g.action&&m.displayName==g.displayName,"invalid-binding");
                 Require(!d.attempts.Any(x=>x.goalId==g.goalId&&(x.evidence==null||x.action=="crafting"&&x.evidence.outcome=="completed"&&x.confirmations.Count==0)),"quantity-unconfirmed");
+                if(live)ActiveLineage(d,g);
                 long? count=null,output=null,expected=null;
                 if(m.action=="crafting"){count=Number(m.craftCount,1,5);output=Number(m.outputPerCraft,1,1000000);expected=Number(m.expectedOutput,1,5000000);Require(expected==count*output,"invalid-crafting");}else Require(m.craftCount==null&&m.outputPerCraft==null&&m.expectedOutput==null,"invalid-crafting");
                 var prepared=Number(m.preparedAt,1,TimeLimit);var expires=Number(m.expiresAt,prepared,TimeLimit);

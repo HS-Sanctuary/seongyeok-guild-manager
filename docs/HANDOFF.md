@@ -1,5 +1,13 @@
 # SANCTUM 작업 인계
 
+## 2026-10-26 KST — 목표 관리 선별 전송 / 목재100 합성 착수 승인
+
+- 한설이 검증된 빈 제작 목표 취소·원자 수량 교체와 최소 한국어 기록만 기능 브랜치 commit·일반 push 승인. 기준 `7a7b70a98928a780aea555bb70a583ae52cb5d84`; 최종 SHA는 이 문서를 포함한 커밋과 원격 HEAD를 대조한다. [원자 교체 QA](ERGON_ATOMIC_GOAL_REPLACEMENT_QA_20261026.md)와 [앞선 취소 QA](ERGON_GOAL_MANAGEMENT_QA_20261026.md)를 따른다.
+- Node661 PASS/기존3 SKIP/0 FAIL, React16·native/타입/lint/build PASS. 구 v1 판독 유지, 새 이벤트를 구 native에서 읽는 역방향 호환은 미검증/미보장. 과거 간헐 실패 원인 미확정 유지. 공개 gate/executionConnected=false·운영 IRIS0.4.3/ZIP/metadata 보존.
+- 원본 개인16항목(ACK 포함), 별도 ACK·로그·사용자 원장은 전송에서 제외/보존한다. 기존 QA의 미커밋/승인대기 문구는 당시 경과다.
+- 다음 승인: 목재 추가100의 재고→부족통나무→채집→가공→대기→수령→실수량→반복을 **가짜 CLI·격리 저장**으로 연결하는 최소 관리자. 실제 가공 확정량을 현재 crafting 전용 native 확인량으로 위장하지 않는다. 필요한 CLI/영수증/저장 계약을 먼저 구분한다. 새 자동 생산 코드의 commit/push는 별도 승인 전 금지.
+- main/DB/Production/실게임/공개 잠금/새 서버 사용 변경 금지. 이번 목표 관리 전송은 자동 생산 또는 공개 배포 완료가 아니다.
+
 ## 2026-10-24 KST — 집 작업 마감 / 기능 브랜치 전송 승인
 
 한설이 오늘까지 검증한 변경과 최소 인계 기록의 선별 commit·일반 push를 승인했다. 대상은 `codex/home-gnosis-iris-integration-20261019`, 수신 기준은 `e9575ec5c6432156d6b8a033cd50217b24da7d47`다. 정확한 전송 SHA는 이 항목을 포함한 커밋의 Git 이력과 원격 HEAD를 대조한다. 아래 로컬/미승인 문구는 당시 경과로 보존한다.

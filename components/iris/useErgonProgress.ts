@@ -2,10 +2,11 @@
 import {useCallback,useEffect,useLayoutEffect,useRef,useState} from 'react';
 import type {createDesktopStore} from '@/lib/irisDesktopStore';
 import {createErgonGoalBinding} from '@/lib/irisErgonGoalBinding';
+import {createErgonGoalCancellation,createErgonGoalReplacement} from '@/lib/irisErgonGoalManagement';
 import type {ErgonPlanItem} from '@/lib/irisErgonPlan';
 import {parseErgonProgressView,parseErgonProgressAck,type ProgressScope,type ProgressView,type ErgonQuantityWrite,type ErgonLifecycleWrite} from '@/lib/irisErgonProgress';
 
-export type ErgonProgressApi=Pick<ReturnType<typeof createDesktopStore>,'ergonProgressCapabilities'|'loadErgonProgress'|'saveErgonQuantity'|'setErgonGoalLifecycle'>&Partial<Pick<ReturnType<typeof createDesktopStore>,'createErgonGoal'>>;
+export type ErgonProgressApi=Pick<ReturnType<typeof createDesktopStore>,'ergonProgressCapabilities'|'loadErgonProgress'|'saveErgonQuantity'|'setErgonGoalLifecycle'>&Partial<Pick<ReturnType<typeof createDesktopStore>,'createErgonGoal'|'replaceErgonGoal'>>;
 export function useErgonProgress({api,scope,active,locked}:{api?:ErgonProgressApi;scope:ProgressScope;active:boolean;locked:boolean}){
  const key=JSON.stringify([scope.environment,scope.accountId,scope.characterId]);
  const [state,setState]=useState<{key:string;view:ProgressView|null;error:string;loading:boolean;supported:boolean}>({key,view:null,error:'',loading:!!api,supported:!!api});
@@ -47,5 +48,19 @@ export function useErgonProgress({api,scope,active,locked}:{api?:ErgonProgressAp
   catch{if(ticket===generation.current)setState(previous=>({...previous,error:'목표 저장을 확인하지 못했어요. 같은 목표의 저장 상태를 다시 확인해 주세요.'}));return 'unknown' as const;}
   finally{flight.current=false;setBusy(false);}
  };
- return {view:state.key===key?state.view:null,error:state.key===key?state.error:'',loading:state.key!==key||state.loading,supported:state.key===key&&state.supported,busy,reload,write,connectGoal,canConnect:!!api?.createErgonGoal};
+ const cancelAndRemove=async(plan:ErgonPlanItem,remove:(plan:ErgonPlanItem)=>boolean)=>{
+  if(!api||flight.current||!live.current.active||live.current.locked||state.key!==key||state.loading||!state.supported)return false;
+  flight.current=true;setBusy(true);const ticket=generation.current,current=()=>{if(ticket!==generation.current||live.current.key!==key||!live.current.active||live.current.locked)throw Error('목표 문맥이 바뀌었어요. 원래 캐릭터에서 상태를 확인해 주세요.');};
+  try{const driver=createErgonGoalCancellation(api,()=>generation.current),result=await driver.cancel({environment,accountId,characterId},plan);current();setState({key,view:result.view,error:'',loading:false,supported:true});if(remove(plan)!==true)throw Error('목표는 취소됐지만 계획 제거를 확인하지 못했어요.');return true;}
+  catch(error){if(ticket===generation.current)setState(previous=>({...previous,error:error instanceof Error?error.message:'취소·계획 저장 상태를 확인하지 못했어요.'}));return false;}
+  finally{flight.current=false;setBusy(false);}
+ };
+ const replaceAndSave=async(plan:ErgonPlanItem,quantity:number,save:(plan:ErgonPlanItem,quantity:number)=>boolean)=>{
+  if(!api?.replaceErgonGoal||flight.current||!live.current.active||live.current.locked||state.key!==key||state.loading||!state.supported)return false;
+  flight.current=true;setBusy(true);const ticket=generation.current,current=()=>{if(ticket!==generation.current||live.current.key!==key||!live.current.active||live.current.locked)throw Error('목표 문맥이 바뀌었어요. 원래 캐릭터에서 저장 상태를 확인해 주세요.');};const owner={environment,accountId,characterId};
+  try{const result=await createErgonGoalReplacement({loadErgonProgress:api.loadErgonProgress,replaceErgonGoal:api.replaceErgonGoal},()=>generation.current).replace(owner,plan,quantity);current();setState({key,view:result.view,error:'',loading:false,supported:true});if(save(plan,quantity)!==true)throw Error('계획 저장 상태 확인이 필요해요.');return true;}
+  catch{try{current();const view=parseErgonProgressView(await api.loadErgonProgress(owner),owner);current();setState({key,view,error:'저장 상태 확인이 필요해요. native 목표가 변경됐을 수 있어요. 계획과 입력은 유지했어요.',loading:false,supported:true});}catch{/* Never apply a late foreign result. */}return false;}
+  finally{flight.current=false;setBusy(false);}
+ };
+ return {view:state.key===key?state.view:null,error:state.key===key?state.error:'',loading:state.key!==key||state.loading,supported:state.key===key&&state.supported,busy,reload,write,connectGoal,cancelAndRemove,replaceAndSave,canReplace:!!api?.replaceErgonGoal,canConnect:!!api?.createErgonGoal};
 }

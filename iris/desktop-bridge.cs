@@ -199,6 +199,7 @@ namespace IrisDesktop {
                     case "game.life.progress.capabilities":
                     case "game.life.progress.load":
                     case "game.life.progress.createGoal":
+                    case "game.life.progress.replaceEmptyGoal":
                     case "game.life.progress.bindPrepared":
                     case "game.life.progress.confirmQuantity":
                     case "game.life.progress.correctQuantity":
@@ -211,6 +212,7 @@ namespace IrisDesktop {
                         if(progressMethod!="game.life.progress.capabilities"&&progressMethod!="game.life.progress.load"){
                             progressFields.AddRange(new[]{"revision","operationId","goalId"});
                             if(progressMethod=="game.life.progress.createGoal")progressFields.AddRange(new[]{"sourcePlanId","parentGoalId","action","displayName","targetQuantity"});
+                            else if(progressMethod=="game.life.progress.replaceEmptyGoal")progressFields.AddRange(new[]{"sourcePlanId","action","displayName","targetQuantity","replacementQuantity"});
                             else if(progressMethod=="game.life.progress.bindPrepared")progressFields.Add("nonce");
                             else if(progressMethod=="game.life.progress.confirmQuantity"||progressMethod=="game.life.progress.correctQuantity"){progressFields.AddRange(new[]{"requestId","quantity"});if(progressMethod=="game.life.progress.correctQuantity")progressFields.AddRange(new[]{"supersedesEventId","reason"});}
                             else progressFields.Add(progressMethod=="game.life.progress.setLifecycle"?"lifecycle":"sourcePlanId");

@@ -1,5 +1,9 @@
 # 영겁 → 순월 수신함
 
+- 순월 후속 기록 — 2026-10-26 KST. 동일 수신 HEAD `7a7b70a98928a780aea555bb70a583ae52cb5d84`와 기존 ACK/dirty 후보를 보존한 채 한설의 원자적 목표 수량 변경 승인을 수행했다. 결과는 `ERGON_ATOMIC_GOAL_REPLACEMENT_QA_20261026.md`와 발신함의 후속 누적에 기록했다. commit/push/운영·실게임 적용은 하지 않았다.
+
+- ACK: 순월 — 2026-10-26 KST. 기능 원격/수신 HEAD `7a7b70a98928a780aea555bb70a583ae52cb5d84`, 운영 main `ca697706a874d21668091588940ceb61338d0700`을 대조하고 기존 깨끗한 관리 worktree만 ff-only 수신했다. 10/24 최신 인계·목표 연결/작업대 QA·뉴월 요약 및 현재 소스를 확인했다. 원본 checkout 변경16항목(기존 ACK 포함)·이전 별도 ACK/ignored 로그를 보존한다. 이번 승인은 목표 변경·취소의 제품/격리 합성 검증이며 commit/push/실게임/DB/main/배포/공개 잠금 해제는 금지다. 과거 UPDATED/미전송 경과는 그대로 보존한다.
+
 - **2026-10-24 KST 마감 / YG-20261023-001 UPDATED:** 한설이 오늘까지 검증한 변경의 기능 브랜치 선별 commit·일반 push를 승인했다. 기준 e9575ec, 대상 `codex/home-gnosis-iris-integration-20261019`. 이 누적을 포함한 최종 커밋과 원격 HEAD가 정확한 수신 기준이다. 이전 미ACK/미전송 경과는 지우지 않는다.
 - 포함: N-R1/U-R1/V15·page 종료/계정/캐릭터/업데이트 보호·실제 작업대 결과 패널·제작 목표 기록 생성/재사용·비소비성 bindPrepared 계약·native 확인 수량의 Queue 단일화·시험/QA/기존 수신 ACK. [최신 QA](../ERGON_GOAL_BINDING_QA_20261023.md)와 [뉴월 요약](../ERGON_NEWOL_HANDOFF.md)을 먼저 읽을 것.
 - 검증: Node651 중648 PASS/기존3 SKIP/0 FAIL, React14·타입/lint/격리빌드 PASS. High 1회 C0/I2 보완. N04/S01/최초수령 과거 간헐 원인 미확정은 유지한다. 합성 시험만이며 실제 게임 성공/자동 생산 완료가 아니다.

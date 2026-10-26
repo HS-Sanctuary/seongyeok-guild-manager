@@ -75,6 +75,15 @@ static void Match(ProgressAttemptRecord a,Dictionary<string,object> row,bool all
   internal async Task<object> RequestAsync(string method,Dictionary<string,object> p){
    Need(p!=null,"payload-required");
    if(method=="confirmQuantity"||method=="correctQuantity")return await QuantityAsync(method,p).ConfigureAwait(false);
+   if(method=="replaceEmptyGoal"){
+    DesktopLifePolicy.Exact(p,"accountId","characterId","revision","operationId","goalId","sourcePlanId","action","displayName","targetQuantity","replacementQuantity");Owner(p);Need(!actor.Busy,"actor-busy");var initial=actor.ProgressContext();string contextDigest=ProgressDomain.Canonical(initial),payloadDigest=ProgressDomain.Canonical(p);long revision=Revision(p);var op=Operation(p);
+    var m=new ProgressMutation{kind="ReplaceEmptyGoal",scope=Scope(initial),goalId=(string)p["goalId"],sourcePlanId=(string)p["sourcePlanId"],action=(string)p["action"],displayName=(string)p["displayName"],targetQuantity=ProgressDomain.Number(p["targetQuantity"],1,1000000),replacement=new ProgressGoalReplacement{goalId=op.ToString("D"),targetQuantity=ProgressDomain.Number(p["replacementQuantity"],1,1000000)}};
+    var owner=new ProgressLockOwner();using(owner.Enter(ProgressLockOwner.Mutation))using(await actor.ProgressMutationAsync().ConfigureAwait(false))using(var lease=await ProgressExecutionLease.AcquireAsync(owner,()=>Task.FromResult<IDisposable>(journal.AcquireExecutionLease())).ConfigureAwait(false))using(var writer=await store.AcquireWriterAsync(owner).ConfigureAwait(false)){
+     // ProgressMutationAsync owns coordinating=true here; testing Busy again
+     // would reject our own admission. It already excluded a running actor.
+     QuantityContext(p,payloadDigest,contextDigest);Audit(store.Inspect(writer),null);QuantityContext(p,payloadDigest,contextDigest);return QuantityCommit(m,revision,op,writer,()=>QuantityContext(p,payloadDigest,contextDigest));
+    }
+   }
    if(method=="createGoal"){
     DesktopLifePolicy.Exact(p,"accountId","characterId","revision","operationId","goalId","sourcePlanId","parentGoalId","action","displayName","targetQuantity");Owner(p);
     selected=new ProgressGoalView{goalId=(string)p["goalId"],sourcePlanId=(string)p["sourcePlanId"],parentGoalId=(string)p["parentGoalId"],action=(string)p["action"],displayName=(string)p["displayName"],targetQuantity=ProgressDomain.Number(p["targetQuantity"],1,1000000)};

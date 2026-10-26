@@ -2,6 +2,7 @@
 import {useCallback,useEffect,useLayoutEffect,useRef,useState} from 'react';
 import {createErgonSession} from '@/lib/irisErgonSession';
 import {parseErgonPlans,readErgonPlans,writeErgonPlans,type ErgonPlanItem} from '@/lib/irisErgonPlan';
+import {removeErgonPlanAfterCancel,replaceErgonPlanAfterGoal} from '@/lib/irisErgonGoalManagement';
 import type {ErgonReadKind,ErgonSnapshot} from '@/lib/irisErgonRead';
 import type {CurrencySnapshot} from '@/lib/irisCurrencies';
 export type ErgonSessionProps={environment:string;accountId:string;characterId:string|null;active:boolean;locked:boolean;watchWorks?:boolean;read:<K extends ErgonReadKind>(kind:K,allowed?:()=>boolean)=>Promise<ErgonSnapshot<K>>;readCurrencies?:(allowed?:()=>boolean)=>Promise<CurrencySnapshot>;getContextVersion:()=>number};
@@ -16,6 +17,8 @@ export function useErgonSession(props:ErgonSessionProps){
  const planScope=JSON.stringify([props.environment,props.accountId]);
  const [plans,setPlans]=useState<ErgonPlanItem[]>([]),[persistent,setPersistent]=useState(true),[unreadable,setUnreadable]=useState(false),[loadedPlanScope,setLoadedPlanScope]=useState('');
  const ready=loadedPlanScope===planScope;
+ const planBaseline=useRef<ErgonPlanItem[]|null>(null),planDraft=useRef({plans,persistent,ready,unreadable,planScope});
+ useLayoutEffect(()=>{planDraft.current={plans,persistent,ready,unreadable,planScope};},[plans,persistent,ready,unreadable,planScope]);
  const session=useRef<ReturnType<typeof createErgonSession>|null>(null);
  useLayoutEffect(()=>{
   const allowed=()=>mounted.current&&latest.current.active&&!latest.current.locked&&document.visibilityState==='visible';
@@ -25,7 +28,7 @@ export function useErgonSession(props:ErgonSessionProps){
  useLayoutEffect(()=>{generation.current++;session.current?.invalidate();},[props.active,props.locked,props.watchWorks]);
  useLayoutEffect(()=>{generation.current++;session.current?.reset();},[props.environment,props.accountId,props.characterId]);
  useEffect(()=>{const changed=()=>{generation.current++;session.current?.invalidate();};document.addEventListener('visibilitychange',changed);return()=>document.removeEventListener('visibilitychange',changed);},[]);
- useEffect(()=>{mounted.current=true;let live=true;queueMicrotask(()=>{if(!live)return;try{const value=readErgonPlans(localStorage,props.environment,props.accountId);setPlans(value.items);setPersistent(value.persistent);setUnreadable(value.unreadable);}catch{setPlans([]);setPersistent(false);setUnreadable(false);}setLoadedPlanScope(planScope);});return()=>{live=false;mounted.current=false;};},[props.environment,props.accountId,planScope]);
+ useEffect(()=>{mounted.current=true;let live=true;queueMicrotask(()=>{if(!live)return;try{const value=readErgonPlans(localStorage,props.environment,props.accountId);planBaseline.current=value.persistent&&!value.unreadable?value.items:null;setPlans(value.items);setPersistent(value.persistent);setUnreadable(value.unreadable);}catch{planBaseline.current=null;setPlans([]);setPersistent(false);setUnreadable(false);}setLoadedPlanScope(planScope);});return()=>{live=false;mounted.current=false;};},[props.environment,props.accountId,planScope]);
  const refresh=useCallback((kind:ErgonReadKind)=>session.current?.refresh(kind)??Promise.resolve(),[]);
  const refreshCurrencies=useCallback(()=>{
   if(currencyPending.current)return currencyPending.current;
@@ -58,7 +61,20 @@ export function useErgonSession(props:ErgonSessionProps){
   if(!ready||(unreadable&&!reset))return;
   parseErgonPlans({schemaVersion:1,items:next});setPlans(next);
   let saved=false;try{saved=writeErgonPlans(localStorage,props.environment,props.accountId,next,reset);}catch{/* Preserve session edits when local storage is unavailable. */}
-  setPersistent(saved);if(saved&&reset)setUnreadable(false);
+  setPersistent(saved);if(saved)planBaseline.current=parseErgonPlans({schemaVersion:1,items:next});if(saved&&reset)setUnreadable(false);
  };
- return {...snapshotState,now,refresh,inspect,refreshCurrencies,refreshOverview,currencies,currencyBusy,currencyNotice,plans:ready?plans:[],persistent:ready?persistent:true,unreadable:ready&&unreadable,ready,changePlans};
+ const removeCancelledPlan=(plan:ErgonPlanItem)=>{
+  const p=latest.current,draft=planDraft.current;if(!ready||unreadable||!draft.persistent||draft.planScope!==planScope||JSON.stringify(draft.plans)!==JSON.stringify(plans)||!p.active||p.locked||p.environment!==props.environment||p.accountId!==props.accountId||p.characterId!==props.characterId||!p.characterId)throw Error('미저장 계획 또는 소유 범위 변경이 있어요. 현재 계획을 먼저 저장해 주세요.');
+  const local=plans.find(row=>row.id===plan.id);if(local&&JSON.stringify(local)!==JSON.stringify(plan))throw Error('계획이 변경됐어요. 기존 기록을 확인해 주세요.');
+  const stored=readErgonPlans(localStorage,p.environment,p.accountId);if(!stored.persistent||stored.unreadable||JSON.stringify(stored.items)!==JSON.stringify(draft.plans))throw Error('저장된 계획 목록이 달라요. 다른 편집을 보존하고 새로 확인해 주세요.');
+  const next=removeErgonPlanAfterCancel(localStorage,{environment:p.environment as 'development'|'production',accountId:p.accountId,characterId:p.characterId},plan);planBaseline.current=next;setPlans(next);setPersistent(true);return true;
+ };
+ const replaceGoalPlan=(plan:ErgonPlanItem,quantity:number)=>{
+  const p=latest.current,draft=planDraft.current;if(!draft.ready||draft.unreadable||!draft.persistent||draft.planScope!==planScope||JSON.stringify(draft.plans)!==JSON.stringify(plans)||!p.active||p.locked||p.environment!==props.environment||p.accountId!==props.accountId||p.characterId!==props.characterId||!p.characterId)throw Error('미저장 계획 또는 소유 범위 변경이 있어요. 현재 계획을 먼저 저장해 주세요.');
+  const local=plans.find(row=>row.id===plan.id);if(!local||JSON.stringify(local)!==JSON.stringify(plan))throw Error('계획이 변경됐어요. 저장 상태 확인이 필요해요.');
+  const expected=plans.map(row=>row.id===plan.id?{...row,targetQuantity:quantity}:row),stored=readErgonPlans(localStorage,p.environment,p.accountId);if(!stored.persistent||stored.unreadable||JSON.stringify(stored.items)!==JSON.stringify(draft.plans)&&JSON.stringify(stored.items)!==JSON.stringify(expected))throw Error('다른 편집이 있어요. 초안을 보존하고 저장 상태를 확인해 주세요.');
+  const next=replaceErgonPlanAfterGoal(localStorage,{environment:p.environment as 'development'|'production',accountId:p.accountId,characterId:p.characterId},plan,quantity);planBaseline.current=next;setPlans(next);setPersistent(true);return true;
+ };
+ const retryPlans=()=>{const p=latest.current,draft=planDraft.current;if(!draft.ready||draft.unreadable||draft.planScope!==planScope||!p.active||p.locked||p.environment!==props.environment||p.accountId!==props.accountId)throw Error('현재 계획과 계정을 확인해 주세요.');const stored=readErgonPlans(localStorage,p.environment,p.accountId);if(!stored.persistent||stored.unreadable||planBaseline.current===null||JSON.stringify(stored.items)!==JSON.stringify(planBaseline.current))throw Error('다른 창에서 계획이 바뀌었거나 저장 상태를 확인할 수 없어요. 초안은 유지해요.');if(!writeErgonPlans(localStorage,p.environment,p.accountId,draft.plans))throw Error('계획을 저장하지 못했어요. 초안은 유지해요.');const verified=readErgonPlans(localStorage,p.environment,p.accountId);if(!verified.persistent||verified.unreadable||JSON.stringify(verified.items)!==JSON.stringify(draft.plans))throw Error('계획 저장 결과를 확인하지 못했어요.');planBaseline.current=parseErgonPlans({schemaVersion:1,items:draft.plans});setPersistent(true);return true;};
+ return {...snapshotState,now,refresh,inspect,refreshCurrencies,refreshOverview,currencies,currencyBusy,currencyNotice,plans:ready?plans:[],persistent:ready?persistent:true,unreadable:ready&&unreadable,ready,changePlans,removeCancelledPlan,replaceGoalPlan,retryPlans};
 }

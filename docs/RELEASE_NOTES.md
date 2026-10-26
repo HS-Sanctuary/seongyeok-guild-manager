@@ -1,5 +1,12 @@
 # SANCTUM 업데이트 노트
 
+## 2026-10-26 KST — v2.322 개발 후보 후속 / ERGON 목표 관리 인계
+
+- 비공개 제작 목표의 빈 목표 취소·계획 제거와 원자적 수량 교체를 기능 브랜치에 선별 인계한다. native 저장 확인 뒤 로컬 계획을 반영하고 ACK 유실·재시작·미저장 초안을 보호한다. 공개 버전·운영 IRIS0.4.3/배포물 변경 없음.
+- 구조 변경: 기존 Store의 단일 `ReplaceEmptyGoal` mutation, 고정 typed/native route, 작업대 목표 편집 연결. 서버/API/DB/RLS·실행 원장 구조 변경 없음. 기존 v1 읽기 호환 PASS, 새 교체 이벤트의 구 native 역방향 호환은 미검증/미보장이다.
+- 검증: Node664 중661 PASS/기존3 SKIP/0 FAIL, React16·native R01–R10/J01–J02/기존7종/전체 소스 compile·타입/lint/격리 build PASS. High 중요1 보완. 과거 S01/N04 normal/최초 수령 간헐 원인 미확정 유지.
+- 실제 게임/설치본 적용/공개 잠금 해제/main 병합/DB/Production 변경 없음. 이전 정상 운영 main `ca697706a874d21668091588940ceb61338d0700` 유지. [최종 QA](ERGON_ATOMIC_GOAL_REPLACEMENT_QA_20261026.md). 다음 목재100 합성 자동 생산 후보는 이번 전송에 포함하지 않는다.
+
 ## 2026-10-24 KST — v2.322 개발 후보 후속 / ERGON 집 작업 마감
 
 - 공개 버전 상승 없음. 운영 main `ca697706a874d21668091588940ceb61338d0700`·IRIS 0.4.3 설치본/metadata는 그대로 유지한다. 기능 브랜치의 미공개 코드만 인계하며 Production 배포·공지·DB·실게임 시험은 하지 않는다.
