@@ -1,5 +1,9 @@
 # 🏛️ SANCTUM Master Guide
 
+### 2026-10-27 D-0 기능 브랜치 선별 전송
+
+기존 DesktopErgonWorkbench의 생활 현황 안에 DesktopErgonWoodStatus와 pure irisErgonWoodStatus 표시 projection을 연결한다. 기존 C load/관측 전용 parser·저장된 B 관측·native 목표 결합만 사용하며 새 observe·목표/예산/소비·writer/상태 엔진은 없다. review 목표는 표시 selector 옵션으로만 허용하고 기존 실행 선택은 유지한다. CSS는 해당 subsection에 한정한다. native/B/C 저장·공개 화면·서버/API/DB/RLS 구조 변경 없음. 기준 Caff55344, 최종 SHA/검증·미지원 범위는 [D-0 QA](../docs/ERGON_D0_READONLY_WORKBENCH_QA_20261027.md)/인계와 원격 HEAD를 대조한다. 공개 잠금/실행false·운영 IRIS0.4.3/main은 유지한다.
+
 ### 2026-10-27 C/N04 기능 브랜치 선별 전송
 
 한설의 최종 승인으로 아래 로컬 C 및 N04 검증 변경만 전송한다. 사용자 공개 구조·서버/API/DB/RLS·IRIS0.4.3 설치본 구조 변경 없음. PC 로컬 목재 진행 저장/관측 경계는 앞선 C 설명을 따르며 native raw production 소비 route는 없다. 기준 B971a4d8·최종 source19 검증본 일치, 전체714/711 PASS/FAIL0/기존3 SKIP. 정확 SHA/미구현/금지 경계는 [최신 인계](../docs/ERGON_NEWOL_HANDOFF.md)와 [N04 QA](../docs/ERGON_N04_HOME_RECOVERY_QA_20261027.md)를 대조한다.

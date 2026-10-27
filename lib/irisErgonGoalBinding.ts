@@ -6,8 +6,8 @@ export type ErgonBindingWrite={revision:number;operationId:string;goalId:string;
 export type ErgonGoalApi={loadErgonProgress(scope:ProgressScope):Promise<unknown>;createErgonGoal(scope:ProgressScope,p:ErgonGoalWrite):Promise<unknown>;bindErgonPrepared?(scope:ProgressScope,p:ErgonBindingWrite):Promise<unknown>};
 const sameScope=(a:ProgressScope,b:ProgressScope)=>a.environment===b.environment&&a.accountId===b.accountId&&a.characterId===b.characterId;
 const matches=(g:GoalView,p:ErgonPlanItem)=>g.sourcePlanId===p.id&&g.action===p.kind&&g.displayName===p.displayName&&g.targetQuantity===p.targetQuantity;
-export function selectErgonNativeGoal(view:ProgressView|null,scope:ProgressScope,plan:ErgonPlanItem):GoalView|null{
- if(!view||view.health!=='ok'||!sameScope(view.scope,scope))return null;
+export function selectErgonNativeGoal(view:ProgressView|null,scope:ProgressScope,plan:ErgonPlanItem,options?:{forDisplayOnly:true}):GoalView|null{
+ if(!view||(view.health!=='ok'&&!(options?.forDisplayOnly&&view.health==='review-required'))||!sameScope(view.scope,scope))return null;
  const candidates=view.goals.filter(g=>g.sourcePlanId===plan.id&&g.parentGoalId===null&&!g.detached&&g.lifecycle!=='cancelled'&&g.lifecycle!=='archived');
  return candidates.length===1&&matches(candidates[0],plan)?candidates[0]:null;
 }

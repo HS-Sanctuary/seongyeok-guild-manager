@@ -1,5 +1,21 @@
 # SANCTUM 작업 인계
 
+## 2026-10-27 22:25 KST — D-0 선별 전송 마감
+
+대상 `codex/home-gnosis-iris-integration-20261019`, 기준 C `aff55344dc213c80ef1e10602d350a11cf9cfc8b`. 한설이 D-0 source/test8·필수 인계5·저장소 필수 릴리스/구조도2만 선별 commit·일반 push 승인했다. 최종 수신 SHA는 이 항목을 포함한 커밋과 원격 HEAD이며 `git rev-parse HEAD`로 대조한다. 아래 승인 없음/집 로컬은 당시 경과로 보존한다.
+
+완료는 기존 생활 현황 안의 읽기 전용 B/C 기록 표시다. source none의 기록0과 실제 확보량 미확인, 과거 관측 잔여 시간/시각과 저장 갱신 시각 미확인, 보류/unknown/차단을 구분한다. B/C parser·C load·기존 goal selector를 재사용하며 실행 selector 기본 조건과 C native/저장 소스는 변경하지 않았다. C가 거절하는 보류 목표 load도 UI에서 시도하지 않는다. [최종 QA/검증](ERGON_D0_READONLY_WORKBENCH_QA_20261027.md)을 먼저 읽는다.
+
+최종 재검증: 마지막 UI 포함 source8 SHA256 일치, Node720/717 PASS/FAIL0/기존3 SKIP·실제 D-0 React/기존 보호6종·TypeScript/관련 ESLint/격리 Next build PASS. N04/C 저장·복구 회귀와 공개 잠금을 포함한다. 제품/시험 추가 변경 없이 인계만 마감한다. 과거 N04 field-diff의 정확 원인 미확정은 그대로 유지한다.
+
+순월 순서: 사무실 개인/미전송 N04 자료 보존→안전 수신/ACK→D-0 목표/수량/시간/지연 응답과 기존 저장 보호 회귀 대조→실제 관측의 대상·횟수·캐릭터 귀속/작업 ID·정원·수령량·비용 증거의 누락을 한설에게 보고. 실제 CLI/생산/원장 해제는 이 인계로 승인되지 않는다. 개인12·ACK 원본·원장/암호문/로그·사본은 제외/보존했고 공개 ERGON/실행false·main ca697706·IRIS0.4.3/DB/Production은 유지한다.
+
+## 2026-10-27 후속 D-0 — C 전송 완료 / UI 로컬 검증 후보
+
+C 원격 전송 SHA **`aff55344dc213c80ef1e10602d350a11cf9cfc8b`** 일치 확인. [D-0 QA](ERGON_D0_READONLY_WORKBENCH_QA_20261027.md)는 그 뒤의 로컬 변경이다. 기존 생활 현황 안에 C load/저장된 B 관측 현황을 연결했고 새 observe/생산/저장 엔진은 없다. 기록0과 실제 수량 미확인·조회 당시 잔여 시간·보류/unknown을 구분한다. C 계약상 보류 목표는 진척 load하지 않는다. 전체720/717 PASS/FAIL0/기존3 SKIP와 실제 React 보완 결과를 QA에서 대조한다.
+
+**D-0는 미커밋/미전송이며 승인 없음.** 사무실에는 C만 전달됐다. 다음은 D-0 결과 검토와 별도 전송 승인, 실제 관측 시험의 대상/횟수/예산/캐릭터 귀속을 별도 결정하는 일이다. 실제 CLI/소비·사용자 원장·공개 잠금/main/DB/IRIS0.4.3/Production 변경 금지. 개인12/ACK/로그·사본은 보존한다. 사무실의 미전송 N04 진단과 C의 journal/executor/fixture가 겹치면 덮어쓰지 말고 비교한다.
+
 ## 2026-10-27 20:51 KST — C/N04 기능 브랜치 선별 전송 승인 마감
 
 한설이 검증된 C 제품·시험/N04 최소 수정·필수 인계만 선별 commit·일반 push하도록 승인했다. 대상 `codex/home-gnosis-iris-integration-20261019`, 기준 B `971a4d81f8c69fb1ef1bdf046aa75931a6f14bc4`; 정확한 최종 수신 SHA는 이 항목을 포함한 커밋/원격 HEAD다. 아래 승인 대기·로컬 미전송 문구는 각 시점 경과로 보존한다. source19개가 최종 PASS 보존본과 일치하고 원격 기준과 ff-only 최신임을 확인했다.
