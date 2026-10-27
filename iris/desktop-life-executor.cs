@@ -47,7 +47,7 @@ namespace IrisDesktop {
    if(journal==null||read==null||currency==null||named==null||perform==null||confirm==null||allowed==null||epoch==null||clock==null)throw new ArgumentException();
    this.journal=journal;this.read=read;this.currency=currency;this.named=named;this.perform=perform;this.confirm=confirm;this.allowed=allowed;this.epoch=epoch;this.clock=clock;
    sessionStartedAt=DesktopLifePolicy.Time(clock());
-   try{journal.RecoverInterrupted();}catch(IOException){/* A living sibling may own the execution lease; do not reinterpret its action. */}
+   try{journal.RecoverInterrupted();}catch(LifeExecutionLeaseBusyException){/* Only a positively identified sibling game lease may defer recovery. Other recovery I/O must remain visible. */}
   }
   public object Capabilities(){if(automation==null)return new {schemaVersion=3,actions=new[]{"gathering","altering","crafting","collect"},gatheringNames=new[]{"\uD1B5\uB098\uBB34"},queue=false,collectCostKnown=false,quantityGathering=stop!=null,currentStop=stop!=null,quantityCrafting=craft!=null,maxCraftCount=5};return new {schemaVersion=4,actions=new[]{"gathering","altering","crafting","collect"},gatheringNames=new[]{"\uD1B5\uB098\uBB34"},queue=false,collectCostKnown=false,quantityGathering=stop!=null,currentStop=stop!=null,quantityCrafting=craft!=null,maxCraftCount=5,oneClickCollection=true,automaticReconciliation=true,collectionPolicyVersion=1};}
   public object SetContext(Dictionary<string,object> value){

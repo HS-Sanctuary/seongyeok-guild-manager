@@ -1,5 +1,23 @@
 # SANCTUM 작업 인계
 
+## 2026-10-27 20:51 KST — C/N04 기능 브랜치 선별 전송 승인 마감
+
+한설이 검증된 C 제품·시험/N04 최소 수정·필수 인계만 선별 commit·일반 push하도록 승인했다. 대상 `codex/home-gnosis-iris-integration-20261019`, 기준 B `971a4d81f8c69fb1ef1bdf046aa75931a6f14bc4`; 정확한 최종 수신 SHA는 이 항목을 포함한 커밋/원격 HEAD다. 아래 승인 대기·로컬 미전송 문구는 각 시점 경과로 보존한다. source19개가 최종 PASS 보존본과 일치하고 원격 기준과 ff-only 최신임을 확인했다.
+
+전송은 source/test19와 필수 문서7개다. 제외한 수신 ACK 원본·수신 확인 메모·계획2개는 집에 유지하며 개인12·실사용 원장/암호문/로그/격리 사본은 포함하지 않는다. 순월은 수신/ACK→[N04/C 최종 QA](ERGON_N04_HOME_RECOVERY_QA_20261027.md)/현재 소스 대조→native 저장/복구·목표4/확인3 회귀→실제 관측에 필요한 증거와 다음 최소 연결 범위를 제안할 것. B/C를 재구현하지 않는다. 실제 CLI/소비·원장 수정/자동 해제·공개 잠금 해제·main/DB/IRIS0.4.3/Production은 별도 승인 전 금지다.
+
+## 2026-10-27 집 — N04 독립 복구 / C 검증 마감 / 전송 승인 대기
+
+[독립 복구 QA](ERGON_N04_HOME_RECOVERY_QA_20261027.md)가 최신이다. 순월 진단 패키지는 미수신인 채 B/C 짧은 사본 비교와 직접 합성 RED→GREEN을 수행했다. 제품은 journal game lease의 실제 공유 충돌만 typed busy로 구분하고 executor가 다른 복구 IOException을 숨기지 않도록 최소 수정했다. `paused child lost game lease`는 response-loss fixture의 외부 root 없는 미완료 TCS 수명을 forced-GC로 B/C에서 재현하고 fixture 보유로 보완했다. 제품의 lease/unknown 보호는 약화하지 않았다.
+
+최종 Node714/711 PASS/FAIL0/기존3 SKIP, C native14/API2·N044·React6·타입·관련 lint·private native/격리 웹 build PASS. 이번 High 검토 C0/I0/M0. 과거 recovery field-diff의 정확한 IOException 단계는 여전히 미확정이며 후속 통과로 소급 해결하지 않는다. C는 선별 전송 후보이나 **commit/push 승인 대기**다. 원격 B971a4d8·운영main ca697706/IRIS0.4.3/공개 잠금/executionConnected=false·집 개인12/ACK/원본 실패 로그 보존. 실제 게임·사용자 원장·DB/Production 변경0. 아래 과거 보류 기록을 보존한다.
+
+## 2026-10-26 집 — B 전송 완료 / C 전송 보류
+
+B `971a4d81f8c69fb1ef1bdf046aa75931a6f14bc4` 일반 push·원격 일치 확인. C의 별도 DPAPI 가공 저장/native·typed port/B 관측 연결은 로컬 구현했고 High C0/I3를 RED→GREEN 보완했다. [C QA](ERGON_WOOD_DPAPI_C_QA_20261026.md)를 우선 읽을 것. production은 blocked/확인0/실행false이며 실제 가공 실행을 열지 않았다.
+
+전체 동시712/707PASS·2FAIL·3기존SKIP 중 신규 fixture 경합은 보완했지만 기존 N04 `paused child lost game lease`가 직렬 전체에서도 실패했다. N04 단독2PASS·C 개별 회귀/타입/lint/native private compile/격리 웹 build/React6 PASS와 구분한다. 보호 기대값을 낮추지 않고 C commit/push는 보류한다. C 소스·실패/성공 로그는 로컬 보존, 기존 개인12/ACK·실사용 원장·운영main ca697706/IRIS0.4.3/공개false/executionConnected=false 유지. 최신 약속은 남은15%에서 중단이다. 사무실 원격에는 C가 없으므로 완료로 오인하지 말 것.
+
 - **2026-10-26 B 전송 승인:** 한설이 아래 검증된 B 변경의 기능 브랜치 commit·일반 push를 승인했다. 기준 ba0374676d593a88118f226b3737603de9557db8, 정확 전송 SHA는 본 기록 포함 커밋/원격 HEAD 대조 기준이다. 아래 미승인·로컬 문구는 당시 경과다. C 구현은 이 전송 뒤 별도 delta/커밋으로 진행하며 검증되지 않은 C를 B에 섞지 않는다. 개인12/ACK·실사용 원장/운영0.4.3/main/DB/공개 잠금 유지.
 
 ## 2026-10-26 KST — 집 B native 관측 구현 / 로컬 미전송

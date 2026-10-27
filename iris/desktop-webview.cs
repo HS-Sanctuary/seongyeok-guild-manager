@@ -280,6 +280,7 @@ namespace IrisDesktop {
                     lifeProgress.BindQuantityApproval(ConfirmProgressQuantityAsync);
                     lifeEvidence=new DesktopLifeEvidenceProvider(development?"development":"production",lifeActor.ProgressContext,lifeActor.State,DesktopLifeReader.ReadAsync,()=>!IsDisposed&&!Disposing&&Visible&&WindowState!=FormWindowState.Minimized&&!closeDecision,()=>DesktopLifePolicy.Time(DateTime.UtcNow));
                     bridge.BindLifeEvidence(lifeEvidence.ReadAsync);
+                    var woodProgress=new DesktopWoodProgressConnection(journalRoot,development?"development":"production",lifeJournal,new DesktopErgonProgressStore(journalRoot,development?"development":"production"),lifeActor.ProgressContext,lifeActor.ProgressMutationAsync,lifeEvidence.ReadAsync);
                     bridge.BindLifeActions(lifeActor.Capabilities,(method,payload)=>{
                         switch(method){
                             case "game.life.actions.context":return lifeActor.SetContext(payload);
@@ -291,7 +292,7 @@ namespace IrisDesktop {
                             case "game.life.actions.collectionObservation":return lifeActor.CollectionObservation(payload);
                             default:throw new ArgumentException();
                         }
-                    },(method,payload)=>method.StartsWith("game.life.progress.",StringComparison.Ordinal)?lifeProgress.RequestAsync(method.Substring("game.life.progress.".Length),payload):method=="game.life.actions.collect"?lifeActor.CollectOneClickAsync(payload):method=="game.life.actions.prepare"?lifeActor.PrepareAsync(payload):method=="game.life.actions.confirm"?lifeActor.ConfirmAsync(payload):method=="game.life.actions.stop"?lifeActor.StopAsync(payload):Task.FromException<object>(new ArgumentException()),()=>lifeActor.Busy);
+                    },(method,payload)=>method.StartsWith("game.life.wood.",StringComparison.Ordinal)?woodProgress.RequestAsync(method.Substring("game.life.wood.".Length),payload):method.StartsWith("game.life.progress.",StringComparison.Ordinal)?lifeProgress.RequestAsync(method.Substring("game.life.progress.".Length),payload):method=="game.life.actions.collect"?lifeActor.CollectOneClickAsync(payload):method=="game.life.actions.prepare"?lifeActor.PrepareAsync(payload):method=="game.life.actions.confirm"?lifeActor.ConfirmAsync(payload):method=="game.life.actions.stop"?lifeActor.StopAsync(payload):Task.FromException<object>(new ArgumentException()),()=>lifeActor.Busy);
                 } catch { lifeActor=null; /* Other IRIS features stay available; execution remains closed. */ }
                 bridge.BindOverlay(Overlay.State,Overlay.SetClickThrough,Overlay.SetOpacityPercent);
                 bridge.BindAddon(Addon.State,(side,layer)=>Addon.SetPreferences(new AddonWindowPreferences {DockSide=side,SameLayer=layer}),Decision);

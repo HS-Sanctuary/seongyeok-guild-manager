@@ -164,6 +164,11 @@ namespace IrisDesktop {
                         if(lifeEvidence==null||gameBusy||collectionPending||(lifeActionBusy!=null&&lifeActionBusy())||evidencePayload==null||evidencePayload.Count!=3||!evidencePayload.ContainsKey("accountId")||!evidencePayload.ContainsKey("characterId")||!evidencePayload.ContainsKey("targetName"))throw new ArgumentException();
                         foreach(var key in new[]{"accountId","characterId","targetName"}){var label=evidencePayload[key] as string;if(String.IsNullOrWhiteSpace(label)||label.Length>(key=="targetName"?160:100)||Regex.IsMatch(label,@"[\x00-\x1f\x7f]"))throw new ArgumentException();}
                         value=new {evidencePending=true,payload=evidencePayload};break;
+                    case "game.life.wood.load":
+                    case "game.life.wood.observe":
+                        var woodPayload=message["payload"] as Dictionary<string,object>;bool woodObserve=Equals(message["method"],"game.life.wood.observe");
+                        if(!ergonAvailable||lifeActionAsync==null||gameBusy||collectionPending||(lifeActionBusy!=null&&lifeActionBusy())||woodPayload==null||woodPayload.Count!=(woodObserve?4:3)||!woodPayload.ContainsKey("accountId")||!woodPayload.ContainsKey("characterId")||!woodPayload.ContainsKey("goalId")||(woodObserve&&!woodPayload.ContainsKey("approval")))throw new ArgumentException();
+                        value=new {lifeActionPending=(string)message["method"],payload=woodPayload};break;
                     case "game.life.reference":
                         var referencePayload=message["payload"] as Dictionary<string,object>;
                         if(lifeReference==null||referencePayload==null||referencePayload.Count!=2||!referencePayload.ContainsKey("kind")||!referencePayload.ContainsKey("displayName")||Array.IndexOf(new[]{"crafting","altering"},referencePayload["kind"] as string)<0||!(referencePayload["displayName"] is string))throw new ArgumentException();

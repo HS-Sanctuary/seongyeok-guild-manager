@@ -1,5 +1,22 @@
 # 영겁 → 순월 수신함
 
+## YG-20261023-001 — UPDATED / 2026-10-27 C/N04 선별 전송 승인 누적
+
+- 한설이 검증된 C/N04 source/test19와 필수 한국어 문서7개의 기능 브랜치 선별 commit·일반 push를 승인했다. `codex/home-gnosis-iris-integration-20261019`, 기준 B `971a4d81f8c69fb1ef1bdf046aa75931a6f14bc4`. 정확한 수신 SHA는 이 누적을 포함한 Git 커밋과 원격 HEAD다. 기존 미확인 ID와 이전 누적/ACK는 삭제하지 않는다.
+- **완료:** 별도 wood-v1 DPAPI의 목표/회차·pending·수령·예약/예산·복구 저장, 새 native 프로세스 복원, B 관측 연결의 production blocked 저장. 제품은 game lease 공유 충돌만 typed busy로 복구 유예하고 다른 IOException을 전파한다. 시험 GC 수명 보완은 response-loss 가짜 생산자 보유이며 실제 제품 lease 정책 변경이 아니다. 과거 recovery field-diff 발생 단계는 미확정이다.
+- **검증:** Node714/711 PASS/FAIL0/기존3 SKIP, C native14/API2·N044·관련 React6·타입/관련 lint/private native/격리 웹 build PASS. source19 SHA256이 최종 PASS 사본과 일치하며 그 뒤 제품 변경0. [최종 QA](../ERGON_N04_HOME_RECOVERY_QA_20261027.md), [뉴월 핵심](../ERGON_NEWOL_HANDOFF.md), [C 상세](../ERGON_WOOD_DPAPI_C_QA_20261026.md).
+- **제외/보존:** 집 개인12·수신 ACK 원본·수신 확인 메모/계획2개·실사용 원장·암호문·로그·격리 사본. main ca697706/운영 IRIS0.4.3/공개 ERGON 잠금/executionConnected=false 유지. 이번은 기능 브랜치 전달이지 운영/게임 검증·공개 배포가 아니다.
+- **미구현/순월 첫 순서:** 수신/ACK→native 저장/복구와 기존 CHRONOS·목표4/확인3 회귀→실제 게임 귀속/workId/정원/수령량/비용의 누락 증거 확인 계획 제안. 자동 생산·실제 소비 연결/수동 가공 결과 UI/모바일은 아직 미완료다. 기존 C/안전 기반 중복 구현 금지. 실제 CLI·사용자 원장·공개 잠금 해제·main/DB/Production/IRIS 업데이트는 별도 승인 전 금지. 전송 확인 후 영겁은 종료한다. 아래 로컬/승인 대기 문구는 당시 경과다.
+
+- **2026-10-27 영겁 독립 N04/C 마감 / 전송 승인 대기:** 사무실 진단 미수신 상태에서 집 B/C 짧은 사본14소스 동일·기존 N04 각2 PASS를 대조했다. journal.lock I/O를 sibling game lease처럼 숨기던 ctor catch를 typed lease 충돌만 유예하도록 최소 제품2파일로 보완했다. response-loss의 await-only TCS 생산자 수명 문제는 소유 worker forced-GC로 B/C 모두 `paused child lost game lease` RED→fixture pendingProducer 보유→lease유지/unknown복구 GREEN이다. 기존 unknown·nonce·lease·원장 형식은 보존했다. [최신 QA](../ERGON_N04_HOME_RECOVERY_QA_20261027.md).
+- 최종 전체714/711 PASS/FAIL0/기존3 SKIP, C native14/API2·N044·React6·타입/관련 lint/private native/격리 웹 build PASS. High 이번 범위 C0/I0/M0. 첫 전체713/709PASS1FAIL3SKIP의 예외 이름 검사 불일치는 정확 typed busy 검사로 좁힌 후 최종 전체를 통과했다. 역사적 recovery fielddiff의 정확한 발생 단계는 미확정으로 남긴다. 새 합성 PASS를 실제 게임 성공으로 표현하지 말 것.
+- C/N04 소스·인계는 로컬 미커밋/미전송, 원격은 여전히 B971a4d8. 최신 한설 지시는 선별 전송 가능 여부 보고 후 별도 승인 대기다. 기존 개인12/ACK/원본 로그·사본, 운영main ca697706/IRIS0.4.3/공개 잠금/executionConnected=false 보존. 새로운 자동 생산/게임/사용자 원장/DB/Production 변경0. 아래 과거 미확인 누적은 삭제하지 않는다.
+
+- **2026-10-27 집 확인 누적 / N04 진단 패키지 미수신:** 한설의 순월용 마감 요청을 집에서 인지했다. 원격 기능 HEAD는 여전히 B971a4d8이며 신규 진단 시험/보고서가 없다. 기존 IOException catch와 복구 순서는 정적으로 확인했으나 사무실의 B 재현·단계별 예외·긴 경로 원문/결과는 확인하지 않았다. 수신 확인 원본은 로컬에 보존하고 경과와 최종 비교 결과는 [최신 QA](../ERGON_N04_HOME_RECOVERY_QA_20261027.md)에서 확인한다. C는 여전히 미커밋/미전송이며 새로 재구현하지 않았다. 이 누적도 로컬만 보존하고 별도 승인 전 commit/push하지 않는다. 이전 미확인 누적을 삭제하지 않는다.
+
+- **2026-10-26 집 C 로컬 보존 / 전송 보류:** B 971a4d81f8c69fb1ef1bdf046aa75931a6f14bc4만 일반 push·원격 일치 확인. C DPAPI round/pending/receipt·budget·별도 witness/복구·B 관측의 production 차단 저장은 로컬 구현, [C QA](../ERGON_WOOD_DPAPI_C_QA_20261026.md) 참고. High 1회 C0/I3의 확인3 rollback·기존 progress 미확인 우회·terminal 교체 실패 오확정을 RED→GREEN 보완했다. C source는 원격에 없다.
+- 전체 동시712/707PASS2FAIL3기존SKIP: 신규 fixture 경합 보완, 기존 N04 paused-child lease 실패는 단독2PASS지만 직렬 전체에서도 재발. C 단독/타입/lint/private native/격리웹/React6 PASS와 전체 실패를 구분하고 C commit/push를 보류한다. 먼저 N04 전체/단독 차이의 안전한 원인 확인·최종 전체 회귀. 개인12/ACK/사용자 원장·운영main/IRIS0.4.3/공개잠금/executionConnected=false 유지, 실게임/DB/배포0. 이 누적도 로컬 미전송이다.
+
 - **2026-10-26 B 전송 승인 누적 / UPDATED:** 검증된 B 제품·시험·최소 인계만 기능 브랜치 선별 commit·일반 push 승인. 수신 기준 ba03746, 최종 SHA는 이 누적 포함 커밋과 원격 HEAD로 대조한다. 아래 로컬/미승인은 당시 경과다. C의 DPAPI 가공 저장은 B 전송 확인 후 별도 구현/검증/커밋으로 분리하며 불안전/미완료 C는 전송하지 않는다. 기존 미ACK 누적·개인12/ACK/원장·운영IRIS0.4.3/main/DB/공개잠금 보존.
 
 - **2026-10-26 B 로컬 후속 / 미전송:** SW-20261026-001/ba03746 수신 ACK·원본개인12 보존 후 한설 승인으로 B native 읽기 공급자/고정 `game.life.evidence.read`/strict parser·store 객체 신원·문맥 무효화를 구현했다. [B QA](../ERGON_NATIVE_OBSERVATION_B_QA_20261026.md). 실제 CLI0, fake JSON→실제 native Normalize/bridge·manager 소비0·pending 새 PID 보호만 검증. 전체696/693PASS3기존SKIP0FAIL·신규8·React10·type/lint/native private compile/격리웹build PASS, High 1회 C0/I1 보완(시간 계약 RED→GREEN).

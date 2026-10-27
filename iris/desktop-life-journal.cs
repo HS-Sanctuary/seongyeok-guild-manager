@@ -7,6 +7,9 @@ using System.Security.Cryptography;
 using System.Web.Script.Serialization;
 
 namespace IrisDesktop {
+    internal sealed class LifeExecutionLeaseBusyException:IOException {
+        internal LifeExecutionLeaseBusyException(IOException inner):base("Life execution lease busy",inner){}
+    }
     // Native-only future action journal. No browser method or game command is exposed here.
     public sealed class DesktopLifeJournal {
         const int Limit=1048576;
@@ -30,7 +33,7 @@ namespace IrisDesktop {
             entropy=Utf8.GetBytes("SANCTUM:IRIS:ErgonActions:v1:"+environment);
             if(recoverInflight)RecoverInterrupted();else Locked(()=>{Read();return true;});
         }
-        public FileStream AcquireExecutionLease(){Directory.CreateDirectory(rootPath);return new FileStream(Path.Combine(rootPath,"ergon-game.run-lock"),FileMode.OpenOrCreate,FileAccess.ReadWrite,FileShare.None);}
+        public FileStream AcquireExecutionLease(){Directory.CreateDirectory(rootPath);try{return new FileStream(Path.Combine(rootPath,"ergon-game.run-lock"),FileMode.OpenOrCreate,FileAccess.ReadWrite,FileShare.None);}catch(IOException error){int code=error.HResult&65535;if(code==32||code==33)throw new LifeExecutionLeaseBusyException(error);throw;}}
         public void RecoverInterrupted(){using(var lease=AcquireExecutionLease())Locked(()=>{var rows=Read();bool changed=false;foreach(var row in rows)if(Equals(row["state"],"inflight")){row["state"]="unknown";changed=true;}if(changed)Write(rows);return true;});}
         public object[] EntriesFor(string accountId){if(!Text(accountId,100))throw new ArgumentException();return Locked(()=>Read().Where(row=>Equals(row["accountId"],accountId)).Select(row=>(object)new Dictionary<string,object>(row)).ToArray());}
         T Locked<T>(Func<T> action){

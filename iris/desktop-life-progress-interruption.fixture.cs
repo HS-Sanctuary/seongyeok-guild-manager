@@ -12,6 +12,9 @@ namespace IrisDesktop {
  // Compiled only by the isolated test runner. No product stop hook or actual CLI.
  public static class ProgressInterruptionFixture {
   static readonly JavaScriptSerializer Json=new JavaScriptSerializer();
+  // Real I/O has an external producer. Keep the deliberately unresolved synthetic
+  // producer reachable too; an await-only TCS cycle is not a process-lifetime root.
+  static ProgressHostFixture.Trial pendingProducer;
   static void Need(bool ok,string why){if(!ok)throw new Exception(why);}
   static string Digest(string file){using(var hash=SHA256.Create())return BitConverter.ToString(hash.ComputeHash(File.ReadAllBytes(file))).Replace("-","");}
   static string Canonical(object value){return ProgressDomain.Canonical(value);}
@@ -40,10 +43,12 @@ namespace IrisDesktop {
    Need(t.store.Commit(mutation,s.revision,Guid.NewGuid()).status=="committed","history correction seed");
   }
   static void Marker(ProgressHostFixture.Trial t,string mode,string id){
+   N04Diagnostics.Event("marker-start",new {mode,busy=t.actor.Busy});
    var s=t.store.Load(ProgressHostFixture.Scope());var history=s.view.goals.First();
    Need(history.confirmedQuantity==2&&history.requests.Single().confirmations.Length==2,"seed history changed");
    int dispatches=File.Exists(Path.Combine(t.root,"dispatches.log"))?File.ReadAllLines(Path.Combine(t.root,"dispatches.log")).Length:0;
    Save(Path.Combine(t.root,"ready.json"),new {pid=Process.GetCurrentProcess().Id,mode=mode,requestId=id,progressDigest=Digest(t.store.FilePath),history=Canonical(history),rows=t.journal.EntriesFor("synthetic-account"),dispatches=dispatches});
+   N04Diagnostics.Event("marker-written",new {mode,busy=t.actor.Busy});
   }
   static async Task Execute(string root,string mode){
    var t=new ProgressHostFixture.Trial(root,true);t.store=new DesktopErgonProgressStore(root,"development");var c=ProgressHostFixture.Attach(t);await SeedHistory(t,c);
@@ -59,16 +64,18 @@ namespace IrisDesktop {
    }
    var payload=ProgressHostFixture.Payload(t.store.Load(ProgressHostFixture.Scope()).revision);payload["goalId"]=goal;payload["nonce"]=id;
    Need(((ProgressExecutionResult)await ProgressHostFixture.Request(c,"bindPrepared",payload)).status=="bound","binding ACK");
-   if(mode=="response-loss"){
+   if(mode=="response-loss"||mode=="response-loss-gc"){
+    if(mode=="response-loss-gc")N04Diagnostics.ArmGc(root);
     t.execution=new TaskCompletionSource<string>();t.onPerform=()=>{File.AppendAllText(Path.Combine(root,"dispatches.log"),"fake-command\n");Marker(t,mode,id);};
-    await t.Confirm(p);await t.execution.Task;throw new Exception("pending response unexpectedly returned");
+    pendingProducer=t;try{await t.Confirm(p);await t.execution.Task;throw new Exception("pending response unexpectedly returned");}finally{pendingProducer=null;}
    }
    await t.Confirm(p);await ProgressHostFixture.Wait(t);Marker(t,mode,id);
   }
   static void Probe(string root){
    var m=Read(Path.Combine(root,"ready.json"));var j=new DesktopLifeJournal(root,"development",false);var s=new DesktopErgonProgressStore(root,"development");
+   if(Equals(m["mode"],"response-loss-gc"))N04Diagnostics.ForceOwnedGc(root);
    Need(Digest(s.FilePath)==(string)m["progressDigest"],"paused progress changed");
-   bool held=false;try{using(j.AcquireExecutionLease()){};}catch(IOException){held=true;}Need(held,"paused child lost game lease");
+   bool held=false;try{using(j.AcquireExecutionLease()){};}catch(IOException){held=true;}N04Diagnostics.Event("probe-game-lease",new {held,mode=m["mode"]});Need(held,"paused child lost game lease");
    bool writerHeld=false;try{using(s.AcquireWriter(new ProgressLockOwner())){};}catch(IOException){writerHeld=true;}catch(InvalidOperationException){writerHeld=true;}
    Need(writerHeld==Equals(m["mode"],"after-begin"),"writer lifetime at stop point");
    Need(Equals(j.EntriesFor("synthetic-account").Cast<Dictionary<string,object>>().Single(x=>Equals(x["requestId"],m["requestId"]))["state"],"inflight"),"paused journal is not inflight");
@@ -78,10 +85,13 @@ namespace IrisDesktop {
    var m=Read(Path.Combine(root,"ready.json"));string mode=(string)m["mode"],id=(string)m["requestId"];bool normal=mode=="normal";
    var j=new DesktopLifeJournal(root,"development",false);string nativeBefore=Digest(j.FilePath);var before=j.EntriesFor("synthetic-account").Cast<Dictionary<string,object>>().ToArray();
    Need(Equals(before.Single(x=>Equals(x["requestId"],id))["state"],normal?"completed":reopen?"unknown":"inflight"),"restart input state mismatch");
-   var t=new ProgressHostFixture.Trial(root,true);t.store=new DesktopErgonProgressStore(root,"development");var c=ProgressHostFixture.Attach(t);
+   N04Diagnostics.Event("recover-before-actor",new {states=before.Select(row=>row["state"]).ToArray()});
+   var t=new ProgressHostFixture.Trial(root,true);N04Diagnostics.Event("recover-after-actor",new {states=t.journal.EntriesFor("synthetic-account").Cast<Dictionary<string,object>>().Select(row=>row["state"]).ToArray()});t.store=new DesktopErgonProgressStore(root,"development");var c=ProgressHostFixture.Attach(t);
    t.onPerform=()=>File.AppendAllText(Path.Combine(root,"dispatches.log"),"unexpected-replay\n");
    var expected=before.Select(row=>new Dictionary<string,object>(row)).ToArray();if(!normal)expected.Single(row=>Equals(row["requestId"],id))["state"]="unknown";
-   Need(Canonical(t.journal.EntriesFor("synthetic-account"))==Canonical(expected),"recovery changed fields other than inflight state");
+   var actual=t.journal.EntriesFor("synthetic-account").Cast<Dictionary<string,object>>().ToArray();
+   N04Diagnostics.Event("recover-field-diff",new {differences=expected.SelectMany((row,i)=>row.Keys.Union(actual[i].Keys).Where(k=>!actual[i].ContainsKey(k)||Canonical(row[k])!=Canonical(actual[i][k])).Select(k=>new {row=i,field=k,expected=k=="state"?row[k]:null,actual=k=="state"?actual[i][k]:null})).ToArray()});
+   Need(Canonical(actual)==Canonical(expected),"recovery changed fields other than inflight state");
    if(normal||reopen)Need(Digest(j.FilePath)==nativeBefore,"terminal or existing unknown bytes rewritten");
    string nativeStable=Digest(j.FilePath);var s=t.store.Load(ProgressHostFixture.Scope());var history=s.view.goals.First();var current=s.view.goals.Last();
    Need(Canonical(history)==(string)m["history"],"confirmed/correction history changed");Need(current.requests.Single().quantity==null&&!current.quantitySatisfied,"expected quantity promoted");
@@ -101,6 +111,6 @@ namespace IrisDesktop {
    if(!reopen)Save(Path.Combine(root,"verified.json"),verified);
    Console.WriteLine(reopen?"PASS N04 stable reopen / unknown bytes / nonce / history / consumption":"PASS N04 recovery / inflight to unknown only / no quantity promotion or replay");
   }
-  public static async Task Run(string root,string mode){Directory.CreateDirectory(root);if(mode=="probe")Probe(root);else if(mode=="recover"||mode=="reopen")await Verify(root,mode=="reopen");else await Execute(root,mode);}
+  public static async Task Run(string root,string mode){Directory.CreateDirectory(root);N04Diagnostics.Start(root,mode);try{if(mode=="io-boundary")N04Diagnostics.RecoveryBoundary(root);else if(mode=="probe")Probe(root);else if(mode=="recover"||mode=="reopen")await Verify(root,mode=="reopen");else await Execute(root,mode);}finally{N04Diagnostics.Stop();}}
  }
 }

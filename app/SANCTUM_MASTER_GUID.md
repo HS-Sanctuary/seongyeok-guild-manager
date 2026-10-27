@@ -1,5 +1,17 @@
 # 🏛️ SANCTUM Master Guide
 
+### 2026-10-27 C/N04 기능 브랜치 선별 전송
+
+한설의 최종 승인으로 아래 로컬 C 및 N04 검증 변경만 전송한다. 사용자 공개 구조·서버/API/DB/RLS·IRIS0.4.3 설치본 구조 변경 없음. PC 로컬 목재 진행 저장/관측 경계는 앞선 C 설명을 따르며 native raw production 소비 route는 없다. 기준 B971a4d8·최종 source19 검증본 일치, 전체714/711 PASS/FAIL0/기존3 SKIP. 정확 SHA/미구현/금지 경계는 [최신 인계](../docs/ERGON_NEWOL_HANDOFF.md)와 [N04 QA](../docs/ERGON_N04_HOME_RECOVERY_QA_20261027.md)를 대조한다.
+
+### 2026-10-27 집 N04/C 후속 — 로컬 검증 마감, 전송 승인 대기
+
+기존 C 구조는 재사용한다. native journal의 game run-lock 공유 충돌만 내부 LifeExecutionLeaseBusyException으로 구분하고 executor 생성자는 다른 복구 IOException을 전파한다. 파일 형식·원장 정책·실제 소비 경로·서버/DB 구조 변경 없음. N04 FirstChance/fielddiff/소유 GC fixture는 시험 runner에만 포함한다. 최종 전체714/711 PASS/FAIL0/기존3 SKIP이며 [미확정/승인 경계](../docs/ERGON_N04_HOME_RECOVERY_QA_20261027.md)를 따른다. main/공개 설치본·잠금은 그대로이고 commit/push하지 않았다.
+
+### 2026-10-26 집 C 로컬 후보 — 전송 보류
+
+기존 공통 writer/game lease·journal/ProgressStore를 재사용하는 별도 DesktopWoodProgressStore DPAPI wood-v1·암호화 head/원자 저장 후보와 DesktopWoodProgressConnection의 고정 load/observe를 추가했다. 합성 manager의 native persistence port를 검증하며 production raw receipt writer/실제 실행은 열지 않는다. 기존 보호/저장 형식·DB·서버/공개 설치본 구조 변경 없음. 전체 N04 실패로 C는 미전송, [범위/미완료](../docs/ERGON_WOOD_DPAPI_C_QA_20261026.md) 참고.
+
 ### 2026-10-26 KST — ERGON B native 관측 로컬 후보
 
 `DesktopLifeEvidenceProvider`가 기존 DesktopLifeReader와 actor scope/document/contextVersion·state를 대조하고 `game.life.evidence.read` 고정 bridge로 읽기 모델만 전달한다. webview의 기존 collect 응답 observer는 제한 보상 행만 메모리 관측하며 실행 결과/원장/확정 진척은 바꾸지 않는다. TS `irisErgonNativeObservation`은 기존 readonly 판정기를 재사용하며 store 내부 객체 신원/epoch/context generation을 구분한다. 실제 게임 캐릭터 귀속은 미확인이고 자동 실행/진척 false/null이다. C 저장·DB/API/서버 사용·공개 ERGON·IRIS0.4.3 설치본은 변경하지 않았다. [검증과 미지원](../docs/ERGON_NATIVE_OBSERVATION_B_QA_20261026.md). 로컬 미전송, 배포 승인 아님.

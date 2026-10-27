@@ -1,5 +1,14 @@
 # SANCTUM 업데이트 노트
 
+## 2026-10-27 20:51 KST — v2.322 개발 후보 후속 / ERGON C 선별 전송
+
+- 한설 승인으로 기능 브랜치에 C 저장·복구 코드/합성 시험·N04 최소 수정·필수 한국어 인계만 선별 commit·일반 push한다. 기준 B `971a4d81f8c69fb1ef1bdf046aa75931a6f14bc4`, 정확한 수신 SHA는 이 인계를 포함한 커밋의 Git 이력과 원격 HEAD를 대조한다. 공개 버전 상승/운영 배포 없음, 운영 IRIS0.4.3/main ca697706 유지.
+- 개발 변화: 별도 DPAPI wood-v1에서 목표·회차·pending·수령·예약/예산·복구를 보존하고 새 native 프로세스에서 복원한다. production은 B 관측만 저장하며 실제 실행은 blocked다. 실제 게임 수량/비용이 확인된 것으로 표시하지 않는다.
+- 안전 수정: 제품은 실제 game lease 충돌만 복구 유예로 구분하고 다른 IOException을 숨기지 않는다. 시험용 가짜 응답의 GC 수명 보완은 제품 lease 정책 변경과 별개다. 과거 recovery field-diff의 정확한 발생 단계는 미확정으로 보존한다.
+- 검증: 최종 Node714/711 PASS/FAIL0/기존3 SKIP, C native14/API2·N044·관련 React6·타입/관련 lint·private native/격리 웹 build PASS. 이번 High 검토 C0/I0/M0. 최종 PASS 소스19개 SHA256 일치 확인 후 문서만 마감했다. 실제 서비스/게임 동작 검증이나 공개 배포 완료가 아니다.
+- 구조: PC 로컬 C 저장/읽기 경계와 시험만 추가. 서버/API/DB/RLS·공개 화면·원장 형식/보존 정책 구조 변경 없음, 신규 Supabase/Vercel 호출/구독0. 운영 되돌림 기준은 기존 main ca697706/IRIS0.4.3이며 이 전송은 그 기준에 적용하지 않는다.
+- 제외/보존: 개인12·수신 ACK 원본·실사용 원장/암호문/원문 로그·격리 사본, 수신 확인 메모와 작업 계획2개. [순월 인계](relay/TO_SOONWOL.md), [뉴월 요약](ERGON_NEWOL_HANDOFF.md), [최종 QA](ERGON_N04_HOME_RECOVERY_QA_20261027.md). 별도 승인 전 실제 CLI·자동 생산/공개 잠금 해제·main/DB/Production/공개 IRIS 배포 금지.
+
 ## 2026-10-26 KST — v2.322 개발 후보 후속 / ERGON B native 관측 선별 전송
 
 - 한설이 검증된 B 제품·시험·최소 인계의 기능 브랜치 일반 push를 승인했다. 공개 버전 상승·운영 배포 없음, main ca697706/IRIS0.4.3/공개 잠금 유지. C 구현은 별도 변경으로 분리한다.

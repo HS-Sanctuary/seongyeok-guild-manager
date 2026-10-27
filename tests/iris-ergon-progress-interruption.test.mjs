@@ -38,6 +38,21 @@ test('N04 ready accepts durable marker after a normal child already exited',asyn
  const missing=await mkdtemp(path.join(base,'no-marker-'));
  await assert.rejects(()=>ready(missing,{child:{exitCode:0},output:()=> 'exited before marker'}));
 });
+test('N04 recovery rejects journal I/O while preserving a live sibling lease',{skip:process.platform!=='win32'},async()=>{
+ const base=path.resolve('.superpowers/n04-synthetic');await mkdir(base,{recursive:true});
+ const root=await mkdtemp(path.join(base,'io-boundary-'));
+ const result=await finish(worker(root,'io-boundary'));
+ assert.match(result.output,/PASS N04 recovery distinguishes journal I\/O/);
+});
+test('N04 lost-response fixture keeps its native lease rooted across owned worker GC',{skip:process.platform!=='win32',timeout:60000},async()=>{
+ const base=path.resolve('.superpowers/n04-synthetic');await mkdir(base,{recursive:true});
+ const root=await mkdtemp(path.join(base,'response-loss-gc-'));const owned=worker(root,'response-loss-gc');
+ try{const marker=await ready(root,owned);assert.equal(marker.pid,owned.child.pid);const probe=await finish(worker(root,'probe'));assert.match(probe.output,/PASS N04 paused lease/);assert.equal(owned.child.exitCode,null);}
+ finally{if(owned.child.exitCode===null&&owned.child.signalCode===null){owned.child.kill('SIGKILL');await owned.done;}}
+ const recovered=await finish(worker(root,'recover'));assert.match(recovered.output,/PASS N04 recovery/);
+ const result=JSON.parse(await readFile(path.join(root,'verified.json'),'utf8'));
+ assert.equal(result.state,'unknown');assert.equal(result.dispatches,1);assert.equal(result.historyQuantity,2);assert.equal(result.newQuantity,null);
+});
 test('N04 owned child interruption preserves native unknown and quantity history without replay',{skip:process.platform!=='win32',timeout:180000},async t=>{
  const base=path.resolve('.superpowers/n04-synthetic');await mkdir(base,{recursive:true});
  for(const mode of ['normal','response-loss','after-begin']){
