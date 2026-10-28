@@ -1314,3 +1314,5 @@ PG preflight/Compose/SQL fixture는 운영 연결을 받지 않는 준비자료,
 - Windows 검증 마감: 전용 localhost API+실제 PG+native 자기시험이 PASS했다. source override는 실제 fixture bundle에 사용되며 기본 진입 차단과 명시적 owner 자기시험 조건은 유지한다. 전체 운영 작업대/로그인 UI 검증과 구분한다.
 
 2026-10-29 영겁 전송 기준: 제품·시험·SQL proposal·검증53파일 커밋 `c091bc47450fc031034a3099600a595b390f7781`. 기능 브랜치 `codex/home-gnosis-iris-integration-20261019`에 이 문서 마감 커밋과 함께 일반 push한다. 최종 원격 SHA는 이 마감 기록을 포함한 기능 브랜치 HEAD이며 순월은 Git 이력과 대조한다. 운영 적용·flag 활성화·공개 배포는 없다.
+
+전송 확인 — 2026-10-29 KST: `0836670ab23bc06121869262114bf11c7b0bb074`까지 기능 브랜치 일반 push 성공·원격/로컬 SHA 일치 확인. 제품53파일은 `c091bc47450fc031034a3099600a595b390f7781`이며 이후는 인계 문서뿐이다. 이 영수증을 포함한 최신 문서 커밋은 Git HEAD로 확인한다. 개인12·옛ACK/로컬4 지문/삭제 상태 동일, index는 비어 있었고 소유 테스트 컨테이너/GUI/API는 모두 종료됐다. 운영main ca69770·flagfalse·공개IRIS0.4.3 유지. 순월은 최신 원격 수신/ACK 후 미검증 전체UI/절전·전역보존·무료한도를 확인한다.

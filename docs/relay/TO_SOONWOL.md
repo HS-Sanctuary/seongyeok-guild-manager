@@ -652,3 +652,5 @@ Windows GUI는전용서버/PG연결 미완성으로 무조건차단했다. nativ
 - **2026-10-29 00:57 KST Windows 결과 추가:** 격리 native/WebView2+PG에서 사이드바↔플로팅 복귀, NotifyIcon+form숨김316초 heartbeat, A→B·쿠키 로그아웃·정상종료 DB온라인0 PASS. native touch4/leave3/activity0. 전체 DesktopWorkspace/로그인UI·운영설치본·물리2PC·절전/실NIC·수동tray메뉴/DPI는 미실행이다. 야간QA 최신 마감과 전송 SHA를 확인하고 이어받을 것.
 
 2026-10-29 영겁 전송 기준: 제품·시험·SQL proposal·검증53파일 커밋 `c091bc47450fc031034a3099600a595b390f7781`. 기능 브랜치 `codex/home-gnosis-iris-integration-20261019`에 이 문서 마감 커밋과 함께 일반 push한다. 최종 원격 SHA는 이 마감 기록을 포함한 기능 브랜치 HEAD이며 순월은 Git 이력과 대조한다. 운영 적용·flag 활성화·공개 배포는 없다.
+
+전송 확인 — 2026-10-29 KST: `0836670ab23bc06121869262114bf11c7b0bb074`까지 기능 브랜치 일반 push 성공·원격/로컬 SHA 일치 확인. 제품53파일은 `c091bc47450fc031034a3099600a595b390f7781`이며 이후는 인계 문서뿐이다. 이 영수증을 포함한 최신 문서 커밋은 Git HEAD로 확인한다. 개인12·옛ACK/로컬4 지문/삭제 상태 동일, index는 비어 있었고 소유 테스트 컨테이너/GUI/API는 모두 종료됐다. 운영main ca69770·flagfalse·공개IRIS0.4.3 유지. 순월은 최신 원격 수신/ACK 후 미검증 전체UI/절전·전역보존·무료한도를 확인한다.
