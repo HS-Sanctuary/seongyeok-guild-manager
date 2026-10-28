@@ -1312,3 +1312,5 @@ tests/account-online.http.fixture.mjs·sessions.browser.mjs는 실제 localhost/
 PG preflight/Compose/SQL fixture는 운영 연결을 받지 않는 준비자료, 현재PG없어미실행. 검증IRIS builder는 ignored사본만 만들고 GUI를무조건차단한다. 실제0.4.3 웹override loader는미연결.
 제품/API/운영DB·공개설치본 구조변경없음. [검증 보고](../docs/ASTRA_ONLINE_VALIDATION_20261028.md)의 PASS/미실행·승인경계를 따른다.
 - Windows 검증 마감: 전용 localhost API+실제 PG+native 자기시험이 PASS했다. source override는 실제 fixture bundle에 사용되며 기본 진입 차단과 명시적 owner 자기시험 조건은 유지한다. 전체 운영 작업대/로그인 UI 검증과 구분한다.
+
+2026-10-29 영겁 전송 기준: 제품·시험·SQL proposal·검증53파일 커밋 `c091bc47450fc031034a3099600a595b390f7781`. 기능 브랜치 `codex/home-gnosis-iris-integration-20261019`에 이 문서 마감 커밋과 함께 일반 push한다. 최종 원격 SHA는 이 마감 기록을 포함한 기능 브랜치 HEAD이며 순월은 Git 이력과 대조한다. 운영 적용·flag 활성화·공개 배포는 없다.

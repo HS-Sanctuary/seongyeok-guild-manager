@@ -650,3 +650,5 @@ YE-20260930-001 길드버스 핫픽스: 시간대 출전, 가입/탈퇴, 운행�
 Windows GUI는전용서버/PG연결 미완성으로 무조건차단했다. native source/WebView보호 컴파일과기본·유효root실행거절만검증; 실제sidebar/floating/tray/절전·물리PC2대 완료아님. web-overrides3은미연결.
 다음은안전한일회용PG확보·소유API/웹loader연결. 설치/OS변경은별도확인, 격리시험자체는이미승인. 운영DB/main/공개IRIS/게임/commit/push0, 개인12/ACK/원장·로그보존.
 - **2026-10-29 00:57 KST Windows 결과 추가:** 격리 native/WebView2+PG에서 사이드바↔플로팅 복귀, NotifyIcon+form숨김316초 heartbeat, A→B·쿠키 로그아웃·정상종료 DB온라인0 PASS. native touch4/leave3/activity0. 전체 DesktopWorkspace/로그인UI·운영설치본·물리2PC·절전/실NIC·수동tray메뉴/DPI는 미실행이다. 야간QA 최신 마감과 전송 SHA를 확인하고 이어받을 것.
+
+2026-10-29 영겁 전송 기준: 제품·시험·SQL proposal·검증53파일 커밋 `c091bc47450fc031034a3099600a595b390f7781`. 기능 브랜치 `codex/home-gnosis-iris-integration-20261019`에 이 문서 마감 커밋과 함께 일반 push한다. 최종 원격 SHA는 이 마감 기록을 포함한 기능 브랜치 HEAD이며 순월은 Git 이력과 대조한다. 운영 적용·flag 활성화·공개 배포는 없다.

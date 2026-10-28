@@ -928,3 +928,5 @@
 구조: tests 전용 HTTP/metrics/PG preflight·Compose/SQL fixture·GUI차단 컴파일 builder만 추가. 운영 구조 변경 없음. 실제PG/Windows GUI는미실행.
 개인자료·원장·운영IRIS0.4.3/main/DB/Production 보존, commit/push 없음. 자세한 범위·잔여는 [검증 보고](ASTRA_ONLINE_VALIDATION_20261028.md).
 - 2026-10-29 00:57 KST Windows 격리 native GUI 자기시험 PASS: 숨김316초 실제 heartbeat, 0.4.3 sidebar-return 버튼, 계정 전환·쿠키 로그아웃·정상종료 DB제외. 전체 로그인/작업대·운영설치본·절전/NIC는 미검증. 공개 업데이트/운영 배포 아님.
+
+2026-10-29 영겁 전송 기준: 제품·시험·SQL proposal·검증53파일 커밋 `c091bc47450fc031034a3099600a595b390f7781`. 기능 브랜치 `codex/home-gnosis-iris-integration-20261019`에 이 문서 마감 커밋과 함께 일반 push한다. 최종 원격 SHA는 이 마감 기록을 포함한 기능 브랜치 HEAD이며 순월은 Git 이력과 대조한다. 운영 적용·flag 활성화·공개 배포는 없다.

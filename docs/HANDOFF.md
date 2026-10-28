@@ -2005,3 +2005,5 @@ ErgonAvailable=false/executionConnected=false 유지. 실제 native창/게임/Q1
 Windows GUI는전용서버/PG연결 미완성으로 무조건차단했다. native source/WebView보호 컴파일과기본·유효root실행거절만검증; 실제sidebar/floating/tray/절전·물리PC2대 완료아님. web-overrides3은미연결.
 다음은안전한일회용PG확보·소유API/웹loader연결. 설치/OS변경은별도확인, 격리시험자체는이미승인. 운영DB/main/공개IRIS/게임/commit/push0, 개인12/ACK/원장·로그보존.
 - **Windows 마감 2026-10-29 00:57 KST:** 실제 격리 WebView2/native+PG 자기시험 PASS. 사이드바/0.4.3 실제 복귀 버튼/플로팅·NotifyIcon+숨김316초 heartbeat·A/B 전환·쿠키 로그아웃·정상 종료 후 DB온라인0 확인. native touch4/leave3/activity0. 실제 전체 작업대/로그인UI·운영설치본·절전/NIC·수동tray메뉴/DPI는 미실행이다. 상세 ASTRA_ONLINE_NIGHT_QA_20261029.md 최종 항목을 따른다.
+
+2026-10-29 영겁 전송 기준: 제품·시험·SQL proposal·검증53파일 커밋 `c091bc47450fc031034a3099600a595b390f7781`. 기능 브랜치 `codex/home-gnosis-iris-integration-20261019`에 이 문서 마감 커밋과 함께 일반 push한다. 최종 원격 SHA는 이 마감 기록을 포함한 기능 브랜치 HEAD이며 순월은 Git 이력과 대조한다. 운영 적용·flag 활성화·공개 배포는 없다.
