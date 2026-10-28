@@ -1,5 +1,21 @@
 # 순월 → 영겁 수신함
 
+## SW-20261028-001 — UPDATED / ASTRA 비활성 후보 선별 인계
+
+- **2026-10-28 17:13 KST / 선별 전송 승인 마감:** 한설이 ASTRA 비활성 후보와 필요한 인계를 기능 브랜치에 commit·일반 push하도록 승인했다. 대상 `codex/home-gnosis-iris-integration-20261019`, 기준 `a826ad0ad4728540034678cb8e46167f57a2b5e1`; 최종 SHA는 이 누적을 포함한 커밋/원격 HEAD다. 아래 미승인/미전송은 당시 경과이며 기존 미ACK 누적은 보존한다. 현재 상태는 **전송 승인·검증 마감**, 배포 없음; ACK는 영겁 수신 후 추가한다.
+- **포함/검증:** 제품8·시험4·proposals SQL1·필수 한국어 인계. 최종 전체740/737 PASS/0 FAIL/기존3 SKIP·native8·React8·타입/격리 build PASS. 전송 직전 지문 동일·관련24 PASS·개인 runtime 경로 제거 후 실제 ASTRA React PASS. 기존 lint 실패/과거 수령 미확정은 그대로다. 원본 로그·DPAPI·사본/개인 경로는 전송하지 않는다.
+- **집 첫 작업:** 개인/미커밋을 먼저 보존하고 ff-only 수신/ACK → [마감 QA](../ASTRA_ACTIVITY_CLOSEOUT_QA_20261028.md) → 수령 terminal 저장 예외 원인 조사. 로그가 없는 과거 실패를 재실행 PASS로 해결 처리하지 않는다. DB/flag/실게임/공개 IRIS/main/Production은 별도 승인 전 금지다. 새 DB 제안은 계정→세션 재검사 잠금/최소 직접 권한을 갖춘 정적 후보이며 실제 PG 검증은 미실행이다.
+
+- **마감 안전 검증 후속:** [최신 QA](../ASTRA_ACTIVITY_CLOSEOUT_QA_20261028.md). 최종 전체740/737 PASS/0 FAIL/기존3 SKIP, native8·React8·타입·격리 build PASS. 기존 Astra/layout lint 실패는 유지. 이전 ZIP 누락은 원본 SHA 동일 사본으로 해소했고 아래 최초 결과는 보존한다.
+- **수령 미해결:** 과거 실패의 시험 원장 inflight로 terminal 저장 미확정 경계를 확인했다. 잠금 IOException 주입에서는 unknown/inflight·재수령0이 정상이나 당시 정확한 예외 원인은 미확정이다. 재실행 PASS를 해결로 보고하지 않으며 제품 보호 변경0이다.
+- **ASTRA 보완:** 제안 SQL의 계정→세션 재검사 잠금 순서/직접 service_role 권한 회수를 RED→GREEN 보완했고 독립 후속 지적0. 실제 WebView 주소·쿠키·세션 경로는 정적 대조뿐이며 사용자 활동 기록0·실제 PG/설치본 검증 미실행이다. DB/flag/배포/push 승인 아님. 선별 후보는 준비돼 있으나 과거 수령 원인까지 해결한 통합 마감은 아니다.
+
+- **완료:** 영겁 C/D-0 `a826ad0ad4728540034678cb8e46167f57a2b5e1` 수신·ACK. 원본16/옛B17/옛ACK1 지문 동일, 별도 N04 진단9 전후 동일. C 저장/복구14·N044/API2·D-0/기존 보호 React 관련 PASS. C/N04를 중복 구현하지 않았다.
+- **ASTRA 후보:** 웹·IRIS 공통 활동 POST/Reporter와 기존 directory GET 배치 집계, 최근 활동 한 줄과 웹 ASTRA 연결 의미 분리. 캐릭터 updated_at 쓰기는 제거했다. 세션 last_seen 미갱신/로그아웃 삭제로 영속 이력에 부적합하여 계정당1행 DB 제안만 준비했다. `SANCTUM_ACCOUNT_ACTIVITY_ENABLED` 기본false·새 집계 DB 호출0. DB 적용/활성화/운영 반영은 없다.
+- **검증/미완료:** 활동20/관련24 PASS, 실제 React·타입·격리 build PASS, High 미해결 지적0. 전체740/736 PASS·1 ZIP 누락 환경FAIL·3 SKIP 후 기존 ZIP 동일 복사와 해당4 PASS(전체 재실행 아님). 별도 native collection assertion FAIL·원인 미확정, 기존 Astra/layout lint 실패 유지. 과거 실패를 이번 PASS로 소급 해결하지 않는다.
+- **다음:** [종합 QA](../ASTRA_ACTIVITY_OFFICE_QA_20261028.md) → [DB 제안](../ASTRA_ACTIVITY_DB_PROPOSAL_20261028.md) → [수신 QA](../ERGON_OFFICE_CD0_RECEIVE_QA_20261028.md). 수령 원인 분리와 DB 승인/실제 PG 검증이 우선. D-1은 실제 조회 승인 전 정적 누락 계약만 점검했다.
+- **전송/경계:** 본 항목은 다음 승인된 push용 초안이며 아직 GitHub 전송되지 않았다. commit/push·main/DB/Production/공개 IRIS·공개 ERGON 잠금 해제·실게임 승인 없음. 운영 ZIP/metadata 차이·원장·개인/원본 로그 보존. 아래 미ACK 누적 내용을 삭제/대체하지 않는다.
+
 - **수신 ACK — 영겁 / 2026-10-26 20:34 KST / SW-20261026-001 ACKNOWLEDGED:** 집 원본 개인12항목과 삭제 상태를 그대로 두고 기존 관리 worktree만 `7a7b70a98928a780aea555bb70a583ae52cb5d84` → `ba0374676d593a88118f226b3737603de9557db8`로 fast-forward 수신했다. AGENTS·CODEX_RELAY·본 수신함·HANDOFF·ERGON_NEWOL_HANDOFF와 실제 두 커밋을 대조했다. 목표 취소/원자 교체(c63da18), 목재 합성 관리자·pending 새 프로세스 시험·읽기 전용 DTO(ba03746)의 전송을 인지했다. native 관측 공급자 B·DPAPI 가공 저장 C·실제 host/CLI/UI 연결은 이 원격에 없으며 사무실 미전송 구현의 존재 여부는 집에서 확인할 수 없다. helper 정상 생존/동일 합성 root 범위, 실제 CLI 증거 부족·unknown 보호·공개 잠금 및 executionConnected=false를 유지한다. 이번은 수신·검토·격리 합성 재검증과 다음 조건 제안뿐이며 신규 구현/게임/사용자 원장/DB/main/공개 배포/commit/push는 하지 않는다. ACK는 다음 승인된 공식 push에 포함하고 아래 이전 누적을 보존한다.
 
 ## 2026-10-26 KST — v2.322 개발 후보 후속 / 목재 후보 A 선별 전송

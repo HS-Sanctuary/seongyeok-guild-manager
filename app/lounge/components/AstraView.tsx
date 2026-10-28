@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../../lib/supabase";
-import { memberMutationOrThrow } from "@/lib/memberMutationClient";
 import { isTaskChecked } from "../../../lib/matchingUtils";
 import ClassIcon from "@/components/common/ClassIcon";
-import { filterApprovedCharacters, getApprovedAccountNames } from "@/lib/approvedCharacters";
+import { filterApprovedCharacters } from "@/lib/approvedCharacters";
+import {parseActivityDirectory,formatRecentActivity,type ActivityDirectory} from '@/lib/accountActivity';
 import { isCurrentParty, isPartyInProgress } from "@/lib/activeParty";
 
 // --- 타입 정의 ---
@@ -67,26 +67,16 @@ const FALLBACK_ALL_CLASSES = [
   "도적", "격투가", "듀얼블레이드"
 ];
 
-const formatLastSeen = (dateString?: string) => {
-  if (!dateString) return "기록 없음";
-  const now = new Date();
-  const past = new Date(dateString);
-  const diffSec = Math.floor((now.getTime() - past.getTime()) / 1000);
-  
-  if (diffSec < 60) return "방금 전";
-  const diffMin = Math.floor(diffSec / 60);
-  if (diffMin < 60) return `${diffMin}분 전`;
-  const diffHour = Math.floor(diffMin / 60);
-  if (diffHour < 24) return `${diffHour}시간 전`;
-  const diffDay = Math.floor(diffHour / 24);
-  if (diffDay === 1) return "어제";
-  return `${diffDay}일 전`;
-};
-
 const formatStatNumber = (val: any) => {
   const num = Number(val);
   return isNaN(num) ? "0" : num.toLocaleString("ko-KR");
 };
+
+async function readDirectory(signal?:AbortSignal){
+    const response=await fetch('/api/accounts/directory',{cache:'no-store',signal});if(!response.ok)throw Error('계정 명단을 확인하지 못했어요.');
+    const raw=await response.json();if(typeof raw.activityAvailable!=='boolean')throw Error('활동 기록 지원을 확인하지 못했어요.');
+    return {value:parseActivityDirectory(raw),available:raw.activityAvailable};
+  }
 
 export default function AstraView() {
   const router = useRouter();
@@ -99,7 +89,9 @@ export default function AstraView() {
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
   const [dataError, setDataError] = useState("");
   const [nowTick, setNowTick] = useState(() => Date.now());
-
+  const [activityDirectory,setActivityDirectory]=useState<ActivityDirectory|null>(null);
+  const [activityAvailable,setActivityAvailable]=useState(false);
+  const directoryGeneration=useRef(0),directoryAbort=useRef<AbortController|null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // 필터 상태
@@ -159,72 +151,21 @@ export default function AstraView() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [selectedCharDetail]);
 
-  useEffect(() => {
-    const saved = localStorage.getItem("nexus_user");
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        const name = parsed.username || parsed.nickname || parsed.owner || "한설";
-        setCurrentUser(name);
-        updateUserLastSeen(name);
-      } catch(e) {}
-    } else {
-      setCurrentUser("한설");
-    }
-    fetchAstraData();
-  }, []);
-
-  useEffect(() => {
-    const timer = window.setInterval(() => setNowTick(Date.now()), 60_000);
-    return () => window.clearInterval(timer);
-  }, []);
-
-  const updateUserLastSeen = async (username: string) => {
+  const fetchAstraData = useCallback(async () => {
+    const generation=++directoryGeneration.current;
+    directoryAbort.current?.abort();const abort=new AbortController();directoryAbort.current=abort;
     try {
-      await memberMutationOrThrow({ table: "characters", action: "update", filter: { column: "owner", value: username }, payload: { updated_at: new Date().toISOString() } });
-    } catch (e) {
-      console.error("접속 시간 업데이트 실패", e);
-    }
-  };
-
-  useEffect(() => {
-    if (!currentUser) return;
-    const channel = supabase.channel('sanctum_presence', {
-      config: { presence: { key: currentUser } },
-    });
-
-    channel
-      .on('presence', { event: 'sync' }, () => {
-        const state = channel.presenceState();
-        const onlineSet = new Set<string>();
-        Object.keys(state).forEach((key) => onlineSet.add(key));
-        setOnlineUsers(onlineSet);
-      })
-      .subscribe(async (status) => {
-        if (status === 'SUBSCRIBED') {
-          await channel.track({
-            user: currentUser,
-            online_at: new Date().toISOString(),
-          });
-        }
-      });
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [currentUser]);
-
-  const fetchAstraData = async () => {
-    try {
-      const [charRes, partyRes, hwRes, contRes, classRes, approvedNames] = await Promise.all([
+      const [charRes, partyRes, hwRes, contRes, classRes, directory] = await Promise.all([
         supabase.from('characters').select('*').order('sort_order', { ascending: true }),
         supabase.from('parties').select('*').neq('status', '종료됨'),
         supabase.from('homework_status').select('*'),
         supabase.from('nexus_contents').select('*'),
         supabase.from('nexus_classes').select('*').order('id', { ascending: true }),
-        getApprovedAccountNames(),
+        readDirectory(abort.signal),
       ]);
-
+      if(generation!==directoryGeneration.current||abort.signal.aborted)return;
+      setCurrentUser(directory.value.viewer.nickname);setActivityDirectory(previous=>previous&&Date.parse(previous.observedAt)>Date.parse(directory.value.observedAt)?previous:directory.value);setActivityAvailable(directory.available);
+      const approvedNames=new Set(directory.value.accounts.map(account=>account.nickname));
       if (charRes.error) throw charRes.error;
       if (partyRes.error) throw partyRes.error;
       setCharacters(filterApprovedCharacters(charRes.data || [], approvedNames));
@@ -244,12 +185,60 @@ export default function AstraView() {
         setHomeworkMap(map);
       }
     } catch (err) {
+      if(generation!==directoryGeneration.current||abort.signal.aborted)return;
       console.error("아스트라 데이터 불러오기 실패", err);
       setCharacters([]);
       setParties([]);
       setDataError("길드원 명단을 확인하지 못했습니다. 잠시 후 새로고침해 주세요.");
     }
-  };
+  },[]);
+
+  const invalidateDirectory=useCallback(()=>{directoryGeneration.current++;directoryAbort.current?.abort();},[]);
+
+  useEffect(() => {
+    const changed=()=>{setCurrentUser('');setOnlineUsers(new Set());setActivityDirectory(null);setActivityAvailable(false);void fetchAstraData();};
+    const storage=(event:StorageEvent)=>{if(event.key==='nexus_user'||event.key==='sanctum_active_account_id')changed();};
+    const recorded=()=>{const generation=directoryGeneration.current;void readDirectory(directoryAbort.current?.signal).then(result=>{if(generation!==directoryGeneration.current)return;setActivityDirectory(previous=>previous&&Date.parse(previous.observedAt)>Date.parse(result.value.observedAt)?previous:result.value);setActivityAvailable(result.available);}).catch(()=>{});};
+    void fetchAstraData();
+    window.addEventListener('sanctum_account_changed',changed);window.addEventListener('storage',storage);
+    window.addEventListener('sanctum_activity_recorded',recorded);
+    return()=>{invalidateDirectory();window.removeEventListener('sanctum_account_changed',changed);window.removeEventListener('storage',storage);window.removeEventListener('sanctum_activity_recorded',recorded);};
+  }, [fetchAstraData,invalidateDirectory]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNowTick(Date.now()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    if (!currentUser) return;
+    let active=true;
+    const channel = supabase.channel('sanctum_presence', {
+      config: { presence: { key: currentUser } },
+    });
+
+    channel
+      .on('presence', { event: 'sync' }, () => {
+        if(!active)return;
+        const state = channel.presenceState();
+        const onlineSet = new Set<string>();
+        Object.keys(state).forEach((key) => onlineSet.add(key));
+        setOnlineUsers(onlineSet);
+      })
+      .subscribe(async (status) => {
+        if (active&&status === 'SUBSCRIBED') {
+          await channel.track({
+            user: currentUser,
+            online_at: new Date().toISOString(),
+          });
+        }
+      });
+
+    return () => {
+      active=false;
+      supabase.removeChannel(channel);
+    };
+  }, [currentUser]);
 
   // 🔑 공통 유틸(isTaskChecked)과 homeworkMap/homework_status 결합 판정
   const checkCompleted = useCallback((c: Character, itemKeys: string[]) => {
@@ -380,10 +369,7 @@ export default function AstraView() {
       const mainChar = ownerChars.find(c => c.is_main) || ownerChars[0];
       const isOnline = checkAccountOnline(ownerKey, ownerChars);
 
-      const latestSeen = ownerChars
-        .map(c => c.updated_at)
-        .filter(Boolean)
-        .sort((a, b) => new Date(b!).getTime() - new Date(a!).getTime())[0];
+      const latestSeen=activityDirectory?.accounts.find(account=>account.nickname===ownerKey)?.lastActiveAt;
 
       return { ownerKey, mainChar, characters: ownerChars, isOnline, latestSeen };
     });
@@ -402,7 +388,7 @@ export default function AstraView() {
     });
 
     return list;
-  }, [uniqueOwners, characters, checkAccountOnline, currentUser]);
+  }, [uniqueOwners, characters, checkAccountOnline, currentUser,activityDirectory]);
 
   const filteredAccounts = useMemo(() => {
     return groupedByOwner.filter(acc => {
@@ -431,6 +417,7 @@ export default function AstraView() {
 
   return (
     <section className="space-y-2.5 md:space-y-4 animate-in fade-in duration-200 select-none relative">
+      <p className="text-xs text-[var(--text-sub)] leading-relaxed">최근 활동은 웹·IRIS의 마지막 확인 기록이에요. 연결 표시는 웹 ASTRA 화면의 연결만 나타내며, 앱 전체의 온라인 상태를 뜻하지 않아요.</p>
       {dataError && <p role="alert" className="rounded-xl border border-rose-500/50 bg-rose-950/20 px-3 py-2 text-sm text-rose-300">{dataError}</p>}
       
       {toastMessage && (
@@ -451,7 +438,7 @@ export default function AstraView() {
                 {totalSol} <span className="text-[0.65rem] md:text-xs text-[var(--text-sub)]">계정</span>
               </span>
               <span className="text-[0.6rem] md:text-xs bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 font-black px-2 py-0.5 rounded-full ml-1">
-                🟢 {onlineSolCount}명 접속
+                🟢 ASTRA 연결 {onlineSolCount}명
               </span>
             </div>
             <span className="text-[var(--panel-border)]">|</span>
@@ -504,7 +491,7 @@ export default function AstraView() {
                     : 'bg-[var(--inner-box)] text-[var(--text-sub)] border border-[var(--panel-border)] hover:text-[var(--text-main)]'
                 }`}
               >
-                🟢 온라인 유저만
+                 🟢 ASTRA 연결만
               </button>
 
               <div className="grid grid-cols-5 gap-1 bg-[var(--inner-box)] rounded-xl p-1 border border-[var(--panel-border)] md:hidden w-full">
@@ -625,12 +612,16 @@ export default function AstraView() {
                     isLfg ? 'border-rose-500 ring-1 ring-rose-500/50 bg-rose-950/20' : 'border-[var(--panel-border)] hover:bg-[var(--panel)]/50'
                   }`}
                 >
+                  <div className="flex flex-wrap gap-x-2 text-xs text-[var(--text-sub)] mb-1">
+                    <span>{activityAvailable?formatRecentActivity(activityDirectory?.accounts.find(account=>account.nickname===ownerKey)?.lastActiveAt,nowTick):'활동 기록 준비 중'}</span>
+                    {isOnline&&<span className="text-emerald-400">웹 ASTRA 연결</span>}
+                  </div>
                   <div className="md:hidden flex items-center justify-between gap-1.5 w-full">
                     <div className="flex flex-col justify-center space-y-0.5 min-w-0 flex-1 pr-0.5">
                       <div className="flex items-center gap-1 min-w-0">
                         <ClassIcon job={char.job} kratosClassRank={kratosRank} size="sm" />
                         {char.is_main && <span className="text-[0.45rem] bg-amber-500 text-black font-black px-0.5 rounded shrink-0">대표</span>}
-                        <span className="font-black text-xs text-[var(--text-main)] truncate max-w-[120px]" title={char.nickname}>
+                        <span className="font-black text-xs text-[var(--text-main)] whitespace-normal [overflow-wrap:anywhere]" title={char.nickname}>
                           {char.nickname}
                         </span>
                         {isLfg && (
@@ -669,7 +660,7 @@ export default function AstraView() {
                       <div className="flex items-center gap-1.5 min-w-0">
                         <ClassIcon job={char.job} kratosClassRank={kratosRank} size="sm" />
                         {char.is_main && <span className="text-[0.55rem] bg-amber-500 text-black font-black px-1 rounded shrink-0">대표</span>}
-                        <span className="font-black text-base text-[var(--text-main)] truncate max-w-[200px]" title={char.nickname}>
+                        <span className="font-black text-base text-[var(--text-main)] whitespace-normal [overflow-wrap:anywhere]" title={char.nickname}>
                           {char.nickname}
                         </span>
                       </div>
@@ -725,22 +716,23 @@ export default function AstraView() {
                     : 'border-[var(--panel-border)] hover:border-[var(--accent)]'
                 }`}
               >
-                <div className="flex items-center justify-between border-b border-[var(--panel-border)] pb-1.5 md:pb-2 gap-2">
+                <div className="flex flex-wrap items-center justify-between border-b border-[var(--panel-border)] pb-1.5 md:pb-2 gap-2">
                   <div className="flex items-center gap-1.5 md:gap-2 bg-[var(--inner-box)] px-2 md:px-3 py-0.5 md:py-1 rounded-lg md:rounded-xl border border-[var(--panel-border)] min-w-0 shadow-2xs">
                     <ClassIcon job={acc.mainChar?.job || "전사"} kratosClassRank={mainKratosRank} size="sm" />
-                    <span className="font-black text-xs sm:text-sm md:text-base text-[var(--text-main)] truncate max-w-[150px] sm:max-w-[300px]" title={mainCharName}>
+                    <span className="font-black text-xs sm:text-sm md:text-base text-[var(--text-main)] whitespace-normal [overflow-wrap:anywhere]" title={mainCharName}>
                       {mainCharName}
                     </span>
                   </div>
 
-                  <div className="flex flex-col md:flex-row items-end md:items-center gap-0.5 md:gap-2 shrink-0">
-                    <div className="flex items-center gap-1">
+                  <div className="flex flex-wrap items-center gap-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-1 min-w-0">
                       <span className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full shrink-0 ${acc.isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-gray-500/50'}`}></span>
-                      <span className={`text-[0.55rem] md:text-xs font-bold px-1.5 md:px-2 py-0.2 md:py-0.5 rounded border shrink-0 ${
+                      <span className={`text-xs font-bold px-1.5 md:px-2 py-0.2 md:py-0.5 rounded border ${
                         acc.isOnline ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 font-black' : 'bg-[var(--inner-box)] text-[var(--text-sub)] border-[var(--panel-border)]'
                       }`}>
-                        {acc.isOnline ? '온라인' : formatLastSeen(acc.latestSeen)}
+                        {activityAvailable?formatRecentActivity(acc.latestSeen,nowTick):'활동 기록 준비 중'}
                       </span>
+                      {acc.isOnline&&<span className="text-xs text-emerald-400">웹 ASTRA 연결</span>}
                     </div>
 
                     <span className="text-[0.55rem] md:text-xs font-black text-amber-400 bg-amber-500/10 border border-amber-500/30 px-1.5 md:px-2.5 py-0.2 md:py-1 rounded-md md:rounded-lg flex items-center gap-1 shrink-0">
@@ -750,7 +742,7 @@ export default function AstraView() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-1 md:gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-1 md:gap-3">
                   {acc.characters.map(c => {
                     const partyInfo = getCharPartyInfo(c.nickname);
                     const isLfg = !!partyInfo;
@@ -769,7 +761,7 @@ export default function AstraView() {
                             <div className="flex items-center gap-1 min-w-0">
                               <ClassIcon job={c.job} kratosClassRank={charKratosRank} size="sm" />
                               {c.is_main && <span className="text-[0.45rem] bg-amber-500 text-black font-black px-0.5 rounded shrink-0">대표</span>}
-                              <span className="font-black text-xs text-[var(--text-main)] truncate max-w-[120px]" title={c.nickname}>
+                              <span className="font-black text-xs text-[var(--text-main)] whitespace-normal [overflow-wrap:anywhere]" title={c.nickname}>
                                 {c.nickname}
                               </span>
                               {isLfg && (
@@ -809,7 +801,7 @@ export default function AstraView() {
                             <div className="flex items-center gap-1.5 min-w-0">
                               <ClassIcon job={c.job} kratosClassRank={charKratosRank} size="sm" />
                               {c.is_main && <span className="text-[0.55rem] bg-amber-500 text-black font-black px-1 rounded shrink-0">대표</span>}
-                              <span className="font-black text-base text-[var(--text-main)] truncate max-w-[180px]" title={c.nickname}>
+                              <span className="font-black text-base text-[var(--text-main)] whitespace-normal [overflow-wrap:anywhere]" title={c.nickname}>
                                 {c.nickname}
                               </span>
                             </div>

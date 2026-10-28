@@ -1,5 +1,11 @@
 # SANCTUM Supabase 구조 기준서
 
+## 2026-10-28 순월 — 세션 구조 읽기 전용 확인 / 활동 집계는 미적용 제안
+
+`sanctum_sessions`의 `id/account_id uuid`, unique `token_hash`, `expires_at/created_at/last_seen_at timestamptz`와 기본 시각값을 읽기 전용으로 확인했다. 확인 시점 last_seen이 생성 뒤 갱신된 행은0이며 관련 사용자 trigger/cron은 찾지 못했다. 소스상 logout/change-code에서 세션이 삭제되므로 영속 최근 활동의 권위로 사용하지 않는다. 기존 테이블·행·권한은 변경하지 않았다.
+
+`supabase/proposals/20261028_account_activity.sql`의 `sanctum_account_activity`와 `sanctum_touch_account_activity`는 **승인 대기·미적용 제안**이며 운영 객체가 존재한다고 가정하지 않는다. [제안/복구/검증 범위](ASTRA_ACTIVITY_DB_PROPOSAL_20261028.md)를 참조한다. 기본 비활성 후보에서 새 집계 테이블/RPC 호출0. 실제 적용은 별도 승인 후 migrations 등록·실제 권한/동시성 검증·본 문서 갱신이 필요하다.
+
 ## 2026-10-20 01:04 KST — 승인 어비스 난이도 기준5행 추가 / 구조 변경 없음
 
 - 한설이 허상 기준을 광기·물길에 복사하는5행 제안을 명시 승인했다. `supabase/sql/20261020_abyss_difficulty_catalog.sql`을 트랜잭션 적용. 새33 물길지옥4/34 광기매어2/35 광기지옥3/36 광기지옥4/37 물길매어2. 총31→36, 원본31행 전체 JSON md5 `279d12e8cbc98a216a1ee1e4167d2cb3` 동일.

@@ -5,6 +5,7 @@ import {createDesktopController} from '@/lib/irisDesktopController';
 import {createDesktopTransport,type DesktopAccount} from '@/lib/irisDesktopTransport';
 import {createDesktopStore,parseDesktopWindowEvent,type DesktopAddonState,type DesktopAddonPreferences} from '@/lib/irisDesktopStore';
 import {DesktopTitlebar} from '@/components/iris/DesktopTitlebar';
+import AccountActivityReporter from '@/components/common/AccountActivityReporter';
 import {DesktopUpdater} from '@/components/iris/DesktopUpdater';
 import {DesktopContextActions} from '@/components/iris/DesktopContextActions';
 import {DesktopAddonSettings} from '@/components/iris/DesktopAddonSettings';
@@ -183,6 +184,7 @@ export default function DesktopPage() {
   const contextActions=<DesktopContextActions accountOpen={accountOpen} settingsOpen={settingsOpen} disabled={closing||busy||synaxisBusy} accountDisabled={closing||busy||synaxisBusy||lifeActionBusy} onAccount={openAccount} onSettings={()=>{if(closing||busy||synaxisBusy)return;invalidateWatch();setAccountOpen(false);setSettingsOpen(value=>!value);}}/>;
   const settingsPanel=<DesktopAddonSettings floating={floating} appearance={appearance} fonts={fonts} addonState={addon} busy={addonBusy||closing} error={addonError} onSavePreview={()=>setSavePreviewUntil(Date.now()+4000)} onPreferencesChange={value=>void preferencesChange(value)} onBack={()=>{setSettingsOpen(false);if(isFloating)void floating.command('close');}} accountPanel={<><p className="iris-caption">{account?`${account.nickname} · 계정`:'생텀 계정으로 로그인해 주세요.'}</p><button type="button" className="iris-desktop-button" disabled={closing||busy} onClick={openAccount}>계정 관리 열기</button></>}/>;
   return <IrisNotificationsProvider scope={account?.id??''} floating={floating.state} onNoticeKind={floating.setNotice}><main className="iris-desktop" style={{fontFamily:appearance.fontFamilyCss}}>
+    <AccountActivityReporter accountId={state&&!state.locked?account?.id??null:null}/>
     {progressNotice&&<p role="alert" className="iris-caption">{progressNotice}</p>}
     <DesktopFloatingHub state={floating.state} onCommand={floating.command} onDrag={()=>windowAction('drag')} onNoticeHeight={typeof floating.state?.dialogOpen==='boolean'?floating.resizeNotice:undefined} onExit={()=>requestClose()} exitDisabled={closing||updateBusy||lifeActionBusy} notice={<DesktopNotificationLayer/>}>
     <DesktopPendingCharacterButton/>

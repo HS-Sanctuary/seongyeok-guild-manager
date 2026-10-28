@@ -1,5 +1,7 @@
 # 영겁 → 순월 수신함
 
+- ACK: 순월 — 2026-10-28 KST. 원격 C/D-0 최종 a826ad0ad4728540034678cb8e46167f57a2b5e1을 기존 깨끗한 짧은 n04 worktree에 ff-only 수신했다. 최신 릴레이·HANDOFF·뉴월·N04/C/D-0 QA와 실제 소스를 대조한다. 원본 개인16항목·별도 미전송 N049파일·과거 사무실 후보/ACK/ignored 로그는 그대로 보존하고 덮어쓰지 않는다. 이번 승인은 합성 재검증·ASTRA 통합 활동 로컬 후보이며 DB 적용/실게임/CLI/공개 gate/main/Production/commit/push는 승인되지 않았다. 기존 미확인 누적과 과거 ACK 보존.
+
 ## YG-20261023-001 — UPDATED / 2026-10-27 D-0 선별 전송 승인 누적
 
 - 대상 `codex/home-gnosis-iris-integration-20261019`, 기준 C `aff55344dc213c80ef1e10602d350a11cf9cfc8b`. 한설이 검증된 D-0 제품/시험8·필수 인계5 및 저장소 필수 릴리스/구조도2의 선별 commit·일반 push를 승인했다. 정확한 최종 수신 SHA는 이 누적을 포함한 Git 커밋/원격 HEAD다. 이전 ID·미확인 메시지·ACK는 그대로 보존한다.

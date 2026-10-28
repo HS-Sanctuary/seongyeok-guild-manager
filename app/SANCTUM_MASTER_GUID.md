@@ -1,5 +1,11 @@
 # 🏛️ SANCTUM Master Guide
 
+### 2026-10-28 ASTRA 통합 활동 기록 — 비활성 개발 후보 선별 인계
+
+웹 RootLayout의 검증된 계정과 IRIS Desktop controller 계정 → 공통 AccountActivityReporter → 고정 POST `/api/account/activity` → server `recordAccountActivity`의 쿠키 해시/기대 계정 검증 → 제안 RPC의 DB 시각·20분 제한 구조다. 표시 읽기는 기존 GET `/api/accounts/directory`의 승인 계정 배치 집계를 재사용하며 AstraView의 계정 묶음/검색 결과 안에 한 줄로 표시한다. 캐릭터 updated_at 쓰기/활동 추정은 제거했고 기존 Presence/필터는 웹 ASTRA 연결로 명시했다. 새 Realtime·heartbeat·활동 localStorage·파일 Storage는 없다.
+
+실제 DB/RLS 구조 변경 없음. `supabase/proposals/20261028_account_activity.sql`의 계정당1행 테이블/RPC는 미적용 검토안이며 기본 `SANCTUM_ACCOUNT_ACTIVITY_ENABLED` 비활성이다. 계정→세션 재조회 잠금·권한 회수·만료 확인은 정적/합성 검증만 통과했다. 운영 main/IRIS0.4.3 ZIP·metadata·공개 ERGON/실행false·기존 CHRONOS/원장 구조는 그대로다. [최종 QA](../docs/ASTRA_ACTIVITY_CLOSEOUT_QA_20261028.md)와 [영겁 인계](../docs/relay/TO_YEONGGEOP.md)의 미해결 수령 원인·실제 PG/설치본 검증 경계를 따른다. 이번은 기능 브랜치 전송이며 운영 배포가 아니다.
+
 ### 2026-10-27 D-0 기능 브랜치 선별 전송
 
 기존 DesktopErgonWorkbench의 생활 현황 안에 DesktopErgonWoodStatus와 pure irisErgonWoodStatus 표시 projection을 연결한다. 기존 C load/관측 전용 parser·저장된 B 관측·native 목표 결합만 사용하며 새 observe·목표/예산/소비·writer/상태 엔진은 없다. review 목표는 표시 selector 옵션으로만 허용하고 기존 실행 선택은 유지한다. CSS는 해당 subsection에 한정한다. native/B/C 저장·공개 화면·서버/API/DB/RLS 구조 변경 없음. 기준 Caff55344, 최종 SHA/검증·미지원 범위는 [D-0 QA](../docs/ERGON_D0_READONLY_WORKBENCH_QA_20261027.md)/인계와 원격 HEAD를 대조한다. 공개 잠금/실행false·운영 IRIS0.4.3/main은 유지한다.

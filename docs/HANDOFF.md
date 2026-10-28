@@ -1,5 +1,29 @@
 # SANCTUM 작업 인계
 
+## 2026-10-28 순월 — ASTRA 기능 브랜치 선별 전송 승인 마감
+
+한설이 검증된 ASTRA 비활성 제품8·시험4·미적용 SQL1과 필요한 한국어 인계/필수 기록의 commit·일반 push를 승인했다. 기준 `a826ad0ad4728540034678cb8e46167f57a2b5e1`, 대상 `codex/home-gnosis-iris-integration-20261019`; 최종 수신 SHA는 이 항목을 포함한 커밋/원격 HEAD다. 아래 승인 없음·미전송 문구는 당시 경과로 보존한다. 원격 ff-only 수신과 검증 지문 동일성을 확인한 뒤 문서·시험 runtime 인자만 마감했다. runtime 정리 후 실제 ASTRA React/관련24 PASS다.
+
+영겁 순서: 개인 변경 보존 → 기능 브랜치 ff-only 수신/ACK → [최신 마감 QA](ASTRA_ACTIVITY_CLOSEOUT_QA_20261028.md) → 수령 terminal 저장 예외의 종류/HResult/단계 조사. 과거 원인 미확정과 실제 PG/설치본 미검증을 완료 처리하지 않는다. [미적용 DB 제안](ASTRA_ACTIVITY_DB_PROPOSAL_20261028.md)은 별도 승인 전 적용/활성화하지 않는다. 새 코드가 있는 것과 운영에서 사용 가능한 것은 별개다.
+
+현재 사무실 작업은 detached 관리 worktree에서 원격 기능 브랜치로 일반 fast-forward push하며, 옛 수신 worktree가 사용하는 로컬 브랜치/ACK는 이동하지 않는다. 원본16·옛 B17·옛 ACK1·별도 N049·로그/원장 보존, ERGON 제품/ZIP/metadata 변경0이다. main·DB·Production·공개 IRIS·공개 ERGON/실게임은 이번 승인에 포함하지 않는다.
+
+## 2026-10-28 순월 — ASTRA 마감 전 안전 검증 후속
+
+**완료:** 최종 SQL/시험/ZIP 고정 후 전체740/737 PASS/0 FAIL/기존3 SKIP, native8·실제 React8·TypeScript·격리 build PASS. 관련 신규 lint PASS, 기존 Astra/layout lint 실패 유지. [후속 QA](ASTRA_ACTIVITY_CLOSEOUT_QA_20261028.md)가 최신이며 아래 첫 ZIP 누락/실패 경과는 보존한다.
+
+**미완료:** 과거 수령 실패의 합성 원장이 inflight로 남아 terminal 저장 미확정 경계는 확인했다. 저장 잠금 IOException 주입 시 unknown/inflight·재전송0은 정상이나 과거 예외 종류/정확 원인은 미확정이다. 제품/unknown 보호는 수정하지 않았다.
+
+**ASTRA/다음:** 독립 검토 후 미적용 SQL의 계정→세션 재검사 잠금 순서와 직접/default service_role 권한 회수를 최소 보완했다. 실제 WebView Origin/쿠키 경로는 정적 호환, 설치본·PG 권한/멤버십/경합/만료는 미검증이다. ASTRA 비활성 후보의 선별 근거는 준비됐지만 수령 원인까지 규명한 통합 완료는 아니다. 별도 승인 전 commit/push·DB/flag/main/Production/공개 IRIS/ERGON·실게임 금지. 원본16·옛B17·옛ACK1·N049 지문/로그 보존.
+
+## 2026-10-28 순월 — C/D-0 수신 및 ASTRA 활동 로컬 후보
+
+- **완료:** 기능 브랜치 `a826ad0ad4728540034678cb8e46167f57a2b5e1` ff-only 수신/ACK. 원본16·옛 B17·옛 수신 ACK1의 기존 지문 동일, 별도 N04 진단9도 이번 전후 동일. C를 재구현하거나 옛 진단을 덮어씌우지 않았다.
+- **후보:** 웹/IRIS 공통 세션 기반 활동 POST/Reporter·기존 directory 배치 조회·ASTRA 통합 한 줄. 캐릭터 updated_at 쓰기 제거, Presence는 웹 ASTRA 연결로 명시. 새 집계 DB는 제안만이며 기본 비활성이다. 실제 기록/운영 활성화는 아직 안 된다.
+- **검증:** [종합 QA](ASTRA_ACTIVITY_OFFICE_QA_20261028.md), [C/D-0 독립 QA](ERGON_OFFICE_CD0_RECEIVE_QA_20261028.md) 참조. C14/N044/API2·보호 React/기존 native 관련 PASS, 별도 collection assertion FAIL/원인 미확정. 활동20·관련24 PASS/실제 React12폭·글자 조합/타입/격리 build PASS. 전체740 중736 PASS·1 ZIP 누락 환경FAIL·3 SKIP, 기존 ZIP 동일 복사 뒤 관련4 PASS(전체 재실행 아님). 기존 Astra/layout lint 실패는 유지한다.
+- **다음:** 수령 실패 원인 분리, [활동 DB 제안](ASTRA_ACTIVITY_DB_PROPOSAL_20261028.md)의 새 테이블1/RPC1·실제 PG 검증 승인. D-1 실제 조회는 항목/명령/횟수/캐시 영향 제시 뒤 별도 승인. 아직 사용자 설치본·실게임·PG 권한/동시성 검증은 없다.
+- **보존/경계:** detached 관리 worktree의 로컬 미커밋·미전송 후보. commit/push 승인 없음. main/DB/Production/IRIS0.4.3 ZIP·metadata/공개 ERGON·executionConnected=false·사용자 원장 유지. Supabase Free 확인, 실제 사용량과 Vercel 잔여량은 미확인으로 활성화 확대 금지. 아래 과거 인계는 보존한다.
+
 ## 2026-10-27 22:25 KST — D-0 선별 전송 마감
 
 대상 `codex/home-gnosis-iris-integration-20261019`, 기준 C `aff55344dc213c80ef1e10602d350a11cf9cfc8b`. 한설이 D-0 source/test8·필수 인계5·저장소 필수 릴리스/구조도2만 선별 commit·일반 push 승인했다. 최종 수신 SHA는 이 항목을 포함한 커밋과 원격 HEAD이며 `git rev-parse HEAD`로 대조한다. 아래 승인 없음/집 로컬은 당시 경과로 보존한다.

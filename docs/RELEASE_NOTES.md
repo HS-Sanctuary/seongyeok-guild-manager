@@ -1,5 +1,14 @@
 # SANCTUM 업데이트 노트
 
+## 2026-10-28 17:13 KST — v2.322 개발 후보 후속 / ASTRA 활동 기록 선별 인계
+
+- 한설의 기능 브랜치 commit·일반 push 승인으로 검증된 ASTRA 비활성 후보·시험·미적용 SQL·한국어 인계를 전송한다. 기준 `a826ad0ad4728540034678cb8e46167f57a2b5e1`, 대상 `codex/home-gnosis-iris-integration-20261019`. 정확한 수신 SHA는 이 항목을 포함한 커밋과 원격 HEAD로 확인한다. 운영 버전 상승·Production 배포·공개 IRIS 업데이트가 아니다.
+- 개발 변화: 웹/IRIS 공통 세션 기반 활동 POST·기존 계정 명단의 배치 조회·ASTRA 최근 활동 한 줄. 캐릭터 수정 시각을 활동으로 쓰는 처리를 제거하고 기존 Presence는 웹 ASTRA 연결로 범위를 명시했다. 실제 UI는 DB 지원 전 준비 중으로 구분한다.
+- 구조: 공통 `AccountActivityReporter`와 client/server 계약·고정 POST API 추가, 기존 directory GET 확장. 새 집계 테이블/RPC는 `supabase/proposals` 검토안만 추가했고 DB/RLS 적용·새 migration 실행 없음. 기본 flag 비활성·신규 집계 DB 호출0, public ERGON/실행false 유지. 운영 IRIS0.4.3/main 및 ZIP·metadata는 변경하지 않는다.
+- 검증: 최종 고정 소스 전체740/737 PASS/0 FAIL/기존3 SKIP·native8·실제 React8·TypeScript·격리 build PASS. 전송 직전 소스 해시 대조·관련24개·실제 ASTRA React PASS. 시험 runtime은 개인 경로 대신 인자로 전달한다. 신규 관련 lint PASS, 기존 Astra/layout lint 오류 유지.
+- 알려진 위험: 과거 수령 FAIL은 terminal 저장 미확정 경계까지 확인했으나 당시 정확한 I/O 원인은 미확정이다. 실제 PG 권한/멤버십/경합·설치본 헤더/쿠키 복원은 미검증이다. [최종 QA](ASTRA_ACTIVITY_CLOSEOUT_QA_20261028.md), [DB 제안](ASTRA_ACTIVITY_DB_PROPOSAL_20261028.md)을 먼저 읽는다.
+- 운영 되돌림 기준은 기존 main/IRIS0.4.3이다. 이번 후보는 운영에 적용하지 않는다. 원장·unknown·개인16/옛 후보·ACK·N04 진단·원문 로그/암호문/격리 사본은 보존하고 전송 제외한다. 다음은 수령 terminal 원인 조사이며 DB/flag/실게임/배포는 별도 승인이다.
+
 ## 2026-10-27 22:25 KST — v2.322 개발 후보 후속 / ERGON D-0 선별 전송
 
 - 한설 승인으로 기능 브랜치에 읽기 전용 가공 현황 제품/시험8·인계5와 필수 기록2만 선별 전송한다. 기준 Caff55344, 정확 SHA는 이 인계를 포함한 커밋/원격 HEAD를 확인한다. 공개 버전/운영 배포 없음, main ca697706/IRIS0.4.3 유지.

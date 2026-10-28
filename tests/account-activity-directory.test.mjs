@@ -1,0 +1,12 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {loadTS} from './load-ts.mjs';
+const A='11111111-1111-4111-8111-111111111111';
+function trial({enabled=false,activity=[],failure=false,actor={id:A,nickname:'한설',role:'길드원',status:'승인'}}={}){
+ const calls=[],members=[{id:A,nickname:'한설',role:'길드원'}];
+ const api=loadTS('app/api/accounts/directory/route.ts',{'next/server':{NextResponse:{json:(body,init={})=>({body,status:init.status??200})}},'@/lib/server/sanctumSession':{SANCTUM_SESSION_COOKIE:'cookie',getSessionAccount:async()=>actor,isPendingAccount:a=>a.status!=='승인',getServerSupabase:()=>({from:table=>{calls.push(table);const q={select:()=>q,eq:async()=>({data:members,error:null}),in:async()=>{if(failure)throw Error('synthetic offline');return {data:activity,error:null};}};return q;}})},'@/lib/server/accountActivity':{accountActivityEnabled:()=>enabled}});
+ return {get:()=>api.GET({cookies:{get:()=>({value:'synthetic-cookie'})}}),calls};
+}
+test('existing directory authenticates identity and disabled activity adds zero queries',async()=>{const t=trial(),r=await t.get();assert.equal(r.status,200);assert.equal(r.body.viewer.id,A);assert.equal(r.body.activityAvailable,false);assert.equal(r.body.accounts[0].lastActiveAt,null);assert.deepEqual(t.calls,['accounts']);});
+test('activity is batched once per directory and never comes from character edits',async()=>{const at=new Date(Date.now()-1000).toISOString(),t=trial({enabled:true,activity:[{account_id:A,last_active_at:at}]}),r=await t.get();assert.equal(r.body.accounts[0].lastActiveAt,at);assert.equal(r.body.activityAvailable,true);assert.deepEqual(t.calls,['accounts','sanctum_account_activity']);});
+test('activity storage failure preserves the member directory without inventing history',async()=>{const r=await trial({enabled:true,failure:true}).get();assert.equal(r.status,200);assert.equal(r.body.accounts[0].id,A);assert.equal(r.body.activityAvailable,false);});
+test('invalid and future timestamps are never recent activity',async()=>{for(const at of ['not-time',new Date(Date.now()+3600000).toISOString()])assert.equal((await trial({enabled:true,activity:[{account_id:A,last_active_at:at}]}).get()).body.accounts[0].lastActiveAt,null);});
+test('expired or pending sessions cannot read the shared activity directory',async()=>{for(const actor of [null,{id:A,nickname:'한설',role:'길드원',status:'승인대기'}]){const t=trial({enabled:true,actor});assert.equal((await t.get()).status,401);assert.deepEqual(t.calls,[]);}});

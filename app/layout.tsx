@@ -10,6 +10,7 @@ import Navbar from '@/components/layout/Navbar';
 import MobileBottomSheet from '@/components/layout/MobileBottomSheet';
 import ThemeModal from '@/components/layout/ThemeModal';
 import StickerCanvas from '@/components/layout/StickerCanvas';
+import AccountActivityReporter from '@/components/common/AccountActivityReporter';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -682,6 +683,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ko">
       <body className="min-h-screen relative font-sans transition-colors duration-200 bg-[var(--background)] text-[var(--foreground)] overflow-x-clip">
+        <AccountActivityReporter accountId={isLoginPage?null:verifiedAccountId}/>
         {isLoginPage ? (
           children
         ) : (

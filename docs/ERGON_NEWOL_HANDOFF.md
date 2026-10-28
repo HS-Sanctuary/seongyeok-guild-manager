@@ -1,5 +1,19 @@
 # ERGON — 뉴월 기획·개발 인계서
 
+## 2026-10-28 순월 — 수령 회귀 조사 후속
+
+최신은 [마감 QA](ASTRA_ACTIVITY_CLOSEOUT_QA_20261028.md)다. 과거 flat 수령 실패의 시험 소유 원장 행은 inflight로 남아 terminal 저장이 확정되지 못한 경계까지 확인했다. 원래 catch에 예외 근거가 없어 정확한 I/O 종류/발생 원인은 미확정이다. 정상 재실행 PASS를 해결로 보지 않는다. 합성 journal lock 장애 주입에서 unknown/inflight 보존·재수령0을 확인했고 제품/보호 조건은 변경하지 않았다.
+
+최종 전체740/737 PASS/0 FAIL/기존3 SKIP·기존 native8/React8·타입 PASS와 과거 미해결은 별개다. 원본 로그·별도 N04 진단·원장은 보존했다. 다음은 재발 시 terminal 예외의 종류/HResult/단계 확보이며, 저장 재시도나 unknown 해제로 우회하지 않는다. 실제 CLI/게임/공개 실행과 commit/push는 여전히 승인되지 않았다.
+
+## 2026-10-28 순월 — 최신 C/D-0 수신 재검증
+
+**완료:** `a826ad0ad4728540034678cb8e46167f57a2b5e1` 수신/ACK. 동일 C 소스의 짧은 격리 경로에서 native14 PASS, N044/API2 PASS, D-0/기존 보호 React와 native 관련 회귀 PASS. 옛 N04 진단과 typed lease/fixture 보완의 중복을 대조했고 제품 재구현은 없다.
+
+**아직 안 됨:** 별도 collection 회귀의 `Observed official flat collection receipt became unknown despite matching facility reduction` FAIL. 과거 최초 수령·S01·N04 field-diff와 같은 원인이라고 단정하지 않는다. 긴 시험 DPAPI 경로 환경 실패와 이 assertion 실패는 별도다. 자동 생산·실제 CLI·작업 ID/정원/실수령 귀속/실비용 검증은 미실행이다.
+
+**다음:** [수신 QA](ERGON_OFFICE_CD0_RECEIVE_QA_20261028.md)와 [전체 검증](ASTRA_ACTIVITY_OFFICE_QA_20261028.md)을 먼저 읽고 수령 실패를 분리한다. 실제 D-1 관측의 대상·명령·횟수·캐시 영향을 제시한 뒤 승인받는다. ASTRA 로컬 후보는 ERGON 실행기/DPAPI 연결을 바꾸지 않는다. 이번 commit/push·DB·배포 승인 없고 공개 잠금/실행false·원장·개인 자료를 유지한다.
+
 ## 2026-10-27 D-0 선별 전송 승인 — 읽기 전용 현황 마감
 
 기준 C `aff55344dc213c80ef1e10602d350a11cf9cfc8b`, 기능 브랜치 `codex/home-gnosis-iris-integration-20261019`. 한설이 D-0에 한정한 commit·일반 push를 승인했다. 정확한 최종 SHA는 이 항목을 포함한 Git 커밋/원격 HEAD를 대조한다. 기존 목표/생활 현황에 B/C 저장 자료를 연결했고 source none의0을 실제0으로 확정하지 않으며 조회 당시 시간으로 생산 완료를 계산하지 않는다. B/C 저장·parser/unknown/실행 계약은 유지한다.
