@@ -1,3 +1,9 @@
+## 2026-10-29 ASTRA 온라인 기능 브랜치 검증 구조
+
+온라인 POST/GET → 기존 서버 세션 → 임대 proposal RPC와 별도 활동 RPC를 유지한다. native의 고정 API 수명은 사이드바/플로팅/숨김과 분리한다. 기본 운영 flagfalse, 운영 구조/DB 변경 없음.
+검증 도구: tests/account-online.pg.mjs(고유 owner/공식 digest/network:none/tmpfs), pg-run.mjs(실제SQL17그룹), pg-http.fixture.mjs(전용localhost3000/API+PG), pg-http.browser.mjs(독립2세션), gui-run.mjs(격리 native 자기시험). 기존 iris-ui.fixture는 기본3011 유지·선택적인 소스override/port 옵션만 추가했다.
+tests/iris-online-validation-build.ps1는 운영0.4.3 floating을 사본에만 읽어 적용하며, 명시적 owner GUI 자기시험 외에는 실행 차단한다. 원래 compile-only entry와 실사용 프로필/원장/설치 assets는 유지한다. [검증·범위](../docs/ASTRA_ONLINE_NIGHT_QA_20261029.md)를 따른다.
+
 # 🏛️ SANCTUM Master Guide
 
 ### 2026-10-28 ASTRA 통합 활동 기록 — 비활성 개발 후보 선별 인계
@@ -1295,3 +1301,14 @@ RLS가 켜진 테이블은 `accounts`, `activity_logs`, `characters`, `inquiries
 8. 베타 안정화 후 GNOSIS와 EMPORION 고도화
 
 - 2026-10-19 17:07 KST 문서마감: 제품83b437a/자동Preview dpl_33y9Lt9E7XyUhUnBuJZrdyXnXqdL READY(실화면은Vercel로그인보호로미확인). 구조변경없음/운영미적용. 집통합은전용병합안내참조.
+
+## 2026-10-28 ASTRA 통합 온라인 — 미커밋 로컬 후보
+웹 layout AccountOnlineReporter → /api/account/online POST·GET → server session hash → 미적용 sanctum_online_connections / touch·snapshot RPC 제안. ASTRA는 useAccountOnline의 인증 snapshot을 count/filter/card에 재사용한다. 기존 accountActivity 입력 경계·활동 집계와 별도이며 character/session last_seen 쓰기 없음.
+IRIS DesktopWebView는 CookieManager → DesktopOnlineConnection → 고정 허용 origin에만 메모리 쿠키 heartbeat, 정상 종료 leave/TTL. renderer token/새 bridge 권한 없음. 기존 ERGON·CHRONOS 원장/DB 구조는 변경하지 않았다.
+기본 SANCTUM_ACCOUNT_ONLINE_ENABLED=false, SQL 미적용·실제 PG/설치본 검증/배포 미실행. [최종 QA](../docs/ASTRA_ONLINE_QA_20261028.md)의 승인 경계를 따른다. 운영 IRIS0.4.3/main/Production은 그대로다.
+후속 로컬 정책은 heartbeat300초/lease720초. [비용·DB·전송 마감](../docs/ASTRA_ONLINE_CLOSEOUT_20261028.md)의 조건을 따르며 기존 활동과 다른 flag/객체, 공개0.4.3과 분리한다.
+## 2026-10-28 ASTRA 검증 준비 전용
+tests/account-online.http.fixture.mjs·sessions.browser.mjs는 실제 localhost/API handler에 합성 DB만 연결한다. metrics는 가상 하루의 실제 reporter/handler 호출을 센다.
+PG preflight/Compose/SQL fixture는 운영 연결을 받지 않는 준비자료, 현재PG없어미실행. 검증IRIS builder는 ignored사본만 만들고 GUI를무조건차단한다. 실제0.4.3 웹override loader는미연결.
+제품/API/운영DB·공개설치본 구조변경없음. [검증 보고](../docs/ASTRA_ONLINE_VALIDATION_20261028.md)의 PASS/미실행·승인경계를 따른다.
+- Windows 검증 마감: 전용 localhost API+실제 PG+native 자기시험이 PASS했다. source override는 실제 fixture bundle에 사용되며 기본 진입 차단과 명시적 owner 자기시험 조건은 유지한다. 전체 운영 작업대/로그인 UI 검증과 구분한다.

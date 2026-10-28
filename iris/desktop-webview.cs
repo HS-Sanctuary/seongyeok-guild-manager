@@ -238,6 +238,7 @@ namespace IrisDesktop {
             };
             core.PermissionRequested += (sender, e) => { e.State = CoreWebView2PermissionState.Deny; };
             core.DownloadStarting += (sender, e) => { e.Cancel = true; };
+            InitializeOnline();
             if (store != null) {
                 bridge = new DesktopBridge(store, development);
                 if(updateState!=null)bridge.BindUpdater(updateState,updateCheck,updatePrepare,updateApply);
@@ -325,6 +326,50 @@ namespace IrisDesktop {
             }
         }
 
+        readonly Timer onlineTimer = new Timer { Interval = 15000 };
+        DesktopOnlineConnection online; bool onlineCloseComplete;
+        async Task<string> ReadOnlineCookieAsync() {
+            var core=Browser.CoreWebView2;Uri source;
+            if(core==null||!Uri.TryCreate(core.Source,UriKind.Absolute,out source)||!DesktopHostPolicy.ValidateNavigation(source,development)||source.AbsolutePath!="/iris/desktop")return null;
+            var cookies=await core.CookieManager.GetCookiesAsync(new Uri(source,"/api/account/online").AbsoluteUri);
+            if(IsDisposed||core!=Browser.CoreWebView2)return null;
+            string token=null;
+            foreach(var cookie in cookies)if(cookie.Name=="sanctum_session"&&cookie.IsHttpOnly&&cookie.Path=="/"&&(development||cookie.IsSecure)){if(token!=null)return null;token=cookie.Value;}
+            return String.IsNullOrWhiteSpace(token)?null:token;
+        }
+        Task<int> SendOnlineAsync(string token,DesktopOnlineMessage message) {
+            // Fixed allowlisted deployment; never a renderer-provided URL or token.
+            var origin=new Uri(development?"http://localhost:3000":"https://sanctum-tawny-three.vercel.app");
+            return Task.Run(()=>{
+                try {
+                    var target=new Uri(origin,"/api/account/online");
+                    var request=(System.Net.HttpWebRequest)System.Net.WebRequest.Create(target);
+                    request.Method="POST";request.AllowAutoRedirect=false;request.Timeout=5000;request.ReadWriteTimeout=5000;
+                    request.ContentType="application/json";request.Headers["Origin"]=origin.GetLeftPart(UriPartial.Authority);
+                    request.CookieContainer=new System.Net.CookieContainer();
+                    request.CookieContainer.Add(origin,new System.Net.Cookie("sanctum_session",token,"/",origin.Host){Secure=!development,HttpOnly=true});
+                    var bytes=System.Text.Encoding.UTF8.GetBytes(new JavaScriptSerializer().Serialize(message));request.ContentLength=bytes.Length;
+                    using(var stream=request.GetRequestStream())stream.Write(bytes,0,bytes.Length);
+                    try {using(var response=(System.Net.HttpWebResponse)request.GetResponse())return (int)response.StatusCode;}
+                    catch(System.Net.WebException error) {
+                        using(var response=error.Response as System.Net.HttpWebResponse){
+                            if(response==null)return 503;
+                            if((int)response.StatusCode==503)using(var reader=new StreamReader(response.GetResponseStream())){
+                                var buffer=new char[1024];var size=reader.ReadBlock(buffer,0,buffer.Length);
+                                if(new string(buffer,0,size).Contains("\"code\":\"online-disabled\""))return 410;
+                            }
+                            return (int)response.StatusCode;
+                        }
+                    }
+                }catch{return 503;}
+            });
+        }
+        void InitializeOnline() {
+            online=new DesktopOnlineConnection(ReadOnlineCookieAsync,SendOnlineAsync,()=>DateTime.UtcNow);
+            onlineTimer.Tick+=async(sender,e)=>{if(!IsDisposed&&online!=null)await online.TickAsync();};
+            onlineTimer.Start();
+        }
+
         public void ConfirmRecoveryClose() {
             Overlay.RestoreInteractive();
             if (MessageBox.Show(this,"보관 또는 화면 연결이 실패한 경우에만 사용해 주세요. 최근 변경을 잃을 수 있어요. 기존 보호 대기함을 덮어쓰지 않고 종료할까요?","SANCTUM IRIS · 복구 종료",MessageBoxButtons.YesNo,MessageBoxIcon.Warning) == DialogResult.Yes) {
@@ -335,14 +380,14 @@ namespace IrisDesktop {
         public void EnableDesktopLifecycle() {
             if (lifecycle || store == null) return;
             lifecycle = true;
-            FormClosing += (sender,e) => {
-                if (allowClose) return;
+            FormClosing += async (sender,e) => {
+                if (allowClose) { if(online!=null&&!onlineCloseComplete){e.Cancel=true;onlineCloseComplete=true;await online.StopAsync();if(!IsDisposed)BeginInvoke(new Action(Close));} return; }
                 e.Cancel = true;
                 RequestClose("manual");
             };
         }
 
-        protected override void Dispose(bool disposing){if(disposing){SaveFloatingNormal();if(floatingHotkey!=null)floatingHotkey.Dispose();fitTimer.Stop();fitTimer.Dispose();if(Addon!=null)Addon.Dispose();if(Overlay!=null)Overlay.Dispose();}base.Dispose(disposing);}
+        protected override void Dispose(bool disposing){if(disposing){onlineTimer.Stop();onlineTimer.Dispose();if(online!=null){var pendingOnlineClose=online.StopAsync();}SaveFloatingNormal();if(floatingHotkey!=null)floatingHotkey.Dispose();fitTimer.Stop();fitTimer.Dispose();if(Addon!=null)Addon.Dispose();if(Overlay!=null)Overlay.Dispose();}base.Dispose(disposing);}
 
         void GuardNavigation(object sender, CoreWebView2NavigationStartingEventArgs e) {
             Uri target;

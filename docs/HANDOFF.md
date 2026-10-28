@@ -1,4 +1,25 @@
+## 2026-10-29 영겁 — ASTRA 온라인 기능 브랜치 전송 마감
+
+이번 요청에서 한설이 실제 격리 PostgreSQL 검증·최소 수정·검증된 후보의 기능 브랜치 선별 commit/일반 push를 승인했다. 아래 과거 미전송·미승인은 당시 상태로 보존한다. 기준 c9a376f, 대상 codex/home-gnosis-iris-integration-20261019. 최종 SHA는 전송 마감 기록/원격 HEAD를 확인한다.
+
+[야간 최종 QA](ASTRA_ONLINE_NIGHT_QA_20261029.md): 실제 PG17.11 권한/RLS·다중기기·종료/지연 heartbeat·세션 철회/소유권 변경·Lock barrier·rollback/timeout·FK·정원/보존17그룹 PASS. 실제 API+HTTP+PG+브라우저2세션12 PASS, 기존 in-memory HTTP10 PASS. 전체 Node756/753 PASS·FAIL0·기존3 SKIP, 관련 React9·타입/신규 lint·격리 build62 PASS. Windows GUI는 QA 마감 항목의 최종 판정과 미검증 범위를 따르며 실제 전체 작업대/운영 설치본 완료로 해석하지 않는다.
+
+소스사본만 사용한 legacy MAX_PATH·tracker 콜백 차단 RED→GREEN, 새벽 달력 경계 fixture 고정, 명시적 PG 잠금 관측을 보완했다. 제품 저장/원장/인증 의미 변경0. 최초 GUI state timeout 원인 미확정 및 이전 수령 예외 원인 미확정은 유지한다.
+
+온라인/활동 기본 flagfalse, 공개 ERGON/실행false 유지. 개인12·기존 ACK·원장·ignored로그 보존. 운영 DB/main/Production/IRIS0.4.3·ZIP/metadata 변경0. feature의 오래된0.4.2 release assets를 운영0.4.3 위에 덮어쓰지 않는다. 다음은 미검증 GUI/절전·전역 만료 정리·무료 한도·운영 권한 사전점검이며 실제 운영 적용은 별도 승인이다.
+
 # SANCTUM 작업 인계
+
+## 2026-10-28 영겁 — ASTRA 웹·IRIS 온라인 로컬 후보
+
+후속 마감: [비용·DB 안전·선별 범위](ASTRA_ONLINE_CLOSEOUT_20261028.md). 현재300초/720초, 이전180/600을 운영 사실로 해석하지 않는다. 정상 종료 leave는 즉시 요청하되 화면 반영60초/네트워크 실패TTL을 구분. 기존 활동·API까지 포함한24h2연결은 무료 한도 초과 가능, 전역 만료 session/lease 보존정책도 미확정이므로 운영 비활성. 선별 전송 준비만이며 commit/push 미승인.
+
+기준 기능 HEAD c9a376fa5ecb28c575000a86e8a3e4241916d086 수신/ACK, 기존 집 개인12/이전 ACK/미전송 자료는 원본 worktree에 보존. 새 관리 worktree의 detached HEAD에서만 미커밋 구현했다. [한국어 최종 QA](ASTRA_ONLINE_QA_20261028.md), [설계](superpowers/specs/2026-10-28-astra-online-design.md), [미적용 SQL](../supabase/proposals/20261028_account_online.sql).
+
+웹 공통 heartbeat/native 숨김과 무관한 수명·ASTRA count/filter/card를 연결했다. 활동 기록과 별도, source 자기신고를 인증으로 쓰지 않고 HttpOnly 세션만 소유권으로 사용. 기본 flagfalse/SQL제안만, 실제 DB·게임·사용자 원장·배포·commit/push0. 기존 IRIS0.4.3/ERGON 공개 잠금·C/D-0 유지. Node752/749 PASS/FAIL0/기존3 SKIP, 실제 신규/활동 React2·기존 보호7/native·타입/관련 lint·격리 build PASS. 기존 Astra/layout22오류9경고는 HEAD와동일. 독립 Important3 중2건 합성 RED→GREEN, SQL statement snapshot 보완은 실제 PG 경합 미검증으로 남음.
+
+다음은 QA의 배포 전 승인5단계부터 확인. SQL runtime/실제 설치본 tray/절전 및24시간 사용 시 무료 한도는 검증 전이므로 공개 활성화 금지. 순월 과거 수령 예외 원인 미확정은 이번에 해결한 것으로 바꾸지 않는다. 새 구현 승인 전 사용자 보고·검토 대기.
+
 
 ## 2026-10-28 순월 — ASTRA 기능 브랜치 선별 전송 승인 마감
 
@@ -1975,3 +1996,12 @@ ErgonAvailable=false/executionConnected=false 유지. 실제 native창/게임/Q1
 - Git 자동 Preview dpl_33y9Lt9E7XyUhUnBuJZrdyXnXqdL READY/정확제품SHA/target null/aliasError null 확인. 수동배포·Production승격0, origin/main1d8e374 유지. 실제 Preview URL은 Vercel 로그인 보호 화면으로 이동하므로 제품 화면 확인 미완료/로컬 검증과 구분한다. 인증우회/공유링크생성/로그인설정변경0.
 - https://vercel.com/sanctum-sanctuary/sanctum/33y9Lt9E7XyUhUnBuJZrdyXnXqdL . 로컬 http://127.0.0.1:3100/gnosis/dressroom 은 화면 검증 후 열어두었다.
 - 마감은 구조 변경 없는 문서만 추가, 제품 버전 유지. 주간31%·5시간37% 잔여 시점이며15%까지소진하지않고3D자산부재/집통합전안전인계를우선했다. 집에서는 GNOSIS_HOME_MERGE_20261019.md 순서대로 주말작업·개인파일을 보존하며 통합 후 통합 branch/SHA를 TO_SOONWOL에 남길 것.
+
+최종 마감: Node752/749 PASS/FAIL0/기존3 SKIP·관련 React/native/타입/lint/격리 build PASS. 선별 후보32(제품11/시험10/SQL1/문서10), ACK는ASTRA hunk만. feature는0.4.2/운영은0.4.3이며 사이드바 복귀 핫픽스도 기준 차이로 남아 있어 공개 후보 제작은별도 승인·선별통합이 필요하다. 전역 만료 임대 정리정책과 실제 PG 검증 전 운영flagfalse 유지. commit/push 미실행.
+
+## 2026-10-28 영겁 — ASTRA 실제 사용 검증 준비(로컬·미전송)
+[검증 보고](ASTRA_ONLINE_VALIDATION_20261028.md). 원격 feature는c9a376f로 그대로이며 기존32후보·이번검증자료 모두미전송. 기존32지문 불변 확인 후 인계만 누적했다.
+최종755/752 PASS/FAIL0/기존3 SKIP·실제 browser context2/localhost HTTP10probes·React9·타입/lint·컴파일전용IRIS0.4.3 fixture PASS. 실제DB0, PG환경없어SQL미실행.
+Windows GUI는전용서버/PG연결 미완성으로 무조건차단했다. native source/WebView보호 컴파일과기본·유효root실행거절만검증; 실제sidebar/floating/tray/절전·물리PC2대 완료아님. web-overrides3은미연결.
+다음은안전한일회용PG확보·소유API/웹loader연결. 설치/OS변경은별도확인, 격리시험자체는이미승인. 운영DB/main/공개IRIS/게임/commit/push0, 개인12/ACK/원장·로그보존.
+- **Windows 마감 2026-10-29 00:57 KST:** 실제 격리 WebView2/native+PG 자기시험 PASS. 사이드바/0.4.3 실제 복귀 버튼/플로팅·NotifyIcon+숨김316초 heartbeat·A/B 전환·쿠키 로그아웃·정상 종료 후 DB온라인0 확인. native touch4/leave3/activity0. 실제 전체 작업대/로그인UI·운영설치본·절전/NIC·수동tray메뉴/DPI는 미실행이다. 상세 ASTRA_ONLINE_NIGHT_QA_20261029.md 최종 항목을 따른다.

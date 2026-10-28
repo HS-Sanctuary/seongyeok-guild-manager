@@ -11,6 +11,7 @@ import MobileBottomSheet from '@/components/layout/MobileBottomSheet';
 import ThemeModal from '@/components/layout/ThemeModal';
 import StickerCanvas from '@/components/layout/StickerCanvas';
 import AccountActivityReporter from '@/components/common/AccountActivityReporter';
+import AccountOnlineReporter from '@/components/common/AccountOnlineReporter';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -684,6 +685,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="ko">
       <body className="min-h-screen relative font-sans transition-colors duration-200 bg-[var(--background)] text-[var(--foreground)] overflow-x-clip">
         <AccountActivityReporter accountId={isLoginPage?null:verifiedAccountId}/>
+        {pathname!=="/iris/desktop"&&<AccountOnlineReporter accountId={isLoginPage?null:verifiedAccountId}/>}
         {isLoginPage ? (
           children
         ) : (

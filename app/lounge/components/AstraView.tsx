@@ -7,6 +7,7 @@ import { isTaskChecked } from "../../../lib/matchingUtils";
 import ClassIcon from "@/components/common/ClassIcon";
 import { filterApprovedCharacters } from "@/lib/approvedCharacters";
 import {parseActivityDirectory,formatRecentActivity,type ActivityDirectory} from '@/lib/accountActivity';
+import {useAccountOnline} from "@/lib/useAccountOnline";
 import { isCurrentParty, isPartyInProgress } from "@/lib/activeParty";
 
 // --- 타입 정의 ---
@@ -91,6 +92,8 @@ export default function AstraView() {
   const [nowTick, setNowTick] = useState(() => Date.now());
   const [activityDirectory,setActivityDirectory]=useState<ActivityDirectory|null>(null);
   const [activityAvailable,setActivityAvailable]=useState(false);
+  const online=useAccountOnline(activityDirectory?.viewer.id??null);
+  const onlineLabel=online.mode==='ready'?'온라인':online.mode==='legacy'?'웹 ASTRA 연결':'온라인 확인 불가';
   const directoryGeneration=useRef(0),directoryAbort=useRef<AbortController|null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -211,7 +214,7 @@ export default function AstraView() {
   }, []);
 
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser||online.mode!=='legacy') return;
     let active=true;
     const channel = supabase.channel('sanctum_presence', {
       config: { presence: { key: currentUser } },
@@ -238,7 +241,7 @@ export default function AstraView() {
       active=false;
       supabase.removeChannel(channel);
     };
-  }, [currentUser]);
+  }, [currentUser,online.mode]);
 
   // 🔑 공통 유틸(isTaskChecked)과 homeworkMap/homework_status 결합 판정
   const checkCompleted = useCallback((c: Character, itemKeys: string[]) => {
@@ -282,9 +285,10 @@ export default function AstraView() {
   const totalSol = uniqueOwners.length;
 
   const checkAccountOnline = useCallback((ownerKey: string, ownerChars: Character[]) => {
+    if(online.mode!=='legacy'){const member=activityDirectory?.accounts.find(row=>row.nickname===ownerKey);return online.mode==='ready'&&!!member&&online.ids.has(member.id);}
     if (onlineUsers.has(ownerKey)) return true;
     return ownerChars.some(c => onlineUsers.has(c.nickname) || onlineUsers.has(c.owner));
-  }, [onlineUsers]);
+  }, [onlineUsers,online,activityDirectory]);
 
   const onlineSolCount = useMemo(() => {
     return uniqueOwners.filter(ownerKey => {
@@ -417,7 +421,7 @@ export default function AstraView() {
 
   return (
     <section className="space-y-2.5 md:space-y-4 animate-in fade-in duration-200 select-none relative">
-      <p className="text-xs text-[var(--text-sub)] leading-relaxed">최근 활동은 웹·IRIS의 마지막 확인 기록이에요. 연결 표시는 웹 ASTRA 화면의 연결만 나타내며, 앱 전체의 온라인 상태를 뜻하지 않아요.</p>
+      <p className="text-xs text-[var(--text-sub)] leading-relaxed">최근 활동과 온라인은 별도예요. {online.mode==="legacy"?"통합 온라인 준비 중이며, 현재 표시는 웹 ASTRA 화면 연결만 나타내요.":online.mode==="ready"?"웹 또는 IRIS 연결이 확인된 길드원을 온라인으로 표시해요.":"온라인 연결을 확인하고 있어요. 최근 활동 기록은 그대로 유지돼요."}</p>
       {dataError && <p role="alert" className="rounded-xl border border-rose-500/50 bg-rose-950/20 px-3 py-2 text-sm text-rose-300">{dataError}</p>}
       
       {toastMessage && (
@@ -438,7 +442,7 @@ export default function AstraView() {
                 {totalSol} <span className="text-[0.65rem] md:text-xs text-[var(--text-sub)]">계정</span>
               </span>
               <span className="text-[0.6rem] md:text-xs bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 font-black px-2 py-0.5 rounded-full ml-1">
-                🟢 ASTRA 연결 {onlineSolCount}명
+                🟢 {onlineLabel} {online.mode==="ready"||online.mode==="legacy"?onlineSolCount+"명":""}
               </span>
             </div>
             <span className="text-[var(--panel-border)]">|</span>
@@ -491,7 +495,7 @@ export default function AstraView() {
                     : 'bg-[var(--inner-box)] text-[var(--text-sub)] border border-[var(--panel-border)] hover:text-[var(--text-main)]'
                 }`}
               >
-                 🟢 ASTRA 연결만
+                 🟢 {online.mode==="legacy"?"ASTRA 연결만":"온라인만"}
               </button>
 
               <div className="grid grid-cols-5 gap-1 bg-[var(--inner-box)] rounded-xl p-1 border border-[var(--panel-border)] md:hidden w-full">
@@ -614,7 +618,7 @@ export default function AstraView() {
                 >
                   <div className="flex flex-wrap gap-x-2 text-xs text-[var(--text-sub)] mb-1">
                     <span>{activityAvailable?formatRecentActivity(activityDirectory?.accounts.find(account=>account.nickname===ownerKey)?.lastActiveAt,nowTick):'활동 기록 준비 중'}</span>
-                    {isOnline&&<span className="text-emerald-400">웹 ASTRA 연결</span>}
+                    {isOnline&&<span className="text-emerald-400">{online.mode==="legacy"?"웹 ASTRA 연결":"온라인"}</span>}
                   </div>
                   <div className="md:hidden flex items-center justify-between gap-1.5 w-full">
                     <div className="flex flex-col justify-center space-y-0.5 min-w-0 flex-1 pr-0.5">
@@ -732,7 +736,7 @@ export default function AstraView() {
                       }`}>
                         {activityAvailable?formatRecentActivity(acc.latestSeen,nowTick):'활동 기록 준비 중'}
                       </span>
-                      {acc.isOnline&&<span className="text-xs text-emerald-400">웹 ASTRA 연결</span>}
+                      {acc.isOnline&&<span className="text-xs text-emerald-400">{online.mode==="legacy"?"웹 ASTRA 연결":"온라인"}</span>}
                     </div>
 
                     <span className="text-[0.55rem] md:text-xs font-black text-amber-400 bg-amber-500/10 border border-amber-500/30 px-1.5 md:px-2.5 py-0.2 md:py-1 rounded-md md:rounded-lg flex items-center gap-1 shrink-0">

@@ -1,4 +1,27 @@
+## YG-20261029-001 — WAITING / ASTRA 통합 온라인 야간 검증·선별 전송
+
+발신 영겁 / 수신 순월, 2026-10-29 KST. 기존 미ACK 메시지·ACK는 아래 모두 보존한다. 한설 승인: 기준 c9a376f의 검증된 온라인 후보·SQL제안·시험·최소 한국어 기록만 codex/home-gnosis-iris-integration-20261019에 선별 commit/일반 push. 최종 SHA는 후속 전송 확인 기록과 원격 HEAD다.
+
+[야간 QA](../ASTRA_ONLINE_NIGHT_QA_20261029.md)를 먼저 읽는다. 실제 PG17.11의17그룹/명시Lock·timeout·rollback·FK·활동분리 PASS, 실제 API/HTTP/PG/2Chrome12 PASS, 기존 in-memory10 PASS. 전체756/753 PASS·기존3 SKIP·FAIL0, React9·타입/관련 lint/build62 PASS. GUI는 QA 최종 마감/제약을 확인한다. 제품 저장·원장 보호는 변경하지 않았다.
+
+다음 순서: 개인/사무실 미전송 보존 → 기능 브랜치 안전 수신/ACK → QA·실제 커밋 diff 대조 → 미실행 GUI/절전·전체0.4.3조합 보완 → 전역 만료 정리/무료 한도/운영 권한 검토 → 한설에게 운영 적용·flag·배포 별도 승인 요청. 이미 구현한 온라인/ERGON 기반을 재개발하지 않는다.
+
+온라인/활동 flagfalse, 공개 ERGON·executionConnected=false 유지. feature release는0.4.2인 반면 운영main은0.4.3이다. 옛 ZIP/metadata/핫픽스를 통째로 운영에 덮어쓰지 않는다. 개인12·기존 ACK·원장·암호문·로그·격리DB/프로필/사본은 전송 제외. 기존 GUI timeout/과거 수령 원인 미확정은 별도 유지한다.
+
+ACK: 순월 대기. 아래 과거 미전송/미승인은 당시 경과이며 이번 검증·승인을 취소하는 뜻이 아니다.
+
 # 영겁 → 순월 수신함
+
+## YG-20261028-001 — UPDATED / 로컬 초안·미전송
+
+후속: [온라인 마감](../ASTRA_ONLINE_CLOSEOUT_20261028.md).300/720으로 최소 조정·비용40% 절감.600/720은1회 실패에 취약하여 미채택. 실제 PG/전역 오래된 임대 정리정책·설치본 검증/무료 잔여량은 승인 전 대기. 전송 후보 TO_YEONGGEOP는 새 ASTRA ACK hunk만,10/27 ACK원본2개는 로컬 보존·전송 제외. 이번 요청은 준비까지만이며 push한 것으로 간주하지 말 것.
+
+영겁은 순월 최신 c9a376fa5ecb28c575000a86e8a3e4241916d086을 새 관리 worktree에 수신하고 TO_YEONGGEOP에 ACK했다. 기존 개인12/이전 ACK/집 미전송4 보존. 이번 웹·IRIS 통합 온라인 구현은 로컬 후보이며 commit/push 승인 없음. 현재 GitHub에 본 문서/제품이 있다고 간주하지 말 것. 아래 과거 미ACK 인계는 모두 보존한다.
+
+[최종 QA](../ASTRA_ONLINE_QA_20261028.md)에 실제 파일·PASS/FAIL 이력/독립 검토/비용/미검증을 정리했다. 서버 세션 heartbeat와 native 수명(트레이 무관), ASTRA 온라인 인원·필터·카드. 최근 활동은 따로 유지. Node752 중749 PASS/FAIL0/기존3 SKIP, 관련 React/native/타입/격리 build PASS. 기존 lint22오류9경고 유지. 공개 ERGON/IRIS0.4.3/main/DB/게임·사용자 원장 변경0.
+
+배포 전 실제 PG 동시성·권한/정원·환경 분리와 후보 설치본의 tray/절전/쿠키를 별도 승인으로 확인해야 한다. SQL은 제안만, flagfalse. 공개0.4.3 native에는 새 heartbeat 없음. 과거 수령 terminal 예외 원인은 여전히 미확정이다. 우선 한설의 로컬 결과 검토를 기다리며 미완료 원인 조사나 추가 개발을 이 메시지로 승인하지 않는다.
+ACK: 순월 대기. 이 로컬 초안은 전송 완료를 뜻하지 않는다.
 
 - ACK: 순월 — 2026-10-28 KST. 원격 C/D-0 최종 a826ad0ad4728540034678cb8e46167f57a2b5e1을 기존 깨끗한 짧은 n04 worktree에 ff-only 수신했다. 최신 릴레이·HANDOFF·뉴월·N04/C/D-0 QA와 실제 소스를 대조한다. 원본 개인16항목·별도 미전송 N049파일·과거 사무실 후보/ACK/ignored 로그는 그대로 보존하고 덮어쓰지 않는다. 이번 승인은 합성 재검증·ASTRA 통합 활동 로컬 후보이며 DB 적용/실게임/CLI/공개 gate/main/Production/commit/push는 승인되지 않았다. 기존 미확인 누적과 과거 ACK 보존.
 
@@ -618,3 +641,12 @@ YG-20261006-001 후속 누적 — 2026-10-06 18:53 KST: v2.153 a99481f main push
 - 확인 커밋: `d7c3681` (`origin/main`)
 - 확인 범위: 누적 인계 전체와 v2.12 최신 항목(승인 계정 필터·지난 파티 표시·개인 접속 코드 변경)을 읽었다. 전용 승인 테스트 계정의 코드 변경·세션 무효화 실검증은 아직 수행하지 않았다.
 YE-20260930-001 길드버스 핫픽스: 시간대 출전, 가입/탈퇴, 운행자 컨트롤러 권한, 실제 운행시간 전달을 수정했다. `/party` 캐릭터 탈퇴 콜백과 관리자 포지션 연동도 보완했다. 서포터는 음유시인만 허용한다. 이번 push는 버전업·케리그마 공지 없이 반영하며 다음 릴리스에 합친다. 타입 검사·정책 테스트 통과; 새 버스 생성부터 가입·시간 경과·탈퇴를 실검증해 달라.
+
+최종 마감: Node752/749 PASS/FAIL0/기존3 SKIP·관련 React/native/타입/lint/격리 build PASS. 선별 후보32(제품11/시험10/SQL1/문서10), ACK는ASTRA hunk만. feature는0.4.2/운영은0.4.3이며 사이드바 복귀 핫픽스도 기준 차이로 남아 있어 공개 후보 제작은별도 승인·선별통합이 필요하다. 전역 만료 임대 정리정책과 실제 PG 검증 전 운영flagfalse 유지. commit/push 미실행.
+
+## 2026-10-28 영겁 — ASTRA 실제 사용 검증 준비(로컬·미전송)
+[검증 보고](../ASTRA_ONLINE_VALIDATION_20261028.md). 원격 feature는c9a376f로 그대로이며 기존32후보·이번검증자료 모두미전송. 기존32지문 불변 확인 후 인계만 누적했다.
+최종755/752 PASS/FAIL0/기존3 SKIP·실제 browser context2/localhost HTTP10probes·React9·타입/lint·컴파일전용IRIS0.4.3 fixture PASS. 실제DB0, PG환경없어SQL미실행.
+Windows GUI는전용서버/PG연결 미완성으로 무조건차단했다. native source/WebView보호 컴파일과기본·유효root실행거절만검증; 실제sidebar/floating/tray/절전·물리PC2대 완료아님. web-overrides3은미연결.
+다음은안전한일회용PG확보·소유API/웹loader연결. 설치/OS변경은별도확인, 격리시험자체는이미승인. 운영DB/main/공개IRIS/게임/commit/push0, 개인12/ACK/원장·로그보존.
+- **2026-10-29 00:57 KST Windows 결과 추가:** 격리 native/WebView2+PG에서 사이드바↔플로팅 복귀, NotifyIcon+form숨김316초 heartbeat, A→B·쿠키 로그아웃·정상종료 DB온라인0 PASS. native touch4/leave3/activity0. 전체 DesktopWorkspace/로그인UI·운영설치본·물리2PC·절전/실NIC·수동tray메뉴/DPI는 미실행이다. 야간QA 최신 마감과 전송 SHA를 확인하고 이어받을 것.

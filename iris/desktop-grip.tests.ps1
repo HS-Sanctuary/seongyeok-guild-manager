@@ -7,7 +7,7 @@ $core=Join-Path $sdk 'lib/net462/Microsoft.Web.WebView2.Core.dll'
 $forms=Join-Path $sdk 'lib/net462/Microsoft.Web.WebView2.WinForms.dll'
 [void][Reflection.Assembly]::LoadFrom($core)
 [void][Reflection.Assembly]::LoadFrom($forms)
-$sources=@('overlay-native.cs','desktop-overlay.cs','desktop-addon-policy.cs','desktop-addon.cs','desktop-host.cs','desktop-store.cs','desktop-bridge.cs','desktop-life-read.cs','desktop-life-journal.cs','desktop-life-policy.cs','desktop-life-cli.cs','desktop-life-executor.cs','desktop-life-automation.cs','desktop-life-reference.cs','desktop-life-reconciliation.cs','desktop-cli-activity.cs','desktop-fonts.cs','desktop-presentation.cs','desktop-floating.cs','desktop-floating-store.cs','desktop-floating-host.cs','desktop-alert-sound.cs','desktop-webview.cs'|ForEach-Object{Get-Content -LiteralPath (Join-Path $PSScriptRoot $_) -Raw -Encoding UTF8})
+$sources=@('overlay-native.cs','desktop-overlay.cs','desktop-addon-policy.cs','desktop-addon.cs','desktop-host.cs','desktop-store.cs','desktop-bridge.cs','desktop-life-read.cs','desktop-life-journal.cs','desktop-life-policy.cs','desktop-life-cli.cs','desktop-life-executor.cs','desktop-life-automation.cs','desktop-life-reference.cs','desktop-life-reconciliation.cs','desktop-cli-activity.cs','desktop-fonts.cs','desktop-presentation.cs','desktop-floating.cs','desktop-floating-store.cs','desktop-floating-host.cs','desktop-alert-sound.cs','desktop-online.cs','desktop-webview.cs'|ForEach-Object{Get-Content -LiteralPath (Join-Path $PSScriptRoot $_) -Raw -Encoding UTF8})
 $sources+=@'
 using System;using System.Drawing;using System.Reflection;using System.Windows.Forms;
 namespace IrisDesktop {

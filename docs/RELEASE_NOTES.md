@@ -1,3 +1,18 @@
+## 2026-10-29 KST — v2.322 개발 후보 후속 / ASTRA 통합 온라인 격리 검증·기능 인계
+
+- 기능 브랜치 전송 승인 범위다. 사용자에게는 향후 웹·IRIS 온라인이 통합되고 최근 활동은 별도로 보인다. 현재 기본 비활성으로 운영 사용자가 해야 할 조작은 없다.
+- 검증: 실제 PostgreSQL17그룹·실제 HTTP/PG2세션12·React9 PASS, Node756/753 PASS·기존3 SKIP·FAIL0, 타입/관련 lint/격리 build62 PASS. Windows GUI의 범위·최종 판정은 [야간 최종 QA](ASTRA_ONLINE_NIGHT_QA_20261029.md)를 따른다.
+- 보안/보존: 세션 귀속·종료 sequence·만료·잠금·FK 검증, 게임 검색까지 차단한 사본 시험. 운영 DB/RLS·실사용 원장·공개 ERGON·운영 IRIS0.4.3 변경0.
+- 구조 변경: 서버 온라인 API/reporter/hook·native 수명·임대 SQL proposal와 격리 검증 도구. 실제 운영 DB 구조 변경 없음. 이전 보고의 실제PG 미실행은 이번 격리 결과로 갱신하며 기존 lint/최초 GUI timeout·과거 수령 미확정은 유지한다.
+- 비용: 40명×2연결×8h는 매일 종료 포함 월350,880+B API,24h는1,047,840+B로 무료 한도 초과 가능. 전역 보존·운영 CPU/egress 여유는 미확정. flag활성화 금지.
+- 직전 정상 운영 기준 main ca69770/IRIS0.4.3 유지. 이번은 Production 배포·공개 업데이트가 아니므로 운영 배포 확인 대상이 없다.
+
+## 2026-10-28 KST — v2.322 개발 후보 후속 / ASTRA 통합 온라인 미전송 준비
+- 웹·IRIS 계정 온라인 통합은 로컬 후보, 최근 활동과 별도. 갱신300초/만료720초, 정상 종료는 별도 leave. 호출40% 감소.
+- SQL은 미적용 제안, 운영 flagfalse. 전역 보존·실제 PG/설치본·무료 사용량 확인 전 활성화 금지.
+- 구조 변경: 공통 온라인 reporter/API/hook·native 연결 수명·온라인 임대 proposal. 실제 DB/운영 구조·공개 IRIS0.4.3 변경 없음.
+- 검증·남은 제약·전송 파일은 [마감 보고](ASTRA_ONLINE_CLOSEOUT_20261028.md) 참조. 기존 lint/수령 미확정 유지.
+- commit/push/main/DB/Production/공개 IRIS 업데이트 승인이 아니며 아직 전송하지 않았다. 직전 운영 main ca69770/IRIS0.4.3 유지.
 # SANCTUM 업데이트 노트
 
 ## 2026-10-28 17:13 KST — v2.322 개발 후보 후속 / ASTRA 활동 기록 선별 인계
@@ -905,3 +920,11 @@
 - 신규4파일의 native 후보 보호 연결과 합성 시험만 추가. 목표/바인딩 저장 ACK, scope/epoch/명령 지문, 일회성 요청과 필수 writer 제외 핸들을 검증한다. 기존 제품 구조 연결 없음.
 - 신규22·기존1차34 최종 PASS, Node621 PASS/기존3 SKIP/0 FAIL, 기존 native4·타입·scoped lint PASS. 최초 S01 assertion1회 실패 원인은 미확정이며 단독/최종 직렬34는 PASS.
 - 실제 host/구 confirm/terminal 연결과 원래2차 전체·UI는 미완료. 모든 writer 공통 제외를 보장하지 못하면 B 활성화 금지. 실제 게임·원장·DB·main·배포 변경0, 로컬 로그/개인 자료 전송0.
+
+최종 마감: Node752/749 PASS/FAIL0/기존3 SKIP·관련 React/native/타입/lint/격리 build PASS. 선별 후보32(제품11/시험10/SQL1/문서10), ACK는ASTRA hunk만. feature는0.4.2/운영은0.4.3이며 사이드바 복귀 핫픽스도 기준 차이로 남아 있어 공개 후보 제작은별도 승인·선별통합이 필요하다. 전역 만료 임대 정리정책과 실제 PG 검증 전 운영flagfalse 유지. commit/push 미실행.
+
+### 2026-10-28 KST — v2.322 개발 후보 검증 준비 후속(로컬·미전송)
+제품 수정 없이 독립 browser context2/실제 loopback HTTP/호출량 계측과 PG 준비 도구를 추가했다. 전체755/752 PASS/FAIL0/기존3 SKIP.
+구조: tests 전용 HTTP/metrics/PG preflight·Compose/SQL fixture·GUI차단 컴파일 builder만 추가. 운영 구조 변경 없음. 실제PG/Windows GUI는미실행.
+개인자료·원장·운영IRIS0.4.3/main/DB/Production 보존, commit/push 없음. 자세한 범위·잔여는 [검증 보고](ASTRA_ONLINE_VALIDATION_20261028.md).
+- 2026-10-29 00:57 KST Windows 격리 native GUI 자기시험 PASS: 숨김316초 실제 heartbeat, 0.4.3 sidebar-return 버튼, 계정 전환·쿠키 로그아웃·정상종료 DB제외. 전체 로그인/작업대·운영설치본·절전/NIC는 미검증. 공개 업데이트/운영 배포 아님.

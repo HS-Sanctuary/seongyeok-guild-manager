@@ -1,0 +1,22 @@
+# Preparation only. No automatic pull/start; pin an approved official digest.
+name: ${ASTRA_VALIDATION_PROJECT:?unique owned project required}
+services:
+  postgres:
+    image: ${ASTRA_TEST_POSTGRES_IMAGE:?approved postgres@sha256 digest required}
+    pull_policy: never
+    network_mode: none
+    labels:
+      sanctum.fixture: astra-online-validation
+      sanctum.fixture.owner: ${ASTRA_VALIDATION_OWNER:?unique owner marker required}
+    environment:
+      POSTGRES_DB: astra_validation
+      POSTGRES_USER: astra_fixture_admin
+      POSTGRES_PASSWORD_FILE: /run/secrets/astra_test_password
+    secrets:
+      - astra_test_password
+    tmpfs:
+      - /var/lib/postgresql/data:size=128m
+    command: ["postgres", "-c", "listen_addresses=", "-c", "shared_buffers=16MB", "-c", "max_connections=8"]
+secrets:
+  astra_test_password:
+    file: ${ASTRA_TEST_PASSWORD_FILE:?ignored synthetic password file required}
