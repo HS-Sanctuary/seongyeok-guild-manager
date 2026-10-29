@@ -1,3 +1,42 @@
+## D-2 전송 커밋 및 수신 기준
+
+검증된 제품·시험·필수 문서31파일 커밋: `9c4070a08b8c26aac38591c6c08225b7136402ed`.
+대상 브랜치: `codex/home-gnosis-iris-integration-20261019`. 이 후속 기록 커밋을 포함한 최종 원격 HEAD가 수신 기준이다. 최종 SHA는 전송 후 보고에서 확정한다. 이전 로컬/미승인 문구는 과거 상태다.
+
+실제 전송 파일:
+
+- `app/SANCTUM_MASTER_GUID.md`
+- `components/iris/DesktopErgon.tsx`
+- `components/iris/DesktopErgonManualWood.tsx`
+- `components/iris/DesktopErgonWoodStatus.tsx`
+- `docs/ERGON_D2_MANUAL_WOOD_QA_20261029.md`
+- `docs/ERGON_NEWOL_HANDOFF.md`
+- `docs/HANDOFF.md`
+- `docs/RELEASE_NOTES.md`
+- `docs/relay/TO_SOONWOL.md`
+- `docs/relay/TO_YEONGGEOP.md`
+- `docs/superpowers/plans/2026-10-29-ergon-d2-manual-wood.md`
+- `iris/desktop-bridge.cs`
+- `iris/desktop-life-manual-compat.fixture.cs`
+- `iris/desktop-life-manual-compat.tests.ps1`
+- `iris/desktop-life-manual-downgrade.tests.ps1`
+- `iris/desktop-life-manual-host.fixture.cs`
+- `iris/desktop-life-manual-host.tests.ps1`
+- `iris/desktop-life-manual-wood.fixture.cs`
+- `iris/desktop-life-manual-wood.tests.ps1`
+- `iris/desktop-life-progress-connection.cs`
+- `iris/desktop-life-progress.cs`
+- `iris/desktop-life-wood-connection.cs`
+- `iris/desktop-life-wood-store.cs`
+- `iris/desktop-webview.cs`
+- `lib/irisDesktopStore.ts`
+- `lib/irisErgonManualWood.ts`
+- `tests/fixtures/ergon-progress-v1-before-d2.json`
+- `tests/iris-ergon-d2-compat.test.mjs`
+- `tests/iris-ergon-manual-wood-native.test.mjs`
+- `tests/iris-ergon-manual-wood.browser.mjs`
+- `tests/iris-ergon-manual-wood.test.mjs`
+
 ## 2026-10-29 20:57 KST — ERGON D-2 선별 전송 승인 마감
 
 한설이 D-2 검증 후보의 기능 브랜치 선별 commit·일반 push를 승인했다. 기준2b451846c62661bccbfa64bc8260a64ac2015378, 대상 codex/home-gnosis-iris-integration-20261019. 아래 미전송/미승인은 당시 상태로 보존한다. 정확한 전송 SHA는 후속 수신 확인 기록과 원격 HEAD다.

@@ -1,3 +1,5 @@
+D-2 전송 확인 기록: 제품/시험 커밋 `9c4070a08b8c26aac38591c6c08225b7136402ed`의31파일을 선별했다. 본 후속은 인계 SHA·파일 목록 보완뿐이며 제품/구조/운영 변경 없음.
+
 ## 2026-10-29 20:57 KST — ERGON D-2 개발 후보 구조
 
 기존 DesktopErgonWoodStatus에 DesktopErgonManualWood를 연결한다. lib/irisErgonManualWood의 엄격 projection과 irisDesktopStore의 loadManualWood/confirmManualWood/correctManualWood 전용 bridge가 기존 native progress-v1 audit 한 곳을 사용한다. 수동 receipt 키는 게임 요청 ID가 아니며 기존 crafting/C confirmedQuantity로 전달하지 않는다.
