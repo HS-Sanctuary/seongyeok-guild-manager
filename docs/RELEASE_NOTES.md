@@ -1,3 +1,9 @@
+## 2026-10-29 20:57 KST — v2.322 개발 후보 후속 / ERGON D-2
+
+- 기능 브랜치 선별 전송이며 운영 배포/버전 상승이 아니다. 목재 추가100 수령량 사용자 확인·정정·native ACK 복구를 기존 작업대에 연결했다.
+- 단일 progress audit에만 저장하며 C/crafting 확정량·기존 canonical 필드는 유지한다. native prompt·문맥/CAS·unknown 보호 유지. 새 이벤트 구버전 판독 제한은 운영 전 별도 검토한다.
+- 검증784/781 PASS·기존3 SKIP·FAIL0, native/React·타입/lint/native컴파일/격리build PASS, High C0/I0/M0. 검증 지문 동일. 실제 게임/확인창 클릭/설치본 미실행.
+- 공개 ERGON과 executionConnected=false, 운영 IRIS0.4.3/main/DB/Production 변경 없음. 개인/ACK 원본·보호 파일·로그 제외. 배포/되돌리기 실행 없음.
 ## 2026-10-29 17:24 KST — v2.322 개발 후보 후속 / ERGON D-1 선별 인계
 
 - 한설이 D-1 제품2·시험2·필수 한국어 기록의 기능 브랜치 commit·일반 push를 승인했다. 대상 `codex/home-gnosis-iris-integration-20261019`, 기준 `2a93f61aa78f57d55dfb023b5d5506ddcff694d5`. 정확한 수신 SHA는 이 기록을 포함한 커밋/원격 HEAD다. 운영 버전 상승·Production·공개 IRIS 업데이트가 아니다.

@@ -215,17 +215,22 @@ namespace IrisDesktop {
                     case "game.life.progress.bindPrepared":
                     case "game.life.progress.confirmQuantity":
                     case "game.life.progress.correctQuantity":
+                    case "game.life.progress.loadManualWood":
+                    case "game.life.progress.confirmManualWood":
+                    case "game.life.progress.correctManualWood":
                     case "game.life.progress.setLifecycle":
                     case "game.life.progress.detachPlan":
                         if(!ergonAvailable||lifeActionAsync==null||gameBusy||collectionPending||(lifeActionBusy!=null&&lifeActionBusy()))throw new ArgumentException();
                         var progressMethod=(string)message["method"];var progressPayload=message["payload"] as Dictionary<string,object>;
                         if(progressPayload==null)throw new ArgumentException();
                         var progressFields=new List<string>{"accountId","characterId"};
-                        if(progressMethod!="game.life.progress.capabilities"&&progressMethod!="game.life.progress.load"){
+                        if(progressMethod=="game.life.progress.loadManualWood")progressFields.Add("goalId");
+                        else if(progressMethod!="game.life.progress.capabilities"&&progressMethod!="game.life.progress.load"){
                             progressFields.AddRange(new[]{"revision","operationId","goalId"});
                             if(progressMethod=="game.life.progress.createGoal")progressFields.AddRange(new[]{"sourcePlanId","parentGoalId","action","displayName","targetQuantity"});
                             else if(progressMethod=="game.life.progress.replaceEmptyGoal")progressFields.AddRange(new[]{"sourcePlanId","action","displayName","targetQuantity","replacementQuantity"});
                             else if(progressMethod=="game.life.progress.bindPrepared")progressFields.Add("nonce");
+                            else if(progressMethod=="game.life.progress.confirmManualWood"||progressMethod=="game.life.progress.correctManualWood"){progressFields.AddRange(new[]{"sourcePlanId","action","displayName","targetQuantity","receiptId","quantity"});if(progressMethod=="game.life.progress.correctManualWood")progressFields.AddRange(new[]{"supersedesEventId","reason"});}
                             else if(progressMethod=="game.life.progress.confirmQuantity"||progressMethod=="game.life.progress.correctQuantity"){progressFields.AddRange(new[]{"requestId","quantity"});if(progressMethod=="game.life.progress.correctQuantity")progressFields.AddRange(new[]{"supersedesEventId","reason"});}
                             else progressFields.Add(progressMethod=="game.life.progress.setLifecycle"?"lifecycle":"sourcePlanId");
                         }

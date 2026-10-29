@@ -33,6 +33,24 @@ namespace IrisDesktop {
    public void Dispose(){if(disposed)return;disposed=true;try{if(lease!=null)lease.Dispose();}finally{if(game!=null)game.Dispose();if(mutation!=null)mutation.Dispose();}}
   }
   internal Session Open(Func<bool> context){Paths();return new Session(this,context);}
+  // Called only while actor mutation/game lease/common writer are already owned.
+  // No C quantity or receipt is written by manual confirmation.
+  internal bool ManualHealthy(ProgressWriterAdmission writer){
+   Paths();Goal(writer);using(writer.EnterStore(common.FilePath))using(io.AcquireExclusiveLock(FilePath+".lock")){
+    string health;var d=Read(out health);if(health!="ok"||!Audit(d))return false;
+    if(d==null)return true;
+    if(A(D(d["manager"])["events"]).Any(e=>D(e)["receipt"]==null))return false;
+    if(d["observation"]==null)return true;
+    try{
+     var packet=D(d["observation"]);Exact(packet,"schemaVersion","scope","targetName","documentEpoch","contextVersion","observedAt","gameIdentityVerified","inventory","materials","altering","evidence","collectionStatus","issues","executionAllowed");
+     if(N(packet["schemaVersion"])!=1||C(packet["scope"])!=C(scope)||!Equals(packet["targetName"],"목재")||!Equals(packet["executionAllowed"],false)||!Equals(packet["gameIdentityVerified"],false)||N(packet["observedAt"],1)>Now())return false;
+     var evidence=D(packet["evidence"]);Exact(evidence,"scope","works","actionState","collection");if(C(evidence["scope"])!=C(scope))return false;
+     if(A(packet["issues"]).Any(issue=>new[]{"native-unresolved","native-busy","actor-state-foreign"}.Contains(issue as string)))return false;
+     if(evidence["actionState"]!=null){var state=D(evidence["actionState"]);if(Equals(Field(state,"blocked"),true)||Equals(Field(state,"busy"),true)||Equals(Field(state,"state"),"unknown")||Equals(Field(state,"state"),"running"))return false;var current=Field(state,"current");if(current!=null){var row=D(current);if(!Equals(Field(row,"accountId"),scope.accountId)||!Equals(Field(row,"characterId"),scope.characterId))return false;}}
+     return true;
+    }catch{return false;}
+   }
+  }
   void Goal(ProgressWriterAdmission writer){var d=common.Inspect(writer);var g=d==null?null:d.goals.SingleOrDefault(x=>x.goalId==goal&&ProgressDomain.Same(x.scope,scope));Need(g!=null&&g.action=="altering"&&g.displayName=="목재"&&g.targetQuantity==100&&g.lifecycle=="active"&&!g.detached,"native-goal-mismatch");nativePlan=g.sourcePlanId;nativeReview=ProgressDomain.Project(d,scope,"ok").goals.Any(x=>x.quantityUnconfirmed);}
   void Config(Dictionary<string,object> c){Exact(c,"scope","goalId","plan","approval");Need(C(c["scope"])==C(scope)&&Equals(c["goalId"],goal),"foreign-config");var p=D(c["plan"]);Exact(p,"id","kind","displayName","targetQuantity");Need(T(p["id"],100)==nativePlan,"source-plan-mismatch");Need(Equals(p["kind"],"altering")&&Equals(p["displayName"],"목재")&&N(p["targetQuantity"],1,1000000)==100,"wood100-required");var a=D(c["approval"]);Exact(a,"id","maxWings","maxLogs","maxGather","expiresAt");T(a["id"]);N(a["maxWings"],0,1000000);N(a["maxLogs"],0,1000000);N(a["maxGather"],0,1000000);N(a["expiresAt"],1);}
   sealed class Totals {internal long confirmed,wings,logs,gather;internal Dictionary<string,object> works=new Dictionary<string,object>();}

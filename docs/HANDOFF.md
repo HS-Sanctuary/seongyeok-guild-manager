@@ -1,3 +1,22 @@
+## 2026-10-29 20:57 KST — ERGON D-2 선별 전송 승인 마감
+
+한설이 D-2 검증 후보의 기능 브랜치 선별 commit·일반 push를 승인했다. 기준2b451846c62661bccbfa64bc8260a64ac2015378, 대상 codex/home-gnosis-iris-integration-20261019. 아래 미전송/미승인은 당시 상태로 보존한다. 정확한 전송 SHA는 후속 수신 확인 기록과 원격 HEAD다.
+
+목재100 수동 확인35→55→정정50, 단일 native audit 권위, ACK/재조회·계정 전환·중복 보호를 전달한다. C wood-v1과 crafting confirmedQuantity는 수정하지 않는다. 최종784/781 PASS·기존3 SKIP·FAIL0, 관련 native/React/타입/lint/격리build PASS, High C0/I0/M0. 검증29파일 SHA256 동일을 재확인해 전체 회귀는 반복하지 않았다.
+
+실제 Windows 확인창 클릭·게임·사용자 저장/설치본은 미실행이다. 새 manual 이벤트 파일은 구버전 reader 판독 불가이며 다운그레이드 정책 승인 전 운영 적용하지 않는다. 공개 ERGON/실행false, 운영 IRIS0.4.3·ZIP/metadata·main·DB·Production 유지. 개인12·기존 ACK 원본·원장·로그·암호문·시험 사본 제외/보존.
+
+순월 다음: 실제 원격 수신·ACK → D-2 QA/전송 파일 대조 → 격리 Windows 확인창/전환 시험과 역방향 정책 준비 → 한설 승인 후 실행. 자동 생산·실제 CLI·운영 적용을 시작하지 않는다.
+## 2026-10-29 영겁 — ERGON D-2 목재 수령 수동 확인 / 로컬 미전송
+
+기준 기능 브랜치 `codex/home-gnosis-iris-integration-20261019` / `2b451846c62661bccbfa64bc8260a64ac2015378`. 별도 관리 작업공간의 미커밋 후보이며 commit/push 승인 없음. [D-2 QA](ERGON_D2_MANUAL_WOOD_QA_20261029.md)와 [계획](superpowers/plans/2026-10-29-ergon-d2-manual-wood.md)을 우선한다. 아래 D-1 미구현 문구는 당시 상태로 보존한다.
+
+기존 작업대 목재 추가100에 수량 입력·모든 수량 native 확인·수동 receipt별 정정/중복 방지·ACK/재조회·미확인 저장 보호를 연결했다. 기존 progress-v1 DPAPI audit 한 곳에만 저장하며 C wood-v1·crafting confirmed에는 합산하지 않는다. 가짜 게임 terminal/work/delivery 없음. 새 이벤트 없는 과거 v1/golden 감사는 동일하지만 새 manual 이벤트가 있는 파일의 구버전 판독은 차단되므로 다운그레이드 지원은 별도 승인 전 금지다.
+
+최종 Node784 /781 PASS /0 FAIL /기존3 SKIP, D2 native/새 프로세스·2writer/손상·고정 구버전 시험 및 기존 N04/B/C/V15 PASS. 실제 React D-2+기존7회귀·12폭/글자조합·타입/변경lint·native host 컴파일·격리build PASS. 독립 High1회 C0/I0/M0. 위험 관측 우회·receipt ID 재사용·잠금 중 초안 취소는 RED→GREEN 보완했다. 실사용/설치본 시험이 아니다.
+
+개인12·기존 ASTRA ACK·원장/이전 실패/ignored 자료 보존. 공개 ERGON/실행false·운영 IRIS0.4.3/main/DB/Production·ASTRA 플래그 변경0, 실제 CLI0, 신규 서버요청0. 다음은 뉴월의 UX/역방향 제한 검토와 전송 별도 승인이다. 순월은 수신/ACK 전에 이 로컬 후보가 원격에 있다고 가정하거나 동일 기능을 다시 만들지 않는다.
+
 ## 2026-10-29 영겁 — ASTRA 온라인 기능 브랜치 전송 마감
 
 이번 요청에서 한설이 실제 격리 PostgreSQL 검증·최소 수정·검증된 후보의 기능 브랜치 선별 commit/일반 push를 승인했다. 아래 과거 미전송·미승인은 당시 상태로 보존한다. 기준 c9a376f, 대상 codex/home-gnosis-iris-integration-20261019. 최종 SHA는 전송 마감 기록/원격 HEAD를 확인한다.

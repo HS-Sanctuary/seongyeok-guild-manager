@@ -1,3 +1,24 @@
+## 2026-10-29 20:57 KST — ERGON D-2 선별 전송 승인 마감
+
+한설이 D-2 검증 후보의 기능 브랜치 선별 commit·일반 push를 승인했다. 기준2b451846c62661bccbfa64bc8260a64ac2015378, 대상 codex/home-gnosis-iris-integration-20261019. 아래 미전송/미승인은 당시 상태로 보존한다. 정확한 전송 SHA는 후속 수신 확인 기록과 원격 HEAD다.
+
+목재100 수동 확인35→55→정정50, 단일 native audit 권위, ACK/재조회·계정 전환·중복 보호를 전달한다. C wood-v1과 crafting confirmedQuantity는 수정하지 않는다. 최종784/781 PASS·기존3 SKIP·FAIL0, 관련 native/React/타입/lint/격리build PASS, High C0/I0/M0. 검증29파일 SHA256 동일을 재확인해 전체 회귀는 반복하지 않았다.
+
+실제 Windows 확인창 클릭·게임·사용자 저장/설치본은 미실행이다. 새 manual 이벤트 파일은 구버전 reader 판독 불가이며 다운그레이드 정책 승인 전 운영 적용하지 않는다. 공개 ERGON/실행false, 운영 IRIS0.4.3·ZIP/metadata·main·DB·Production 유지. 개인12·기존 ACK 원본·원장·로그·암호문·시험 사본 제외/보존.
+
+순월 다음: 실제 원격 수신·ACK → D-2 QA/전송 파일 대조 → 격리 Windows 확인창/전환 시험과 역방향 정책 준비 → 한설 승인 후 실행. 자동 생산·실제 CLI·운영 적용을 시작하지 않는다.
+## YG-20261029-002 — WAITING / ERGON D-2 로컬 후보·미전송
+
+발신 영겁 / 수신 순월 / 2026-10-29 20:44 KST. 기준 기능 브랜치 `codex/home-gnosis-iris-integration-20261019`, HEAD `2b451846c62661bccbfa64bc8260a64ac2015378` 그대로. **이 항목은 로컬 인계 초안이며 아직 Git에 전송하지 않았다.** commit/push 승인을 받은 후 공식 전송 때 최종 SHA를 추가한다. 기존 미ACK·ACK 누적은 삭제하지 않는다.
+
+[D-2 QA](../ERGON_D2_MANUAL_WOOD_QA_20261029.md)를 읽는다. 기존 작업대 목재 추가100에 사용자 수령량 native 승인·단일 progress audit·정정/중복·ACK 재조회·초안/pending 보호를 연결했다. manual35/20→55, 첫35→30 정정→50/남음50. 출처user-confirmed이며 crafting/C 수량·가짜 terminal·자동 실행 권한으로 승격하지 않는다.
+
+최종 Node784/781 PASS·기존3 SKIP·FAIL0, native 저장/손상/재시작/2프로세스·N04/B/C/V15, D-2 React+기존7개·12폭/글자·타입/lint/native 컴파일/격리build PASS. High1회 C0/I0/M0. 새 이벤트 없는 기존 v1 판독/audit 동일. 새 이벤트 파일은 고정 구버전에서 거부/무쓰기이며 다운그레이드 지원 제한이다. 위험 관측·로컬ID충돌·초안 교착 RED/수정 로그는 ignored로 보존한다.
+
+개인12·기존 ACK·보호 원장·실패 로그·삭제 상태 보존. 실제 CLI/사용자 보호 파일/게임·DB/main/Production/공개 IRIS0.4.3·공개 ERGON/실행false·ASTRA 변경0, 신규서버호출0. 다음은 한설/뉴월이 QA와 전송·역방향 정책을 검토한다. 수신 시 실제 commit 존재부터 확인하고 ACK하며 중복 구현하지 않는다. 실제 관측 명령·횟수/실비용 검증 및 공개 적용은 별도 승인이다.
+
+ACK: 순월 수신 전.
+
 ## YG-20261029-001 — ACKNOWLEDGED / ASTRA 통합 온라인 야간 검증·선별 전송
 
 발신 영겁 / 수신 순월, 2026-10-29 KST. 기존 미ACK 메시지·ACK는 아래 모두 보존한다. 한설 승인: 기준 c9a376f의 검증된 온라인 후보·SQL제안·시험·최소 한국어 기록만 codex/home-gnosis-iris-integration-20261019에 선별 commit/일반 push. 최종 SHA는 후속 전송 확인 기록과 원격 HEAD다.

@@ -182,6 +182,8 @@ namespace IrisDesktop {
     }
     // Phase 1, intentionally not in the host source lists or bridge. No execution authority.
     internal sealed class ProgressScope {public string environment{get;set;} public string accountId{get;set;} public string characterId{get;set;}}
+    internal sealed class ManualWoodReceiptView {public string receiptId;public ProgressConfirmation[] confirmations;}
+    internal sealed class ManualWoodView {public int schemaVersion=1;public ProgressScope scope;public string goalId,sourcePlanId,action,displayName,lifecycle,health;public long revision,targetQuantity;public long? confirmedQuantity,remainingQuantity;public ManualWoodReceiptView[] receipts;}
     internal sealed class QuantityAcknowledgement {public string requestId{get;set;} public object quantity{get;set;} public long revision{get;set;} public bool zero{get;set;} public bool extra{get;set;} public bool correction{get;set;}}
     internal sealed class NativeTerminalEvidence {
         public ProgressScope scope{get;set;} public string goalId{get;set;} public string requestId{get;set;} public string action{get;set;} public string displayName{get;set;}
@@ -331,6 +333,18 @@ namespace IrisDesktop {
                 Shape(m,new[]{"candidateDigest","candidateRevision"});Require(m.candidateDigest==d.commitDigest&&Number(m.candidateRevision,0,SafeInteger)==d.revision,"invalid-recovery");d.reviewRequired=true;return;
             }
             var g=Goal(d,m);
+            if(m.kind=="ConfirmManualWoodReceipt"||m.kind=="CorrectManualWoodReceipt"){
+                Shape(m,new[]{"requestId","sourcePlanId","action","displayName","targetQuantity","quantity","source","supersedesEventId","reason"});
+                Require(g.action=="altering"&&g.displayName=="목재"&&g.targetQuantity==100&&g.parentGoalId==null&&g.rootGoalId==g.goalId&&g.lifecycle=="active"&&!g.detached,"manual-wood-goal");
+                Require(m.action==g.action&&m.displayName==g.displayName&&m.sourcePlanId==g.sourcePlanId&&Number(m.targetQuantity,1,1000000)==100&&IsId(m.requestId)&&m.source=="user-confirmed","manual-wood-identity");
+                // In this domain requestId is a LOCAL receipt record key, never a game request.
+                Require(!d.attempts.Any(row=>row.requestId==m.requestId),"manual-receipt-is-not-game-request");
+                Require(!d.attempts.Any(row=>row.evidence==null||row.action=="crafting"&&row.evidence.outcome=="completed"&&row.confirmations.Count==0),"manual-unresolved");
+                var prior=d.auditEvents.Where(x=>IsManualWood(x.mutation)&&x.mutation.requestId==m.requestId).ToArray();Number(m.quantity,0,5000000);
+                if(m.kind=="CorrectManualWoodReceipt")Require(prior.Length>0&&prior.All(x=>x.mutation.goalId==g.goalId&&Same(x.mutation.scope,g.scope))&&m.supersedesEventId==prior.Last().eventId&&Text(m.reason,400),"manual-stale-correction");
+                else Require(prior.Length==0&&m.supersedesEventId==null&&m.reason==null,"manual-duplicate-receipt");
+                return; // No attempt, terminal, C delivery or persisted legacy field is created.
+            }
             if(m.kind=="ReplaceEmptyGoal"){
                 Shape(m,new[]{"sourcePlanId","action","displayName","targetQuantity","replacement"});var replacement=m.replacement;
                 Require(replacement!=null&&IsId(replacement.goalId)&&!d.goals.Any(x=>x.goalId==replacement.goalId),"invalid-replacement");
@@ -343,6 +357,7 @@ namespace IrisDesktop {
             if(m.kind=="SetLifecycle"){Shape(m,new[]{"lifecycle"});Require(new[]{"active","paused","cancelled","archived"}.Contains(m.lifecycle),"invalid-lifecycle");Require(!(g.lifecycle=="cancelled"||g.lifecycle=="archived")||m.lifecycle==g.lifecycle||m.lifecycle=="archived","terminal-goal");if(live&&g.parentGoalId==null&&(m.lifecycle=="active"||m.lifecycle=="paused")){Require(!g.detached,"detached-goal");UniqueRoot(d,g.scope,g.sourcePlanId,g.goalId);}g.lifecycle=m.lifecycle;return;}
             if(m.kind=="DetachPlan"){Shape(m,new[]{"sourcePlanId"});Require(m.sourcePlanId==g.sourcePlanId&&(g.lifecycle=="cancelled"||g.lifecycle=="archived"),"deactivate-before-detach");g.detached=true;return;}
             if(m.kind=="BindPreparedRequest"){
+                Require(!d.auditEvents.Any(row=>IsManualWood(row.mutation)&&row.mutation.requestId==m.requestId),"game-request-is-not-manual-receipt");
                 Shape(m,new[]{"requestId","action","displayName","craftCount","outputPerCraft","expectedOutput","preparedAt","expiresAt"});Require(g.lifecycle=="active"&&!g.detached&&IsId(m.requestId)&&!d.attempts.Any(x=>x.requestId==m.requestId)&&m.action==g.action&&m.displayName==g.displayName,"invalid-binding");
                 Require(!d.attempts.Any(x=>x.goalId==g.goalId&&(x.evidence==null||x.action=="crafting"&&x.evidence.outcome=="completed"&&x.confirmations.Count==0)),"quantity-unconfirmed");
                 if(live)ActiveLineage(d,g);
@@ -374,6 +389,13 @@ namespace IrisDesktop {
                 long confirmed=requests.Sum(r=>r.quantity??0);bool unknown=requests.Any(r=>r.terminalOutcome==null||r.action=="crafting"&&r.terminalOutcome=="completed"&&r.quantity==null);
                 return new ProgressGoalView{goalId=g.goalId,sourcePlanId=g.sourcePlanId,parentGoalId=g.parentGoalId,rootGoalId=g.rootGoalId,action=g.action,displayName=g.displayName,targetQuantity=g.targetQuantity,lifecycle=g.lifecycle,detached=g.detached,confirmedQuantity=confirmed,remainingQuantity=Math.Max(0,g.targetQuantity-confirmed),excessQuantity=Math.Max(0,confirmed-g.targetQuantity),quantityUnconfirmed=unknown,quantitySatisfied=health=="ok"&&!unknown&&confirmed>=g.targetQuantity,registeredCount=requests.Count(r=>r.action=="altering"&&r.terminalOutcome=="registered"),requests=requests};
             }).ToArray();return projection;
+        }
+        static bool IsManualWood(ProgressMutation m){return m.kind=="ConfirmManualWoodReceipt"||m.kind=="CorrectManualWoodReceipt";}
+        internal static ManualWoodView ManualWood(ProgressDocument d,ProgressScope scope,string goal,string health){
+            Scope(scope);var g=d.goals.SingleOrDefault(x=>x.goalId==goal&&Same(x.scope,scope));Require(g!=null&&g.action=="altering"&&g.displayName=="목재"&&g.targetQuantity==100,"manual-wood-goal");
+            var receipts=d.auditEvents.Where(e=>IsManualWood(e.mutation)&&e.mutation.goalId==goal&&Same(e.mutation.scope,scope)).GroupBy(e=>e.mutation.requestId).Select(group=>new ManualWoodReceiptView{receiptId=group.Key,confirmations=group.Select(e=>new ProgressConfirmation{eventId=e.eventId,revision=e.revision,quantity=Number(e.mutation.quantity,0,5000000),source="user-confirmed",confirmedAt=e.recordedAt,supersedesEventId=e.mutation.supersedesEventId,reason=e.mutation.reason}).ToArray()}).ToArray();
+            long? total=receipts.Length==0?(long?)null:receipts.Sum(r=>r.confirmations.Last().quantity);
+            return new ManualWoodView{scope=Clone(scope),goalId=g.goalId,sourcePlanId=g.sourcePlanId,action=g.action,displayName=g.displayName,targetQuantity=100,lifecycle=g.lifecycle,health=health,revision=d.revision,confirmedQuantity=total,remainingQuantity=total.HasValue?(long?)Math.Max(0,100-total.Value):null,receipts=receipts};
         }
         internal static void Validate(ProgressDocument d,string environment){
             Require(d!=null&&d.schemaVersion==1&&d.environment==environment&&IsId(d.storeId)&&d.revision>=0&&d.revision<=SafeInteger&&d.goals!=null&&d.attempts!=null&&d.auditEvents!=null&&d.auditEvents.Count<=EventLimit,"invalid-document");

@@ -1,5 +1,5 @@
 'use client';
-import {useCallback,useEffect,useLayoutEffect,useRef,useState} from 'react';
+import {useCallback,useEffect,useLayoutEffect,useMemo,useRef,useState} from 'react';
 import {useErgonSession,type ErgonSessionProps} from './useErgonSession';
 import {useErgonPolling} from './useErgonPolling';
 import {ergonSnapshotStale} from '@/lib/irisErgonRead';
@@ -27,7 +27,7 @@ import {DesktopContextHelp} from './DesktopContextHelp';
 import {DesktopErgonCollectionPermission} from './DesktopErgonCollectionPermission';
 import type {ErgonCollectionPolicy,ErgonCollectionIdentity} from '@/lib/irisErgonAutomation';
 import type {createDesktopStore} from '@/lib/irisDesktopStore';
-type ActionApi=Pick<ReturnType<typeof createDesktopStore>,'lifeActionCapabilities'|'setLifeContext'|'prepareLifeAction'|'confirmLifeAction'|'cancelLifeAction'|'lifeActionState'|'lifeActionHistory'|'stopLifeAction'|'collectLifeAction'|'collectionPolicy'|'revokeCollection'|'collectionObservation'>&Partial<Pick<ReturnType<typeof createDesktopStore>,'readLifeReference'|'setWorkspace'|'loadErgonWoodProgress'>>;
+type ActionApi=Pick<ReturnType<typeof createDesktopStore>,'lifeActionCapabilities'|'setLifeContext'|'prepareLifeAction'|'confirmLifeAction'|'cancelLifeAction'|'lifeActionState'|'lifeActionHistory'|'stopLifeAction'|'collectLifeAction'|'collectionPolicy'|'revokeCollection'|'collectionObservation'>&Partial<Pick<ReturnType<typeof createDesktopStore>,'readLifeReference'|'setWorkspace'|'loadErgonWoodProgress'|'loadErgonManualWood'|'saveErgonManualWood'>>;
 type ConnectedProps=ErgonSessionProps&{actions?:ActionApi&Partial<ErgonProgressApi>;accountLabel?:string;characterLabel?:string;gameBusy?:boolean;onActionBusyChange?:(busy:boolean)=>void;onProgressDirtyChange?:(dirty:boolean)=>void};
 export function DesktopErgonRecipeStatus({recipe,unlocked}:{recipe:ErgonRecipe;unlocked?:boolean|null}){
  return <><span>{recipe.available===true?'가능':recipe.available===false?'재료·조건 확인':'조건 미확인'}</span>{unlocked===false&&<p className="iris-caption">제작 기능이 잠겨 있어요.</p>}{recipe.reason&&<p className="iris-caption">{recipe.reason}</p>}{recipe.missing&&<p className="iris-caption">현재 1회 부족분: {recipe.missing.map(m=>`${m.name} 필요 ${m.required??'?'} / 보유 ${m.owned??'?'}`).join(', ')}</p>}</>;
@@ -48,8 +48,14 @@ function ConnectedErgon(props:ConnectedProps){
  const [nativeProgress,setNativeProgress]=useState<ProgressView|null>(null);
  const nativeScope:ProgressScope|null=props.characterId&&(props.environment==='development'||props.environment==='production')?{environment:props.environment,accountId:props.accountId,characterId:props.characterId}:null;
  const [progressEditing,setProgressEditing]=useState(false);
+ const [craftEditing,setCraftEditing]=useState(false);
+ const dirtySources=useRef({craft:false,manual:false});
  const notifyProgress=props.onProgressDirtyChange;
- const progressChanged=useCallback((dirty:boolean)=>{setProgressEditing(dirty);notifyProgress?.(dirty);},[notifyProgress]);
+ const reportDirty=useCallback((source:'craft'|'manual',dirty:boolean)=>{dirtySources.current[source]=dirty;const any=dirtySources.current.craft||dirtySources.current.manual;setProgressEditing(any);notifyProgress?.(any);},[notifyProgress]);
+ const progressChanged=useCallback((dirty:boolean)=>{setCraftEditing(dirty);reportDirty('craft',dirty);},[reportDirty]);
+ const manualChanged=useCallback((dirty:boolean)=>reportDirty('manual',dirty),[reportDirty]);
+ const manualLoad=props.actions?.loadErgonManualWood,manualSave=props.actions?.saveErgonManualWood;
+ const manualApi=useMemo(()=>manualLoad&&manualSave?{loadErgonManualWood:manualLoad,saveErgonManualWood:manualSave}:undefined,[manualLoad,manualSave]);
  // This stage exposes durable results only; capabilities.executionConnected remains false.
  const resultOnly=typeof props.actions?.ergonProgressCapabilities==='function';
  const [wide,setWide]=useState(false),[windowBusy,setWindowBusy]=useState(false);
@@ -147,7 +153,7 @@ const legacyRootProgress=scopedRootGoal&&scopedRootGoal.identity.targetQuantity=
   <div className="iris-ergon-workspace" data-area={area}>
   {resultOnly&&<p className="iris-caption">진행 기록은 결과 확인·정정·보류만 연결돼 있어요. 새 생산 시작과 계속하기는 아직 준비 중이에요.</p>}
 {props.characterId&&(props.environment==='development'||props.environment==='production')&&<DesktopErgonResultConfirmation api={props.actions?.ergonProgressCapabilities&&props.actions.loadErgonProgress&&props.actions.saveErgonQuantity&&props.actions.setErgonGoalLifecycle?props.actions as ErgonProgressApi:undefined} scope={{environment:props.environment,accountId:props.accountId,characterId:props.characterId}} active={props.active} locked={props.locked||gameBusy||collectionBusy||!!collectionRunId} plans={session.ready?session.plans:[]} canRemovePlan={session.ready&&session.persistent&&!session.unreadable} onRemovePlan={session.removeCancelledPlan} onReplacePlan={session.replaceGoalPlan} onViewChange={setNativeProgress} onDirtyChange={progressChanged}/>}
-  {props.actions&&<DesktopErgonWorkbench progressStatus={nativeScope&&rootPlan?.kind==='altering'?<DesktopErgonWoodStatus key={JSON.stringify([nativeScope,rootPlan.id])} scope={nativeScope} plan={rootPlan} goal={selectErgonNativeGoal(nativeProgress,nativeScope,rootPlan,{forDisplayOnly:true})} active={props.active} locked={props.locked||gameBusy||collectionBusy||!!collectionRunId||progressEditing} getContextVersion={props.getContextVersion} load={props.actions?.loadErgonWoodProgress}/>:undefined} collectionControls={<DesktopErgonCollectionPermission key={collectionScope} api={props.actions} accountId={props.accountId} policy={policy} disabled={gameDisabled} onChange={acceptPolicy}/>} view="overview" session={{...session,refreshOverview:refreshWorkbench}} plan={undefined} characterLabel={props.characterLabel??''} disabled={gameDisabled||session.unreadable} onAddPlan={addPlan} onCollection={facility=>void openCollection(facility)}/>}
+  {props.actions&&<DesktopErgonWorkbench progressStatus={nativeScope&&rootPlan?.kind==='altering'?<DesktopErgonWoodStatus key={JSON.stringify([nativeScope,rootPlan.id])} scope={nativeScope} plan={rootPlan} goal={selectErgonNativeGoal(nativeProgress,nativeScope,rootPlan,{forDisplayOnly:true})} active={props.active} locked={props.locked||gameBusy||collectionBusy||!!collectionRunId||craftEditing} getContextVersion={props.getContextVersion} load={props.actions?.loadErgonWoodProgress} manualApi={manualApi} accountLabel={props.accountLabel} characterLabel={props.characterLabel} onDirtyChange={manualChanged}/>:undefined} collectionControls={<DesktopErgonCollectionPermission key={collectionScope} api={props.actions} accountId={props.accountId} policy={policy} disabled={gameDisabled} onChange={acceptPolicy}/>} view="overview" session={{...session,refreshOverview:refreshWorkbench}} plan={undefined} characterLabel={props.characterLabel??''} disabled={gameDisabled||session.unreadable} onAddPlan={addPlan} onCollection={facility=>void openCollection(facility)}/>}
   <section className="iris-ergon-focus" hidden={area!=='execution'&&area!=='history'&&!(props.actions&&area==='plan')||area==='plan'&&!selectedPlan&&!collecting} aria-label="선택 작업">
    {area!=='history'&&!collecting&&!props.actions&&<h3>{rootPlan?.displayName??'품목을 선택해 주세요'}</h3>}
    {guided&&rootPlan&&<div className="iris-ergon-guided-goal"><p>원래 목표 · {rootPlan.displayName} {rootPlan.targetQuantity}개</p><button type="button" className="iris-desktop-button" disabled={disabled} onClick={()=>setPrerequisite(null)}>원래 제작 목표로</button></div>}

@@ -1,3 +1,8 @@
+## 2026-10-29 20:57 KST — ERGON D-2 개발 후보 구조
+
+기존 DesktopErgonWoodStatus에 DesktopErgonManualWood를 연결한다. lib/irisErgonManualWood의 엄격 projection과 irisDesktopStore의 loadManualWood/confirmManualWood/correctManualWood 전용 bridge가 기존 native progress-v1 audit 한 곳을 사용한다. 수동 receipt 키는 게임 요청 ID가 아니며 기존 crafting/C confirmedQuantity로 전달하지 않는다.
+
+native progress connection은 모든 수량 승인·공통 writer/lease·문맥/CAS·ACK를 담당하고 wood connection/store는 위험 관측을 읽기만 한다. DesktopErgon의 합산 dirty 보호는 기존 page 종료/전환 경계를 재사용한다. 공개 잠금/실행false·기존 DB/운영 설치본은 유지한다. 새 이벤트의 구버전 reader 지원 제한과 시험 범위는 docs/ERGON_D2_MANUAL_WOOD_QA_20261029.md를 따른다.
 ## 2026-10-29 ERGON D-1 읽기 전용 수동 안내 로컬 후보
 
 17:24 KST 후속: 한설 승인으로 검증된 제품2·시험2·필수 한국어 기록을 기능 브랜치에 선별 전송한다. 기존 구조 설명과 보호 경계를 유지하며 새 구조 변경은 없다. 정확한 최종 SHA는 이번 인계를 포함한 커밋/원격 HEAD다. 아래 로컬 미전송은 작성 당시 상태이며 운영/공개 활성화가 아니다.

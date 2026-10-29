@@ -42,6 +42,16 @@ namespace IrisDesktop {
                 return MessageBox.Show(this,message,"IRIS · 제작 수량 재확인",MessageBoxButtons.OKCancel,MessageBoxIcon.Question,MessageBoxDefaultButton.Button2)==DialogResult.OK;
             });
         }
+        Task<bool> ConfirmManualWoodAsync(ManualWoodPreview preview){
+            return DesktopLifeProgressApproval.RequestAsync(this,()=>{
+                if(!LifeActionAllowed())return false;
+                var message="생텀 계정: "+preview.accountLabel+"\n캐릭터: "+preview.characterLabel+"\n품목: "+preview.displayName+" · 추가 목표 "+preview.targetQuantity+"개\n\n이번 수령 확인: "+preview.quantity+"개";
+                if(preview.previousQuantity.HasValue)message+="\n기존 기록 "+preview.previousQuantity.Value+"개를 교체해요.";
+                if(preview.reason!=null)message+="\n정정 사유: "+preview.reason;
+                message+="\n\n가방 총보유량이 아닌, 직접 수령한 추가 확보량이 맞나요?\n사용자 직접 확인으로 저장해요. 공식 수령 증명이나 게임 실행 승인이 아니에요.";
+                return MessageBox.Show(this,message,"IRIS · 가공 수령량 확인",MessageBoxButtons.OKCancel,MessageBoxIcon.Question,MessageBoxDefaultButton.Button2)==DialogResult.OK;
+            });
+        }
         Task<bool> ConfirmLifeActionAsync(object preview){
             return DesktopLifeProgressApproval.RequestAsync(this,()=>ConfirmLifeAction(preview));
         }
@@ -282,6 +292,7 @@ namespace IrisDesktop {
                     lifeEvidence=new DesktopLifeEvidenceProvider(development?"development":"production",lifeActor.ProgressContext,lifeActor.State,DesktopLifeReader.ReadAsync,()=>!IsDisposed&&!Disposing&&Visible&&WindowState!=FormWindowState.Minimized&&!closeDecision,()=>DesktopLifePolicy.Time(DateTime.UtcNow));
                     bridge.BindLifeEvidence(lifeEvidence.ReadAsync);
                     var woodProgress=new DesktopWoodProgressConnection(journalRoot,development?"development":"production",lifeJournal,new DesktopErgonProgressStore(journalRoot,development?"development":"production"),lifeActor.ProgressContext,lifeActor.ProgressMutationAsync,lifeEvidence.ReadAsync);
+                    lifeProgress.BindManualWoodApproval(ConfirmManualWoodAsync,woodProgress.ManualHealthy);
                     bridge.BindLifeActions(lifeActor.Capabilities,(method,payload)=>{
                         switch(method){
                             case "game.life.actions.context":return lifeActor.SetContext(payload);

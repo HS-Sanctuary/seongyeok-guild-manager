@@ -5,6 +5,10 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Diagnostics;
 namespace IrisDesktop {
+ internal sealed class ManualWoodPreview {
+  internal readonly string accountLabel,characterLabel,displayName,reason;internal readonly long quantity,targetQuantity;internal readonly long? previousQuantity;
+  internal ManualWoodPreview(Dictionary<string,object> context,ManualWoodView view,ProgressMutation m){accountLabel=(string)context["accountLabel"];characterLabel=(string)context["characterLabel"];displayName=view.displayName;targetQuantity=view.targetQuantity;quantity=Convert.ToInt64(m.quantity);reason=m.reason;var receipt=view.receipts.SingleOrDefault(r=>r.receiptId==m.requestId);previousQuantity=receipt==null?(long?)null:receipt.confirmations.Last().quantity;}
+ }
  internal sealed class ProgressQuantityPreview {
   internal readonly string accountLabel,characterLabel,displayName,requestId,reason;internal readonly long quantity;internal readonly long? previousQuantity,expectedOutput;
   internal ProgressQuantityPreview(Dictionary<string,object> context,ProgressAttemptRecord attempt,ProgressMutation mutation){accountLabel=(string)context["accountLabel"];characterLabel=(string)context["characterLabel"];displayName=attempt.displayName;requestId=attempt.requestId;quantity=Convert.ToInt64(mutation.quantity);previousQuantity=attempt.confirmations.Count==0?(long?)null:attempt.confirmations.Last().quantity;expectedOutput=attempt.expectedOutput;reason=mutation.reason;}
@@ -16,6 +20,8 @@ namespace IrisDesktop {
   readonly Dictionary<string,string> goals=new Dictionary<string,string>(StringComparer.Ordinal);
   ProgressDocument validated,collectionDocument;
   readonly Func<long> monotonicMilliseconds;Func<ProgressQuantityPreview,Task<bool>> quantityApproval;
+  Func<ManualWoodPreview,Task<bool>> manualWoodApproval;Func<ProgressScope,string,ProgressWriterAdmission,bool> manualWoodSafety;
+  internal void BindManualWoodApproval(Func<ManualWoodPreview,Task<bool>> approve,Func<ProgressScope,string,ProgressWriterAdmission,bool> safety){Need(approve!=null&&safety!=null&&manualWoodApproval==null&&!actor.Busy,"manual-approval-binding");manualWoodApproval=approve;manualWoodSafety=safety;}
   internal DesktopLifeProgressConnection(DesktopLifeExecutor actor,DesktopLifeJournal journal,DesktopErgonProgressStore store,Func<long> clock,Func<long> monotonicMilliseconds):this(actor,journal,store,clock){if(monotonicMilliseconds==null)throw new ArgumentNullException();this.monotonicMilliseconds=monotonicMilliseconds;}
   internal void BindQuantityApproval(Func<ProgressQuantityPreview,Task<bool>> approve){Need(approve!=null&&!actor.Busy&&quantityApproval==null,"quantity-approval-binding");quantityApproval=approve;}
   internal DesktopLifeProgressConnection(DesktopLifeExecutor actor,DesktopLifeJournal journal,DesktopErgonProgressStore store,Func<long> clock){if(actor==null||journal==null||store==null||clock==null)throw new ArgumentNullException();this.actor=actor;this.journal=journal;this.store=store;this.clock=clock;monotonicMilliseconds=()=>checked((long)(Stopwatch.GetTimestamp()*(1000.0/Stopwatch.Frequency)));coordinator=new ProgressCoordinator(store,this,clock);actor.BindProgress(ConfirmAsync,ObserveTerminal,CanPrepare,CollectionGuard,CollectionBegin);}
@@ -72,8 +78,47 @@ static void Match(ProgressAttemptRecord a,Dictionary<string,object> row,bool all
     }
    }
   }
+  async Task<object> ManualWoodAsync(string method,Dictionary<string,object> p){
+   bool load=method=="loadManualWood",correct=method=="correctManualWood";
+   var fields=new[]{"accountId","characterId","revision","operationId","goalId","sourcePlanId","action","displayName","targetQuantity","receiptId","quantity"};
+   DesktopLifePolicy.Exact(p,load?new[]{"accountId","characterId","goalId"}:correct?fields.Concat(new[]{"supersedesEventId","reason"}).ToArray():fields);
+   Owner(p);Need(ProgressDomain.IsId(p["goalId"] as string),"manual-goal-required");var context=actor.ProgressContext();string payloadDigest=ProgressDomain.Canonical(p),contextDigest=ProgressDomain.Canonical(context);var scope=Scope(context);var goal=(string)p["goalId"];
+   var owner=new ProgressLockOwner();
+   using(owner.Enter(ProgressLockOwner.Mutation))using(await actor.ProgressMutationAsync().ConfigureAwait(false))using(var lease=await ProgressExecutionLease.AcquireAsync(owner,()=>Task.FromResult<IDisposable>(journal.AcquireExecutionLease())).ConfigureAwait(false)){
+    ProgressMutation m=null;Guid operation=Guid.Empty;long revision=0;string storeId=null,digest=null;ManualWoodPreview preview=null;bool publishing=false;
+    Exception manualFailure=null;try{
+    using(var writer=await store.AcquireWriterAsync(owner).ConfigureAwait(false)){
+     QuantityContext(p,payloadDigest,contextDigest);var d=store.Inspect(writer);string health="ok";
+     try{Audit(d,null);Need(manualWoodSafety!=null&&manualWoodSafety(scope,goal,writer),"manual-wood-record-review");}catch{health="review-required";}
+     var view=ProgressDomain.ManualWood(d,scope,goal,health);QuantityContext(p,payloadDigest,contextDigest);if(load)return view;
+     Need(health=="ok"&&manualWoodApproval!=null,"manual-review-or-unsupported");revision=Revision(p);operation=Operation(p);
+     m=new ProgressMutation{kind=correct?"CorrectManualWoodReceipt":"ConfirmManualWoodReceipt",scope=scope,goalId=goal,sourcePlanId=p["sourcePlanId"] as string,action=p["action"] as string,displayName=p["displayName"] as string,targetQuantity=p["targetQuantity"],requestId=p["receiptId"] as string,quantity=p["quantity"],source="user-confirmed",supersedesEventId=correct?p["supersedesEventId"] as string:null,reason=correct?p["reason"] as string:null};
+     var check=ProgressDomain.Commit(d,m,revision,operation,clock());Need(check.status=="committed"||check.status=="already-applied","manual-preflight-rejected");
+     if(check.status=="already-applied"){QuantityContext(p,payloadDigest,contextDigest);return new{status="already-applied",operationId=operation.ToString("D"),revision=d.revision,view=view,error=(string)null};}
+     preview=new ManualWoodPreview(context,view,m);storeId=d.storeId;digest=d.commitDigest;
+    }
+    long wall=clock(),ticks=monotonicMilliseconds();Need(await manualWoodApproval(preview).ConfigureAwait(false),"manual-approval-declined");QuantityDeadline(wall,ticks);QuantityContext(p,payloadDigest,contextDigest);
+    using(var writer=await store.AcquireWriterAsync(owner).ConfigureAwait(false)){
+     QuantityContext(p,payloadDigest,contextDigest);QuantityDeadline(wall,ticks);var d=store.Inspect(writer);Need(d.storeId==storeId&&d.commitDigest==digest&&d.revision==revision,"manual-revision-changed");Audit(d,null);Need(manualWoodSafety(scope,goal,writer),"manual-wood-record-review");
+     Action validate=()=>{QuantityDeadline(wall,ticks);QuantityContext(p,payloadDigest,contextDigest);};validate();publishing=true;var ack=QuantityCommit(m,revision,operation,writer,validate);var actual=store.Inspect(writer);validate();
+     return new{status=ack.status,operationId=operation.ToString("D"),revision=actual.revision,view=ProgressDomain.ManualWood(actual,scope,goal,"ok"),error=(string)null};
+    }
+    }catch(Exception error){manualFailure=error;}
+     // A native negative ACK is permitted only BEFORE attempting publication.
+     // Lost/failed writes and changed contexts remain ambiguous and protected.
+     if(publishing||m==null||operation==Guid.Empty)throw manualFailure;
+     QuantityContext(p,payloadDigest,contextDigest);
+     using(var writer=await store.AcquireWriterAsync(owner).ConfigureAwait(false)){
+      var d=store.Inspect(writer);QuantityContext(p,payloadDigest,contextDigest);
+      Need(!d.auditEvents.Any(e=>e.operationId==operation.ToString("D")),"manual-operation-exists");
+      string health="ok";try{Audit(d,null);Need(manualWoodSafety(scope,goal,writer),"manual-wood-record-review");}catch{health="review-required";}
+      return new{status="not-applied",operationId=operation.ToString("D"),revision=d.revision,view=ProgressDomain.ManualWood(d,scope,goal,health),error="not-published"};
+     }
+   }
+  }
   internal async Task<object> RequestAsync(string method,Dictionary<string,object> p){
    Need(p!=null,"payload-required");
+   if(method=="loadManualWood"||method=="confirmManualWood"||method=="correctManualWood")return await ManualWoodAsync(method,p).ConfigureAwait(false);
    if(method=="confirmQuantity"||method=="correctQuantity")return await QuantityAsync(method,p).ConfigureAwait(false);
    if(method=="replaceEmptyGoal"){
     DesktopLifePolicy.Exact(p,"accountId","characterId","revision","operationId","goalId","sourcePlanId","action","displayName","targetQuantity","replacementQuantity");Owner(p);Need(!actor.Busy,"actor-busy");var initial=actor.ProgressContext();string contextDigest=ProgressDomain.Canonical(initial),payloadDigest=ProgressDomain.Canonical(p);long revision=Revision(p);var op=Operation(p);
