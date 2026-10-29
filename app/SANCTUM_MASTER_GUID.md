@@ -1,3 +1,11 @@
+## 2026-10-29 ERGON D-1 읽기 전용 수동 안내 로컬 후보
+
+17:24 KST 후속: 한설 승인으로 검증된 제품2·시험2·필수 한국어 기록을 기능 브랜치에 선별 전송한다. 기존 구조 설명과 보호 경계를 유지하며 새 구조 변경은 없다. 정확한 최종 SHA는 이번 인계를 포함한 커밋/원격 HEAD다. 아래 로컬 미전송은 작성 당시 상태이며 운영/공개 활성화가 아니다.
+
+기존 `projectErgonWoodStatus`에 manualGuide 표시 projection을 추가하고 `DesktopErgonWoodStatus`의 기존 가공 현황 details로 연결한다. 새로운 engine·native writer·bridge/API·수량 입력·게임 조회는 없다. 항상 quantityRecording unsupported/executionAllowed false이며 unknown·미확인 수량·과거 native busy/손상 관측·보류/기록 없음은 참고 진행 단계를 숨긴다. 기존 B/C/D-0 기록과 crafting 사용자 확인의 경계를 유지한다.
+
+신규 공식 관측은 실행0, 실제 가공 수령량 저장과 자동 생산은 미구현이다. 운영 구조/DB·main/IRIS0.4.3/ZIP/metadata·공개 ERGON/실행flag 변경0. 이번은 로컬 미전송이며 [D-1 QA](../docs/ERGON_D1_MANUAL_REVIEW_QA_20261029.md)의 최종 시험/후속 승인 범위를 따른다.
+
 ## 2026-10-29 ASTRA 안정화 시험·미적용 정리 proposal / ERGON D-1 복귀
 
 운영/제품 구조 변경 없음. 기존 native `DesktopOnlineConnection`→고정 `/api/account/online`과 별도 입력 기반 activity 경계를 유지한다. CHRONOS15초 저장 대기/1초 로컬tick·native 재화·행동 기반 서버 요청은 idle tray heartbeat 대체가 아니므로 전 API 미들웨어/Realtime 전환은 추가하지 않는다. 300/720/60/20분 유지·실제 호출 절감0이다.

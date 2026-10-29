@@ -10,6 +10,18 @@
 
 # SANCTUM 작업 인계
 
+## 2026-10-29 순월 — ERGON D-1 정적 조사·읽기 전용 안내 / 로컬 미전송
+
+**17:24 KST 전송 승인 후속:** 한설이 검증된 D-1 제품2·시험2·필수 한국어 기록을 기능 브랜치에 선별 commit/일반 push하도록 승인했다. 기준2a93f61, 최종 수신 SHA는 이번 기록을 포함한 커밋/원격 HEAD다. 아래 로컬/미승인은 당시 경과로 보존한다. 검증 소스 지문 동일·단위11 PASS 확인 후 제품 추가 수정 없이 인계만 마감했다. 뉴월에게 현재 결과와 가공 user-confirmed native 계약을 먼저 검토받고 영겁에게 넘긴다. 후속 구현·실제 CLI·운영 적용은 새 승인 전 진행하지 않는다.
+
+최종 전체779/776 PASS/0 FAIL/기존3 SKIP·관련 B/C/수량native·React7·타입/변경4파일lint·격리build62 PASS. 독립 문구M1은 RED→GREEN 보완했다. 추가 시험 서버 직접호출의 Root 누락 오류는 원본 보존 후 정식 C드라이버16 PASS로 대조했으며 제품 수정은 없었다.
+
+현재 원격 기준 `2a93f61aa78f57d55dfb023b5d5506ddcff694d5`를 확인했다. ASTRA 선별 전송은 완료 상태로 보존하고 이번 D-1은 **commit/push 미승인 로컬 후보**다. [D-1 한국어 QA](ERGON_D1_MANUAL_REVIEW_QA_20261029.md)를 우선 확인한다.
+
+기존 B 관측·C wood-v1 DPAPI 저장/복구·D-0 목재 현황은 재사용했다. 제품 변경은 기존 wood status projection/컴포넌트2파일의 수동 참고 details이며 실행/수량 writer/새 엔진은 없다. 정상 상태도 실행 허가가 아니며 unknown·미확인 수량·보류·과거 native busy/unknown·손상/기록 없음에서는 진행 단계를 숨긴다. 실제 가공 수령량 입력·저장은 아직 미지원이다. 제작 전용 native 수량 API에 가공량을 넣지 않는다.
+
+표준 CAPABILITIES 파일은 없어 최신 공식 schema/실게임 응답을 새로 확인하지 않았다. workId/시설 귀속·정원·실수령·실비용·게임 캐릭터 귀속·멤버십·외부 개입 근거는 미확인이다. 다음은 capabilities1회 승인 제안과 별도 native user-confirmed 가공 기록 계약이다. 사용자 확인은 공식 증명/unknown 해제가 아니다. 실제 조회·소비/원장·DB/main/IRIS/공개 잠금 변경0, 개인16/옛후보·ACK34/N049 보존. 세부 검증은 QA 최종 판정을 따른다.
+
 ## 2026-10-29 순월 — ASTRA 최소 비용 검토·선별 전송 승인 / 다음 ERGON D-1
 
 최종 전송 회귀: 전체774/771 PASS/0 FAIL/기존3 SKIP, native9·React9+2Chrome세션·별도타입·변경MJS11 lint·격리build62 PASS. 21개 실행단계 종료코드0. 선별27파일(시험15/SQL1/문서11)이며 원본/옛후보·ACK34/N049 지문 동일. 신규 retention 실제PG와 운영설치본은 미실행이다.

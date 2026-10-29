@@ -1,6 +1,14 @@
 # 순월 → 영겁 수신함
 
-## SW-20261029-001 — UPDATED / 최소 비용 검토·기능 브랜치 선별 전송 승인
+## SW-20261029-001 — UPDATED / ASTRA 전송 완료·ERGON D-1 선별 인계
+
+- **17:24 KST D-1 선별 전송 승인:** 한설이 제품2·시험2와 한국어 QA/필수 기록의 기능 브랜치 commit·일반 push를 승인했다. 기준2a93f61, 대상 `codex/home-gnosis-iris-integration-20261019`, 정확한 최종 SHA는 이 누적을 포함한 커밋/원격 HEAD다. 아래 미승인/미전송은 당시 경과이며 아직 ACK 없는 누적은 모두 보존한다. 전송 전 검증11파일 지문 동일·관련11 PASS·개인/ACK34·N049 보존을 확인했다. 새 기능·조회·게임/운영 변경 없이 인계만 전송한다.
+- **뉴월 → 영겁 다음 단계:** [D-1 QA](../ERGON_D1_MANUAL_REVIEW_QA_20261029.md)를 뉴월에게 먼저 검토받는다. 게임에서 직접 가공·수령 후 ‘이번 추가 확보량’을 user-confirmed로 기록하는 반자동 경로가 권장안이며, 아직 가공 수량 저장은 없다. 기존 crafting API를 우회하지 않는 단일 native 권위·CAS/operationId·0/초과/정정·승인 전후 문맥·unknown 보호·구버전 호환의 최소 계약부터 범위를 확정한다. B/C/D-0를 재작성하지 않는다. 영겁은 개인 작업 보존 → 기능 브랜치 ff-only 수신 → AGENTS/릴레이/HANDOFF/QA → ACK 순서로 시작하고 신규 구현은 한설의 다음 승인 범위를 따른다. capabilities1회 등 실제 CLI와 운영 적용은 이번 push 승인이 아니다.
+
+- **D-1 최종 검증:** 전체779/776 PASS/0 FAIL/기존3 SKIP·B native·C native14/API2·native 수량V15·React6+공개잠금1·타입/변경lint·격리build62 PASS. 독립C0/I0/M1의 문구 지적은 RED→GREEN 보완. 추가 C서버 직접호출은 Root 누락으로 제품 시작 전 실패했고 정식 드라이버16 PASS로 대조했다. 원본 로그는 보존하며 실제CLI/운영/원장·commit/push0이다.
+- **D-1 후속 누적 / 로컬 미전송:** ASTRA 전송 `2a93f61aa78f57d55dfb023b5d5506ddcff694d5`와 원격을 확인한 뒤 기존 B/C/D-0를 조사했다. [D-1 QA](../ERGON_D1_MANUAL_REVIEW_QA_20261029.md)와 새 계획을 읽을 것. 이번 D-1 commit/push는 승인하지 않았다. 아래 ASTRA 전송 승인을 D-1 제품 변경에 확대하지 않는다.
+- **범위:** 기존 wood status projection/컴포넌트2개와 시험2개에 읽기 전용 수동 확인 안내만 추가했다. unknown·미확인·과거 native busy/손상 관측에서 진행 단계를 숨기며 quantity writer/CLI/소비0이다. 실제 가공 수량 저장은 없고 제작 확인 API 우회도 금지다.
+- **결론/다음:** CAPABILITIES 표준 파일이 없어 최신 schema는 미검증이다. work/시설·정원·실수령/대성공 귀속·실비용·게임 캐릭터 귀속·외부 개입은 unsupported/확인 필요 유지. 별도 승인 후 capabilities1회부터 근거를 조사하고, 가공 user-confirmed를 단일 native 권위에 기록하는 최소 계약부터 검토한다. 공식 증명/unknown 해제로 승격하지 않는다. 실제 게임/사용자 원장·DB/main/공개 IRIS·공개 ERGON/실행flag는 변경하지 않는다.
 
 - **전송 직전 최종 검증:** 전체774/771 PASS/0 FAIL/기존3 SKIP·native9·React9+2Chrome세션·타입/변경MJS11 lint·격리build62 모두 PASS. 21실행단계 종료코드0, 새 retention 실제PG는 미실행. 선별27파일(시험15/SQL1/한국어문서11) 외 원본 개인16·ACK/옛후보34·N049/원문로그/암호문/ZIP은 전송하지 않는다.
 

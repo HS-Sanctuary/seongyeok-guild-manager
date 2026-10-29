@@ -1,3 +1,13 @@
+## 2026-10-29 순월 — D-1 근거 조사·읽기 전용 수동 안내 후보
+
+**17:24 KST 후속:** 한설이 D-1 선별 commit/일반 push를 승인했다. 기준2a93f61, 정확한 수신 SHA는 이 기록을 포함한 커밋/원격 HEAD다. 뉴월 검토를 거쳐 영겁에게 넘길 때 QA의 ‘현재 구현’과 ‘다음 가공 사용자 확인 writer’를 구분한다. 제품 지문 동일·관련11 PASS 확인 후 인계만 마감했다. 아래 미승인은 당시 경과이며 신규 구현/실제CLI/운영 승인은 아니다.
+
+기준/원격 `2a93f61aa78f57d55dfb023b5d5506ddcff694d5`. [D-1 QA](ERGON_D1_MANUAL_REVIEW_QA_20261029.md)의 실제 확인/미확인·반자동 제안·후속 파일/시험 범위를 따른다. 기존 B/C/D-0는 재작성하지 않았다.
+
+이번 제품2파일은 목재 현황의 참고 안내뿐이다. quantityRecording unsupported/executionAllowed false, 사용자 수량 입력/저장·새 bridge/engine 없음. unknown·과거 native busy·손상 관측 등에서 다음 단계 안내를 숨긴다. 가공 실수량은 crafting 확인 API로 우회하지 않는다. 실제 반자동 저장을 완성한 것이 아니다.
+
+최신 로컬 CAPABILITIES 파일 부재, 실제 CLI/응답 캐시/사용자 원장 접근0. 후속 조회 제안은 capabilities1회부터이며 별도 승인 전 실행하지 않는다. 공식 work/시설·정원·실수령·실비용·캐릭터 귀속은 미확인 유지. 다음 최소 구현은 기존 native 진척 저장의 별도 user-confirmed 가공 이벤트·중복/정정/ACK 계약이며 이번에는 미구현이다. C와 공통 goal에 연속으로 쓰는 것을 원자 저장이라 하지 않는다. 제품/시험은 로컬 보존, 이번 commit/push 승인 없음.
+
 ## 2026-10-29 순월 — ASTRA 마감 후 ERGON D-1 복귀
 
 ASTRA 기존 요청 편승은 효과/수정 범위가 맞지 않아 보류했다. 이번 기능 브랜치 전송은 ASTRA 시험·미적용 retention proposal·한국어 인계이며 ERGON 제품 변경0이다. [마감 QA](ASTRA_MINIMAL_COST_CLOSEOUT_20261029.md)의 권한과 실제 회귀를 확인한다.

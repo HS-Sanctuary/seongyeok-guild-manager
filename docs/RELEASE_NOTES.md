@@ -1,3 +1,12 @@
+## 2026-10-29 17:24 KST — v2.322 개발 후보 후속 / ERGON D-1 선별 인계
+
+- 한설이 D-1 제품2·시험2·필수 한국어 기록의 기능 브랜치 commit·일반 push를 승인했다. 대상 `codex/home-gnosis-iris-integration-20261019`, 기준 `2a93f61aa78f57d55dfb023b5d5506ddcff694d5`. 정확한 수신 SHA는 이 기록을 포함한 커밋/원격 HEAD다. 운영 버전 상승·Production·공개 IRIS 업데이트가 아니다.
+- 개발 화면: 기존 목재 가공 현황에 ‘직접 진행 전 확인’ 참고 details를 추가했다. unknown·미확인 수량·과거 native busy/손상/보류·기록 없음에서 진행 단계는 숨긴다. 가공 수량 입력·저장·실행 버튼과 새 엔진은 없다. 공개 사용 화면은 변경하지 않는다.
+- 구조: 기존 wood status projection의 manualGuide와 기존 컴포넌트 표시만 확장했다. native/bridge/API/DPAPI/원장/DB 구조 변경 없음. 공개 ERGON과 executionConnected=false 유지. 실제 CLI·캐시/사용자 원장 접근·실게임 소비0.
+- 검증: 최종 소스 전체779/776 PASS/0 FAIL/기존3 SKIP, 관련 B/C/수량 native·React7·타입/변경lint·격리build62 PASS. 독립C0/I0/M1의 문구 지적은 RED→GREEN 보완했다. 전송 전11파일 지문 동일·관련 단위11 PASS. 추가 native 단독호출의 Root 누락은 제품 시작 전 호출 오류이며 정식 C드라이버16 PASS로 대조했고 원본 로그를 보존했다.
+- 미완료/다음: 최신 공식 schema·게임 캐릭터/작업·시설 정원·실수령/대성공 귀속·실비용·외부 개입 근거와 가공 user-confirmed 저장 계약. 제작 전용 확인 API로 우회하지 않는다. [D-1 QA](ERGON_D1_MANUAL_REVIEW_QA_20261029.md), TO_YEONGGEOP를 읽고 뉴월 검토 뒤 영겁 작업 범위를 정한다. CLI 조회·새 native 계약 구현·운영 적용은 이번 전송 승인에 포함하지 않는다.
+- 운영 기준 main ca697706/IRIS0.4.3과 ZIP·metadata 유지. 개인16/ACK·옛후보34/N049·로그·보호 자료는 보존/전송 제외. 운영 미적용이므로 배포·되돌리기 실행 없음.
+
 ## 2026-10-29 14:29 KST — v2.322 개발 후보 후속 / ASTRA 안정화·ERGON 복귀 인계
 
 - 전송 직전 최종 회귀: 전체774/771 PASS/0 FAIL/기존3 SKIP·native9·React9+추가2Chrome세션·타입·변경MJS11 lint·격리build62 PASS. 21실행단계 종료코드0. 신규 retention 실제PG 미실행·운영 변화 없음.

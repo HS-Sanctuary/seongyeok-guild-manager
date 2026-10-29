@@ -36,6 +36,11 @@ export function DesktopErgonWoodStatus({scope,plan,goal,active,locked,getContext
    {value.lastRestoredAt!==null&&<p className="iris-caption">복원 확인 시각 {time(value.lastRestoredAt)}</p>}
    {value.rows.length>0?<ul>{value.rows.map((row,index)=><li key={index}><strong>{row.facility} · {row.name}</strong><p>{row.status}</p><p className="iris-caption">{row.remainingSeconds===null?'조회 당시 남은 시간 확인 필요':`조회 당시 남은 시간 ${row.remainingSeconds}초`}</p></li>)}</ul>:<p className="iris-caption">확인된 가공 작업 관측이 없어요.</p>}
    <details><summary>진행을 막는 이유</summary>{value.blockers.map(text=><p className="iris-caption" key={text}>{text}</p>)}</details>
+   <details><summary>직접 진행 전 확인</summary>
+    <p className="iris-caption">{value.manualGuide.message}</p>
+    {value.manualGuide.checks.length>0&&<ul aria-label="직접 확인할 항목">{value.manualGuide.checks.map(text=><li key={text}><p className="iris-caption">{text}</p></li>)}</ul>}
+    <p className="iris-caption">{value.manualGuide.recordingNotice}</p>
+   </details>
   </>}
  </section>;
 }
