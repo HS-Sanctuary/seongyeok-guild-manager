@@ -11,7 +11,7 @@ function literal(name){
  for(const statement of source.statements)if(ts.isVariableStatement(statement))for(const d of statement.declarationList.declarations)if(d.name.getText(source)===name&&ts.isTaggedTemplateExpression(d.initializer))return d.initializer.template.rawText??d.initializer.template.text;
  throw Error('Shared fixture literal missing');
 }
-export async function startOnlineHttpFixture(){
+export async function startOnlineHttpFixture(options={}){
  const saved={online:process.env.SANCTUM_ACCOUNT_ONLINE_ENABLED,activity:process.env.SANCTUM_ACCOUNT_ACTIVITY_ENABLED};
  process.env.SANCTUM_ACCOUNT_ONLINE_ENABLED='true';process.env.SANCTUM_ACCOUNT_ACTIVITY_ENABLED='true';
  let now=Date.parse('2026-10-28T12:00:00.000Z');const lastActive=ids.map((_,i)=>new Date(now-(i===0?180000:7200000)).toISOString());
@@ -45,7 +45,7 @@ export async function startOnlineHttpFixture(){
  const directory=loadTS('app/api/accounts/directory/route.ts',{...next,'@/lib/server/sanctumSession':serverSession,'@/lib/server/accountActivity':{accountActivityEnabled:()=>true}});
  const entry='const __nativeFetch=window.fetch.bind(window);'+literal('entry')+'\nwindow.fetch=__nativeFetch;';
  const replacement={'../../../lib/supabase':literal('fakeDb'),'../../../lib/matchingUtils':"exports.isTaskChecked=()=>false;",'next/navigation':"exports.useRouter=()=>({push(){}});",'@/components/common/ClassIcon':"module.exports=()=>require('react').createElement('span',null,'직업');"};
- const fixture=await startIrisFixture(entry,replacement),fallback=fixture.server.listeners('request')[0];fixture.server.removeAllListeners('request');
+ const fixture=await startIrisFixture(options.entry??entry,{...replacement,...options.replacements},options),fallback=fixture.server.listeners('request')[0];fixture.server.removeAllListeners('request');
  fixture.server.on('request',async(req,res)=>{
   if(!req.url?.startsWith('/api/')){
    // Original no-network component fixture forbids fetch. This separate HTTP
@@ -69,7 +69,7 @@ export async function startOnlineHttpFixture(){
    res.writeHead(response.status,Object.fromEntries(response.headers));res.end(Buffer.from(await response.arrayBuffer()));
   }catch{res.writeHead(500);res.end('{}');}
  });
- return {...fixture,metrics,ids,names,advance:ms=>{now+=ms;},revoke:token=>{const s=sessions.get(token);if(s)s.active=false;},activeIds:()=>new Set([...leases.values()].filter(r=>r.session.active&&!r.closed&&r.expiresAt>now).map(r=>r.accountId)),close:async()=>{
+ return {...fixture,metrics,ids,names,connections:()=>[...leases.values()].map(r=>({accountId:r.accountId,sequence:r.sequence,closed:r.closed,expiresAt:r.expiresAt})),advance:ms=>{now+=ms;},revoke:token=>{const s=sessions.get(token);if(s)s.active=false;},activeIds:()=>new Set([...leases.values()].filter(r=>r.session.active&&!r.closed&&r.expiresAt>now).map(r=>r.accountId)),close:async()=>{
   await new Promise(resolve=>fixture.server.close(resolve));
   for(const [k,key] of [['online','SANCTUM_ACCOUNT_ONLINE_ENABLED'],['activity','SANCTUM_ACCOUNT_ACTIVITY_ENABLED']]){if(saved[k]===undefined)delete process.env[key];else process.env[key]=saved[k];}
  }};

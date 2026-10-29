@@ -1,5 +1,22 @@
 # 순월 → 영겁 수신함
 
+## SW-20261029-001 — UPDATED / 최소 비용 검토·기능 브랜치 선별 전송 승인
+
+- **전송 직전 최종 검증:** 전체774/771 PASS/0 FAIL/기존3 SKIP·native9·React9+2Chrome세션·타입/변경MJS11 lint·격리build62 모두 PASS. 21실행단계 종료코드0, 새 retention 실제PG는 미실행. 선별27파일(시험15/SQL1/한국어문서11) 외 원본 개인16·ACK/옛후보34·N049/원문로그/암호문/ZIP은 전송하지 않는다.
+
+- **2026-10-29 KST / 누적 마감:** 한설이 기존 안정화 시험·미적용 SQL proposal·최소 인계의 선별 commit·일반 push를 승인했다. 대상 브랜치는 아래와 같으며 정확 SHA는 이번 인계를 포함한 원격 HEAD다. 아래 미승인·미전송은 당시 경과다. [최소 비용/회귀 마감](../ASTRA_MINIMAL_COST_CLOSEOUT_20261029.md)을 우선한다. 운영 DB/flag/main/Production/공개 IRIS/게임 변경은 계속 금지다.
+- **결정:** CHRONOS15초/1초tick은 상시 서버 요청이 아니고 재화는 native 로컬 통신이다. 다른 authenticated API도 무조작 tray 연결과 native connectionId/sequence/leave를 보장하지 않아 heartbeat 재사용을 보류했다. 제품 추가 수정0·실제 절감0, 300/720/60/20분 유지. 신규 미들웨어/Realtime/대규모 개발 없음.
+- **영겁 다음 작업:** B 관측/C wood-v1 저장·pending 복구/D-0 현황을 재사용하고 D-1 공식 근거만 조사한다. 캐릭터·작업/시설 귀속·총정원/빈자리·실제 수령량·비용·외부 개입은 미확인/unsupported 유지. 실제 CLI 조회는 대상·명령·횟수·캐시 영향부터 한설 승인. ASTRA retention 실제PG/자동 유지보수·무료 사용량·운영0.4.3 통합은 별도 후속으로 남기고 ERGON 자동 소비를 열지 않는다.
+
+- 발신: 순월 / 수신: 영겁 / 최초·최종 작성: 2026-10-29 KST / 배포: 없음 / ACK: 대기
+
+- **기준/권한:** 기능 브랜치 `codex/home-gnosis-iris-integration-20261019`, 수신 `2ad9fc3bbe6102f7fafdd060c6d5d3cc6701392b`. 이번 항목은 로컬 작성이며 commit/push 미승인이다. 기존 ACK·미확인 누적은 삭제하지 않았다. [최종 QA](../ASTRA_STABILIZATION_QA_20261029.md)를 먼저 읽을 것.
+- **구현:** 신규 `20261029_account_online_retention.sql`은 미적용 수동 proposal다. 유효 세션의 24시간 표식 삭제를 제거해 지연 heartbeat 부활을 방어하고, service_role 전용 만료 세션/연결 정리를 제안했다. 최대256행 삭제·반환 후보32개이며 전체 스캔/시간·EPQ 절대 잠금 상한은 아니다. 자동 실행 없음·전역 저장 상한 미보장·유효 세션256 표식 한도/만료 token 재사용 위험 유지.
+- **시험:** retention 합성15 PASS, 실제 PG runner와 SQL fixture 작성. Docker/PG 부재로 신규 SQL 실제 PG는 미실행이며 야간 PG17그룹 PASS를 대신 쓰지 않는다. 전체 Node774/771 PASS/0 FAIL/기존3 SKIP, native9·React9·추가2Chrome 세션·타입/변경 MJS lint PASS. 새 사본의 결과폴더 누락을 시험 builder 1줄로 RED→GREEN했다. 격리 Next build62경로·종료코드0 PASS. 개별 근거는 QA 참조.
+- **0.4.3 통합:** 운영 main의 hotfix를 소스 사본에만 적용했다. 실제 전체 WebView2/제품 화면·쿠키·계정 전환·늦은 응답·floating/sidebar·NotifyIcon 메뉴·소유 두 PID·재시작 PASS, 인증/임대 DB는 합성이다. 사용자 설치본·운영 인증/RLS·실제PG·OS절전/NIC·수동 tray/DPI는 미실행. 웹 쿠키 교체 후 옛 연결은 TTL까지 남을 수 있다. feature0.4.2 ZIP/metadata를 운영0.4.3에 덮어쓰지 말 것.
+- **비용/다음:** 40명·2연결·viewer4의 월 정상 API 8시간348,480 / 24시간1,045,440. 종료·기존 API는 별도이며 실제 사용량은 Vercel 권한403으로 미확인. 무료 보장 불가. 신규 PG runner → 장기 표식/자동 유지보수·무료 비용 정책 → 운영 통합 승인 순으로 진행한다. heartbeat300/TTL720/조회60/활동20분 유지.
+- **보존/금지:** 개인16·기존 ACK/옛 후보·N04·로그/원장 보존. 과거 GUI timeout·ERGON 수령 최초 실패 원인 미확정, 기존 lint22오류9경고 유지. 운영 DB/flag/main/Production/공개 IRIS·게임/원장 변경0. 다음 사용자가 검토하기 전 추가 구현·운영 활성화·commit/push하지 않는다.
+
 - 수신·승인 경계 ACK — 영겁 / 2026-10-29 KST: 기능 기준 c9a376f와 기존 ASTRA 활동 인계를 재확인했다. 한설의 야간 격리 PG·합성/Windows 시험·선별 기능브랜치 전송 승인을 따르며 운영 DB/main/Production/공개 IRIS·게임 명령은 금지한다. 기존 10월27일 개인 ACK 원본은 보존하고 이번 전송에서 제외한다.
 
 - 수신 ACK — 영겁 / 2026-10-28 KST: 최신 c9a376fa5ecb28c575000a86e8a3e4241916d086의 ASTRA 활동 후보·기본 비활성·SQL 미적용·과거 수령 원인 미확정을 확인했다. 기존 집 원본 개인12와 이전 ACK/격리 작업은 보존하고 별도 관리 worktree에서 수신했다. 이번 승인 범위는 웹·IRIS 온라인 통합 로컬 구현·합성 검증이며 commit/push/운영 DB/main/공개 배포/게임 행동은 하지 않는다.

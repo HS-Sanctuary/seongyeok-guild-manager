@@ -80,6 +80,7 @@ $result=& $exe --preflight
 if($LASTEXITCODE -ne 2 -or $result -notmatch 'NOT_RUN'){throw 'Validation entry did not fail closed'}
 $validRootResult=& $exe --test-root $profile
 if($LASTEXITCODE -ne 2 -or $validRootResult -notmatch 'compile-only'){throw 'GUI gate was bypassed by a valid root'}
+[void](New-Item -ItemType Directory -Force (Join-Path $repo '.superpowers/astra-online-validation'))
 [pscustomobject]@{status=if($PrepareGui){'OWNED_GUI_SELFTEST_PREPARED'}else{'COMPILE_ONLY_GUI_BLOCKED'};baseline=$baseline;exe=$exe;testRoot=$profile;defaultLaunch='blocked';gameBridge='denied';globalHotkeys='disabled';webOverrideStatus=if($PrepareGui){'served_by_owned_fixture_bundler'}else{'staged_not_served'};database=if($PrepareGui){'runtime_owned_api_required'}else{'unavailable'};webOverrides=Join-Path $out 'web-overrides'} |
  ConvertTo-Json | Set-Content -Encoding UTF8 (Join-Path $repo '.superpowers/astra-online-validation/test-build.json')
 Write-Output 'PASS isolated IRIS compile + default launch denial. Explicit owned GUI requires separate API/database/owner selftest checks.'

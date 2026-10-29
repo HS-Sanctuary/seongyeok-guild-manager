@@ -1,5 +1,9 @@
 # SANCTUM Supabase 구조 기준서
 
+## 2026-10-29 순월 — 온라인 만료 정리 proposal / 운영 구조 변경 없음
+
+`supabase/proposals/20261029_account_online_retention.sql`은 **미적용·운영 승인 대기**다. 기존 온라인 touch의 유효 세션 표식 삭제를 제거하고 service_role 전용 수동 `sanctum_online_prune`을 제안한다. 신규 테이블·인덱스·자동 job은 추가하지 않는다. 합성15 PASS이나 신규 정리 SQL의 실제 PostgreSQL 권한/잠금/FK/실행계획은 미실행이다. 함수가 운영에 존재한다고 가정하지 않는다. 정책의 자동성 부재·256 표식 한도·실제 PG 검증/적용 전 위험은 [안정화 QA](ASTRA_STABILIZATION_QA_20261029.md)를 따른다. 운영 DB 조회·변경·마이그레이션 실행은 이번에 0이다.
+
 ## 2026-10-28 순월 — 세션 구조 읽기 전용 확인 / 활동 집계는 미적용 제안
 
 `sanctum_sessions`의 `id/account_id uuid`, unique `token_hash`, `expires_at/created_at/last_seen_at timestamptz`와 기본 시각값을 읽기 전용으로 확인했다. 확인 시점 last_seen이 생성 뒤 갱신된 행은0이며 관련 사용자 trigger/cron은 찾지 못했다. 소스상 logout/change-code에서 세션이 삭제되므로 영속 최근 활동의 권위로 사용하지 않는다. 기존 테이블·행·권한은 변경하지 않았다.

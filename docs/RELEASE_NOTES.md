@@ -1,3 +1,13 @@
+## 2026-10-29 14:29 KST — v2.322 개발 후보 후속 / ASTRA 안정화·ERGON 복귀 인계
+
+- 전송 직전 최종 회귀: 전체774/771 PASS/0 FAIL/기존3 SKIP·native9·React9+추가2Chrome세션·타입·변경MJS11 lint·격리build62 PASS. 21실행단계 종료코드0. 신규 retention 실제PG 미실행·운영 변화 없음.
+
+- 한설 승인으로 기능 브랜치 `codex/home-gnosis-iris-integration-20261019`에 검증된 시험·미적용 retention SQL proposal·최소 한국어 인계를 선별 commit·일반 push한다. 기준2ad9fc3, 정확한 수신 SHA는 이 기록을 포함한 커밋/원격 HEAD다. 운영 버전 상승이나 Production/공개 IRIS 배포가 아니다.
+- 사용자에게 보이는 운영 변화 없음. 개발 검증에서는 실제 전체 WebView2와 운영0.4.3 sidebar 복귀를 합성 계정으로 확인했다. 신규 정리 SQL 실제 PG·사용자 설치본·OS절전·현재 무료 사용량은 미검증이다.
+- 구조 변경 없음(운영/제품). 새 retention proposal은 유효 세션 closed/sequence 보존과 제한된 수동 정리를 제안하며 자동 job/전체 저장량 상한은 없다. 시험·격리 builder/fixture·비용 계측만 보완했다. 기존 요청으로 tray idle 온라인을 대체할 수 없어 최적화는 보류, 실제 절감0회·300/720/60/20분 유지.
+- 최종 전송 회귀와 남은 위험: [최소 비용 마감](ASTRA_MINIMAL_COST_CLOSEOUT_20261029.md), [안정화 상세](ASTRA_STABILIZATION_QA_20261029.md). 기존 lint/SKIP·과거 GUI/수령 실패 원인 미확정을 별도로 유지한다. 운영 DB/flag/main/공개IRIS/실게임/원장 변경0.
+- 직전 정상 운영 기준 main ca697706/IRIS0.4.3 유지. 기능 브랜치의0.4.2 ZIP/metadata를 덮어쓰지 않는다. 다음은 ERGON D-1 공식 관측 근거·제한된 조회 승인 준비이며 자동 소비를 열지 않는다. 운영 미적용이므로 배포/되돌리기 실행 대상은 없다.
+
 ## 2026-10-29 KST — v2.322 개발 후보 후속 / ASTRA 통합 온라인 격리 검증·기능 인계
 
 - 기능 브랜치 전송 승인 범위다. 사용자에게는 향후 웹·IRIS 온라인이 통합되고 최근 활동은 별도로 보인다. 현재 기본 비활성으로 운영 사용자가 해야 할 조작은 없다.

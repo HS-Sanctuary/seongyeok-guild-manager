@@ -10,6 +10,30 @@
 
 # SANCTUM 작업 인계
 
+## 2026-10-29 순월 — ASTRA 최소 비용 검토·선별 전송 승인 / 다음 ERGON D-1
+
+최종 전송 회귀: 전체774/771 PASS/0 FAIL/기존3 SKIP, native9·React9+2Chrome세션·별도타입·변경MJS11 lint·격리build62 PASS. 21개 실행단계 종료코드0. 선별27파일(시험15/SQL1/문서11)이며 원본/옛후보·ACK34/N049 지문 동일. 신규 retention 실제PG와 운영설치본은 미실행이다.
+
+[마감 QA](ASTRA_MINIMAL_COST_CLOSEOUT_20261029.md)를 먼저 확인한다. 기존 요청 중 트레이 무조작 상태를 보장하는 서버 호출이 없어 heartbeat 편승은 보류했다. CHRONOS15초는 변경 대기, 1초 tick은 로컬이며 재화는 native 통신이다. 실제 절감0회·제품 추가 수정0개, 300/720/60/20분 유지. 사용자 승인으로 기존 안정화 시험·미적용 retention proposal·최소 인계만 기능 브랜치에 선별 commit/일반 push한다. 정확한 SHA는 이 인계를 포함한 원격 HEAD다. 아래 미승인·미전송은 당시 경과다.
+
+운영 DB·온라인/활동 flag·main/Production·공개 IRIS0.4.3·ZIP/metadata·실게임/원장은 변경하지 않는다. retention 신규 실제 PG/자동 전역 정리·256 표식 장기 정책·현재 무료 잔여량은 미검증/후속이다. 원본 개인16·기존 ACK/옛 후보·N04/로그를 보존한다.
+
+다음 개발은 ERGON D-1 공식 관측의 범위/승인 준비다. 기존 B/C/D-0를 보존하고 workId·시설 정원/빈자리·실수령 귀속·비용·캐릭터 귀속·외부 개입의 미확인을 추정값으로 채우지 않는다. 공식 조회의 대상/명령/횟수/캐시 영향을 먼저 제시하고 별도 승인받는다. 자동 생산·공개 잠금 해제는 금지한다.
+
+## 2026-10-29 순월 — ASTRA 운영 전 안정화 로컬 후보 / 전송 미승인
+
+**완료:** 기능 기준 `2ad9fc3bbe6102f7fafdd060c6d5d3cc6701392b` 수신·ACK, 신규 만료 정리 proposal와 합성 15개 시험, 운영 main `ca697706a874d21668091588940ceb61338d0700`의 IRIS 0.4.3 화면을 적용한 격리 WebView2 통합 시험. [한국어 QA](ASTRA_STABILIZATION_QA_20261029.md)를 우선 확인한다. 기존 원본 개인 16항목·옛 후보·ACK·N04 진단·원장·ignored 로그는 보존했다.
+
+**아직 안 되는 것:** 신규 retention SQL은 실제 PostgreSQL 미실행이다. 영겁의 기존 PG 17그룹 PASS와 구분한다. 수동 `sanctum_online_prune` proposal은 자동 job이 없고 전역 저장량 상한을 보장하지 않는다. 유효 세션의 closed/sequence 표식을 보존해 지연 heartbeat 부활을 막지만, 세션별 기존 256개 한도의 장기 사용 정책은 운영 전 결정해야 한다. 삭제 상한 256행·반환 후보 32개는 읽기/실행시간이나 절대 잠금 수 상한이 아니다.
+
+실제 전체 DesktopPage·WinForms/WebView2·HttpOnly/persistent cookie, 계정 A→B→A·늦은 응답·0.4.3 floating/sidebar·NotifyIcon 메뉴·소유한 두 PID/종료/재시작을 합성 인증·임대 모델에서 PASS했다. 운영 인증/RLS·사용자 설치본·물리 두 PC·OS 절전/NIC·수동 트레이·DPI는 미실행이다. 웹 쿠키 교체 시 이전 연결은 TTL720초와 조회60초까지 남을 수 있어 즉시 오프라인으로 보고하지 않는다.
+
+최종 전체 Node **774/771 PASS/0 FAIL/기존3 SKIP**, native9·React9 및 추가 2Chrome 세션·타입·변경 MJS lint PASS. 새 사본의 시험 폴더 누락 1건을 RED→시험 builder 1줄 수정→단독/전체 GREEN으로 보완했다. 기존 Astra/layout lint22오류9경고·과거 GUI timeout/ERGON 수령 terminal 최초 실패 원인 미확정은 유지한다. 격리 Next build62경로·종료 코드0 PASS. 개별 판정은 QA를 따른다.
+
+**다음:** 격리 PG 신규 runner 실행 → 장기 세션 표식/자동 유지보수 정책 → 실제 무료 사용량·0.4.3 운영 통합 승인 검토. 40명·2연결·ASTRA viewer4 기준 월 API는 8시간 348,480, 24시간 1,045,440(종료/기존 기능 별도)으로 24시간은 Hobby 100만 호출을 초과한다. 현재 팀 사용량은 권한403으로 미확인이다. 300/720/60/20분은 변경하지 않았다.
+
+운영 DB/마이그레이션·기능 flag·main·배포·공개 IRIS/ZIP/metadata·게임/사용자 원장 변경0. 제품 코드 변경 없이 시험·proposal·한국어 기록만 로컬 보존하며 commit/push는 별도 승인 대기다.
+
 ## 2026-10-28 영겁 — ASTRA 웹·IRIS 온라인 로컬 후보
 
 후속 마감: [비용·DB 안전·선별 범위](ASTRA_ONLINE_CLOSEOUT_20261028.md). 현재300초/720초, 이전180/600을 운영 사실로 해석하지 않는다. 정상 종료 leave는 즉시 요청하되 화면 반영60초/네트워크 실패TTL을 구분. 기존 활동·API까지 포함한24h2연결은 무료 한도 초과 가능, 전역 만료 session/lease 보존정책도 미확정이므로 운영 비활성. 선별 전송 준비만이며 commit/push 미승인.

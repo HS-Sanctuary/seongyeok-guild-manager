@@ -1,3 +1,11 @@
+## 2026-10-29 ASTRA 안정화 시험·미적용 정리 proposal / ERGON D-1 복귀
+
+운영/제품 구조 변경 없음. 기존 native `DesktopOnlineConnection`→고정 `/api/account/online`과 별도 입력 기반 activity 경계를 유지한다. CHRONOS15초 저장 대기/1초 로컬tick·native 재화·행동 기반 서버 요청은 idle tray heartbeat 대체가 아니므로 전 API 미들웨어/Realtime 전환은 추가하지 않는다. 300/720/60/20분 유지·실제 호출 절감0이다.
+
+검증 도구는 신규 retention 모델/query emitter/PG runner·SQL fixture와0.4.3 source-only WebView2 builder/전체 UI fixture,24시간 비용 회귀다. 새 `20261029_account_online_retention.sql`은 service_role 수동 정리의 미적용 제안이며 신규 테이블/운영 job은 없다. 실제 PG 미실행·장기표식256cap·전역 저장 상한 미보장을 유지한다. 원본 제품·IRIS0.4.3/ZIP·기능flag·ERGON잠금·native 원장은 변경하지 않는다.
+
+현재 기준2ad9fc3와 이번 선별 전송 결과는 [최소 비용 QA](../docs/ASTRA_MINIMAL_COST_CLOSEOUT_20261029.md)/릴레이를 따른다. 다음 ERGON D-1의 workId·시설 정원·실수령·비용·캐릭터 귀속은 근거 확보 전 unsupported이며 기존 B/C/D-0를 재작성하지 않는다.
+
 ## 2026-10-29 ASTRA 온라인 기능 브랜치 검증 구조
 
 온라인 POST/GET → 기존 서버 세션 → 임대 proposal RPC와 별도 활동 RPC를 유지한다. native의 고정 API 수명은 사이드바/플로팅/숨김과 분리한다. 기본 운영 flagfalse, 운영 구조/DB 변경 없음.

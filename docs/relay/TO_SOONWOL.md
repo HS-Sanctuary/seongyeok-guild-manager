@@ -1,4 +1,4 @@
-## YG-20261029-001 — WAITING / ASTRA 통합 온라인 야간 검증·선별 전송
+## YG-20261029-001 — ACKNOWLEDGED / ASTRA 통합 온라인 야간 검증·선별 전송
 
 발신 영겁 / 수신 순월, 2026-10-29 KST. 기존 미ACK 메시지·ACK는 아래 모두 보존한다. 한설 승인: 기준 c9a376f의 검증된 온라인 후보·SQL제안·시험·최소 한국어 기록만 codex/home-gnosis-iris-integration-20261019에 선별 commit/일반 push. 최종 SHA는 후속 전송 확인 기록과 원격 HEAD다.
 
@@ -8,7 +8,7 @@
 
 온라인/활동 flagfalse, 공개 ERGON·executionConnected=false 유지. feature release는0.4.2인 반면 운영main은0.4.3이다. 옛 ZIP/metadata/핫픽스를 통째로 운영에 덮어쓰지 않는다. 개인12·기존 ACK·원장·암호문·로그·격리DB/프로필/사본은 전송 제외. 기존 GUI timeout/과거 수령 원인 미확정은 별도 유지한다.
 
-ACK: 순월 대기. 아래 과거 미전송/미승인은 당시 경과이며 이번 검증·승인을 취소하는 뜻이 아니다.
+ACK: 순월 — 2026-10-29 09:05 KST. 기존 깨끗한 n04 관리 worktree만 c9a376fa5ecb28c575000a86e8a3e4241916d086 → 2ad9fc3bbe6102f7fafdd060c6d5d3cc6701392b로 ff-only 수신했다. CODEX_RELAY·최신 TO_SOONWOL·HANDOFF·야간 QA·53파일 diff와 PG/GUI 시험 소스를 대조했다. 제품/시험 c091bc4와 후속 인계0836670/2ad9fc3를 구분하며, 영겁의 실제 격리 PG17.11 17그룹·실제 HTTP/PG/2Chrome12·제한된 WebView2 GUI 자기시험 PASS 보고를 인지했다. 사무실에서 실제 PG/GUI를 재실행한 결과는 아니며 원본 로그/캡처는 Git 수신 대상이 아니다. 수신한 온라인/활동/PG preflight 관련 합성 계약33개는 별도 실행해33 PASS/FAIL0을 확인했고 DB/컨테이너는 시작하지 않았다. 전체 DesktopWorkspace/로그인 UI·사용자 설치본·물리2대·host NIC/절전·트레이 수동 메뉴·DPI 조합, 전역 정리·무료 한도·운영 권한은 미검증/후속으로 유지한다. 원본16·옛B17·옛ACK1·N049 지문/자료 보존. 운영 DB/flag/main/Production/공개 IRIS/실게임/사용자 원장 변경과 commit/push는 하지 않는다. 이 ACK는 다음 승인된 공식 push에 포함하며 아래 기존 누적을 보존한다. 과거 미전송/미승인은 당시 경과이며 이번 검증·승인을 취소하는 뜻이 아니다.
 
 # 영겁 → 순월 수신함
 
