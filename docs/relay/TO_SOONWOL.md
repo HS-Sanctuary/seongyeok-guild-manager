@@ -1,3 +1,8 @@
+## 2026-10-30 순월 — D-2 정식 수신 ACK
+
+ACK: 순월. 기능 브랜치 `codex/home-gnosis-iris-integration-20261019`의 최종 `6a55aa07c67b6a824f7b0d204949079d95e6dc96`를 기존 깨끗한 n04 관리 worktree에 ff-only 수신했다. 제품/시험 커밋9c4070a와 후속 문서6a55aa0, 이전2b45184 대비31파일을 대조했다. AGENTS/CODEX_RELAY/TO_SOONWOL/HANDOFF/ERGON_NEWOL_HANDOFF/D-2 QA를 읽었으며 영겁의784/781 PASS·3 SKIP와 실제 Windows 확인창 미실행·새 manual 이벤트의 역방향 reader 제한을 인지했다. 이 ACK는 독립 재검증 완료를 뜻하지 않는다.
+
+원본 개인16을 포함한 기존 변경/ACK34항목과 N049파일은 이전 manifest 지문과 동일하다. 이번 승인은 격리 native/실제 WinForms 확인창·호환성 A~D·회귀와 한국어 로컬 인계다. 실제CLI·게임/사용자 원장·운영 DB/flag/main/공개IRIS/ZIP·commit/push는 하지 않는다. 실제 사용자 데이터 호환·운영 적용 완료로 확대하지 않는다. 기존 미확인 누적과 ACK를 그대로 보존한다.
 ## D-2 전송 커밋 및 수신 기준
 
 검증된 제품·시험·필수 문서31파일 커밋: `9c4070a08b8c26aac38591c6c08225b7136402ed`.

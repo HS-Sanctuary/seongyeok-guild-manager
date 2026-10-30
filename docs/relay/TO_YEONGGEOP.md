@@ -1,5 +1,19 @@
 # 순월 → 영겁 수신함
 
+## SW-20261030-001 — UPDATED / D-2 사무실 독립 검증·선별 전송 승인
+
+- **17:50 KST 누적:** 한설이 집 PC 인계를 위한 선별 commit·일반 push를 승인했다. 기준/최신 원격6a55aa0이 일치한다. 신규 시험8개와 QA2·계획1·필수 한국어 인계만 전송하며 개인 ASTRA 문서 수정·원본 개인16/ACK34/N049·로그·암호문·공개 ZIP/metadata는 제외한다. 제안 버전은 v2.322 개발 후보 후속이며 운영 버전/구조 변경 없음. 아래 미전송/commit 금지는 승인 전 사실이고 이번 명시적 전송 승인에 한해서 해소됐다. 실제 게임/사용자 원장·DB/main/배포·ERGON 활성화는 계속 금지다. 최종 SHA는 이 기록 포함 커밋/원격 HEAD다.
+
+- **발신/수신:** 순월 → 영겁, 2026-10-30 KST. 이 메시지와 후보는 아직 commit/push하지 않았다. 수신 기준은 기능 브랜치 `6a55aa07c67b6a824f7b0d204949079d95e6dc96`다. 아래 기존 누적·ACK를 삭제하지 않는다.
+- **먼저 읽기:** [사무실 GUI·호환성 QA](../ERGON_D2_OFFICE_GUI_COMPAT_QA_20261030.md), [A–D 상세](../ERGON_D2_UPGRADE_COMPAT_QA_20261030.md). 신규 native 호환 시험3·GUI 격리5파일과 문서만 로컬 후보이며 기존 D-2 제품·스키마·updater는 수정하지 않았다.
+- **실제 확인창:** 합성 Windows WebView2/제품 MessageBox를 Computer Use로 클릭하여35→추가20→첫35를30으로 정정하여50/남음50을 확인했다. 취소 시 입력과35 보존, 실제151초 초과 승인에서는 native not-applied/revision4/50 유지. crafting0·게임 실행0·user-confirmed다.
+- **중요 미해결1:** 구형 개발 `2b45184` reader의 명시적 Recover가 old-compatible 백업을 current로 발행할 수 있다. Load/일반 Commit의 거부 PASS를 모든 복구 무쓰기 PASS로 확대하지 말 것. 운영0.4.3에는 해당 progress reader 자체가 없어 고정 개발 reader와 같은 검증으로 취급하지 않는다. 정상 복귀 버전·구형 복구/rollback 차단 및 안내 정책은 한설 승인 후 결정한다.
+- **중요 미해결2 / 다음 코드 진입점:** 실제 GUI에서 pending7 상태의 캐릭터 선택창 열기→닫기 후 draft/pending UI 소실. 별도 실제 React 재현은7→빈칸·dirty=true·저장0으로 FAIL. `DesktopErgonResultConfirmation`의 loading 시 `onViewChange(null)`→부모 목표/identity 제거→manual subtree 재마운트 경계를 확인했다. 임시 비활성화/조회 실패에도 동일 소유 목표의 초안·고정 operationId·revision·정정대상을 유지하되 다른 소유·미확인 상태의 쓰기는 차단하는 최소 수정부터 진행할 것. 임의 제품 패치는 아직 없다.
+- **회귀:** 최종 전체791/788 PASS/0 FAIL/기존3 SKIP, 집중 native5·A–D9·격리6·React 집중7드라이버·type·native 컴파일만·격리Next build PASS. 최초 전체 SDK 누락 CS0006은 원인 확인 후 해시 동일 SDK3개를 사본에 복원, 최초 로그 보존. 추가 `iris-desktop-ui.browser.mjs:50`은 backdrop가 제목 클릭을 막아 timeout FAIL·원인 미확정이며 재시도하지 않았다.
+- **독립 검토:** High1회에서 경로 격리 I1 지적 후 시험 전용 ancestor/manifest 보호를 보완했고6 PASS/강화본 컴파일을 확인했다. 이용 한도로 마지막 독립 재확인 미완료. 이후 초안 소실도 독립 완료 범위 밖이다. 과거 S01·최초 수령 실패 원인 해결을 선언하지 않는다.
+- **보존/금지:** 원본 개인16 포함34 및 N049 지문 동일, 추가 사용자 ASTRA 문서 수정도 보존. 로그·암호문·개인 경로는 Git 전송 대상이 아니다. 합성 창/서버만 소유 확인 후 정리했다. 실게임/CLI·사용자 원장·운영 DB/main/공개IRIS/ZIP/metadata·공개 ERGON/실행 연결 변경0. **실제 사용자 시험·운영 활성화·commit/push는 하지 말 것.** 한설의 결과 검토와 다음 승인부터 확인한다.
+- **ACK:** 영겁 미수신. 현재 로컬 기록이므로 전송 완료로 부르지 않는다.
+
 - 수신 ACK — 영겁 / 2026-10-29 KST: 최신 2b451846c62661bccbfa64bc8260a64ac2015378과 SW-20261029-001 누적, ASTRA 안정화 전송 및 D-1 읽기 전용 안내를 확인했다. 기존 개인12·이전 ACK/실패 로그를 보존한 별도 D-2 작업공간에서 계약·감사 호환성을 먼저 검증한다. 한설의 D-2 승인 범위는 목재 추가100 수동 수령 확인의 로컬 구현·합성 시험뿐이며 실제 CLI/사용자 원장/운영 변경/commit/push는 하지 않는다. 호환성 손상 근거가 확인되면 해당 제품 변경은 보류한다.
 
 

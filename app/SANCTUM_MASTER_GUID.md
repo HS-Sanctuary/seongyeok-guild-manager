@@ -1,3 +1,9 @@
+## 2026-10-30 D-2 독립 GUI·호환성 시험 인계
+
+**제품·운영 구조 변경 없음.** 기존 D-2 bridge/DPAPI/작업대와 공개 잠금은 그대로다. 신규 `desktop-life-manual-upgrade` fixture/runner와 Node 시험은 고정 구형 개발 reader·신형 reader를 고유 합성 프로세스에서 대조한다. `tests/ergon-d2-gui-source.mjs`, `ergon-d2-gui.fixture.mjs`, `iris-ergon-d2-gui-build.ps1`, `fixtures/desktop-ergon-d2.entry.cs`, 격리 시험은 실제 DesktopPage/native 확인창을 별도 owner/profile·localhost 합성 환경에서만 실행하는 개발 도구다. 제품 build 목록·공개 설치본에는 추가하지 않는다.
+
+실제 확인35→55→정정50과 취소/승인 만료는 검증했지만, 화면 재조회 중 manual subtree 제거로 초안/pending UI가 사라지는 결함과 구형 명시적 Recover의 최신 기록 가시성 위험이 남는다. 보호를 완화하거나 자동 생산을 활성화하지 않는다. 상세 검증·미실행·독립 검토 미완료·후속은 `docs/ERGON_D2_OFFICE_GUI_COMPAT_QA_20261030.md`를 따른다. 한설의17:50 KST 승인은 시험/한국어 인계의 기능 브랜치 전송이며 main/DB/Production/공개 IRIS/실게임 변경 승인이 아니다.
+
 D-2 전송 확인 기록: 제품/시험 커밋 `9c4070a08b8c26aac38591c6c08225b7136402ed`의31파일을 선별했다. 본 후속은 인계 SHA·파일 목록 보완뿐이며 제품/구조/운영 변경 없음.
 
 ## 2026-10-29 20:57 KST — ERGON D-2 개발 후보 구조

@@ -1,3 +1,12 @@
+## 2026-10-30 순월 — D-2 독립 GUI·호환성 검증 / 로컬 후보
+
+17:50 KST 후속: 한설의 명시적 push 요청으로 검증된 시험·한국어 인계만 기능 브랜치에 선별 전송한다. 기존 로컬/미전송 문구는 당시 상태다. 최종 SHA는 이 문서 포함 원격 HEAD이며, 실제 사용자 시험 보류·초안 소실·구형 Recover·독립 재확인 미완료는 그대로 인계한다.
+
+- 수신6a55aa0·ACK 완료. [독립 QA](ERGON_D2_OFFICE_GUI_COMPAT_QA_20261030.md), [A–D 호환성](ERGON_D2_UPGRADE_COMPAT_QA_20261030.md)를 우선한다. 실제 합성 Windows 확인창에서35→55→정정50 및 취소·실제 승인 만료를 검증했다. user-confirmed이며 게임 증명이 아니다.
+- 운영 사용자 시험은 보류한다. 구형 명시적 Recover의 최신 manual 가시성 손실, 화면 임시 비활성화/재조회 시 draft/pending UI 소실을 먼저 해결한다. 후자는 실제 GUI 및 실제 React에서 FAIL 재현했고 제품 패치를 임의로 넣지 않았다. 구형 reader·rollback 정책은 별도 승인 대상이다.
+- 최종 전체 Node788 PASS/0 FAIL/기존3 SKIP(총791), native 집중/호환성/격리·React 집중7·type·build PASS. 추가 IRIS 통합 React의 backdrop timeout FAIL·독립 경로 보완 재검토 미완료를 함께 유지한다. 과거 S01·최초 수령 이력을 해결로 선언하지 않는다.
+- 기존 개인/ACK34·N049 보존, 별도 사용자 ASTRA 문서 수정도 보존. 실제 게임/원장·DB/main/공개IRIS/flag·commit/push0. 새 시험·한국어 기록만 로컬 미전송이며 다음 작업 전 소유권과 diff부터 확인한다.
+
 ## 2026-10-29 20:57 KST — ERGON D-2 선별 전송 승인 마감
 
 한설이 D-2 검증 후보의 기능 브랜치 선별 commit·일반 push를 승인했다. 기준2b451846c62661bccbfa64bc8260a64ac2015378, 대상 codex/home-gnosis-iris-integration-20261019. 아래 미전송/미승인은 당시 상태로 보존한다. 정확한 전송 SHA는 후속 수신 확인 기록과 원격 HEAD다.
